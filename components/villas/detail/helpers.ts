@@ -81,7 +81,36 @@ export function buildGalleryItems(
 }
 
 export function buildDisplayGallery(items: GalleryItem[]): GalleryItem[] {
-  return items.slice(0, 4);
+  const [mainItem, ...restItems] = items;
+  if (!mainItem) {
+    return [];
+  }
+
+  return [mainItem, ...sortBentoSideItems(restItems).slice(0, 3)];
+}
+
+function sortBentoSideItems(items: GalleryItem[]): GalleryItem[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const priorityDiff =
+        getBentoZonePriority(a.item.zoneKey) - getBentoZonePriority(b.item.zoneKey);
+      return priorityDiff || a.index - b.index;
+    })
+    .map(({ item }) => item);
+}
+
+function getBentoZonePriority(zoneKey: string): number {
+  if (zoneKey === "outside") {
+    return 0;
+  }
+  if (zoneKey === "inside") {
+    return 1;
+  }
+  if (zoneKey === "review") {
+    return 2;
+  }
+  return 3;
 }
 
 export function buildGalleryCategories(items: GalleryItem[]): GalleryCategory[] {

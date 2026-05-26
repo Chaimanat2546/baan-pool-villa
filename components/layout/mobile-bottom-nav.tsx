@@ -1,39 +1,10 @@
 "use client";
 
-import { MessageCircle, Phone, X } from "lucide-react";
+import { Phone, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-
-const phoneContacts = [
-  {
-    href: "tel:0617485213",
-    name: "คุณเกม",
-    phone: "0617485213",
-    time: "ช่วง 07.00-15.00",
-  },
-  {
-    href: "tel:0657329919",
-    name: "คุณโก้",
-    phone: "0657329919",
-    time: "ช่วง 16.00-02.00",
-  },
-];
-
-function LineIcon() {
-  return (
-    <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#06c755] text-[8px] font-black leading-none text-white shadow-sm">
-      LINE
-    </span>
-  );
-}
-
-function MessengerIcon() {
-  return (
-    <span className="grid h-7 w-7 place-items-center rounded-full bg-[#0a7cff] text-white shadow-sm">
-      <MessageCircle className="h-4 w-4" />
-    </span>
-  );
-}
+import { contactLinks, phoneContacts } from "@/lib/site-contact";
+import { LineIcon, MessengerIcon } from "./contact-icons";
 
 export function MobileBottomNav() {
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
@@ -54,7 +25,7 @@ export function MobileBottomNav() {
           </button>
 
           <Link
-            href="https://www.facebook.com/baanpoolvillas"
+            href={contactLinks.messenger}
             className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#dbe7e3] bg-white px-2 text-xs font-semibold leading-none text-[#064e3b]"
           >
             <MessengerIcon />
@@ -62,7 +33,7 @@ export function MobileBottomNav() {
           </Link>
 
           <Link
-            href="https://line.me/R/ti/p/@baanpoolvilla"
+            href={contactLinks.line}
             className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#dbe7e3] bg-white px-2 text-xs font-semibold leading-none text-[#064e3b]"
           >
             <LineIcon />
