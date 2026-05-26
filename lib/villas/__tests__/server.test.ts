@@ -52,7 +52,7 @@ describe("fetchHouseListings", () => {
         bedrooms: 6,
         bathrooms: 5,
         distanceToSea: "5.6 km",
-        price: 8000,
+        price: 9900,
         people: 12,
         coverImage: "https://devillegroups.com/imgs/profile_imgs_large/villa-9.jpg",
         amenities: [

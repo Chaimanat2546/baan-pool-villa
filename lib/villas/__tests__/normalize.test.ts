@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeHouse } from "../normalize";
+import { calculateCommission, normalizeHouse } from "../normalize";
 import type { RawHouse } from "../types";
 
 const rawHouse: RawHouse = {
@@ -37,7 +37,7 @@ describe("normalizeHouse", () => {
       bedrooms: 6,
       bathrooms: 6,
       distanceToSea: "5.6 กม",
-      price: 8000,
+      price: 9900,
       people: 9,
       coverImage: "https://devillegroups.com/imgs/profile_imgs_large/cover.jpg",
       poolType: "chlorine",
@@ -55,5 +55,19 @@ describe("normalizeHouse", () => {
 
   it("returns null cover image when img_name is missing", () => {
     expect(normalizeHouse({ ...rawHouse, img_name: null }).coverImage).toBeNull();
+  });
+});
+
+describe("calculateCommission", () => {
+  it.each([
+    [8000, 9900],
+    [8500, 9900],
+    [28000, 29900],
+    [28500, 30900],
+    [47000, 49900],
+    [47500, 50900],
+    [48000, 51900],
+  ])("returns %i as %i after applying commission", (price, expected) => {
+    expect(calculateCommission(price)).toBe(expected);
   });
 });
