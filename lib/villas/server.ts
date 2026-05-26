@@ -1,7 +1,8 @@
 import "server-only";
 
+import { fetchVillaImages } from "./images";
 import { normalizeHouses } from "./normalize";
-import type { RawHouse, VillaDetailPayload, VillaListing } from "./types";
+import type { RawHouse, VillaDetailPayload, VillaImage, VillaListing } from "./types";
 
 const HOUSE_LIST_URL = "https://www.devillegroups.com/api/json/getHouse_deville.json";
 const DETAIL_URL = "https://deville-central.com/api/getAccommodation.php";
@@ -80,6 +81,35 @@ export async function fetchVillaDetail(id: string): Promise<VillaDetailPayload |
       listing,
       detail: null,
       detailStatus: "unavailable",
+    };
+  }
+}
+
+export type VillaPageData = {
+  payload: VillaDetailPayload;
+  images: VillaImage[];
+};
+
+export async function fetchVillaPageData(
+  id: string,
+): Promise<VillaPageData | null> {
+  const payload = await fetchVillaDetail(id);
+
+  if (!payload) {
+    return null;
+  }
+
+  try {
+    return {
+      payload,
+      images: await fetchVillaImages(id),
+    };
+  } catch (error) {
+    console.error("Unable to load villa gallery images", error);
+
+    return {
+      payload,
+      images: [],
     };
   }
 }

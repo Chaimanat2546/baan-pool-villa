@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RawHouse } from "../types";
-import { fetchHouseListings, fetchVillaDetail } from "../server";
+import { fetchHouseListings, fetchVillaDetail, fetchVillaPageData } from "../server";
 
 vi.mock("server-only", () => ({}));
 
@@ -92,5 +92,23 @@ describe("fetchVillaDetail", () => {
 
     await expect(fetchVillaDetail("999")).resolves.toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("fetchVillaPageData", () => {
+  it("returns server-fetched detail payload with an empty image fallback when gallery loading fails", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([rawHouse]));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "");
+    vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "");
+
+    await expect(fetchVillaPageData("9")).resolves.toMatchObject({
+      payload: {
+        listing: { id: "9" },
+        detail: null,
+        detailStatus: "missing_token",
+      },
+      images: [],
+    });
   });
 });
