@@ -4,6 +4,13 @@ import { Prompt } from "next/font/google";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import {
+  buildPageMetadata,
+  defaultDescription,
+  defaultTitle,
+  getSiteUrl,
+  siteName,
+} from "@/lib/seo";
 
 import "./globals.css";
 
@@ -16,8 +23,21 @@ const prompt = Prompt({
 });
 
 export const metadata: Metadata = {
-  title: "Baan Pool Villa",
-  description: "ค้นหาบ้านพักพูลวิลล่าพัทยา",
+  ...buildPageMetadata({
+    canonicalPath: "/",
+    description: defaultDescription,
+    title: defaultTitle,
+  }),
+  applicationName: siteName,
+  metadataBase: getSiteUrl(),
+  robots: {
+    follow: true,
+    index: true,
+  },
+  title: {
+    default: defaultTitle,
+    template: `%s | ${siteName}`,
+  },
 };
 
 export default function RootLayout({
@@ -30,7 +50,7 @@ export default function RootLayout({
       lang="th"
       className={`${prompt.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#f4f7f4] pb-20 text-[#063f35] lg:pb-0">
+      <body className="min-h-full bg-[#f4f7f4] pb-20 text-[#063f35] lg:pb-0 select-none">
         <SiteHeader />
         {children}
         <SiteFooter />
