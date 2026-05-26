@@ -1,102 +1,97 @@
 import { describe, expect, it } from "vitest";
+
 import {
-  filterVillas,
+  filterVillasById,
+  filtersFromSearchParams,
   getDefaultFilters,
-  getMaxVillaPrice,
-  getUniqueZones,
+  normalizeFiltersForSearch,
+  sortVillas,
 } from "../filters";
 import type { VillaListing } from "../types";
 
 const villas: VillaListing[] = [
   {
-    id: "1",
+    id: "9",
     zone: "pattaya",
     zoneLabel: "พัทยา",
-    bedrooms: 4,
-    bathrooms: 4,
-    distanceToSea: "1 กม.",
-    price: 5000,
-    people: 12,
+    bedrooms: 3,
+    bathrooms: 3,
+    distanceToSea: "5 กม.",
+    price: 12000,
+    people: 8,
     coverImage: null,
+    amenities: [],
     poolType: "salt",
-    amenities: [{ key: "karaoke", label: "คาราโอเกะ" }],
   },
   {
-    id: "2",
-    zone: "bangsaen",
-    zoneLabel: "บางแสน",
-    bedrooms: 2,
-    bathrooms: 2,
-    distanceToSea: "500 ม.",
-    price: 2500,
-    people: 4,
+    id: "25",
+    zone: "jomtien",
+    zoneLabel: "จอมเทียน",
+    bedrooms: 5,
+    bathrooms: 5,
+    distanceToSea: "2 กม.",
+    price: 9000,
+    people: 15,
     coverImage: null,
+    amenities: [],
     poolType: "chlorine",
-    amenities: [{ key: "pet", label: "นำสัตว์เลี้ยงได้" }],
   },
 ];
 
-describe("filterVillas", () => {
-  it("keeps villas matching guests, bedrooms, max price, and selected amenities", () => {
+describe("normalizeFiltersForSearch", () => {
+  it("keeps an explicit minimum price selection", () => {
+    expect(normalizeFiltersForSearch(getDefaultFilters(1000), 61900).maxPrice).toBe(1000);
+  });
+
+  it("keeps a user-selected price under the available maximum", () => {
+    expect(normalizeFiltersForSearch(getDefaultFilters(25000), 61900).maxPrice).toBe(25000);
+  });
+
+  it("clamps a user-selected price above the available maximum", () => {
+    expect(normalizeFiltersForSearch(getDefaultFilters(90000), 61900).maxPrice).toBe(61900);
+  });
+});
+
+describe("filtersFromSearchParams", () => {
+  it("uses the available maximum when maxPrice is missing", () => {
+    expect(filtersFromSearchParams(new URLSearchParams(), 61900).maxPrice).toBe(61900);
+  });
+
+  it("keeps an explicit maxPrice=1000 selection", () => {
     expect(
-      filterVillas(villas, {
-        zone: "all",
-        guests: 10,
-        bedrooms: 3,
-        maxPrice: 6000,
-        amenities: ["karaoke"],
-      }).map((villa) => villa.id),
-    ).toEqual(["1"]);
+      filtersFromSearchParams(new URLSearchParams("maxPrice=1000"), 61900).maxPrice,
+    ).toBe(1000);
   });
 
-  it("filters by exact zone unless zone is all", () => {
+  it("keeps an explicit price above the low placeholder", () => {
     expect(
-      filterVillas(villas, {
-        ...getDefaultFilters(6000),
-        zone: "bangsaen",
-      }).map((villa) => villa.id),
-    ).toEqual(["2"]);
+      filtersFromSearchParams(new URLSearchParams("maxPrice=25000"), 61900).maxPrice,
+    ).toBe(25000);
   });
 });
 
-describe("getDefaultFilters", () => {
-  it("returns the default filter state for a max price", () => {
-    expect(getDefaultFilters(6000)).toEqual({
-      zone: "all",
-      guests: 2,
-      bedrooms: 1,
-      amenities: [],
-      maxPrice: 6000,
-    });
+describe("filterVillasById", () => {
+  it("matches plain numeric ids", () => {
+    expect(filterVillasById(villas, "9").map((villa) => villa.id)).toEqual(["9"]);
+  });
+
+  it("matches display ids with DV prefix", () => {
+    expect(filterVillasById(villas, "DV-25").map((villa) => villa.id)).toEqual(["25"]);
   });
 });
 
-describe("getMaxVillaPrice", () => {
-  it("returns zero for an empty villa list", () => {
-    expect(getMaxVillaPrice([])).toBe(0);
+describe("sortVillas", () => {
+  it("sorts by price from low to high", () => {
+    expect(sortVillas(villas, "price_asc").map((villa) => villa.id)).toEqual(["25", "9"]);
   });
 
-  it("returns the highest villa price", () => {
-    expect(getMaxVillaPrice(villas)).toBe(5000);
+  it("sorts by guest capacity from high to low", () => {
+    expect(sortVillas(villas, "people_desc").map((villa) => villa.id)).toEqual(["25", "9"]);
   });
-});
 
-describe("getUniqueZones", () => {
-  it("de-duplicates zones and sorts them by Thai label", () => {
-    const zones = getUniqueZones([
-      villas[0],
-      { ...villas[0], id: "3" },
-      {
-        ...villas[1],
-        id: "4",
-        zone: "chaam",
-        zoneLabel: "ชะอำ",
-      },
-    ]);
+  it("does not mutate the original list", () => {
+    sortVillas(villas, "price_asc");
 
-    expect(zones).toEqual([
-      { value: "chaam", label: "ชะอำ" },
-      { value: "pattaya", label: "พัทยา" },
-    ]);
+    expect(villas.map((villa) => villa.id)).toEqual(["9", "25"]);
   });
 });
