@@ -1,9 +1,14 @@
-import type { VillaDetailPayload, VillaImage } from "@/lib/villas/types";
+import type {
+  VillaDetailPayload,
+  VillaImage,
+  VillaListing,
+} from "@/lib/villas/types";
 
 export type VillaDetailPageProps = {
   id: string;
   images: VillaImage[];
   payload: VillaDetailPayload;
+  recommendedVillas: VillaListing[];
 };
 
 export type GalleryItem = {

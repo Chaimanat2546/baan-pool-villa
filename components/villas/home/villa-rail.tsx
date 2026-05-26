@@ -10,13 +10,17 @@ import { SectionHeader } from "./section-header";
 type VillaRailProps = {
   cta?: boolean;
   description: string;
+  id?: string;
   title: string;
   villas: VillaListing[];
 };
 
-export function VillaRail({ cta, description, title, villas }: VillaRailProps) {
+export function VillaRail({ cta, description, id, title, villas }: VillaRailProps) {
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
+    <section
+      id={id}
+      className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14"
+    >
       <SectionHeader title={title} description={description} />
       <ScrollRail
         label={title}

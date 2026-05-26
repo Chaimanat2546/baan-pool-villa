@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, RotateCcw, Search, Waves } from "lucide-react";
+import { AlertCircle, RotateCcw, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -192,14 +192,6 @@ export function SearchPage() {
     setVisibleCount(PAGE_SIZE);
   }
 
-  function toggleNearSeaOnly() {
-    setFilters((currentFilters) => ({
-      ...currentFilters,
-      nearSeaOnly: !currentFilters.nearSeaOnly,
-    }));
-    setVisibleCount(PAGE_SIZE);
-  }
-
   function clearSearchConditions() {
     setFilters(getDefaultFilters(Math.max(maxAvailablePrice, 1000)));
     setVillaIdQuery("");
@@ -225,7 +217,7 @@ export function SearchPage() {
         </header>
 
         {isSearchReady ? (
-          <div className="grid gap-3 rounded-2xl border border-[#dbe7e3] bg-white p-4 shadow-[0_10px_28px_rgba(6,63,53,0.05)] md:grid-cols-[minmax(0,1fr)_220px_260px]">
+          <div className="grid gap-3 rounded-2xl border border-[#dbe7e3] bg-white p-4 shadow-[0_10px_28px_rgba(6,63,53,0.05)] md:grid-cols-[minmax(0,1fr)_260px]">
             <label className="block min-w-0">
               <span className="text-sm font-bold text-[#064e3b]">ค้นหาด้วยรหัสบ้าน</span>
               <span className="mt-2 flex h-11 items-center gap-2 rounded-xl border border-[#dbe7e3] bg-[#fbfdfb] px-3 text-[#064e3b]">
@@ -239,23 +231,6 @@ export function SearchPage() {
                 />
               </span>
             </label>
-
-            <div className="block min-w-0">
-              <span className="text-sm font-bold text-[#064e3b]">บ้านพักใกล้ทะเล</span>
-              <button
-                type="button"
-                aria-pressed={filters.nearSeaOnly}
-                onClick={toggleNearSeaOnly}
-                className={`mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-bold transition ${
-                  filters.nearSeaOnly
-                    ? "border-[#064e3b] bg-[#064e3b] text-white"
-                    : "border-[#dbe7e3] bg-[#fbfdfb] text-[#064e3b] hover:bg-[#eef7f3]"
-                }`}
-              >
-                <Waves className="h-4 w-4" />
-                ไม่เกิน 2 กม.
-              </button>
-            </div>
 
             <label className="block min-w-0">
               <span className="text-sm font-bold text-[#064e3b]">เรียงลำดับ</span>

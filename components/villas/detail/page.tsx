@@ -22,7 +22,11 @@ import { NearbySection } from "./nearby-section";
 import { RecommendedVillas } from "./recommended-villas";
 import type { GalleryItem, VillaDetailPageProps } from "./types";
 
-export function VillaDetailPage({ images, payload }: VillaDetailPageProps) {
+export function VillaDetailPage({
+  images,
+  payload,
+  recommendedVillas,
+}: VillaDetailPageProps) {
 
   const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(
 
@@ -163,7 +167,7 @@ export function VillaDetailPage({ images, payload }: VillaDetailPageProps) {
 
       </div>
 
-      <RecommendedVillas listing={listing} />
+      <RecommendedVillas villas={recommendedVillas} />
 
       <GalleryLightbox
 
