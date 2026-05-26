@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import type { VillaListing } from "@/lib/villas/types";
 
+import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
 import { MockBadge } from "./shared";
 
@@ -30,12 +31,15 @@ type ArticlesSectionProps = {
 
 export function ArticlesSection({ villas }: ArticlesSectionProps) {
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+    <section id="cafes" className="mx-auto w-full max-w-7xl scroll-mt-28 px-4 py-14 sm:px-6 lg:px-8">
       <SectionHeader
         title="คาเฟ่ที่แนะนำ"
         description="รวมคาเฟ่น่าแวะใกล้โซนบ้านพัก ช่วยให้วางแผนทริปได้ครบทั้งที่พักและที่เที่ยว"
       />
-      <div className="-mx-4 mt-8 flex snap-x gap-6 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+      <ScrollRail
+        label="คาเฟ่ที่แนะนำ"
+        className="-mx-4 mt-8 gap-6 px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+      >
         {articleCards.slice(0, 12).map((article, index) => {
           const articleImage = villas[index + 2]?.coverImage;
 
@@ -71,7 +75,7 @@ export function ArticlesSection({ villas }: ArticlesSectionProps) {
             </article>
           );
         })}
-      </div>
+      </ScrollRail>
     </section>
   );
 }

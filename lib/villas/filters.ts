@@ -14,6 +14,7 @@ export function getDefaultFilters(maxPrice: number): VillaFilters {
     bedrooms: 1,
     amenities: [],
     maxPrice,
+    nearSeaOnly: false,
   };
 }
 
@@ -40,6 +41,10 @@ export function filtersToSearchParams(
 
   if (filters.amenities.length > 0) {
     params.set("amenities", filters.amenities.join(","));
+  }
+
+  if (filters.nearSeaOnly) {
+    params.set("nearSea", "1");
   }
 
   return params;
@@ -81,7 +86,44 @@ export function filtersFromSearchParams(
     maxPrice: Number.isFinite(requestedMaxPrice)
       ? Math.min(Math.max(1000, requestedMaxPrice), maxPrice)
       : defaults.maxPrice,
+    nearSeaOnly: searchParams.get("nearSea") === "1",
   };
+}
+
+export function getDistanceToSeaInKm(distanceToSea: string): number | null {
+  const normalizedDistance = distanceToSea.trim().toLowerCase();
+
+  if (!normalizedDistance || normalizedDistance === "-") {
+    return null;
+  }
+
+  const matchedDistance = normalizedDistance.match(/(\d+(?:[.,]\d+)?)/);
+
+  if (!matchedDistance) {
+    return null;
+  }
+
+  const distance = Number(matchedDistance[1].replace(",", "."));
+
+  if (!Number.isFinite(distance)) {
+    return null;
+  }
+
+  if (
+    normalizedDistance.includes("เมตร") ||
+    normalizedDistance.includes("meter") ||
+    normalizedDistance.includes(" m")
+  ) {
+    return distance / 1000;
+  }
+
+  return distance;
+}
+
+export function isNearSeaVilla(villa: VillaListing): boolean {
+  const distanceInKm = getDistanceToSeaInKm(villa.distanceToSea);
+
+  return distanceInKm !== null && distanceInKm <= 2;
 }
 
 export function filterVillas(
@@ -93,6 +135,7 @@ export function filterVillas(
     const guestMatches = villa.people >= filters.guests;
     const bedroomMatches = villa.bedrooms >= filters.bedrooms;
     const priceMatches = villa.price <= filters.maxPrice;
+    const nearSeaMatches = !filters.nearSeaOnly || isNearSeaVilla(villa);
     const villaAmenityKeys = new Set(
       villa.amenities.map((amenity) => amenity.key),
     );
@@ -105,6 +148,7 @@ export function filterVillas(
       guestMatches &&
       bedroomMatches &&
       priceMatches &&
+      nearSeaMatches &&
       amenityMatches
     );
   });

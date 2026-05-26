@@ -8,6 +8,7 @@ import {
   getDefaultFilters,
   getMaxVillaPrice,
   getUniqueZones,
+  isNearSeaVilla,
   normalizeFiltersForSearch,
 } from "@/lib/villas/filters";
 import type { VillaFilters, VillaListing } from "@/lib/villas/types";
@@ -76,7 +77,7 @@ export function HomePage() {
   const beachVillas = useMemo(
     () =>
       villas
-        .filter((villa) => villa.distanceToSea !== "-")
+        .filter(isNearSeaVilla)
         .slice(0, 12),
     [villas],
   );

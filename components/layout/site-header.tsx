@@ -1,15 +1,15 @@
 "use client";
 
-import { MapPin, Menu, Search, X } from "lucide-react";
+import { MapPin, Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
 const navItems = [
   { href: "/", label: "หน้าแรก" },
-  { href: "/search", label: "บ้านทั้งหมด" },
+  { href: "/search", label: "ค้นหาบ้านพัก" },
   { href: "/#recommendations", label: "รีวิว" },
-  { href: "/#contact", label: "ติดต่อ" },
+  { href: "/#cafes", label: "สถานที่ท่องเที่ยว" },
 ];
 
 const bankNotice = "กรุณาโอนเงิน ชื่อบัญชี";
@@ -96,16 +96,6 @@ export function SiteHeader() {
                 >
                   <MapPin className="h-4 w-4" />
                   จองเลย
-                </Link>
-              </div>
-              <div className="border-b border-[#dbe7e3] p-3">
-                <Link
-                  href="/search"
-                  className="flex h-11 items-center justify-center gap-2 rounded-full bg-[#064e3b] px-4 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(6,78,59,0.22)]"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Search className="h-4 w-4" />
-                  ค้นหาบ้านพัก
                 </Link>
               </div>
             </div>

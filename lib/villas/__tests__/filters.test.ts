@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  filterVillas,
   filterVillasById,
   filtersFromSearchParams,
+  getDistanceToSeaInKm,
   getDefaultFilters,
+  isNearSeaVilla,
   normalizeFiltersForSearch,
   sortVillas,
 } from "../filters";
@@ -67,6 +70,40 @@ describe("filtersFromSearchParams", () => {
     expect(
       filtersFromSearchParams(new URLSearchParams("maxPrice=25000"), 61900).maxPrice,
     ).toBe(25000);
+  });
+
+  it("reads the near sea filter from search params", () => {
+    expect(filtersFromSearchParams(new URLSearchParams("nearSea=1"), 61900).nearSeaOnly).toBe(true);
+  });
+});
+
+describe("getDistanceToSeaInKm", () => {
+  it.each([
+    ["2 กม.", 2],
+    ["1.5 km", 1.5],
+    ["500 เมตร", 0.5],
+    ["800 m", 0.8],
+    ["-", null],
+  ])("parses %s as %s km", (distance, expected) => {
+    expect(getDistanceToSeaInKm(distance)).toBe(expected);
+  });
+});
+
+describe("isNearSeaVilla", () => {
+  it("keeps villas that are at most 2 km from the sea", () => {
+    expect(villas.filter(isNearSeaVilla).map((villa) => villa.id)).toEqual(["25"]);
+  });
+});
+
+describe("filterVillas", () => {
+  it("can filter by the same near-sea condition used on the home page", () => {
+    expect(
+      filterVillas(villas, {
+        ...getDefaultFilters(20000),
+        guests: 1,
+        nearSeaOnly: true,
+      }).map((villa) => villa.id),
+    ).toEqual(["25"]);
   });
 });
 

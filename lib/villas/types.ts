@@ -51,6 +51,7 @@ export type VillaFilters = {
   bedrooms: number;
   amenities: AmenityKey[];
   maxPrice: number;
+  nearSeaOnly: boolean;
 };
 
 export type VillaImage = {

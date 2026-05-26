@@ -28,6 +28,7 @@ function getActiveFilterCount(filters: VillaFilters, maxAvailablePrice: number):
   if (filters.bedrooms > 1) count += 1;
   if (filters.amenities.length > 0) count += 1;
   if (filters.maxPrice < maxAvailablePrice) count += 1;
+  if (filters.nearSeaOnly) count += 1;
 
   return count;
 }

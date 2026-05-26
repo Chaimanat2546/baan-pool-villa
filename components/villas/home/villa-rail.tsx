@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { VillaListing } from "@/lib/villas/types";
 
 import { VillaCard } from "../listing/villa-card";
+import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
 
 type VillaRailProps = {
@@ -17,13 +18,16 @@ export function VillaRail({ cta, description, title, villas }: VillaRailProps) {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
       <SectionHeader title={title} description={description} />
-      <div className="-mx-4 mt-4 flex snap-x gap-5 overflow-x-auto px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8">
+      <ScrollRail
+        label={title}
+        className="-mx-4 mt-4 gap-5 px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8"
+      >
         {villas.slice(0, 12).map((villa, index) => (
           <div key={villa.id} className="w-[290px] shrink-0 snap-start">
             <VillaCard villa={villa} preload={index === 0} />
           </div>
         ))}
-      </div>
+      </ScrollRail>
       {cta ? (
         <div className="mt-8 text-center">
           <Link

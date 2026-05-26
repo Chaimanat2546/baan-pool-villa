@@ -3,9 +3,9 @@ import Link from "next/link";
 
 const menuItems = [
   { href: "/", label: "หน้าแรก" },
-  { href: "/search", label: "บ้านทั้งหมด" },
+  { href: "/search", label: "ค้นหาบ้านพัก" },
   { href: "/#recommendations", label: "รีวิว" },
-  { href: "/#contact", label: "ติดต่อเรา" },
+  { href: "/#cafes", label: "สถานที่ท่องเที่ยว" },
 ];
 
 const contactItems = [
