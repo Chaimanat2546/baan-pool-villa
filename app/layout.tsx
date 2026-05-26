@@ -1,20 +1,43 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Prompt } from "next/font/google";
+
+import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteHeader } from "@/components/layout/site-header";
+import {
+  buildPageMetadata,
+  defaultDescription,
+  defaultTitle,
+  getSiteUrl,
+  siteName,
+} from "@/lib/seo";
+
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const prompt = Prompt({
+  display: "swap",
+  preload: false,
+  variable: "--font-prompt",
+  subsets: ["latin", "thai"],
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
-  title: "Baan Pool Villa",
-  description: "ค้นหาบ้านพักพูลวิลล่าพัทยา",
+  ...buildPageMetadata({
+    canonicalPath: "/",
+    description: defaultDescription,
+    title: defaultTitle,
+  }),
+  applicationName: siteName,
+  metadataBase: getSiteUrl(),
+  robots: {
+    follow: true,
+    index: true,
+  },
+  title: {
+    default: defaultTitle,
+    template: `%s | ${siteName}`,
+  },
 };
 
 export default function RootLayout({
@@ -25,9 +48,14 @@ export default function RootLayout({
   return (
     <html
       lang="th"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${prompt.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#f4f7f4] text-[#063f35]">{children}</body>
+      <body className="min-h-full bg-[#f4f7f4] pb-20 text-[#063f35] lg:pb-0 select-none">
+        <SiteHeader />
+        {children}
+        <SiteFooter />
+        <MobileBottomNav />
+      </body>
     </html>
   );
 }

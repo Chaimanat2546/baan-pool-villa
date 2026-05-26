@@ -13,16 +13,90 @@ type SupabaseImageRow = {
   image_zone: string | null;
 };
 
-export function normalizeImageRows(rows: SupabaseImageRow[]): VillaImage[] {
+const DEFAULT_SUPABASE_URL = "https://rqizfiayvcbozlzuvbok.supabase.co";
+const DEFAULT_IMAGE_PROXY_BASE_URL =
+  "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws/";
+
+function normalizeNullableText(value: string | null): string | null {
+  const trimmedValue = value?.trim();
+
+  if (!trimmedValue || trimmedValue.toLowerCase() === "null") {
+    return null;
+  }
+
+  return trimmedValue;
+}
+
+function getSupabaseConfig() {
+  const supabaseUrl =
+    process.env.SUPABASE_URL ??
+    process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    DEFAULT_SUPABASE_URL;
+  const supabaseKey =
+    process.env.SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseKey) {
+    throw new Error("Supabase publishable key is missing");
+  }
+
+  return { supabaseUrl, supabaseKey };
+}
+
+export function normalizeImageUrl(
+  imageUrl: string | null,
+  supabaseUrl = DEFAULT_SUPABASE_URL,
+): string | null {
+  const trimmedUrl = imageUrl?.trim();
+
+  if (!trimmedUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(trimmedUrl).toString();
+  } catch {
+    return new URL(trimmedUrl.replace(/^\/+/, ""), `${supabaseUrl}/`).toString();
+  }
+}
+
+export function buildProxyImageUrl(
+  imageName: string | null,
+  proxyBaseUrl = DEFAULT_IMAGE_PROXY_BASE_URL,
+): string | null {
+  const trimmedImageName = imageName?.trim();
+
+  if (!trimmedImageName) {
+    return null;
+  }
+
+  return new URL(encodeURIComponent(trimmedImageName), proxyBaseUrl).toString();
+}
+
+export function normalizeImageRows(
+  rows: SupabaseImageRow[],
+  supabaseUrl = DEFAULT_SUPABASE_URL,
+  proxyBaseUrl = process.env.IMAGE_PROXY_BASE_URL ?? DEFAULT_IMAGE_PROXY_BASE_URL,
+): VillaImage[] {
   return rows
-    .filter((row) => row.image_url)
     .map((row) => ({
-      id: row.id,
-      imageUrl: row.image_url as string,
-      imageName: row.image_name,
-      caption: row.caption,
-      isCover: (row.cover_select ?? 0) > 0,
-      zone: row.image_zone,
+      row,
+      imageUrl:
+        buildProxyImageUrl(row.image_name, proxyBaseUrl) ??
+        normalizeImageUrl(row.image_url, supabaseUrl),
+    }))
+    .filter((item): item is { row: SupabaseImageRow; imageUrl: string } =>
+      Boolean(item.imageUrl),
+    )
+    .map((row) => ({
+      id: row.row.id,
+      imageUrl: row.imageUrl,
+      imageName: normalizeNullableText(row.row.image_name),
+      caption: normalizeNullableText(row.row.caption),
+      isCover: (row.row.cover_select ?? 0) > 0,
+      zone: normalizeNullableText(row.row.image_zone),
     }));
 }
 
@@ -42,12 +116,7 @@ export function parseVillaId(id: string): number {
 
 export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   const villaId = parseVillaId(id);
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase environment variables are missing");
-  }
+  const { supabaseUrl, supabaseKey } = getSupabaseConfig();
 
   const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: {
@@ -68,5 +137,5 @@ export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
     throw new Error(error.message);
   }
 
-  return normalizeImageRows((data ?? []) as SupabaseImageRow[]);
+  return normalizeImageRows((data ?? []) as SupabaseImageRow[], supabaseUrl);
 }

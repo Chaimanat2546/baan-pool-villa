@@ -14,8 +14,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-sans: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 * {
@@ -32,7 +32,7 @@ body {
     radial-gradient(circle at top left, rgba(15, 90, 102, 0.14), transparent 34rem),
     linear-gradient(180deg, #f8fbf7 0%, #eef5f1 100%);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
 }
 
 button,

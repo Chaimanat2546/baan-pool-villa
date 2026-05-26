@@ -12,6 +12,21 @@ function toNumber(value: string | number | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+export function calculateCommission(price: string | number | null | undefined): number {
+  const numericPrice = toNumber(price);
+  const last3 = numericPrice % 1000;
+
+  if (numericPrice <= 28000) {
+    return Math.trunc(numericPrice + (last3 === 500 ? 1400 : 1900));
+  }
+
+  if (numericPrice <= 47000) {
+    return Math.trunc(numericPrice + (last3 === 500 ? 2400 : 2900));
+  }
+
+  return Math.trunc(numericPrice + (last3 === 500 ? 3400 : 3900));
+}
+
 export function getZoneLabel(zone: string): string {
   return ZONE_LABELS[zone] ?? zone;
 }
@@ -27,7 +42,7 @@ export function normalizeHouse(house: RawHouse): VillaListing {
     bedrooms: toNumber(house.h_bedroom),
     bathrooms: toNumber(house.h_toilet),
     distanceToSea: house.h_farsea?.trim() || "-",
-    price: toNumber(house.price),
+    price: calculateCommission(house.price),
     people: toNumber(house.people),
     coverImage: imageName ? `${PROFILE_IMAGE_BASE}/${imageName}` : null,
     amenities: getHouseAmenities(house),
