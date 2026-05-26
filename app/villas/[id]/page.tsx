@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { VillaDetailPage } from "@/components/villas/detail-page";
+import { VillaDetailPage } from "@/components/villas/detail/page";
 import {
   absoluteUrl,
   buildPageMetadata,

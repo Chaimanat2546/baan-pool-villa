@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { HomePage } from "@/components/villas/home-page";
+import { HomePage } from "@/components/villas/home/page";
 import { absoluteUrl, buildPageMetadata, defaultDescription, defaultTitle, siteName } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
