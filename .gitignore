@@ -4,6 +4,7 @@
 /.agents
 /.superpowers
 /node_modules
+docs/superpowers
 /.pnp
 .pnp.*
 .yarn/*
