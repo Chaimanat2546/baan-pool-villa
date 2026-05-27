@@ -8,11 +8,7 @@ import {
   getVillaDescription,
   getVillaTitle,
 } from "@/lib/seo";
-import {
-  fetchHouseListings,
-  fetchVillaPageData,
-  getListingById,
-} from "@/lib/villas/server";
+import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
 type VillaPageProps = {
   params: Promise<{ id: string }>;
@@ -49,10 +45,6 @@ export default async function Page({ params }: VillaPageProps) {
   }
 
   const listing = data.payload.listing;
-  const allListings = await fetchHouseListings();
-  const recommendedVillas = allListings
-    .filter((villa) => villa.id !== listing.id)
-    .slice(0, 12);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "VacationRental",
@@ -89,7 +81,7 @@ export default async function Page({ params }: VillaPageProps) {
         id={id}
         images={data.images}
         payload={data.payload}
-        recommendedVillas={recommendedVillas}
+        recommendedVillas={data.recommendedVillas}
       />
     </>
   );

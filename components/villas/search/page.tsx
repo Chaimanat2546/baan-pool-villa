@@ -4,6 +4,7 @@ import { AlertCircle, RotateCcw, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   filterVillas,
@@ -232,20 +233,15 @@ export function SearchPage() {
               </span>
             </label>
 
-            <label className="block min-w-0">
+            <div className="block min-w-0">
               <span className="text-sm font-bold text-[#064e3b]">เรียงลำดับ</span>
-              <select
+              <DropdownSelect
+                ariaLabel="เรียงลำดับบ้านพัก"
+                options={SORT_OPTIONS}
                 value={sortKey}
-                onChange={(event) => handleSortKeyChange(event.target.value)}
-                className="mt-2 h-11 w-full rounded-xl border border-[#dbe7e3] bg-[#fbfdfb] px-3 text-sm font-bold text-[#064e3b] outline-none"
-              >
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={handleSortKeyChange}
+              />
+            </div>
           </div>
         ) : null}
 

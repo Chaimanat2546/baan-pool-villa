@@ -35,8 +35,13 @@ export async function getListingById(id: string): Promise<VillaListing | null> {
   return listings.find((listing) => listing.id === id) ?? null;
 }
 
-export async function fetchVillaDetail(id: string): Promise<VillaDetailPayload | null> {
-  const listing = await getListingById(id);
+export async function fetchVillaDetail(
+  id: string,
+  listings?: VillaListing[],
+): Promise<VillaDetailPayload | null> {
+  const listing =
+    listings?.find((currentListing) => currentListing.id === id) ??
+    (await getListingById(id));
 
   if (!listing) {
     return null;
@@ -88,21 +93,28 @@ export async function fetchVillaDetail(id: string): Promise<VillaDetailPayload |
 export type VillaPageData = {
   payload: VillaDetailPayload;
   images: VillaImage[];
+  recommendedVillas: VillaListing[];
 };
 
 export async function fetchVillaPageData(
   id: string,
 ): Promise<VillaPageData | null> {
-  const payload = await fetchVillaDetail(id);
+  const listings = await fetchHouseListings();
+  const payload = await fetchVillaDetail(id, listings);
 
   if (!payload) {
     return null;
   }
 
+  const recommendedVillas = listings
+    .filter((listing) => listing.id !== payload.listing.id)
+    .slice(0, 12);
+
   try {
     return {
       payload,
       images: await fetchVillaImages(id),
+      recommendedVillas,
     };
   } catch (error) {
     console.error("Unable to load villa gallery images", error);
@@ -110,6 +122,7 @@ export async function fetchVillaPageData(
     return {
       payload,
       images: [],
+      recommendedVillas,
     };
   }
 }

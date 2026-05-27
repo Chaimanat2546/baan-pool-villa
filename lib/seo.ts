@@ -5,7 +5,9 @@ import type { VillaListing } from "@/lib/villas/types";
 export const siteName = "Pool Villas Pattaya";
 export const defaultTitle = "Pool Villas Pattaya | บ้านพักพูลวิลล่าพัทยา";
 export const defaultDescription =
-  "ค้นหาบ้านพักพูลวิลล่าพัทยา บ้านพักสระส่วนตัว สำหรับครอบครัว กลุ่มเพื่อน และทริปปาร์ตี้ พร้อมตัวกรองทำเล จำนวนคน ห้องนอน ราคา และบ้านใกล้ทะเล";
+  "รวมบ้านพักพูลวิลล่าพัทยา บ้านพักสระส่วนตัวสำหรับครอบครัว กลุ่มเพื่อน และทริปปาร์ตี้ เลือกทำเล จำนวนคน ห้องนอน ราคา และดูบ้านพักใกล้ทะเลได้ง่าย";
+export const searchDescription =
+  "ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเล จำนวนผู้เข้าพัก ห้องนอน ราคา สิ่งอำนวยความสะดวก รหัสบ้าน และการเรียงลำดับที่ต้องการ";
 export const defaultOgImage = "/images/BPV-66_Cover-Web.jpg";
 
 export function getSiteUrl(): URL {
@@ -34,10 +36,10 @@ export function getVillaDescription(villa: VillaListing): string {
   const price = villa.price.toLocaleString("th-TH");
 
   return [
-    `${getVillaTitle(villa)} รองรับ ${villa.people.toLocaleString("th-TH")} คน`,
+    `${getVillaTitle(villa)} บ้านพักพูลวิลล่าสระส่วนตัว รองรับ ${villa.people.toLocaleString("th-TH")} คน`,
     `${villa.bedrooms.toLocaleString("th-TH")} ห้องนอน`,
     `${villa.bathrooms.toLocaleString("th-TH")} ห้องน้ำ`,
-    `ทำเล${villa.zoneLabel}`,
+    `ทำเล ${villa.zoneLabel}`,
     `เริ่มต้น ${price} บาท/คืน`,
   ].join(" | ");
 }
