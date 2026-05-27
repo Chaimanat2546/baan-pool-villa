@@ -109,6 +109,7 @@ describe("fetchVillaPageData", () => {
         detailStatus: "missing_token",
       },
       images: [],
+      recommendedVillas: [],
     });
   });
 });
