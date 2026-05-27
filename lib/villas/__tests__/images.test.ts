@@ -251,7 +251,7 @@ describe("fetchVillaImages", () => {
 
 describe("GET /api/villas/[id]/images", () => {
   it("returns 400 for invalid ids without querying Supabase", async () => {
-    const { GET } = await import("../../../app/api/villas/[id]/images/route");
+    const { GET } = await import("../../../app/(public)/api/villas/[id]/images/route");
 
     const response = await GET(new Request("https://example.com"), {
       params: Promise.resolve({ id: "1.5" }),
@@ -263,7 +263,7 @@ describe("GET /api/villas/[id]/images", () => {
   });
 
   it("returns a generic 502 error for backend failures", async () => {
-    const { GET } = await import("../../../app/api/villas/[id]/images/route");
+    const { GET } = await import("../../../app/(public)/api/villas/[id]/images/route");
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     mockImagesQuery({
       data: null,
