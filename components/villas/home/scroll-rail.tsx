@@ -66,12 +66,12 @@ export function ScrollRail({
   }, [updateScrollState]);
 
   return (
-    <div className="ml-20 lg:ml-0">
+    <div>
       <div
         ref={scrollerRef}
         className={cn(
           "flex snap-x overflow-x-auto scroll-smooth",
-          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden mx-2 lg:mx-0 md:mx-2",
           className,
         )}
       >
