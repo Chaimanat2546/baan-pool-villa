@@ -35,9 +35,10 @@ export function SiteFooter() {
                 Pool Villas Pattaya
               </h2>
               <p className="mt-[7px] text-sm leading-5 text-white">
-                กรุณาโอนเงิน ชื่อบัญชี{" "}
+                กรุณาโอนเงิน ชื่อบัญชี คุณ อาภัสรา จินดาวา {" "}
+                <br className="sm:hidden" />
                 <span className="font-medium text-[#eab308]">
-                  บริษัท พูลวิลล่า พัทยา จำกัด ธนาคาร กสิกรไทย 137-1-17528-4
+                  ธนาคารกสิกรไทย เลขที่ 398-289-7482
                 </span>{" "}
                 เท่านั้น
               </p>

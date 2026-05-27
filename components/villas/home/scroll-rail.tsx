@@ -66,7 +66,7 @@ export function ScrollRail({
   }, [updateScrollState]);
 
   return (
-    <div>
+    <div className="ml-20 lg:ml-0">
       <div
         ref={scrollerRef}
         className={cn(

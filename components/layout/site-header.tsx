@@ -12,8 +12,8 @@ const navItems = [
   { href: "/#cafes", label: "สถานที่ท่องเที่ยว" },
 ];
 
-const bankNotice = "กรุณาโอนเงิน ชื่อบัญชี";
-const bankAccount = "บริษัท พูลวิลล่า พัทยา จำกัด ธนาคาร กสิกรไทย 137-1-17528-4";
+const bankNotice = "กรุณาโอนเงิน ชื่อบัญชี คุณ อาภัสรา จินดาวา ";
+const bankAccount = "ธนาคารกสิกรไทย เลขที่ 398-289-7482";
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -39,6 +39,7 @@ export function SiteHeader() {
               </span>
               <span className="block text-[11px] leading-4 text-white sm:text-sm sm:leading-5">
                 {bankNotice}{" "}
+                <br className="sm:hidden" />
                 <span className="text-[#eab308]">{bankAccount}</span>{" "}
                 เท่านั้น
               </span>

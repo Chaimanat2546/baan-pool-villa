@@ -1,0 +1,60 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "baan-pool-villa",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2026-05-27",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"observability": {
+		"enabled": true
+	},
+	"workers_dev": true,
+	"services": [
+		{
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "baan-pool-villa"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "NEXT_INC_CACHE_R2_BUCKET",
+			"bucket_name": "baan-pool-villa-next-cache"
+		},
+		{
+			"bucket_name": "baan-pool-villa-next-cache",
+			"binding": "baan_pool_villa_next_cache",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "NEXT_CACHE_DO_QUEUE",
+				"class_name": "DOQueueHandler"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": [
+				"DOQueueHandler"
+			]
+		}
+	],
+	"images": {
+		"binding": "IMAGES"
+	},
+	"secrets": {
+		"required": [
+			"DEVILLE_BEARER_TOKEN",
+			"SUPABASE_PUBLISHABLE_KEY"
+		]
+	}
+}
