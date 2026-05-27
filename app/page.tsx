@@ -21,7 +21,7 @@ export default function Page() {
     amenityFeature: [
       { "@type": "LocationFeatureSpecification", name: "สระว่ายน้ำส่วนตัว" },
       { "@type": "LocationFeatureSpecification", name: "บ้านพักสำหรับกลุ่ม" },
-      { "@type": "LocationFeatureSpecification", name: "ค้นหาบ้านพักใกล้ทะเล" },
+      { "@type": "LocationFeatureSpecification", name: "บ้านพักใกล้ทะเล" },
     ],
   };
 
