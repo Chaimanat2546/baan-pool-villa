@@ -58,6 +58,16 @@ Avoid adding top-level re-export wrapper files under `components/villas`; import
 - Detail gallery images use Supabase image rows where `images.property_id` matches `h_id` / `house_id`.
 - Public image URLs are built from `image_name` using the configured image host.
 
+## Supabase Rules
+
+- Treat migration files as source-controlled schema history. Do not tell the user to paste a full migration into an existing Supabase online project that may already have tables, policies, triggers, or functions.
+- When Docker/local Supabase is unavailable and the user is applying changes in Supabase online, provide a minimal patch SQL block for the current database state instead of a full migration or db reset workflow.
+- Use `seed.sql` only for a new/local database or an explicitly empty online project. Do not rerun seeds on a populated online project unless the SQL is scoped and idempotent for the requested data.
+- For existing online databases, prefer `create or replace function`, explicit `grant`, and `notify pgrst, 'reload schema'` patches. Avoid rerunning `create trigger`, non-idempotent `create policy`, or schema creation statements that will fail if objects already exist.
+- Supabase online may reject unsafe full-table deletes. Snapshot-style replace functions must use a clear `where` clause, for example `where id is not null`, or a safer scoped delete.
+- Keep privileged write helpers in a private schema when they need elevated database behavior, expose only a small public invoker wrapper, and keep the admin authorization check inside the private function.
+- Surface Supabase RPC and REST errors in the admin UI with the returned `message`, `code`, `details`, and `hint` where possible. Do not collapse all Supabase failures into a generic 403.
+
 ## UI Rules
 
 - Reuse shared listing cards from `components/villas/listing` for home, search, and recommendations.

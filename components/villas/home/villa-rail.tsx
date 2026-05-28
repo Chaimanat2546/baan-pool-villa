@@ -8,7 +8,7 @@ import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
 
 type VillaRailProps = {
-  cta?: boolean;
+  cta?: boolean | { label: string; href: string };
   description: string;
   id?: string;
   title: string;
@@ -16,6 +16,11 @@ type VillaRailProps = {
 };
 
 export function VillaRail({ cta, description, id, title, villas }: VillaRailProps) {
+  const ctaConfig =
+    cta === true
+      ? { label: "ดูบ้านพักทั้งหมด", href: "/search" }
+      : cta || null;
+
   return (
     <section
       id={id}
@@ -32,13 +37,13 @@ export function VillaRail({ cta, description, id, title, villas }: VillaRailProp
           </div>
         ))}
       </ScrollRail>
-      {cta ? (
+      {ctaConfig ? (
         <div className="mt-8 text-center">
           <Link
-            href="/search"
+            href={ctaConfig.href}
             className="inline-flex items-center gap-2 rounded-xl bg-[#064d3d] px-5 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(6,77,61,0.22)]"
           >
-            ดูบ้านพักทั้งหมด <ArrowRight className="h-4 w-4" />
+            {ctaConfig.label} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       ) : null}
