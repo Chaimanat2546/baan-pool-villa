@@ -56,12 +56,6 @@ const MODES: { label: string; summary: string; value: HomeSectionMode }[] = [
   },
 ];
 
-const FALLBACK_MODES: { label: string; value: HomeSectionFallbackMode }[] = [
-  { label: "ไม่เติมบ้านเพิ่ม", value: "none" },
-  { label: "เติมจากบ้านทั้งหมด", value: "fill_from_all" },
-  { label: "เติมจากบ้านใกล้ทะเล", value: "fill_near_sea" },
-];
-
 const MODE_LABELS = new Map(MODES.map((mode) => [mode.value, mode.label]));
 type StatusTone = "ok" | "warn" | "muted";
 
@@ -69,12 +63,6 @@ type SectionStatusItem = {
   detail: string;
   label: string;
   tone: StatusTone;
-};
-
-const STATUS_TONE_CLASS: Record<StatusTone, string> = {
-  muted: "border-slate-200 bg-slate-50 text-slate-700",
-  ok: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  warn: "border-amber-200 bg-amber-50 text-amber-800",
 };
 
 const SUMMARY_DOT_CLASS: Record<StatusTone, string> = {
@@ -88,6 +76,12 @@ const makeDraftId = () =>
     ? crypto.randomUUID()
     : `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+function normalizeAdminFallbackMode(
+  fallbackMode: HomeSectionFallbackMode,
+): HomeSectionFallbackMode {
+  return fallbackMode === "fill_from_all" ? "fill_from_all" : "none";
+}
+
 function toHomeSectionDraft(section: AdminSectionDraft): HomeSectionDraft {
   return {
     slug: section.slug,
@@ -95,7 +89,7 @@ function toHomeSectionDraft(section: AdminSectionDraft): HomeSectionDraft {
     description: section.description,
     mode: section.mode,
     limitCount: section.limitCount,
-    fallbackMode: section.fallbackMode,
+    fallbackMode: normalizeAdminFallbackMode(section.fallbackMode),
     sliceOffset: section.sliceOffset,
     isActive: section.isActive,
     ctaEnabled: section.ctaEnabled,
@@ -123,6 +117,7 @@ function mapResponseSections(
     payload.sections
       .map((section) => ({
         ...section,
+        fallbackMode: normalizeAdminFallbackMode(section.fallbackMode),
         draftId: makeDraftId(),
         items: section.items.map((item, itemIndex) => ({
           houseId: item.houseId,
@@ -201,21 +196,15 @@ function getManualIdStatus(section: AdminSectionDraft) {
 }
 
 function getFallbackModeLabel(value: HomeSectionFallbackMode): string {
-  return (
-    FALLBACK_MODES.find((fallbackMode) => fallbackMode.value === value)?.label ??
-    "ไม่เติมบ้านเพิ่ม"
-  );
+  return normalizeAdminFallbackMode(value) === "fill_from_all"
+    ? "เติมจากบ้านทั้งหมด"
+    : "ไม่เติมบ้านเพิ่ม";
 }
 
 function getFallbackSourceText(value: HomeSectionFallbackMode): string {
-  switch (value) {
-    case "fill_from_all":
-      return "บ้านทั้งหมด";
-    case "fill_near_sea":
-      return "บ้านใกล้ทะเล";
-    case "none":
-      return "";
-  }
+  return normalizeAdminFallbackMode(value) === "fill_from_all"
+    ? "บ้านทั้งหมด"
+    : "";
 }
 
 function getFallbackExplanation(section: AdminSectionDraft): string {
@@ -225,7 +214,7 @@ function getFallbackExplanation(section: AdminSectionDraft): string {
   const baseText =
     section.mode === "manual" ? "บ้านที่เลือก" : "บ้านที่ระบบเลือก";
 
-  if (section.fallbackMode === "none") {
+  if (normalizeAdminFallbackMode(section.fallbackMode) === "none") {
     return `ถ้า${baseText}ไม่ครบ ${limitLabel} ระบบจะแสดงเท่าที่หาได้`;
   }
 
@@ -258,7 +247,7 @@ function getManualDisplaySummary(
 
   const shortageCount = limitCount - selectedCount;
 
-  if (section.fallbackMode === "none") {
+  if (normalizeAdminFallbackMode(section.fallbackMode) === "none") {
     return selectedCount > 0
       ? `จะแสดง${selectedText} ${selectedCount} หลัง และไม่เติมบ้านเพิ่ม`
       : "ยังไม่มีบ้านที่จะแสดง เพราะตั้งไว้ว่าไม่เติมบ้านเพิ่ม";
@@ -303,144 +292,6 @@ function getPreviewForSection(
       .map((item) => item.houseId)
       .filter((houseId) => normalizeHouseId(houseId) === null),
   };
-}
-
-function isAdminInternalHref(value: string): boolean {
-  const href = value.trim();
-
-  return href.startsWith("/") && !href.startsWith("//");
-}
-
-function getSectionStatusItems(
-  section: AdminSectionDraft,
-  preview: AdminManualPreviewResponse | null,
-): SectionStatusItem[] {
-  const items: SectionStatusItem[] = [
-    section.title.trim()
-      ? {
-          detail: "พร้อมแสดงบนหน้าแรก",
-          label: "ชื่อชุด",
-          tone: "ok",
-        }
-      : {
-          detail: "ยังไม่ได้กรอกชื่อ",
-          label: "ชื่อชุด",
-          tone: "warn",
-        },
-    section.description.trim()
-      ? {
-          detail: "มีข้อความใต้หัวข้อแล้ว",
-          label: "คำอธิบาย",
-          tone: "ok",
-        }
-      : {
-          detail: "ยังไม่ได้กรอกคำอธิบาย",
-          label: "คำอธิบาย",
-          tone: "warn",
-        },
-    section.isActive
-      ? {
-          detail: "เปิดอยู่บนหน้าแรก",
-          label: "การแสดงผล",
-          tone: "ok",
-        }
-      : {
-          detail: "ปิดอยู่และจะไม่แสดง",
-          label: "การแสดงผล",
-          tone: "muted",
-        },
-  ];
-
-  if (
-    !Number.isInteger(section.limitCount) ||
-    section.limitCount < 1 ||
-    section.limitCount > 12
-  ) {
-    items.push({
-      detail: "ต้องอยู่ระหว่าง 1 ถึง 12",
-      label: "จำนวนบ้าน",
-      tone: "warn",
-    });
-  }
-
-  if (section.ctaEnabled) {
-    items.push(
-      section.ctaLabel.trim() && isAdminInternalHref(section.ctaHref)
-        ? {
-            detail: "ปุ่มดูเพิ่มเติมพร้อมใช้งาน",
-            label: "ปุ่มดูเพิ่มเติม",
-            tone: "ok",
-          }
-        : {
-            detail: "ยังขาดข้อความหรือลิงก์",
-            label: "ปุ่มดูเพิ่มเติม",
-            tone: "warn",
-          },
-    );
-  }
-
-  if (section.mode !== "manual") {
-    items.push({
-      detail: MODE_LABELS.get(section.mode) ?? "ระบบเลือกบ้านให้",
-      label: "บ้านพัก",
-      tone: "ok",
-    });
-    return items;
-  }
-
-  const manualStatus = getManualIdStatus(section);
-
-  if (section.items.length === 0) {
-    items.push({
-      detail: "ยังไม่ได้ใส่เลขบ้าน",
-      label: "เลขบ้าน",
-      tone: "warn",
-    });
-  } else if (manualStatus.invalidIds.length > 0) {
-    items.push({
-      detail: `อ่านไม่ได้ ${manualStatus.invalidIds.length} รายการ`,
-      label: "เลขบ้าน",
-      tone: "warn",
-    });
-  } else {
-    items.push({
-      detail: `อ่านได้ ${manualStatus.normalizedCount} หลัง`,
-      label: "เลขบ้าน",
-      tone: "ok",
-    });
-  }
-
-  if (manualStatus.duplicateIds.length > 0) {
-    items.push({
-      detail: `มีเลขซ้ำ ${manualStatus.duplicateIds.join(", ")}`,
-      label: "เลขซ้ำ",
-      tone: "warn",
-    });
-  }
-
-  if (section.items.length > 0) {
-    if (!preview) {
-      items.push({
-        detail: "ยังไม่ได้ตรวจกับฐานข้อมูลบ้านจริง",
-        label: "ผลตรวจสอบ",
-        tone: "warn",
-      });
-    } else if (preview.missingIds.length > 0 || preview.invalidIds.length > 0) {
-      items.push({
-        detail: `ต้องแก้ ${preview.missingIds.length + preview.invalidIds.length} รายการ`,
-        label: "ผลตรวจสอบ",
-        tone: "warn",
-      });
-    } else {
-      items.push({
-        detail: `พบในระบบจริง ${preview.valid.length} หลัง`,
-        label: "ผลตรวจสอบ",
-        tone: "ok",
-      });
-    }
-  }
-
-  return items;
 }
 
 function extractErrors(payload: unknown, fallback: string): string[] {
@@ -538,13 +389,6 @@ export function AdminSectionsPage() {
     activeSection !== null && previewDraftId === activeSection.draftId
       ? preview
       : null;
-  const activeStatusItems = useMemo(
-    () =>
-      activeSection
-        ? getSectionStatusItems(activeSection, activePreview)
-        : [],
-    [activePreview, activeSection],
-  );
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -1278,29 +1122,30 @@ export function AdminSectionsPage() {
                     </label>
                   </div>
 
-                  <label className="block rounded-[18px] border border-[#dbe6e1] bg-[#f8fbf9] p-3 text-sm font-medium text-[#173f36]">
-                    ถ้าบ้านไม่ครบตามจำนวนที่แสดง
-                    <select
-                      className="mt-2 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                  <label className="flex rounded-[18px] border border-[#dbe6e1] bg-[#f8fbf9] p-3 text-sm text-[#173f36]">
+                    <input
+                      checked={
+                        normalizeAdminFallbackMode(
+                          activeSection.fallbackMode,
+                        ) === "fill_from_all"
+                      }
+                      className="mt-1 size-4 shrink-0 accent-[#075341]"
                       onChange={(event) =>
                         updateSection(activeSection.draftId, {
-                          fallbackMode: event.target
-                            .value as HomeSectionFallbackMode,
+                          fallbackMode: event.target.checked
+                            ? "fill_from_all"
+                            : "none",
                         })
                       }
-                      value={activeSection.fallbackMode}
-                    >
-                      {FALLBACK_MODES.map((fallbackMode) => (
-                        <option
-                          key={fallbackMode.value}
-                          value={fallbackMode.value}
-                        >
-                          {fallbackMode.label}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="mt-2 block text-xs leading-5 text-[#58726a]">
-                      {getFallbackExplanation(activeSection)}
+                      type="checkbox"
+                    />
+                    <span className="ml-2">
+                      <span className="block font-semibold">
+                        เติมจากบ้านทั้งหมดถ้าบ้านไม่ครบ
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-[#58726a]">
+                        {getFallbackExplanation(activeSection)}
+                      </span>
                     </span>
                   </label>
 
@@ -1390,50 +1235,7 @@ export function AdminSectionsPage() {
                     </div>
                   </details>
 
-                  {activeSection.mode === "manual" ? (
-                    <div className="grid gap-3 rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <h3 className="text-sm font-semibold text-[#173f36]">
-                            บ้านพักในชุดนี้
-                          </h3>
-                          <p className="mt-0.5 text-xs text-[#58726a]">
-                            พิมพ์เลขบ้านที่ต้องการแสดง เช่น 105 101 111
-                          </p>
-                        </div>
-                        <button
-                          className="inline-flex h-9 items-center gap-2 rounded-full border border-[#b7cbc3] bg-white px-3 text-sm font-semibold text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-60"
-                          disabled={isPreviewing}
-                          onClick={handlePreviewManualIds}
-                          type="button"
-                        >
-                          <Eye aria-hidden="true" className="size-4" />
-                          {isPreviewing ? "กำลังตรวจสอบ..." : "ตรวจสอบบ้านพัก"}
-                        </button>
-                      </div>
-                      <textarea
-                        className="min-h-36 w-full rounded-[18px] border border-[#c9d9d3] bg-white px-3 py-2 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-                        onChange={(event) => {
-                          const nextManualIdText = event.target.value;
-
-                          setManualIdTexts((currentTexts) => ({
-                            ...currentTexts,
-                            [activeSection.draftId]: nextManualIdText,
-                          }));
-                          updateSection(activeSection.draftId, {
-                            items: parseManualIds(nextManualIdText),
-                          });
-                        }}
-                        placeholder="105 101 111"
-                        value={
-                          manualIdTexts[activeSection.draftId] ??
-                          activeSection.items
-                            .map((item) => item.houseId)
-                            .join(" ")
-                        }
-                      />
-                    </div>
-                  ) : (
+                  {activeSection.mode === "manual" ? null : (
                     <div className="rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
                       <h3 className="text-sm font-semibold text-[#173f36]">
                         {MODE_LABELS.get(activeSection.mode) ??
@@ -1447,13 +1249,33 @@ export function AdminSectionsPage() {
                 </div>
 
                 <aside className="grid content-start gap-3">
+                  {activeSection.mode === "manual" ? (
+                    <ManualIdsEditor
+                      isPreviewing={isPreviewing}
+                      manualIdText={
+                        manualIdTexts[activeSection.draftId] ??
+                        activeSection.items
+                          .map((item) => item.houseId)
+                          .join(" ")
+                      }
+                      onChange={(nextManualIdText) => {
+                        setManualIdTexts((currentTexts) => ({
+                          ...currentTexts,
+                          [activeSection.draftId]: nextManualIdText,
+                        }));
+                        updateSection(activeSection.draftId, {
+                          items: parseManualIds(nextManualIdText),
+                        });
+                      }}
+                      onPreview={handlePreviewManualIds}
+                    />
+                  ) : null}
                   <SectionOutcomePanel
                     onActiveChange={(isActive) =>
                       updateSection(activeSection.draftId, { isActive })
                     }
                     preview={activePreview}
                     section={activeSection}
-                    statusItems={activeStatusItems}
                   />
                 </aside>
               </div>
@@ -1575,16 +1397,56 @@ function ManualSelectionSummary({
   );
 }
 
+function ManualIdsEditor({
+  isPreviewing,
+  manualIdText,
+  onChange,
+  onPreview,
+}: {
+  isPreviewing: boolean;
+  manualIdText: string;
+  onChange: (value: string) => void;
+  onPreview: () => void;
+}) {
+  return (
+    <div className="grid gap-3 rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
+      <div className="grid gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-[#173f36]">
+            บ้านพักในชุดนี้
+          </h3>
+          <p className="mt-0.5 text-xs leading-5 text-[#58726a]">
+            พิมพ์เลขบ้านที่ต้องการแสดง เช่น 105 101 111
+          </p>
+        </div>
+        <textarea
+          className="min-h-40 w-full rounded-[18px] border border-[#c9d9d3] bg-white px-3 py-2 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="105 101 111"
+          value={manualIdText}
+        />
+        <button
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#b7cbc3] bg-white px-3 text-sm font-semibold text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isPreviewing}
+          onClick={onPreview}
+          type="button"
+        >
+          <Eye aria-hidden="true" className="size-4" />
+          {isPreviewing ? "กำลังตรวจสอบ..." : "ตรวจสอบบ้านพัก"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SectionOutcomePanel({
   onActiveChange,
   preview,
   section,
-  statusItems,
 }: {
   onActiveChange: (isActive: boolean) => void;
   preview: AdminManualPreviewResponse | null;
   section: AdminSectionDraft;
-  statusItems: SectionStatusItem[];
 }) {
   const isManual = section.mode === "manual";
 
@@ -1596,7 +1458,7 @@ function SectionOutcomePanel({
             ผลลัพธ์ของชุดนี้
           </h3>
           <p className="mt-1 text-xs leading-5 text-[#58726a]">
-            ดูสถานะและบ้านที่จะถูกใช้บนหน้าแรกหลังบันทึก
+            ดูบ้านที่จะถูกใช้บนหน้าแรกหลังบันทึก
           </p>
         </div>
         <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#173f36]">
@@ -1624,18 +1486,6 @@ function SectionOutcomePanel({
           </dd>
         </div>
       </dl>
-
-      <div className="mt-3 grid gap-2">
-        {statusItems.map((item) => (
-          <div
-            className={`rounded-xl border px-3 py-2 ${STATUS_TONE_CLASS[item.tone]}`}
-            key={`${item.label}-${item.detail}`}
-          >
-            <p className="text-xs font-semibold">{item.label}</p>
-            <p className="mt-0.5 text-xs leading-5">{item.detail}</p>
-          </div>
-        ))}
-      </div>
 
       {isManual ? (
         <>
