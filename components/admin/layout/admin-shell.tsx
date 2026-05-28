@@ -6,11 +6,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
+import type { SiteSettings } from "@/lib/site-settings/types";
 
 import { ADMIN_NAV_ITEMS, getActiveAdminNavItem } from "./admin-nav";
 
 interface AdminShellProps {
   children: React.ReactNode;
+  settings: SiteSettings;
 }
 
 function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
@@ -23,7 +25,7 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
         const isActive = !item.disabled && pathname.startsWith(item.href);
         const className = `group flex min-h-14 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
           isActive
-            ? "border-[#0f5a45] bg-[#0f5a45] text-white shadow-[0_12px_24px_rgba(6,63,53,0.16)]"
+            ? "border-[var(--site-primary)] bg-[var(--site-primary)] text-white shadow-[0_12px_24px_rgba(6,63,53,0.16)]"
             : item.disabled
               ? "cursor-not-allowed border-transparent text-[#8aa098]"
               : "border-transparent text-[#244a41] hover:border-[#d9e5df] hover:bg-white"
@@ -35,7 +37,7 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
               className={`inline-flex size-9 shrink-0 items-center justify-center rounded-lg ${
                 isActive
                   ? "bg-white/14 text-white"
-                  : "bg-white text-[#0f5a45] shadow-[0_1px_0_rgba(6,63,53,0.08)]"
+                  : "bg-white text-[var(--site-primary)] shadow-[0_1px_0_rgba(6,63,53,0.08)]"
               }`}
             >
               <Icon aria-hidden="true" className="size-4.5" />
@@ -88,7 +90,7 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function AdminShell({ children }: AdminShellProps) {
+export function AdminShell({ children, settings }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -112,10 +114,12 @@ export function AdminShell({ children }: AdminShellProps) {
   return (
     <div className="min-h-dvh bg-[#edf3ef] text-[#0f332d] lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-dvh border-r border-[#d7e2dc] bg-[#f7faf7] px-4 py-4 lg:flex lg:flex-col">
-        <div className="rounded-2xl bg-[#064e3b] px-4 py-4 text-white shadow-[0_18px_40px_rgba(6,63,53,0.14)]">
-          <p className="text-xs font-semibold text-[#facc15]">หลังบ้าน</p>
+        <div className="rounded-2xl bg-[var(--site-primary)] px-4 py-4 text-white shadow-[0_18px_40px_rgba(6,63,53,0.14)]">
+          <p className="text-xs font-semibold text-[var(--site-accent)]">
+            หลังบ้าน
+          </p>
           <p className="mt-1 text-xl font-semibold tracking-normal">
-            Baan Pool Villa
+            {settings.siteName}
           </p>
           <p className="mt-1 text-xs leading-5 text-white/72">
             จัดการข้อมูลที่แสดงบนเว็บไซต์
@@ -187,11 +191,13 @@ export function AdminShell({ children }: AdminShellProps) {
             type="button"
           />
           <aside className="relative flex h-full w-[min(340px,88vw)] flex-col bg-[#f7faf7] px-4 py-4 shadow-2xl">
-            <div className="flex items-start justify-between gap-3 rounded-2xl bg-[#064e3b] px-4 py-4 text-white">
+            <div className="flex items-start justify-between gap-3 rounded-2xl bg-[var(--site-primary)] px-4 py-4 text-white">
               <div>
-                <p className="text-xs font-semibold text-[#facc15]">หลังบ้าน</p>
+                <p className="text-xs font-semibold text-[var(--site-accent)]">
+                  หลังบ้าน
+                </p>
                 <p className="mt-1 text-xl font-semibold tracking-normal">
-                  Baan Pool Villa
+                  {settings.siteName}
                 </p>
               </div>
               <button
