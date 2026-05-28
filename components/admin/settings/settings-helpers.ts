@@ -1,0 +1,151 @@
+import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
+import type { SiteSettings } from "@/lib/site-settings/types";
+
+import type {
+  AdminSettingsDraft,
+  AdminSiteSettingsResponse,
+} from "./types";
+
+const HEX_COLOR_PATTERN = /^#[\da-f]{6}$/i;
+
+function getFileSnapshot(file: File | null): string | null {
+  return file
+    ? `${file.name}:${file.size}:${file.lastModified}:${file.type}`
+    : null;
+}
+
+export function isHexColor(value: string): boolean {
+  return HEX_COLOR_PATTERN.test(value.trim());
+}
+
+export function buildDraftThemeStyle(draft: AdminSettingsDraft) {
+  return buildSiteThemeStyle({
+    accentColor: isHexColor(draft.accentColor)
+      ? draft.accentColor
+      : "#eab308",
+    primaryColor: isHexColor(draft.primaryColor)
+      ? draft.primaryColor
+      : "#064e3b",
+  });
+}
+
+export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
+  return {
+    accentColor: settings.accentColor,
+    heroFile: null,
+    heroImageAlt: settings.heroImage.alt,
+    logoFile: null,
+    primaryColor: settings.primaryColor,
+    siteName: settings.siteName,
+  };
+}
+
+export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
+  return JSON.stringify({
+    accentColor: draft.accentColor,
+    heroFile: getFileSnapshot(draft.heroFile),
+    heroImageAlt: draft.heroImageAlt,
+    logoFile: getFileSnapshot(draft.logoFile),
+    primaryColor: draft.primaryColor,
+    siteName: draft.siteName,
+  });
+}
+
+export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
+  const formData = new FormData();
+
+  formData.set("siteName", draft.siteName);
+  formData.set("primaryColor", draft.primaryColor);
+  formData.set("accentColor", draft.accentColor);
+  formData.set("heroImageAlt", draft.heroImageAlt);
+
+  if (draft.logoFile) {
+    formData.set("logo", draft.logoFile);
+  }
+
+  if (draft.heroFile) {
+    formData.set("hero", draft.heroFile);
+  }
+
+  return formData;
+}
+
+export function extractErrors(
+  payload: unknown,
+  fallback: string,
+): string[] {
+  if (!payload || typeof payload !== "object") {
+    return [fallback];
+  }
+
+  const errorPayload = payload as AdminSiteSettingsResponse;
+
+  if (Array.isArray(errorPayload.errors)) {
+    const errors = errorPayload.errors.filter(
+      (error): error is string => typeof error === "string" && error.length > 0,
+    );
+
+    if (errors.length > 0) {
+      return errors;
+    }
+  }
+
+  if (typeof errorPayload.error === "string" && errorPayload.error) {
+    const detailParts = [
+      typeof errorPayload.code === "string" ? errorPayload.code : null,
+      typeof errorPayload.details === "string" ? errorPayload.details : null,
+      typeof errorPayload.hint === "string" ? errorPayload.hint : null,
+    ].filter(Boolean);
+    const warningPart =
+      typeof errorPayload.warning === "string" && errorPayload.warning
+        ? `Warning: ${errorPayload.warning}`
+        : null;
+
+    return [
+      detailParts.length > 0
+        ? `${errorPayload.error} (${detailParts.join(" / ")})`
+        : errorPayload.error,
+      ...(warningPart ? [warningPart] : []),
+    ];
+  }
+
+  return [fallback];
+}
+
+export async function readJsonPayload(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export function extractWarnings(payload: AdminSiteSettingsResponse): string[] {
+  const warnings = Array.isArray(payload.warnings)
+    ? payload.warnings.filter(
+        (warning): warning is string =>
+          typeof warning === "string" && warning.length > 0,
+      )
+    : [];
+
+  if (typeof payload.warning === "string" && payload.warning) {
+    return [...warnings, payload.warning];
+  }
+
+  return warnings;
+}
+
+export function shouldRedirectToLogin(
+  status: number,
+  payload: AdminSiteSettingsResponse | null,
+): boolean {
+  if (status === 401) {
+    return true;
+  }
+
+  if (status !== 403) {
+    return false;
+  }
+
+  return !payload?.code && !payload?.details && !payload?.hint;
+}
