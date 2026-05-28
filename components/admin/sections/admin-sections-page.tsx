@@ -237,30 +237,72 @@ function getFallbackExplanation(section: AdminSectionDraft): string {
 function getManualDisplaySummary(
   section: AdminSectionDraft,
   selectedCount: number,
+  isVerified: boolean,
 ): string {
   if (!Number.isInteger(section.limitCount) || section.limitCount < 1) {
     return "ตรวจจำนวนบ้านที่แสดงก่อนบันทึก";
   }
 
   const limitCount = section.limitCount;
+  const selectedText = isVerified
+    ? "บ้านที่พบในระบบจริง"
+    : "เลขบ้านที่อ่านรูปแบบได้";
+
+  if (!isVerified) {
+    return `ตอนนี้อ่านรูปแบบได้ ${selectedCount} หลัง ระบบจะตรวจบ้านจริงอีกครั้งตอนบันทึก`;
+  }
 
   if (selectedCount >= limitCount) {
-    return `จะแสดงบ้านที่เลือก ${limitCount} หลังแรก`;
+    return `จะแสดง${selectedText} ${limitCount} หลังแรก`;
   }
 
   const shortageCount = limitCount - selectedCount;
 
   if (section.fallbackMode === "none") {
     return selectedCount > 0
-      ? `จะแสดงบ้านที่เลือกได้ ${selectedCount} หลัง และไม่เติมบ้านเพิ่ม`
+      ? `จะแสดง${selectedText} ${selectedCount} หลัง และไม่เติมบ้านเพิ่ม`
       : "ยังไม่มีบ้านที่จะแสดง เพราะตั้งไว้ว่าไม่เติมบ้านเพิ่ม";
   }
 
   const sourceText = getFallbackSourceText(section.fallbackMode);
 
   return selectedCount > 0
-    ? `จะแสดงบ้านที่เลือก ${selectedCount} หลัง และเติมอีก ${shortageCount} หลังจาก${sourceText}`
+    ? `จะแสดง${selectedText} ${selectedCount} หลัง และเติมอีก ${shortageCount} หลังจาก${sourceText}`
     : `ยังไม่ได้เลือกบ้านเอง ระบบจะเติม ${limitCount} หลังจาก${sourceText}`;
+}
+
+function getSectionLabel(section: AdminSectionDraft, sectionIndex: number) {
+  return `ชุดที่ ${sectionIndex + 1}${
+    section.title.trim() ? ` "${section.title.trim()}"` : ""
+  }`;
+}
+
+function getPreviewForSection(
+  section: AdminSectionDraft,
+  sourcePreview: AdminManualPreviewResponse,
+): AdminManualPreviewResponse {
+  const validById = new Map(sourcePreview.valid.map((villa) => [villa.id, villa]));
+  const requestedIds = section.items.reduce<string[]>((ids, item) => {
+    const normalizedId = normalizeHouseId(item.houseId);
+
+    if (normalizedId && !ids.includes(normalizedId)) {
+      ids.push(normalizedId);
+    }
+
+    return ids;
+  }, []);
+
+  return {
+    valid: requestedIds.flatMap((houseId) => {
+      const villa = validById.get(houseId);
+
+      return villa ? [villa] : [];
+    }),
+    missingIds: requestedIds.filter((houseId) => !validById.has(houseId)),
+    invalidIds: section.items
+      .map((item) => item.houseId)
+      .filter((houseId) => normalizeHouseId(houseId) === null),
+  };
 }
 
 function isAdminInternalHref(value: string): boolean {
@@ -271,7 +313,7 @@ function isAdminInternalHref(value: string): boolean {
 
 function getSectionStatusItems(
   section: AdminSectionDraft,
-  hasFreshPreview: boolean,
+  preview: AdminManualPreviewResponse | null,
 ): SectionStatusItem[] {
   const items: SectionStatusItem[] = [
     section.title.trim()
@@ -377,19 +419,25 @@ function getSectionStatusItems(
   }
 
   if (section.items.length > 0) {
-    items.push(
-      hasFreshPreview
-        ? {
-            detail: "ตรวจสอบกับระบบแล้ว",
-            label: "ผลตรวจสอบ",
-            tone: "ok",
-          }
-        : {
-            detail: "ยังไม่ได้กดตรวจสอบบ้านพัก",
-            label: "ผลตรวจสอบ",
-            tone: "warn",
-          },
-    );
+    if (!preview) {
+      items.push({
+        detail: "ยังไม่ได้ตรวจกับฐานข้อมูลบ้านจริง",
+        label: "ผลตรวจสอบ",
+        tone: "warn",
+      });
+    } else if (preview.missingIds.length > 0 || preview.invalidIds.length > 0) {
+      items.push({
+        detail: `ต้องแก้ ${preview.missingIds.length + preview.invalidIds.length} รายการ`,
+        label: "ผลตรวจสอบ",
+        tone: "warn",
+      });
+    } else {
+      items.push({
+        detail: `พบในระบบจริง ${preview.valid.length} หลัง`,
+        label: "ผลตรวจสอบ",
+        tone: "ok",
+      });
+    }
   }
 
   return items;
@@ -486,15 +534,16 @@ export function AdminSectionsPage() {
   );
   const deleteNeedsConfirmation =
     activeSection !== null && pendingDeleteDraftId === activeSection.draftId;
+  const activePreview =
+    activeSection !== null && previewDraftId === activeSection.draftId
+      ? preview
+      : null;
   const activeStatusItems = useMemo(
     () =>
       activeSection
-        ? getSectionStatusItems(
-            activeSection,
-            previewDraftId === activeSection.draftId,
-          )
+        ? getSectionStatusItems(activeSection, activePreview)
         : [],
-    [activeSection, previewDraftId],
+    [activePreview, activeSection],
   );
 
   const redirectToLogin = useCallback(() => {
@@ -708,6 +757,108 @@ export function AdminSectionsPage() {
     setPendingDeleteDraftId(draftId);
   }
 
+  async function fetchManualPreview(token: string, houseIds: string[]) {
+    const response = await fetch("/api/admin/home-sections/preview", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ houseIds }),
+    });
+    const payload = await readJsonPayload(response);
+
+    if (response.status === 401) {
+      redirectToLogin();
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        extractErrors(payload, "ไม่สามารถตรวจสอบเลขบ้านได้").join("\n"),
+      );
+    }
+
+    return payload as AdminManualPreviewResponse;
+  }
+
+  async function validateManualSectionsBeforeSave(token: string) {
+    const manualSections = sections
+      .map((section, sectionIndex) => ({ section, sectionIndex }))
+      .filter(
+        ({ section }) => section.mode === "manual" && section.items.length > 0,
+      );
+
+    if (manualSections.length === 0) {
+      return true;
+    }
+
+    const combinedPreview = await fetchManualPreview(
+      token,
+      manualSections.flatMap(({ section }) =>
+        section.items.map((item) => item.houseId),
+      ),
+    );
+
+    if (!combinedPreview) {
+      return false;
+    }
+
+    const previewErrors: string[] = [];
+    const firstProblem = manualSections
+      .map(({ section, sectionIndex }) => {
+        const sectionPreview = getPreviewForSection(section, combinedPreview);
+        const issueCount =
+          sectionPreview.missingIds.length + sectionPreview.invalidIds.length;
+
+        if (issueCount === 0) {
+          return null;
+        }
+
+        const sectionLabel = getSectionLabel(section, sectionIndex);
+
+        if (sectionPreview.missingIds.length > 0) {
+          previewErrors.push(
+            `${sectionLabel} มีเลขบ้านที่ไม่พบในระบบ: ${sectionPreview.missingIds.join(", ")}`,
+          );
+        }
+
+        if (sectionPreview.invalidIds.length > 0) {
+          previewErrors.push(
+            `${sectionLabel} มีเลขบ้านที่รูปแบบไม่ถูกต้อง: ${sectionPreview.invalidIds.join(", ")}`,
+          );
+        }
+
+        return { section, sectionPreview };
+      })
+      .find((result) => result !== null);
+
+    const activeManualSection =
+      activeSection?.mode === "manual" && activeSection.items.length > 0
+        ? activeSection
+        : null;
+    const previewSection = firstProblem?.section ?? activeManualSection;
+
+    if (previewSection) {
+      setPreview(getPreviewForSection(previewSection, combinedPreview));
+      setPreviewDraftId(previewSection.draftId);
+    }
+
+    if (firstProblem) {
+      setActiveDraftId(firstProblem.section.draftId);
+    }
+
+    if (previewErrors.length > 0) {
+      setErrors([
+        "ตรวจสอบบ้านพักแล้วพบเลขที่ยังใช้ไม่ได้ แก้รายการเหล่านี้ก่อนบันทึก:",
+        ...previewErrors,
+      ]);
+      return false;
+    }
+
+    return true;
+  }
+
   async function handlePreviewManualIds() {
     if (!activeSection) {
       return;
@@ -724,34 +875,16 @@ export function AdminSectionsPage() {
     setIsPreviewing(true);
 
     try {
-      const response = await fetch("/api/admin/home-sections/preview", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          houseIds: activeSection.items.map((item) => item.houseId),
-        }),
-      });
+      const payload = await fetchManualPreview(
+        token,
+        activeSection.items.map((item) => item.houseId),
+      );
 
-      const payload = await readJsonPayload(response);
-
-      if (response.status === 401) {
-        redirectToLogin();
+      if (!payload) {
         return;
       }
 
-      if (!response.ok) {
-        console.error("ไม่สามารถตรวจสอบเลขบ้านได้", {
-          payload,
-          status: response.status,
-        });
-        setErrors(extractErrors(payload, "ไม่สามารถตรวจสอบเลขบ้านได้"));
-        return;
-      }
-
-      setPreview(payload as AdminManualPreviewResponse);
+      setPreview(payload);
       setPreviewDraftId(activeSection.draftId);
     } catch (caughtError) {
       setErrors([
@@ -789,6 +922,13 @@ export function AdminSectionsPage() {
     setIsSaving(true);
 
     try {
+      const manualSectionsAreReady =
+        await validateManualSectionsBeforeSave(token);
+
+      if (!manualSectionsAreReady) {
+        return;
+      }
+
       const response = await fetch("/api/admin/home-sections", {
         method: "PUT",
         headers: {
@@ -864,7 +1004,7 @@ export function AdminSectionsPage() {
             >
               <Save aria-hidden="true" className="size-4" />
               {isSaving
-                ? "กำลังบันทึก..."
+                ? "กำลังตรวจและบันทึก..."
                 : hasUnsavedChanges
                   ? "บันทึกหน้าแรก"
                   : "บันทึกแล้ว"}
@@ -1292,14 +1432,6 @@ export function AdminSectionsPage() {
                             .join(" ")
                         }
                       />
-                      <ManualSelectionSummary
-                        preview={
-                          previewDraftId === activeSection.draftId
-                            ? preview
-                            : null
-                        }
-                        section={activeSection}
-                      />
                     </div>
                   ) : (
                     <div className="rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
@@ -1315,112 +1447,14 @@ export function AdminSectionsPage() {
                 </div>
 
                 <aside className="grid content-start gap-3">
-                  <div className="rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-[#173f36]">
-                      <input
-                        checked={activeSection.isActive}
-                        className="size-4 accent-[#075341]"
-                        onChange={(event) =>
-                          updateSection(activeSection.draftId, {
-                            isActive: event.target.checked,
-                          })
-                        }
-                        type="checkbox"
-                      />
-                      แสดงชุดนี้บนหน้าแรก
-                    </label>
-                    <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <dt className="text-[#687d76]">ลำดับ</dt>
-                        <dd className="font-mono font-semibold text-[#123f36]">
-                          {activeSection.displayOrder + 1}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-[#687d76]">จำนวนบ้าน</dt>
-                        <dd className="font-mono font-semibold text-[#123f36]">
-                          {activeSection.mode === "manual"
-                            ? activeSection.items.length
-                            : activeSection.limitCount}
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
-
-                  <SectionStatusCard items={activeStatusItems} />
-
-                  {activeSection.mode !== "manual" ? (
-                    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4 text-sm text-[#506862]">
-                      บ้านพักจะถูกเลือกอัตโนมัติเมื่อบันทึกและเปิดหน้าแรก
-                    </div>
-                  ) : preview && previewDraftId === activeSection.draftId ? (
-                    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4 text-sm">
-                      <h3 className="font-semibold text-[#173f36]">
-                        ผลการตรวจสอบ
-                      </h3>
-                      <p className="mt-1 text-[#506862]">
-                        พบบ้านพักที่ใช้ได้ {preview.valid.length} หลัง
-                      </p>
-
-                      <PreviewList
-                        ids={preview.missingIds}
-                        title="เลขบ้านที่ไม่พบ"
-                        tone="amber"
-                      />
-                      <PreviewList
-                        ids={preview.invalidIds}
-                        title="เลขบ้านที่รูปแบบไม่ถูกต้อง"
-                        tone="red"
-                      />
-
-                      {preview.valid.length > 0 ? (
-                        <ul className="mt-3 space-y-1 border-t border-[#e4ece8] pt-3">
-                          {preview.valid.slice(0, 8).map((villa) => (
-                            <li
-                              className="truncate text-xs text-[#31534a]"
-                              key={villa.id}
-                              title={`บ้านเลขที่ ${villa.id} โซน ${villa.zoneLabel}`}
-                            >
-                              <span className="font-mono">#{villa.id}</span>{" "}
-                              {villa.zoneLabel} / {villa.bedrooms} ห้องนอน /{" "}
-                              พักได้ {villa.people} คน
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4 text-sm text-[#506862]">
-                      กดตรวจสอบบ้านพักเพื่อดูว่าเลขบ้านไหนใช้งานได้ก่อนบันทึก
-                    </div>
-                  )}
-
-                  {activeSection.mode === "manual" &&
-                  activeSection.items.length > 0 ? (
-                    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4">
-                      <h3 className="text-sm font-semibold text-[#173f36]">
-                        เลขบ้านที่ระบบอ่านได้
-                      </h3>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {activeSection.items.map((item, itemIndex) => {
-                          const normalizedId = normalizeHouseId(item.houseId);
-
-                          return (
-                            <span
-                              className={`rounded px-2 py-1 font-mono text-xs ${
-                                normalizedId
-                                  ? "bg-[#eef6f2] text-[#17463c]"
-                                  : "bg-red-50 text-red-700"
-                              }`}
-                              key={`${item.houseId}-${itemIndex}`}
-                            >
-                              {normalizedId ?? item.houseId}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
+                  <SectionOutcomePanel
+                    onActiveChange={(isActive) =>
+                      updateSection(activeSection.draftId, { isActive })
+                    }
+                    preview={activePreview}
+                    section={activeSection}
+                    statusItems={activeStatusItems}
+                  />
                 </aside>
               </div>
             </section>
@@ -1449,8 +1483,8 @@ function ManualSelectionSummary({
     });
   } else {
     rows.push({
-      detail: `ระบบอ่านเลขบ้านได้ ${manualStatus.normalizedCount} หลัง`,
-      label: "เลขบ้าน",
+      detail: `อ่านรูปแบบได้ ${manualStatus.normalizedCount} หลัง ยังไม่ใช่การยืนยันว่ามีบ้านจริง`,
+      label: "รูปแบบเลข",
       tone: manualStatus.invalidIds.length > 0 ? "warn" : "ok",
     });
   }
@@ -1472,10 +1506,17 @@ function ManualSelectionSummary({
   }
 
   rows.push({
-    detail: getManualDisplaySummary(section, manualStatus.normalizedCount),
+    detail: getManualDisplaySummary(
+      section,
+      preview ? preview.valid.length : manualStatus.normalizedCount,
+      preview !== null,
+    ),
     label: "หลังบันทึก",
     tone:
-      section.items.length === 0 || manualStatus.invalidIds.length > 0
+      section.items.length === 0 ||
+      manualStatus.invalidIds.length > 0 ||
+      (preview !== null &&
+        (preview.missingIds.length > 0 || preview.invalidIds.length > 0))
         ? "warn"
         : "ok",
   });
@@ -1509,7 +1550,9 @@ function ManualSelectionSummary({
 
   return (
     <div className="border-t border-[#dbe6e1] pt-3">
-      <h4 className="text-sm font-semibold text-[#173f36]">สรุปก่อนบันทึก</h4>
+      <h4 className="text-sm font-semibold text-[#173f36]">
+        บ้านพักที่จะบันทึก
+      </h4>
       <ul className="mt-2 grid gap-1.5 text-sm">
         {rows.map((row) => (
           <li
@@ -1532,12 +1575,58 @@ function ManualSelectionSummary({
   );
 }
 
-function SectionStatusCard({ items }: { items: SectionStatusItem[] }) {
+function SectionOutcomePanel({
+  onActiveChange,
+  preview,
+  section,
+  statusItems,
+}: {
+  onActiveChange: (isActive: boolean) => void;
+  preview: AdminManualPreviewResponse | null;
+  section: AdminSectionDraft;
+  statusItems: SectionStatusItem[];
+}) {
+  const isManual = section.mode === "manual";
+
   return (
     <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4">
-      <h3 className="text-sm font-semibold text-[#173f36]">สถานะชุดนี้</h3>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-[#173f36]">
+            ผลลัพธ์ของชุดนี้
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-[#58726a]">
+            ดูสถานะและบ้านที่จะถูกใช้บนหน้าแรกหลังบันทึก
+          </p>
+        </div>
+        <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#173f36]">
+          <input
+            checked={section.isActive}
+            className="size-4 accent-[#075341]"
+            onChange={(event) => onActiveChange(event.target.checked)}
+            type="checkbox"
+          />
+          เปิด
+        </label>
+      </div>
+
+      <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-[#e4ece8] pt-3 text-xs">
+        <div>
+          <dt className="text-[#687d76]">ลำดับ</dt>
+          <dd className="font-mono font-semibold text-[#123f36]">
+            {section.displayOrder + 1}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[#687d76]">จำนวนที่ตั้งไว้</dt>
+          <dd className="font-mono font-semibold text-[#123f36]">
+            {section.limitCount} หลัง
+          </dd>
+        </div>
+      </dl>
+
       <div className="mt-3 grid gap-2">
-        {items.map((item) => (
+        {statusItems.map((item) => (
           <div
             className={`rounded-xl border px-3 py-2 ${STATUS_TONE_CLASS[item.tone]}`}
             key={`${item.label}-${item.detail}`}
@@ -1547,6 +1636,84 @@ function SectionStatusCard({ items }: { items: SectionStatusItem[] }) {
           </div>
         ))}
       </div>
+
+      {isManual ? (
+        <>
+          <ManualSelectionSummary preview={preview} section={section} />
+
+          {preview ? (
+            <div className="border-t border-[#dbe6e1] pt-3 text-sm">
+              <h4 className="font-semibold text-[#173f36]">
+                ผลตรวจบ้านจริง
+              </h4>
+              <p className="mt-1 text-[#506862]">
+                พบบ้านพักที่ใช้ได้ {preview.valid.length} หลัง
+              </p>
+
+              <PreviewList
+                ids={preview.missingIds}
+                title="เลขบ้านที่ไม่พบ"
+                tone="amber"
+              />
+              <PreviewList
+                ids={preview.invalidIds}
+                title="เลขบ้านที่รูปแบบไม่ถูกต้อง"
+                tone="red"
+              />
+
+              {preview.valid.length > 0 ? (
+                <ul className="mt-3 space-y-1 border-t border-[#e4ece8] pt-3">
+                  {preview.valid.slice(0, 8).map((villa) => (
+                    <li
+                      className="truncate text-xs text-[#31534a]"
+                      key={villa.id}
+                      title={`บ้านเลขที่ ${villa.id} โซน ${villa.zoneLabel}`}
+                    >
+                      <span className="font-mono">#{villa.id}</span>{" "}
+                      {villa.zoneLabel} / {villa.bedrooms} ห้องนอน / พักได้{" "}
+                      {villa.people} คน
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : section.items.length > 0 ? (
+            <p className="border-t border-[#dbe6e1] pt-3 text-sm leading-6 text-[#506862]">
+              ระบบจะตรวจบ้านจริงให้อัตโนมัติอีกครั้งตอนกดบันทึก
+            </p>
+          ) : null}
+
+          {section.items.length > 0 ? (
+            <div className="border-t border-[#dbe6e1] pt-3">
+              <h4 className="text-sm font-semibold text-[#173f36]">
+                เลขที่อ่านจากช่องกรอก
+              </h4>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {section.items.map((item, itemIndex) => {
+                  const normalizedId = normalizeHouseId(item.houseId);
+
+                  return (
+                    <span
+                      className={`rounded px-2 py-1 font-mono text-xs ${
+                        normalizedId
+                          ? "bg-[#eef6f2] text-[#17463c]"
+                          : "bg-red-50 text-red-700"
+                      }`}
+                      key={`${item.houseId}-${itemIndex}`}
+                    >
+                      {normalizedId ?? item.houseId}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <p className="mt-3 border-t border-[#dbe6e1] pt-3 text-sm leading-6 text-[#506862]">
+          บ้านพักจะถูกเลือกอัตโนมัติเมื่อบันทึกและเปิดหน้าแรก
+        </p>
+      )}
     </div>
   );
 }
