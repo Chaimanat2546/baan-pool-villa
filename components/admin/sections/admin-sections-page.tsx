@@ -77,6 +77,12 @@ const STATUS_TONE_CLASS: Record<StatusTone, string> = {
   warn: "border-amber-200 bg-amber-50 text-amber-800",
 };
 
+const SUMMARY_DOT_CLASS: Record<StatusTone, string> = {
+  muted: "bg-slate-400",
+  ok: "bg-emerald-500",
+  warn: "bg-amber-500",
+};
+
 const makeDraftId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -192,6 +198,69 @@ function getManualIdStatus(section: AdminSectionDraft) {
     invalidIds,
     normalizedCount: seenIds.size,
   };
+}
+
+function getFallbackModeLabel(value: HomeSectionFallbackMode): string {
+  return (
+    FALLBACK_MODES.find((fallbackMode) => fallbackMode.value === value)?.label ??
+    "ไม่เติมบ้านเพิ่ม"
+  );
+}
+
+function getFallbackSourceText(value: HomeSectionFallbackMode): string {
+  switch (value) {
+    case "fill_from_all":
+      return "บ้านทั้งหมด";
+    case "fill_near_sea":
+      return "บ้านใกล้ทะเล";
+    case "none":
+      return "";
+  }
+}
+
+function getFallbackExplanation(section: AdminSectionDraft): string {
+  const limitLabel = Number.isInteger(section.limitCount)
+    ? `${section.limitCount} หลัง`
+    : "จำนวนที่ตั้งไว้";
+  const baseText =
+    section.mode === "manual" ? "บ้านที่เลือก" : "บ้านที่ระบบเลือก";
+
+  if (section.fallbackMode === "none") {
+    return `ถ้า${baseText}ไม่ครบ ${limitLabel} ระบบจะแสดงเท่าที่หาได้`;
+  }
+
+  return `ถ้า${baseText}ไม่ครบ ${limitLabel} ระบบจะเติมจาก${getFallbackSourceText(
+    section.fallbackMode,
+  )}`;
+}
+
+function getManualDisplaySummary(
+  section: AdminSectionDraft,
+  selectedCount: number,
+): string {
+  if (!Number.isInteger(section.limitCount) || section.limitCount < 1) {
+    return "ตรวจจำนวนบ้านที่แสดงก่อนบันทึก";
+  }
+
+  const limitCount = section.limitCount;
+
+  if (selectedCount >= limitCount) {
+    return `จะแสดงบ้านที่เลือก ${limitCount} หลังแรก`;
+  }
+
+  const shortageCount = limitCount - selectedCount;
+
+  if (section.fallbackMode === "none") {
+    return selectedCount > 0
+      ? `จะแสดงบ้านที่เลือกได้ ${selectedCount} หลัง และไม่เติมบ้านเพิ่ม`
+      : "ยังไม่มีบ้านที่จะแสดง เพราะตั้งไว้ว่าไม่เติมบ้านเพิ่ม";
+  }
+
+  const sourceText = getFallbackSourceText(section.fallbackMode);
+
+  return selectedCount > 0
+    ? `จะแสดงบ้านที่เลือก ${selectedCount} หลัง และเติมอีก ${shortageCount} หลังจาก${sourceText}`
+    : `ยังไม่ได้เลือกบ้านเอง ระบบจะเติม ${limitCount} หลังจาก${sourceText}`;
 }
 
 function isAdminInternalHref(value: string): boolean {
@@ -825,7 +894,7 @@ export function AdminSectionsPage() {
             }`}
           >
             <CheckCircle2 aria-hidden="true" className="size-3.5" />
-            {hasUnsavedChanges ? "มีการแก้ไขยังไม่บันทึก" : "ข้อมูลล่าสุดแล้ว"}
+            {hasUnsavedChanges ? "มีการแก้ไขยังไม่บันทึก" : "บันทึกแล้ว"}
           </span>
         </div>
       </header>
@@ -861,9 +930,14 @@ export function AdminSectionsPage() {
         <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
           <aside className="rounded-[22px] border border-[#dbe7e3] bg-white p-3 shadow-[0_12px_34px_rgba(6,63,53,0.07)]">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
-              <h2 className="text-sm font-semibold text-[#063f35]">
-                ลำดับชุดบ้านพัก
-              </h2>
+              <div>
+                <h2 className="text-sm font-semibold text-[#063f35]">
+                  ลำดับชุดบ้านพัก
+                </h2>
+                <p className="mt-0.5 text-xs text-[#687d76]">
+                  ลากเพื่อเรียงลำดับ หรือใช้ปุ่มลูกศรในชุดที่เลือก
+                </p>
+              </div>
               <span className="rounded-full bg-[#f4f8f5] px-2.5 py-1 text-xs font-semibold text-[#55746b]">
                 {sections.length} ชุด
               </span>
@@ -937,6 +1011,11 @@ export function AdminSectionsPage() {
                   <h2 className="truncate text-lg font-semibold text-[#063f35]">
                     {activeSection.title || "ยังไม่ได้ตั้งชื่อ"}
                   </h2>
+                  {deleteNeedsConfirmation ? (
+                    <p className="mt-1 text-xs font-semibold text-red-700">
+                      กด “ยืนยันลบ” อีกครั้งเพื่อลบชุดนี้
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -1059,6 +1138,32 @@ export function AdminSectionsPage() {
                     </label>
                   </div>
 
+                  <label className="block rounded-[18px] border border-[#dbe6e1] bg-[#f8fbf9] p-3 text-sm font-medium text-[#173f36]">
+                    ถ้าบ้านไม่ครบตามจำนวนที่แสดง
+                    <select
+                      className="mt-2 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                      onChange={(event) =>
+                        updateSection(activeSection.draftId, {
+                          fallbackMode: event.target
+                            .value as HomeSectionFallbackMode,
+                        })
+                      }
+                      value={activeSection.fallbackMode}
+                    >
+                      {FALLBACK_MODES.map((fallbackMode) => (
+                        <option
+                          key={fallbackMode.value}
+                          value={fallbackMode.value}
+                        >
+                          {fallbackMode.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="mt-2 block text-xs leading-5 text-[#58726a]">
+                      {getFallbackExplanation(activeSection)}
+                    </span>
+                  </label>
+
                   <div className="grid gap-3 rounded-md border border-[#dbe6e1] bg-[#f8fbf9] p-3 md:grid-cols-[auto_1fr]">
                     <label className="flex items-center gap-2 text-sm font-semibold text-[#173f36]">
                       <input
@@ -1129,28 +1234,6 @@ export function AdminSectionsPage() {
                         />
                       </label>
                       <label className="block text-sm font-medium text-[#173f36]">
-                        ถ้าบ้านไม่ครบ
-                        <select
-                          className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-                          onChange={(event) =>
-                            updateSection(activeSection.draftId, {
-                              fallbackMode: event.target
-                                .value as HomeSectionFallbackMode,
-                            })
-                          }
-                          value={activeSection.fallbackMode}
-                        >
-                          {FALLBACK_MODES.map((fallbackMode) => (
-                            <option
-                              key={fallbackMode.value}
-                              value={fallbackMode.value}
-                            >
-                              {fallbackMode.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="block text-sm font-medium text-[#173f36]">
                         ลิงก์ปุ่มดูเพิ่มเติม
                         <input
                           className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#eef3ef]"
@@ -1208,6 +1291,14 @@ export function AdminSectionsPage() {
                             .map((item) => item.houseId)
                             .join(" ")
                         }
+                      />
+                      <ManualSelectionSummary
+                        preview={
+                          previewDraftId === activeSection.draftId
+                            ? preview
+                            : null
+                        }
+                        section={activeSection}
                       />
                     </div>
                   ) : (
@@ -1336,6 +1427,107 @@ export function AdminSectionsPage() {
           ) : null}
         </div>
       )}
+    </div>
+  );
+}
+
+function ManualSelectionSummary({
+  preview,
+  section,
+}: {
+  preview: AdminManualPreviewResponse | null;
+  section: AdminSectionDraft;
+}) {
+  const manualStatus = getManualIdStatus(section);
+  const rows: SectionStatusItem[] = [];
+
+  if (section.items.length === 0) {
+    rows.push({
+      detail: "ยังไม่ได้ใส่เลขบ้าน",
+      label: "เลขบ้าน",
+      tone: "warn",
+    });
+  } else {
+    rows.push({
+      detail: `ระบบอ่านเลขบ้านได้ ${manualStatus.normalizedCount} หลัง`,
+      label: "เลขบ้าน",
+      tone: manualStatus.invalidIds.length > 0 ? "warn" : "ok",
+    });
+  }
+
+  if (manualStatus.invalidIds.length > 0) {
+    rows.push({
+      detail: `มีเลขที่อ่านไม่ได้ ${manualStatus.invalidIds.join(", ")}`,
+      label: "ต้องแก้",
+      tone: "warn",
+    });
+  }
+
+  if (manualStatus.duplicateIds.length > 0) {
+    rows.push({
+      detail: `มีเลขซ้ำ ${manualStatus.duplicateIds.join(", ")}`,
+      label: "เลขซ้ำ",
+      tone: "warn",
+    });
+  }
+
+  rows.push({
+    detail: getManualDisplaySummary(section, manualStatus.normalizedCount),
+    label: "หลังบันทึก",
+    tone:
+      section.items.length === 0 || manualStatus.invalidIds.length > 0
+        ? "warn"
+        : "ok",
+  });
+
+  if (section.items.length > 0) {
+    rows.push(
+      preview
+        ? {
+            detail: `ตรวจแล้ว ใช้ได้ ${preview.valid.length} หลัง${
+              preview.missingIds.length > 0
+                ? ` / ไม่พบ ${preview.missingIds.length}`
+                : ""
+            }${
+              preview.invalidIds.length > 0
+                ? ` / รูปแบบไม่ถูกต้อง ${preview.invalidIds.length}`
+                : ""
+            }`,
+            label: "ผลตรวจ",
+            tone:
+              preview.missingIds.length > 0 || preview.invalidIds.length > 0
+                ? "warn"
+                : "ok",
+          }
+        : {
+            detail: "ยังไม่ได้ตรวจสอบกับฐานข้อมูลบ้านจริง",
+            label: "ผลตรวจ",
+            tone: "warn",
+          },
+    );
+  }
+
+  return (
+    <div className="border-t border-[#dbe6e1] pt-3">
+      <h4 className="text-sm font-semibold text-[#173f36]">สรุปก่อนบันทึก</h4>
+      <ul className="mt-2 grid gap-1.5 text-sm">
+        {rows.map((row) => (
+          <li
+            className="grid grid-cols-[auto_84px_1fr] gap-2 text-[#31534a]"
+            key={`${row.label}-${row.detail}`}
+          >
+            <span
+              aria-hidden="true"
+              className={`mt-2 size-2 rounded-full ${SUMMARY_DOT_CLASS[row.tone]}`}
+            />
+            <span className="font-semibold text-[#173f36]">{row.label}</span>
+            <span className="leading-6">{row.detail}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs leading-5 text-[#58726a]">
+        วิธีเติมบ้านเพิ่มตอนนี้: {getFallbackModeLabel(section.fallbackMode)}
+      </p>
     </div>
   );
 }
