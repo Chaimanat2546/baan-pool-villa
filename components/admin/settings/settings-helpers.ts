@@ -19,13 +19,12 @@ export function isHexColor(value: string): boolean {
 }
 
 export function buildDraftThemeStyle(draft: AdminSettingsDraft) {
+  const accentColor = draft.accentColor.trim().toLowerCase();
+  const primaryColor = draft.primaryColor.trim().toLowerCase();
+
   return buildSiteThemeStyle({
-    accentColor: isHexColor(draft.accentColor)
-      ? draft.accentColor
-      : "#eab308",
-    primaryColor: isHexColor(draft.primaryColor)
-      ? draft.primaryColor
-      : "#064e3b",
+    accentColor: isHexColor(accentColor) ? accentColor : "#eab308",
+    primaryColor: isHexColor(primaryColor) ? primaryColor : "#064e3b",
   });
 }
 

@@ -26,7 +26,8 @@ interface ColorControlProps {
 }
 
 function ColorControl({ id, label, onChange, value }: ColorControlProps) {
-  const colorPickerValue = isHexColor(value) ? value : "#000000";
+  const trimmedValue = value.trim();
+  const colorPickerValue = isHexColor(trimmedValue) ? trimmedValue : "#000000";
 
   return (
     <div className="grid gap-2">
@@ -38,7 +39,7 @@ function ColorControl({ id, label, onChange, value }: ColorControlProps) {
           aria-label={`${label} picker`}
           className="h-10 w-12 rounded-md border border-[#c9d9d3] bg-white p-1"
           onChange={(event) => {
-            onChange(event.target.value);
+            onChange(event.target.value.trim());
           }}
           type="color"
           value={colorPickerValue}
@@ -47,10 +48,10 @@ function ColorControl({ id, label, onChange, value }: ColorControlProps) {
           className="h-10 min-w-0 rounded-md border border-[#c9d9d3] bg-white px-3 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
           id={id}
           onChange={(event) => {
-            onChange(event.target.value);
+            onChange(event.target.value.trim());
           }}
           placeholder="#064e3b"
-          value={value}
+          value={trimmedValue}
         />
       </div>
     </div>

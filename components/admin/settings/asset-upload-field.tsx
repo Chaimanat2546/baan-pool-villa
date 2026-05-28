@@ -1,6 +1,7 @@
 "use client";
 
 import { ImageUp } from "lucide-react";
+import Image from "next/image";
 
 interface AssetUploadFieldProps {
   currentAlt: string;
@@ -58,10 +59,13 @@ export function AssetUploadField({
         <figure className="overflow-hidden rounded-md border border-[#dbe7e3] bg-[#f8fbf9]">
           <div className="flex h-32 items-center justify-center overflow-hidden bg-white">
             {currentUrl ? (
-              <img
+              <Image
                 alt={currentAlt}
                 className="h-full w-full object-contain"
+                height={128}
+                sizes="(max-width: 768px) 100vw, 320px"
                 src={currentUrl}
+                width={320}
               />
             ) : (
               <span className="text-xs font-medium text-[#80958e]">
