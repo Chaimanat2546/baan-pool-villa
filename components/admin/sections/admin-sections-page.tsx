@@ -31,12 +31,19 @@ import {
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
+import { isNearSeaVilla } from "@/lib/villas/filters";
+import type { VillaListing } from "@/lib/villas/types";
+import { VillaCard } from "@/components/villas/listing/villa-card";
 
 import type {
   AdminHomeSectionsResponse,
   AdminManualPreviewResponse,
   AdminSectionDraft,
 } from "./types";
+
+type HousesResponse = {
+  items?: unknown;
+};
 
 const MODES: { label: string; summary: string; value: HomeSectionMode }[] = [
   {
@@ -162,6 +169,116 @@ function parseManualIds(value: string) {
     .map((houseId) => houseId.trim())
     .filter(Boolean)
     .map((houseId) => ({ houseId }));
+}
+
+function isVillaListing(value: unknown): value is VillaListing {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const villa = value as Partial<VillaListing>;
+
+  return (
+    typeof villa.id === "string" &&
+    typeof villa.zoneLabel === "string" &&
+    typeof villa.bedrooms === "number" &&
+    typeof villa.people === "number" &&
+    typeof villa.price === "number"
+  );
+}
+
+function getPreviewLimit(section: AdminSectionDraft): number {
+  if (!Number.isFinite(section.limitCount)) {
+    return 1;
+  }
+
+  return Math.min(12, Math.max(1, Math.trunc(section.limitCount)));
+}
+
+function appendPreviewFallbackVillas(
+  selectedVillas: VillaListing[],
+  fallbackVillas: VillaListing[],
+  limitCount: number,
+): VillaListing[] {
+  if (selectedVillas.length >= limitCount) {
+    return selectedVillas.slice(0, limitCount);
+  }
+
+  const selectedIds = new Set(selectedVillas.map((villa) => villa.id));
+  const resolvedVillas = [...selectedVillas];
+
+  for (const villa of fallbackVillas) {
+    if (resolvedVillas.length >= limitCount) {
+      break;
+    }
+
+    if (selectedIds.has(villa.id)) {
+      continue;
+    }
+
+    selectedIds.add(villa.id);
+    resolvedVillas.push(villa);
+  }
+
+  return resolvedVillas;
+}
+
+function resolvePreviewVillas(
+  section: AdminSectionDraft,
+  villas: VillaListing[],
+): VillaListing[] {
+  if (villas.length === 0) {
+    return [];
+  }
+
+  const limitCount = getPreviewLimit(section);
+  const villasById = new Map(villas.map((villa) => [villa.id, villa]));
+  let selectedVillas: VillaListing[] = [];
+
+  switch (section.mode) {
+    case "manual": {
+      const selectedIds = new Set<string>();
+
+      section.items.forEach((item) => {
+        const normalizedId = normalizeHouseId(item.houseId);
+
+        if (!normalizedId || selectedIds.has(normalizedId)) {
+          return;
+        }
+
+        const villa = villasById.get(normalizedId);
+
+        if (!villa) {
+          return;
+        }
+
+        selectedIds.add(normalizedId);
+        selectedVillas.push(villa);
+      });
+      break;
+    }
+    case "near_sea":
+      selectedVillas = villas.filter(isNearSeaVilla);
+      break;
+    case "slice":
+      selectedVillas = villas.slice(Math.max(0, section.sliceOffset));
+      break;
+  }
+
+  selectedVillas = selectedVillas.slice(0, limitCount);
+
+  switch (section.fallbackMode) {
+    case "fill_from_all":
+      return appendPreviewFallbackVillas(selectedVillas, villas, limitCount);
+    case "fill_near_sea":
+      return appendPreviewFallbackVillas(
+        selectedVillas,
+        villas.filter(isNearSeaVilla),
+        limitCount,
+      );
+    case "none":
+      return selectedVillas;
+  }
 }
 
 function getManualIdStatus(section: AdminSectionDraft) {
@@ -380,9 +497,13 @@ export function AdminSectionsPage() {
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
   const [draggedDraftId, setDraggedDraftId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingVillaPreview, setIsLoadingVillaPreview] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [villaPreviewError, setVillaPreviewError] = useState<string | null>(
+    null,
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const [manualIdTexts, setManualIdTexts] = useState<Record<string, string>>({});
   const [pendingDeleteDraftId, setPendingDeleteDraftId] = useState<
@@ -393,6 +514,7 @@ export function AdminSectionsPage() {
     null,
   );
   const [previewDraftId, setPreviewDraftId] = useState<string | null>(null);
+  const [villaListings, setVillaListings] = useState<VillaListing[]>([]);
 
   const activeSection = useMemo(
     () =>
@@ -426,6 +548,13 @@ export function AdminSectionsPage() {
           )
         : [],
     [activeSection, previewDraftId],
+  );
+  const activePreviewVillas = useMemo(
+    () =>
+      activeSection
+        ? resolvePreviewVillas(activeSection, villaListings)
+        : [],
+    [activeSection, villaListings],
   );
 
   const redirectToLogin = useCallback(() => {
@@ -528,6 +657,54 @@ export function AdminSectionsPage() {
       isMounted = false;
     };
   }, [getAccessToken, loadSections]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadVillaListings() {
+      setIsLoadingVillaPreview(true);
+      setVillaPreviewError(null);
+
+      try {
+        const response = await fetch("/api/houses");
+
+        if (!response.ok) {
+          throw new Error("ไม่สามารถโหลดตัวอย่างบ้านพักได้");
+        }
+
+        const payload = (await response.json()) as HousesResponse;
+        const items = Array.isArray(payload.items)
+          ? payload.items.filter(isVillaListing)
+          : [];
+
+        if (!isMounted) {
+          return;
+        }
+
+        setVillaListings(items);
+      } catch (caughtError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setVillaPreviewError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "ไม่สามารถโหลดตัวอย่างบ้านพักได้",
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoadingVillaPreview(false);
+        }
+      }
+    }
+
+    void loadVillaListings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function updateSection(
     draftId: string,
@@ -1221,6 +1398,12 @@ export function AdminSectionsPage() {
                       </p>
                     </div>
                   )}
+
+                  <SectionVillaPreview
+                    error={villaPreviewError}
+                    isLoading={isLoadingVillaPreview}
+                    villas={activePreviewVillas}
+                  />
                 </div>
 
                 <aside className="grid content-start gap-3">
@@ -1334,6 +1517,59 @@ export function AdminSectionsPage() {
               </div>
             </section>
           ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionVillaPreview({
+  error,
+  isLoading,
+  villas,
+}: {
+  error: string | null;
+  isLoading: boolean;
+  villas: VillaListing[];
+}) {
+  return (
+    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-[#173f36]">
+            ตัวอย่างบ้านบนหน้าแรก
+          </h3>
+          <p className="mt-0.5 text-xs leading-5 text-[#58726a]">
+            คำนวณจากข้อมูลที่กำลังแก้ ยังไม่ต้องบันทึกก่อนดู
+          </p>
+        </div>
+        <span className="rounded-full bg-[#f4f8f5] px-2.5 py-1 text-xs font-semibold text-[#55746b]">
+          {villas.length} หลัง
+        </span>
+      </div>
+
+      {isLoading ? (
+        <div className="mt-3 rounded-[18px] border border-dashed border-[#c9d9d3] bg-[#f8fbf7] px-4 py-8 text-center text-sm text-[#506862]">
+          กำลังโหลดตัวอย่างบ้านพัก...
+        </div>
+      ) : error ? (
+        <div className="mt-3 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {error}
+        </div>
+      ) : villas.length === 0 ? (
+        <div className="mt-3 rounded-[18px] border border-dashed border-[#c9d9d3] bg-[#f8fbf7] px-4 py-8 text-center text-sm text-[#506862]">
+          ยังไม่มีบ้านที่แสดงในชุดนี้
+        </div>
+      ) : (
+        <div className="-mx-1 mt-3 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
+          {villas.slice(0, 8).map((villa, villaIndex) => (
+            <div
+              className="w-[268px] shrink-0 snap-start"
+              key={`preview-${villa.id}-${villaIndex}`}
+            >
+              <VillaCard villa={villa} />
+            </div>
+          ))}
         </div>
       )}
     </div>
