@@ -101,32 +101,14 @@ export function SectionConfigForm({
 
               onChange({
                 ctaEnabled: isEnabled,
-                ctaHref:
-                  isEnabled && !section.ctaHref.trim()
-                    ? "/search"
-                    : section.ctaHref,
-                ctaLabel:
-                  isEnabled && !section.ctaLabel.trim()
-                    ? "ดูเพิ่มเติม"
-                    : section.ctaLabel,
+                ctaHref: isEnabled ? "/search" : section.ctaHref,
+                ctaLabel: isEnabled ? "ดูเพิ่มเติม" : section.ctaLabel,
               });
             }}
             type="checkbox"
           />
           <span className="ml-2">แสดงปุ่มดูเพิ่มเติมท้ายชุดนี้</span>
         </label>
-
-        {section.ctaEnabled ? (
-          <label className="block text-sm font-medium text-[#173f36]">
-            ข้อความบนปุ่ม
-            <input
-              className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-              onChange={(event) => onChange({ ctaLabel: event.target.value })}
-              placeholder="ดูเพิ่มเติม"
-              value={section.ctaLabel}
-            />
-          </label>
-        ) : null}
 
         {section.mode === "slice" ? (
           <label className="block text-sm font-medium text-[#173f36]">

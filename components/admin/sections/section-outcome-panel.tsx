@@ -5,6 +5,7 @@ import {
   getFallbackModeLabel,
   getManualDisplaySummary,
   getManualIdStatus,
+  MODE_LABELS,
 } from "./section-helpers";
 
 type StatusTone = "ok" | "warn" | "muted";
@@ -39,10 +40,10 @@ export function SectionOutcomePanel({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-[#173f36]">
-            ตัวอย่างชุดนี้
+            สรุปสิ่งที่จะขึ้นหน้าแรก
           </h3>
           <p className="mt-1 text-xs leading-5 text-[#58726a]">
-            ดูบ้านที่จะขึ้นหน้าแรกหลังบันทึก
+            เช็กก่อนบันทึกว่าชุดนี้จะแสดงอะไร
           </p>
         </div>
         <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#173f36]">
@@ -52,21 +53,33 @@ export function SectionOutcomePanel({
             onChange={(event) => onActiveChange(event.target.checked)}
             type="checkbox"
           />
-          เปิด
+          แสดง
         </label>
       </div>
 
       <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-[#e4ece8] pt-3 text-xs">
         <div>
-          <dt className="text-[#687d76]">ลำดับ</dt>
+          <dt className="text-[#687d76]">ตำแหน่ง</dt>
           <dd className="font-mono font-semibold text-[#123f36]">
             {section.displayOrder + 1}
           </dd>
         </div>
         <div>
-          <dt className="text-[#687d76]">จำนวนที่ตั้งไว้</dt>
+          <dt className="text-[#687d76]">จำนวนบ้าน</dt>
           <dd className="font-mono font-semibold text-[#123f36]">
             {section.limitCount} หลัง
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[#687d76]">วิธีเลือก</dt>
+          <dd className="font-semibold text-[#123f36]">
+            {MODE_LABELS.get(section.mode) ?? section.mode}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[#687d76]">ปุ่มท้ายชุด</dt>
+          <dd className="font-semibold text-[#123f36]">
+            {section.ctaEnabled ? "มีปุ่มดูเพิ่มเติม" : "ไม่มีปุ่ม"}
           </dd>
         </div>
       </dl>
@@ -78,7 +91,7 @@ export function SectionOutcomePanel({
           {preview ? (
             <div className="border-t border-[#dbe6e1] pt-3 text-sm">
               <h4 className="font-semibold text-[#173f36]">
-                บ้านที่หาเจอ
+                บ้านที่เลือกไว้
               </h4>
               <p className="mt-1 text-[#506862]">
                 พบบ้านพักที่ใช้ได้ {preview.valid.length} หลัง
@@ -120,7 +133,7 @@ export function SectionOutcomePanel({
           {section.items.length > 0 ? (
             <div className="border-t border-[#dbe6e1] pt-3">
               <h4 className="text-sm font-semibold text-[#173f36]">
-                เลขที่อ่านจากช่องกรอก
+                เลขบ้านที่พิมพ์ไว้
               </h4>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {section.items.map((item, itemIndex) => {
@@ -145,7 +158,7 @@ export function SectionOutcomePanel({
         </>
       ) : (
         <p className="mt-3 border-t border-[#dbe6e1] pt-3 text-sm leading-6 text-[#506862]">
-          เมื่อบันทึก ชุดนี้จะเลือกบ้านตามวิธีที่ตั้งไว้
+          เมื่อบันทึก ชุดนี้จะเลือกบ้านตามวิธีด้านบน และแสดงตามจำนวนที่ตั้งไว้
         </p>
       )}
     </div>
@@ -165,13 +178,13 @@ function ManualSelectionSummary({
   if (section.items.length === 0) {
     rows.push({
       detail: "ยังไม่ได้ใส่เลขบ้าน",
-      label: "เลขบ้าน",
+      label: "ยังไม่พร้อม",
       tone: "warn",
     });
   } else {
     rows.push({
-      detail: `อ่านรูปแบบได้ ${manualStatus.normalizedCount} หลัง ยังไม่ใช่การยืนยันว่ามีบ้านจริง`,
-      label: "รูปแบบเลข",
+      detail: `อ่านเลขได้ ${manualStatus.normalizedCount} หลัง`,
+      label: "เลขที่พิมพ์",
       tone: manualStatus.invalidIds.length > 0 ? "warn" : "ok",
     });
   }
@@ -198,7 +211,7 @@ function ManualSelectionSummary({
       preview ? preview.valid.length : manualStatus.normalizedCount,
       preview !== null,
     ),
-    label: "หลังบันทึก",
+    label: "ตอนบันทึก",
     tone:
       section.items.length === 0 ||
       manualStatus.invalidIds.length > 0 ||
@@ -221,7 +234,7 @@ function ManualSelectionSummary({
                 ? ` / รูปแบบไม่ถูกต้อง ${preview.invalidIds.length}`
                 : ""
             }`,
-            label: "ผลตรวจ",
+            label: "เช็กแล้ว",
             tone:
               preview.missingIds.length > 0 || preview.invalidIds.length > 0
                 ? "warn"
@@ -229,7 +242,7 @@ function ManualSelectionSummary({
           }
         : {
             detail: "ยังไม่ได้เช็กกับรายการบ้านจริง",
-            label: "ผลตรวจ",
+            label: "รอเช็ก",
             tone: "warn",
           },
     );
@@ -238,7 +251,7 @@ function ManualSelectionSummary({
   return (
     <div className="border-t border-[#dbe6e1] pt-3">
       <h4 className="text-sm font-semibold text-[#173f36]">
-        บ้านพักที่จะบันทึก
+        บ้านที่จะขึ้นหน้าแรก
       </h4>
       <ul className="mt-2 grid gap-1.5 text-sm">
         {rows.map((row) => (

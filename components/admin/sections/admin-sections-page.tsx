@@ -54,8 +54,8 @@ function toHomeSectionDraft(section: AdminSectionDraft): HomeSectionDraft {
     sliceOffset: section.sliceOffset,
     isActive: section.isActive,
     ctaEnabled: section.ctaEnabled,
-    ctaLabel: section.ctaLabel,
-    ctaHref: section.ctaHref,
+    ctaLabel: section.ctaEnabled ? "ดูเพิ่มเติม" : section.ctaLabel,
+    ctaHref: section.ctaEnabled ? "/search" : section.ctaHref,
     items: section.items.map((item) => ({ houseId: item.houseId })),
   };
 }
