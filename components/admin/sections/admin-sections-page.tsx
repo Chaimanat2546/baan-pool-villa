@@ -1035,7 +1035,7 @@ export function AdminSectionsPage() {
           กำลังโหลดการจัดหน้าแรก...
         </div>
       ) : (
-        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
           <aside className="rounded-[22px] border border-[#dbe7e3] bg-white p-3 shadow-[0_12px_34px_rgba(6,63,53,0.07)]">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
               <h2 className="text-sm font-semibold text-[#063f35]">
@@ -1151,8 +1151,8 @@ export function AdminSectionsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 px-4 py-4 xl:grid-cols-[1fr_320px]">
-                <div className="grid gap-4">
+              <div className="grid gap-4 px-4 py-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="grid min-w-0 gap-4">
                   <div className="grid gap-3">
                     <label className="block text-sm font-medium text-[#173f36]">
                       ชื่อชุดบ้านพัก
@@ -1183,8 +1183,8 @@ export function AdminSectionsPage() {
                     </label>
                   </div>
 
-                  <div className="grid gap-3 xl:grid-cols-[1fr_180px]">
-                    <fieldset>
+                  <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_180px]">
+                    <fieldset className="min-w-0">
                       <legend className="text-sm font-medium text-[#173f36]">
                         รูปแบบการเลือกบ้าน
                       </legend>
@@ -1195,7 +1195,7 @@ export function AdminSectionsPage() {
                           return (
                             <button
                               aria-pressed={isSelected}
-                              className={`min-h-24 rounded-[18px] border px-3 py-3 text-left transition ${
+                              className={`min-h-24 min-w-0 rounded-[18px] border px-3 py-3 text-left transition ${
                                 isSelected
                                   ? "border-[#064e3b] bg-[#f4f8f5] text-[#063f35] shadow-[0_10px_24px_rgba(6,63,53,0.08)]"
                                   : "border-[#dbe7e3] bg-white text-[#55746b] hover:bg-[#f8fbf7]"
