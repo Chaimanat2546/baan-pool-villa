@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { VillaDetailPage } from "@/components/villas/detail/page";
+import { serializeJsonLd } from "@/lib/json-ld";
 import {
   absoluteUrl,
   buildPageMetadata,
@@ -75,7 +76,7 @@ export default async function Page({ params }: VillaPageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <VillaDetailPage
         id={id}

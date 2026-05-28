@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { HomePage } from "@/components/villas/home/page";
+import { serializeJsonLd } from "@/lib/json-ld";
 import { absoluteUrl, buildPageMetadata, defaultDescription, defaultTitle, siteName } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
@@ -29,7 +30,7 @@ export default function Page() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <HomePage />
     </>
