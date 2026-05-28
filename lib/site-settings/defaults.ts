@@ -11,7 +11,7 @@ export const SITE_SETTINGS_ALLOWED_IMAGE_MIME_TYPES = new Set([
 ]);
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
-  siteName: "Baan Pool Villa",
+  siteName: "Pool Villas Pattaya",
   primaryColor: "#064e3b",
   accentColor: "#eab308",
   logoImage: {

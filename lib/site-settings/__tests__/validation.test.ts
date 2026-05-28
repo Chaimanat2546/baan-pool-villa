@@ -26,7 +26,17 @@ const validRow = {
 
 describe("normalizeSiteSettingsRow", () => {
   it("returns defaults when the row is null", () => {
-    expect(normalizeSiteSettingsRow(null)).toEqual(DEFAULT_SITE_SETTINGS);
+    expect(normalizeSiteSettingsRow(null)).toMatchObject({
+      siteName: "Pool Villas Pattaya",
+      primaryColor: "#064e3b",
+      accentColor: "#eab308",
+      logoImage: {
+        url: "/images/logo.jpg",
+      },
+      heroImage: {
+        url: "/images/BPV-66_Cover-Web.jpg",
+      },
+    });
   });
 
   it("normalizes a valid database row", () => {
