@@ -25,11 +25,11 @@ import { WhyChooseSection } from "./why-choose-section";
 
 interface HousesResponse {
   items: VillaListing[];
-};
+}
 
 interface HomeSectionsResponse {
   sections?: unknown;
-};
+}
 
 function isResolvedHomeSection(value: unknown): value is ResolvedHomeSection {
   if (!value || typeof value !== "object") {

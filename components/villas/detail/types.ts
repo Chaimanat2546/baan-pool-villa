@@ -9,7 +9,7 @@ export interface VillaDetailPageProps {
   images: VillaImage[];
   payload: VillaDetailPayload;
   recommendedVillas: VillaListing[];
-};
+}
 
 export interface GalleryItem {
   key: string;
@@ -21,10 +21,10 @@ export interface GalleryItem {
   zone: string | null;
   zoneLabel: string;
   zoneKey: string;
-};
+}
 
 export interface GalleryCategory {
   key: string;
   label: string;
   items: GalleryItem[];
-};
+}

@@ -15,7 +15,7 @@ interface HomeSectionItemRow {
   house_id: unknown;
   position: unknown;
   is_active: unknown;
-};
+}
 
 interface HomeSectionRow {
   slug: unknown;
@@ -31,7 +31,7 @@ interface HomeSectionRow {
   fallback_mode: unknown;
   slice_offset: unknown;
   home_section_items: unknown;
-};
+}
 
 type AdminHomeSectionItemDraft = HomeSectionDraft["items"][number] & {
   position: number;
@@ -47,7 +47,7 @@ interface RpcHomeSectionItemPayload {
   house_id: string;
   position: number;
   is_active: boolean;
-};
+}
 
 interface RpcHomeSectionPayload {
   slug: string;
@@ -63,7 +63,7 @@ interface RpcHomeSectionPayload {
   cta_label: string | null;
   cta_href: string | null;
   items: RpcHomeSectionItemPayload[];
-};
+}
 
 type ParsedSectionsPayload =
   | {

@@ -4,7 +4,7 @@ import { MODE_LABELS } from "./section-helpers";
 
 interface AutoModeSummaryProps {
   mode: Exclude<HomeSectionMode, "manual">;
-};
+}
 
 export function AutoModeSummary({ mode }: AutoModeSummaryProps) {
   return (

@@ -7,7 +7,7 @@ import {
 interface SectionConfigFormProps {
   onChange: (changes: Partial<Omit<AdminSectionDraft, "draftId">>) => void;
   section: AdminSectionDraft;
-};
+}
 
 export function SectionConfigForm({
   onChange,
