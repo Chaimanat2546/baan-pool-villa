@@ -1151,7 +1151,7 @@ export function AdminSectionsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 px-4 py-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="grid gap-4 px-4 py-4">
                 <div className="grid min-w-0 gap-4">
                   <div className="grid gap-3">
                     <label className="block text-sm font-medium text-[#173f36]">
@@ -1184,7 +1184,7 @@ export function AdminSectionsPage() {
                   </div>
 
                   <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_180px]">
-                    <fieldset className="min-w-0">
+                    <fieldset className="min-w-0 [min-inline-size:0]">
                       <legend className="text-sm font-medium text-[#173f36]">
                         รูปแบบการเลือกบ้าน
                       </legend>
@@ -1406,7 +1406,7 @@ export function AdminSectionsPage() {
                   />
                 </div>
 
-                <aside className="grid content-start gap-3">
+                <aside className="grid content-start gap-3 xl:grid-cols-3">
                   <div className="rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
                     <label className="flex items-center gap-2 text-sm font-semibold text-[#173f36]">
                       <input
