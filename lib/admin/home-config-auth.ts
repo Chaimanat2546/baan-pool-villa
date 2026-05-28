@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 
 type HomeConfigSupabaseClient = ReturnType<typeof createHomeConfigClient>;
