@@ -295,6 +295,35 @@ begin
     from pg_policies
     where schemaname = 'storage'
       and tablename = 'objects'
+      and policyname = 'Authenticated admins can update site assets'
+  ) then
+    create policy "Authenticated admins can update site assets"
+      on storage.objects
+      for update
+      to authenticated
+      using (
+        bucket_id = 'site-assets'
+        and private.is_home_config_admin()
+        and (
+          name like 'hero/%'
+          or name like 'logo/%'
+        )
+      )
+      with check (
+        bucket_id = 'site-assets'
+        and private.is_home_config_admin()
+        and (
+          name like 'hero/%'
+          or name like 'logo/%'
+        )
+      );
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
       and policyname = 'Authenticated admins can delete site assets'
   ) then
     create policy "Authenticated admins can delete site assets"
@@ -314,6 +343,6 @@ end;
 $$;
 
 grant select on storage.objects to anon, authenticated;
-grant insert, delete on storage.objects to authenticated;
+grant insert, update, delete on storage.objects to authenticated;
 
 notify pgrst, 'reload schema';
