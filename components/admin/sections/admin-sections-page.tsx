@@ -3,6 +3,7 @@
 import {
   ArrowDown,
   ArrowUp,
+  CheckCircle2,
   Eye,
   GripVertical,
   LogOut,
@@ -37,10 +38,22 @@ import type {
   AdminSectionDraft,
 } from "./types";
 
-const MODES: { label: string; value: HomeSectionMode }[] = [
-  { label: "เลือกบ้านพักเอง", value: "manual" },
-  { label: "บ้านใกล้ทะเลอัตโนมัติ", value: "near_sea" },
-  { label: "บ้านตามลำดับจากระบบ", value: "slice" },
+const MODES: { label: string; summary: string; value: HomeSectionMode }[] = [
+  {
+    label: "เลือกบ้านพักเอง",
+    summary: "กำหนดเลขบ้านที่อยากแสดง",
+    value: "manual",
+  },
+  {
+    label: "บ้านใกล้ทะเลอัตโนมัติ",
+    summary: "ให้ระบบเลือกจากบ้านใกล้ทะเล",
+    value: "near_sea",
+  },
+  {
+    label: "บ้านตามลำดับจากระบบ",
+    summary: "ให้ระบบเลือกจากรายการบ้านทั้งหมด",
+    value: "slice",
+  },
 ];
 
 const FALLBACK_MODES: { label: string; value: HomeSectionFallbackMode }[] = [
@@ -71,6 +84,10 @@ function toHomeSectionDraft(section: AdminSectionDraft): HomeSectionDraft {
     ctaHref: section.ctaHref,
     items: section.items.map((item) => ({ houseId: item.houseId })),
   };
+}
+
+function makeSectionsSnapshot(sections: AdminSectionDraft[]): string {
+  return JSON.stringify(sections.map(toHomeSectionDraft));
 }
 
 function normalizeDisplayOrder(sections: AdminSectionDraft[]): AdminSectionDraft[] {
@@ -193,6 +210,10 @@ export function AdminSectionsPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [manualIdTexts, setManualIdTexts] = useState<Record<string, string>>({});
+  const [pendingDeleteDraftId, setPendingDeleteDraftId] = useState<
+    string | null
+  >(null);
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [preview, setPreview] = useState<AdminManualPreviewResponse | null>(
     null,
   );
@@ -209,6 +230,18 @@ export function AdminSectionsPage() {
     ? sections.findIndex((section) => section.draftId === activeSection.draftId)
     : -1;
   const hasErrors = errors.length > 0;
+  const currentSnapshot = useMemo(
+    () => makeSectionsSnapshot(sections),
+    [sections],
+  );
+  const hasUnsavedChanges =
+    savedSnapshot !== null && currentSnapshot !== savedSnapshot;
+  const activeSectionsCount = useMemo(
+    () => sections.filter((section) => section.isActive).length,
+    [sections],
+  );
+  const deleteNeedsConfirmation =
+    activeSection !== null && pendingDeleteDraftId === activeSection.draftId;
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -257,10 +290,12 @@ export function AdminSectionsPage() {
         const mappedSections = mapResponseSections(payload);
 
         setSections(mappedSections);
+        setSavedSnapshot(makeSectionsSnapshot(mappedSections));
         setManualIdTexts({});
         setActiveDraftId(mappedSections[0]?.draftId ?? null);
         setPreview(null);
         setPreviewDraftId(null);
+        setPendingDeleteDraftId(null);
       } catch (caughtError) {
         setErrors([
           caughtError instanceof Error
@@ -315,6 +350,7 @@ export function AdminSectionsPage() {
   ) {
     setNotice(null);
     setErrors([]);
+    setPendingDeleteDraftId(null);
     if ("items" in changes || "mode" in changes) {
       setPreview(null);
       setPreviewDraftId(null);
@@ -329,6 +365,7 @@ export function AdminSectionsPage() {
   function addSection() {
     setNotice(null);
     setErrors([]);
+    setPendingDeleteDraftId(null);
     setSections((currentSections) => {
       const nextSection = makeNewSection(currentSections);
 
@@ -340,6 +377,7 @@ export function AdminSectionsPage() {
   function deleteSection(draftId: string) {
     setNotice(null);
     setErrors([]);
+    setPendingDeleteDraftId(null);
     setSections((currentSections) => {
       const nextSections = normalizeDisplayOrder(
         currentSections.filter((section) => section.draftId !== draftId),
@@ -356,6 +394,7 @@ export function AdminSectionsPage() {
   function moveSection(fromIndex: number, toIndex: number) {
     setNotice(null);
     setErrors([]);
+    setPendingDeleteDraftId(null);
     setSections((currentSections) => {
       const activeId = currentSections[activeIndex]?.draftId ?? activeDraftId;
       const movedSections = moveHomeSectionDraft(
@@ -373,6 +412,7 @@ export function AdminSectionsPage() {
   }
 
   function handleDragStart(draftId: string) {
+    setPendingDeleteDraftId(null);
     setDraggedDraftId(draftId);
   }
 
@@ -396,6 +436,22 @@ export function AdminSectionsPage() {
 
     moveSection(fromIndex, toIndex);
     setDraggedDraftId(null);
+  }
+
+  function selectSection(draftId: string) {
+    setActiveDraftId(draftId);
+    setPendingDeleteDraftId(null);
+  }
+
+  function requestDeleteSection(draftId: string) {
+    if (pendingDeleteDraftId === draftId) {
+      deleteSection(draftId);
+      return;
+    }
+
+    setNotice(null);
+    setErrors([]);
+    setPendingDeleteDraftId(draftId);
   }
 
   async function handlePreviewManualIds() {
@@ -455,6 +511,11 @@ export function AdminSectionsPage() {
   }
 
   async function handleSave() {
+    if (!hasUnsavedChanges) {
+      setNotice("ยังไม่มีรายการที่เปลี่ยนใหม่");
+      return;
+    }
+
     const sectionDrafts = sections.map(toHomeSectionDraft);
     const validationErrors = validateHomeSectionDrafts(sectionDrafts);
 
@@ -519,41 +580,68 @@ export function AdminSectionsPage() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-4 px-4 py-4 text-[#0f332d] sm:px-6">
-      <header className="flex flex-col gap-3 border-b border-[#cadbd4] pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-[#063f35]">
-            จัดชุดบ้านพักหน้าแรก
-          </h1>
-          <p className="mt-1 text-sm text-[#506862]">
-            เลือกและเรียงชุดบ้านพักที่แสดงบนหน้าแรกของเว็บไซต์
-          </p>
+      <header className="rounded-[24px] bg-[#064e3b] p-4 text-white shadow-[0_18px_48px_rgba(6,63,53,0.16)] sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold text-[#facc15]">
+              หลังบ้านหน้าแรก
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-normal sm:text-3xl">
+              จัดชุดบ้านพักหน้าแรก
+            </h1>
+            <p className="mt-1 text-sm text-emerald-50">
+              เลือกและเรียงชุดบ้านพักที่แสดงบนหน้าแรกของเว็บไซต์
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-[#064e3b] transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={addSection}
+              type="button"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              เพิ่มชุดบ้านพัก
+            </button>
+            <button
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-[#facc15] px-4 text-sm font-semibold text-[#063f35] transition hover:bg-[#fde047] disabled:cursor-not-allowed disabled:bg-white/35 disabled:text-white/70"
+              disabled={isSaving || isLoading || !hasUnsavedChanges}
+              onClick={handleSave}
+              type="button"
+            >
+              <Save aria-hidden="true" className="size-4" />
+              {isSaving
+                ? "กำลังบันทึก..."
+                : hasUnsavedChanges
+                  ? "บันทึกหน้าแรก"
+                  : "บันทึกแล้ว"}
+            </button>
+            <button
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/15"
+              onClick={handleLogout}
+              type="button"
+            >
+              <LogOut aria-hidden="true" className="size-4" />
+              ออกจากระบบ
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-[#b7cbc3] bg-white px-3 text-sm font-semibold text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={addSection}
-            type="button"
+        <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+          <span className="rounded-full bg-white/12 px-3 py-1.5 text-white">
+            ทั้งหมด {sections.length} ชุด
+          </span>
+          <span className="rounded-full bg-white/12 px-3 py-1.5 text-white">
+            เปิดใช้ {activeSectionsCount} ชุด
+          </span>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ${
+              hasUnsavedChanges
+                ? "bg-[#fef3c7] text-[#7c4a03]"
+                : "bg-white/12 text-white"
+            }`}
           >
-            <Plus aria-hidden="true" className="size-4" />
-            เพิ่มชุดบ้านพัก
-          </button>
-          <button
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-[#075341] px-3 text-sm font-semibold text-white transition hover:bg-[#063f35] disabled:cursor-not-allowed disabled:bg-[#89a39b]"
-            disabled={isSaving || isLoading}
-            onClick={handleSave}
-            type="button"
-          >
-            <Save aria-hidden="true" className="size-4" />
-            {isSaving ? "กำลังบันทึก..." : "บันทึกหน้าแรก"}
-          </button>
-          <button
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-[#b7cbc3] bg-white px-3 text-sm font-semibold text-[#17463c] transition hover:bg-[#f6faf8]"
-            onClick={handleLogout}
-            type="button"
-          >
-            <LogOut aria-hidden="true" className="size-4" />
-            ออกจากระบบ
-          </button>
+            <CheckCircle2 aria-hidden="true" className="size-3.5" />
+            {hasUnsavedChanges ? "มีการแก้ไขยังไม่บันทึก" : "ข้อมูลล่าสุดแล้ว"}
+          </span>
         </div>
       </header>
 
@@ -585,67 +673,78 @@ export function AdminSectionsPage() {
           กำลังโหลดการจัดหน้าแรก...
         </div>
       ) : (
-        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(260px,340px)_1fr]">
-          <aside className="space-y-2">
+        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+          <aside className="rounded-[22px] border border-[#dbe7e3] bg-white p-3 shadow-[0_12px_34px_rgba(6,63,53,0.07)]">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <h2 className="text-sm font-semibold text-[#063f35]">
+                ลำดับชุดบ้านพัก
+              </h2>
+              <span className="rounded-full bg-[#f4f8f5] px-2.5 py-1 text-xs font-semibold text-[#55746b]">
+                {sections.length} ชุด
+              </span>
+            </div>
             {sections.length === 0 ? (
-              <div className="rounded-md border border-[#c9d9d3] bg-white px-4 py-5 text-sm text-[#506862]">
+              <div className="rounded-[18px] border border-dashed border-[#c9d9d3] bg-[#f8fbf7] px-4 py-5 text-sm text-[#506862]">
                 ยังไม่มีชุดบ้านพัก กดเพิ่มชุดบ้านพักเพื่อเริ่มจัดหน้าแรก
               </div>
             ) : (
-              sections.map((section, sectionIndex) => {
-                const isActive = activeSection?.draftId === section.draftId;
-                const manualCount = section.items.length;
+              <div className="space-y-2">
+                {sections.map((section, sectionIndex) => {
+                  const isActive = activeSection?.draftId === section.draftId;
+                  const manualCount = section.items.length;
 
-                return (
-                  <button
-                    aria-pressed={isActive}
-                    className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition ${
-                      isActive
-                        ? "border-[#0d6b5a] bg-white shadow-sm"
-                        : "border-[#c9d9d3] bg-[#f9fbfa] hover:bg-white"
-                    }`}
-                    draggable
-                    key={section.draftId}
-                    onClick={() => setActiveDraftId(section.draftId)}
-                    onDragEnd={() => setDraggedDraftId(null)}
-                    onDragOver={handleDragOver}
-                    onDragStart={() => handleDragStart(section.draftId)}
-                    onDrop={() => handleDrop(section.draftId)}
-                    type="button"
-                  >
-                    <GripVertical
-                      aria-hidden="true"
-                      className="size-4 text-[#668178]"
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold text-[#123f36]">
-                        {sectionIndex + 1}. {section.title || "ยังไม่ได้ตั้งชื่อ"}
-                      </span>
-                      <span className="block truncate text-xs text-[#58726a]">
-                        {MODE_LABELS.get(section.mode) ?? section.mode}
-                        {section.mode === "manual"
-                          ? ` / ${manualCount} หลัง`
-                          : ""}
-                      </span>
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        section.isActive
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-slate-200 text-slate-700"
+                  return (
+                    <button
+                      aria-pressed={isActive}
+                      className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded-[18px] border px-3 py-3 text-left text-sm transition ${
+                        isActive
+                          ? "border-[#064e3b] bg-[#f8fbf7] shadow-[0_10px_24px_rgba(6,63,53,0.08)]"
+                          : "border-[#dbe7e3] bg-white hover:bg-[#f8fbf7]"
                       }`}
+                      draggable
+                      key={section.draftId}
+                      onClick={() => selectSection(section.draftId)}
+                      onDragEnd={() => setDraggedDraftId(null)}
+                      onDragOver={handleDragOver}
+                      onDragStart={() => handleDragStart(section.draftId)}
+                      onDrop={() => handleDrop(section.draftId)}
+                      type="button"
                     >
-                      {section.isActive ? "เปิด" : "ปิด"}
-                    </span>
-                  </button>
-                );
-              })
+                      <GripVertical
+                        aria-hidden="true"
+                        className="size-4 text-[#668178]"
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold text-[#123f36]">
+                          {sectionIndex + 1}.{" "}
+                          {section.title || "ยังไม่ได้ตั้งชื่อ"}
+                        </span>
+                        <span className="block truncate text-xs text-[#58726a]">
+                          {MODE_LABELS.get(section.mode) ?? section.mode}
+                          {section.mode === "manual"
+                            ? ` / ${manualCount} หลัง`
+                            : ""}
+                        </span>
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          section.isActive
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-slate-200 text-slate-700"
+                        }`}
+                      >
+                        {section.isActive ? "เปิด" : "ปิด"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </aside>
 
           {activeSection ? (
-            <section className="rounded-md border border-[#c9d9d3] bg-white">
-              <div className="flex flex-col gap-2 border-b border-[#dbe6e1] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <section className="overflow-hidden rounded-[24px] border border-[#dbe7e3] bg-white shadow-[0_12px_34px_rgba(6,63,53,0.07)]">
+              <div className="flex flex-col gap-2 border-b border-[#dbe6e1] bg-[#fbfdfb] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-normal text-[#687d76]">
                     ชุดที่ {activeIndex + 1}
@@ -676,12 +775,16 @@ export function AdminSectionsPage() {
                     <ArrowDown aria-hidden="true" className="size-4" />
                   </button>
                   <button
-                    className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-                    onClick={() => deleteSection(activeSection.draftId)}
+                    className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition ${
+                      deleteNeedsConfirmation
+                        ? "border-red-700 bg-red-700 text-white hover:bg-red-800"
+                        : "border-red-200 bg-white text-red-700 hover:bg-red-50"
+                    }`}
+                    onClick={() => requestDeleteSection(activeSection.draftId)}
                     type="button"
                   >
                     <Trash2 aria-hidden="true" className="size-4" />
-                    ลบ
+                    {deleteNeedsConfirmation ? "ยืนยันลบ" : "ลบ"}
                   </button>
                 </div>
               </div>
@@ -718,29 +821,46 @@ export function AdminSectionsPage() {
                     </label>
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="block text-sm font-medium text-[#173f36]">
-                      รูปแบบการเลือกบ้าน
-                      <select
-                        className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-                        onChange={(event) =>
-                          updateSection(activeSection.draftId, {
-                            mode: event.target.value as HomeSectionMode,
-                          })
-                        }
-                        value={activeSection.mode}
-                      >
-                        {MODES.map((mode) => (
-                          <option key={mode.value} value={mode.value}>
-                            {mode.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                  <div className="grid gap-3 xl:grid-cols-[1fr_180px]">
+                    <fieldset>
+                      <legend className="text-sm font-medium text-[#173f36]">
+                        รูปแบบการเลือกบ้าน
+                      </legend>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                        {MODES.map((mode) => {
+                          const isSelected = activeSection.mode === mode.value;
+
+                          return (
+                            <button
+                              aria-pressed={isSelected}
+                              className={`min-h-24 rounded-[18px] border px-3 py-3 text-left transition ${
+                                isSelected
+                                  ? "border-[#064e3b] bg-[#f4f8f5] text-[#063f35] shadow-[0_10px_24px_rgba(6,63,53,0.08)]"
+                                  : "border-[#dbe7e3] bg-white text-[#55746b] hover:bg-[#f8fbf7]"
+                              }`}
+                              key={mode.value}
+                              onClick={() =>
+                                updateSection(activeSection.draftId, {
+                                  mode: mode.value,
+                                })
+                              }
+                              type="button"
+                            >
+                              <span className="block text-sm font-semibold text-[#063f35]">
+                                {mode.label}
+                              </span>
+                              <span className="mt-1 block text-xs leading-5">
+                                {mode.summary}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
                     <label className="block text-sm font-medium text-[#173f36]">
                       จำนวนบ้านที่แสดง
                       <input
-                        className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                        className="mt-2 h-11 w-full rounded-xl border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
                         min={1}
                         max={12}
                         onChange={(event) =>
@@ -862,51 +982,64 @@ export function AdminSectionsPage() {
                     </div>
                   </details>
 
-                  <div className="grid gap-3 rounded-md border border-[#dbe6e1] bg-[#f8fbf9] p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <h3 className="text-sm font-semibold text-[#173f36]">
-                          บ้านพักในชุดนี้
-                        </h3>
-                        <p className="mt-0.5 text-xs text-[#58726a]">
-                          พิมพ์เลขบ้านที่ต้องการแสดง เช่น 105 101 111
-                        </p>
+                  {activeSection.mode === "manual" ? (
+                    <div className="grid gap-3 rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h3 className="text-sm font-semibold text-[#173f36]">
+                            บ้านพักในชุดนี้
+                          </h3>
+                          <p className="mt-0.5 text-xs text-[#58726a]">
+                            พิมพ์เลขบ้านที่ต้องการแสดง เช่น 105 101 111
+                          </p>
+                        </div>
+                        <button
+                          className="inline-flex h-9 items-center gap-2 rounded-full border border-[#b7cbc3] bg-white px-3 text-sm font-semibold text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={isPreviewing}
+                          onClick={handlePreviewManualIds}
+                          type="button"
+                        >
+                          <Eye aria-hidden="true" className="size-4" />
+                          {isPreviewing ? "กำลังตรวจสอบ..." : "ตรวจสอบบ้านพัก"}
+                        </button>
                       </div>
-                      <button
-                        className="inline-flex h-9 items-center gap-2 rounded-md border border-[#b7cbc3] bg-white px-3 text-sm font-semibold text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-60"
-                        disabled={isPreviewing || activeSection.mode !== "manual"}
-                        onClick={handlePreviewManualIds}
-                        type="button"
-                      >
-                        <Eye aria-hidden="true" className="size-4" />
-                        {isPreviewing ? "กำลังตรวจสอบ..." : "ตรวจสอบบ้านพัก"}
-                      </button>
-                    </div>
-                    <textarea
-                      className="min-h-36 w-full rounded-md border border-[#c9d9d3] bg-white px-3 py-2 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-                      disabled={activeSection.mode !== "manual"}
-                      onChange={(event) => {
-                        const nextManualIdText = event.target.value;
+                      <textarea
+                        className="min-h-36 w-full rounded-[18px] border border-[#c9d9d3] bg-white px-3 py-2 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                        onChange={(event) => {
+                          const nextManualIdText = event.target.value;
 
-                        setManualIdTexts((currentTexts) => ({
-                          ...currentTexts,
-                          [activeSection.draftId]: nextManualIdText,
-                        }));
-                        updateSection(activeSection.draftId, {
-                          items: parseManualIds(nextManualIdText),
-                        });
-                      }}
-                      placeholder="105 101 111"
-                      value={
-                        manualIdTexts[activeSection.draftId] ??
-                        activeSection.items.map((item) => item.houseId).join(" ")
-                      }
-                    />
-                  </div>
+                          setManualIdTexts((currentTexts) => ({
+                            ...currentTexts,
+                            [activeSection.draftId]: nextManualIdText,
+                          }));
+                          updateSection(activeSection.draftId, {
+                            items: parseManualIds(nextManualIdText),
+                          });
+                        }}
+                        placeholder="105 101 111"
+                        value={
+                          manualIdTexts[activeSection.draftId] ??
+                          activeSection.items
+                            .map((item) => item.houseId)
+                            .join(" ")
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
+                      <h3 className="text-sm font-semibold text-[#173f36]">
+                        {MODE_LABELS.get(activeSection.mode) ??
+                          "เลือกบ้านอัตโนมัติ"}
+                      </h3>
+                      <p className="mt-1 text-sm leading-6 text-[#58726a]">
+                        ระบบจะจัดบ้านให้ตามรูปแบบนี้ โดยใช้จำนวนบ้านที่ตั้งไว้ด้านบน
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <aside className="grid content-start gap-3">
-                  <div className="rounded-md border border-[#dbe6e1] bg-[#f8fbf9] p-3">
+                  <div className="rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
                     <label className="flex items-center gap-2 text-sm font-semibold text-[#173f36]">
                       <input
                         checked={activeSection.isActive}
@@ -930,14 +1063,20 @@ export function AdminSectionsPage() {
                       <div>
                         <dt className="text-[#687d76]">จำนวนบ้าน</dt>
                         <dd className="font-mono font-semibold text-[#123f36]">
-                          {activeSection.items.length}
+                          {activeSection.mode === "manual"
+                            ? activeSection.items.length
+                            : activeSection.limitCount}
                         </dd>
                       </div>
                     </dl>
                   </div>
 
-                  {preview && previewDraftId === activeSection.draftId ? (
-                    <div className="rounded-md border border-[#dbe6e1] bg-white p-3 text-sm">
+                  {activeSection.mode !== "manual" ? (
+                    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4 text-sm text-[#506862]">
+                      บ้านพักจะถูกเลือกอัตโนมัติเมื่อบันทึกและเปิดหน้าแรก
+                    </div>
+                  ) : preview && previewDraftId === activeSection.draftId ? (
+                    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4 text-sm">
                       <h3 className="font-semibold text-[#173f36]">
                         ผลการตรวจสอบ
                       </h3>
@@ -973,13 +1112,14 @@ export function AdminSectionsPage() {
                       ) : null}
                     </div>
                   ) : (
-                    <div className="rounded-md border border-[#dbe6e1] bg-white p-3 text-sm text-[#506862]">
+                    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4 text-sm text-[#506862]">
                       กดตรวจสอบบ้านพักเพื่อดูว่าเลขบ้านไหนใช้งานได้ก่อนบันทึก
                     </div>
                   )}
 
-                  {activeSection.items.length > 0 ? (
-                    <div className="rounded-md border border-[#dbe6e1] bg-white p-3">
+                  {activeSection.mode === "manual" &&
+                  activeSection.items.length > 0 ? (
+                    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4">
                       <h3 className="text-sm font-semibold text-[#173f36]">
                         เลขบ้านที่ระบบอ่านได้
                       </h3>
