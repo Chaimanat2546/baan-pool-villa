@@ -91,45 +91,46 @@ export function SectionConfigForm({
         </div>
       </div>
 
-      <label className="flex h-12 items-center rounded-xl border border-[#dbe1e7] bg-[#fbfcfd] px-4 py-2 text-sm font-semibold text-[#173f36]">
-        <input
-          checked={section.ctaEnabled}
-          className="size-5 shrink-0 accent-[#075341]"
-          onChange={(event) => {
-            const isEnabled = event.target.checked;
+      <div className="grid gap-3 rounded-xl border border-[#dbe1e7] bg-white p-3 text-sm">
+        <label className="flex min-h-10 items-center font-semibold text-[#173f36]">
+          <input
+            checked={section.ctaEnabled}
+            className="size-5 shrink-0 accent-[#075341]"
+            onChange={(event) => {
+              const isEnabled = event.target.checked;
 
-            onChange({
-              ctaEnabled: isEnabled,
-              ctaHref:
-                isEnabled && !section.ctaHref.trim()
-                  ? "/search"
-                  : section.ctaHref,
-              ctaLabel:
-                isEnabled && !section.ctaLabel.trim()
-                  ? "ดูเพิ่มเติม"
-                  : section.ctaLabel,
-            });
-          }}
-          type="checkbox"
-        />
-        <span className="ml-2">แสดงปุ่มดูเพิ่มเติม</span>
-      </label>
+              onChange({
+                ctaEnabled: isEnabled,
+                ctaHref:
+                  isEnabled && !section.ctaHref.trim()
+                    ? "/search"
+                    : section.ctaHref,
+                ctaLabel:
+                  isEnabled && !section.ctaLabel.trim()
+                    ? "ดูเพิ่มเติม"
+                    : section.ctaLabel,
+              });
+            }}
+            type="checkbox"
+          />
+          <span className="ml-2">แสดงปุ่มดูเพิ่มเติมท้ายชุดนี้</span>
+        </label>
 
-      <details className="rounded-xl border border-[#dbe1e7] bg-white px-4 text-sm">
-        <summary className="cursor-pointer py-3 font-semibold text-[#173f36]">
-          ตั้งค่าขั้นสูง
-        </summary>
-        <div className="grid gap-3 pb-4 md:grid-cols-2">
+        {section.ctaEnabled ? (
           <label className="block text-sm font-medium text-[#173f36]">
-            รหัสชุดสำหรับระบบ
+            ข้อความบนปุ่ม
             <input
-              className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-              onChange={(event) => onChange({ slug: event.target.value })}
-              value={section.slug}
+              className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+              onChange={(event) => onChange({ ctaLabel: event.target.value })}
+              placeholder="ดูเพิ่มเติม"
+              value={section.ctaLabel}
             />
           </label>
+        ) : null}
+
+        {section.mode === "slice" ? (
           <label className="block text-sm font-medium text-[#173f36]">
-            เริ่มจากลำดับที่
+            ข้ามบ้านพักกี่หลังแรก
             <input
               className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
               min={0}
@@ -139,29 +140,12 @@ export function SectionConfigForm({
               type="number"
               value={section.sliceOffset}
             />
+            <span className="mt-1 block text-xs leading-5 text-[#687d76]">
+              ใส่ 0 ถ้าต้องการเริ่มจากบ้านหลังแรกของรายการ
+            </span>
           </label>
-          <label className="block text-sm font-medium text-[#173f36]">
-            ข้อความบนปุ่มดูเพิ่มเติม
-            <input
-              className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#eef3ef]"
-              disabled={!section.ctaEnabled}
-              onChange={(event) => onChange({ ctaLabel: event.target.value })}
-              placeholder="ดูเพิ่มเติม"
-              value={section.ctaLabel}
-            />
-          </label>
-          <label className="block text-sm font-medium text-[#173f36]">
-            ลิงก์ปุ่มดูเพิ่มเติม
-            <input
-              className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#eef3ef]"
-              disabled={!section.ctaEnabled}
-              onChange={(event) => onChange({ ctaHref: event.target.value })}
-              placeholder="/search"
-              value={section.ctaHref}
-            />
-          </label>
-        </div>
-      </details>
+        ) : null}
+      </div>
     </>
   );
 }
