@@ -11,7 +11,7 @@ import { ADMIN_NAV_ITEMS, getActiveAdminNavItem } from "./admin-nav";
 
 interface AdminShellProps {
   children: React.ReactNode;
-};
+}
 
 function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -206,7 +206,11 @@ export function AdminShell({ children }: AdminShellProps) {
               </button>
             </div>
             <div className="mt-4 flex-1 overflow-y-auto">
-              <AdminNavigation onNavigate={() => setIsMobileNavOpen(false)} />
+              <AdminNavigation
+                onNavigate={() => {
+                  setIsMobileNavOpen(false);
+                }}
+              />
             </div>
           </aside>
         </div>

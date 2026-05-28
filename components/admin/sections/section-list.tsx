@@ -12,7 +12,7 @@ interface SectionListProps {
   onDrop: (draftId: string) => void;
   onSelect: (draftId: string) => void;
   sections: AdminSectionDraft[];
-};
+}
 
 export function SectionList({
   activeDraftId,

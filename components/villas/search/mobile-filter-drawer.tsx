@@ -10,7 +10,7 @@ import { SearchBar } from "./search-bar";
 interface ZoneOption {
   label: string;
   value: string;
-};
+}
 
 interface MobileFilterDrawerProps {
   filters: VillaFilters;
@@ -18,7 +18,7 @@ interface MobileFilterDrawerProps {
   onApply: (filters: VillaFilters) => void;
   resultCount: number;
   zones: ZoneOption[];
-};
+}
 
 function getActiveFilterCount(filters: VillaFilters, maxAvailablePrice: number): number {
   let count = 0;
