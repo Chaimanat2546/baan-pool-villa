@@ -1,0 +1,412 @@
+import { assertHomeConfigAdmin, getBearerToken, jsonError } from "@/lib/admin/home-config-auth";
+import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
+import type {
+  SiteAssetType,
+  SiteAssetUploadRecord,
+  SiteSettingsRow,
+} from "@/lib/site-settings/types";
+import {
+  normalizeSiteSettingsDraft,
+  normalizeSiteSettingsRow,
+  selectAssetUploadsForCleanup,
+  validateSiteSettingsDraft,
+  validateUploadMetadata,
+} from "@/lib/site-settings/validation";
+
+const SITE_SETTINGS_SELECT =
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt";
+const SITE_ASSET_UPLOADS_SELECT =
+  "id,asset_type,storage_bucket,storage_path,is_current,created_at";
+const ASSET_UPLOAD_FIELDS: { assetType: SiteAssetType; fieldName: string }[] = [
+  { assetType: "logo", fieldName: "logo" },
+  { assetType: "hero", fieldName: "hero" },
+];
+
+interface SupabaseLikeError {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}
+
+interface UploadedAsset {
+  assetType: SiteAssetType;
+  path: string;
+  publicUrl: string;
+}
+
+interface SiteAssetUploadRow {
+  id: unknown;
+  asset_type: unknown;
+  storage_bucket: unknown;
+  storage_path: unknown;
+  is_current: unknown;
+  created_at: unknown;
+}
+
+type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
+type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
+
+function supabaseErrorResponse(
+  error: SupabaseLikeError | null | undefined,
+  fallbackMessage: string,
+  warning?: string,
+) {
+  return jsonError(error?.message ?? fallbackMessage, 403, {
+    code: error?.code,
+    details: error?.details,
+    hint: error?.hint,
+    warning,
+  });
+}
+
+async function requireAdmin(request: Request): Promise<
+  | {
+      ok: true;
+      supabase: HomeConfigSupabaseClient;
+    }
+  | {
+      ok: false;
+      response: Response;
+    }
+> {
+  const token = getBearerToken(request);
+
+  if (!token) {
+    return { ok: false, response: jsonError("Missing bearer token.", 401) };
+  }
+
+  const adminCheck = await assertHomeConfigAdmin(token);
+
+  if (!adminCheck.ok) {
+    return {
+      ok: false,
+      response: jsonError(adminCheck.message, adminCheck.status),
+    };
+  }
+
+  return { ok: true, supabase: adminCheck.supabase };
+}
+
+function readStringField(formData: FormData, fieldName: string): string {
+  const value = formData.get(fieldName);
+
+  return typeof value === "string" ? value : "";
+}
+
+function getOptionalUpload(formData: FormData, fieldName: string): File | null {
+  const value = formData.get(fieldName);
+
+  if (!(value instanceof File) || value.size === 0) {
+    return null;
+  }
+
+  return value;
+}
+
+function getUploadExtension(mimeType: string): string | null {
+  switch (mimeType) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    default:
+      return null;
+  }
+}
+
+function buildStoragePath(assetType: SiteAssetType, mimeType: string): string {
+  const extension = getUploadExtension(mimeType);
+
+  if (!extension) {
+    throw new Error("Unsupported upload MIME type");
+  }
+
+  const now = new Date();
+  const year = String(now.getUTCFullYear());
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+
+  return `${assetType}/${year}/${month}/${crypto.randomUUID()}.${extension}`;
+}
+
+async function removeUploadedAssets(
+  supabase: HomeConfigSupabaseClient,
+  uploadedAssets: UploadedAsset[],
+): Promise<string[]> {
+  if (uploadedAssets.length === 0) {
+    return [];
+  }
+
+  const paths = uploadedAssets.map((asset) => asset.path);
+  const { error } = await supabase.storage.from(SITE_ASSETS_BUCKET).remove(paths);
+
+  return error ? [`Unable to clean up uploaded assets: ${error.message}`] : [];
+}
+
+async function uploadAsset(
+  supabase: HomeConfigSupabaseClient,
+  assetType: SiteAssetType,
+  file: File,
+): Promise<{ asset: UploadedAsset | null; error: SupabaseLikeError | null }> {
+  const path = buildStoragePath(assetType, file.type);
+  const { error } = await supabase.storage.from(SITE_ASSETS_BUCKET).upload(path, file, {
+    cacheControl: "31536000",
+    contentType: file.type,
+    upsert: false,
+  });
+
+  if (error) {
+    return { asset: null, error };
+  }
+
+  const { data } = supabase.storage.from(SITE_ASSETS_BUCKET).getPublicUrl(path);
+
+  return {
+    asset: {
+      assetType,
+      path,
+      publicUrl: data.publicUrl,
+    },
+    error: null,
+  };
+}
+
+function mapUploadRow(row: SiteAssetUploadRow): SiteAssetUploadRecord | null {
+  if (
+    (row.asset_type !== "logo" && row.asset_type !== "hero") ||
+    typeof row.created_at !== "string" ||
+    typeof row.id !== "string" ||
+    typeof row.is_current !== "boolean" ||
+    typeof row.storage_bucket !== "string" ||
+    typeof row.storage_path !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    assetType: row.asset_type,
+    createdAt: row.created_at,
+    id: row.id,
+    isCurrent: row.is_current,
+    storageBucket: row.storage_bucket,
+    storagePath: row.storage_path,
+  };
+}
+
+async function recordUploadedAssets(
+  supabase: HomeConfigSupabaseClient,
+  uploadedAssets: UploadedAsset[],
+): Promise<string[]> {
+  const warnings: string[] = [];
+
+  for (const asset of uploadedAssets) {
+    const { error: updateError } = await supabase
+      .from("site_asset_uploads")
+      .update({ is_current: false })
+      .eq("asset_type", asset.assetType)
+      .eq("storage_bucket", SITE_ASSETS_BUCKET)
+      .eq("is_current", true);
+
+    if (updateError) {
+      warnings.push(
+        `Unable to mark previous ${asset.assetType} uploads inactive: ${updateError.message}`,
+      );
+    }
+
+    const { error: insertError } = await supabase.from("site_asset_uploads").insert({
+      asset_type: asset.assetType,
+      storage_bucket: SITE_ASSETS_BUCKET,
+      storage_path: asset.path,
+      public_url: asset.publicUrl,
+      is_current: true,
+    });
+
+    if (insertError) {
+      warnings.push(
+        `Unable to record ${asset.assetType} upload history: ${insertError.message}`,
+      );
+    }
+  }
+
+  return warnings;
+}
+
+async function cleanupRetainedAssets(
+  supabase: HomeConfigSupabaseClient,
+): Promise<string[]> {
+  const warnings: string[] = [];
+  const { data, error } = await supabase
+    .from("site_asset_uploads")
+    .select(SITE_ASSET_UPLOADS_SELECT)
+    .order("created_at", { ascending: false });
+
+  if (error || !Array.isArray(data)) {
+    return [error?.message ?? "Unable to load site asset upload history."];
+  }
+
+  const records = (data as SiteAssetUploadRow[])
+    .map(mapUploadRow)
+    .filter((record): record is SiteAssetUploadRecord => record !== null);
+  const cleanupRecords = selectAssetUploadsForCleanup(records);
+
+  for (const record of cleanupRecords) {
+    const { error: removeError } = await supabase.storage
+      .from(record.storageBucket)
+      .remove([record.storagePath]);
+
+    if (removeError) {
+      warnings.push(`Unable to remove old ${record.assetType} asset: ${removeError.message}`);
+      continue;
+    }
+
+    const { error: deleteError } = await supabase
+      .from("site_asset_uploads")
+      .delete()
+      .eq("id", record.id);
+
+    if (deleteError) {
+      warnings.push(
+        `Unable to delete old ${record.assetType} upload history: ${deleteError.message}`,
+      );
+    }
+  }
+
+  return warnings;
+}
+
+export async function GET(request: Request) {
+  const admin = await requireAdmin(request);
+
+  if (!admin.ok) {
+    return admin.response;
+  }
+
+  const { data, error } = await admin.supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_SELECT)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (error) {
+    return supabaseErrorResponse(error, "Unable to load site settings.");
+  }
+
+  return Response.json({
+    settings: normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null),
+  });
+}
+
+export async function PUT(request: Request) {
+  const admin = await requireAdmin(request);
+
+  if (!admin.ok) {
+    return admin.response;
+  }
+
+  let formData: FormData;
+
+  try {
+    formData = await request.formData();
+  } catch {
+    return Response.json({ errors: ["Request body must be multipart/form-data."] }, { status: 400 });
+  }
+
+  const draft = normalizeSiteSettingsDraft({
+    siteName: readStringField(formData, "siteName"),
+    primaryColor: readStringField(formData, "primaryColor"),
+    accentColor: readStringField(formData, "accentColor"),
+    heroImageAlt: readStringField(formData, "heroImageAlt"),
+  });
+  const errors = validateSiteSettingsDraft(draft);
+  const uploadFiles: { assetType: SiteAssetType; file: File }[] = [];
+
+  ASSET_UPLOAD_FIELDS.forEach(({ assetType, fieldName }) => {
+    const file = getOptionalUpload(formData, fieldName);
+
+    if (!file) {
+      return;
+    }
+
+    errors.push(...validateUploadMetadata(assetType, file.type, file.size));
+    uploadFiles.push({ assetType, file });
+  });
+
+  if (errors.length > 0) {
+    return Response.json({ errors }, { status: 400 });
+  }
+
+  const { data: existingRow, error: loadError } = await admin.supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_SELECT)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (loadError) {
+    return supabaseErrorResponse(loadError, "Unable to load site settings.");
+  }
+
+  const currentSettings = normalizeSiteSettingsRow(
+    (existingRow as SiteSettingsRow | null) ?? null,
+  );
+  const uploadedAssets: UploadedAsset[] = [];
+
+  for (const upload of uploadFiles) {
+    const result = await uploadAsset(admin.supabase, upload.assetType, upload.file);
+
+    if (result.error || !result.asset) {
+      const cleanupWarnings = await removeUploadedAssets(admin.supabase, uploadedAssets);
+
+      return supabaseErrorResponse(
+        result.error,
+        `Unable to upload ${upload.assetType} image.`,
+        cleanupWarnings.join("; ") || undefined,
+      );
+    }
+
+    uploadedAssets.push(result.asset);
+  }
+
+  const logoUpload = uploadedAssets.find((asset) => asset.assetType === "logo");
+  const heroUpload = uploadedAssets.find((asset) => asset.assetType === "hero");
+  const savePayload = {
+    id: SITE_SETTINGS_ID,
+    site_name: draft.siteName,
+    primary_color: draft.primaryColor,
+    accent_color: draft.accentColor,
+    logo_image_path: logoUpload?.path ?? currentSettings.logoImage.path,
+    logo_image_url: logoUpload?.publicUrl ?? currentSettings.logoImage.url,
+    hero_image_path: heroUpload?.path ?? currentSettings.heroImage.path,
+    hero_image_url: heroUpload?.publicUrl ?? currentSettings.heroImage.url,
+    hero_image_alt: draft.heroImageAlt,
+  };
+
+  const { data, error: saveError } = await admin.supabase
+    .from("site_settings")
+    .upsert(savePayload, { onConflict: "id" })
+    .select(SITE_SETTINGS_SELECT)
+    .single();
+
+  if (saveError) {
+    const cleanupWarnings = await removeUploadedAssets(admin.supabase, uploadedAssets);
+
+    return supabaseErrorResponse(
+      saveError,
+      "Unable to save site settings.",
+      cleanupWarnings.join("; ") || undefined,
+    );
+  }
+
+  const warnings = [
+    ...(await recordUploadedAssets(admin.supabase, uploadedAssets)),
+    ...(uploadedAssets.length > 0
+      ? await cleanupRetainedAssets(admin.supabase)
+      : []),
+  ];
+
+  return Response.json({
+    settings: normalizeSiteSettingsRow(data as SiteSettingsRow),
+    warnings,
+  });
+}

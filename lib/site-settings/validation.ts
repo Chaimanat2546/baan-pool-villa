@@ -59,6 +59,17 @@ export function normalizeSiteSettingsRow(
   };
 }
 
+export function normalizeSiteSettingsDraft(
+  draft: SiteSettingsDraft,
+): SiteSettingsDraft {
+  return {
+    siteName: draft.siteName.trim(),
+    primaryColor: draft.primaryColor.trim().toLowerCase(),
+    accentColor: draft.accentColor.trim().toLowerCase(),
+    heroImageAlt: draft.heroImageAlt.trim(),
+  };
+}
+
 export function validateSiteSettingsDraft(
   draft: SiteSettingsDraft,
 ): string[] {

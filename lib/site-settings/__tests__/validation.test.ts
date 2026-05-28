@@ -5,6 +5,7 @@ import {
   SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
 } from "../defaults";
 import {
+  normalizeSiteSettingsDraft,
   normalizeSiteSettingsRow,
   validateSiteSettingsDraft,
   validateUploadMetadata,
@@ -71,6 +72,24 @@ describe("normalizeSiteSettingsRow", () => {
         hero_image_alt: "",
       }),
     ).toEqual(DEFAULT_SITE_SETTINGS);
+  });
+});
+
+describe("normalizeSiteSettingsDraft", () => {
+  it("trims text fields and lowercases colors", () => {
+    expect(
+      normalizeSiteSettingsDraft({
+        siteName: " Baan Pool Villa ",
+        primaryColor: " #064E3B ",
+        accentColor: " #EAB308 ",
+        heroImageAlt: " Pool villas in Pattaya ",
+      }),
+    ).toEqual({
+      siteName: "Baan Pool Villa",
+      primaryColor: "#064e3b",
+      accentColor: "#eab308",
+      heroImageAlt: "Pool villas in Pattaya",
+    });
   });
 });
 
