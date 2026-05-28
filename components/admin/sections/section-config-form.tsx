@@ -110,23 +110,6 @@ export function SectionConfigForm({
           <span className="ml-2">แสดงปุ่มดูเพิ่มเติมท้ายชุดนี้</span>
         </label>
 
-        {section.mode === "slice" ? (
-          <label className="block text-sm font-medium text-[#173f36]">
-            ข้ามบ้านพักกี่หลังแรก
-            <input
-              className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-              min={0}
-              onChange={(event) =>
-                onChange({ sliceOffset: Number(event.target.value) })
-              }
-              type="number"
-              value={section.sliceOffset}
-            />
-            <span className="mt-1 block text-xs leading-5 text-[#687d76]">
-              ใส่ 0 ถ้าต้องการเริ่มจากบ้านหลังแรกของรายการ
-            </span>
-          </label>
-        ) : null}
       </div>
     </>
   );
