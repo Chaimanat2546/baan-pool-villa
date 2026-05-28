@@ -50,7 +50,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
             </div>
           </div>
 
-          <p className="mt-4 max-w-[600px] text-sm leading-[21px] text-white/70">
+          <p className="mt-4 max-w-[600px] text-sm leading-[21px] text-[var(--site-on-primary)] opacity-70">
             บ้านพักพูลวิลล่าสุดหรูใจกลางพัทยา พร้อมสระว่ายน้ำส่วนตัว
             เหมาะสำหรับครอบครัวและกลุ่มเพื่อน
           </p>
@@ -60,12 +60,12 @@ export function SiteFooter({ settings }: SiteFooterProps) {
           <h3 className="text-lg font-semibold leading-7 text-[var(--site-on-primary)]">
             เมนูหลัก
           </h3>
-          <div className="mt-[22px] grid gap-4 text-base leading-6 text-white/60">
+          <div className="mt-[22px] grid gap-4 text-base leading-6">
             {menuItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="transition hover:text-white"
+                className="text-[var(--site-on-primary)] opacity-60 transition hover:opacity-100"
               >
                 {item.label}
               </Link>
@@ -77,15 +77,20 @@ export function SiteFooter({ settings }: SiteFooterProps) {
           <h3 className="text-lg font-semibold leading-7 text-[var(--site-on-primary)]">
             ติดต่อเรา
           </h3>
-          <div className="mt-[22px] grid gap-3 text-base leading-6 text-white/60">
+          <div className="mt-[22px] grid gap-3 text-base leading-6">
             {contactItems.map((item) => (
-              <p key={item}>{item}</p>
+              <p
+                key={item}
+                className="text-[var(--site-on-primary)] opacity-60"
+              >
+                {item}
+              </p>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1292px] px-6 pb-8 text-center text-sm leading-5 text-white/50 sm:px-8 lg:px-6">
+      <div className="mx-auto max-w-[1292px] px-6 pb-8 text-center text-sm leading-5 text-[var(--site-on-primary)] opacity-50 sm:px-8 lg:px-6">
         <p>
           © {new Date().getFullYear()} Baan Pool Villas. All rights reserved.
         </p>

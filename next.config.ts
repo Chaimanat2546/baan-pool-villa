@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+        search: "",
+      },
+      {
+        protocol: "https",
         hostname: "s3.ap-southeast-1.amazonaws.com",
         pathname: "/poolvillas.co.ltd/**",
         search: "",
