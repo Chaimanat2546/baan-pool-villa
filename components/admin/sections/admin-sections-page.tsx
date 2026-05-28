@@ -38,10 +38,27 @@ import {
   normalizeAdminFallbackMode,
 } from "./section-helpers";
 
-const makeDraftId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+let draftIdFallbackCounter = 0;
+
+function makeDraftId() {
+  const cryptoProvider = globalThis.crypto;
+
+  if (typeof cryptoProvider?.randomUUID === "function") {
+    return cryptoProvider.randomUUID();
+  }
+
+  if (typeof cryptoProvider?.getRandomValues === "function") {
+    const values = new Uint32Array(4);
+    cryptoProvider.getRandomValues(values);
+
+    return `draft-${Date.now()}-${Array.from(values, (value) =>
+      value.toString(16).padStart(8, "0"),
+    ).join("")}`;
+  }
+
+  draftIdFallbackCounter += 1;
+  return `draft-${Date.now()}-${draftIdFallbackCounter}`;
+}
 
 function toHomeSectionDraft(section: AdminSectionDraft): HomeSectionDraft {
   return {

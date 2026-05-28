@@ -13,6 +13,9 @@ type AdminCheckResult =
       status: 401 | 403;
     };
 
+const BEARER_SCHEME = "bearer";
+const MAX_AUTHORIZATION_HEADER_LENGTH = 8192;
+
 export function jsonError(
   message: string,
   status: number,
@@ -21,15 +24,38 @@ export function jsonError(
   return Response.json({ error: message, ...extra }, { status });
 }
 
+function isAuthorizationSeparator(character: string): boolean {
+  return character === " " || character === "\t";
+}
+
 export function getBearerToken(request: Request): string | null {
   const header = request.headers.get("authorization");
 
-  if (!header) {
+  if (!header || header.length > MAX_AUTHORIZATION_HEADER_LENGTH) {
     return null;
   }
 
-  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
-  const token = match?.[1]?.trim();
+  const trimmedHeader = header.trim();
+  let separatorIndex = -1;
+
+  for (let index = 0; index < trimmedHeader.length; index += 1) {
+    if (isAuthorizationSeparator(trimmedHeader[index] ?? "")) {
+      separatorIndex = index;
+      break;
+    }
+  }
+
+  if (separatorIndex <= 0) {
+    return null;
+  }
+
+  const scheme = trimmedHeader.slice(0, separatorIndex);
+
+  if (scheme.toLowerCase() !== BEARER_SCHEME) {
+    return null;
+  }
+
+  const token = trimmedHeader.slice(separatorIndex).trim();
 
   return token ? token : null;
 }

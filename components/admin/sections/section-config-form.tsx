@@ -1,6 +1,5 @@
 import type { AdminSectionDraft } from "./types";
 import {
-  getFallbackExplanation,
   MODE_OPTIONS,
   normalizeAdminFallbackMode,
 } from "./section-helpers";
