@@ -16,9 +16,9 @@ export default async function PublicLayout({
   return (
     <SiteThemeProvider settings={settings}>
       <div className="min-h-full pb-20 lg:pb-0">
-        <SiteHeader />
+        <SiteHeader settings={settings} />
         {children}
-        <SiteFooter />
+        <SiteFooter settings={settings} />
         <MobileBottomNav />
       </div>
     </SiteThemeProvider>

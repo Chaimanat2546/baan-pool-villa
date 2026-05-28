@@ -15,12 +15,12 @@ export function MobileBottomNav() {
         <div className="mx-auto grid max-w-md grid-cols-3 gap-2 pb-[env(safe-area-inset-bottom)]">
           <button
             type="button"
-            className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#dbe7e3] bg-white px-2 text-xs font-semibold leading-none text-[#064e3b]"
+            className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#dbe7e3] bg-white px-2 text-xs font-semibold leading-none text-[var(--site-primary)]"
             onClick={() => {
               setIsPhoneSheetOpen(true);
             }}
           >
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-[#064e3b] text-white shadow-sm ">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--site-primary)] text-[var(--site-on-primary)] shadow-sm ">
               <Phone className="h-4 w-4" />
             </span>
             <span className="truncate">โทร</span>
@@ -28,7 +28,7 @@ export function MobileBottomNav() {
 
           <Link
             href={contactLinks.messenger}
-            className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#dbe7e3] bg-white px-2 text-xs font-semibold leading-none text-[#064e3b]"
+            className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#dbe7e3] bg-white px-2 text-xs font-semibold leading-none text-[var(--site-primary)]"
           >
             <MessengerIcon />
             <span className="truncate">แชท</span>
@@ -36,7 +36,7 @@ export function MobileBottomNav() {
 
           <Link
             href={contactLinks.line}
-            className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#dbe7e3] bg-white px-2 text-xs font-semibold leading-none text-[#064e3b]"
+            className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#dbe7e3] bg-white px-2 text-xs font-semibold leading-none text-[var(--site-primary)]"
           >
             <LineIcon />
             <span className="truncate">LINE</span>
@@ -63,7 +63,7 @@ export function MobileBottomNav() {
               <button
                 type="button"
                 aria-label="ปิดตัวเลือกโทร"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#dbe7e3] bg-white text-[#064e3b]"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#dbe7e3] bg-white text-[var(--site-primary)]"
                 onClick={() => {
                   setIsPhoneSheetOpen(false);
                 }}
@@ -87,7 +87,7 @@ export function MobileBottomNav() {
                       {contact.time}
                     </span>
                   </span>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#064e3b] text-white">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--site-primary)] text-[var(--site-on-primary)]">
                     <Phone className="h-5 w-5" />
                   </span>
                 </a>
