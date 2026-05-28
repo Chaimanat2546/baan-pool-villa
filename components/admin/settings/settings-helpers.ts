@@ -7,6 +7,11 @@ import type {
 } from "./types";
 
 const HEX_COLOR_PATTERN = /^#[\da-f]{6}$/i;
+const ADMIN_ACCESS_ERROR_PREFIX = "Unable to verify admin access:";
+const AUTH_FAILURE_MESSAGES = new Set([
+  "Invalid or expired Supabase session. Please sign in again.",
+  "Signed-in user is not listed as an active home config admin.",
+]);
 
 function getFileSnapshot(file: File | null): string | null {
   return file
@@ -146,5 +151,11 @@ export function shouldRedirectToLogin(
     return false;
   }
 
-  return !payload?.code && !payload?.details && !payload?.hint;
+  const message = payload?.error;
+
+  return (
+    typeof message === "string" &&
+    (AUTH_FAILURE_MESSAGES.has(message) ||
+      message.startsWith(ADMIN_ACCESS_ERROR_PREFIX))
+  );
 }
