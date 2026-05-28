@@ -1,6 +1,6 @@
 import { Bath, BedDouble, Users } from "lucide-react";
 
-type VillaStatsProps = {
+interface VillaStatsProps {
   people: number;
   bedrooms: number;
   bathrooms: number;

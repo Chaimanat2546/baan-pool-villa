@@ -1,7 +1,7 @@
 import { ArrowRight, MapPin } from "lucide-react";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 
-type NearbyCard = {
+interface NearbyCard {
   category: string;
   href: string | null;
   isGoogleMap: boolean;

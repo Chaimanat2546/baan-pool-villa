@@ -14,13 +14,13 @@ import type { VillaListing } from "@/lib/villas/types";
 
 const CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=300";
 
-type HomeSectionItemRow = {
+interface HomeSectionItemRow {
   house_id: unknown;
   position: unknown;
   is_active: unknown;
 };
 
-type HomeSectionRow = {
+interface HomeSectionRow {
   slug: unknown;
   title: unknown;
   description: unknown;

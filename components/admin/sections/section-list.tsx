@@ -4,7 +4,7 @@ import type { DragEvent } from "react";
 import type { AdminSectionDraft } from "./types";
 import { MODE_LABELS } from "./section-helpers";
 
-type SectionListProps = {
+interface SectionListProps {
   activeDraftId: string | null;
   onDragEnd: () => void;
   onDragOver: (event: DragEvent<HTMLButtonElement>) => void;
@@ -58,11 +58,17 @@ export function SectionList({
                 }`}
                 draggable
                 key={section.draftId}
-                onClick={() => onSelect(section.draftId)}
+                onClick={() => {
+                  onSelect(section.draftId);
+                }}
                 onDragEnd={onDragEnd}
                 onDragOver={onDragOver}
-                onDragStart={() => onDragStart(section.draftId)}
-                onDrop={() => onDrop(section.draftId)}
+                onDragStart={() => {
+                  onDragStart(section.draftId);
+                }}
+                onDrop={() => {
+                  onDrop(section.draftId);
+                }}
                 type="button"
               >
                 <GripVertical

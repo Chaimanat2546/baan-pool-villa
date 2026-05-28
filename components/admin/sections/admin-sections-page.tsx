@@ -191,6 +191,10 @@ async function readJsonPayload(response: Response): Promise<unknown> {
   }
 }
 
+function isAbortSignalAborted(signal: AbortSignal | undefined): boolean {
+  return signal ? signal.aborted : false;
+}
+
 export function AdminSectionsPage() {
   const router = useRouter();
   const [sections, setSections] = useState<AdminSectionDraft[]>([]);
@@ -506,7 +510,7 @@ export function AdminSectionsPage() {
 
       const token = await getAccessToken();
 
-      if (!token || signal?.aborted) {
+      if (!token || isAbortSignalAborted(signal)) {
         return;
       }
 
@@ -517,7 +521,7 @@ export function AdminSectionsPage() {
       try {
         const payload = await fetchManualPreview(token, houseIds, signal);
 
-        if (!payload || signal?.aborted) {
+        if (!payload || isAbortSignalAborted(signal)) {
           return;
         }
 
@@ -528,7 +532,7 @@ export function AdminSectionsPage() {
           caughtError instanceof DOMException &&
           caughtError.name === "AbortError";
 
-        if (isAbortError || signal?.aborted || !showErrors) {
+        if (isAbortError || isAbortSignalAborted(signal) || !showErrors) {
           return;
         }
 
@@ -538,7 +542,7 @@ export function AdminSectionsPage() {
             : "เช็กเลขบ้านไม่ได้",
         ]);
       } finally {
-        if (!signal?.aborted) {
+        if (!isAbortSignalAborted(signal)) {
           setIsPreviewing(false);
         }
       }
@@ -730,21 +734,14 @@ export function AdminSectionsPage() {
     }
   }
 
-  async function handleLogout() {
-    const supabase = createBrowserHomeConfigClient();
-    await supabase.auth.signOut();
-    router.replace("/admin/login");
-  }
-
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-4 px-4 py-4 text-[#0f332d] sm:px-6">
+    <div className="flex w-full flex-col gap-4 text-[#0f332d]">
       <AdminSectionsHeader
         activeSectionsCount={activeSectionsCount}
         hasUnsavedChanges={hasUnsavedChanges}
         isLoading={isLoading}
         isSaving={isSaving}
         onAddSection={addSection}
-        onLogout={handleLogout}
         onSave={handleSave}
         sectionsCount={sections.length}
       />
@@ -777,7 +774,7 @@ export function AdminSectionsPage() {
           กำลังโหลดการจัดหน้าแรก...
         </div>
       ) : (
-        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(260px,340px)_1fr]">
           <SectionList
             activeDraftId={activeSection?.draftId ?? null}
             onDragEnd={() => setDraggedDraftId(null)}
@@ -809,7 +806,9 @@ export function AdminSectionsPage() {
                     aria-label="เลื่อนชุดบ้านพักที่เลือกขึ้น"
                     className="inline-flex size-9 items-center justify-center rounded-md border border-[#b7cbc3] bg-white text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={activeIndex <= 0}
-                    onClick={() => moveSection(activeIndex, activeIndex - 1)}
+                    onClick={() => {
+                      moveSection(activeIndex, activeIndex - 1);
+                    }}
                     title="เลื่อนขึ้น"
                     type="button"
                   >
@@ -819,7 +818,9 @@ export function AdminSectionsPage() {
                     aria-label="เลื่อนชุดบ้านพักที่เลือกลง"
                     className="inline-flex size-9 items-center justify-center rounded-md border border-[#b7cbc3] bg-white text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={activeIndex < 0 || activeIndex >= sections.length - 1}
-                    onClick={() => moveSection(activeIndex, activeIndex + 1)}
+                    onClick={() => {
+                      moveSection(activeIndex, activeIndex + 1);
+                    }}
                     title="เลื่อนลง"
                     type="button"
                   >
@@ -831,7 +832,9 @@ export function AdminSectionsPage() {
                         ? "border-red-700 bg-red-700 text-white hover:bg-red-800"
                         : "border-red-200 bg-white text-red-700 hover:bg-red-50"
                     }`}
-                    onClick={() => requestDeleteSection(activeSection.draftId)}
+                    onClick={() => {
+                      requestDeleteSection(activeSection.draftId);
+                    }}
                     type="button"
                   >
                     <Trash2 aria-hidden="true" className="size-4" />
@@ -847,11 +850,11 @@ export function AdminSectionsPage() {
                       ชื่อชุดบ้านพัก
                       <input
                         className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-                        onChange={(event) =>
+                        onChange={(event) => {
                           updateSection(activeSection.draftId, {
                             title: event.target.value,
-                          })
-                        }
+                          });
+                        }}
                         placeholder="เช่น บ้านพักแนะนำ"
                         value={activeSection.title}
                       />
@@ -861,11 +864,11 @@ export function AdminSectionsPage() {
                       คำอธิบาย
                       <textarea
                         className="mt-1 min-h-20 w-full rounded-md border border-[#c9d9d3] bg-white px-3 py-2 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-                        onChange={(event) =>
+                        onChange={(event) => {
                           updateSection(activeSection.draftId, {
                             description: event.target.value,
-                          })
-                        }
+                          });
+                        }}
                         placeholder="ข้อความสั้น ๆ ที่แสดงใต้หัวข้อชุดบ้านพัก"
                         value={activeSection.description}
                       />
@@ -873,9 +876,9 @@ export function AdminSectionsPage() {
                   </div>
 
                   <SectionConfigForm
-                    onChange={(changes) =>
-                      updateSection(activeSection.draftId, changes)
-                    }
+                    onChange={(changes) => {
+                      updateSection(activeSection.draftId, changes);
+                    }}
                     section={activeSection}
                   />
                 </div>

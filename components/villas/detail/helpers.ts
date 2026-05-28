@@ -32,7 +32,12 @@ function getImageZoneLabel(zone: string | null): string {
 }
 
 function getImageZoneKey(zone: string | null): string {
-  return zone?.trim().toLowerCase() || "uncategorized";
+  if (!zone) {
+    return "uncategorized";
+  }
+
+  const zoneKey = zone.trim().toLowerCase();
+  return zoneKey ? zoneKey : "uncategorized";
 }
 
 export function buildGalleryItems(

@@ -14,12 +14,12 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { AMENITY_OPTIONS } from "@/lib/villas/amenities";
 import type { AmenityKey, VillaFilters } from "@/lib/villas/types";
 
-type ZoneOption = {
+interface ZoneOption {
   value: string;
   label: string;
 };
 
-type SearchBarProps = {
+interface SearchBarProps {
   filters: VillaFilters;
   zones: ZoneOption[];
   maxAvailablePrice: number;
@@ -128,7 +128,9 @@ export function SearchBar({
           <button
             type="button"
             className="mt-1 flex min-h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-left text-[#064e3b]"
-            onClick={() => setOpenMenu(openMenu === "location" ? null : "location")}
+            onClick={() => {
+              setOpenMenu(openMenu === "location" ? null : "location");
+            }}
             aria-expanded={openMenu === "location"}
             aria-haspopup="dialog"
             aria-controls={openMenu === "location" ? locationMenuId : undefined}
@@ -150,7 +152,9 @@ export function SearchBar({
                 <Search className="h-4 w-4 text-[#7b928a]" />
                 <input
                   value={locationQuery}
-                  onChange={(event) => setLocationQuery(event.target.value)}
+                  onChange={(event) => {
+                    setLocationQuery(event.target.value);
+                  }}
                   placeholder="ค้นหาทำเล"
                   className="w-full min-w-0 border-0 bg-transparent text-sm text-[#063f35] outline-none placeholder:text-[#8aa099]"
                 />
@@ -186,7 +190,9 @@ export function SearchBar({
               inputMode="numeric"
               min={1}
               value={filters.guests}
-              onChange={(event) => updateFilters({ guests: numberFromInput(event.target.value, 1) })}
+              onChange={(event) => {
+                updateFilters({ guests: numberFromInput(event.target.value, 1) });
+              }}
               className="w-full min-w-0 bg-transparent text-lg leading-7 text-[#064e3b] outline-none"
               aria-label="จำนวนผู้เข้าพัก"
             />
@@ -202,7 +208,9 @@ export function SearchBar({
               inputMode="numeric"
               min={1}
               value={filters.bedrooms}
-              onChange={(event) => updateFilters({ bedrooms: numberFromInput(event.target.value, 1) })}
+              onChange={(event) => {
+                updateFilters({ bedrooms: numberFromInput(event.target.value, 1) });
+              }}
               className="w-full min-w-0 bg-transparent text-lg leading-7 text-[#064e3b] outline-none"
               aria-label="จำนวนห้องนอน"
             />
@@ -214,7 +222,9 @@ export function SearchBar({
           <button
             type="button"
             className="mt-1 flex min-h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-left"
-            onClick={() => setOpenMenu(openMenu === "amenities" ? null : "amenities")}
+            onClick={() => {
+              setOpenMenu(openMenu === "amenities" ? null : "amenities");
+            }}
             aria-expanded={openMenu === "amenities"}
             aria-haspopup="dialog"
             aria-controls={openMenu === "amenities" ? amenitiesMenuId : undefined}
@@ -243,7 +253,9 @@ export function SearchBar({
                       role="checkbox"
                       aria-checked={isSelected}
                       className="flex h-11 items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-medium text-[#063f35] hover:bg-[#f4f8f5]"
-                      onClick={() => toggleAmenity(amenity.key)}
+                      onClick={() => {
+                        toggleAmenity(amenity.key);
+                      }}
                     >
                       <span className="min-w-0 truncate">{amenity.label}</span>
                       <span
@@ -277,7 +289,9 @@ export function SearchBar({
               max={maxPrice}
               step={500}
               value={Math.min(Math.max(filters.maxPrice, 1000), maxPrice)}
-              onChange={(event) => updateFilters({ maxPrice: numberFromInput(event.target.value, 1000) })}
+              onChange={(event) => {
+                updateFilters({ maxPrice: numberFromInput(event.target.value, 1000) });
+              }}
               className="h-2 w-full accent-[#164e63]"
               aria-label="ราคาสูงสุด"
             />

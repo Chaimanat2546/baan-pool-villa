@@ -11,13 +11,13 @@ import {
 
 import { assertHomeConfigAdmin, getBearerToken, jsonError } from "./auth";
 
-type HomeSectionItemRow = {
+interface HomeSectionItemRow {
   house_id: unknown;
   position: unknown;
   is_active: unknown;
 };
 
-type HomeSectionRow = {
+interface HomeSectionRow {
   slug: unknown;
   title: unknown;
   description: unknown;
@@ -43,13 +43,13 @@ type AdminHomeSectionDraft = Omit<HomeSectionDraft, "items"> & {
   items: AdminHomeSectionItemDraft[];
 };
 
-type RpcHomeSectionItemPayload = {
+interface RpcHomeSectionItemPayload {
   house_id: string;
   position: number;
   is_active: boolean;
 };
 
-type RpcHomeSectionPayload = {
+interface RpcHomeSectionPayload {
   slug: string;
   title: string;
   description: string;

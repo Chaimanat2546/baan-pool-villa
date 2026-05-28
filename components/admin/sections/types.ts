@@ -14,17 +14,17 @@ export type AdminSectionDraft = Omit<HomeSectionDraft, "items"> & {
 
 export type AdminHomeSectionRow = Omit<AdminSectionDraft, "draftId">;
 
-export type AdminHomeSectionsResponse = {
+export interface AdminHomeSectionsResponse {
   sections: AdminHomeSectionRow[];
 };
 
-export type AdminHomeSectionsSaveResponse = {
+export interface AdminHomeSectionsSaveResponse {
   sections?: unknown[];
   errors?: string[];
   error?: string;
 };
 
-export type AdminManualPreviewResponse = {
+export interface AdminManualPreviewResponse {
   valid: VillaListing[];
   missingIds: string[];
   invalidIds: string[];
