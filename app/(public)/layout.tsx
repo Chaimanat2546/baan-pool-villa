@@ -4,6 +4,8 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteThemeProvider } from "@/components/layout/site-theme-provider";
 import { getSiteSettings } from "@/lib/site-settings/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicLayout({
   children,
 }: Readonly<{

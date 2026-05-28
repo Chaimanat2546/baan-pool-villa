@@ -25,7 +25,7 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
         const isActive = !item.disabled && pathname.startsWith(item.href);
         const className = `group flex min-h-14 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
           isActive
-            ? "border-[var(--site-primary)] bg-[var(--site-primary)] text-white shadow-[0_12px_24px_rgba(6,63,53,0.16)]"
+            ? "border-[var(--site-primary)] bg-[var(--site-primary)] text-[var(--site-on-primary)] shadow-[0_12px_24px_rgba(6,63,53,0.16)]"
             : item.disabled
               ? "cursor-not-allowed border-transparent text-[#8aa098]"
               : "border-transparent text-[#244a41] hover:border-[#d9e5df] hover:bg-white"
@@ -36,7 +36,7 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
             <span
               className={`inline-flex size-9 shrink-0 items-center justify-center rounded-lg ${
                 isActive
-                  ? "bg-white/14 text-white"
+                  ? "bg-white/14 text-[var(--site-on-primary)]"
                   : "bg-white text-[var(--site-primary)] shadow-[0_1px_0_rgba(6,63,53,0.08)]"
               }`}
             >
@@ -53,7 +53,7 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
               </span>
               <span
                 className={`mt-0.5 block text-xs leading-4 ${
-                  isActive ? "text-white/74" : "text-[#6a7f78]"
+                  isActive ? "text-[var(--site-on-primary)]/74" : "text-[#6a7f78]"
                 }`}
               >
                 {item.description}
@@ -114,14 +114,14 @@ export function AdminShell({ children, settings }: AdminShellProps) {
   return (
     <div className="min-h-dvh bg-[#edf3ef] text-[#0f332d] lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-dvh border-r border-[#d7e2dc] bg-[#f7faf7] px-4 py-4 lg:flex lg:flex-col">
-        <div className="rounded-2xl bg-[var(--site-primary)] px-4 py-4 text-white shadow-[0_18px_40px_rgba(6,63,53,0.14)]">
+        <div className="rounded-2xl bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)] shadow-[0_18px_40px_rgba(6,63,53,0.14)]">
           <p className="text-xs font-semibold text-[var(--site-accent)]">
             หลังบ้าน
           </p>
           <p className="mt-1 text-xl font-semibold tracking-normal">
             {settings.siteName}
           </p>
-          <p className="mt-1 text-xs leading-5 text-white/72">
+          <p className="mt-1 text-xs leading-5 text-[var(--site-on-primary)]/72">
             จัดการข้อมูลที่แสดงบนเว็บไซต์
           </p>
         </div>
@@ -191,7 +191,7 @@ export function AdminShell({ children, settings }: AdminShellProps) {
             type="button"
           />
           <aside className="relative flex h-full w-[min(340px,88vw)] flex-col bg-[#f7faf7] px-4 py-4 shadow-2xl">
-            <div className="flex items-start justify-between gap-3 rounded-2xl bg-[var(--site-primary)] px-4 py-4 text-white">
+            <div className="flex items-start justify-between gap-3 rounded-2xl bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
               <div>
                 <p className="text-xs font-semibold text-[var(--site-accent)]">
                   หลังบ้าน
@@ -202,7 +202,7 @@ export function AdminShell({ children, settings }: AdminShellProps) {
               </div>
               <button
                 aria-label="ปิดเมนูหลังบ้าน"
-                className="inline-flex size-9 items-center justify-center rounded-lg bg-white/12 text-white"
+                className="inline-flex size-9 items-center justify-center rounded-lg bg-white/12 text-[var(--site-on-primary)]"
                 onClick={() => {
                   setIsMobileNavOpen(false);
                 }}
