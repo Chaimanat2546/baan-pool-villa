@@ -30,7 +30,7 @@ export function SectionConfigForm({
                   aria-pressed={isSelected}
                   className={`min-h-20 rounded-xl border px-4 py-4 text-left transition ${
                     isSelected
-                      ? "border-[#2f7cff] bg-[#eef5ff] text-[#0f335f] shadow-[0_0_0_1px_rgba(47,124,255,0.3)]"
+                      ? "border-[#064e3b] bg-[#f8fbf7] shadow-[0_10px_24px_rgba(6,63,53,0.08)]"
                       : "border-[#dbe1e7] bg-white text-[#55746b] hover:bg-[#f8fbf7]"
                   }`}
                   key={mode.value}
@@ -66,8 +66,9 @@ export function SectionConfigForm({
               แสดงบ้านพักได้ 1-12 หลัง
             </span>
           </label>
-
-          <label className="flex min-h-16 items-center rounded-xl border border-[#dbe1e7] bg-[#fbfcfd] px-4 py-3 text-sm font-semibold text-[#173f36]">
+        </div>
+        <div className="grid gap-1">
+          <label className="items-center font-semibold text-[#173f36]">
             <input
               checked={
                 normalizeAdminFallbackMode(section.fallbackMode) ===
@@ -76,40 +77,31 @@ export function SectionConfigForm({
               className="size-5 shrink-0 accent-[#075341]"
               onChange={(event) =>
                 onChange({
-                  fallbackMode: event.target.checked
-                    ? "fill_from_all"
-                    : "none",
+                  fallbackMode: event.target.checked ? "fill_from_all" : "none",
                 })
               }
               type="checkbox"
             />
             <span className="ml-3">เติมจากบ้านพักทั้งหมดถ้าไม่ครบ</span>
           </label>
-          <p className="text-xs leading-5 text-[#687d76]">
-            {getFallbackExplanation(section)}
-          </p>
+          <label className="items-center font-semibold text-[#173f36]">
+            <input
+              checked={section.ctaEnabled}
+              className="size-5 shrink-0 accent-[#075341]"
+              onChange={(event) => {
+                const isEnabled = event.target.checked;
+
+                onChange({
+                  ctaEnabled: isEnabled,
+                  ctaHref: isEnabled ? "/search" : section.ctaHref,
+                  ctaLabel: isEnabled ? "ดูเพิ่มเติม" : section.ctaLabel,
+                });
+              }}
+              type="checkbox"
+            />
+            <span className="ml-2">แสดงปุ่มดูเพิ่มเติมท้ายชุดนี้</span>
+          </label>
         </div>
-      </div>
-
-      <div className="grid gap-3 rounded-xl border border-[#dbe1e7] bg-white p-3 text-sm">
-        <label className="flex min-h-10 items-center font-semibold text-[#173f36]">
-          <input
-            checked={section.ctaEnabled}
-            className="size-5 shrink-0 accent-[#075341]"
-            onChange={(event) => {
-              const isEnabled = event.target.checked;
-
-              onChange({
-                ctaEnabled: isEnabled,
-                ctaHref: isEnabled ? "/search" : section.ctaHref,
-                ctaLabel: isEnabled ? "ดูเพิ่มเติม" : section.ctaLabel,
-              });
-            }}
-            type="checkbox"
-          />
-          <span className="ml-2">แสดงปุ่มดูเพิ่มเติมท้ายชุดนี้</span>
-        </label>
-
       </div>
     </>
   );
