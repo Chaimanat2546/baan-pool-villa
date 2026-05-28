@@ -73,7 +73,7 @@ export function AdminLoginForm() {
             aria-describedby={hasError ? errorId : undefined}
             aria-invalid={hasError}
             autoComplete="email"
-            className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#f3f6f4]"
+            className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15 disabled:bg-[#f3f6f4]"
             disabled={isSubmitting}
             inputMode="email"
             name="email"
@@ -92,7 +92,7 @@ export function AdminLoginForm() {
             aria-describedby={hasError ? errorId : undefined}
             aria-invalid={hasError}
             autoComplete="current-password"
-            className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#f3f6f4]"
+            className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15 disabled:bg-[#f3f6f4]"
             disabled={isSubmitting}
             name="password"
             onChange={(event) => {
@@ -116,7 +116,7 @@ export function AdminLoginForm() {
       ) : null}
 
       <button
-        className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[#064d3d] px-4 text-sm font-semibold text-white transition hover:bg-[#04382d] disabled:cursor-not-allowed disabled:bg-[#8aa39b]"
+        className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-[#8aa39b]"
         disabled={isSubmitting}
         type="submit"
       >
