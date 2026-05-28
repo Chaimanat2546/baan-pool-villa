@@ -5,6 +5,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 
 import { buildFallbackHomeSections } from "@/lib/home-sections/resolve";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
+import type { SiteSettings } from "@/lib/site-settings/types";
 import {
   filtersToSearchParams,
   getDefaultFilters,
@@ -31,6 +32,10 @@ interface HomeSectionsResponse {
   sections?: unknown;
 }
 
+interface HomePageProps {
+  settings: SiteSettings;
+}
+
 function isResolvedHomeSection(value: unknown): value is ResolvedHomeSection {
   if (!value || typeof value !== "object") {
     return false;
@@ -47,7 +52,7 @@ function isResolvedHomeSection(value: unknown): value is ResolvedHomeSection {
   );
 }
 
-export function HomePage() {
+export function HomePage({ settings }: HomePageProps) {
   const router = useRouter();
   const [villas, setVillas] = useState<VillaListing[]>([]);
   const [homeSections, setHomeSections] = useState<ResolvedHomeSection[]>([]);
@@ -133,6 +138,7 @@ export function HomePage() {
     <main className="min-h-screen overflow-x-hidden bg-[#fbfdfb] text-[#063f35]">
       <HeroSection
         filters={filters}
+        heroImage={settings.heroImage}
         zones={zones}
         maxAvailablePrice={maxAvailablePrice}
         onChange={setFilters}

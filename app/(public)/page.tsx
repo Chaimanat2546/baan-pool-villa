@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { HomePage } from "@/components/villas/home/page";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { absoluteUrl, buildPageMetadata, defaultDescription, defaultTitle, siteName } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings/server";
 
 export const metadata: Metadata = buildPageMetadata({
   canonicalPath: "/",
@@ -10,7 +11,9 @@ export const metadata: Metadata = buildPageMetadata({
   title: defaultTitle,
 });
 
-export default function Page() {
+export default async function Page() {
+  const { settings } = await getSiteSettings();
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LodgingBusiness",
@@ -32,7 +35,7 @@ export default function Page() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      <HomePage />
+      <HomePage settings={settings} />
     </>
   );
 }
