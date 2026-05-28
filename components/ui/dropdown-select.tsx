@@ -5,18 +5,18 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-export type DropdownSelectOption<TValue extends string = string> = {
+export interface DropdownSelectOption<TValue extends string = string> {
   label: string;
   value: TValue;
 };
 
-type DropdownSelectProps<TValue extends string = string> = {
+interface DropdownSelectProps<TValue extends string = string> {
   ariaLabel?: string;
   buttonClassName?: string;
   className?: string;
   menuClassName?: string;
   onChange: (value: TValue) => void;
-  options: Array<DropdownSelectOption<TValue>>;
+  options: DropdownSelectOption<TValue>[];
   placeholder?: string;
   value: TValue;
 };
@@ -82,7 +82,9 @@ export function DropdownSelect<TValue extends string = string>({
           "mt-2 flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-xl border border-[#dbe7e3] bg-[#fbfdfb] px-3 text-left text-sm font-bold text-[#064e3b] transition hover:bg-[#eef7f3] focus:outline-none focus:ring-2 focus:ring-[#f6ad21] focus:ring-offset-2",
           buttonClassName,
         )}
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => {
+          setIsOpen((current) => !current);
+        }}
       >
         <span className="min-w-0 truncate">{selectedOption?.label ?? placeholder}</span>
         <ChevronDown
@@ -114,7 +116,9 @@ export function DropdownSelect<TValue extends string = string>({
                   role="option"
                   aria-selected={isSelected}
                   className="flex h-11 items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-medium text-[#063f35] transition hover:bg-[#f4f8f5]"
-                  onClick={() => handleSelect(option.value)}
+                  onClick={() => {
+                    handleSelect(option.value);
+                  }}
                 >
                   <span className="min-w-0 truncate">{option.label}</span>
                   {isSelected ? <Check className="h-4 w-4 text-[#f6ad21]" /> : null}

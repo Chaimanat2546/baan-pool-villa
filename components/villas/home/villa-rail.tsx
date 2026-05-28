@@ -7,7 +7,7 @@ import { VillaCard } from "../listing/villa-card";
 import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
 
-type VillaRailProps = {
+interface VillaRailProps {
   cta?: boolean | { label: string; href: string };
   description: string;
   id?: string;

@@ -7,7 +7,7 @@ import {
   Warehouse,
 } from "lucide-react";
 
-export type AdminNavItem = {
+export interface AdminNavItem {
   description: string;
   disabled?: boolean;
   href: string;

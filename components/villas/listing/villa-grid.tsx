@@ -4,7 +4,7 @@ import type { VillaListing } from "@/lib/villas/types";
 
 import { VillaCard } from "./villa-card";
 
-type VillaGridProps = {
+interface VillaGridProps {
   villas: VillaListing[];
 };
 

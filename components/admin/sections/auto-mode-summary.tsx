@@ -2,7 +2,7 @@ import type { HomeSectionMode } from "@/lib/home-sections/types";
 
 import { MODE_LABELS } from "./section-helpers";
 
-type AutoModeSummaryProps = {
+interface AutoModeSummaryProps {
   mode: Exclude<HomeSectionMode, "manual">;
 };
 

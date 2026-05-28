@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import type { VillaListing } from "@/lib/villas/types";
 
-type VillaCardProps = {
+interface VillaCardProps {
   villa: VillaListing;
   preload?: boolean;
 };

@@ -18,7 +18,7 @@ const destinations = [
   },
 ];
 
-type DestinationsSectionProps = {
+interface DestinationsSectionProps {
   villas: VillaListing[];
 };
 

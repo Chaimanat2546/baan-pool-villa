@@ -10,7 +10,7 @@ import {
 
 type StatusTone = "ok" | "warn" | "muted";
 
-type SectionStatusItem = {
+interface SectionStatusItem {
   detail: string;
   label: string;
   tone: StatusTone;
@@ -22,7 +22,7 @@ const SUMMARY_DOT_CLASS: Record<StatusTone, string> = {
   warn: "bg-amber-500",
 };
 
-type SectionOutcomePanelProps = {
+interface SectionOutcomePanelProps {
   onActiveChange: (isActive: boolean) => void;
   preview: AdminManualPreviewResponse | null;
   section: AdminSectionDraft;
@@ -50,7 +50,9 @@ export function SectionOutcomePanel({
           <input
             checked={section.isActive}
             className="size-4 accent-[#075341]"
-            onChange={(event) => onActiveChange(event.target.checked)}
+            onChange={(event) => {
+              onActiveChange(event.target.checked);
+            }}
             type="checkbox"
           />
           แสดง

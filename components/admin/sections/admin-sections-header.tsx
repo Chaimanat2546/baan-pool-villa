@@ -1,6 +1,6 @@
 import { CheckCircle2, Plus, Save } from "lucide-react";
 
-type AdminSectionsHeaderProps = {
+interface AdminSectionsHeaderProps {
   activeSectionsCount: number;
   hasUnsavedChanges: boolean;
   isLoading: boolean;

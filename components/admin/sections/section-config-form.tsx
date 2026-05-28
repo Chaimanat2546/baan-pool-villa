@@ -4,7 +4,7 @@ import {
   normalizeAdminFallbackMode,
 } from "./section-helpers";
 
-type SectionConfigFormProps = {
+interface SectionConfigFormProps {
   onChange: (changes: Partial<Omit<AdminSectionDraft, "draftId">>) => void;
   section: AdminSectionDraft;
 };
@@ -33,7 +33,9 @@ export function SectionConfigForm({
                       : "border-[#dbe1e7] bg-white text-[#55746b] hover:bg-[#f8fbf7]"
                   }`}
                   key={mode.value}
-                  onClick={() => onChange({ mode: mode.value })}
+                  onClick={() => {
+                    onChange({ mode: mode.value });
+                  }}
                   type="button"
                 >
                   <span className="block text-sm font-semibold text-[#173f36]">
@@ -55,9 +57,9 @@ export function SectionConfigForm({
               className="mt-3 h-14 w-full rounded-xl border border-[#dbe1e7] bg-white px-4 text-base text-[#173f36] outline-none transition focus:border-[#2f7cff] focus:ring-2 focus:ring-[#2f7cff]/15"
               max={12}
               min={1}
-              onChange={(event) =>
-                onChange({ limitCount: Number(event.target.value) })
-              }
+              onChange={(event) => {
+                onChange({ limitCount: Number(event.target.value) });
+              }}
               type="number"
               value={section.limitCount}
             />
@@ -74,11 +76,11 @@ export function SectionConfigForm({
                 "fill_from_all"
               }
               className="size-5 shrink-0 accent-[#075341]"
-              onChange={(event) =>
+              onChange={(event) => {
                 onChange({
                   fallbackMode: event.target.checked ? "fill_from_all" : "none",
-                })
-              }
+                });
+              }}
               type="checkbox"
             />
             <span className="ml-3">เติมจากบ้านพักทั้งหมดถ้าไม่ครบ</span>

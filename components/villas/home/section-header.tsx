@@ -1,4 +1,4 @@
-type SectionHeaderProps = {
+interface SectionHeaderProps {
   align?: "center" | "left";
   description: string;
   eyebrow?: string;

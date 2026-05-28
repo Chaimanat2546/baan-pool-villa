@@ -9,7 +9,7 @@ import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
 import { ADMIN_NAV_ITEMS, getActiveAdminNavItem } from "./admin-nav";
 
-type AdminShellProps = {
+interface AdminShellProps {
   children: React.ReactNode;
 };
 
@@ -143,7 +143,9 @@ export function AdminShell({ children }: AdminShellProps) {
               <button
                 aria-label="เปิดเมนูหลังบ้าน"
                 className="inline-flex size-10 items-center justify-center rounded-xl border border-[#cddbd4] bg-white text-[#0f4c3e] lg:hidden"
-                onClick={() => setIsMobileNavOpen(true)}
+                onClick={() => {
+                  setIsMobileNavOpen(true);
+                }}
                 type="button"
               >
                 <Menu aria-hidden="true" className="size-5" />
@@ -179,7 +181,9 @@ export function AdminShell({ children }: AdminShellProps) {
           <button
             aria-label="ปิดเมนูหลังบ้าน"
             className="absolute inset-0 bg-[#052d25]/45"
-            onClick={() => setIsMobileNavOpen(false)}
+            onClick={() => {
+              setIsMobileNavOpen(false);
+            }}
             type="button"
           />
           <aside className="relative flex h-full w-[min(340px,88vw)] flex-col bg-[#f7faf7] px-4 py-4 shadow-2xl">
@@ -193,7 +197,9 @@ export function AdminShell({ children }: AdminShellProps) {
               <button
                 aria-label="ปิดเมนูหลังบ้าน"
                 className="inline-flex size-9 items-center justify-center rounded-lg bg-white/12 text-white"
-                onClick={() => setIsMobileNavOpen(false)}
+                onClick={() => {
+                  setIsMobileNavOpen(false);
+                }}
                 type="button"
               >
                 <X aria-hidden="true" className="size-5" />

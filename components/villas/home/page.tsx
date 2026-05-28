@@ -23,11 +23,11 @@ import { LoadingSkeleton } from "./loading-skeleton";
 import { VillaRail } from "./villa-rail";
 import { WhyChooseSection } from "./why-choose-section";
 
-type HousesResponse = {
+interface HousesResponse {
   items: VillaListing[];
 };
 
-type HomeSectionsResponse = {
+interface HomeSectionsResponse {
   sections?: unknown;
 };
 
@@ -106,7 +106,7 @@ export function HomePage() {
       }
     }
 
-    loadVillas();
+    void loadVillas();
 
     return () => {
       isActive = false;
