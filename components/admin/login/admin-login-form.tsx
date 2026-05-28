@@ -21,7 +21,7 @@ export function AdminLoginForm() {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail || !password) {
-      setError("Enter your email and password.");
+      setError("กรอกอีเมลและรหัสผ่านให้ครบ");
       return;
     }
 
@@ -36,7 +36,7 @@ export function AdminLoginForm() {
       });
 
       if (loginError) {
-        setError(loginError.message || "Unable to sign in.");
+        setError(loginError.message || "เข้าสู่ระบบไม่สำเร็จ");
         return;
       }
 
@@ -45,7 +45,7 @@ export function AdminLoginForm() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Unable to initialize admin login.",
+          : "ไม่สามารถเปิดหน้าเข้าสู่ระบบได้",
       );
     } finally {
       setIsSubmitting(false);
@@ -58,13 +58,17 @@ export function AdminLoginForm() {
       onSubmit={handleSubmit}
     >
       <div className="mb-5">
-        <h1 className="text-xl font-semibold text-[#063f35]">Admin login</h1>
-        <p className="mt-1 text-sm text-[#4b625b]">Home section management</p>
+        <h1 className="text-xl font-semibold text-[#063f35]">
+          เข้าสู่ระบบหลังบ้าน
+        </h1>
+        <p className="mt-1 text-sm text-[#4b625b]">
+          จัดชุดบ้านพักบนหน้าแรก
+        </p>
       </div>
 
       <div className="space-y-4">
         <label className="block text-sm font-medium text-[#173f36]">
-          Email
+          อีเมล
           <input
             aria-describedby={hasError ? errorId : undefined}
             aria-invalid={hasError}
@@ -81,7 +85,7 @@ export function AdminLoginForm() {
         </label>
 
         <label className="block text-sm font-medium text-[#173f36]">
-          Password
+          รหัสผ่าน
           <input
             aria-describedby={hasError ? errorId : undefined}
             aria-invalid={hasError}
@@ -113,7 +117,7 @@ export function AdminLoginForm() {
         type="submit"
       >
         <LogIn aria-hidden="true" className="size-4" />
-        {isSubmitting ? "Signing in..." : "Sign in"}
+        {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
       </button>
     </form>
   );

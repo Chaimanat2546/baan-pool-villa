@@ -46,50 +46,64 @@ export function validateHomeSectionDrafts(sections: HomeSectionDraft[]): string[
   const seenSlugs = new Set<string>();
 
   sections.forEach((section, sectionIndex) => {
-    const sectionLabel = `Section ${sectionIndex + 1}`;
+    const sectionLabel = `ชุดที่ ${sectionIndex + 1}`;
     const slug = section.slug.trim();
 
     if (!SLUG_PATTERN.test(slug)) {
-      errors.push(`${sectionLabel} slug must be lowercase and URL-safe.`);
+      errors.push(
+        `${sectionLabel} รหัสชุดต้องเป็นภาษาอังกฤษตัวเล็ก ตัวเลข หรือขีดกลางเท่านั้น`,
+      );
     }
 
     if (seenSlugs.has(slug)) {
-      errors.push(`${sectionLabel} slug duplicates another section.`);
+      errors.push(`${sectionLabel} รหัสชุดซ้ำกับชุดอื่น`);
     } else {
       seenSlugs.add(slug);
     }
 
     if (!section.title.trim()) {
-      errors.push(`${sectionLabel} title is required.`);
+      errors.push(`${sectionLabel} ต้องมีชื่อชุดบ้านพัก`);
     }
 
     if (!section.description.trim()) {
-      errors.push(`${sectionLabel} description is required.`);
+      errors.push(`${sectionLabel} ต้องมีคำอธิบาย`);
     }
 
     if (!MODES.has(section.mode)) {
-      errors.push(`${sectionLabel} mode must be manual, near_sea, or slice.`);
+      errors.push(`${sectionLabel} รูปแบบการเลือกบ้านไม่ถูกต้อง`);
     }
 
-    if (!Number.isInteger(section.limitCount) || section.limitCount < 1 || section.limitCount > 12) {
-      errors.push(`${sectionLabel} limit count must be between 1 and 12.`);
+    if (
+      !Number.isInteger(section.limitCount) ||
+      section.limitCount < 1 ||
+      section.limitCount > 12
+    ) {
+      errors.push(
+        `${sectionLabel} จำนวนบ้านที่แสดงต้องอยู่ระหว่าง 1 ถึง 12`,
+      );
     }
 
     if (!Number.isSafeInteger(section.sliceOffset) || section.sliceOffset < 0) {
-      errors.push(`${sectionLabel} slice offset must be a safe non-negative integer.`);
+      errors.push(
+        `${sectionLabel} ลำดับเริ่มต้นต้องเป็นเลข 0 ขึ้นไป`,
+      );
     }
 
     if (!FALLBACK_MODES.has(section.fallbackMode)) {
-      errors.push(`${sectionLabel} fallback mode must be none, fill_from_all, or fill_near_sea.`);
+      errors.push(
+        `${sectionLabel} วิธีเติมบ้านเมื่อจำนวนไม่ครบไม่ถูกต้อง`,
+      );
     }
 
     if (section.ctaEnabled) {
       if (!section.ctaLabel.trim()) {
-        errors.push(`${sectionLabel} CTA label is required when CTA is enabled.`);
+        errors.push(`${sectionLabel} ต้องมีข้อความบนปุ่มดูเพิ่มเติม`);
       }
 
       if (!isInternalHref(section.ctaHref)) {
-        errors.push(`${sectionLabel} CTA link must start with a single /.`);
+        errors.push(
+          `${sectionLabel} ลิงก์ปุ่มดูเพิ่มเติมต้องขึ้นต้นด้วย /`,
+        );
       }
     }
 
@@ -100,12 +114,14 @@ export function validateHomeSectionDrafts(sections: HomeSectionDraft[]): string[
         const normalizedHouseId = normalizeHouseId(item.houseId);
 
         if (!normalizedHouseId) {
-          errors.push(`${sectionLabel} item ${itemIndex + 1} has an invalid house ID.`);
+          errors.push(
+            `${sectionLabel} เลขบ้านลำดับที่ ${itemIndex + 1} ไม่ถูกต้อง`,
+          );
           return;
         }
 
         if (seenHouseIds.has(normalizedHouseId)) {
-          errors.push(`${sectionLabel} has duplicate house ID ${normalizedHouseId}.`);
+          errors.push(`${sectionLabel} มีเลขบ้าน ${normalizedHouseId} ซ้ำ`);
         } else {
           seenHouseIds.add(normalizedHouseId);
         }

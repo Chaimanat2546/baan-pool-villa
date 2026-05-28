@@ -53,8 +53,8 @@ describe("validateHomeSectionDrafts", () => {
       ]),
     ).toEqual(
       expect.arrayContaining([
-        "Section 1 CTA label is required when CTA is enabled.",
-        "Section 1 CTA link must start with a single /.",
+        "ชุดที่ 1 ต้องมีข้อความบนปุ่มดูเพิ่มเติม",
+        "ชุดที่ 1 ลิงก์ปุ่มดูเพิ่มเติมต้องขึ้นต้นด้วย /",
       ]),
     );
   });
@@ -68,7 +68,7 @@ describe("validateHomeSectionDrafts", () => {
           ctaHref: "//example.com",
         }),
       ]),
-    ).toContain("Section 1 CTA link must start with a single /.");
+    ).toContain("ชุดที่ 1 ลิงก์ปุ่มดูเพิ่มเติมต้องขึ้นต้นด้วย /");
   });
 
   it("allows internal CTA hrefs with query strings and hashes", () => {
@@ -98,9 +98,9 @@ describe("validateHomeSectionDrafts", () => {
       ]),
     ).toEqual(
       expect.arrayContaining([
-        "Section 1 slice offset must be a safe non-negative integer.",
-        "Section 2 slice offset must be a safe non-negative integer.",
-        "Section 3 slice offset must be a safe non-negative integer.",
+        "ชุดที่ 1 ลำดับเริ่มต้นต้องเป็นเลข 0 ขึ้นไป",
+        "ชุดที่ 2 ลำดับเริ่มต้นต้องเป็นเลข 0 ขึ้นไป",
+        "ชุดที่ 3 ลำดับเริ่มต้นต้องเป็นเลข 0 ขึ้นไป",
       ]),
     );
   });
@@ -112,7 +112,7 @@ describe("validateHomeSectionDrafts", () => {
           items: [{ houseId: "DV-66" }, { houseId: "dv66" }],
         }),
       ]),
-    ).toContain("Section 1 has duplicate house ID 66.");
+    ).toContain("ชุดที่ 1 มีเลขบ้าน 66 ซ้ำ");
   });
 
   it("validates section fields and duplicate slugs", () => {
@@ -134,14 +134,14 @@ describe("validateHomeSectionDrafts", () => {
       ]),
     ).toEqual(
       expect.arrayContaining([
-        "Section 1 slug must be lowercase and URL-safe.",
-        "Section 2 slug duplicates another section.",
-        "Section 1 title is required.",
-        "Section 1 description is required.",
-        "Section 1 mode must be manual, near_sea, or slice.",
-        "Section 1 limit count must be between 1 and 12.",
-        "Section 1 fallback mode must be none, fill_from_all, or fill_near_sea.",
-        "Section 3 item 1 has an invalid house ID.",
+        "ชุดที่ 1 รหัสชุดต้องเป็นภาษาอังกฤษตัวเล็ก ตัวเลข หรือขีดกลางเท่านั้น",
+        "ชุดที่ 2 รหัสชุดซ้ำกับชุดอื่น",
+        "ชุดที่ 1 ต้องมีชื่อชุดบ้านพัก",
+        "ชุดที่ 1 ต้องมีคำอธิบาย",
+        "ชุดที่ 1 รูปแบบการเลือกบ้านไม่ถูกต้อง",
+        "ชุดที่ 1 จำนวนบ้านที่แสดงต้องอยู่ระหว่าง 1 ถึง 12",
+        "ชุดที่ 1 วิธีเติมบ้านเมื่อจำนวนไม่ครบไม่ถูกต้อง",
+        "ชุดที่ 3 เลขบ้านลำดับที่ 1 ไม่ถูกต้อง",
       ]),
     );
   });

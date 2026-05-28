@@ -38,16 +38,18 @@ import type {
 } from "./types";
 
 const MODES: { label: string; value: HomeSectionMode }[] = [
-  { label: "Manual IDs", value: "manual" },
-  { label: "Near sea", value: "near_sea" },
-  { label: "Slice", value: "slice" },
+  { label: "เลือกบ้านพักเอง", value: "manual" },
+  { label: "บ้านใกล้ทะเลอัตโนมัติ", value: "near_sea" },
+  { label: "บ้านตามลำดับจากระบบ", value: "slice" },
 ];
 
 const FALLBACK_MODES: { label: string; value: HomeSectionFallbackMode }[] = [
-  { label: "None", value: "none" },
-  { label: "Fill from all", value: "fill_from_all" },
-  { label: "Fill near sea", value: "fill_near_sea" },
+  { label: "ไม่เติมบ้านเพิ่ม", value: "none" },
+  { label: "เติมจากบ้านทั้งหมด", value: "fill_from_all" },
+  { label: "เติมจากบ้านใกล้ทะเล", value: "fill_near_sea" },
 ];
+
+const MODE_LABELS = new Map(MODES.map((mode) => [mode.value, mode.label]));
 
 const makeDraftId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -109,8 +111,8 @@ function makeNewSection(existingSections: AdminSectionDraft[]): AdminSectionDraf
   return {
     draftId: makeDraftId(),
     slug,
-    title: "New section",
-    description: "Describe this home page section.",
+    title: "ชุดบ้านพักใหม่",
+    description: "",
     mode: "manual",
     limitCount: 6,
     fallbackMode: "fill_from_all",
@@ -248,7 +250,7 @@ export function AdminSectionsPage() {
         const payload = (await response.json()) as AdminHomeSectionsResponse;
 
         if (!response.ok) {
-          setErrors(extractErrors(payload, "Unable to load home sections."));
+          setErrors(extractErrors(payload, "ไม่สามารถโหลดการจัดหน้าแรกได้"));
           return;
         }
 
@@ -263,7 +265,7 @@ export function AdminSectionsPage() {
         setErrors([
           caughtError instanceof Error
             ? caughtError.message
-            : "Unable to load home sections.",
+            : "ไม่สามารถโหลดการจัดหน้าแรกได้",
         ]);
       } finally {
         if (showLoading) {
@@ -294,7 +296,7 @@ export function AdminSectionsPage() {
         setErrors([
           caughtError instanceof Error
             ? caughtError.message
-            : "Unable to initialize admin sections.",
+            : "ไม่สามารถเริ่มต้นหน้าจัดหน้าแรกได้",
         ]);
         setIsLoading(false);
       }
@@ -431,11 +433,11 @@ export function AdminSectionsPage() {
       }
 
       if (!response.ok) {
-        console.error("Unable to preview manual IDs.", {
+        console.error("ไม่สามารถตรวจสอบเลขบ้านได้", {
           payload,
           status: response.status,
         });
-        setErrors(extractErrors(payload, "Unable to preview manual IDs."));
+        setErrors(extractErrors(payload, "ไม่สามารถตรวจสอบเลขบ้านได้"));
         return;
       }
 
@@ -445,7 +447,7 @@ export function AdminSectionsPage() {
       setErrors([
         caughtError instanceof Error
           ? caughtError.message
-          : "Unable to preview manual IDs.",
+          : "ไม่สามารถตรวจสอบเลขบ้านได้",
       ]);
     } finally {
       setIsPreviewing(false);
@@ -488,21 +490,21 @@ export function AdminSectionsPage() {
       }
 
       if (!response.ok) {
-        console.error("Unable to save home sections.", {
+        console.error("ไม่สามารถบันทึกการจัดหน้าแรกได้", {
           payload,
           status: response.status,
         });
-        setErrors(extractErrors(payload, "Unable to save home sections."));
+        setErrors(extractErrors(payload, "ไม่สามารถบันทึกการจัดหน้าแรกได้"));
         return;
       }
 
-      setNotice("Home sections saved.");
+      setNotice("บันทึกการจัดหน้าแรกแล้ว");
       await loadSections(token, false);
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error
           ? caughtError.message
-          : "Unable to save home sections.",
+          : "ไม่สามารถบันทึกการจัดหน้าแรกได้",
       ]);
     } finally {
       setIsSaving(false);
@@ -520,10 +522,10 @@ export function AdminSectionsPage() {
       <header className="flex flex-col gap-3 border-b border-[#cadbd4] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal text-[#063f35]">
-            Home sections
+            จัดชุดบ้านพักหน้าแรก
           </h1>
           <p className="mt-1 text-sm text-[#506862]">
-            Arrange and publish the villa rails shown on the home page.
+            เลือกและเรียงชุดบ้านพักที่แสดงบนหน้าแรกของเว็บไซต์
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -533,7 +535,7 @@ export function AdminSectionsPage() {
             type="button"
           >
             <Plus aria-hidden="true" className="size-4" />
-            Add section
+            เพิ่มชุดบ้านพัก
           </button>
           <button
             className="inline-flex h-9 items-center gap-2 rounded-md bg-[#075341] px-3 text-sm font-semibold text-white transition hover:bg-[#063f35] disabled:cursor-not-allowed disabled:bg-[#89a39b]"
@@ -542,7 +544,7 @@ export function AdminSectionsPage() {
             type="button"
           >
             <Save aria-hidden="true" className="size-4" />
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? "กำลังบันทึก..." : "บันทึกหน้าแรก"}
           </button>
           <button
             className="inline-flex h-9 items-center gap-2 rounded-md border border-[#b7cbc3] bg-white px-3 text-sm font-semibold text-[#17463c] transition hover:bg-[#f6faf8]"
@@ -550,7 +552,7 @@ export function AdminSectionsPage() {
             type="button"
           >
             <LogOut aria-hidden="true" className="size-4" />
-            Logout
+            ออกจากระบบ
           </button>
         </div>
       </header>
@@ -560,7 +562,7 @@ export function AdminSectionsPage() {
           className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
           role="alert"
         >
-          <p className="font-semibold">Fix these issues before publishing:</p>
+          <p className="font-semibold">แก้รายการเหล่านี้ก่อนบันทึก:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {errors.map((error) => (
               <li key={error}>{error}</li>
@@ -580,14 +582,14 @@ export function AdminSectionsPage() {
 
       {isLoading ? (
         <div className="rounded-md border border-[#c9d9d3] bg-white px-4 py-8 text-center text-sm text-[#506862]">
-          Loading sections...
+          กำลังโหลดการจัดหน้าแรก...
         </div>
       ) : (
         <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(260px,340px)_1fr]">
           <aside className="space-y-2">
             {sections.length === 0 ? (
               <div className="rounded-md border border-[#c9d9d3] bg-white px-4 py-5 text-sm text-[#506862]">
-                No sections yet. Add one to begin.
+                ยังไม่มีชุดบ้านพัก กดเพิ่มชุดบ้านพักเพื่อเริ่มจัดหน้าแรก
               </div>
             ) : (
               sections.map((section, sectionIndex) => {
@@ -617,12 +619,12 @@ export function AdminSectionsPage() {
                     />
                     <span className="min-w-0">
                       <span className="block truncate font-semibold text-[#123f36]">
-                        {sectionIndex + 1}. {section.title || "Untitled"}
+                        {sectionIndex + 1}. {section.title || "ยังไม่ได้ตั้งชื่อ"}
                       </span>
                       <span className="block truncate text-xs text-[#58726a]">
-                        {section.slug || "missing-slug"} / {section.mode}
+                        {MODE_LABELS.get(section.mode) ?? section.mode}
                         {section.mode === "manual"
-                          ? ` / ${manualCount} IDs`
+                          ? ` / ${manualCount} หลัง`
                           : ""}
                       </span>
                     </span>
@@ -633,7 +635,7 @@ export function AdminSectionsPage() {
                           : "bg-slate-200 text-slate-700"
                       }`}
                     >
-                      {section.isActive ? "On" : "Off"}
+                      {section.isActive ? "เปิด" : "ปิด"}
                     </span>
                   </button>
                 );
@@ -646,29 +648,29 @@ export function AdminSectionsPage() {
               <div className="flex flex-col gap-2 border-b border-[#dbe6e1] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-normal text-[#687d76]">
-                    Section {activeIndex + 1}
+                    ชุดที่ {activeIndex + 1}
                   </p>
                   <h2 className="truncate text-lg font-semibold text-[#063f35]">
-                    {activeSection.title || "Untitled section"}
+                    {activeSection.title || "ยังไม่ได้ตั้งชื่อ"}
                   </h2>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    aria-label="Move selected section up"
+                    aria-label="เลื่อนชุดบ้านพักที่เลือกขึ้น"
                     className="inline-flex size-9 items-center justify-center rounded-md border border-[#b7cbc3] bg-white text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={activeIndex <= 0}
                     onClick={() => moveSection(activeIndex, activeIndex - 1)}
-                    title="Move up"
+                    title="เลื่อนขึ้น"
                     type="button"
                   >
                     <ArrowUp aria-hidden="true" className="size-4" />
                   </button>
                   <button
-                    aria-label="Move selected section down"
+                    aria-label="เลื่อนชุดบ้านพักที่เลือกลง"
                     className="inline-flex size-9 items-center justify-center rounded-md border border-[#b7cbc3] bg-white text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={activeIndex < 0 || activeIndex >= sections.length - 1}
                     onClick={() => moveSection(activeIndex, activeIndex + 1)}
-                    title="Move down"
+                    title="เลื่อนลง"
                     type="button"
                   >
                     <ArrowDown aria-hidden="true" className="size-4" />
@@ -679,16 +681,16 @@ export function AdminSectionsPage() {
                     type="button"
                   >
                     <Trash2 aria-hidden="true" className="size-4" />
-                    Delete
+                    ลบ
                   </button>
                 </div>
               </div>
 
               <div className="grid gap-4 px-4 py-4 xl:grid-cols-[1fr_320px]">
                 <div className="grid gap-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3">
                     <label className="block text-sm font-medium text-[#173f36]">
-                      Title
+                      ชื่อชุดบ้านพัก
                       <input
                         className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
                         onChange={(event) =>
@@ -696,39 +698,29 @@ export function AdminSectionsPage() {
                             title: event.target.value,
                           })
                         }
+                        placeholder="เช่น บ้านพักแนะนำ"
                         value={activeSection.title}
                       />
                     </label>
+
                     <label className="block text-sm font-medium text-[#173f36]">
-                      Slug
-                      <input
-                        className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                      คำอธิบาย
+                      <textarea
+                        className="mt-1 min-h-20 w-full rounded-md border border-[#c9d9d3] bg-white px-3 py-2 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
                         onChange={(event) =>
                           updateSection(activeSection.draftId, {
-                            slug: event.target.value,
+                            description: event.target.value,
                           })
                         }
-                        value={activeSection.slug}
+                        placeholder="ข้อความสั้น ๆ ที่แสดงใต้หัวข้อชุดบ้านพัก"
+                        value={activeSection.description}
                       />
                     </label>
                   </div>
 
-                  <label className="block text-sm font-medium text-[#173f36]">
-                    Description
-                    <textarea
-                      className="mt-1 min-h-20 w-full rounded-md border border-[#c9d9d3] bg-white px-3 py-2 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-                      onChange={(event) =>
-                        updateSection(activeSection.draftId, {
-                          description: event.target.value,
-                        })
-                      }
-                      value={activeSection.description}
-                    />
-                  </label>
-
-                  <div className="grid gap-3 md:grid-cols-4">
+                  <div className="grid gap-3 md:grid-cols-2">
                     <label className="block text-sm font-medium text-[#173f36]">
-                      Mode
+                      รูปแบบการเลือกบ้าน
                       <select
                         className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
                         onChange={(event) =>
@@ -746,7 +738,7 @@ export function AdminSectionsPage() {
                       </select>
                     </label>
                     <label className="block text-sm font-medium text-[#173f36]">
-                      Limit
+                      จำนวนบ้านที่แสดง
                       <input
                         className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
                         min={1}
@@ -760,60 +752,34 @@ export function AdminSectionsPage() {
                         value={activeSection.limitCount}
                       />
                     </label>
-                    <label className="block text-sm font-medium text-[#173f36]">
-                      Slice offset
-                      <input
-                        className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-                        min={0}
-                        onChange={(event) =>
-                          updateSection(activeSection.draftId, {
-                            sliceOffset: Number(event.target.value),
-                          })
-                        }
-                        type="number"
-                        value={activeSection.sliceOffset}
-                      />
-                    </label>
-                    <label className="block text-sm font-medium text-[#173f36]">
-                      Fallback
-                      <select
-                        className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-                        onChange={(event) =>
-                          updateSection(activeSection.draftId, {
-                            fallbackMode: event.target
-                              .value as HomeSectionFallbackMode,
-                          })
-                        }
-                        value={activeSection.fallbackMode}
-                      >
-                        {FALLBACK_MODES.map((fallbackMode) => (
-                          <option
-                            key={fallbackMode.value}
-                            value={fallbackMode.value}
-                          >
-                            {fallbackMode.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
                   </div>
 
-                  <div className="grid gap-3 rounded-md border border-[#dbe6e1] bg-[#f8fbf9] p-3 md:grid-cols-[auto_1fr_1fr]">
+                  <div className="grid gap-3 rounded-md border border-[#dbe6e1] bg-[#f8fbf9] p-3 md:grid-cols-[auto_1fr]">
                     <label className="flex items-center gap-2 text-sm font-semibold text-[#173f36]">
                       <input
                         checked={activeSection.ctaEnabled}
                         className="size-4 accent-[#075341]"
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const isEnabled = event.target.checked;
+
                           updateSection(activeSection.draftId, {
-                            ctaEnabled: event.target.checked,
-                          })
-                        }
+                            ctaEnabled: isEnabled,
+                            ctaHref:
+                              isEnabled && !activeSection.ctaHref.trim()
+                                ? "/search"
+                                : activeSection.ctaHref,
+                            ctaLabel:
+                              isEnabled && !activeSection.ctaLabel.trim()
+                                ? "ดูเพิ่มเติม"
+                                : activeSection.ctaLabel,
+                          });
+                        }}
                         type="checkbox"
                       />
-                      CTA
+                      แสดงปุ่มดูเพิ่มเติม
                     </label>
                     <input
-                      aria-label="CTA label"
+                      aria-label="ข้อความบนปุ่มดูเพิ่มเติม"
                       className="h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#eef3ef]"
                       disabled={!activeSection.ctaEnabled}
                       onChange={(event) =>
@@ -821,31 +787,89 @@ export function AdminSectionsPage() {
                           ctaLabel: event.target.value,
                         })
                       }
-                      placeholder="CTA label"
+                      placeholder="ดูเพิ่มเติม"
                       value={activeSection.ctaLabel}
                     />
-                    <input
-                      aria-label="CTA href"
-                      className="h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#eef3ef]"
-                      disabled={!activeSection.ctaEnabled}
-                      onChange={(event) =>
-                        updateSection(activeSection.draftId, {
-                          ctaHref: event.target.value,
-                        })
-                      }
-                      placeholder="/search?nearSea=1"
-                      value={activeSection.ctaHref}
-                    />
                   </div>
+
+                  <details className="rounded-md border border-[#dbe6e1] bg-white px-3 py-2 text-sm">
+                    <summary className="cursor-pointer font-semibold text-[#173f36]">
+                      ตั้งค่าขั้นสูง
+                    </summary>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <label className="block text-sm font-medium text-[#173f36]">
+                        รหัสชุดสำหรับระบบ
+                        <input
+                          className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                          onChange={(event) =>
+                            updateSection(activeSection.draftId, {
+                              slug: event.target.value,
+                            })
+                          }
+                          value={activeSection.slug}
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-[#173f36]">
+                        เริ่มจากลำดับที่
+                        <input
+                          className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                          min={0}
+                          onChange={(event) =>
+                            updateSection(activeSection.draftId, {
+                              sliceOffset: Number(event.target.value),
+                            })
+                          }
+                          type="number"
+                          value={activeSection.sliceOffset}
+                        />
+                      </label>
+                      <label className="block text-sm font-medium text-[#173f36]">
+                        ถ้าบ้านไม่ครบ
+                        <select
+                          className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                          onChange={(event) =>
+                            updateSection(activeSection.draftId, {
+                              fallbackMode: event.target
+                                .value as HomeSectionFallbackMode,
+                            })
+                          }
+                          value={activeSection.fallbackMode}
+                        >
+                          {FALLBACK_MODES.map((fallbackMode) => (
+                            <option
+                              key={fallbackMode.value}
+                              value={fallbackMode.value}
+                            >
+                              {fallbackMode.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block text-sm font-medium text-[#173f36]">
+                        ลิงก์ปุ่มดูเพิ่มเติม
+                        <input
+                          className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#eef3ef]"
+                          disabled={!activeSection.ctaEnabled}
+                          onChange={(event) =>
+                            updateSection(activeSection.draftId, {
+                              ctaHref: event.target.value,
+                            })
+                          }
+                          placeholder="/search"
+                          value={activeSection.ctaHref}
+                        />
+                      </label>
+                    </div>
+                  </details>
 
                   <div className="grid gap-3 rounded-md border border-[#dbe6e1] bg-[#f8fbf9] p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <h3 className="text-sm font-semibold text-[#173f36]">
-                          Manual house IDs
+                          บ้านพักในชุดนี้
                         </h3>
                         <p className="mt-0.5 text-xs text-[#58726a]">
-                          Type IDs separated by spaces, commas, or new lines.
+                          พิมพ์เลขบ้านที่ต้องการแสดง เช่น 105 101 111
                         </p>
                       </div>
                       <button
@@ -855,7 +879,7 @@ export function AdminSectionsPage() {
                         type="button"
                       >
                         <Eye aria-hidden="true" className="size-4" />
-                        {isPreviewing ? "Checking..." : "Preview IDs"}
+                        {isPreviewing ? "กำลังตรวจสอบ..." : "ตรวจสอบบ้านพัก"}
                       </button>
                     </div>
                     <textarea
@@ -894,17 +918,17 @@ export function AdminSectionsPage() {
                         }
                         type="checkbox"
                       />
-                      Active on home page
+                      แสดงชุดนี้บนหน้าแรก
                     </label>
                     <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <dt className="text-[#687d76]">Order</dt>
+                        <dt className="text-[#687d76]">ลำดับ</dt>
                         <dd className="font-mono font-semibold text-[#123f36]">
-                          {activeSection.displayOrder}
+                          {activeSection.displayOrder + 1}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-[#687d76]">Manual IDs</dt>
+                        <dt className="text-[#687d76]">จำนวนบ้าน</dt>
                         <dd className="font-mono font-semibold text-[#123f36]">
                           {activeSection.items.length}
                         </dd>
@@ -915,20 +939,20 @@ export function AdminSectionsPage() {
                   {preview && previewDraftId === activeSection.draftId ? (
                     <div className="rounded-md border border-[#dbe6e1] bg-white p-3 text-sm">
                       <h3 className="font-semibold text-[#173f36]">
-                        Preview result
+                        ผลการตรวจสอบ
                       </h3>
                       <p className="mt-1 text-[#506862]">
-                        {preview.valid.length} valid villas found.
+                        พบบ้านพักที่ใช้ได้ {preview.valid.length} หลัง
                       </p>
 
                       <PreviewList
                         ids={preview.missingIds}
-                        title="Missing IDs"
+                        title="เลขบ้านที่ไม่พบ"
                         tone="amber"
                       />
                       <PreviewList
                         ids={preview.invalidIds}
-                        title="Invalid IDs"
+                        title="เลขบ้านที่รูปแบบไม่ถูกต้อง"
                         tone="red"
                       />
 
@@ -938,11 +962,11 @@ export function AdminSectionsPage() {
                             <li
                               className="truncate text-xs text-[#31534a]"
                               key={villa.id}
-                              title={`Villa ${villa.id} in ${villa.zoneLabel}`}
+                              title={`บ้านเลขที่ ${villa.id} โซน ${villa.zoneLabel}`}
                             >
                               <span className="font-mono">#{villa.id}</span>{" "}
-                              {villa.zoneLabel} / {villa.bedrooms} BR /{" "}
-                              {villa.people} guests
+                              {villa.zoneLabel} / {villa.bedrooms} ห้องนอน /{" "}
+                              พักได้ {villa.people} คน
                             </li>
                           ))}
                         </ul>
@@ -950,15 +974,14 @@ export function AdminSectionsPage() {
                     </div>
                   ) : (
                     <div className="rounded-md border border-[#dbe6e1] bg-white p-3 text-sm text-[#506862]">
-                      Preview manual IDs to see valid, missing, and invalid
-                      entries before saving.
+                      กดตรวจสอบบ้านพักเพื่อดูว่าเลขบ้านไหนใช้งานได้ก่อนบันทึก
                     </div>
                   )}
 
                   {activeSection.items.length > 0 ? (
                     <div className="rounded-md border border-[#dbe6e1] bg-white p-3">
                       <h3 className="text-sm font-semibold text-[#173f36]">
-                        Normalized IDs
+                        เลขบ้านที่ระบบอ่านได้
                       </h3>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {activeSection.items.map((item, itemIndex) => {
