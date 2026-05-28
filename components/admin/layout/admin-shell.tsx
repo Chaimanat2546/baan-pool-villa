@@ -137,7 +137,7 @@ export function AdminShell({ children }: AdminShellProps) {
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-30 border-b border-[#d7e2dc] bg-[#edf3ef]/92 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-[#d7e2dc] bg-[#edf3ef]/92 px-4 py-3 backdrop-blur sm:px-6 lg:hidden">
           <div className="mx-auto flex w-full max-w-[1480px] items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <button
