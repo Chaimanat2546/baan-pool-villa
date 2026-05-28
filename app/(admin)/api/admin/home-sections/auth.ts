@@ -24,8 +24,8 @@ export function jsonError(
   return Response.json({ error: message, ...extra }, { status });
 }
 
-function isAuthorizationSeparator(character: string): boolean {
-  return character === " " || character === "\t";
+function isAuthorizationSeparator(characterCode: number): boolean {
+  return characterCode === 32 || characterCode === 9;
 }
 
 export function getBearerToken(request: Request): string | null {
@@ -39,7 +39,7 @@ export function getBearerToken(request: Request): string | null {
   let separatorIndex = -1;
 
   for (let index = 0; index < trimmedHeader.length; index += 1) {
-    if (isAuthorizationSeparator(trimmedHeader[index] ?? "")) {
+    if (isAuthorizationSeparator(trimmedHeader.charCodeAt(index))) {
       separatorIndex = index;
       break;
     }
