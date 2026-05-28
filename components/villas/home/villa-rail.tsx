@@ -7,19 +7,46 @@ import { VillaCard } from "../listing/villa-card";
 import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
 
+interface VillaRailCtaConfig {
+  href: string;
+  label: string;
+}
+
 interface VillaRailProps {
-  cta?: boolean | { label: string; href: string };
+  cta?: boolean | VillaRailCtaConfig;
   description: string;
   id?: string;
   title: string;
   villas: VillaListing[];
+}
+
+const DEFAULT_CTA_CONFIG: VillaRailCtaConfig = {
+  href: "/search",
+  label: "\u0e14\u0e39\u0e1a\u0e49\u0e32\u0e19\u0e1e\u0e31\u0e01\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14",
 };
 
-export function VillaRail({ cta, description, id, title, villas }: VillaRailProps) {
-  const ctaConfig =
-    cta === true
-      ? { label: "ดูบ้านพักทั้งหมด", href: "/search" }
-      : cta || null;
+function getVillaRailCtaConfig(
+  cta: VillaRailProps["cta"],
+): VillaRailCtaConfig | null {
+  if (cta === true) {
+    return DEFAULT_CTA_CONFIG;
+  }
+
+  if (cta === false || typeof cta === "undefined") {
+    return null;
+  }
+
+  return cta;
+}
+
+export function VillaRail({
+  cta,
+  description,
+  id,
+  title,
+  villas,
+}: VillaRailProps) {
+  const ctaConfig = getVillaRailCtaConfig(cta);
 
   return (
     <section

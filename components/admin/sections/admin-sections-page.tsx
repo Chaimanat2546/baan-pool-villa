@@ -191,6 +191,10 @@ async function readJsonPayload(response: Response): Promise<unknown> {
   }
 }
 
+function isAbortSignalAborted(signal: AbortSignal | undefined): boolean {
+  return signal ? signal.aborted : false;
+}
+
 export function AdminSectionsPage() {
   const router = useRouter();
   const [sections, setSections] = useState<AdminSectionDraft[]>([]);
@@ -506,7 +510,7 @@ export function AdminSectionsPage() {
 
       const token = await getAccessToken();
 
-      if (!token || signal?.aborted) {
+      if (!token || isAbortSignalAborted(signal)) {
         return;
       }
 
@@ -517,7 +521,7 @@ export function AdminSectionsPage() {
       try {
         const payload = await fetchManualPreview(token, houseIds, signal);
 
-        if (!payload || signal?.aborted) {
+        if (!payload || isAbortSignalAborted(signal)) {
           return;
         }
 
@@ -528,7 +532,7 @@ export function AdminSectionsPage() {
           caughtError instanceof DOMException &&
           caughtError.name === "AbortError";
 
-        if (isAbortError || signal?.aborted || !showErrors) {
+        if (isAbortError || isAbortSignalAborted(signal) || !showErrors) {
           return;
         }
 
@@ -538,7 +542,7 @@ export function AdminSectionsPage() {
             : "เช็กเลขบ้านไม่ได้",
         ]);
       } finally {
-        if (!signal?.aborted) {
+        if (!isAbortSignalAborted(signal)) {
           setIsPreviewing(false);
         }
       }
