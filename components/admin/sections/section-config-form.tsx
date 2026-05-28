@@ -92,7 +92,7 @@ export function SectionConfigForm({
         </div>
       </div>
 
-      <label className="flex min-h-16 items-center rounded-xl border border-[#dbe1e7] bg-[#fbfcfd] px-5 py-3 text-sm font-semibold text-[#173f36]">
+      <label className="flex min-h-12 items-center rounded-xl border border-[#dbe1e7] bg-[#fbfcfd] px-4 py-2 text-sm font-semibold text-[#173f36]">
         <input
           checked={section.ctaEnabled}
           className="size-5 shrink-0 accent-[#075341]"
@@ -113,14 +113,14 @@ export function SectionConfigForm({
           }}
           type="checkbox"
         />
-        <span className="ml-3">แสดงปุ่มดูเพิ่มเติม</span>
+        <span className="ml-2">แสดงปุ่มดูเพิ่มเติม</span>
       </label>
 
-      <details className="rounded-xl border border-[#dbe1e7] bg-white px-5 py-4 text-sm">
-        <summary className="cursor-pointer font-semibold text-[#173f36]">
+      <details className="rounded-xl border border-[#dbe1e7] bg-white px-4 text-sm">
+        <summary className="cursor-pointer py-3 font-semibold text-[#173f36]">
           ตั้งค่าขั้นสูง
         </summary>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 pb-4 md:grid-cols-2">
           <label className="block text-sm font-medium text-[#173f36]">
             รหัสชุดสำหรับระบบ
             <input
