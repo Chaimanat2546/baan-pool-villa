@@ -7,7 +7,7 @@ import type { VillaListing } from "@/lib/villas/types";
 interface VillaCardProps {
   villa: VillaListing;
   preload?: boolean;
-};
+}
 
 function getVillaTitle(villa: VillaListing): string {
   return `พูลวิลล่า ${villa.id}`;

@@ -12,7 +12,7 @@ import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
 interface VillaPageProps {
   params: Promise<{ id: string }>;
-};
+}
 
 export async function generateMetadata({
   params,

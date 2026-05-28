@@ -14,7 +14,7 @@ interface SectionStatusItem {
   detail: string;
   label: string;
   tone: StatusTone;
-};
+}
 
 const SUMMARY_DOT_CLASS: Record<StatusTone, string> = {
   muted: "bg-slate-400",
@@ -26,7 +26,7 @@ interface SectionOutcomePanelProps {
   onActiveChange: (isActive: boolean) => void;
   preview: AdminManualPreviewResponse | null;
   section: AdminSectionDraft;
-};
+}
 
 export function SectionOutcomePanel({
   onActiveChange,

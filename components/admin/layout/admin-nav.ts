@@ -14,7 +14,7 @@ export interface AdminNavItem {
   icon: LucideIcon;
   label: string;
   pageTitle: string;
-};
+}
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {

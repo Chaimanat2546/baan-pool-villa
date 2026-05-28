@@ -8,7 +8,7 @@ interface AdminSectionsHeaderProps {
   onAddSection: () => void;
   onSave: () => void;
   sectionsCount: number;
-};
+}
 
 export function AdminSectionsHeader({
   activeSectionsCount,

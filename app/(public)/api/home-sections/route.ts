@@ -18,7 +18,7 @@ interface HomeSectionItemRow {
   house_id: unknown;
   position: unknown;
   is_active: unknown;
-};
+}
 
 interface HomeSectionRow {
   slug: unknown;
@@ -34,7 +34,7 @@ interface HomeSectionRow {
   cta_label: unknown;
   cta_href: unknown;
   home_section_items: unknown;
-};
+}
 
 const HOME_SECTION_MODES = new Set<HomeSectionMode>([
   "manual",

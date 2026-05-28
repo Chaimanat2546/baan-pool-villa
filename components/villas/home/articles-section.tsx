@@ -27,7 +27,7 @@ const articleCards = [
 
 interface ArticlesSectionProps {
   villas: VillaListing[];
-};
+}
 
 export function ArticlesSection({ villas }: ArticlesSectionProps) {
   return (

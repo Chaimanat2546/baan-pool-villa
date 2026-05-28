@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export interface DropdownSelectOption<TValue extends string = string> {
   label: string;
   value: TValue;
-};
+}
 
 interface DropdownSelectProps<TValue extends string = string> {
   ariaLabel?: string;
@@ -19,7 +19,7 @@ interface DropdownSelectProps<TValue extends string = string> {
   options: DropdownSelectOption<TValue>[];
   placeholder?: string;
   value: TValue;
-};
+}
 
 export function DropdownSelect<TValue extends string = string>({
   ariaLabel,

@@ -5,7 +5,7 @@ interface ManualIdsEditorProps {
   manualIdText: string;
   onChange: (value: string) => void;
   onPreview: () => void;
-};
+}
 
 export function ManualIdsEditor({
   isPreviewing,
