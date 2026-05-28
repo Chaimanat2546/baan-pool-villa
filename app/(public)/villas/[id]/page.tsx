@@ -10,7 +10,7 @@ import {
 } from "@/lib/seo";
 import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
-type VillaPageProps = {
+interface VillaPageProps {
   params: Promise<{ id: string }>;
 };
 

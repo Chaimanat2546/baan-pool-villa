@@ -72,7 +72,9 @@ export function SiteHeader() {
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/30 bg-white/10 text-white shadow-[0_10px_24px_rgba(0,0,0,0.12)] lg:hidden"
             aria-expanded={isMenuOpen}
             aria-label={isMenuOpen ? "ปิดเมนู" : "เปิดเมนู"}
-            onClick={() => setIsMenuOpen((current) => !current)}
+            onClick={() => {
+              setIsMenuOpen((current) => !current);
+            }}
           >
             {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -85,7 +87,9 @@ export function SiteHeader() {
                     key={`mobile-${item.href}-${item.label}`}
                     href={item.href}
                     className="px-4 py-3"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                    }}
                   >
                     {item.label}
                   </Link>
@@ -93,7 +97,9 @@ export function SiteHeader() {
                 <Link
                   href="/#contact"
                   className="flex items-center gap-2 px-4 py-3 text-[#064e3b]"
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                  }}
                 >
                   <MapPin className="h-4 w-4" />
                   จองเลย

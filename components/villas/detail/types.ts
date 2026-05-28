@@ -4,14 +4,14 @@ import type {
   VillaListing,
 } from "@/lib/villas/types";
 
-export type VillaDetailPageProps = {
+export interface VillaDetailPageProps {
   id: string;
   images: VillaImage[];
   payload: VillaDetailPayload;
   recommendedVillas: VillaListing[];
 };
 
-export type GalleryItem = {
+export interface GalleryItem {
   key: string;
   url: string;
   caption: string | null;
@@ -23,7 +23,7 @@ export type GalleryItem = {
   zoneKey: string;
 };
 
-export type GalleryCategory = {
+export interface GalleryCategory {
   key: string;
   label: string;
   items: GalleryItem[];

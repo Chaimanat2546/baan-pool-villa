@@ -25,7 +25,7 @@ const articleCards = [
   },
 ];
 
-type ArticlesSectionProps = {
+interface ArticlesSectionProps {
   villas: VillaListing[];
 };
 

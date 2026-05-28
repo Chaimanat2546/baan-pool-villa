@@ -4,12 +4,12 @@ import type { VillaFilters } from "@/lib/villas/types";
 
 import { SearchBar } from "../search/search-bar";
 
-type ZoneOption = {
+interface ZoneOption {
   label: string;
   value: string;
 };
 
-type HeroSectionProps = {
+interface HeroSectionProps {
   filters: VillaFilters;
   maxAvailablePrice: number;
   onChange: (filters: VillaFilters) => void;

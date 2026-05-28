@@ -1,6 +1,6 @@
 import { Eye } from "lucide-react";
 
-type ManualIdsEditorProps = {
+interface ManualIdsEditorProps {
   isPreviewing: boolean;
   manualIdText: string;
   onChange: (value: string) => void;
@@ -26,7 +26,9 @@ export function ManualIdsEditor({
         </div>
         <textarea
           className="min-h-40 w-full rounded-[18px] border border-[#c9d9d3] bg-white px-3 py-2 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => {
+            onChange(event.target.value);
+          }}
           placeholder="105 101 111"
           value={manualIdText}
         />

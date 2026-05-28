@@ -22,7 +22,9 @@ function GalleryImage({
     <button
       type="button"
       className={`group relative block w-full overflow-hidden bg-[#e6efeb] text-left ${className}`}
-      onClick={() => onClick?.(item)}
+      onClick={() => {
+        onClick?.(item);
+      }}
     >
       {item.url ? (
         <>
@@ -34,7 +36,9 @@ function GalleryImage({
             unoptimized={shouldBypassImageOptimizer(item.url)}
             sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover transition duration-500 group-hover:scale-[1.03]"
-            onError={() => onError(item.url)}
+            onError={() => {
+              onError(item.url);
+            }}
           />
           {item.isMock ? <MockBadge className="absolute left-3 top-3" /> : null}
           <span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-black text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
@@ -64,7 +68,9 @@ function GalleryViewAllTile({
     <button
       type="button"
       className="group relative block aspect-[4/3] w-full overflow-hidden bg-[#1f2523] text-white lg:h-full"
-      onClick={() => onClick(item)}
+      onClick={() => {
+        onClick(item);
+      }}
     >
       {item.url ? (
         <Image
@@ -75,7 +81,9 @@ function GalleryViewAllTile({
           unoptimized={shouldBypassImageOptimizer(item.url)}
           sizes="(max-width: 1024px) 33vw, 50vw"
           className="scale-110 object-cover blur-md brightness-50 transition duration-500 group-hover:scale-[1.15]"
-          onError={() => onError(item.url)}
+          onError={() => {
+            onError(item.url);
+          }}
         />
       ) : null}
       <span className="absolute inset-0 bg-black/25" />
@@ -145,7 +153,9 @@ export function Gallery({
           <button
             type="button"
             className="absolute inset-0 grid place-items-center bg-black/20 text-[11px] font-black text-white lg:text-sm"
-            onClick={() => onImageClick(fourth)}
+            onClick={() => {
+              onImageClick(fourth);
+            }}
           >
             <span className="inline-flex max-w-[92%] items-center gap-1 rounded-full bg-black/40 px-2 py-1 backdrop-blur-md lg:gap-2 lg:px-4 lg:py-2">
               <ImageIcon className="h-4 w-4" />
@@ -227,7 +237,9 @@ export function GalleryLightbox({
                   ? "bg-white text-[#063f35]"
                   : "bg-white/10 text-white hover:bg-white/20"
               }`}
-              onClick={() => onSelect(category.items[0])}
+              onClick={() => {
+                onSelect(category.items[0]);
+              }}
             >
               {category.label}
               <span className="ml-2 text-[11px] opacity-70">{category.items.length} รูป</span>
@@ -245,7 +257,9 @@ export function GalleryLightbox({
               unoptimized={shouldBypassImageOptimizer(activeItem.url)}
               sizes="100vw"
               className="object-contain"
-              onError={() => onImageError(activeItem.url)}
+              onError={() => {
+                onImageError(activeItem.url);
+              }}
             />
             {activeItems.length > 1 ? (
               <>
@@ -253,7 +267,9 @@ export function GalleryLightbox({
                   type="button"
                   aria-label="รูปก่อนหน้า"
                   className="absolute left-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/60 sm:left-3 sm:h-11 sm:w-11"
-                  onClick={() => onSelect(previousItem)}
+                  onClick={() => {
+                    onSelect(previousItem);
+                  }}
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
@@ -261,7 +277,9 @@ export function GalleryLightbox({
                   type="button"
                   aria-label="รูปถัดไป"
                   className="absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/60 sm:right-3 sm:h-11 sm:w-11"
-                  onClick={() => onSelect(nextItem)}
+                  onClick={() => {
+                    onSelect(nextItem);
+                  }}
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>
@@ -287,7 +305,9 @@ export function GalleryLightbox({
                       ? "border-white"
                       : "border-white/10 opacity-70 hover:opacity-100"
                   }`}
-                  onClick={() => onSelect(item)}
+                  onClick={() => {
+                    onSelect(item);
+                  }}
                 >
                   <Image
                     src={item.url}
@@ -296,7 +316,9 @@ export function GalleryLightbox({
                     unoptimized={shouldBypassImageOptimizer(item.url)}
                     sizes="120px"
                     className="object-cover"
-                    onError={() => onImageError(item.url)}
+                    onError={() => {
+                      onImageError(item.url);
+                    }}
                   />
                 </button>
               ))}

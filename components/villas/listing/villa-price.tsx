@@ -1,4 +1,4 @@
-type VillaPriceProps = {
+interface VillaPriceProps {
   price: number;
   variant?: "badge" | "text";
   className?: string;

@@ -177,7 +177,9 @@ export function VillaDetailPage({
 
         listing={listing}
 
-        onClose={() => setActiveGalleryItem(null)}
+        onClose={() => {
+          setActiveGalleryItem(null);
+        }}
 
         onImageError={handleImageError}
 

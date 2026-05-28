@@ -7,12 +7,12 @@ import type { VillaFilters } from "@/lib/villas/types";
 
 import { SearchBar } from "./search-bar";
 
-type ZoneOption = {
+interface ZoneOption {
   label: string;
   value: string;
 };
 
-type MobileFilterDrawerProps = {
+interface MobileFilterDrawerProps {
   filters: VillaFilters;
   maxAvailablePrice: number;
   onApply: (filters: VillaFilters) => void;
@@ -79,7 +79,9 @@ export function MobileFilterDrawer({
             type="button"
             aria-label="ปิดตัวกรอง"
             className="absolute inset-0 bg-[#021d19]/55"
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false);
+            }}
           />
           <div className="absolute inset-x-0 bottom-0 max-h-[88svh] overflow-hidden rounded-t-[28px] bg-[#f8fbf7] shadow-[0_-24px_60px_rgba(2,29,25,0.22)]">
             <div className="flex items-center justify-between border-b border-[#dbe7e3] bg-white px-5 py-4">
@@ -93,7 +95,9 @@ export function MobileFilterDrawer({
                 type="button"
                 aria-label="ปิดตัวกรอง"
                 className="grid h-10 w-10 place-items-center rounded-full border border-[#dbe7e3] bg-white text-[#064e3b]"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false);
+                }}
               >
                 <X className="h-5 w-5" />
               </button>

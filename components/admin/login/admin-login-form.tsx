@@ -77,7 +77,9 @@ export function AdminLoginForm() {
             disabled={isSubmitting}
             inputMode="email"
             name="email"
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value);
+            }}
             required
             type="email"
             value={email}
@@ -93,7 +95,9 @@ export function AdminLoginForm() {
             className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#f3f6f4]"
             disabled={isSubmitting}
             name="password"
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(event) => {
+              setPassword(event.target.value);
+            }}
             required
             type="password"
             value={password}

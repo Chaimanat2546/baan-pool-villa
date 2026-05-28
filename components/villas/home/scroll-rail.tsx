@@ -5,7 +5,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils";
 
-type ScrollRailProps = {
+interface ScrollRailProps {
   children: ReactNode;
   className?: string;
   label: string;
@@ -89,7 +89,9 @@ export function ScrollRail({
             type="button"
             aria-label={`เลื่อน${label}ไปทางซ้าย`}
             className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe7e3] bg-white text-[#064e3b] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[#f8fbf7]"
-            onClick={() => scrollByPage("left")}
+            onClick={() => {
+              scrollByPage("left");
+            }}
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -100,7 +102,9 @@ export function ScrollRail({
             type="button"
             aria-label={`เลื่อน${label}ไปทางขวา`}
             className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe7e3] bg-white text-[#064e3b] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[#f8fbf7]"
-            onClick={() => scrollByPage("right")}
+            onClick={() => {
+              scrollByPage("right");
+            }}
           >
             <ChevronRight className="h-5 w-5" />
           </button>

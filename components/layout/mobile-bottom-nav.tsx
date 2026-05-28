@@ -16,7 +16,9 @@ export function MobileBottomNav() {
           <button
             type="button"
             className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#dbe7e3] bg-white px-2 text-xs font-semibold leading-none text-[#064e3b]"
-            onClick={() => setIsPhoneSheetOpen(true)}
+            onClick={() => {
+              setIsPhoneSheetOpen(true);
+            }}
           >
             <span className="grid h-7 w-7 place-items-center rounded-full bg-[#064e3b] text-white shadow-sm ">
               <Phone className="h-4 w-4" />
@@ -48,7 +50,9 @@ export function MobileBottomNav() {
             type="button"
             aria-label="ปิดตัวเลือกโทร"
             className="absolute inset-0 bg-[#021d19]/55"
-            onClick={() => setIsPhoneSheetOpen(false)}
+            onClick={() => {
+              setIsPhoneSheetOpen(false);
+            }}
           />
           <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[0_-24px_60px_rgba(2,29,25,0.22)]">
             <div className="flex items-start justify-between gap-4">
@@ -60,7 +64,9 @@ export function MobileBottomNav() {
                 type="button"
                 aria-label="ปิดตัวเลือกโทร"
                 className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#dbe7e3] bg-white text-[#064e3b]"
-                onClick={() => setIsPhoneSheetOpen(false)}
+                onClick={() => {
+                  setIsPhoneSheetOpen(false);
+                }}
               >
                 <X className="h-5 w-5" />
               </button>

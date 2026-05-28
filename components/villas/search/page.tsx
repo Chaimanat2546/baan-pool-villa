@@ -24,13 +24,13 @@ import { MobileFilterDrawer } from "./mobile-filter-drawer";
 import { SearchBar } from "./search-bar";
 import { VillaGrid } from "../listing/villa-grid";
 
-type HousesResponse = {
+interface HousesResponse {
   items: VillaListing[];
 };
 
 const PAGE_SIZE = 12;
 
-const SORT_OPTIONS: Array<{ label: string; value: VillaSortKey }> = [
+const SORT_OPTIONS: { label: string; value: VillaSortKey }[] = [
   { label: "แนะนำ", value: "recommended" },
   { label: "ราคา ต่ำ-สูง", value: "price_asc" },
   { label: "ราคา สูง-ต่ำ", value: "price_desc" },
@@ -44,7 +44,7 @@ function isVillaSortKey(value: string | null): value is VillaSortKey {
 
 function getSearchConditionLabels(
   filters: VillaFilters,
-  zones: Array<{ value: string; label: string }>,
+  zones: { value: string; label: string }[],
 ): string[] {
   const zoneLabel =
     filters.zone === "all"
@@ -123,7 +123,7 @@ export function SearchPage() {
       }
     }
 
-    loadVillas();
+    void loadVillas();
 
     return () => {
       isActive = false;
@@ -226,7 +226,9 @@ export function SearchPage() {
                 <input
                   type="search"
                   value={villaIdQuery}
-                  onChange={(event) => handleVillaIdQueryChange(event.target.value)}
+                  onChange={(event) => {
+                    handleVillaIdQueryChange(event.target.value);
+                  }}
                   placeholder="เช่น 9 หรือ DV-9"
                   className="w-full min-w-0 bg-transparent text-sm font-semibold outline-none placeholder:text-[#8aa099]"
                 />

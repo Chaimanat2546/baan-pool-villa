@@ -1,6 +1,6 @@
 import type { Amenity } from "@/lib/villas/types";
 
-type VillaAmenitiesProps = {
+interface VillaAmenitiesProps {
   amenities: Amenity[];
   limit?: number;
   variant?: "card" | "detail";
