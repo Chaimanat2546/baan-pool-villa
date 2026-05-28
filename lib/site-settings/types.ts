@@ -23,6 +23,11 @@ export interface SiteSettings {
   heroImage: SiteImageSettings;
 }
 
+export interface SiteSettingsLoadResult {
+  settings: SiteSettings;
+  source: "config" | "fallback";
+}
+
 export interface SiteSettingsRow {
   id: string;
   site_name: string | null;
