@@ -823,8 +823,8 @@ export function AdminSectionsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 px-4 py-4 xl:grid-cols-[1fr_320px]">
-                <div className="grid gap-4">
+              <div className="grid items-start gap-4 px-4 py-4 xl:grid-cols-[1fr_320px]">
+                <div className="grid content-start gap-4">
                   <div className="grid gap-3">
                     <label className="block text-sm font-medium text-[#173f36]">
                       ชื่อชุดบ้านพัก
