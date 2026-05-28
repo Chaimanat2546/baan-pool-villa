@@ -63,6 +63,19 @@ const FALLBACK_MODES: { label: string; value: HomeSectionFallbackMode }[] = [
 ];
 
 const MODE_LABELS = new Map(MODES.map((mode) => [mode.value, mode.label]));
+type StatusTone = "ok" | "warn" | "muted";
+
+type SectionStatusItem = {
+  detail: string;
+  label: string;
+  tone: StatusTone;
+};
+
+const STATUS_TONE_CLASS: Record<StatusTone, string> = {
+  muted: "border-slate-200 bg-slate-50 text-slate-700",
+  ok: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  warn: "border-amber-200 bg-amber-50 text-amber-800",
+};
 
 const makeDraftId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -149,6 +162,168 @@ function parseManualIds(value: string) {
     .map((houseId) => houseId.trim())
     .filter(Boolean)
     .map((houseId) => ({ houseId }));
+}
+
+function getManualIdStatus(section: AdminSectionDraft) {
+  const duplicateIds: string[] = [];
+  const invalidIds: string[] = [];
+  const seenIds = new Set<string>();
+
+  section.items.forEach((item) => {
+    const normalizedId = normalizeHouseId(item.houseId);
+
+    if (!normalizedId) {
+      invalidIds.push(item.houseId);
+      return;
+    }
+
+    if (seenIds.has(normalizedId)) {
+      if (!duplicateIds.includes(normalizedId)) {
+        duplicateIds.push(normalizedId);
+      }
+      return;
+    }
+
+    seenIds.add(normalizedId);
+  });
+
+  return {
+    duplicateIds,
+    invalidIds,
+    normalizedCount: seenIds.size,
+  };
+}
+
+function isAdminInternalHref(value: string): boolean {
+  const href = value.trim();
+
+  return href.startsWith("/") && !href.startsWith("//");
+}
+
+function getSectionStatusItems(
+  section: AdminSectionDraft,
+  hasFreshPreview: boolean,
+): SectionStatusItem[] {
+  const items: SectionStatusItem[] = [
+    section.title.trim()
+      ? {
+          detail: "พร้อมแสดงบนหน้าแรก",
+          label: "ชื่อชุด",
+          tone: "ok",
+        }
+      : {
+          detail: "ยังไม่ได้กรอกชื่อ",
+          label: "ชื่อชุด",
+          tone: "warn",
+        },
+    section.description.trim()
+      ? {
+          detail: "มีข้อความใต้หัวข้อแล้ว",
+          label: "คำอธิบาย",
+          tone: "ok",
+        }
+      : {
+          detail: "ยังไม่ได้กรอกคำอธิบาย",
+          label: "คำอธิบาย",
+          tone: "warn",
+        },
+    section.isActive
+      ? {
+          detail: "เปิดอยู่บนหน้าแรก",
+          label: "การแสดงผล",
+          tone: "ok",
+        }
+      : {
+          detail: "ปิดอยู่และจะไม่แสดง",
+          label: "การแสดงผล",
+          tone: "muted",
+        },
+  ];
+
+  if (
+    !Number.isInteger(section.limitCount) ||
+    section.limitCount < 1 ||
+    section.limitCount > 12
+  ) {
+    items.push({
+      detail: "ต้องอยู่ระหว่าง 1 ถึง 12",
+      label: "จำนวนบ้าน",
+      tone: "warn",
+    });
+  }
+
+  if (section.ctaEnabled) {
+    items.push(
+      section.ctaLabel.trim() && isAdminInternalHref(section.ctaHref)
+        ? {
+            detail: "ปุ่มดูเพิ่มเติมพร้อมใช้งาน",
+            label: "ปุ่มดูเพิ่มเติม",
+            tone: "ok",
+          }
+        : {
+            detail: "ยังขาดข้อความหรือลิงก์",
+            label: "ปุ่มดูเพิ่มเติม",
+            tone: "warn",
+          },
+    );
+  }
+
+  if (section.mode !== "manual") {
+    items.push({
+      detail: MODE_LABELS.get(section.mode) ?? "ระบบเลือกบ้านให้",
+      label: "บ้านพัก",
+      tone: "ok",
+    });
+    return items;
+  }
+
+  const manualStatus = getManualIdStatus(section);
+
+  if (section.items.length === 0) {
+    items.push({
+      detail: "ยังไม่ได้ใส่เลขบ้าน",
+      label: "เลขบ้าน",
+      tone: "warn",
+    });
+  } else if (manualStatus.invalidIds.length > 0) {
+    items.push({
+      detail: `อ่านไม่ได้ ${manualStatus.invalidIds.length} รายการ`,
+      label: "เลขบ้าน",
+      tone: "warn",
+    });
+  } else {
+    items.push({
+      detail: `อ่านได้ ${manualStatus.normalizedCount} หลัง`,
+      label: "เลขบ้าน",
+      tone: "ok",
+    });
+  }
+
+  if (manualStatus.duplicateIds.length > 0) {
+    items.push({
+      detail: `มีเลขซ้ำ ${manualStatus.duplicateIds.join(", ")}`,
+      label: "เลขซ้ำ",
+      tone: "warn",
+    });
+  }
+
+  if (section.items.length > 0) {
+    items.push(
+      hasFreshPreview
+        ? {
+            detail: "ตรวจสอบกับระบบแล้ว",
+            label: "ผลตรวจสอบ",
+            tone: "ok",
+          }
+        : {
+            detail: "ยังไม่ได้กดตรวจสอบบ้านพัก",
+            label: "ผลตรวจสอบ",
+            tone: "warn",
+          },
+    );
+  }
+
+  return items;
 }
 
 function extractErrors(payload: unknown, fallback: string): string[] {
@@ -242,6 +417,16 @@ export function AdminSectionsPage() {
   );
   const deleteNeedsConfirmation =
     activeSection !== null && pendingDeleteDraftId === activeSection.draftId;
+  const activeStatusItems = useMemo(
+    () =>
+      activeSection
+        ? getSectionStatusItems(
+            activeSection,
+            previewDraftId === activeSection.draftId,
+          )
+        : [],
+    [activeSection, previewDraftId],
+  );
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -1071,6 +1256,8 @@ export function AdminSectionsPage() {
                     </dl>
                   </div>
 
+                  <SectionStatusCard items={activeStatusItems} />
+
                   {activeSection.mode !== "manual" ? (
                     <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4 text-sm text-[#506862]">
                       บ้านพักจะถูกเลือกอัตโนมัติเมื่อบันทึกและเปิดหน้าแรก
@@ -1149,6 +1336,25 @@ export function AdminSectionsPage() {
           ) : null}
         </div>
       )}
+    </div>
+  );
+}
+
+function SectionStatusCard({ items }: { items: SectionStatusItem[] }) {
+  return (
+    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4">
+      <h3 className="text-sm font-semibold text-[#173f36]">สถานะชุดนี้</h3>
+      <div className="mt-3 grid gap-2">
+        {items.map((item) => (
+          <div
+            className={`rounded-xl border px-3 py-2 ${STATUS_TONE_CLASS[item.tone]}`}
+            key={`${item.label}-${item.detail}`}
+          >
+            <p className="text-xs font-semibold">{item.label}</p>
+            <p className="mt-0.5 text-xs leading-5">{item.detail}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
