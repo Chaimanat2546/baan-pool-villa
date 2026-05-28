@@ -39,10 +39,10 @@ export function SectionOutcomePanel({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-[#173f36]">
-            ผลลัพธ์ของชุดนี้
+            ตัวอย่างชุดนี้
           </h3>
           <p className="mt-1 text-xs leading-5 text-[#58726a]">
-            ดูบ้านที่จะถูกใช้บนหน้าแรกหลังบันทึก
+            ดูบ้านที่จะขึ้นหน้าแรกหลังบันทึก
           </p>
         </div>
         <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#173f36]">
@@ -78,7 +78,7 @@ export function SectionOutcomePanel({
           {preview ? (
             <div className="border-t border-[#dbe6e1] pt-3 text-sm">
               <h4 className="font-semibold text-[#173f36]">
-                ผลตรวจบ้านจริง
+                บ้านที่หาเจอ
               </h4>
               <p className="mt-1 text-[#506862]">
                 พบบ้านพักที่ใช้ได้ {preview.valid.length} หลัง
@@ -113,7 +113,7 @@ export function SectionOutcomePanel({
             </div>
           ) : section.items.length > 0 ? (
             <p className="border-t border-[#dbe6e1] pt-3 text-sm leading-6 text-[#506862]">
-              ระบบจะตรวจบ้านจริงให้อัตโนมัติอีกครั้งตอนกดบันทึก
+              จะเช็กบ้านให้อีกครั้งตอนกดบันทึก
             </p>
           ) : null}
 
@@ -145,7 +145,7 @@ export function SectionOutcomePanel({
         </>
       ) : (
         <p className="mt-3 border-t border-[#dbe6e1] pt-3 text-sm leading-6 text-[#506862]">
-          บ้านพักจะถูกเลือกอัตโนมัติเมื่อบันทึกและเปิดหน้าแรก
+          เมื่อบันทึก ชุดนี้จะเลือกบ้านตามวิธีที่ตั้งไว้
         </p>
       )}
     </div>
@@ -228,7 +228,7 @@ function ManualSelectionSummary({
                 : "ok",
           }
         : {
-            detail: "ยังไม่ได้ตรวจสอบกับฐานข้อมูลบ้านจริง",
+            detail: "ยังไม่ได้เช็กกับรายการบ้านจริง",
             label: "ผลตรวจ",
             tone: "warn",
           },

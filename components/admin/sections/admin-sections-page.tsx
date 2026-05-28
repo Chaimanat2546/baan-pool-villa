@@ -221,6 +221,12 @@ export function AdminSectionsPage() {
     activeSection !== null && previewDraftId === activeSection.draftId
       ? preview
       : null;
+  const activeManualDraftId =
+    activeSection?.mode === "manual" ? activeSection.draftId : null;
+  const activeManualHouseIdsKey =
+    activeSection?.mode === "manual"
+      ? activeSection.items.map((item) => item.houseId).join("\n")
+      : "";
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -433,30 +439,121 @@ export function AdminSectionsPage() {
     setPendingDeleteDraftId(draftId);
   }
 
-  async function fetchManualPreview(token: string, houseIds: string[]) {
-    const response = await fetch("/api/admin/home-sections/preview", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ houseIds }),
-    });
-    const payload = await readJsonPayload(response);
+  const fetchManualPreview = useCallback(
+    async (token: string, houseIds: string[], signal?: AbortSignal) => {
+      const response = await fetch("/api/admin/home-sections/preview", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ houseIds }),
+        signal,
+      });
+      const payload = await readJsonPayload(response);
 
-    if (response.status === 401) {
-      redirectToLogin();
-      return null;
+      if (response.status === 401) {
+        redirectToLogin();
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          extractErrors(payload, "เช็กเลขบ้านไม่ได้").join("\n"),
+        );
+      }
+
+      return payload as AdminManualPreviewResponse;
+    },
+    [redirectToLogin],
+  );
+
+  const previewManualIds = useCallback(
+    async ({
+      draftId,
+      houseIds,
+      showErrors,
+      signal,
+    }: {
+      draftId: string;
+      houseIds: string[];
+      showErrors: boolean;
+      signal?: AbortSignal;
+    }) => {
+      if (houseIds.length === 0) {
+        setPreview(null);
+        setPreviewDraftId(null);
+        setIsPreviewing(false);
+        return;
+      }
+
+      const token = await getAccessToken();
+
+      if (!token || signal?.aborted) {
+        return;
+      }
+
+      setErrors([]);
+      setNotice(null);
+      setIsPreviewing(true);
+
+      try {
+        const payload = await fetchManualPreview(token, houseIds, signal);
+
+        if (!payload || signal?.aborted) {
+          return;
+        }
+
+        setPreview(payload);
+        setPreviewDraftId(draftId);
+      } catch (caughtError) {
+        const isAbortError =
+          caughtError instanceof DOMException &&
+          caughtError.name === "AbortError";
+
+        if (isAbortError || signal?.aborted || !showErrors) {
+          return;
+        }
+
+        setErrors([
+          caughtError instanceof Error
+            ? caughtError.message
+            : "เช็กเลขบ้านไม่ได้",
+        ]);
+      } finally {
+        if (!signal?.aborted) {
+          setIsPreviewing(false);
+        }
+      }
+    },
+    [fetchManualPreview, getAccessToken],
+  );
+
+  useEffect(() => {
+    if (!activeManualDraftId) {
+      return;
     }
 
-    if (!response.ok) {
-      throw new Error(
-        extractErrors(payload, "ไม่สามารถตรวจสอบเลขบ้านได้").join("\n"),
-      );
+    if (!activeManualHouseIdsKey) {
+      return;
     }
 
-    return payload as AdminManualPreviewResponse;
-  }
+    const houseIds = activeManualHouseIdsKey.split("\n");
+    const controller = new AbortController();
+    const previewTimer = window.setTimeout(() => {
+      void previewManualIds({
+        draftId: activeManualDraftId,
+        houseIds,
+        showErrors: false,
+        signal: controller.signal,
+      });
+    }, 650);
+
+    return () => {
+      window.clearTimeout(previewTimer);
+      controller.abort();
+    };
+  }, [activeManualDraftId, activeManualHouseIdsKey, previewManualIds]);
 
   async function validateManualSectionsBeforeSave(token: string) {
     const manualSections = sections
@@ -495,7 +592,7 @@ export function AdminSectionsPage() {
 
         if (sectionPreview.missingIds.length > 0) {
           previewErrors.push(
-            `${sectionLabel} มีเลขบ้านที่ไม่พบในระบบ: ${sectionPreview.missingIds.join(", ")}`,
+            `${sectionLabel} มีเลขบ้านที่ไม่พบในรายการบ้าน: ${sectionPreview.missingIds.join(", ")}`,
           );
         }
 
@@ -526,7 +623,7 @@ export function AdminSectionsPage() {
 
     if (previewErrors.length > 0) {
       setErrors([
-        "ตรวจสอบบ้านพักแล้วพบเลขที่ยังใช้ไม่ได้ แก้รายการเหล่านี้ก่อนบันทึก:",
+        "เช็กบ้านแล้วพบเลขที่ยังใช้ไม่ได้ แก้รายการเหล่านี้ก่อนบันทึก:",
         ...previewErrors,
       ]);
       return false;
@@ -536,41 +633,15 @@ export function AdminSectionsPage() {
   }
 
   async function handlePreviewManualIds() {
-    if (!activeSection) {
+    if (!activeSection || activeSection.mode !== "manual") {
       return;
     }
 
-    const token = await getAccessToken();
-
-    if (!token) {
-      return;
-    }
-
-    setErrors([]);
-    setNotice(null);
-    setIsPreviewing(true);
-
-    try {
-      const payload = await fetchManualPreview(
-        token,
-        activeSection.items.map((item) => item.houseId),
-      );
-
-      if (!payload) {
-        return;
-      }
-
-      setPreview(payload);
-      setPreviewDraftId(activeSection.draftId);
-    } catch (caughtError) {
-      setErrors([
-        caughtError instanceof Error
-          ? caughtError.message
-          : "ไม่สามารถตรวจสอบเลขบ้านได้",
-      ]);
-    } finally {
-      setIsPreviewing(false);
-    }
+    await previewManualIds({
+      draftId: activeSection.draftId,
+      houseIds: activeSection.items.map((item) => item.houseId),
+      showErrors: true,
+    });
   }
 
   async function handleSave() {

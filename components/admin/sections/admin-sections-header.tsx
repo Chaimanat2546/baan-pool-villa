@@ -63,7 +63,7 @@ export function AdminSectionsHeader({
             type="button"
           >
             <LogOut aria-hidden="true" className="size-4" />
-            ออกจากระบบ
+            ออกจากหลังบ้าน
           </button>
         </div>
       </div>

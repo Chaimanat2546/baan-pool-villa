@@ -21,7 +21,7 @@ export function ManualIdsEditor({
             บ้านพักในชุดนี้
           </h3>
           <p className="mt-0.5 text-xs leading-5 text-[#58726a]">
-            พิมพ์เลขบ้านที่ต้องการแสดง เช่น 105 101 111
+            พิมพ์เลขบ้านที่อยากโชว์ เช่น 105 101 111
           </p>
         </div>
         <textarea
@@ -37,8 +37,11 @@ export function ManualIdsEditor({
           type="button"
         >
           <Eye aria-hidden="true" className="size-4" />
-          {isPreviewing ? "กำลังตรวจสอบ..." : "ตรวจสอบบ้านพัก"}
+          {isPreviewing ? "กำลังเช็กบ้าน..." : "เช็กอีกครั้ง"}
         </button>
+        <p className="text-center text-xs leading-5 text-[#58726a]">
+          เช็กให้อัตโนมัติหลังหยุดพิมพ์
+        </p>
       </div>
     </div>
   );

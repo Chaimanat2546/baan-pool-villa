@@ -19,7 +19,7 @@ export function SectionConfigForm({
       <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)]">
         <fieldset className="min-w-0">
           <legend className="text-sm font-medium text-[#173f36]">
-            รูปแบบการเลือกบ้าน
+            วิธีเลือกบ้านพัก
           </legend>
           <div className="mt-3 grid gap-3">
             {MODE_OPTIONS.map((mode) => {

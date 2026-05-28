@@ -12,18 +12,18 @@ export const MODE_OPTIONS: {
   value: HomeSectionMode;
 }[] = [
   {
-    label: "เลือกบ้านพักเอง",
-    summary: "กำหนดเลขบ้านที่อยากแสดง",
+    label: "เลือกบ้านเอง",
+    summary: "พิมพ์เลขบ้านที่อยากโชว์",
     value: "manual",
   },
   {
-    label: "บ้านใกล้ทะเลอัตโนมัติ",
-    summary: "ให้ระบบเลือกจากบ้านใกล้ทะเล",
+    label: "บ้านใกล้ทะเล",
+    summary: "เลือกจากบ้านที่อยู่ใกล้ทะเล",
     value: "near_sea",
   },
   {
-    label: "บ้านตามลำดับจากระบบ",
-    summary: "ให้ระบบเลือกจากรายการบ้านทั้งหมด",
+    label: "บ้านจากรายการทั้งหมด",
+    summary: "เลือกตามลำดับรายการบ้านพัก",
     value: "slice",
   },
 ];
@@ -85,13 +85,13 @@ export function getFallbackExplanation(section: AdminSectionDraft): string {
     ? `${section.limitCount} หลัง`
     : "จำนวนที่ตั้งไว้";
   const baseText =
-    section.mode === "manual" ? "บ้านที่เลือก" : "บ้านที่ระบบเลือก";
+    section.mode === "manual" ? "บ้านที่เลือก" : "บ้านที่คัดไว้";
 
   if (normalizeAdminFallbackMode(section.fallbackMode) === "none") {
-    return `ถ้า${baseText}ไม่ครบ ${limitLabel} ระบบจะแสดงเท่าที่หาได้`;
+    return `ถ้า${baseText}ไม่ครบ ${limitLabel} จะแสดงเท่าที่หาได้`;
   }
 
-  return `ถ้า${baseText}ไม่ครบ ${limitLabel} ระบบจะเติมจาก${getFallbackSourceText(
+  return `ถ้า${baseText}ไม่ครบ ${limitLabel} จะเติมจาก${getFallbackSourceText(
     section.fallbackMode,
   )}`;
 }
@@ -107,11 +107,11 @@ export function getManualDisplaySummary(
 
   const limitCount = section.limitCount;
   const selectedText = isVerified
-    ? "บ้านที่พบในระบบจริง"
+    ? "บ้านที่หาเจอ"
     : "เลขบ้านที่อ่านรูปแบบได้";
 
   if (!isVerified) {
-    return `ตอนนี้อ่านรูปแบบได้ ${selectedCount} หลัง ระบบจะตรวจบ้านจริงอีกครั้งตอนบันทึก`;
+    return `ตอนนี้อ่านเลขได้ ${selectedCount} หลัง จะเช็กบ้านจริงอีกครั้งตอนบันทึก`;
   }
 
   if (selectedCount >= limitCount) {
@@ -130,7 +130,7 @@ export function getManualDisplaySummary(
 
   return selectedCount > 0
     ? `จะแสดง${selectedText} ${selectedCount} หลัง และเติมอีก ${shortageCount} หลังจาก${sourceText}`
-    : `ยังไม่ได้เลือกบ้านเอง ระบบจะเติม ${limitCount} หลังจาก${sourceText}`;
+    : `ยังไม่ได้เลือกบ้านเอง จะเติม ${limitCount} หลังจาก${sourceText}`;
 }
 
 export function getSectionLabel(
