@@ -730,21 +730,14 @@ export function AdminSectionsPage() {
     }
   }
 
-  async function handleLogout() {
-    const supabase = createBrowserHomeConfigClient();
-    await supabase.auth.signOut();
-    router.replace("/admin/login");
-  }
-
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-4 px-4 py-4 text-[#0f332d] sm:px-6">
+    <div className="flex w-full flex-col gap-4 text-[#0f332d]">
       <AdminSectionsHeader
         activeSectionsCount={activeSectionsCount}
         hasUnsavedChanges={hasUnsavedChanges}
         isLoading={isLoading}
         isSaving={isSaving}
         onAddSection={addSection}
-        onLogout={handleLogout}
         onSave={handleSave}
         sectionsCount={sections.length}
       />
@@ -777,7 +770,7 @@ export function AdminSectionsPage() {
           กำลังโหลดการจัดหน้าแรก...
         </div>
       ) : (
-        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(260px,340px)_1fr]">
           <SectionList
             activeDraftId={activeSection?.draftId ?? null}
             onDragEnd={() => setDraggedDraftId(null)}
