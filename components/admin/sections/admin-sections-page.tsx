@@ -27,6 +27,7 @@ import type {
   AdminSectionDraft,
 } from "./types";
 import { AdminSectionsHeader } from "./admin-sections-header";
+import { AutoModeSummary } from "./auto-mode-summary";
 import { ManualIdsEditor } from "./manual-ids-editor";
 import { SectionConfigForm } from "./section-config-form";
 import { SectionList } from "./section-list";
@@ -811,7 +812,9 @@ export function AdminSectionsPage() {
                       }}
                       onPreview={handlePreviewManualIds}
                     />
-                  ) : null}
+                  ) : (
+                    <AutoModeSummary mode={activeSection.mode} />
+                  )}
                   <SectionOutcomePanel
                     onActiveChange={(isActive) =>
                       updateSection(activeSection.draftId, { isActive })

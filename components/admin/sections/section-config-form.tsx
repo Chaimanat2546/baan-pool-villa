@@ -1,7 +1,6 @@
 import type { AdminSectionDraft } from "./types";
 import {
   getFallbackExplanation,
-  MODE_LABELS,
   MODE_OPTIONS,
   normalizeAdminFallbackMode,
 } from "./section-helpers";
@@ -17,7 +16,7 @@ export function SectionConfigForm({
 }: SectionConfigFormProps) {
   return (
     <>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)]">
         <fieldset className="min-w-0">
           <legend className="text-sm font-medium text-[#173f36]">
             รูปแบบการเลือกบ้าน
@@ -92,7 +91,7 @@ export function SectionConfigForm({
         </div>
       </div>
 
-      <label className="flex min-h-12 items-center rounded-xl border border-[#dbe1e7] bg-[#fbfcfd] px-4 py-2 text-sm font-semibold text-[#173f36]">
+      <label className="flex h-12 items-center rounded-xl border border-[#dbe1e7] bg-[#fbfcfd] px-4 py-2 text-sm font-semibold text-[#173f36]">
         <input
           checked={section.ctaEnabled}
           className="size-5 shrink-0 accent-[#075341]"
@@ -163,17 +162,6 @@ export function SectionConfigForm({
           </label>
         </div>
       </details>
-
-      {section.mode === "manual" ? null : (
-        <div className="rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
-          <h3 className="text-sm font-semibold text-[#173f36]">
-            {MODE_LABELS.get(section.mode) ?? "เลือกบ้านอัตโนมัติ"}
-          </h3>
-          <p className="mt-1 text-sm leading-6 text-[#58726a]">
-            ระบบจะจัดบ้านให้ตามรูปแบบนี้ โดยใช้จำนวนบ้านที่ตั้งไว้ด้านบน
-          </p>
-        </div>
-      )}
     </>
   );
 }
