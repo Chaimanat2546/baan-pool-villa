@@ -1,14 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
+import { buildFallbackHomeSections } from "@/lib/home-sections/resolve";
+import type { ResolvedHomeSection } from "@/lib/home-sections/types";
 import {
   filtersToSearchParams,
   getDefaultFilters,
   getMaxVillaPrice,
   getUniqueZones,
-  isNearSeaVilla,
   normalizeFiltersForSearch,
 } from "@/lib/villas/filters";
 import type { VillaFilters, VillaListing } from "@/lib/villas/types";
@@ -26,9 +27,30 @@ type HousesResponse = {
   items: VillaListing[];
 };
 
+type HomeSectionsResponse = {
+  sections?: unknown;
+};
+
+function isResolvedHomeSection(value: unknown): value is ResolvedHomeSection {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const section = value as Partial<ResolvedHomeSection>;
+
+  return (
+    typeof section.slug === "string" &&
+    typeof section.title === "string" &&
+    typeof section.description === "string" &&
+    Array.isArray(section.villas) &&
+    section.villas.length > 0
+  );
+}
+
 export function HomePage() {
   const router = useRouter();
   const [villas, setVillas] = useState<VillaListing[]>([]);
+  const [homeSections, setHomeSections] = useState<ResolvedHomeSection[]>([]);
   const [filters, setFilters] = useState<VillaFilters>(() => getDefaultFilters(1000));
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,20 +61,41 @@ export function HomePage() {
       try {
         setIsLoading(true);
 
-        const response = await fetch("/api/houses");
+        const [housesResponse, homeSectionsResponse] = await Promise.all([
+          fetch("/api/houses"),
+          fetch("/api/home-sections").catch(() => null),
+        ]);
 
-        if (!response.ok) {
+        if (!housesResponse.ok) {
           throw new Error("ไม่สามารถโหลดข้อมูลบ้านพักได้");
         }
 
-        const payload = (await response.json()) as HousesResponse;
+        const payload = (await housesResponse.json()) as HousesResponse;
         const items = Array.isArray(payload.items) ? payload.items : [];
+        let resolvedHomeSections = buildFallbackHomeSections(items);
+
+        if (homeSectionsResponse?.ok) {
+          try {
+            const homeSectionsPayload =
+              (await homeSectionsResponse.json()) as HomeSectionsResponse;
+            const configuredSections = Array.isArray(homeSectionsPayload.sections)
+              ? homeSectionsPayload.sections.filter(isResolvedHomeSection)
+              : [];
+
+            if (configuredSections.length > 0) {
+              resolvedHomeSections = configuredSections;
+            }
+          } catch (caughtError) {
+            console.error(caughtError);
+          }
+        }
 
         if (!isActive) {
           return;
         }
 
         setVillas(items);
+        setHomeSections(resolvedHomeSections);
         setFilters(getDefaultFilters(Math.max(getMaxVillaPrice(items), 1000)));
       } catch (caughtError) {
         console.error(caughtError);
@@ -70,17 +113,9 @@ export function HomePage() {
     };
   }, []);
 
-  const featuredVillas = useMemo(() => villas.slice(0, 12), [villas]);
-  const popularVillas = useMemo(() => villas.slice(12, 24), [villas]);
   const maxAvailablePrice = useMemo(() => getMaxVillaPrice(villas), [villas]);
   const zones = useMemo(() => getUniqueZones(villas), [villas]);
-  const beachVillas = useMemo(
-    () =>
-      villas
-        .filter(isNearSeaVilla)
-        .slice(0, 12),
-    [villas],
-  );
+  const railSections = homeSections.filter((section) => section.villas.length > 0);
 
   function handleHeroSearch() {
     const shouldOmitPlaceholderPrice =
@@ -107,32 +142,22 @@ export function HomePage() {
       <div className="pt-0 lg:pt-20">
         {isLoading ? <LoadingSkeleton /> : null}
 
-        {featuredVillas.length > 0 ? (
-          <VillaRail
-            cta
-            title="บ้านพักแนะนำ"
-            description="พูลวิลล่าคัดพิเศษ เหมาะสำหรับครอบครัว กลุ่มเพื่อน และทริปพักผ่อนส่วนตัว"
-            villas={featuredVillas}
-          />
-        ) : null}
-
-        <WhyChooseSection />
-
-        {popularVillas.length > 0 ? (
-          <VillaRail
-            title="พูลวิลล่าพัทยายอดฮิต"
-            description="บ้านพักยอดนิยมสำหรับทริปพัทยา ใกล้แหล่งท่องเที่ยว เดินทางสะดวก และเหมาะกับกลุ่มเพื่อน"
-            villas={popularVillas}
-          />
-        ) : null}
-
-        {beachVillas.length > 0 ? (
-          <VillaRail
-            title="บ้านพักใกล้ทะเล"
-            description="เลือกพูลวิลล่าใกล้ชายหาด เดินทางง่าย เหมาะกับคนที่อยากพักผ่อนใกล้ทะเล"
-            villas={beachVillas}
-          />
-        ) : null}
+        {railSections.length > 0 ? (
+          railSections.map((section, index) => (
+            <Fragment key={section.slug}>
+              <VillaRail
+                cta={section.cta}
+                id={section.slug}
+                title={section.title}
+                description={section.description}
+                villas={section.villas}
+              />
+              {index === 0 ? <WhyChooseSection /> : null}
+            </Fragment>
+          ))
+        ) : (
+          <WhyChooseSection />
+        )}
 
         <DestinationsSection villas={villas} />
         <ArticlesSection villas={villas} />

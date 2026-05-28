@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
 
-import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { SiteHeader } from "@/components/layout/site-header";
 import {
   buildPageMetadata,
   defaultDescription,
@@ -46,15 +43,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="th"
-      className={`${prompt.variable} h-full antialiased`}
-    >
-      <body className="min-h-full bg-[#f4f7f4] pb-20 text-[#063f35] lg:pb-0 select-none">
-        <SiteHeader />
+    <html lang="th" className={`${prompt.variable} h-full antialiased`}>
+      <body className="min-h-full bg-[#f4f7f4] text-[#063f35] ">
         {children}
-        <SiteFooter />
-        <MobileBottomNav />
       </body>
     </html>
   );
