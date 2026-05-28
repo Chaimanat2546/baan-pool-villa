@@ -4,6 +4,7 @@ import {
   SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
 } from "./defaults";
 import type {
+  SiteAssetUploadRecord,
   SiteAssetType,
   SiteImageSettings,
   SiteSettings,
@@ -13,6 +14,7 @@ import type {
 
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const HERO_IMAGE_ALT_MAX_LENGTH = 160;
+const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
 
 export function isHexColor(value: string): boolean {
   return HEX_COLOR_PATTERN.test(value);
@@ -98,6 +100,33 @@ export function validateUploadMetadata(
   }
 
   return errors;
+}
+
+export function selectAssetUploadsForCleanup(
+  uploads: SiteAssetUploadRecord[],
+): SiteAssetUploadRecord[] {
+  const cleanupCandidates: SiteAssetUploadRecord[] = [];
+  const assetTypes: SiteAssetType[] = ["hero", "logo"];
+
+  assetTypes.forEach((assetType) => {
+    const sortedUploads = uploads
+      .filter((upload) => upload.assetType === assetType)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+
+    const retainedIds = new Set(
+      sortedUploads
+        .slice(0, RETAINED_UPLOADS_PER_ASSET_TYPE)
+        .map((upload) => upload.id),
+    );
+
+    sortedUploads.forEach((upload) => {
+      if (!upload.isCurrent && !retainedIds.has(upload.id)) {
+        cleanupCandidates.push(upload);
+      }
+    });
+  });
+
+  return cleanupCandidates;
 }
 
 function normalizeRequiredText(value: string | null, fallback: string): string {

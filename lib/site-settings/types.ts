@@ -1,5 +1,14 @@
 export type SiteAssetType = "logo" | "hero";
 
+export interface SiteAssetUploadRecord {
+  assetType: SiteAssetType;
+  createdAt: string;
+  id: string;
+  isCurrent: boolean;
+  storageBucket: string;
+  storagePath: string;
+}
+
 export interface SiteImageSettings {
   path: string;
   url: string;
