@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -83,7 +84,7 @@ export function AdminSettingsPage() {
         }
 
         if (!response.ok || !payload?.settings) {
-          setErrors(extractErrors(payload, "Unable to load site settings."));
+          setErrors(extractErrors(payload, "ไม่สามารถโหลดข้อมูลการตั้งค่าได้"));
           return;
         }
 
@@ -96,7 +97,7 @@ export function AdminSettingsPage() {
         setErrors([
           caughtError instanceof Error
             ? caughtError.message
-            : "Unable to load site settings.",
+            : "ไม่สามารถโหลดข้อมูลการตั้งค่าได้",
         ]);
       } finally {
         if (showLoading) {
@@ -127,7 +128,7 @@ export function AdminSettingsPage() {
         setErrors([
           caughtError instanceof Error
             ? caughtError.message
-            : "Unable to initialize settings.",
+            : "ไม่สามารถเริ่มต้นหน้า Settings ได้",
         ]);
         setIsLoading(false);
       }
@@ -155,7 +156,7 @@ export function AdminSettingsPage() {
     }
 
     if (!hasUnsavedChanges) {
-      setNotice("No settings changes to save.");
+      setNotice("ยังไม่มีข้อมูลที่เปลี่ยนแปลงให้บันทึก");
       return;
     }
 
@@ -188,7 +189,7 @@ export function AdminSettingsPage() {
       }
 
       if (!response.ok || !payload?.settings) {
-        setErrors(extractErrors(payload, "Unable to save site settings."));
+        setErrors(extractErrors(payload, "ไม่สามารถบันทึกการตั้งค่าได้"));
         return;
       }
 
@@ -198,12 +199,12 @@ export function AdminSettingsPage() {
       setDraft(nextDraft);
       setSavedSnapshot(makeSettingsSnapshot(nextDraft));
       setWarnings(extractWarnings(payload));
-      setNotice("Site settings saved.");
+      setNotice("บันทึกการตั้งค่าสำเร็จ");
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error
           ? caughtError.message
-          : "Unable to save site settings.",
+          : "ไม่สามารถบันทึกการตั้งค่าได้",
       ]);
     } finally {
       setIsSaving(false);
@@ -212,17 +213,44 @@ export function AdminSettingsPage() {
 
   return (
     <div className="flex w-full flex-col gap-4 text-[#0f332d]">
-      <header className="flex flex-col gap-3 rounded-md border border-[#dbe7e3] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="grid gap-4 border-b border-[#d9e5df] pb-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-normal text-[#687d76]">
-            Site settings
+          <p className="text-xs font-semibold text-[#0f6b52]">
+            การตั้งค่าเว็บไซต์
           </p>
-          <h1 className="text-xl font-semibold text-[#063f35]">
-            Website identity
+          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-[#063f35]">
+            กำหนดรูปลักษณ์แบรนด์เว็บ
           </h1>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-[#58736b]">
+            ปรับชื่อเว็บไซต์ สีหลัก และสไตล์ Hero/โลโก้ให้ใช้งานจริงได้ทันที
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
+                hasUnsavedChanges
+                  ? "bg-[#fff7d6] text-[#7c4a03] ring-[#f4df93]"
+                  : "bg-white text-[#244a41] ring-[#d9e5df]"
+              }`}
+            >
+              <CheckCircle2 aria-hidden="true" className="size-3.5" />
+              {hasUnsavedChanges
+                ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก"
+                : "ข้อมูลถูกบันทึกแล้ว"}
+            </span>
+          </div>
         </div>
-        <div className="rounded-md border border-[#dbe7e3] bg-[#f8fbf9] px-3 py-2 text-xs font-semibold text-[#506862]">
-          {hasUnsavedChanges ? "Unsaved changes" : "Saved"}
+        <div className="rounded-xl border border-[#cddbd4] bg-white px-4 py-2 text-sm font-semibold text-[#0f4c3e]">
+          {hasUnsavedChanges ? (
+            <span className="inline-flex items-center gap-1.5 text-[#7c4a03]">
+              <CircleAlert aria-hidden="true" className="size-4" />
+              มีการแก้ไขที่ยังไม่บันทึก
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-[#1e594c]">
+              <CheckCircle2 aria-hidden="true" className="size-4" />
+              บันทึกแล้ว
+            </span>
+          )}
         </div>
       </header>
 
@@ -231,7 +259,7 @@ export function AdminSettingsPage() {
           className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
           role="alert"
         >
-          <p className="font-semibold">Fix these settings before saving:</p>
+          <p className="font-semibold">กรุณาแก้ไขก่อนบันทึก:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {errors.map((error) => (
               <li key={error}>{error}</li>
@@ -254,7 +282,7 @@ export function AdminSettingsPage() {
           className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
           role="status"
         >
-          <p className="font-semibold">Saved with warnings:</p>
+          <p className="font-semibold">บันทึกแล้วพร้อมคำเตือน:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {warnings.map((warning) => (
               <li key={warning}>{warning}</li>
@@ -265,7 +293,7 @@ export function AdminSettingsPage() {
 
       {isLoading ? (
         <div className="rounded-md border border-[#c9d9d3] bg-white px-4 py-8 text-center text-sm text-[#506862]">
-          Loading site settings...
+          กำลังโหลดการตั้งค่าเว็บ...
         </div>
       ) : settings && draft ? (
         <SettingsForm

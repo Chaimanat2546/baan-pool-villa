@@ -36,7 +36,7 @@ function ColorControl({ id, label, onChange, value }: ColorControlProps) {
       </label>
       <div className="grid grid-cols-[48px_1fr] gap-2">
         <input
-          aria-label={`${label} picker`}
+          aria-label={`${label} ตัวเลือกสี`}
           className="h-10 w-12 rounded-md border border-[#c9d9d3] bg-white p-1"
           onChange={(event) => {
             onChange(event.target.value.trim());
@@ -76,12 +76,12 @@ export function SettingsForm({
   return (
     <form className="grid gap-4 xl:grid-cols-[1fr_360px]" onSubmit={handleSubmit}>
       <div className="grid content-start gap-4">
-        <section className="rounded-md border border-[#dbe7e3] bg-white p-4">
+        <section className="rounded-[24px] border border-[#dbe7e3] bg-white p-4 shadow-[0_12px_34px_rgba(6,63,53,0.06)]">
           <div className="grid gap-4 lg:grid-cols-2">
             <label className="block text-sm font-semibold text-[#173f36]">
-              Website name
+              ชื่อเว็บไซต์
               <input
-                className="mt-2 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                className="mt-2 h-10 w-full rounded-lg border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
                 onChange={(event) => {
                   onChange({ siteName: event.target.value });
                 }}
@@ -91,25 +91,25 @@ export function SettingsForm({
             </label>
 
             <label className="block text-sm font-semibold text-[#173f36]">
-              Hero image alt text
+              คำอธิบายรูป Hero (Alt text)
               <input
-                className="mt-2 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                className="mt-2 h-10 w-full rounded-lg border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
                 maxLength={160}
                 onChange={(event) => {
                   onChange({ heroImageAlt: event.target.value });
                 }}
-                placeholder="Pool villas in Pattaya"
+                placeholder="ภาพโรงแรมพูลวิลล่าที่พัทยา"
                 value={draft.heroImageAlt}
               />
             </label>
           </div>
         </section>
 
-        <section className="rounded-md border border-[#dbe7e3] bg-white p-4">
+        <section className="rounded-[24px] border border-[#dbe7e3] bg-white p-4 shadow-[0_12px_34px_rgba(6,63,53,0.06)]">
           <div className="grid gap-4 lg:grid-cols-2">
             <ColorControl
               id="primaryColor"
-              label="Primary color"
+              label="สีหลัก"
               onChange={(primaryColor) => {
                 onChange({ primaryColor });
               }}
@@ -117,7 +117,7 @@ export function SettingsForm({
             />
             <ColorControl
               id="accentColor"
-              label="Accent color"
+              label="สีเน้น"
               onChange={(accentColor) => {
                 onChange({ accentColor });
               }}
@@ -128,11 +128,11 @@ export function SettingsForm({
 
         <AssetUploadField
           currentAlt={settings.logoImage.alt}
-          currentLabel="Current logo"
+          currentLabel="โลโก้ปัจจุบัน"
           currentUrl={settings.logoImage.url}
-          description="PNG, JPG, or WebP logo."
+          description="ไฟล์ PNG / JPG / WebP สำหรับโลโก้หน้าเว็บ"
           id="logoFile"
-          label="Logo"
+          label="โลโก้"
           onFileChange={(logoFile) => {
             onChange({ logoFile });
           }}
@@ -141,11 +141,11 @@ export function SettingsForm({
 
         <AssetUploadField
           currentAlt={settings.heroImage.alt}
-          currentLabel="Current hero image"
+          currentLabel="Hero ปัจจุบัน"
           currentUrl={settings.heroImage.url}
-          description="One image is used for desktop and mobile."
+          description="ใช้ภาพเดียวกันสำหรับ desktop และ mobile"
           id="heroFile"
-          label="Hero image"
+          label="รูป Hero"
           onFileChange={(heroFile) => {
             onChange({ heroFile });
           }}
@@ -155,21 +155,21 @@ export function SettingsForm({
 
       <aside className="grid content-start gap-4">
         <section
-          className="overflow-hidden rounded-md border border-[#dbe7e3] bg-white"
+          className="overflow-hidden rounded-[24px] border border-[#dbe7e3] bg-white shadow-[0_12px_34px_rgba(6,63,53,0.06)]"
           style={themeStyle}
         >
           <div className="bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
             <p className="text-xs font-semibold text-[var(--site-accent)]">
-              Theme preview
+              ตัวอย่างธีม
             </p>
             <h2 className="mt-1 truncate text-xl font-semibold tracking-normal">
-              {draft.siteName || "Website name"}
+              {draft.siteName || "ชื่อเว็บไซต์"}
             </h2>
           </div>
           <div className="grid gap-3 p-4">
             <div className="rounded-md bg-[var(--site-primary-soft)] p-3">
               <p className="text-sm font-semibold text-[var(--site-primary)]">
-                Primary surface
+                พื้นหลังสีหลัก
               </p>
               <p className="mt-1 text-xs text-[#506862]">
                 {draft.primaryColor}
@@ -177,22 +177,22 @@ export function SettingsForm({
             </div>
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex h-9 items-center rounded-md bg-[var(--site-primary)] px-3 text-sm font-semibold text-[var(--site-on-primary)]">
-                Primary action
+                ปุ่มสีหลัก
               </span>
               <span className="inline-flex h-9 items-center rounded-md bg-[var(--site-accent-soft)] px-3 text-sm font-semibold text-[#3f3420]">
-                Accent {draft.accentColor}
+                ปุ่มเน้น {draft.accentColor}
               </span>
             </div>
           </div>
         </section>
 
         <button
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isSaving || !hasUnsavedChanges}
           type="submit"
         >
           <Save aria-hidden="true" className="size-4" />
-          {isSaving ? "Saving..." : "Save settings"}
+          {isSaving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
         </button>
       </aside>
     </form>

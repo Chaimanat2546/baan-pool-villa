@@ -2,6 +2,7 @@
 
 import { ImageUp } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useMemo } from "react";
 
 interface AssetUploadFieldProps {
   currentAlt: string;
@@ -24,6 +25,20 @@ export function AssetUploadField({
   onFileChange,
   selectedFile,
 }: AssetUploadFieldProps) {
+  const selectedPreviewUrl = useMemo(() => {
+    return selectedFile ? URL.createObjectURL(selectedFile) : null;
+  }, [selectedFile]);
+
+  useEffect(() => {
+    if (!selectedPreviewUrl) {
+      return;
+    }
+
+    return () => {
+      URL.revokeObjectURL(selectedPreviewUrl);
+    };
+  }, [selectedPreviewUrl]);
+
   return (
     <div className="rounded-md border border-[#dbe7e3] bg-white p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -41,7 +56,7 @@ export function AssetUploadField({
           htmlFor={id}
         >
           <ImageUp aria-hidden="true" className="size-4" />
-          Choose file
+          เลือกไฟล์
         </label>
       </div>
 
@@ -69,7 +84,7 @@ export function AssetUploadField({
               />
             ) : (
               <span className="text-xs font-medium text-[#80958e]">
-                No current image
+                ยังไม่มีรูปปัจจุบัน
               </span>
             )}
           </div>
@@ -81,17 +96,29 @@ export function AssetUploadField({
         <figure className="overflow-hidden rounded-md border border-dashed border-[#b7cbc3] bg-[#f8fbf9]">
           <div className="flex h-32 items-center justify-center overflow-hidden bg-white">
             {selectedFile ? (
-              <span className="max-w-full truncate px-3 text-xs font-semibold text-[#17463c]">
-                {selectedFile.name}
-              </span>
+              selectedPreviewUrl ? (
+                <Image
+                  alt={selectedFile.name}
+                  className="h-full w-full object-contain"
+                  height={128}
+                  sizes="(max-width: 768px) 100vw, 320px"
+                  unoptimized
+                  src={selectedPreviewUrl}
+                  width={320}
+                />
+              ) : (
+                <span className="max-w-full truncate px-3 text-xs font-semibold text-[#17463c]">
+                  {selectedFile.name}
+                </span>
+              )
             ) : (
               <span className="text-xs font-medium text-[#80958e]">
-                No new file selected
+                ยังไม่มีไฟล์ใหม่ที่เลือก
               </span>
             )}
           </div>
           <figcaption className="border-t border-[#dbe7e3] px-3 py-2 text-xs font-medium text-[#506862]">
-            {selectedFile?.name ?? "Pending upload"}
+            {selectedFile?.name ?? "รออัปโหลด"}
           </figcaption>
         </figure>
       </div>

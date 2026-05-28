@@ -102,7 +102,7 @@ export function extractErrors(
     ].filter(Boolean);
     const warningPart =
       typeof errorPayload.warning === "string" && errorPayload.warning
-        ? `Warning: ${errorPayload.warning}`
+        ? `คำเตือน: ${errorPayload.warning}`
         : null;
 
     return [
