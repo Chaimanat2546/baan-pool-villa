@@ -13,15 +13,14 @@ const navItems = [
   { href: "/#cafes", label: "สถานที่ท่องเที่ยว" },
 ];
 
-const bankNotice = "กรุณาโอนเงิน ชื่อบัญชี คุณ อาภัสรา จินดาวา ";
-const bankAccount = "ธนาคารกสิกรไทย เลขที่ 398-289-7482";
-
 interface SiteHeaderProps {
   settings: SiteSettings;
 }
 
 export function SiteHeader({ settings }: SiteHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const bankNotice = `กรุณาโอนเงิน ชื่อบัญชี ${settings.bank.accountName} `;
+  const bankAccount = `${settings.bank.bankName} เลขที่ ${settings.bank.accountNumber}`;
 
   return (
     <header className="sticky top-0 z-50 bg-[var(--site-primary)] text-[var(--site-on-primary)]">
@@ -57,7 +56,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 <Link
                   key={`${item.href}-${item.label}`}
                   href={item.href}
-                  className="whitespace-nowrap transition hover:text-emerald-100"
+                  className="whitespace-nowrap transition hover:text-[var(--site-accent)]"
                 >
                   {item.label}
                 </Link>
@@ -65,7 +64,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
             </nav>
             <Link
               href="/#contact"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-medium leading-5 text-[var(--site-primary)] transition hover:bg-emerald-50"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-4 text-sm font-medium leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
             >
               <MapPin className="h-4 w-4" />
               จองเลย
@@ -85,8 +84,8 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
           </button>
 
           {isMenuOpen ? (
-            <div className="absolute left-4 right-4 top-[calc(100%-4px)] z-50 overflow-hidden rounded-2xl border border-white/20 bg-white text-[var(--site-primary)] shadow-[0_18px_48px_rgba(2,35,31,0.22)] lg:hidden">
-              <div className="grid divide-y divide-[#dbe7e3] text-base font-semibold">
+            <div className="absolute left-4 right-4 top-[calc(100%-4px)] z-50 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_18px_48px_rgba(2,35,31,0.22)] lg:hidden">
+              <div className="grid divide-y divide-[var(--site-border)] text-base font-semibold">
                 {navItems.map((item) => (
                   <Link
                     key={`mobile-${item.href}-${item.label}`}

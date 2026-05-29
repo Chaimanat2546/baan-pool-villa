@@ -32,15 +32,15 @@ export function NearbySection({
 
   return (
     <section className="min-w-0">
-      <h2 className="text-left text-2xl font-black text-[#064d3d] lg:text-center">
+      <h2 className="text-left text-2xl font-black text-[var(--site-text)] lg:text-center">
         สถานที่ท่องเที่ยวแนะนำ
       </h2>
       <div className="mt-5 lg:max-h-[720px] lg:overflow-y-auto lg:overflow-x-hidden lg:pr-2">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-black text-[#064d3d]">
+          <h3 className="text-sm font-black text-[var(--site-text)]">
             จุดหมายจาก Google Maps
           </h3>
-          <span className="text-xs font-bold text-[#6d867e] lg:hidden">
+          <span className="text-xs font-bold text-[var(--site-muted)] lg:hidden">
             เลื่อนได้
           </span>
         </div>
@@ -51,24 +51,24 @@ export function NearbySection({
               href={card.href ?? "#"}
               target={card.href ? "_blank" : undefined}
               rel={card.href ? "noreferrer" : undefined}
-              className="block w-[299px] shrink-0 snap-start rounded-2xl border border-[#dbe7e3] bg-white p-4 shadow-[0_10px_30px_rgba(6,63,53,0.06)] transition hover:-translate-y-0.5 hover:border-[#9fc7bd] hover:shadow-[0_16px_34px_rgba(6,63,53,0.11)] sm:w-[56%] lg:w-full"
+              className="block w-[299px] shrink-0 snap-start rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_30px_rgba(6,63,53,0.06)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_16px_34px_rgba(6,63,53,0.11)] sm:w-[56%] lg:w-full"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-black text-[#0f5a66]">
+                <span className="text-xs font-black text-[var(--site-primary)]">
                   {card.category}
                 </span>
                 {card.isGoogleMap ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#eef7f3] px-2 py-0.5 text-[11px] font-bold text-[#0f5a66]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--site-primary-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--site-primary)]">
                     <MapPin className="h-3 w-3" />
                     Google Maps
                   </span>
                 ) : null}
               </div>
-              <h3 className="mt-2 break-words text-base font-black leading-6 text-[#063f35]">
+              <h3 className="mt-2 break-words text-base font-black leading-6 text-[var(--site-text)]">
                 {card.title}
               </h3>
               {card.href ? (
-                <span className="mt-4 inline-flex items-center gap-1 text-xs font-black text-[#064d3d]">
+                <span className="mt-4 inline-flex items-center gap-1 text-xs font-black text-[var(--site-primary)]">
                   เปิดแผนที่ <ArrowRight className="h-3 w-3" />
                 </span>
               ) : null}

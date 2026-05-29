@@ -41,13 +41,13 @@ export function FaqSection() {
         {faqItems.map((item) => (
           <details
             key={item.question}
-            className="group overflow-hidden rounded-2xl border border-[#dbe7e3] bg-white shadow-[0_10px_28px_rgba(6,63,53,0.06)]"
+            className="group overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_10px_28px_rgba(6,63,53,0.06)]"
           >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-left marker:hidden sm:px-6 sm:py-5">
-              <span className="font-black text-[#063f35]">{item.question}</span>
-              <ChevronDown className="h-5 w-5 shrink-0 text-[#0f5a66] transition group-open:rotate-180" />
+              <span className="font-black text-[var(--site-text)]">{item.question}</span>
+              <ChevronDown className="h-5 w-5 shrink-0 text-[var(--site-primary)] transition group-open:rotate-180" />
             </summary>
-            <div className="border-t border-[#dbe7e3] px-5 pb-5 pt-4 text-sm leading-6 text-[#55746b] sm:px-6">
+            <div className="border-t border-[var(--site-border)] px-5 pb-5 pt-4 text-sm leading-6 text-[var(--site-muted)] sm:px-6">
               {item.answer}
             </div>
           </details>

@@ -9,6 +9,7 @@ import {
   getVillaDescription,
   getVillaTitle,
 } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings/server";
 import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
 interface VillaPageProps {
@@ -39,7 +40,10 @@ export async function generateMetadata({
 
 export default async function Page({ params }: VillaPageProps) {
   const { id } = await params;
-  const data = await fetchVillaPageData(id);
+  const [data, siteSettingsResult] = await Promise.all([
+    fetchVillaPageData(id),
+    getSiteSettings(),
+  ]);
 
   if (!data) {
     notFound();
@@ -83,6 +87,7 @@ export default async function Page({ params }: VillaPageProps) {
         images={data.images}
         payload={data.payload}
         recommendedVillas={data.recommendedVillas}
+        settings={siteSettingsResult.settings}
       />
     </>
   );

@@ -19,12 +19,12 @@ export function VillaAmenities({
     typeof limit === "number" ? amenities.slice(0, limit) : amenities;
   const chipClass =
     variant === "detail"
-      ? "max-w-full rounded-full border border-[#c7dad4] bg-white px-3 py-1.5 text-sm font-semibold text-[#0f5a66]"
-      : "max-w-full truncate rounded-full border border-[#dbe7e3] px-3 py-1 text-xs font-semibold text-[#55746b]";
+      ? "max-w-full rounded-full border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 py-1.5 text-sm font-semibold text-[var(--site-primary)]"
+      : "max-w-full truncate rounded-full border border-[var(--site-border)] px-3 py-1 text-xs font-semibold text-[var(--site-muted)]";
 
   if (visibleAmenities.length === 0) {
     return (
-      <div className={`text-sm text-[#7b928a] ${className}`}>
+      <div className={`text-sm text-[var(--site-muted)] ${className}`}>
         {emptyLabel}
       </div>
     );

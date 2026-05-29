@@ -55,19 +55,29 @@ function getRelativeLuminance(hex: string): number {
 export function getReadableTextColor(
   backgroundHex: string,
 ): "#ffffff" | "#0f172a" {
-  return getRelativeLuminance(backgroundHex) > 0.55 ? "#0f172a" : "#ffffff";
+  return getRelativeLuminance(backgroundHex) > 0.42 ? "#0f172a" : "#ffffff";
 }
 
 export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
   const primaryColor = input.primaryColor.toLowerCase();
   const accentColor = input.accentColor.toLowerCase();
+  const textColor = mixHexColors(primaryColor, "#020617", 0.44);
 
   return {
     "--site-accent": accentColor,
+    "--site-accent-hover": mixHexColors(accentColor, "#040000", 0.08),
     "--site-accent-soft": mixHexColors(accentColor, "#ffffff", 0.901),
+    "--site-border": mixHexColors(primaryColor, "#e2e8f0", 0.85),
+    "--site-border-strong": mixHexColors(primaryColor, "#94a3b8", 0.58),
+    "--site-muted": mixHexColors(textColor, "#64748b", 0.58),
+    "--site-on-accent": getReadableTextColor(accentColor),
     "--site-on-primary": getReadableTextColor(primaryColor),
     "--site-primary": primaryColor,
     "--site-primary-hover": mixHexColors(primaryColor, "#040000", 0.1),
     "--site-primary-soft": mixHexColors(primaryColor, "#faffff", 0.95),
+    "--site-surface": "#ffffff",
+    "--site-surface-soft": mixHexColors(primaryColor, "#ffffff", 0.97),
+    "--site-surface-tint": mixHexColors(primaryColor, "#ffffff", 0.92),
+    "--site-text": textColor,
   };
 }

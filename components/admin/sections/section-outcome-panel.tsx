@@ -36,20 +36,20 @@ export function SectionOutcomePanel({
   const isManual = section.mode === "manual";
 
   return (
-    <div className="rounded-[20px] border border-[#dbe6e1] bg-white p-4">
+    <div className="rounded-[20px] border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-[#173f36]">
+          <h3 className="text-sm font-semibold text-[var(--site-text)]">
             สรุปสิ่งที่จะขึ้นหน้าแรก
           </h3>
-          <p className="mt-1 text-xs leading-5 text-[#58726a]">
+          <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
             เช็กก่อนบันทึกว่าชุดนี้จะแสดงอะไร
           </p>
         </div>
-        <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#173f36]">
+        <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[var(--site-text)]">
           <input
             checked={section.isActive}
-            className="size-4 accent-[#075341]"
+            className="size-4 accent-[var(--site-primary)]"
             onChange={(event) => {
               onActiveChange(event.target.checked);
             }}
@@ -59,28 +59,28 @@ export function SectionOutcomePanel({
         </label>
       </div>
 
-      <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-[#e4ece8] pt-3 text-xs">
+      <dl className="mt-3 grid grid-cols-2 gap-2 border-t border-[var(--site-border)] pt-3 text-xs">
         <div>
-          <dt className="text-[#687d76]">ตำแหน่ง</dt>
-          <dd className="font-mono font-semibold text-[#123f36]">
+          <dt className="text-[var(--site-muted)]">ตำแหน่ง</dt>
+          <dd className="font-mono font-semibold text-[var(--site-text)]">
             {section.displayOrder + 1}
           </dd>
         </div>
         <div>
-          <dt className="text-[#687d76]">จำนวนบ้าน</dt>
-          <dd className="font-mono font-semibold text-[#123f36]">
+          <dt className="text-[var(--site-muted)]">จำนวนบ้าน</dt>
+          <dd className="font-mono font-semibold text-[var(--site-text)]">
             {section.limitCount} หลัง
           </dd>
         </div>
         <div>
-          <dt className="text-[#687d76]">วิธีเลือก</dt>
-          <dd className="font-semibold text-[#123f36]">
+          <dt className="text-[var(--site-muted)]">วิธีเลือก</dt>
+          <dd className="font-semibold text-[var(--site-text)]">
             {MODE_LABELS.get(section.mode) ?? section.mode}
           </dd>
         </div>
         <div>
-          <dt className="text-[#687d76]">ปุ่มท้ายชุด</dt>
-          <dd className="font-semibold text-[#123f36]">
+          <dt className="text-[var(--site-muted)]">ปุ่มท้ายชุด</dt>
+          <dd className="font-semibold text-[var(--site-text)]">
             {section.ctaEnabled ? "มีปุ่มดูเพิ่มเติม" : "ไม่มีปุ่ม"}
           </dd>
         </div>
@@ -91,11 +91,11 @@ export function SectionOutcomePanel({
           <ManualSelectionSummary preview={preview} section={section} />
 
           {preview ? (
-            <div className="border-t border-[#dbe6e1] pt-3 text-sm">
-              <h4 className="font-semibold text-[#173f36]">
+            <div className="border-t border-[var(--site-border)] pt-3 text-sm">
+              <h4 className="font-semibold text-[var(--site-text)]">
                 บ้านที่เลือกไว้
               </h4>
-              <p className="mt-1 text-[#506862]">
+              <p className="mt-1 text-[var(--site-muted)]">
                 พบบ้านพักที่ใช้ได้ {preview.valid.length} หลัง
               </p>
 
@@ -111,10 +111,10 @@ export function SectionOutcomePanel({
               />
 
               {preview.valid.length > 0 ? (
-                <ul className="mt-3 space-y-1 border-t border-[#e4ece8] pt-3">
+                <ul className="mt-3 space-y-1 border-t border-[var(--site-border)] pt-3">
                   {preview.valid.slice(0, 8).map((villa) => (
                     <li
-                      className="truncate text-xs text-[#31534a]"
+                      className="truncate text-xs text-[var(--site-text)]"
                       key={villa.id}
                       title={`บ้านเลขที่ ${villa.id} โซน ${villa.zoneLabel}`}
                     >
@@ -127,14 +127,14 @@ export function SectionOutcomePanel({
               ) : null}
             </div>
           ) : section.items.length > 0 ? (
-            <p className="border-t border-[#dbe6e1] pt-3 text-sm leading-6 text-[#506862]">
+            <p className="border-t border-[var(--site-border)] pt-3 text-sm leading-6 text-[var(--site-muted)]">
               จะเช็กบ้านให้อีกครั้งตอนกดบันทึก
             </p>
           ) : null}
 
           {section.items.length > 0 ? (
-            <div className="border-t border-[#dbe6e1] pt-3">
-              <h4 className="text-sm font-semibold text-[#173f36]">
+            <div className="border-t border-[var(--site-border)] pt-3">
+              <h4 className="text-sm font-semibold text-[var(--site-text)]">
                 เลขบ้านที่พิมพ์ไว้
               </h4>
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -145,7 +145,7 @@ export function SectionOutcomePanel({
                     <span
                       className={`rounded px-2 py-1 font-mono text-xs ${
                         normalizedId
-                          ? "bg-[#eef6f2] text-[#17463c]"
+                          ? "bg-[var(--site-primary-soft)] text-[var(--site-primary)]"
                           : "bg-red-50 text-red-700"
                       }`}
                       key={`${item.houseId}-${itemIndex}`}
@@ -159,7 +159,7 @@ export function SectionOutcomePanel({
           ) : null}
         </>
       ) : (
-        <p className="mt-3 border-t border-[#dbe6e1] pt-3 text-sm leading-6 text-[#506862]">
+        <p className="mt-3 border-t border-[var(--site-border)] pt-3 text-sm leading-6 text-[var(--site-muted)]">
           เมื่อบันทึก ชุดนี้จะเลือกบ้านตามวิธีด้านบน และแสดงตามจำนวนที่ตั้งไว้
         </p>
       )}
@@ -251,26 +251,26 @@ function ManualSelectionSummary({
   }
 
   return (
-    <div className="border-t border-[#dbe6e1] pt-3">
-      <h4 className="text-sm font-semibold text-[#173f36]">
+    <div className="border-t border-[var(--site-border)] pt-3">
+      <h4 className="text-sm font-semibold text-[var(--site-text)]">
         บ้านที่จะขึ้นหน้าแรก
       </h4>
       <ul className="mt-2 grid gap-1.5 text-sm">
         {rows.map((row) => (
           <li
-            className="grid grid-cols-[auto_84px_1fr] gap-2 text-[#31534a]"
+            className="grid grid-cols-[auto_84px_1fr] gap-2 text-[var(--site-text)]"
             key={`${row.label}-${row.detail}`}
           >
             <span
               aria-hidden="true"
               className={`mt-2 size-2 rounded-full ${SUMMARY_DOT_CLASS[row.tone]}`}
             />
-            <span className="font-semibold text-[#173f36]">{row.label}</span>
+            <span className="font-semibold text-[var(--site-text)]">{row.label}</span>
             <span className="leading-6">{row.detail}</span>
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-xs leading-5 text-[#58726a]">
+      <p className="mt-2 text-xs leading-5 text-[var(--site-muted)]">
         วิธีเติมบ้านเพิ่มตอนนี้: {getFallbackModeLabel(section.fallbackMode)}
       </p>
     </div>

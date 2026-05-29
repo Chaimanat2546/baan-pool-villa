@@ -201,28 +201,28 @@ export function SearchPage() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-5 text-[#063f35] sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[var(--site-surface-soft)] px-4 py-5 text-[var(--site-text)] sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="flex flex-col gap-4 py-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0f5a66]">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--site-accent)]">
               Baan Pool Villa
             </p>
-            <h1 className="mt-2 max-w-3xl text-3xl font-black leading-tight text-[#063f35] sm:text-4xl">
+            <h1 className="mt-2 max-w-3xl text-3xl font-black leading-tight text-[var(--site-text)] sm:text-4xl">
               ค้นหาพูลวิลล่าที่ตรงใจในพัทยา
             </h1>
           </div>
-          <p className="max-w-sm text-sm leading-6 text-[#55746b]">
+          <p className="max-w-sm text-sm leading-6 text-[var(--site-muted)]">
             เลือกทำเล จำนวนผู้เข้าพัก ห้องนอน สิ่งอำนวยความสะดวก และงบประมาณที่ต้องการ
           </p>
         </header>
 
         {isSearchReady ? (
-          <div className="grid gap-3 rounded-2xl border border-[#dbe7e3] bg-white p-4 shadow-[0_10px_28px_rgba(6,63,53,0.05)] md:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="grid gap-3 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_28px_rgba(6,63,53,0.05)] md:grid-cols-[minmax(0,1fr)_260px]">
             <label className="block min-w-0">
-              <span className="text-sm font-bold text-[#064e3b]">ค้นหาด้วยรหัสบ้าน</span>
-              <span className="mt-2 flex h-11 items-center gap-2 rounded-xl border border-[#dbe7e3] bg-[#fbfdfb] px-3 text-[#064e3b]">
-                <Search className="h-4 w-4 shrink-0 text-[#0f5a66]" />
+              <span className="text-sm font-bold text-[var(--site-text)]">ค้นหาด้วยรหัสบ้าน</span>
+              <span className="mt-2 flex h-11 items-center gap-2 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-[var(--site-text)]">
+                <Search className="h-4 w-4 shrink-0 text-[var(--site-primary)]" />
                 <input
                   type="search"
                   value={villaIdQuery}
@@ -230,13 +230,13 @@ export function SearchPage() {
                     handleVillaIdQueryChange(event.target.value);
                   }}
                   placeholder="เช่น 9 หรือ DV-9"
-                  className="w-full min-w-0 bg-transparent text-sm font-semibold outline-none placeholder:text-[#8aa099]"
+                  className="w-full min-w-0 bg-transparent text-sm font-semibold outline-none placeholder:text-[var(--site-muted)]"
                 />
               </span>
             </label>
 
             <div className="block min-w-0">
-              <span className="text-sm font-bold text-[#064e3b]">เรียงลำดับ</span>
+              <span className="text-sm font-bold text-[var(--site-text)]">เรียงลำดับ</span>
               <DropdownSelect
                 ariaLabel="เรียงลำดับบ้านพัก"
                 options={SORT_OPTIONS}
@@ -274,12 +274,12 @@ export function SearchPage() {
         <section ref={resultsRef} className="scroll-mt-6">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-[#55746b]">รายการบ้านพัก</p>
-              <h2 className="text-2xl font-black text-[#063f35]">
+              <p className="text-sm font-semibold text-[var(--site-muted)]">รายการบ้านพัก</p>
+              <h2 className="text-2xl font-black text-[var(--site-text)]">
                 พบ {filteredVillas.length.toLocaleString("th-TH")} หลัง
               </h2>
               {!isLoading && filteredVillas.length > 0 ? (
-                <p className="mt-1 text-sm font-semibold text-[#55746b]">
+                <p className="mt-1 text-sm font-semibold text-[var(--site-muted)]">
                   แสดง {visibleVillas.length.toLocaleString("th-TH")} จาก{" "}
                   {filteredVillas.length.toLocaleString("th-TH")} หลัง
                 </p>
@@ -288,13 +288,13 @@ export function SearchPage() {
           </div>
 
           {isSearchReady ? (
-            <div className="mb-5 rounded-2xl border border-[#dbe7e3] bg-white p-4 shadow-[0_10px_28px_rgba(6,63,53,0.05)]">
-              <p className="text-xs font-black uppercase text-[#0f5a66]">เงื่อนไขที่ใช้ค้นหา</p>
+            <div className="mb-5 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_28px_rgba(6,63,53,0.05)]">
+              <p className="text-xs font-black uppercase text-[var(--site-accent)]">เงื่อนไขที่ใช้ค้นหา</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {searchConditionLabels.map((label) => (
                   <span
                     key={label}
-                    className="rounded-full border border-[#dbe7e3] bg-[#f8fbf7] px-3 py-1.5 text-xs font-semibold text-[#064e3b]"
+                    className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--site-text)]"
                   >
                     {label}
                   </span>
@@ -308,49 +308,49 @@ export function SearchPage() {
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
                   key={index}
-                  className="overflow-hidden rounded-[22px] border border-[#dbe7e3] bg-white shadow-[0_14px_42px_rgba(6,63,53,0.07)]"
+                  className="overflow-hidden rounded-[22px] border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_14px_42px_rgba(6,63,53,0.07)]"
                 >
-                  <Skeleton className="aspect-[4/3] rounded-none bg-[#e6efeb]" />
+                  <Skeleton className="aspect-[4/3] rounded-none bg-[var(--site-surface-tint)]" />
                   <div className="flex flex-col gap-4 p-5">
-                    <Skeleton className="h-5 w-2/3 bg-[#e6efeb]" />
-                    <Skeleton className="h-4 w-4/5 bg-[#e6efeb]" />
+                    <Skeleton className="h-5 w-2/3 bg-[var(--site-surface-tint)]" />
+                    <Skeleton className="h-4 w-4/5 bg-[var(--site-surface-tint)]" />
                     <div className="grid grid-cols-3 gap-2">
-                      <Skeleton className="h-10 rounded-xl bg-[#eef5f1]" />
-                      <Skeleton className="h-10 rounded-xl bg-[#eef5f1]" />
-                      <Skeleton className="h-10 rounded-xl bg-[#eef5f1]" />
+                      <Skeleton className="h-10 rounded-xl bg-[var(--site-primary-soft)]" />
+                      <Skeleton className="h-10 rounded-xl bg-[var(--site-primary-soft)]" />
+                      <Skeleton className="h-10 rounded-xl bg-[var(--site-primary-soft)]" />
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : error ? (
-            <div className="flex min-h-72 items-center justify-center rounded-[24px] border border-[#f2d2c9] bg-white px-6 text-center">
+            <div className="flex min-h-72 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center">
               <div className="max-w-md">
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#fff2ed] text-[#b64b2f]">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-accent-soft)] text-[var(--site-accent)]">
                   <AlertCircle className="h-6 w-6" />
                 </div>
-                <h2 className="mt-4 text-xl font-bold text-[#063f35]">
+                <h2 className="mt-4 text-xl font-bold text-[var(--site-text)]">
                   โหลดข้อมูลไม่สำเร็จ
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-[#55746b]">{error}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">{error}</p>
               </div>
             </div>
           ) : filteredVillas.length === 0 ? (
-            <div className="flex min-h-80 items-center justify-center rounded-[24px] border border-[#dbe7e3] bg-white px-6 text-center shadow-[0_14px_42px_rgba(6,63,53,0.06)]">
+            <div className="flex min-h-80 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center shadow-[0_14px_42px_rgba(6,63,53,0.06)]">
               <div className="max-w-md">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#eef7f3] text-[#064e3b]">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
                   <Search className="h-6 w-6" />
                 </div>
-                <h2 className="mt-4 text-2xl font-black text-[#063f35]">
+                <h2 className="mt-4 text-2xl font-black text-[var(--site-text)]">
                   ไม่พบบ้านพักที่ตรงกับเงื่อนไข
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-[#55746b]">
+                <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">
                   ลองล้างตัวกรอง หรือปรับรหัสบ้าน ราคา จำนวนคน และห้องนอนใหม่อีกครั้ง
                 </p>
                 <button
                   type="button"
                   onClick={clearSearchConditions}
-                  className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#064e3b] px-5 text-sm font-black text-white shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[#04382d]"
+                  className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)]"
                 >
                   <RotateCcw className="h-4 w-4" />
                   ล้างตัวกรอง
@@ -364,7 +364,7 @@ export function SearchPage() {
                 <div className="mt-8 flex justify-center">
                   <button
                     type="button"
-                    className="inline-flex h-12 items-center justify-center rounded-full bg-[#064e3b] px-6 text-sm font-black text-white shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[#04382d]"
+                    className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--site-primary)] px-6 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)]"
                     onClick={showMoreResults}
                   >
                     ดูเพิ่มเติมอีก{" "}

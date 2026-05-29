@@ -28,7 +28,7 @@ export function HeroSection({
   zones,
 }: HeroSectionProps) {
   return (
-    <section className="relative bg-white lg:pb-20">
+    <section className="relative lg:pb-20">
       <Image
         src={heroImage.url}
         alt={heroImage.alt}
@@ -38,7 +38,7 @@ export function HeroSection({
         sizes="100vw"
         className="h-auto w-full"
       />
-      <div className="absolute inset-x-0 bottom-0 z-10 hidden translate-y-1/2 px-4 sm:px-6 lg:block lg:px-8">
+      <div className="absolute inset-x-0 bottom-0 z-10 hidden px-4 sm:px-6 lg:block lg:px-8">
         <div className="mx-auto max-w-7xl">
           <SearchBar
             filters={filters}
