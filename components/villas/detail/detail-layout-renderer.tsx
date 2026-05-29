@@ -1,8 +1,14 @@
 import type {
+  AnyDetailLayoutConfig,
+  DetailLayoutBlock,
   DetailLayoutBlockType,
   DetailLayoutConfig,
+  DetailLayoutNarrowRow,
   DetailLayoutRatio,
   DetailLayoutRow,
+  DetailLayoutV2Config,
+  DetailLayoutWideRatio,
+  DetailLayoutWideRow,
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
@@ -14,7 +20,7 @@ import type { GalleryCategory } from "./types";
 export interface DetailLayoutRendererProps {
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
-  layout: DetailLayoutConfig;
+  layout: AnyDetailLayoutConfig;
   listing: VillaListing;
   recommendedVillas: VillaListing[];
   settings: SiteSettings;
@@ -29,6 +35,13 @@ const ratioGridClassMap: Record<DetailLayoutRatio, string> = {
 };
 
 type DetailLayoutSplitRatio = "70/30" | "30/70";
+
+type RenderedDetailLayoutWideRow = {
+  blocks: RenderedDetailLayoutBlock[];
+  columns: DetailLayoutWideRow["columns"];
+  id: string;
+  ratio?: DetailLayoutWideRatio;
+};
 
 interface DetailLayoutRenderContext {
   content: VillaDetailContent;
@@ -83,9 +96,17 @@ function renderRowBlocks(
   row: DetailLayoutRow,
   context: DetailLayoutRenderContext,
 ): RenderedDetailLayoutBlock[] {
+  return renderBlocks(row.id, row.blocks, context);
+}
+
+function renderBlocks(
+  rowId: string,
+  blocks: DetailLayoutBlock[],
+  context: DetailLayoutRenderContext,
+): RenderedDetailLayoutBlock[] {
   const renderedBlocks: RenderedDetailLayoutBlock[] = [];
 
-  row.blocks.forEach((block, blockIndex) => {
+  blocks.forEach((block, blockIndex) => {
     if (!block.enabled) {
       return;
     }
@@ -97,13 +118,20 @@ function renderRowBlocks(
     }
 
     renderedBlocks.push({
-      key: `${row.id}-${block.type}-${blockIndex}`,
+      key: `${rowId}-${block.type}-${blockIndex}`,
       node,
       type: block.type,
     });
   });
 
   return renderedBlocks;
+}
+
+function renderNarrowRowBlock(
+  row: DetailLayoutNarrowRow,
+  context: DetailLayoutRenderContext,
+): RenderedDetailLayoutBlock | null {
+  return renderBlocks(row.id, [row.block], context)[0] ?? null;
 }
 
 function renderBlockContainer(block: RenderedDetailLayoutBlock) {
@@ -229,22 +257,10 @@ function renderSplitSection({
   );
 }
 
-export function DetailLayoutRenderer({
-  content,
-  galleryCategories,
-  layout,
-  listing,
-  recommendedVillas,
-  settings,
-}: DetailLayoutRendererProps) {
-  const context = {
-    content,
-    galleryCategories,
-    listing,
-    recommendedVillas,
-    settings,
-  };
-
+function renderV1Layout(
+  layout: DetailLayoutConfig,
+  context: DetailLayoutRenderContext,
+) {
   const enabledRows = layout.rows.filter((row) => row.enabled);
   const renderedRows: ReactNode[] = [];
 
@@ -306,6 +322,229 @@ export function DetailLayoutRenderer({
 
     rowIndex = nextRowIndex - 1;
   }
+
+  return renderedRows;
+}
+
+function renderV2WideFullRow(row: RenderedDetailLayoutWideRow) {
+  return (
+    <div
+      key={row.id}
+      className="grid min-w-0 items-start gap-6"
+      data-detail-layout-area="wide"
+      data-detail-layout-wide-row={row.id}
+    >
+      {row.blocks.map(renderBlockContainer)}
+    </div>
+  );
+}
+
+function splitV2WideColumns(rows: RenderedDetailLayoutWideRow[]) {
+  const leftColumn: RenderedDetailLayoutBlock[] = [];
+  const rightColumn: RenderedDetailLayoutBlock[] = [];
+
+  rows.forEach((row) => {
+    const [leftBlock, rightBlock] = row.blocks;
+
+    if (leftBlock) {
+      leftColumn.push(leftBlock);
+    }
+
+    if (rightBlock) {
+      rightColumn.push(rightBlock);
+    }
+  });
+
+  return { leftColumn, rightColumn };
+}
+
+function renderV2WideStackGroup(
+  rows: RenderedDetailLayoutWideRow[],
+  ratio: DetailLayoutWideRatio,
+) {
+  const { leftColumn, rightColumn } = splitV2WideColumns(rows);
+  const rowIds = rows.map((row) => row.id).join(" ");
+
+  return (
+    <div
+      key={rowIds}
+      className={`grid min-w-0 gap-6 ${ratioGridClassMap[ratio]}`}
+      data-detail-layout-area="wide"
+      data-detail-layout-wide-ratio={ratio}
+      data-detail-layout-wide-rows={rowIds}
+    >
+      <div className="grid min-w-0 content-start gap-6" data-detail-layout-wide-column="left">
+        {leftColumn.map(renderBlockContainer)}
+      </div>
+      <div className="grid min-w-0 content-start gap-6" data-detail-layout-wide-column="right">
+        {rightColumn.map(renderBlockContainer)}
+      </div>
+    </div>
+  );
+}
+
+function renderV2WideArea(rows: RenderedDetailLayoutWideRow[]) {
+  const renderedRows: ReactNode[] = [];
+  let stackRows: RenderedDetailLayoutWideRow[] = [];
+  let stackRatio: DetailLayoutWideRatio | null = null;
+
+  const flushStackRows = () => {
+    if (stackRows.length === 0 || stackRatio === null) {
+      return;
+    }
+
+    renderedRows.push(renderV2WideStackGroup(stackRows, stackRatio));
+    stackRows = [];
+    stackRatio = null;
+  };
+
+  rows.forEach((row) => {
+    if (row.columns === 1 || row.blocks.length <= 1) {
+      flushStackRows();
+      renderedRows.push(renderV2WideFullRow(row));
+      return;
+    }
+
+    const rowRatio = row.ratio ?? "50/50";
+
+    if (stackRatio !== null && stackRatio !== rowRatio) {
+      flushStackRows();
+    }
+
+    stackRatio = rowRatio;
+    stackRows.push(row);
+  });
+
+  flushStackRows();
+
+  if (renderedRows.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      className="grid min-w-0 content-start gap-6"
+      data-detail-layout-area="wide"
+      data-detail-layout-wide="mainSplit"
+    >
+      {renderedRows}
+    </div>
+  );
+}
+
+function renderV2NarrowArea(blocks: RenderedDetailLayoutBlock[]) {
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  return renderNarrowArea(blocks);
+}
+
+function renderV2LockedBottom(blocks: RenderedDetailLayoutBlock[]) {
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      key="lockedBottom"
+      className="grid min-w-0 gap-6"
+      data-detail-layout-area="lockedBottom"
+    >
+      {blocks.map(renderBlockContainer)}
+    </div>
+  );
+}
+
+function renderV2Layout(
+  layout: DetailLayoutV2Config,
+  context: DetailLayoutRenderContext,
+) {
+  const wideRows = layout.mainSplit.wideRows.flatMap((row) => {
+    if (!row.enabled) {
+      return [];
+    }
+
+    const blocks = renderBlocks(row.id, row.blocks, context);
+
+    if (blocks.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        blocks,
+        columns: row.columns,
+        id: row.id,
+        ...(row.ratio === undefined ? {} : { ratio: row.ratio }),
+      },
+    ];
+  });
+
+  const narrowBlocks = layout.mainSplit.narrowRows.flatMap((row) => {
+    if (!row.enabled) {
+      return [];
+    }
+
+    const block = renderNarrowRowBlock(row, context);
+
+    return block === null ? [] : [block];
+  });
+
+  const lockedBottomBlocks = renderBlocks(
+    "lockedBottom",
+    layout.lockedBottom,
+    context,
+  );
+  const wideArea = renderV2WideArea(wideRows);
+  const narrowArea = renderV2NarrowArea(narrowBlocks);
+  const lockedBottom = renderV2LockedBottom(lockedBottomBlocks);
+  const splitContent =
+    wideArea === null && narrowArea === null ? null : (
+      <div
+        key="split-v2-main"
+        className={`grid min-w-0 items-start gap-6 ${ratioGridClassMap[layout.mainSplit.ratio]}`}
+        data-detail-layout-split="mainSplit"
+        data-detail-layout-split-ratio={layout.mainSplit.ratio}
+      >
+        {layout.mainSplit.ratio === "70/30" ? (
+          <>
+            {wideArea}
+            {narrowArea}
+          </>
+        ) : (
+          <>
+            {narrowArea}
+            {wideArea}
+          </>
+        )}
+      </div>
+    );
+
+  return [splitContent, lockedBottom].filter(
+    (node): node is ReactNode => node !== null,
+  );
+}
+
+export function DetailLayoutRenderer({
+  content,
+  galleryCategories,
+  layout,
+  listing,
+  recommendedVillas,
+  settings,
+}: DetailLayoutRendererProps) {
+  const context = {
+    content,
+    galleryCategories,
+    listing,
+    recommendedVillas,
+    settings,
+  };
+  const renderedRows =
+    layout.version === 2
+      ? renderV2Layout(layout, context)
+      : renderV1Layout(layout, context);
 
   if (renderedRows.length === 0) {
     return null;

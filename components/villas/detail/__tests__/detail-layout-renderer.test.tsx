@@ -2,11 +2,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DETAIL_LAYOUT,
+  DEFAULT_DETAIL_LAYOUT_V2,
   DETAIL_LAYOUT_BLOCK_LABELS,
 } from "../../../../lib/detail-layout/defaults";
 import type {
+  AnyDetailLayoutConfig,
   DetailLayoutBlockType,
   DetailLayoutConfig,
+  DetailLayoutV2Config,
 } from "../../../../lib/detail-layout/types";
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import type { VillaDetailContent } from "../../../../lib/villas/detail";
@@ -153,7 +156,7 @@ function block(type: DetailLayoutBlockType, hideWhenEmpty = true) {
 }
 
 function render(
-  layout: DetailLayoutConfig,
+  layout: AnyDetailLayoutConfig,
   overrides: Partial<VillaDetailContent> = {},
   options: { listing?: VillaListing } = {},
 ) {
@@ -473,5 +476,72 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).toBe("");
     expect(markup).not.toContain("Prototype renderer");
     expect(markup).not.toContain("[object Object]");
+  });
+
+  it("renders V2 70/30 split with wide, narrow, and locked bottom areas", () => {
+    const layout: DetailLayoutV2Config = {
+      ...DEFAULT_DETAIL_LAYOUT_V2,
+      mainSplit: {
+        ...DEFAULT_DETAIL_LAYOUT_V2.mainSplit,
+        ratio: "70/30",
+        wideRows: [
+          {
+            id: "wide_a",
+            columns: 2,
+            enabled: true,
+            ratio: "60/40",
+            blocks: [block("details"), block("amenities")],
+          },
+          {
+            id: "wide_b",
+            columns: 1,
+            enabled: true,
+            blocks: [block("bedrooms")],
+          },
+        ],
+        narrowRows: [
+          {
+            id: "narrow_booking",
+            enabled: true,
+            block: block("booking_contact", false),
+          },
+        ],
+      },
+      lockedBottom: [block("recommended_villas")],
+    };
+
+    const markup = render(layout);
+
+    expect(markup).toContain('data-detail-layout-split="mainSplit"');
+    expect(markup).toContain('data-detail-layout-split-ratio="70/30"');
+    expect(markup).toContain('data-detail-layout-wide-ratio="60/40"');
+    expect(markup).toContain('data-detail-layout-area="narrow"');
+    expect(markup).toContain('data-detail-layout-area="lockedBottom"');
+    expect(markup).toContain('data-detail-layout-block="recommended_villas"');
+  });
+
+  it("renders V2 swapped 30/70 with the narrow area before the wide area", () => {
+    const layout: DetailLayoutV2Config = {
+      ...DEFAULT_DETAIL_LAYOUT_V2,
+      mainSplit: {
+        ...DEFAULT_DETAIL_LAYOUT_V2.mainSplit,
+        ratio: "30/70",
+      },
+    };
+
+    const markup = render(layout);
+    const splitIndex = markup.indexOf('data-detail-layout-split="mainSplit"');
+    const narrowIndex = markup.indexOf(
+      'data-detail-layout-area="narrow"',
+      splitIndex,
+    );
+    const wideIndex = markup.indexOf(
+      'data-detail-layout-area="wide"',
+      splitIndex,
+    );
+
+    expect(markup).toContain('data-detail-layout-split-ratio="30/70"');
+    expect(narrowIndex).toBeGreaterThan(splitIndex);
+    expect(wideIndex).toBeGreaterThan(narrowIndex);
   });
 });
