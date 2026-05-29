@@ -15,12 +15,33 @@ export interface SiteImageSettings {
   alt: string;
 }
 
+export interface SiteBankSettings {
+  accountName: string;
+  bankName: string;
+  accountNumber: string;
+}
+
+export interface SitePhoneContact {
+  name: string;
+  phone: string;
+  time: string;
+}
+
+export interface SiteContactSettings {
+  phoneContacts: SitePhoneContact[];
+  messengerUrl: string;
+  lineId: string;
+  lineUrl: string;
+}
+
 export interface SiteSettings {
   siteName: string;
   primaryColor: string;
   accentColor: string;
   logoImage: SiteImageSettings;
   heroImage: SiteImageSettings;
+  bank: SiteBankSettings;
+  contact: SiteContactSettings;
 }
 
 export interface SiteSettingsLoadResult {
@@ -38,6 +59,13 @@ export interface SiteSettingsRow {
   hero_image_path: string | null;
   hero_image_url: string | null;
   hero_image_alt: string | null;
+  bank_account_name?: string | null;
+  bank_name?: string | null;
+  bank_account_number?: string | null;
+  phone_contacts?: unknown;
+  messenger_url?: string | null;
+  line_id?: string | null;
+  line_url?: string | null;
 }
 
 export interface SiteSettingsDraft {
@@ -45,4 +73,11 @@ export interface SiteSettingsDraft {
   primaryColor: string;
   accentColor: string;
   heroImageAlt: string;
+  bankAccountName: string;
+  bankName: string;
+  bankAccountNumber: string;
+  phoneContacts: SitePhoneContact[];
+  messengerUrl: string;
+  lineId: string;
+  lineUrl: string;
 }

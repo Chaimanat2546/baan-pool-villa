@@ -1,6 +1,7 @@
 import { assertHomeConfigAdmin, getBearerToken, jsonError } from "@/lib/admin/home-config-auth";
 import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
 import type {
+  SitePhoneContact,
   SiteAssetType,
   SiteAssetUploadRecord,
   SiteSettingsRow,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/site-settings/validation";
 
 const SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt";
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url";
 const SITE_ASSET_UPLOADS_SELECT =
   "id,asset_type,storage_bucket,storage_path,is_current,created_at";
 const ASSET_UPLOAD_FIELDS: { assetType: SiteAssetType; fieldName: string }[] = [
@@ -96,6 +97,38 @@ function readStringField(formData: FormData, fieldName: string): string {
   const value = formData.get(fieldName);
 
   return typeof value === "string" ? value : "";
+}
+
+function readPhoneContactsField(formData: FormData): SitePhoneContact[] {
+  const rawValue = readStringField(formData, "phoneContacts");
+
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue);
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue.map((item) => {
+      if (!item || typeof item !== "object") {
+        return { name: "", phone: "", time: "" };
+      }
+
+      const contact = item as Partial<Record<keyof SitePhoneContact, unknown>>;
+
+      return {
+        name: typeof contact.name === "string" ? contact.name : "",
+        phone: typeof contact.phone === "string" ? contact.phone : "",
+        time: typeof contact.time === "string" ? contact.time : "",
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 function getOptionalUpload(formData: FormData, fieldName: string): File | null {
@@ -398,6 +431,13 @@ export async function PUT(request: Request) {
     primaryColor: readStringField(formData, "primaryColor"),
     accentColor: readStringField(formData, "accentColor"),
     heroImageAlt: readStringField(formData, "heroImageAlt"),
+    bankAccountName: readStringField(formData, "bankAccountName"),
+    bankName: readStringField(formData, "bankName"),
+    bankAccountNumber: readStringField(formData, "bankAccountNumber"),
+    phoneContacts: readPhoneContactsField(formData),
+    messengerUrl: readStringField(formData, "messengerUrl"),
+    lineId: readStringField(formData, "lineId"),
+    lineUrl: readStringField(formData, "lineUrl"),
   });
   const errors = validateSiteSettingsDraft(draft);
   const uploadFiles: { assetType: SiteAssetType; file: File }[] = [];
@@ -475,6 +515,13 @@ export async function PUT(request: Request) {
     hero_image_path: heroUpload?.path ?? currentSettings.heroImage.path,
     hero_image_url: heroUpload?.publicUrl ?? currentSettings.heroImage.url,
     hero_image_alt: draft.heroImageAlt,
+    bank_account_name: draft.bankAccountName,
+    bank_name: draft.bankName,
+    bank_account_number: draft.bankAccountNumber,
+    phone_contacts: draft.phoneContacts,
+    messenger_url: draft.messengerUrl,
+    line_id: draft.lineId,
+    line_url: draft.lineUrl,
   };
 
   const { data, error: saveError } = await admin.supabase

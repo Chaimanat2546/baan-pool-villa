@@ -1,4 +1,4 @@
-import type { SiteSettings } from "./types";
+import type { SiteBankSettings, SiteContactSettings, SiteSettings } from "./types";
 
 export const SITE_SETTINGS_ID = "global";
 export const SITE_ASSETS_BUCKET = "site-assets";
@@ -9,6 +9,30 @@ export const SITE_SETTINGS_ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/png",
   "image/webp",
 ]);
+
+export const DEFAULT_SITE_BANK_SETTINGS: SiteBankSettings = {
+  accountName: "คุณ อาภัสรา จินดาวา",
+  bankName: "ธนาคารกสิกรไทย",
+  accountNumber: "398-289-7482",
+};
+
+export const DEFAULT_SITE_CONTACT_SETTINGS: SiteContactSettings = {
+  phoneContacts: [
+    {
+      name: "คุณเกม",
+      phone: "0617485213",
+      time: "ช่วง 07.00-15.00",
+    },
+    {
+      name: "คุณโก้",
+      phone: "0657329919",
+      time: "ช่วง 16.00-02.00",
+    },
+  ],
+  messengerUrl: "https://www.facebook.com/baanpoolvillas",
+  lineId: "@baanpoolvilla",
+  lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+};
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "Pool Villas Pattaya",
@@ -24,4 +48,6 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     url: "/images/BPV-66_Cover-Web.jpg",
     alt: "Pool Villa บ้านพูลวิลล่า พัทยา",
   },
+  bank: DEFAULT_SITE_BANK_SETTINGS,
+  contact: DEFAULT_SITE_CONTACT_SETTINGS,
 };

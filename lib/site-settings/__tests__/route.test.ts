@@ -38,6 +38,19 @@ const dbRow = {
   hero_image_path: "hero/2026/05/hero.webp",
   hero_image_url: "https://example.com/hero.webp",
   hero_image_alt: " Pool villas ",
+  bank_account_name: " คุณ อาภัสรา จินดาวา ",
+  bank_name: " ธนาคารกสิกรไทย ",
+  bank_account_number: " 398-289-7482 ",
+  phone_contacts: [
+    {
+      name: " คุณเกม ",
+      phone: " 0617485213 ",
+      time: " ช่วง 07.00-15.00 ",
+    },
+  ],
+  messenger_url: " https://www.facebook.com/baanpoolvillas ",
+  line_id: " @baanpoolvilla ",
+  line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
 };
 
 function siteSettingsSelectQuery(result: { data: unknown; error: unknown }) {
@@ -114,6 +127,35 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
   formData.set("primaryColor", overrides.primaryColor ?? " #123ABC ");
   formData.set("accentColor", overrides.accentColor ?? " #FEDCBA ");
   formData.set("heroImageAlt", overrides.heroImageAlt ?? " Updated hero ");
+  formData.set(
+    "phoneContacts",
+    overrides.phoneContacts ??
+      JSON.stringify([
+        {
+          name: " คุณเกม ",
+          phone: " 061-748-5213 ",
+          time: " ช่วง 07.00-15.00 ",
+        },
+      ]),
+  );
+  formData.set(
+    "bankAccountName",
+    overrides.bankAccountName ?? " คุณ อาภัสรา จินดาวา ",
+  );
+  formData.set("bankName", overrides.bankName ?? " ธนาคารกสิกรไทย ");
+  formData.set(
+    "bankAccountNumber",
+    overrides.bankAccountNumber ?? " 398-289-7482 ",
+  );
+  formData.set(
+    "messengerUrl",
+    overrides.messengerUrl ?? " https://www.facebook.com/baanpoolvillas ",
+  );
+  formData.set("lineId", overrides.lineId ?? " @baanpoolvilla ");
+  formData.set(
+    "lineUrl",
+    overrides.lineUrl ?? " https://line.me/R/ti/p/@baanpoolvilla ",
+  );
 
   return formData;
 }
@@ -169,6 +211,23 @@ describe("admin site settings route", () => {
           url: "https://example.com/hero.webp",
           alt: "Pool villas",
         },
+        bank: {
+          accountName: "คุณ อาภัสรา จินดาวา",
+          bankName: "ธนาคารกสิกรไทย",
+          accountNumber: "398-289-7482",
+        },
+        contact: {
+          phoneContacts: [
+            {
+              name: "คุณเกม",
+              phone: "0617485213",
+              time: "ช่วง 07.00-15.00",
+            },
+          ],
+          messengerUrl: "https://www.facebook.com/baanpoolvillas",
+          lineId: "@baanpoolvilla",
+          lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+        },
       },
     });
     expect(from).toHaveBeenCalledWith("site_settings");
@@ -202,13 +261,21 @@ describe("admin site settings route", () => {
           siteName: " ",
           primaryColor: "green",
           accentColor: "#12345",
+          bankAccountName: "",
+          bankName: "",
+          bankAccountNumber: "",
+          phoneContacts: JSON.stringify([{ name: "", phone: "", time: "" }]),
+          messengerUrl: "not a url",
+          lineId: "",
+          lineUrl: "javascript:alert(1)",
         }),
       ),
     );
 
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.errors).toHaveLength(3);
+    expect(body.errors).toContain("ต้องใส่ชื่อบัญชีธนาคาร");
+    expect(body.errors).toContain("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");
   });
 
   it("preserves existing image fields when PUT has no files", async () => {
@@ -220,6 +287,13 @@ describe("admin site settings route", () => {
         primary_color: "#123abc",
         accent_color: "#fedcba",
         hero_image_alt: "Updated hero",
+        phone_contacts: [
+          {
+            name: "คุณเกม",
+            phone: "061-748-5213",
+            time: "ช่วง 07.00-15.00",
+          },
+        ],
       },
       error: null,
     });
@@ -245,6 +319,19 @@ describe("admin site settings route", () => {
         hero_image_path: "hero/2026/05/hero.webp",
         hero_image_url: "https://example.com/hero.webp",
         hero_image_alt: "Updated hero",
+        bank_account_name: "คุณ อาภัสรา จินดาวา",
+        bank_name: "ธนาคารกสิกรไทย",
+        bank_account_number: "398-289-7482",
+        phone_contacts: [
+          {
+            name: "คุณเกม",
+            phone: "061-748-5213",
+            time: "ช่วง 07.00-15.00",
+          },
+        ],
+        messenger_url: "https://www.facebook.com/baanpoolvillas",
+        line_id: "@baanpoolvilla",
+        line_url: "https://line.me/R/ti/p/@baanpoolvilla",
       },
       { onConflict: "id" },
     );
@@ -261,6 +348,23 @@ describe("admin site settings route", () => {
         logoImage: {
           path: "logo/2026/05/logo.webp",
           url: "https://example.com/logo.webp",
+        },
+        bank: {
+          accountName: "คุณ อาภัสรา จินดาวา",
+          bankName: "ธนาคารกสิกรไทย",
+          accountNumber: "398-289-7482",
+        },
+        contact: {
+          phoneContacts: [
+            {
+              name: "คุณเกม",
+              phone: "061-748-5213",
+              time: "ช่วง 07.00-15.00",
+            },
+          ],
+          messengerUrl: "https://www.facebook.com/baanpoolvillas",
+          lineId: "@baanpoolvilla",
+          lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
         },
       },
       warnings: [],

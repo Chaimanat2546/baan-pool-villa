@@ -212,24 +212,24 @@ export function AdminSettingsPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 text-[#0f332d]">
-      <header className="grid gap-4 border-b border-[#d9e5df] pb-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+    <div className="flex w-full flex-col gap-4 text-[var(--site-text)]">
+      <header className="grid gap-4 border-b border-[var(--site-border)] pb-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-[#0f6b52]">
+          <p className="text-xs font-semibold text-[var(--site-primary)]">
             การตั้งค่าเว็บไซต์
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-[#063f35]">
+          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-[var(--site-text)]">
             กำหนดรูปลักษณ์แบรนด์เว็บ
           </h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-[#58736b]">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
             ปรับชื่อเว็บไซต์ สีหลัก และสไตล์ Hero/โลโก้ให้ใช้งานจริงได้ทันที
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
                 hasUnsavedChanges
-                  ? "bg-[#fff7d6] text-[#7c4a03] ring-[#f4df93]"
-                  : "bg-white text-[#244a41] ring-[#d9e5df]"
+                  ? "bg-[var(--site-accent-soft)] text-[var(--site-text)] ring-[var(--site-accent)]"
+                  : "bg-[var(--site-surface)] text-[var(--site-text)] ring-[var(--site-border)]"
               }`}
             >
               <CheckCircle2 aria-hidden="true" className="size-3.5" />
@@ -239,14 +239,14 @@ export function AdminSettingsPage() {
             </span>
           </div>
         </div>
-        <div className="rounded-xl border border-[#cddbd4] bg-white px-4 py-2 text-sm font-semibold text-[#0f4c3e]">
+        <div className="rounded-xl border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 py-2 text-sm font-semibold text-[var(--site-primary)]">
           {hasUnsavedChanges ? (
-            <span className="inline-flex items-center gap-1.5 text-[#7c4a03]">
+            <span className="inline-flex items-center gap-1.5 text-[var(--site-text)]">
               <CircleAlert aria-hidden="true" className="size-4" />
               มีการแก้ไขที่ยังไม่บันทึก
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-[#1e594c]">
+            <span className="inline-flex items-center gap-1.5 text-[var(--site-primary)]">
               <CheckCircle2 aria-hidden="true" className="size-4" />
               บันทึกแล้ว
             </span>
@@ -292,7 +292,7 @@ export function AdminSettingsPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="rounded-md border border-[#c9d9d3] bg-white px-4 py-8 text-center text-sm text-[#506862]">
+        <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
           กำลังโหลดการตั้งค่าเว็บ...
         </div>
       ) : settings && draft ? (

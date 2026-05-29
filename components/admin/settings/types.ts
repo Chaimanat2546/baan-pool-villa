@@ -1,4 +1,4 @@
-import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SitePhoneContact, SiteSettings } from "@/lib/site-settings/types";
 
 export interface AdminSettingsDraft {
   accentColor: string;
@@ -7,6 +7,13 @@ export interface AdminSettingsDraft {
   logoFile: File | null;
   primaryColor: string;
   siteName: string;
+  bankAccountName: string;
+  bankName: string;
+  bankAccountNumber: string;
+  phoneContacts: SitePhoneContact[];
+  messengerUrl: string;
+  lineId: string;
+  lineUrl: string;
 }
 
 export interface AdminSiteSettingsResponse {

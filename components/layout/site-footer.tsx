@@ -9,18 +9,28 @@ const menuItems = [
   { href: "/#cafes", label: "สถานที่ท่องเที่ยว" },
 ];
 
-const contactItems = [
-  "คุณเกม : 0617485213 ช่วง 07.00-15.00",
-  "คุณโก้ : 0657329919 ช่วง 16.00-02.00",
-  "LINE : @baanpoolvilla",
-  "Facebook : Poolvillas บ้านพักพูลวิลล่าพัทยา",
-];
-
 interface SiteFooterProps {
   settings: SiteSettings;
 }
 
 export function SiteFooter({ settings }: SiteFooterProps) {
+  const contactItems = [
+    ...settings.contact.phoneContacts.map(
+      (contact) => ({
+        href: null,
+        text: `${contact.name} : ${contact.phone} ${contact.time}`,
+      }),
+    ),
+    {
+      href: settings.contact.lineUrl,
+      text: `LINE : ${settings.contact.lineId}`,
+    },
+    {
+      href: settings.contact.messengerUrl,
+      text: "Messenger",
+    },
+  ];
+
   return (
     <footer className="bg-[var(--site-primary)] pb-16 text-[var(--site-on-primary)] lg:pb-0">
       <div className="mx-auto grid max-w-[1292px] gap-10 px-6 pb-16 pt-14 sm:px-8 lg:grid-cols-[1.45fr_0.7fr_0.9fr] lg:gap-20 lg:px-6 lg:pb-16 lg:pt-[60px]">
@@ -40,10 +50,10 @@ export function SiteFooter({ settings }: SiteFooterProps) {
                 {settings.siteName}
               </h2>
               <p className="mt-[7px] text-sm leading-5 text-[var(--site-on-primary)]">
-                กรุณาโอนเงิน ชื่อบัญชี คุณ อาภัสรา จินดาวา{" "}
+                กรุณาโอนเงิน ชื่อบัญชี {settings.bank.accountName}{" "}
                 <br className="sm:hidden" />
                 <span className="font-medium text-[var(--site-accent)]">
-                  ธนาคารกสิกรไทย เลขที่ 398-289-7482
+                  {settings.bank.bankName} เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
                 เท่านั้น
               </p>
@@ -78,14 +88,26 @@ export function SiteFooter({ settings }: SiteFooterProps) {
             ติดต่อเรา
           </h3>
           <div className="mt-[22px] grid gap-3 text-base leading-6">
-            {contactItems.map((item) => (
-              <p
-                key={item}
-                className="text-[var(--site-on-primary)] opacity-60"
-              >
-                {item}
-              </p>
-            ))}
+            {contactItems.map((item) =>
+              item.href ? (
+                <a
+                  className="text-[var(--site-on-primary)] opacity-60 transition hover:opacity-100"
+                  href={item.href}
+                  key={item.text}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {item.text}
+                </a>
+              ) : (
+                <p
+                  key={item.text}
+                  className="text-[var(--site-on-primary)] opacity-60"
+                >
+                  {item.text}
+                </p>
+              ),
+            )}
           </div>
         </div>
       </div>

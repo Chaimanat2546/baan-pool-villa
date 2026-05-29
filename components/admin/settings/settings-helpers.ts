@@ -36,9 +36,18 @@ export function buildDraftThemeStyle(draft: AdminSettingsDraft) {
 export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
   return {
     accentColor: settings.accentColor,
+    bankAccountName: settings.bank.accountName,
+    bankAccountNumber: settings.bank.accountNumber,
+    bankName: settings.bank.bankName,
     heroFile: null,
     heroImageAlt: settings.heroImage.alt,
+    lineId: settings.contact.lineId,
+    lineUrl: settings.contact.lineUrl,
     logoFile: null,
+    messengerUrl: settings.contact.messengerUrl,
+    phoneContacts: settings.contact.phoneContacts.map((contact) => ({
+      ...contact,
+    })),
     primaryColor: settings.primaryColor,
     siteName: settings.siteName,
   };
@@ -47,9 +56,16 @@ export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
 export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
   return JSON.stringify({
     accentColor: draft.accentColor,
+    bankAccountName: draft.bankAccountName,
+    bankAccountNumber: draft.bankAccountNumber,
+    bankName: draft.bankName,
     heroFile: getFileSnapshot(draft.heroFile),
     heroImageAlt: draft.heroImageAlt,
+    lineId: draft.lineId,
+    lineUrl: draft.lineUrl,
     logoFile: getFileSnapshot(draft.logoFile),
+    messengerUrl: draft.messengerUrl,
+    phoneContacts: draft.phoneContacts,
     primaryColor: draft.primaryColor,
     siteName: draft.siteName,
   });
@@ -62,6 +78,13 @@ export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
   formData.set("primaryColor", draft.primaryColor);
   formData.set("accentColor", draft.accentColor);
   formData.set("heroImageAlt", draft.heroImageAlt);
+  formData.set("bankAccountName", draft.bankAccountName);
+  formData.set("bankName", draft.bankName);
+  formData.set("bankAccountNumber", draft.bankAccountNumber);
+  formData.set("phoneContacts", JSON.stringify(draft.phoneContacts));
+  formData.set("messengerUrl", draft.messengerUrl);
+  formData.set("lineId", draft.lineId);
+  formData.set("lineUrl", draft.lineUrl);
 
   if (draft.logoFile) {
     formData.set("logo", draft.logoFile);

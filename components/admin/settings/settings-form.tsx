@@ -25,19 +25,27 @@ interface ColorControlProps {
   value: string;
 }
 
+interface TextControlProps {
+  id: string;
+  label: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  value: string;
+}
+
 function ColorControl({ id, label, onChange, value }: ColorControlProps) {
   const trimmedValue = value.trim();
   const colorPickerValue = isHexColor(trimmedValue) ? trimmedValue : "#000000";
 
   return (
     <div className="grid gap-2">
-      <label className="text-sm font-semibold text-[#173f36]" htmlFor={id}>
+      <label className="text-sm font-semibold text-[var(--site-text)]" htmlFor={id}>
         {label}
       </label>
       <div className="grid grid-cols-[48px_1fr] gap-2">
         <input
           aria-label={`${label} ตัวเลือกสี`}
-          className="h-10 w-12 rounded-md border border-[#c9d9d3] bg-white p-1"
+          className="h-10 w-12 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-1"
           onChange={(event) => {
             onChange(event.target.value.trim());
           }}
@@ -45,7 +53,7 @@ function ColorControl({ id, label, onChange, value }: ColorControlProps) {
           value={colorPickerValue}
         />
         <input
-          className="h-10 min-w-0 rounded-md border border-[#c9d9d3] bg-white px-3 font-mono text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+          className="h-10 min-w-0 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 font-mono text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
           id={id}
           onChange={(event) => {
             onChange(event.target.value.trim());
@@ -55,6 +63,29 @@ function ColorControl({ id, label, onChange, value }: ColorControlProps) {
         />
       </div>
     </div>
+  );
+}
+
+function TextControl({
+  id,
+  label,
+  onChange,
+  placeholder,
+  value,
+}: TextControlProps) {
+  return (
+    <label className="block text-sm font-semibold text-[var(--site-text)]" htmlFor={id}>
+      {label}
+      <input
+        className="mt-2 h-10 w-full rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+        id={id}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        placeholder={placeholder}
+        value={value}
+      />
+    </label>
   );
 }
 
@@ -73,15 +104,26 @@ export function SettingsForm({
     await onSave();
   }
 
+  function updatePhoneContact(
+    index: number,
+    changes: Partial<AdminSettingsDraft["phoneContacts"][number]>,
+  ) {
+    onChange({
+      phoneContacts: draft.phoneContacts.map((contact, contactIndex) =>
+        contactIndex === index ? { ...contact, ...changes } : contact,
+      ),
+    });
+  }
+
   return (
     <form className="grid gap-4 xl:grid-cols-[1fr_360px]" onSubmit={handleSubmit}>
       <div className="grid content-start gap-4">
-        <section className="rounded-[24px] border border-[#dbe7e3] bg-white p-4 shadow-[0_12px_34px_rgba(6,63,53,0.06)]">
+        <section className="rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
           <div className="grid gap-4 lg:grid-cols-2">
-            <label className="block text-sm font-semibold text-[#173f36]">
+            <label className="block text-sm font-semibold text-[var(--site-text)]">
               ชื่อเว็บไซต์
               <input
-                className="mt-2 h-10 w-full rounded-lg border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                className="mt-2 h-10 w-full rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
                 onChange={(event) => {
                   onChange({ siteName: event.target.value });
                 }}
@@ -90,10 +132,10 @@ export function SettingsForm({
               />
             </label>
 
-            <label className="block text-sm font-semibold text-[#173f36]">
+            <label className="block text-sm font-semibold text-[var(--site-text)]">
               คำอธิบายรูป Hero (Alt text)
               <input
-                className="mt-2 h-10 w-full rounded-lg border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                className="mt-2 h-10 w-full rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
                 maxLength={160}
                 onChange={(event) => {
                   onChange({ heroImageAlt: event.target.value });
@@ -105,7 +147,7 @@ export function SettingsForm({
           </div>
         </section>
 
-        <section className="rounded-[24px] border border-[#dbe7e3] bg-white p-4 shadow-[0_12px_34px_rgba(6,63,53,0.06)]">
+        <section className="rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
           <div className="grid gap-4 lg:grid-cols-2">
             <ColorControl
               id="primaryColor"
@@ -123,6 +165,116 @@ export function SettingsForm({
               }}
               value={draft.accentColor}
             />
+          </div>
+        </section>
+
+        <section className="rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--site-text)]">
+              ข้อมูลบัญชีธนาคาร
+            </h2>
+            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+              <TextControl
+                id="bankAccountName"
+                label="ชื่อบัญชี"
+                onChange={(bankAccountName) => {
+                  onChange({ bankAccountName });
+                }}
+                placeholder="คุณ อาภัสรา จินดาวา"
+                value={draft.bankAccountName}
+              />
+              <TextControl
+                id="bankName"
+                label="ชื่อธนาคาร"
+                onChange={(bankName) => {
+                  onChange({ bankName });
+                }}
+                placeholder="ธนาคารกสิกรไทย"
+                value={draft.bankName}
+              />
+              <TextControl
+                id="bankAccountNumber"
+                label="เลขบัญชี"
+                onChange={(bankAccountNumber) => {
+                  onChange({ bankAccountNumber });
+                }}
+                placeholder="398-289-7482"
+                value={draft.bankAccountNumber}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--site-text)]">
+              ช่องทางติดต่อ
+            </h2>
+            <div className="mt-4 grid gap-4">
+              {draft.phoneContacts.map((contact, index) => (
+                <div
+                  className="grid gap-4 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3 lg:grid-cols-3"
+                  key={index}
+                >
+                  <TextControl
+                    id={`phoneContactName-${index}`}
+                    label={`ชื่อผู้ติดต่อ ${index + 1}`}
+                    onChange={(name) => {
+                      updatePhoneContact(index, { name });
+                    }}
+                    placeholder="คุณเกม"
+                    value={contact.name}
+                  />
+                  <TextControl
+                    id={`phoneContactPhone-${index}`}
+                    label={`เบอร์โทร ${index + 1}`}
+                    onChange={(phone) => {
+                      updatePhoneContact(index, { phone });
+                    }}
+                    placeholder="0617485213"
+                    value={contact.phone}
+                  />
+                  <TextControl
+                    id={`phoneContactTime-${index}`}
+                    label={`ช่วงเวลา ${index + 1}`}
+                    onChange={(time) => {
+                      updatePhoneContact(index, { time });
+                    }}
+                    placeholder="ช่วง 07.00-15.00"
+                    value={contact.time}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+              <TextControl
+                id="messengerUrl"
+                label="ลิงก์ Messenger"
+                onChange={(messengerUrl) => {
+                  onChange({ messengerUrl });
+                }}
+                placeholder="https://www.facebook.com/baanpoolvillas"
+                value={draft.messengerUrl}
+              />
+              <TextControl
+                id="lineId"
+                label="LINE ID"
+                onChange={(lineId) => {
+                  onChange({ lineId });
+                }}
+                placeholder="@baanpoolvilla"
+                value={draft.lineId}
+              />
+              <TextControl
+                id="lineUrl"
+                label="ลิงก์ LINE"
+                onChange={(lineUrl) => {
+                  onChange({ lineUrl });
+                }}
+                placeholder="https://line.me/R/ti/p/@baanpoolvilla"
+                value={draft.lineUrl}
+              />
+            </div>
           </div>
         </section>
 
@@ -155,7 +307,7 @@ export function SettingsForm({
 
       <aside className="grid content-start gap-4">
         <section
-          className="overflow-hidden rounded-[24px] border border-[#dbe7e3] bg-white shadow-[0_12px_34px_rgba(6,63,53,0.06)]"
+          className="overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm"
           style={themeStyle}
         >
           <div className="bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
@@ -171,7 +323,7 @@ export function SettingsForm({
               <p className="text-sm font-semibold text-[var(--site-primary)]">
                 พื้นหลังสีหลัก
               </p>
-              <p className="mt-1 text-xs text-[#506862]">
+              <p className="mt-1 text-xs text-[var(--site-muted)]">
                 {draft.primaryColor}
               </p>
             </div>
@@ -179,7 +331,7 @@ export function SettingsForm({
               <span className="inline-flex h-9 items-center rounded-md bg-[var(--site-primary)] px-3 text-sm font-semibold text-[var(--site-on-primary)]">
                 ปุ่มสีหลัก
               </span>
-              <span className="inline-flex h-9 items-center rounded-md bg-[var(--site-accent-soft)] px-3 text-sm font-semibold text-[#3f3420]">
+              <span className="inline-flex h-9 items-center rounded-md bg-[var(--site-accent-soft)] px-3 text-sm font-semibold text-[var(--site-text)]">
                 ปุ่มเน้น {draft.accentColor}
               </span>
             </div>

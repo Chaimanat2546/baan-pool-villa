@@ -23,6 +23,19 @@ const validRow = {
   hero_image_url:
     "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
   hero_image_alt: " พูลวิลล่าพัทยา ",
+  bank_account_name: " คุณ อาภัสรา จินดาวา ",
+  bank_name: " ธนาคารกสิกรไทย ",
+  bank_account_number: " 398-289-7482 ",
+  phone_contacts: [
+    {
+      name: " คุณเกม ",
+      phone: " 0617485213 ",
+      time: " ช่วง 07.00-15.00 ",
+    },
+  ],
+  messenger_url: " https://www.facebook.com/baanpoolvillas ",
+  line_id: " @baanpoolvilla ",
+  line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
 };
 
 describe("normalizeSiteSettingsRow", () => {
@@ -55,6 +68,23 @@ describe("normalizeSiteSettingsRow", () => {
         url: "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
         alt: "พูลวิลล่าพัทยา",
       },
+      bank: {
+        accountName: "คุณ อาภัสรา จินดาวา",
+        bankName: "ธนาคารกสิกรไทย",
+        accountNumber: "398-289-7482",
+      },
+      contact: {
+        phoneContacts: [
+          {
+            name: "คุณเกม",
+            phone: "0617485213",
+            time: "ช่วง 07.00-15.00",
+          },
+        ],
+        messengerUrl: "https://www.facebook.com/baanpoolvillas",
+        lineId: "@baanpoolvilla",
+        lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+      },
     });
   });
 
@@ -70,6 +100,13 @@ describe("normalizeSiteSettingsRow", () => {
         hero_image_path: null,
         hero_image_url: null,
         hero_image_alt: "",
+        bank_account_name: "",
+        bank_name: "",
+        bank_account_number: "",
+        phone_contacts: [],
+        messenger_url: "javascript:alert(1)",
+        line_id: "",
+        line_url: "ftp://example.com/line",
       }),
     ).toEqual(DEFAULT_SITE_SETTINGS);
   });
@@ -83,12 +120,38 @@ describe("normalizeSiteSettingsDraft", () => {
         primaryColor: " #064E3B ",
         accentColor: " #EAB308 ",
         heroImageAlt: " Pool villas in Pattaya ",
+        bankAccountName: " คุณ อาภัสรา จินดาวา ",
+        bankName: " ธนาคารกสิกรไทย ",
+        bankAccountNumber: " 398-289-7482 ",
+        phoneContacts: [
+          {
+            name: " คุณเกม ",
+            phone: " 061-748-5213 ",
+            time: " ช่วง 07.00-15.00 ",
+          },
+        ],
+        messengerUrl: " https://www.facebook.com/baanpoolvillas ",
+        lineId: " @baanpoolvilla ",
+        lineUrl: " https://line.me/R/ti/p/@baanpoolvilla ",
       }),
     ).toEqual({
       siteName: "Baan Pool Villa",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
       heroImageAlt: "Pool villas in Pattaya",
+      bankAccountName: "คุณ อาภัสรา จินดาวา",
+      bankName: "ธนาคารกสิกรไทย",
+      bankAccountNumber: "398-289-7482",
+      phoneContacts: [
+        {
+          name: "คุณเกม",
+          phone: "061-748-5213",
+          time: "ช่วง 07.00-15.00",
+        },
+      ],
+      messengerUrl: "https://www.facebook.com/baanpoolvillas",
+      lineId: "@baanpoolvilla",
+      lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
     });
   });
 });
@@ -101,6 +164,19 @@ describe("validateSiteSettingsDraft", () => {
         primaryColor: "#064e3b",
         accentColor: "#eab308",
         heroImageAlt: "พูลวิลล่าพัทยา",
+        bankAccountName: "คุณ อาภัสรา จินดาวา",
+        bankName: "ธนาคารกสิกรไทย",
+        bankAccountNumber: "398-289-7482",
+        phoneContacts: [
+          {
+            name: "คุณเกม",
+            phone: "0617485213",
+            time: "ช่วง 07.00-15.00",
+          },
+        ],
+        messengerUrl: "https://www.facebook.com/baanpoolvillas",
+        lineId: "@baanpoolvilla",
+        lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
       }),
     ).toEqual([]);
   });
@@ -112,12 +188,34 @@ describe("validateSiteSettingsDraft", () => {
         primaryColor: "064e3b",
         accentColor: "#gggggg",
         heroImageAlt: "x".repeat(161),
+        bankAccountName: "",
+        bankName: "",
+        bankAccountNumber: "",
+        phoneContacts: [
+          {
+            name: "",
+            phone: "",
+            time: "",
+          },
+        ],
+        messengerUrl: "not a url",
+        lineId: "",
+        lineUrl: "javascript:alert(1)",
       }),
     ).toEqual([
       "ต้องใส่ชื่อเว็บ",
       "สีหลักต้องเป็นค่าสีแบบ #RRGGBB",
       "สีเน้นต้องเป็นค่าสีแบบ #RRGGBB",
       "คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร",
+      "ต้องใส่ชื่อบัญชีธนาคาร",
+      "ต้องใส่ชื่อธนาคาร",
+      "ต้องใส่เลขบัญชีธนาคาร",
+      "ต้องใส่ชื่อผู้ติดต่อคนที่ 1",
+      "ต้องใส่เบอร์โทรผู้ติดต่อคนที่ 1",
+      "ต้องใส่ช่วงเวลาผู้ติดต่อคนที่ 1",
+      "ลิงก์ Messenger ต้องเป็น URL แบบ http หรือ https",
+      "ต้องใส่ LINE ID",
+      "ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https",
     ]);
   });
 });

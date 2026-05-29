@@ -19,7 +19,7 @@ export default async function PublicLayout({
         <SiteHeader settings={settings} />
         {children}
         <SiteFooter settings={settings} />
-        <MobileBottomNav />
+        <MobileBottomNav settings={settings} />
       </div>
     </SiteThemeProvider>
   );

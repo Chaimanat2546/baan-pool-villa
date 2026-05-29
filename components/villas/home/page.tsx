@@ -135,7 +135,7 @@ export function HomePage({ settings }: HomePageProps) {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#fbfdfb] text-[#063f35]">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] text-[var(--site-text)]">
       <HeroSection
         filters={filters}
         heroImage={settings.heroImage}
@@ -168,7 +168,7 @@ export function HomePage({ settings }: HomePageProps) {
         <DestinationsSection villas={villas} />
         <ArticlesSection villas={villas} />
         <FaqSection />
-        <ContactSection />
+        <ContactSection settings={settings} />
       </div>
     </main>
   );
