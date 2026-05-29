@@ -2,32 +2,25 @@ import type { Metadata } from "next";
 
 import { HomePage } from "@/components/villas/home/page";
 import { serializeJsonLd } from "@/lib/json-ld";
-import { absoluteUrl, buildPageMetadata, defaultDescription, defaultTitle, siteName } from "@/lib/seo";
+import { buildHomeJsonLd, buildPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
 
-export const metadata: Metadata = buildPageMetadata({
-  canonicalPath: "/",
-  description: defaultDescription,
-  title: defaultTitle,
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const { settings } = await getSiteSettings();
+
+  return buildPageMetadata({
+    canonicalPath: "/",
+    description: settings.seo.description,
+    image: settings.seo.ogImage.url,
+    imageAlt: settings.seo.ogImage.alt,
+    siteName: settings.seo.businessName,
+    title: settings.seo.title,
+  });
+}
 
 export default async function Page() {
   const { settings } = await getSiteSettings();
-
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "LodgingBusiness",
-    name: siteName,
-    description: defaultDescription,
-    image: absoluteUrl("/images/BPV-66_Cover-Web.jpg"),
-    url: absoluteUrl("/"),
-    areaServed: ["พัทยา", "จอมเทียน", "บางแสน", "หัวหิน"],
-    amenityFeature: [
-      { "@type": "LocationFeatureSpecification", name: "สระว่ายน้ำส่วนตัว" },
-      { "@type": "LocationFeatureSpecification", name: "บ้านพักสำหรับกลุ่ม" },
-      { "@type": "LocationFeatureSpecification", name: "บ้านพักใกล้ทะเล" },
-    ],
-  };
+  const jsonLd = buildHomeJsonLd(settings);
 
   return (
     <>

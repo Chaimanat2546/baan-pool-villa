@@ -51,6 +51,15 @@ const dbRow = {
   messenger_url: " https://www.facebook.com/baanpoolvillas ",
   line_id: " @baanpoolvilla ",
   line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
+  seo_title: " Baan Pool Villa Pattaya | Private Pool Villas ",
+  seo_description: " Book private pool villas in Pattaya. ",
+  seo_og_image_url: " /images/seo-cover.jpg ",
+  seo_og_image_alt: " Pool villa with private swimming pool ",
+  seo_business_name: " Baan Pool Villa Pattaya ",
+  seo_same_as_urls: [
+    " https://www.facebook.com/baanpoolvillas ",
+    " https://line.me/R/ti/p/@baanpoolvilla ",
+  ],
 };
 
 function siteSettingsSelectQuery(result: { data: unknown; error: unknown }) {
@@ -156,6 +165,31 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
     "lineUrl",
     overrides.lineUrl ?? " https://line.me/R/ti/p/@baanpoolvilla ",
   );
+  formData.set(
+    "seoTitle",
+    overrides.seoTitle ?? " Baan Pool Villa Pattaya | Private Pool Villas ",
+  );
+  formData.set(
+    "seoDescription",
+    overrides.seoDescription ?? " Book private pool villas in Pattaya. ",
+  );
+  formData.set("seoOgImageUrl", overrides.seoOgImageUrl ?? " /images/seo-cover.jpg ");
+  formData.set(
+    "seoOgImageAlt",
+    overrides.seoOgImageAlt ?? " Pool villa with private swimming pool ",
+  );
+  formData.set(
+    "seoBusinessName",
+    overrides.seoBusinessName ?? " Baan Pool Villa Pattaya ",
+  );
+  formData.set(
+    "seoSameAsUrls",
+    overrides.seoSameAsUrls ??
+      JSON.stringify([
+        " https://www.facebook.com/baanpoolvillas ",
+        " https://line.me/R/ti/p/@baanpoolvilla ",
+      ]),
+  );
 
   return formData;
 }
@@ -227,6 +261,20 @@ describe("admin site settings route", () => {
           messengerUrl: "https://www.facebook.com/baanpoolvillas",
           lineId: "@baanpoolvilla",
           lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+        },
+        seo: {
+          title: "Baan Pool Villa Pattaya | Private Pool Villas",
+          description: "Book private pool villas in Pattaya.",
+          ogImage: {
+            path: "/images/seo-cover.jpg",
+            url: "/images/seo-cover.jpg",
+            alt: "Pool villa with private swimming pool",
+          },
+          businessName: "Baan Pool Villa Pattaya",
+          sameAsUrls: [
+            "https://www.facebook.com/baanpoolvillas",
+            "https://line.me/R/ti/p/@baanpoolvilla",
+          ],
         },
       },
     });
@@ -332,6 +380,15 @@ describe("admin site settings route", () => {
         messenger_url: "https://www.facebook.com/baanpoolvillas",
         line_id: "@baanpoolvilla",
         line_url: "https://line.me/R/ti/p/@baanpoolvilla",
+        seo_title: "Baan Pool Villa Pattaya | Private Pool Villas",
+        seo_description: "Book private pool villas in Pattaya.",
+        seo_og_image_url: "/images/seo-cover.jpg",
+        seo_og_image_alt: "Pool villa with private swimming pool",
+        seo_business_name: "Baan Pool Villa Pattaya",
+        seo_same_as_urls: [
+          "https://www.facebook.com/baanpoolvillas",
+          "https://line.me/R/ti/p/@baanpoolvilla",
+        ],
       },
       { onConflict: "id" },
     );
@@ -365,6 +422,20 @@ describe("admin site settings route", () => {
           messengerUrl: "https://www.facebook.com/baanpoolvillas",
           lineId: "@baanpoolvilla",
           lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+        },
+        seo: {
+          title: "Baan Pool Villa Pattaya | Private Pool Villas",
+          description: "Book private pool villas in Pattaya.",
+          ogImage: {
+            path: "/images/seo-cover.jpg",
+            url: "/images/seo-cover.jpg",
+            alt: "Pool villa with private swimming pool",
+          },
+          businessName: "Baan Pool Villa Pattaya",
+          sameAsUrls: [
+            "https://www.facebook.com/baanpoolvillas",
+            "https://line.me/R/ti/p/@baanpoolvilla",
+          ],
         },
       },
       warnings: [],

@@ -15,6 +15,11 @@ import type {
 
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const HERO_IMAGE_ALT_MAX_LENGTH = 160;
+const SEO_TITLE_MAX_LENGTH = 80;
+const SEO_DESCRIPTION_MAX_LENGTH = 180;
+const SEO_IMAGE_ALT_MAX_LENGTH = 160;
+const SEO_BUSINESS_NAME_MAX_LENGTH = 100;
+const SEO_SAME_AS_URLS_MAX_COUNT = 6;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
 
 export function isHexColor(value: string): boolean {
@@ -89,6 +94,32 @@ export function normalizeSiteSettingsRow(
         DEFAULT_SITE_SETTINGS.contact.lineUrl,
       ),
     },
+    seo: {
+      title: normalizeRequiredText(
+        row.seo_title,
+        DEFAULT_SITE_SETTINGS.seo.title,
+      ),
+      description: normalizeRequiredText(
+        row.seo_description,
+        DEFAULT_SITE_SETTINGS.seo.description,
+      ),
+      ogImage: normalizePublicImage(
+        row.seo_og_image_url,
+        normalizeRequiredText(
+          row.seo_og_image_alt,
+          DEFAULT_SITE_SETTINGS.seo.ogImage.alt,
+        ),
+        DEFAULT_SITE_SETTINGS.seo.ogImage,
+      ),
+      businessName: normalizeRequiredText(
+        row.seo_business_name,
+        DEFAULT_SITE_SETTINGS.seo.businessName,
+      ),
+      sameAsUrls: normalizeSameAsUrls(
+        row.seo_same_as_urls,
+        DEFAULT_SITE_SETTINGS.seo.sameAsUrls,
+      ),
+    },
   };
 }
 
@@ -111,6 +142,14 @@ export function normalizeSiteSettingsDraft(
     messengerUrl: draft.messengerUrl.trim(),
     lineId: draft.lineId.trim(),
     lineUrl: draft.lineUrl.trim(),
+    seoTitle: draft.seoTitle.trim(),
+    seoDescription: draft.seoDescription.trim(),
+    seoOgImageUrl: draft.seoOgImageUrl.trim(),
+    seoOgImageAlt: draft.seoOgImageAlt.trim(),
+    seoBusinessName: draft.seoBusinessName.trim(),
+    seoSameAsUrls: draft.seoSameAsUrls
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0),
   };
 }
 
@@ -134,6 +173,44 @@ export function validateSiteSettingsDraft(
   if (draft.heroImageAlt.length > HERO_IMAGE_ALT_MAX_LENGTH) {
     errors.push("คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร");
   }
+
+  if (draft.seoTitle.trim().length === 0) {
+    errors.push("ต้องใส่ชื่อหน้าที่แสดงบน Google");
+  } else if (draft.seoTitle.length > SEO_TITLE_MAX_LENGTH) {
+    errors.push("ชื่อหน้าที่แสดงบน Google ต้องไม่เกิน 80 ตัวอักษร");
+  }
+
+  if (draft.seoDescription.trim().length === 0) {
+    errors.push("ต้องใส่คำอธิบายเว็บที่แสดงบน Google");
+  } else if (draft.seoDescription.length > SEO_DESCRIPTION_MAX_LENGTH) {
+    errors.push("คำอธิบายเว็บที่แสดงบน Google ต้องไม่เกิน 180 ตัวอักษร");
+  }
+
+  if (!isPublicImageUrl(draft.seoOgImageUrl)) {
+    errors.push("รูปตัวอย่างตอนแชร์ลิงก์ต้องเป็น URL แบบ http, https หรือ path ภายในเว็บที่ขึ้นต้นด้วย /");
+  }
+
+  if (draft.seoOgImageAlt.trim().length === 0) {
+    errors.push("ต้องใส่คำอธิบายรูปตอนแชร์ลิงก์");
+  } else if (draft.seoOgImageAlt.length > SEO_IMAGE_ALT_MAX_LENGTH) {
+    errors.push("คำอธิบายรูปตอนแชร์ลิงก์ต้องไม่เกิน 160 ตัวอักษร");
+  }
+
+  if (draft.seoBusinessName.trim().length === 0) {
+    errors.push("ต้องใส่ชื่อธุรกิจสำหรับ SEO");
+  } else if (draft.seoBusinessName.length > SEO_BUSINESS_NAME_MAX_LENGTH) {
+    errors.push("ชื่อธุรกิจสำหรับ SEO ต้องไม่เกิน 100 ตัวอักษร");
+  }
+
+  if (draft.seoSameAsUrls.length > SEO_SAME_AS_URLS_MAX_COUNT) {
+    errors.push("ลิงก์โซเชียลของร้านต้องไม่เกิน 6 รายการ");
+  }
+
+  draft.seoSameAsUrls.forEach((url, index) => {
+    if (!isHttpUrl(url)) {
+      errors.push(`ลิงก์โซเชียลของร้านรายการที่ ${index + 1} ต้องเป็น URL แบบ http หรือ https`);
+    }
+  });
 
   if (draft.bankAccountName.trim().length === 0) {
     errors.push("ต้องใส่ชื่อบัญชีธนาคาร");
@@ -263,6 +340,24 @@ function normalizeImage(
   };
 }
 
+function normalizePublicImage(
+  url: string | null | undefined,
+  alt: string,
+  fallback: SiteImageSettings,
+): SiteImageSettings {
+  const trimmedUrl = url?.trim() ?? "";
+
+  if (!isPublicImageUrl(trimmedUrl)) {
+    return fallback;
+  }
+
+  return {
+    path: trimmedUrl,
+    url: trimmedUrl,
+    alt,
+  };
+}
+
 function normalizePhoneContacts(
   value: unknown,
   fallback: SitePhoneContact[],
@@ -305,10 +400,30 @@ function normalizePhoneContacts(
   return contacts.length > 0 ? contacts : fallback;
 }
 
+function normalizeSameAsUrls(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  const urls = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0 && isHttpUrl(item));
+
+  return urls.length > 0 ? [...new Set(urls)] : fallback;
+}
+
 function normalizeUrl(value: string | null | undefined, fallback: string): string {
   const trimmedValue = value?.trim() ?? "";
 
   return isHttpUrl(trimmedValue) ? trimmedValue : fallback;
+}
+
+function isPublicImageUrl(value: string): boolean {
+  return (
+    (value.startsWith("/") && !value.startsWith("//")) ||
+    isHttpUrl(value)
+  );
 }
 
 function isHttpUrl(value: string): boolean {

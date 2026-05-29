@@ -14,6 +14,12 @@ export interface AdminSettingsDraft {
   messengerUrl: string;
   lineId: string;
   lineUrl: string;
+  seoTitle: string;
+  seoDescription: string;
+  seoOgImageUrl: string;
+  seoOgImageAlt: string;
+  seoBusinessName: string;
+  seoSameAsUrls: string[];
 }
 
 export interface AdminSiteSettingsResponse {

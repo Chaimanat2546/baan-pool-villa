@@ -83,6 +83,15 @@ describe("getSiteSettings", () => {
         messenger_url: " https://www.facebook.com/baanpoolvillas ",
         line_id: " @baanpoolvilla ",
         line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
+        seo_title: " Baan Pool Villa Pattaya | Private Pool Villas ",
+        seo_description: " Book private pool villas in Pattaya. ",
+        seo_og_image_url: " /images/seo-cover.jpg ",
+        seo_og_image_alt: " Pool villa with private swimming pool ",
+        seo_business_name: " Baan Pool Villa Pattaya ",
+        seo_same_as_urls: [
+          " https://www.facebook.com/baanpoolvillas ",
+          " https://line.me/R/ti/p/@baanpoolvilla ",
+        ],
       },
       error: null,
     });
@@ -119,6 +128,20 @@ describe("getSiteSettings", () => {
           lineId: "@baanpoolvilla",
           lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
         },
+        seo: {
+          title: "Baan Pool Villa Pattaya | Private Pool Villas",
+          description: "Book private pool villas in Pattaya.",
+          ogImage: {
+            path: "/images/seo-cover.jpg",
+            url: "/images/seo-cover.jpg",
+            alt: "Pool villa with private swimming pool",
+          },
+          businessName: "Baan Pool Villa Pattaya",
+          sameAsUrls: [
+            "https://www.facebook.com/baanpoolvillas",
+            "https://line.me/R/ti/p/@baanpoolvilla",
+          ],
+        },
       },
       source: "config",
     });
@@ -132,6 +155,68 @@ describe("getSiteSettings", () => {
     await expect(getSiteSettings()).resolves.toEqual({
       settings: DEFAULT_SITE_SETTINGS,
       source: "fallback",
+    });
+  });
+
+  it("keeps contact settings when SEO columns are not available yet", async () => {
+    mockSiteSettingsQueryQueue([
+      {
+        data: null,
+        error: { message: "column site_settings.seo_title does not exist" },
+      },
+      {
+        data: {
+          id: SITE_SETTINGS_ID,
+          site_name: " Baan Pool Villa ",
+          primary_color: "#123456",
+          accent_color: "#abcdef",
+          logo_image_path: "logo/2026/05/logo.webp",
+          logo_image_url:
+            "https://example.supabase.co/storage/v1/object/public/site-assets/logo/2026/05/logo.webp",
+          hero_image_path: "hero/2026/05/hero.webp",
+          hero_image_url:
+            "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
+          hero_image_alt: "Pool villas",
+          bank_account_name: " Account Name ",
+          bank_name: " Bank Name ",
+          bank_account_number: " 398-289-7482 ",
+          phone_contacts: [
+            {
+              name: " Game ",
+              phone: " 0617485213 ",
+              time: " 07.00-15.00 ",
+            },
+          ],
+          messenger_url: " https://www.facebook.com/baanpoolvillas ",
+          line_id: " @baanpoolvilla ",
+          line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
+        },
+        error: null,
+      },
+    ]);
+
+    await expect(getSiteSettings()).resolves.toMatchObject({
+      settings: {
+        bank: {
+          accountName: "Account Name",
+          bankName: "Bank Name",
+          accountNumber: "398-289-7482",
+        },
+        contact: {
+          messengerUrl: "https://www.facebook.com/baanpoolvillas",
+          lineId: "@baanpoolvilla",
+          lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+          phoneContacts: [
+            {
+              name: "Game",
+              phone: "0617485213",
+              time: "07.00-15.00",
+            },
+          ],
+        },
+        seo: DEFAULT_SITE_SETTINGS.seo,
+      },
+      source: "config",
     });
   });
 
@@ -166,6 +251,7 @@ describe("getSiteSettings", () => {
         accentColor: "#abcdef",
         bank: DEFAULT_SITE_SETTINGS.bank,
         contact: DEFAULT_SITE_SETTINGS.contact,
+        seo: DEFAULT_SITE_SETTINGS.seo,
       },
       source: "config",
     });

@@ -49,6 +49,12 @@ export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
       ...contact,
     })),
     primaryColor: settings.primaryColor,
+    seoBusinessName: settings.seo.businessName,
+    seoDescription: settings.seo.description,
+    seoOgImageAlt: settings.seo.ogImage.alt,
+    seoOgImageUrl: settings.seo.ogImage.url,
+    seoSameAsUrls: [...settings.seo.sameAsUrls],
+    seoTitle: settings.seo.title,
     siteName: settings.siteName,
   };
 }
@@ -67,6 +73,12 @@ export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
     messengerUrl: draft.messengerUrl,
     phoneContacts: draft.phoneContacts,
     primaryColor: draft.primaryColor,
+    seoBusinessName: draft.seoBusinessName,
+    seoDescription: draft.seoDescription,
+    seoOgImageAlt: draft.seoOgImageAlt,
+    seoOgImageUrl: draft.seoOgImageUrl,
+    seoSameAsUrls: draft.seoSameAsUrls,
+    seoTitle: draft.seoTitle,
     siteName: draft.siteName,
   });
 }
@@ -85,6 +97,12 @@ export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
   formData.set("messengerUrl", draft.messengerUrl);
   formData.set("lineId", draft.lineId);
   formData.set("lineUrl", draft.lineUrl);
+  formData.set("seoTitle", draft.seoTitle);
+  formData.set("seoDescription", draft.seoDescription);
+  formData.set("seoOgImageUrl", draft.seoOgImageUrl);
+  formData.set("seoOgImageAlt", draft.seoOgImageAlt);
+  formData.set("seoBusinessName", draft.seoBusinessName);
+  formData.set("seoSameAsUrls", JSON.stringify(draft.seoSameAsUrls));
 
   if (draft.logoFile) {
     formData.set("logo", draft.logoFile);

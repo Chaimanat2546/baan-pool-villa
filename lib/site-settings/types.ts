@@ -34,6 +34,14 @@ export interface SiteContactSettings {
   lineUrl: string;
 }
 
+export interface SiteSeoSettings {
+  title: string;
+  description: string;
+  ogImage: SiteImageSettings;
+  businessName: string;
+  sameAsUrls: string[];
+}
+
 export interface SiteSettings {
   siteName: string;
   primaryColor: string;
@@ -42,6 +50,7 @@ export interface SiteSettings {
   heroImage: SiteImageSettings;
   bank: SiteBankSettings;
   contact: SiteContactSettings;
+  seo: SiteSeoSettings;
 }
 
 export interface SiteSettingsLoadResult {
@@ -66,6 +75,12 @@ export interface SiteSettingsRow {
   messenger_url?: string | null;
   line_id?: string | null;
   line_url?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  seo_og_image_url?: string | null;
+  seo_og_image_alt?: string | null;
+  seo_business_name?: string | null;
+  seo_same_as_urls?: unknown;
 }
 
 export interface SiteSettingsDraft {
@@ -80,4 +95,10 @@ export interface SiteSettingsDraft {
   messengerUrl: string;
   lineId: string;
   lineUrl: string;
+  seoTitle: string;
+  seoDescription: string;
+  seoOgImageUrl: string;
+  seoOgImageAlt: string;
+  seoBusinessName: string;
+  seoSameAsUrls: string[];
 }
