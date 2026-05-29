@@ -5,6 +5,7 @@ import {
   getBearerToken,
   jsonError,
 } from "@/lib/admin/home-config-auth";
+import { DEFAULT_DETAIL_LAYOUT } from "../../detail-layout/defaults";
 import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "../defaults";
 
 vi.mock("server-only", () => ({}));
@@ -276,6 +277,7 @@ describe("admin site settings route", () => {
             "https://line.me/R/ti/p/@baanpoolvilla",
           ],
         },
+        detailLayout: DEFAULT_DETAIL_LAYOUT,
       },
     });
     expect(from).toHaveBeenCalledWith("site_settings");
