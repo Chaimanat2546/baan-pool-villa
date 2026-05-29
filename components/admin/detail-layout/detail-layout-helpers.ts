@@ -175,7 +175,8 @@ export function getDetailLayoutBlockTargetSlot(
     activeBlockIndex !== null &&
     Number.isInteger(activeBlockIndex) &&
     activeBlockIndex >= 0 &&
-    activeBlockIndex < row.blocks.length
+    activeBlockIndex < row.blocks.length &&
+    row.blocks[activeBlockIndex] === null
   ) {
     return activeBlockIndex;
   }

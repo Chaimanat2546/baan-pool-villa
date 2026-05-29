@@ -182,9 +182,28 @@ describe("detail layout helpers", () => {
     expect(getDetailLayoutBlockTargetSlot(row, 8)).toBe(0);
   });
 
-  it("allows replacing a clearly selected occupied slot", () => {
+  it("returns no target for a full row with a selected occupied slot", () => {
     const row = toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT).rows[0];
 
-    expect(getDetailLayoutBlockTargetSlot(row, 0)).toBe(0);
+    expect(getDetailLayoutBlockTargetSlot(row, 0)).toBeNull();
+  });
+
+  it("falls back to the first empty slot when selection is occupied", () => {
+    const row = updateDetailLayoutRowColumns(
+      toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
+      DEFAULT_DETAIL_LAYOUT.rows[0].id,
+      3,
+    ).rows[0];
+    const layout = removeDetailLayoutBlock(
+      {
+        lockedTop: ["gallery", "intro"],
+        rows: [row],
+        version: 1,
+      },
+      row.id,
+      2,
+    );
+
+    expect(getDetailLayoutBlockTargetSlot(layout.rows[0], 0)).toBe(2);
   });
 });
