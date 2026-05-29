@@ -7,6 +7,7 @@ import {
   addDetailLayoutRow,
   makeDetailLayoutBlock,
   makeDetailLayoutSnapshot,
+  putDetailLayoutBlockInSlot,
   removeDetailLayoutBlock,
   updateDetailLayoutRowColumns,
 } from "../detail-layout-helpers";
@@ -55,6 +56,62 @@ describe("detail layout helpers", () => {
 
     expect(updatedRow?.blocks).toHaveLength(1);
     expect(updatedRow?.blocks[0]?.type).toBe("details");
+  });
+
+  it("appends into the next compact slot without moving earlier blocks", () => {
+    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
+    const layout = removeDetailLayoutBlock(DEFAULT_DETAIL_LAYOUT, row.id, 1);
+    const updatedLayout = putDetailLayoutBlockInSlot(
+      layout,
+      row.id,
+      1,
+      makeDetailLayoutBlock("pool"),
+    );
+    const updatedRow = updatedLayout.rows.find(
+      (candidate) => candidate.id === row.id,
+    );
+
+    expect(updatedRow?.blocks.map((block) => block.type)).toEqual([
+      "details",
+      "pool",
+    ]);
+  });
+
+  it("replaces an occupied compact slot without compacting later blocks", () => {
+    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
+    const layout = putDetailLayoutBlockInSlot(
+      DEFAULT_DETAIL_LAYOUT,
+      row.id,
+      0,
+      makeDetailLayoutBlock("kitchen"),
+    );
+    const updatedRow = layout.rows.find((candidate) => candidate.id === row.id);
+
+    expect(updatedRow?.blocks.map((block) => block.type)).toEqual([
+      "kitchen",
+      "booking_contact",
+    ]);
+  });
+
+  it("ignores drops beyond the next compact slot", () => {
+    const layout = addDetailLayoutRow(DEFAULT_DETAIL_LAYOUT, 3);
+    const row = layout.rows.at(-1);
+
+    if (!row) {
+      throw new Error("Expected a draft row");
+    }
+
+    const updatedLayout = putDetailLayoutBlockInSlot(
+      layout,
+      row.id,
+      2,
+      makeDetailLayoutBlock("pool"),
+    );
+    const updatedRow = updatedLayout.rows.find(
+      (candidate) => candidate.id === row.id,
+    );
+
+    expect(updatedRow?.blocks).toEqual([]);
   });
 
   it("keeps booking contact visible even when content is empty", () => {

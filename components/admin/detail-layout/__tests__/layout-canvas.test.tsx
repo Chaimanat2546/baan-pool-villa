@@ -4,14 +4,15 @@ import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_DETAIL_LAYOUT } from "../../../../lib/detail-layout/defaults";
 import { cloneDetailLayout } from "../../../../lib/detail-layout/validation";
 
+import type { DetailLayoutConfig } from "../types";
 import { LayoutCanvas } from "../layout-canvas";
 
-function renderCanvas() {
+function renderCanvas(layout: DetailLayoutConfig = cloneDetailLayout(DEFAULT_DETAIL_LAYOUT)) {
   return renderToStaticMarkup(
     <LayoutCanvas
       activeBlockIndex={0}
       activeRowId={DEFAULT_DETAIL_LAYOUT.rows[0]?.id ?? null}
-      layout={cloneDetailLayout(DEFAULT_DETAIL_LAYOUT)}
+      layout={layout}
       onDeleteRow={vi.fn()}
       onDropBlock={vi.fn()}
       onDuplicateRow={vi.fn()}
@@ -39,5 +40,22 @@ describe("LayoutCanvas", () => {
 
     expect(markup).toContain("70/30");
     expect(markup).toContain("ลบ block");
+  });
+
+  it("marks later empty slots unavailable until previous slots are filled", () => {
+    const layout = cloneDetailLayout(DEFAULT_DETAIL_LAYOUT);
+    layout.rows = [
+      {
+        id: "draft-empty",
+        columns: 3,
+        enabled: true,
+        blocks: [],
+      },
+    ];
+
+    const markup = renderCanvas(layout);
+
+    expect(markup).toContain("ลาก block ลงช่องนี้");
+    expect(markup).toContain("เติมช่องก่อนหน้า");
   });
 });

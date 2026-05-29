@@ -163,12 +163,16 @@ export function putDetailLayoutBlockInSlot(
       return row;
     }
 
+    if (blockIndex > row.blocks.length) {
+      return row;
+    }
+
     const blocks = [...row.blocks];
-    blocks[blockIndex] = block;
+    blocks.splice(blockIndex, blockIndex < blocks.length ? 1 : 0, block);
 
     return {
       ...row,
-      blocks: blocks.filter(Boolean).slice(0, row.columns),
+      blocks: blocks.slice(0, row.columns),
     };
   });
 }

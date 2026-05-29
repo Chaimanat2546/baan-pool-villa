@@ -265,6 +265,7 @@ export function LayoutCanvas({
                   <div className={`mt-3 grid gap-2 ${getGridClass(row)}`}>
                     {getSlotIndexes(row.columns).map((blockIndex) => {
                       const block = row.blocks[blockIndex];
+                      const canDropInSlot = blockIndex <= row.blocks.length;
                       const isSelectedBlock =
                         isActive && activeBlockIndex === blockIndex;
 
@@ -276,21 +277,25 @@ export function LayoutCanvas({
                               : "border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)]"
                           } p-2`}
                           key={`${row.id}-${blockIndex}`}
-                          onDragOver={handleDragOver}
-                          onDrop={(event) => {
-                            handleDrop(event, row.id, blockIndex);
-                          }}
+                          onDragOver={canDropInSlot ? handleDragOver : undefined}
+                          onDrop={
+                            canDropInSlot
+                              ? (event) => {
+                                  handleDrop(event, row.id, blockIndex);
+                                }
+                              : undefined
+                          }
                         >
                           {block ? (
-                            <button
-                              aria-pressed={isSelectedBlock}
-                              className="grid h-full min-h-20 w-full grid-cols-[1fr_auto] gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-2 text-left"
-                              onClick={() => {
-                                onSelectBlock(row.id, blockIndex);
-                              }}
-                              type="button"
-                            >
-                              <span className="min-w-0">
+                            <div className="grid h-full min-h-20 w-full grid-cols-[1fr_auto] gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-2">
+                              <button
+                                aria-pressed={isSelectedBlock}
+                                className="min-w-0 text-left"
+                                onClick={() => {
+                                  onSelectBlock(row.id, blockIndex);
+                                }}
+                                type="button"
+                              >
                                 <span className="block truncate text-sm font-semibold text-[var(--site-text)]">
                                   {block.title}
                                 </span>
@@ -300,23 +305,26 @@ export function LayoutCanvas({
                                     ? " / ซ่อนเมื่อไม่มีข้อมูล"
                                     : ""}
                                 </span>
-                              </span>
-                              <span
+                              </button>
+                              <button
                                 aria-label="ลบ block"
                                 className="inline-flex size-7 items-center justify-center rounded-md border border-red-200 text-red-700 transition hover:bg-red-50"
-                                onClick={(event) => {
-                                  event.stopPropagation();
+                                onClick={() => {
                                   onRemoveBlock(row.id, blockIndex);
                                 }}
-                                role="button"
                                 title="ลบ block"
+                                type="button"
                               >
                                 <X aria-hidden="true" className="size-4" />
-                              </span>
-                            </button>
-                          ) : (
+                              </button>
+                            </div>
+                          ) : canDropInSlot ? (
                             <div className="flex h-full min-h-20 items-center justify-center rounded-md border border-dashed border-[var(--site-border)] px-3 py-4 text-center text-sm font-semibold text-[var(--site-muted)]">
                               ลาก block ลงช่องนี้
+                            </div>
+                          ) : (
+                            <div className="flex h-full min-h-20 items-center justify-center rounded-md border border-dashed border-[var(--site-border)] bg-[var(--site-surface)]/70 px-3 py-4 text-center text-sm font-semibold text-[var(--site-muted)]">
+                              เติมช่องก่อนหน้า
                             </div>
                           )}
                         </div>
