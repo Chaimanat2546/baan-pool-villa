@@ -1,50 +1,64 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_DETAIL_LAYOUT } from "../../../../lib/detail-layout/defaults";
-import { toDetailLayoutDraft } from "../detail-layout-helpers";
+import { DEFAULT_DETAIL_LAYOUT_V2 } from "../../../../lib/detail-layout/defaults";
+import { toDetailLayoutV2Draft } from "../detail-layout-v2-helpers";
+import type { DetailLayoutCanvasSelection } from "../layout-canvas";
 import { RowSettingsPanel } from "../row-settings-panel";
-import type { DetailLayoutDraftRow } from "../types";
 
-function renderPanel(row: DetailLayoutDraftRow | null) {
+function renderPanel(selection: DetailLayoutCanvasSelection) {
   return renderToStaticMarkup(
     <RowSettingsPanel
-      activeBlockIndex={0}
-      row={row}
-      onRemoveBlock={vi.fn()}
-      onSelectBlock={vi.fn()}
-      onUpdateBlock={vi.fn()}
-      onUpdateColumns={vi.fn()}
-      onUpdateRow={vi.fn()}
+      layout={toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2)}
+      onRemoveNarrowBlock={vi.fn()}
+      onRemoveWideBlock={vi.fn()}
+      onSelectWideBlock={vi.fn()}
+      onUpdateNarrowBlock={vi.fn()}
+      onUpdateNarrowRow={vi.fn()}
+      onUpdateWideBlock={vi.fn()}
+      onUpdateWideRow={vi.fn()}
+      onUpdateWideRowEnabled={vi.fn()}
+      selection={selection}
     />,
   );
 }
 
 describe("RowSettingsPanel", () => {
-  it("explains 70/30 split rows in the admin settings panel", () => {
-    const row = toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT).rows[0];
-    const markup = renderPanel(row);
+  it("shows wide-zone settings with wide-only ratios", () => {
+    const layout = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2);
+    const row = layout.mainSplit.wideRows[0];
+    const markup = renderPanel({
+      zone: "wide",
+      rowId: row.id,
+      blockIndex: 0,
+    });
 
-    expect(markup).toContain("ฝั่ง 70 อยู่ซ้าย");
-    expect(markup).toContain("ฝั่ง 30 อยู่ขวา");
+    expect(markup).toContain("ฝั่ง 70 / แถว 1");
+    expect(markup).toContain("รูปแบบแถว");
+    expect(markup).toContain("1 คอลัมน์");
+    expect(markup).toContain("50/50");
+    expect(markup).toContain("60/40");
+    expect(markup).toContain("40/60");
+    expect(markup).not.toContain("70/30");
+    expect(markup).not.toContain("30/70");
   });
 
-  it("explains swapped 30/70 split rows in the admin settings panel", () => {
-    const row = {
-      ...toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT).rows[0],
-      ratio: "30/70",
-    } satisfies DetailLayoutDraftRow;
-    const markup = renderPanel(row);
+  it("shows narrow-zone settings without ratio controls", () => {
+    const layout = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2);
+    const row = layout.mainSplit.narrowRows[0];
+    const markup = renderPanel({ zone: "narrow", rowId: row.id });
 
-    expect(markup).toContain("ฝั่ง 30 อยู่ซ้าย");
-    expect(markup).toContain("ฝั่ง 70 อยู่ขวา");
+    expect(markup).toContain("ฝั่ง 30 / ลำดับ 1");
+    expect(markup).toContain("เปิดใช้แถว");
+    expect(markup).not.toContain("รูปแบบแถว");
+    expect(markup).not.toContain("สัดส่วนคอลัมน์");
   });
 
   it("explains that recommended villas are locked full width", () => {
-    const row = toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT).rows.at(-1) ?? null;
-    const markup = renderPanel(row);
+    const markup = renderPanel({ zone: "lockedBottom", blockIndex: 0 });
 
-    expect(markup).toContain("ล็อกเต็มความกว้าง");
-    expect(markup).toContain("บ้านพักแนะนำ");
+    expect(markup).toContain("บ้านพักแนะนำ: ล็อกเต็มความกว้าง");
+    expect(markup).toContain("ถูกล็อกไว้ด้านล่าง");
+    expect(markup).toContain("ไม่มีการแก้แถวหรือเพิ่ม block");
   });
 });

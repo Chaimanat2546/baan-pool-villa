@@ -365,6 +365,122 @@ export function removeDetailLayoutV2WideBlock(
   }));
 }
 
+export function compactDetailLayoutV2WideRowBlocks(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+): DetailLayoutV2Draft {
+  return withUpdatedWideRow(draft, rowId, (row) => {
+    const blocks = row.blocks.filter(
+      (block): block is DetailLayoutBlock => block !== null,
+    );
+
+    return {
+      ...row,
+      blocks: [
+        ...blocks,
+        ...Array.from({ length: row.columns - blocks.length }, () => null),
+      ],
+    };
+  });
+}
+
+export function updateDetailLayoutV2WideRow(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+  changes: Partial<Pick<DetailLayoutV2DraftWideRow, "enabled" | "ratio">>,
+): DetailLayoutV2Draft {
+  return withUpdatedWideRow(draft, rowId, (row) => ({
+    ...row,
+    ...changes,
+  }));
+}
+
+export function updateDetailLayoutV2WideBlock(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+  blockIndex: number,
+  changes: Partial<Omit<DetailLayoutBlock, "type">>,
+): DetailLayoutV2Draft {
+  return withUpdatedWideRow(draft, rowId, (row) => {
+    if (blockIndex < 0 || blockIndex >= row.blocks.length) {
+      return row;
+    }
+
+    const block = row.blocks[blockIndex];
+
+    if (!block) {
+      return row;
+    }
+
+    const blocks = [...row.blocks];
+    blocks[blockIndex] = { ...block, ...changes };
+
+    return {
+      ...row,
+      blocks,
+    };
+  });
+}
+
+export function deleteDetailLayoutV2WideRow(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+): DetailLayoutV2Draft {
+  const clonedDraft = cloneDetailLayoutV2Draft(draft);
+  const wideRows = clonedDraft.mainSplit.wideRows.filter(
+    (row) => row.id !== rowId,
+  );
+
+  return {
+    ...clonedDraft,
+    mainSplit: {
+      ...clonedDraft.mainSplit,
+      wideRows:
+        wideRows.length > 0
+          ? wideRows
+          : [
+              {
+                id: makeV2DraftRowId("wide"),
+                columns: 1,
+                enabled: true,
+                blocks: [null],
+              },
+            ],
+    },
+  };
+}
+
+export function duplicateDetailLayoutV2WideRow(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+): DetailLayoutV2Draft {
+  const clonedDraft = cloneDetailLayoutV2Draft(draft);
+  const rowIndex = clonedDraft.mainSplit.wideRows.findIndex(
+    (row) => row.id === rowId,
+  );
+
+  if (rowIndex < 0) {
+    return clonedDraft;
+  }
+
+  const sourceRow = clonedDraft.mainSplit.wideRows[rowIndex];
+  const duplicateRow = {
+    ...sourceRow,
+    id: makeV2DraftRowId("wide"),
+    blocks: sourceRow.blocks.map(cloneSlot),
+  };
+  const wideRows = [...clonedDraft.mainSplit.wideRows];
+  wideRows.splice(rowIndex + 1, 0, duplicateRow);
+
+  return {
+    ...clonedDraft,
+    mainSplit: {
+      ...clonedDraft.mainSplit,
+      wideRows,
+    },
+  };
+}
+
 export function moveDetailLayoutV2WideRow(
   draft: DetailLayoutV2Draft,
   fromIndex: number,
@@ -412,6 +528,93 @@ export function putDetailLayoutV2NarrowBlock(
     ...row,
     block: cloneBlock(block),
   }));
+}
+
+export function updateDetailLayoutV2NarrowRow(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+  changes: Partial<Pick<DetailLayoutV2DraftNarrowRow, "enabled">>,
+): DetailLayoutV2Draft {
+  return withUpdatedNarrowRow(draft, rowId, (row) => ({
+    ...row,
+    ...changes,
+  }));
+}
+
+export function updateDetailLayoutV2NarrowBlock(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+  changes: Partial<Omit<DetailLayoutBlock, "type">>,
+): DetailLayoutV2Draft {
+  return withUpdatedNarrowRow(draft, rowId, (row) => {
+    if (!row.block) {
+      return row;
+    }
+
+    return {
+      ...row,
+      block: { ...row.block, ...changes },
+    };
+  });
+}
+
+export function removeDetailLayoutV2NarrowBlock(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+): DetailLayoutV2Draft {
+  return withUpdatedNarrowRow(draft, rowId, (row) => ({
+    ...row,
+    block: null,
+  }));
+}
+
+export function deleteDetailLayoutV2NarrowRow(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+): DetailLayoutV2Draft {
+  const clonedDraft = cloneDetailLayoutV2Draft(draft);
+  const narrowRows = clonedDraft.mainSplit.narrowRows.filter(
+    (row) => row.id !== rowId,
+  );
+
+  return {
+    ...clonedDraft,
+    mainSplit: {
+      ...clonedDraft.mainSplit,
+      narrowRows,
+    },
+  };
+}
+
+export function duplicateDetailLayoutV2NarrowRow(
+  draft: DetailLayoutV2Draft,
+  rowId: string,
+): DetailLayoutV2Draft {
+  const clonedDraft = cloneDetailLayoutV2Draft(draft);
+  const rowIndex = clonedDraft.mainSplit.narrowRows.findIndex(
+    (row) => row.id === rowId,
+  );
+
+  if (rowIndex < 0) {
+    return clonedDraft;
+  }
+
+  const sourceRow = clonedDraft.mainSplit.narrowRows[rowIndex];
+  const duplicateRow = {
+    ...sourceRow,
+    id: makeV2DraftRowId("narrow"),
+    block: cloneSlot(sourceRow.block),
+  };
+  const narrowRows = [...clonedDraft.mainSplit.narrowRows];
+  narrowRows.splice(rowIndex + 1, 0, duplicateRow);
+
+  return {
+    ...clonedDraft,
+    mainSplit: {
+      ...clonedDraft.mainSplit,
+      narrowRows,
+    },
+  };
 }
 
 export function moveDetailLayoutV2NarrowRow(

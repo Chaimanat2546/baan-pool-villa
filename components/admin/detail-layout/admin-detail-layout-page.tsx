@@ -4,52 +4,50 @@ import {
   CheckCircle2,
   CircleAlert,
   Columns2,
-  Columns3,
   PanelTop,
   RotateCcw,
   Save,
+  Sidebar,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { DEFAULT_DETAIL_LAYOUT } from "@/lib/detail-layout/defaults";
-import type {
-  DetailLayoutBlockType,
-  DetailLayoutColumns,
-  DetailLayoutRatio,
-} from "@/lib/detail-layout/types";
-import { validateDetailLayout } from "@/lib/detail-layout/validation";
+import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
+import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
 import { BlockLibrary } from "./block-library";
-import { DetailLayoutPreview } from "./detail-layout-preview";
+import { makeDetailLayoutBlock } from "./detail-layout-helpers";
 import {
-  addDetailLayoutRow,
-  compactDetailLayoutRowBlocks,
-  deleteDetailLayoutRow,
-  duplicateDetailLayoutRow,
-  getDetailLayoutBlockTargetSlot,
-  getFirstEditableRowId,
-  makeDetailLayoutBlock,
-  makeDetailLayoutSnapshot,
-  moveDetailLayoutBlockToSlot,
-  moveDetailLayoutDraftRow,
-  putDetailLayoutBlockInSlot,
-  removeDetailLayoutBlock,
-  toDetailLayoutConfig,
-  toDetailLayoutDraft,
-  updateDetailLayoutBlock,
-  updateDetailLayoutRow,
-  updateDetailLayoutRowColumns,
-  validateDetailLayoutDraftForSave,
-} from "./detail-layout-helpers";
-import { LayoutCanvas } from "./layout-canvas";
+  addDetailLayoutV2NarrowRow,
+  addDetailLayoutV2WideRow,
+  deleteDetailLayoutV2NarrowRow,
+  deleteDetailLayoutV2WideRow,
+  makeDetailLayoutV2Snapshot,
+  moveDetailLayoutV2NarrowRow,
+  moveDetailLayoutV2WideRow,
+  putDetailLayoutV2NarrowBlock,
+  putDetailLayoutV2WideBlockInSlot,
+  removeDetailLayoutV2NarrowBlock,
+  removeDetailLayoutV2WideBlock,
+  toDetailLayoutV2Config,
+  toDetailLayoutV2Draft,
+  updateDetailLayoutV2NarrowBlock,
+  updateDetailLayoutV2NarrowRow,
+  updateDetailLayoutV2OuterRatio,
+  updateDetailLayoutV2WideBlock,
+  updateDetailLayoutV2WideRow,
+  updateDetailLayoutV2WideRowColumns,
+  validateDetailLayoutV2DraftForSave,
+} from "./detail-layout-v2-helpers";
+import { LayoutCanvas, type DetailLayoutCanvasSelection } from "./layout-canvas";
 import { RowSettingsPanel } from "./row-settings-panel";
 import type {
   AdminDetailLayoutResponse,
-  DetailLayoutBlock,
-  DetailLayoutDraft,
-  DetailLayoutDraftRow,
+  DetailLayoutBlockType,
+  DetailLayoutV2Draft,
+  DetailLayoutWideColumns,
+  DetailLayoutWideRatio,
 } from "./types";
 
 const ADMIN_ACCESS_ERROR_PREFIX = "Unable to verify admin access:";
@@ -121,65 +119,200 @@ function shouldRedirectToLogin(
   );
 }
 
-function findRow(layout: DetailLayoutDraft | null, rowId: string | null) {
+function findWideRow(layout: DetailLayoutV2Draft | null, rowId: string | null) {
   if (!layout || !rowId) {
     return null;
   }
 
-  return layout.rows.find((row) => row.id === rowId) ?? null;
+  return layout.mainSplit.wideRows.find((row) => row.id === rowId) ?? null;
 }
 
-function findBlock(row: DetailLayoutDraftRow | null, blockIndex: number | null) {
-  if (!row || blockIndex === null) {
+function findNarrowRow(layout: DetailLayoutV2Draft | null, rowId: string | null) {
+  if (!layout || !rowId) {
     return null;
   }
 
-  return row.blocks[blockIndex] ?? null;
+  return layout.mainSplit.narrowRows.find((row) => row.id === rowId) ?? null;
+}
+
+function getDefaultSelection(
+  layout: DetailLayoutV2Draft,
+): DetailLayoutCanvasSelection {
+  const firstWideRow = layout.mainSplit.wideRows[0];
+
+  if (firstWideRow) {
+    return { zone: "wide", rowId: firstWideRow.id, blockIndex: 0 };
+  }
+
+  const firstNarrowRow = layout.mainSplit.narrowRows[0];
+
+  if (firstNarrowRow) {
+    return { zone: "narrow", rowId: firstNarrowRow.id };
+  }
+
+  return layout.lockedBottom.length > 0
+    ? { zone: "lockedBottom", blockIndex: 0 }
+    : null;
+}
+
+function normalizeSelection(
+  layout: DetailLayoutV2Draft,
+  selection: DetailLayoutCanvasSelection,
+): DetailLayoutCanvasSelection {
+  if (!selection) {
+    return getDefaultSelection(layout);
+  }
+
+  if (selection.zone === "wide") {
+    const row = findWideRow(layout, selection.rowId);
+
+    if (row) {
+      return {
+        ...selection,
+        blockIndex: Math.min(selection.blockIndex, row.columns - 1),
+      };
+    }
+  }
+
+  if (selection.zone === "narrow" && findNarrowRow(layout, selection.rowId)) {
+    return selection;
+  }
+
+  if (
+    selection.zone === "lockedBottom" &&
+    selection.blockIndex < layout.lockedBottom.length
+  ) {
+    return selection;
+  }
+
+  return getDefaultSelection(layout);
+}
+
+function getWideSlotLabel(columns: DetailLayoutWideColumns, blockIndex: number) {
+  if (columns === 1) {
+    return "ช่องเดียว";
+  }
+
+  return blockIndex === 0 ? "ช่องซ้าย" : "ช่องขวา";
+}
+
+function getPlacementLabel(
+  layout: DetailLayoutV2Draft | null,
+  selection: DetailLayoutCanvasSelection,
+): string {
+  if (!layout || !selection) {
+    return "เลือกพื้นที่ก่อน";
+  }
+
+  if (selection.zone === "lockedBottom") {
+    return "บ้านพักแนะนำ / ล็อกเต็มความกว้าง";
+  }
+
+  if (selection.zone === "wide") {
+    const rowIndex = layout.mainSplit.wideRows.findIndex(
+      (row) => row.id === selection.rowId,
+    );
+    const row = rowIndex >= 0 ? layout.mainSplit.wideRows[rowIndex] : null;
+
+    if (!row) {
+      return "เลือกพื้นที่ก่อน";
+    }
+
+    return `ฝั่ง 70 / แถว ${rowIndex + 1} / ${getWideSlotLabel(
+      row.columns,
+      selection.blockIndex,
+    )}`;
+  }
+
+  const rowIndex = layout.mainSplit.narrowRows.findIndex(
+    (row) => row.id === selection.rowId,
+  );
+
+  return rowIndex >= 0 ? `ฝั่ง 30 / ลำดับ ${rowIndex + 1}` : "เลือกพื้นที่ก่อน";
+}
+
+function moveWideBlock(
+  layout: DetailLayoutV2Draft,
+  fromRowId: string,
+  fromBlockIndex: number,
+  toRowId: string,
+  toBlockIndex: number,
+) {
+  const fromRow = findWideRow(layout, fromRowId);
+  const block = fromRow?.blocks[fromBlockIndex] ?? null;
+
+  if (!fromRow || !block) {
+    return layout;
+  }
+
+  if (fromRowId === toRowId && fromBlockIndex === toBlockIndex) {
+    return layout;
+  }
+
+  const toRow = findWideRow(layout, toRowId);
+  const targetBlock = toRow?.blocks[toBlockIndex] ?? null;
+  const clearedLayout = removeDetailLayoutV2WideBlock(
+    layout,
+    fromRowId,
+    fromBlockIndex,
+  );
+  const swappedLayout = targetBlock
+    ? putDetailLayoutV2WideBlockInSlot(
+        clearedLayout,
+        fromRowId,
+        fromBlockIndex,
+        targetBlock,
+      )
+    : clearedLayout;
+
+  return putDetailLayoutV2WideBlockInSlot(
+    swappedLayout,
+    toRowId,
+    toBlockIndex,
+    block,
+  );
 }
 
 export function AdminDetailLayoutPage() {
   const router = useRouter();
-  const [layout, setLayout] = useState<DetailLayoutDraft | null>(null);
-  const [activeRowId, setActiveRowId] = useState<string | null>(null);
-  const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(null);
+  const [layout, setLayout] = useState<DetailLayoutV2Draft | null>(null);
+  const [activeSelection, setActiveSelection] =
+    useState<DetailLayoutCanvasSelection>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const activeRow = useMemo(
-    () => findRow(layout, activeRowId),
-    [activeRowId, layout],
+  const activePlacementLabel = useMemo(
+    () => getPlacementLabel(layout, activeSelection),
+    [activeSelection, layout],
   );
-  const activeBlock = useMemo(
-    () => findBlock(activeRow, activeBlockIndex),
-    [activeBlockIndex, activeRow],
-  );
-  const activePlacementLabel = useMemo(() => {
-    if (!layout || !activeRow) {
-      return "เลือกแถวหรือช่องก่อน";
+  const activeBlockTitle = useMemo(() => {
+    if (!layout || !activeSelection) {
+      return null;
     }
 
-    const rowIndex = layout.rows.findIndex((row) => row.id === activeRow.id);
-    const targetSlot = getDetailLayoutBlockTargetSlot(
-      activeRow,
-      activeBlockIndex,
-    );
-    const rowLabel = rowIndex >= 0 ? `แถวที่ ${rowIndex + 1}` : "แถวที่เลือก";
-
-    if (targetSlot === null) {
-      return `${rowLabel} เต็มแล้ว`;
+    if (activeSelection.zone === "wide") {
+      return (
+        findWideRow(layout, activeSelection.rowId)?.blocks[
+          activeSelection.blockIndex
+        ]?.title ?? null
+      );
     }
 
-    return `${rowLabel} / ช่องที่ ${targetSlot + 1}`;
-  }, [activeBlockIndex, activeRow, layout]);
+    if (activeSelection.zone === "narrow") {
+      return findNarrowRow(layout, activeSelection.rowId)?.block?.title ?? null;
+    }
+
+    return layout.lockedBottom[activeSelection.blockIndex]?.title ?? null;
+  }, [activeSelection, layout]);
   const hasUnsavedChanges = useMemo(() => {
     if (!layout || savedSnapshot === null) {
       return false;
     }
 
-    return makeDetailLayoutSnapshot(layout) !== savedSnapshot;
+    return makeDetailLayoutV2Snapshot(layout) !== savedSnapshot;
   }, [layout, savedSnapshot]);
 
   const redirectToLogin = useCallback(() => {
@@ -228,12 +361,11 @@ export function AdminDetailLayoutPage() {
           return;
         }
 
-        const nextLayout = toDetailLayoutDraft(payload.layout);
+        const nextLayout = toDetailLayoutV2Draft(payload.layout);
 
         setLayout(nextLayout);
-        setSavedSnapshot(makeDetailLayoutSnapshot(nextLayout));
-        setActiveRowId(getFirstEditableRowId(nextLayout));
-        setActiveBlockIndex(0);
+        setSavedSnapshot(makeDetailLayoutV2Snapshot(nextLayout));
+        setActiveSelection(getDefaultSelection(nextLayout));
       } catch (caughtError) {
         setErrors([
           caughtError instanceof Error
@@ -282,220 +414,111 @@ export function AdminDetailLayoutPage() {
     };
   }, [getAccessToken, loadLayout]);
 
+  useEffect(() => {
+    if (!layout) {
+      return;
+    }
+
+    setActiveSelection((currentSelection) =>
+      normalizeSelection(layout, currentSelection),
+    );
+  }, [layout]);
+
   function updateLayout(
-    updater: (currentLayout: DetailLayoutDraft) => DetailLayoutDraft,
+    updater: (currentLayout: DetailLayoutV2Draft) => DetailLayoutV2Draft,
+    nextSelection?: DetailLayoutCanvasSelection,
   ) {
     setNotice(null);
     setErrors([]);
-    setLayout((currentLayout) =>
-      currentLayout ? updater(currentLayout) : currentLayout,
-    );
-  }
+    setLayout((currentLayout) => {
+      if (!currentLayout) {
+        return currentLayout;
+      }
 
-  function handleAddRow(columns: DetailLayoutColumns) {
-    updateLayout((currentLayout) => {
-      const nextLayout = addDetailLayoutRow(currentLayout, columns);
-      const nextRow = nextLayout.rows.at(-1) ?? null;
-
-      setActiveRowId(nextRow?.id ?? null);
-      setActiveBlockIndex(null);
-
-      return nextLayout;
+      return updater(currentLayout);
     });
+
+    if (nextSelection !== undefined) {
+      setActiveSelection(nextSelection);
+    }
   }
 
-  function handleReset() {
-    const nextLayout = toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT);
+  function handleAddWideRow(
+    columns: DetailLayoutWideColumns,
+    ratio?: DetailLayoutWideRatio,
+  ) {
+    if (!layout) {
+      return;
+    }
+
+    const nextLayout = addDetailLayoutV2WideRow(layout, columns, ratio);
+    const nextRow = nextLayout.mainSplit.wideRows.at(-1);
 
     setNotice(null);
     setErrors([]);
     setLayout(nextLayout);
-    setActiveRowId(getFirstEditableRowId(nextLayout));
-    setActiveBlockIndex(0);
+    setActiveSelection(
+      nextRow
+        ? { zone: "wide", rowId: nextRow.id, blockIndex: 0 }
+        : getDefaultSelection(nextLayout),
+    );
   }
 
-  function putBlockInActiveRow(type: DetailLayoutBlockType) {
-    if (!layout || !activeRow) {
-      setErrors(["เลือกแถวก่อนเพิ่ม block"]);
+  function handleAddNarrowRow() {
+    if (!layout) {
+      return;
+    }
+
+    const nextLayout = addDetailLayoutV2NarrowRow(layout);
+    const nextRow = nextLayout.mainSplit.narrowRows.at(-1);
+
+    setNotice(null);
+    setErrors([]);
+    setLayout(nextLayout);
+    setActiveSelection(
+      nextRow ? { zone: "narrow", rowId: nextRow.id } : getDefaultSelection(nextLayout),
+    );
+  }
+
+  function handleReset() {
+    const nextLayout = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2);
+
+    setNotice(null);
+    setErrors([]);
+    setLayout(nextLayout);
+    setActiveSelection(getDefaultSelection(nextLayout));
+  }
+
+  function putBlockInActiveSelection(type: DetailLayoutBlockType) {
+    if (!layout || !activeSelection) {
+      setErrors(["เลือกพื้นที่ก่อนเพิ่ม block"]);
       setNotice(null);
       return;
     }
 
-    const nextIndex = getDetailLayoutBlockTargetSlot(
-      activeRow,
-      activeBlockIndex,
-    );
-
-    if (nextIndex === null) {
-      setErrors(["แถวนี้เต็มแล้ว เลือกช่องว่างหรือเพิ่มคอลัมน์ก่อน"]);
+    if (activeSelection.zone === "lockedBottom") {
+      setErrors(["บ้านพักแนะนำเป็นส่วนที่ล็อกไว้ ไม่สามารถเพิ่ม block ตรงนี้ได้"]);
       setNotice(null);
       return;
     }
 
-    updateLayout((currentLayout) =>
-      putDetailLayoutBlockInSlot(
-        currentLayout,
-        activeRow.id,
-        nextIndex,
-        makeDetailLayoutBlock(type),
-      ),
-    );
-    setActiveBlockIndex(nextIndex);
-  }
+    const block = makeDetailLayoutBlock(type);
 
-  function handleDropBlock(
-    rowId: string,
-    blockIndex: number,
-    type: DetailLayoutBlockType,
-  ) {
-    updateLayout((currentLayout) =>
-      putDetailLayoutBlockInSlot(
-        currentLayout,
-        rowId,
-        blockIndex,
-        makeDetailLayoutBlock(type),
-      ),
-    );
-    setActiveRowId(rowId);
-    setActiveBlockIndex(blockIndex);
-  }
-
-  function handleMoveRow(fromIndex: number, toIndex: number) {
-    updateLayout((currentLayout) =>
-      moveDetailLayoutDraftRow(currentLayout, fromIndex, toIndex),
-    );
-  }
-
-  function handleMoveBlock(
-    fromRowId: string,
-    fromBlockIndex: number,
-    toRowId: string,
-    toBlockIndex: number,
-  ) {
-    updateLayout((currentLayout) =>
-      moveDetailLayoutBlockToSlot(
-        currentLayout,
-        fromRowId,
-        fromBlockIndex,
-        toRowId,
-        toBlockIndex,
-      ),
-    );
-    setActiveRowId(toRowId);
-    setActiveBlockIndex(toBlockIndex);
-  }
-
-  function handleDeleteRow(rowId: string) {
-    updateLayout((currentLayout) => {
-      const rowIndex = currentLayout.rows.findIndex((row) => row.id === rowId);
-      const nextLayout = deleteDetailLayoutRow(currentLayout, rowId);
-      const nextActiveRow =
-        nextLayout.rows[Math.min(rowIndex, nextLayout.rows.length - 1)] ?? null;
-      const firstBlockIndex =
-        nextActiveRow?.blocks.findIndex((block) => block !== null) ?? -1;
-
-      setActiveRowId(nextActiveRow?.id ?? null);
-      setActiveBlockIndex(firstBlockIndex >= 0 ? firstBlockIndex : null);
-
-      return nextLayout;
-    });
-  }
-
-  function handleDuplicateRow(rowId: string) {
-    updateLayout((currentLayout) => {
-      const nextLayout = duplicateDetailLayoutRow(currentLayout, rowId);
-      const rowIndex = currentLayout.rows.findIndex((row) => row.id === rowId);
-      const duplicateRow = nextLayout.rows[rowIndex + 1] ?? null;
-
-      setActiveRowId(duplicateRow?.id ?? rowId);
-      const firstBlockIndex =
-        duplicateRow?.blocks.findIndex((block) => block !== null) ?? -1;
-
-      setActiveBlockIndex(firstBlockIndex >= 0 ? firstBlockIndex : null);
-
-      return nextLayout;
-    });
-  }
-
-  function handleSelectRow(rowId: string) {
-    const row = layout?.rows.find((candidate) => candidate.id === rowId) ?? null;
-
-    setActiveRowId(rowId);
-    const firstBlockIndex = row?.blocks.findIndex((block) => block !== null) ?? -1;
-
-    setActiveBlockIndex(firstBlockIndex >= 0 ? firstBlockIndex : null);
-  }
-
-  function handleSelectBlock(rowId: string, blockIndex: number) {
-    setActiveRowId(rowId);
-    setActiveBlockIndex(blockIndex);
-  }
-
-  function handleUpdateColumns(
-    columns: DetailLayoutColumns,
-    ratio?: DetailLayoutRatio,
-  ) {
-    if (!activeRow) {
+    if (activeSelection.zone === "wide") {
+      updateLayout((currentLayout) =>
+        putDetailLayoutV2WideBlockInSlot(
+          currentLayout,
+          activeSelection.rowId,
+          activeSelection.blockIndex,
+          block,
+        ),
+      );
       return;
     }
 
     updateLayout((currentLayout) =>
-      updateDetailLayoutRowColumns(currentLayout, activeRow.id, columns, ratio),
+      putDetailLayoutV2NarrowBlock(currentLayout, activeSelection.rowId, block),
     );
-
-    if (activeBlockIndex !== null && activeBlockIndex >= columns) {
-      setActiveBlockIndex(columns - 1);
-    }
-  }
-
-  function handleUpdateRow(
-    changes: Partial<Pick<DetailLayoutDraftRow, "enabled" | "ratio">>,
-  ) {
-    if (!activeRow) {
-      return;
-    }
-
-    updateLayout((currentLayout) =>
-      updateDetailLayoutRow(currentLayout, activeRow.id, changes),
-    );
-  }
-
-  function handleUpdateBlock(
-    blockIndex: number,
-    changes: Partial<Omit<DetailLayoutBlock, "type">>,
-  ) {
-    if (!activeRow) {
-      return;
-    }
-
-    updateLayout((currentLayout) =>
-      updateDetailLayoutBlock(currentLayout, activeRow.id, blockIndex, changes),
-    );
-  }
-
-  function handleRemoveBlock(rowId: string, blockIndex: number) {
-    updateLayout((currentLayout) =>
-      removeDetailLayoutBlock(currentLayout, rowId, blockIndex),
-    );
-
-    if (activeRowId === rowId && activeBlockIndex === blockIndex) {
-      setActiveBlockIndex(null);
-    }
-  }
-
-  function handleCompactRow(rowId: string) {
-    updateLayout((currentLayout) => {
-      const nextLayout = compactDetailLayoutRowBlocks(currentLayout, rowId);
-      const compactedRow =
-        nextLayout.rows.find((candidate) => candidate.id === rowId) ?? null;
-      const firstBlockIndex =
-        compactedRow?.blocks.findIndex((block) => block !== null) ?? -1;
-
-      setActiveRowId(rowId);
-      setActiveBlockIndex(firstBlockIndex >= 0 ? firstBlockIndex : 0);
-
-      return nextLayout;
-    });
   }
 
   async function handleSave() {
@@ -508,7 +531,7 @@ export function AdminDetailLayoutPage() {
       return;
     }
 
-    const draftErrors = validateDetailLayoutDraftForSave(layout);
+    const draftErrors = validateDetailLayoutV2DraftForSave(layout);
 
     setNotice(null);
     setErrors(draftErrors);
@@ -517,8 +540,8 @@ export function AdminDetailLayoutPage() {
       return;
     }
 
-    const compactLayout = toDetailLayoutConfig(layout);
-    const validation = validateDetailLayout(compactLayout);
+    const compactLayout = toDetailLayoutV2Config(layout);
+    const validation = validateAnyDetailLayout(compactLayout);
 
     setNotice(null);
     setErrors(validation.errors);
@@ -558,12 +581,12 @@ export function AdminDetailLayoutPage() {
         return;
       }
 
-      const nextLayout = toDetailLayoutDraft(payload.layout);
+      const nextLayout = toDetailLayoutV2Draft(payload.layout);
 
       setLayout(nextLayout);
-      setSavedSnapshot(makeDetailLayoutSnapshot(nextLayout));
-      setActiveRowId((currentRowId) =>
-        findRow(nextLayout, currentRowId) ? currentRowId : getFirstEditableRowId(nextLayout),
+      setSavedSnapshot(makeDetailLayoutV2Snapshot(nextLayout));
+      setActiveSelection((currentSelection) =>
+        normalizeSelection(nextLayout, currentSelection),
       );
       setNotice("บันทึก layout หน้า Details แล้ว");
     } catch (caughtError) {
@@ -588,7 +611,8 @@ export function AdminDetailLayoutPage() {
             Layout รายละเอียดบ้านพัก
           </h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
-            จัดลำดับ block ที่ใช้กับหน้ารายละเอียดบ้านพักทุกหลัง ส่วนแกลเลอรีและข้อมูลเริ่มต้นด้านบนถูกล็อกไว้
+            จัด block ในพื้นที่ 70/30 ของหน้ารายละเอียดบ้านพัก ส่วนแกลเลอรี ข้อมูลเริ่มต้น
+            และบ้านพักแนะนำถูกล็อกไว้เพื่อให้หน้า public คงรูปแบบหลัก
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
             <span
@@ -605,15 +629,12 @@ export function AdminDetailLayoutPage() {
               )}
               {hasUnsavedChanges ? "มีการแก้ไขที่ยังไม่บันทึก" : "บันทึกแล้ว"}
             </span>
-            {activeRow ? (
-              <span className="inline-flex items-center rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
-                แถวที่เลือก: {activeRow.columns} คอลัมน์
-                {activeRow.ratio ? ` / ${activeRow.ratio}` : ""}
-              </span>
-            ) : null}
-            {activeBlock ? (
+            <span className="inline-flex min-w-0 items-center rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
+              <span className="truncate">ตำแหน่ง: {activePlacementLabel}</span>
+            </span>
+            {activeBlockTitle ? (
               <span className="inline-flex min-w-0 items-center rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
-                <span className="truncate">Block: {activeBlock.title}</span>
+                <span className="truncate">Block: {activeBlockTitle}</span>
               </span>
             ) : null}
           </div>
@@ -624,34 +645,32 @@ export function AdminDetailLayoutPage() {
             className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
             disabled={isLoading || isSaving}
             onClick={() => {
-              handleAddRow(1);
+              handleAddWideRow(1);
             }}
             type="button"
           >
             <PanelTop aria-hidden="true" className="size-4" />
-            เพิ่ม 1 คอลัมน์
+            เพิ่มแถว 70
           </button>
           <button
             className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
             disabled={isLoading || isSaving}
             onClick={() => {
-              handleAddRow(2);
+              handleAddWideRow(2, "50/50");
             }}
             type="button"
           >
             <Columns2 aria-hidden="true" className="size-4" />
-            เพิ่ม 2 คอลัมน์
+            เพิ่มแถว 70 / 2 ช่อง
           </button>
           <button
             className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
             disabled={isLoading || isSaving}
-            onClick={() => {
-              handleAddRow(3);
-            }}
+            onClick={handleAddNarrowRow}
             type="button"
           >
-            <Columns3 aria-hidden="true" className="size-4" />
-            เพิ่ม 3 คอลัมน์
+            <Sidebar aria-hidden="true" className="size-4" />
+            เพิ่มแถว 30
           </button>
           <button
             className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
@@ -707,52 +726,197 @@ export function AdminDetailLayoutPage() {
         <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)_360px]">
           <div className="xl:sticky xl:top-4 xl:self-start">
             <BlockLibrary
-              onAddBlock={putBlockInActiveRow}
+              onAddBlock={putBlockInActiveSelection}
               onDragStart={() => {}}
               targetLabel={activePlacementLabel}
             />
           </div>
 
           <LayoutCanvas
-            activeBlockIndex={activeBlockIndex}
-            activeRowId={activeRowId}
+            activeSelection={activeSelection}
             layout={layout}
-            onAddRow={handleAddRow}
-            onCompactRow={handleCompactRow}
-            onDeleteRow={handleDeleteRow}
-            onDropBlock={handleDropBlock}
-            onDuplicateRow={handleDuplicateRow}
-            onMoveBlock={handleMoveBlock}
-            onMoveRow={handleMoveRow}
-            onRemoveBlock={handleRemoveBlock}
-            onSelectBlock={handleSelectBlock}
-            onSelectRow={handleSelectRow}
-            onToggleRowEnabled={(rowId, enabled) => {
+            onAddNarrowRow={handleAddNarrowRow}
+            onAddWideRow={handleAddWideRow}
+            onDropNarrowBlock={(rowId, type) => {
+              updateLayout(
+                (currentLayout) =>
+                  putDetailLayoutV2NarrowBlock(
+                    currentLayout,
+                    rowId,
+                    makeDetailLayoutBlock(type),
+                  ),
+                { zone: "narrow", rowId },
+              );
+            }}
+            onDropWideBlock={(rowId, blockIndex, type) => {
+              updateLayout(
+                (currentLayout) =>
+                  putDetailLayoutV2WideBlockInSlot(
+                    currentLayout,
+                    rowId,
+                    blockIndex,
+                    makeDetailLayoutBlock(type),
+                  ),
+                { zone: "wide", rowId, blockIndex },
+              );
+            }}
+            onMoveNarrowRow={(fromIndex, toIndex) => {
               updateLayout((currentLayout) =>
-                updateDetailLayoutRow(currentLayout, rowId, { enabled }),
+                moveDetailLayoutV2NarrowRow(currentLayout, fromIndex, toIndex),
+              );
+            }}
+            onMoveWideBlock={(fromRowId, fromBlockIndex, toRowId, toBlockIndex) => {
+              updateLayout(
+                (currentLayout) =>
+                  moveWideBlock(
+                    currentLayout,
+                    fromRowId,
+                    fromBlockIndex,
+                    toRowId,
+                    toBlockIndex,
+                  ),
+                { zone: "wide", rowId: toRowId, blockIndex: toBlockIndex },
+              );
+            }}
+            onMoveWideRow={(fromIndex, toIndex) => {
+              updateLayout((currentLayout) =>
+                moveDetailLayoutV2WideRow(currentLayout, fromIndex, toIndex),
+              );
+            }}
+            onOuterRatioChange={(ratio) => {
+              updateLayout((currentLayout) =>
+                updateDetailLayoutV2OuterRatio(currentLayout, ratio),
+              );
+            }}
+            onRemoveNarrowBlock={(rowId) => {
+              updateLayout(
+                (currentLayout) =>
+                  removeDetailLayoutV2NarrowBlock(currentLayout, rowId),
+                { zone: "narrow", rowId },
+              );
+            }}
+            onRemoveNarrowRow={(rowId) => {
+              updateLayout((currentLayout) =>
+                deleteDetailLayoutV2NarrowRow(currentLayout, rowId),
+              );
+            }}
+            onRemoveWideBlock={(rowId, blockIndex) => {
+              updateLayout(
+                (currentLayout) =>
+                  removeDetailLayoutV2WideBlock(currentLayout, rowId, blockIndex),
+                { zone: "wide", rowId, blockIndex },
+              );
+            }}
+            onRemoveWideRow={(rowId) => {
+              updateLayout((currentLayout) =>
+                deleteDetailLayoutV2WideRow(currentLayout, rowId),
+              );
+            }}
+            onSelectLockedBottomBlock={(blockIndex) => {
+              setActiveSelection({ zone: "lockedBottom", blockIndex });
+            }}
+            onSelectNarrowRow={(rowId) => {
+              setActiveSelection({ zone: "narrow", rowId });
+            }}
+            onSelectWideBlock={(rowId, blockIndex) => {
+              setActiveSelection({ zone: "wide", rowId, blockIndex });
+            }}
+            onToggleNarrowRow={(rowId, enabled) => {
+              updateLayout((currentLayout) =>
+                updateDetailLayoutV2NarrowRow(currentLayout, rowId, { enabled }),
+              );
+            }}
+            onToggleWideRow={(rowId, enabled) => {
+              updateLayout((currentLayout) =>
+                updateDetailLayoutV2WideRow(currentLayout, rowId, { enabled }),
+              );
+            }}
+            onUpdateWideRow={(rowId, columns, ratio) => {
+              updateLayout((currentLayout) =>
+                updateDetailLayoutV2WideRowColumns(
+                  currentLayout,
+                  rowId,
+                  columns,
+                  ratio,
+                ),
               );
             }}
           />
 
           <aside className="grid content-start gap-3 xl:col-start-2 2xl:sticky 2xl:top-4 2xl:col-start-auto 2xl:self-start">
             <RowSettingsPanel
-              activeBlockIndex={activeBlockIndex}
-              onRemoveBlock={(blockIndex) => {
-                if (activeRow) {
-                  handleRemoveBlock(activeRow.id, blockIndex);
-                }
+              layout={layout}
+              onRemoveNarrowBlock={(rowId) => {
+                updateLayout(
+                  (currentLayout) =>
+                    removeDetailLayoutV2NarrowBlock(currentLayout, rowId),
+                  { zone: "narrow", rowId },
+                );
               }}
-              onSelectBlock={(blockIndex) => {
-                if (activeRow) {
-                  handleSelectBlock(activeRow.id, blockIndex);
-                }
+              onRemoveWideBlock={(rowId, blockIndex) => {
+                updateLayout(
+                  (currentLayout) =>
+                    removeDetailLayoutV2WideBlock(
+                      currentLayout,
+                      rowId,
+                      blockIndex,
+                    ),
+                  { zone: "wide", rowId, blockIndex },
+                );
               }}
-              onUpdateBlock={handleUpdateBlock}
-              onUpdateColumns={handleUpdateColumns}
-              onUpdateRow={handleUpdateRow}
-              row={activeRow}
+              onSelectWideBlock={(rowId, blockIndex) => {
+                setActiveSelection({ zone: "wide", rowId, blockIndex });
+              }}
+              onUpdateNarrowBlock={(rowId, changes) => {
+                updateLayout((currentLayout) =>
+                  updateDetailLayoutV2NarrowBlock(
+                    currentLayout,
+                    rowId,
+                    changes,
+                  ),
+                );
+              }}
+              onUpdateNarrowRow={(rowId, changes) => {
+                updateLayout((currentLayout) =>
+                  updateDetailLayoutV2NarrowRow(currentLayout, rowId, changes),
+                );
+              }}
+              onUpdateWideBlock={(rowId, blockIndex, changes) => {
+                updateLayout((currentLayout) =>
+                  updateDetailLayoutV2WideBlock(
+                    currentLayout,
+                    rowId,
+                    blockIndex,
+                    changes,
+                  ),
+                );
+              }}
+              onUpdateWideRow={(rowId, columns, ratio) => {
+                updateLayout((currentLayout) =>
+                  updateDetailLayoutV2WideRowColumns(
+                    currentLayout,
+                    rowId,
+                    columns,
+                    ratio,
+                  ),
+                );
+              }}
+              onUpdateWideRowEnabled={(rowId, enabled) => {
+                updateLayout((currentLayout) =>
+                  updateDetailLayoutV2WideRow(currentLayout, rowId, { enabled }),
+                );
+              }}
+              selection={activeSelection}
             />
-            <DetailLayoutPreview activeRowId={activeRowId} layout={layout} />
+            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 text-sm shadow-sm">
+              <h2 className="font-semibold text-[var(--site-text)]">
+                ตัวอย่างย่อ
+              </h2>
+              <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
+                โครงสร้าง V2 แสดงในผังกลางแล้ว: บนสุดล็อกไว้, พื้นที่หลักแบ่ง
+                {layout.mainSplit.ratio}, และบ้านพักแนะนำล็อกเต็มความกว้างด้านล่าง
+              </p>
+            </section>
           </aside>
         </div>
       )}
