@@ -213,4 +213,31 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).not.toContain("Private member service");
     expect(markup).not.toContain("member_service");
   });
+
+  it("ignores inherited object prototype block types", () => {
+    const layout = {
+      ...DEFAULT_DETAIL_LAYOUT,
+      rows: [
+        {
+          id: "prototype_row",
+          columns: 1,
+          enabled: true,
+          blocks: [
+            {
+              type: "toString",
+              title: "Prototype renderer",
+              enabled: true,
+              hideWhenEmpty: false,
+            },
+          ],
+        },
+      ],
+    } as unknown as DetailLayoutConfig;
+
+    const markup = render(layout);
+
+    expect(markup).toBe("");
+    expect(markup).not.toContain("Prototype renderer");
+    expect(markup).not.toContain("[object Object]");
+  });
 });

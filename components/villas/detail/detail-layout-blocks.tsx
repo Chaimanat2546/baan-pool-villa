@@ -343,7 +343,7 @@ const blockRenderers = {
 } satisfies Record<DetailLayoutBlockType, BlockRenderer>;
 
 function isAllowedBlockType(value: string): value is DetailLayoutBlockType {
-  return value in blockRenderers;
+  return Object.prototype.hasOwnProperty.call(blockRenderers, value);
 }
 
 export function renderDetailLayoutBlock(
