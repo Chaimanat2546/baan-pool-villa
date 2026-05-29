@@ -218,6 +218,11 @@ function normalizeBlocks(
     return null;
   }
 
+  if (value.length === 0) {
+    errors.push(`แถวที่ ${rowNumber} ต้องมี block อย่างน้อย 1 รายการ`);
+    return null;
+  }
+
   const blocks: DetailLayoutBlock[] = [];
 
   value.forEach((item, index) => {
@@ -256,9 +261,25 @@ function normalizeBlockTitle(
 
   const trimmedValue = value.trim();
 
-  return trimmedValue.length > 0
+  return trimmedValue.length > 0 && !hasPlainTextUnsafeCharacter(trimmedValue)
     ? trimmedValue
     : DETAIL_LAYOUT_BLOCK_LABELS[type];
+}
+
+function hasPlainTextUnsafeCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const charCode = value.charCodeAt(index);
+
+    if (value.charAt(index) === "<" || value.charAt(index) === ">") {
+      return true;
+    }
+
+    if (charCode <= 31 || charCode === 127) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function normalizeRowId(value: unknown, rowNumber: number): string {

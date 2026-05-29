@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_DETAIL_LAYOUT } from "../defaults";
+import {
+  DEFAULT_DETAIL_LAYOUT,
+  DETAIL_LAYOUT_BLOCK_LABELS,
+} from "../defaults";
 import {
   cloneDetailLayout,
   moveDetailLayoutRow,
@@ -69,6 +72,33 @@ describe("normalizeDetailLayout", () => {
     ]);
   });
 
+  it("falls back to the Thai default label for HTML-looking block titles", () => {
+    const result = validateDetailLayout({
+      version: 1,
+      lockedTop: ["gallery", "intro"],
+      rows: [
+        {
+          id: "safe_title",
+          columns: 1,
+          enabled: true,
+          blocks: [
+            {
+              type: "details",
+              title: "<img onerror=alert(1)>",
+              enabled: true,
+              hideWhenEmpty: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.layout.rows[0].blocks[0].title).toBe(
+      DETAIL_LAYOUT_BLOCK_LABELS.details,
+    );
+  });
+
   it("falls back to the default layout for unknown blocks or invalid ratios", () => {
     expect(
       normalizeDetailLayout({
@@ -118,6 +148,28 @@ describe("normalizeDetailLayout", () => {
 });
 
 describe("validateDetailLayout", () => {
+  it("reports rows with no blocks", () => {
+    const result = validateDetailLayout({
+      version: 1,
+      lockedTop: ["gallery", "intro"],
+      rows: [
+        {
+          id: "empty_blocks",
+          columns: 1,
+          enabled: true,
+          blocks: [],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.layout).toEqual(DEFAULT_DETAIL_LAYOUT);
+    expect(result.layout).not.toBe(DEFAULT_DETAIL_LAYOUT);
+    expect(result.errors).toContain(
+      "แถวที่ 1 ต้องมี block อย่างน้อย 1 รายการ",
+    );
+  });
+
   it("reports rows with too many blocks", () => {
     const result = validateDetailLayout({
       version: 1,
