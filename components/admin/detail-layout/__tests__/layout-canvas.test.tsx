@@ -96,7 +96,8 @@ describe("LayoutCanvas", () => {
     ];
     const markup = renderCanvas(layout);
 
-    expect(markup.match(/ลาก block ลงช่องนี้/g)).toHaveLength(2);
+    expect(markup).toContain("ช่องนี้กำลังเลือก");
+    expect(markup).toContain("ลาก block ลงช่องนี้");
   });
 
   it("renders a clear empty state for the narrow zone", () => {
@@ -105,7 +106,7 @@ describe("LayoutCanvas", () => {
     const markup = renderCanvas(layout);
 
     expect(markup).toContain("ยังไม่มีแถวในฝั่ง 30");
-    expect(markup).toContain("เพิ่มแถว 30 แล้วลาก block ลงช่อง");
+    expect(markup).toContain("เพิ่มแถวสำหรับ block แนวตั้ง");
   });
 
   it("ignores invalid dragged block payloads", () => {

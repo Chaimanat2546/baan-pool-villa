@@ -284,29 +284,36 @@ export function AdminDetailLayoutPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const activePlacementLabel = useMemo(
-    () => getPlacementLabel(layout, activeSelection),
+  const normalizedActiveSelection = useMemo(
+    () => (layout ? normalizeSelection(layout, activeSelection) : null),
     [activeSelection, layout],
   );
+  const activePlacementLabel = useMemo(
+    () => getPlacementLabel(layout, normalizedActiveSelection),
+    [layout, normalizedActiveSelection],
+  );
   const activeBlockTitle = useMemo(() => {
-    if (!layout || !activeSelection) {
+    if (!layout || !normalizedActiveSelection) {
       return null;
     }
 
-    if (activeSelection.zone === "wide") {
+    if (normalizedActiveSelection.zone === "wide") {
       return (
-        findWideRow(layout, activeSelection.rowId)?.blocks[
-          activeSelection.blockIndex
+        findWideRow(layout, normalizedActiveSelection.rowId)?.blocks[
+          normalizedActiveSelection.blockIndex
         ]?.title ?? null
       );
     }
 
-    if (activeSelection.zone === "narrow") {
-      return findNarrowRow(layout, activeSelection.rowId)?.block?.title ?? null;
+    if (normalizedActiveSelection.zone === "narrow") {
+      return (
+        findNarrowRow(layout, normalizedActiveSelection.rowId)?.block?.title ??
+        null
+      );
     }
 
-    return layout.lockedBottom[activeSelection.blockIndex]?.title ?? null;
-  }, [activeSelection, layout]);
+    return layout.lockedBottom[normalizedActiveSelection.blockIndex]?.title ?? null;
+  }, [layout, normalizedActiveSelection]);
   const hasUnsavedChanges = useMemo(() => {
     if (!layout || savedSnapshot === null) {
       return false;
@@ -414,16 +421,6 @@ export function AdminDetailLayoutPage() {
     };
   }, [getAccessToken, loadLayout]);
 
-  useEffect(() => {
-    if (!layout) {
-      return;
-    }
-
-    setActiveSelection((currentSelection) =>
-      normalizeSelection(layout, currentSelection),
-    );
-  }, [layout]);
-
   function updateLayout(
     updater: (currentLayout: DetailLayoutV2Draft) => DetailLayoutV2Draft,
     nextSelection?: DetailLayoutCanvasSelection,
@@ -490,13 +487,13 @@ export function AdminDetailLayoutPage() {
   }
 
   function putBlockInActiveSelection(type: DetailLayoutBlockType) {
-    if (!layout || !activeSelection) {
+    if (!layout || !normalizedActiveSelection) {
       setErrors(["เลือกพื้นที่ก่อนเพิ่ม block"]);
       setNotice(null);
       return;
     }
 
-    if (activeSelection.zone === "lockedBottom") {
+    if (normalizedActiveSelection.zone === "lockedBottom") {
       setErrors(["บ้านพักแนะนำเป็นส่วนที่ล็อกไว้ ไม่สามารถเพิ่ม block ตรงนี้ได้"]);
       setNotice(null);
       return;
@@ -504,12 +501,12 @@ export function AdminDetailLayoutPage() {
 
     const block = makeDetailLayoutBlock(type);
 
-    if (activeSelection.zone === "wide") {
+    if (normalizedActiveSelection.zone === "wide") {
       updateLayout((currentLayout) =>
         putDetailLayoutV2WideBlockInSlot(
           currentLayout,
-          activeSelection.rowId,
-          activeSelection.blockIndex,
+          normalizedActiveSelection.rowId,
+          normalizedActiveSelection.blockIndex,
           block,
         ),
       );
@@ -517,7 +514,11 @@ export function AdminDetailLayoutPage() {
     }
 
     updateLayout((currentLayout) =>
-      putDetailLayoutV2NarrowBlock(currentLayout, activeSelection.rowId, block),
+      putDetailLayoutV2NarrowBlock(
+        currentLayout,
+        normalizedActiveSelection.rowId,
+        block,
+      ),
     );
   }
 
@@ -733,7 +734,7 @@ export function AdminDetailLayoutPage() {
           </div>
 
           <LayoutCanvas
-            activeSelection={activeSelection}
+            activeSelection={normalizedActiveSelection}
             layout={layout}
             onAddNarrowRow={handleAddNarrowRow}
             onAddWideRow={handleAddWideRow}
@@ -906,7 +907,7 @@ export function AdminDetailLayoutPage() {
                   updateDetailLayoutV2WideRow(currentLayout, rowId, { enabled }),
                 );
               }}
-              selection={activeSelection}
+              selection={normalizedActiveSelection}
             />
             <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 text-sm shadow-sm">
               <h2 className="font-semibold text-[var(--site-text)]">

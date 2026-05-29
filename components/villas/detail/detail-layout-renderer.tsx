@@ -520,10 +520,17 @@ function renderV2Layout(
         )}
       </div>
     );
+  const renderedRows: ReactNode[] = [];
 
-  return [splitContent, lockedBottom].filter(
-    (node): node is ReactNode => node !== null,
-  );
+  if (splitContent !== null) {
+    renderedRows.push(splitContent);
+  }
+
+  if (lockedBottom !== null) {
+    renderedRows.push(lockedBottom);
+  }
+
+  return renderedRows;
 }
 
 export function DetailLayoutRenderer({
