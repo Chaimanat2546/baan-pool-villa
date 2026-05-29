@@ -11,11 +11,13 @@ import type { DetailLayoutBlockType } from "./types";
 interface BlockLibraryProps {
   onAddBlock: (type: DetailLayoutBlockType) => void;
   onDragStart: (type: DetailLayoutBlockType) => void;
+  targetLabel: string;
 }
 
 export function BlockLibrary({
   onAddBlock,
   onDragStart,
+  targetLabel,
 }: BlockLibraryProps) {
   function handleDragStart(
     event: DragEvent<HTMLButtonElement>,
@@ -32,7 +34,7 @@ export function BlockLibrary({
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--site-text)]">
             <Blocks aria-hidden="true" className="size-4 text-[var(--site-primary)]" />
-            คลัง Block
+            เพิ่มส่วนข้อมูล
           </h2>
           <p className="mt-0.5 text-xs leading-5 text-[var(--site-muted)]">
             กดเพื่อเพิ่มในแถวที่เลือก หรือลากลงช่อง
@@ -40,6 +42,13 @@ export function BlockLibrary({
         </div>
         <span className="rounded-full bg-[var(--site-surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--site-muted)]">
           {DETAIL_LAYOUT_BLOCK_TYPES.length} รายการ
+        </span>
+      </div>
+
+      <div className="mb-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2 text-xs leading-5 text-[var(--site-muted)]">
+        เพิ่มด้วยการกดจะลงที่:{" "}
+        <span className="font-semibold text-[var(--site-text)]">
+          {targetLabel}
         </span>
       </div>
 

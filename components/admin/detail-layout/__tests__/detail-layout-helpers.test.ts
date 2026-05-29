@@ -5,10 +5,12 @@ import { cloneDetailLayout } from "../../../../lib/detail-layout/validation";
 
 import {
   addDetailLayoutRow,
+  compactDetailLayoutRowBlocks,
   getDetailLayoutBlockTargetSlot,
   isDetailLayoutBlockType,
   makeDetailLayoutBlock,
   makeDetailLayoutSnapshot,
+  moveDetailLayoutBlockToSlot,
   putDetailLayoutBlockInSlot,
   removeDetailLayoutBlock,
   toDetailLayoutDraft,
@@ -141,6 +143,72 @@ describe("detail layout helpers", () => {
 
     expect(validateDetailLayoutDraftForSave(layout)).toEqual([
       "แถวที่ 1 มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง",
+    ]);
+  });
+
+  it("compacts row blocks into the first slots without changing columns", () => {
+    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
+    const layout = removeDetailLayoutBlock(
+      updateDetailLayoutRowColumns(
+        toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
+        row.id,
+        3,
+      ),
+      row.id,
+      0,
+    );
+    const compactedLayout = compactDetailLayoutRowBlocks(layout, row.id);
+    const compactedRow = compactedLayout.rows.find(
+      (candidate) => candidate.id === row.id,
+    );
+
+    expect(compactedRow?.blocks.map((block) => block?.type ?? null)).toEqual([
+      "booking_contact",
+      null,
+      null,
+    ]);
+    expect(compactedRow?.columns).toBe(3);
+  });
+
+  it("moves a block into another slot and clears the original slot", () => {
+    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
+    const layout = removeDetailLayoutBlock(
+      updateDetailLayoutRowColumns(
+        toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
+        row.id,
+        3,
+      ),
+      row.id,
+      2,
+    );
+    const movedLayout = moveDetailLayoutBlockToSlot(layout, row.id, 0, row.id, 2);
+    const movedRow = movedLayout.rows.find(
+      (candidate) => candidate.id === row.id,
+    );
+
+    expect(movedRow?.blocks.map((block) => block?.type ?? null)).toEqual([
+      null,
+      "booking_contact",
+      "details",
+    ]);
+  });
+
+  it("swaps blocks when a block is moved onto an occupied slot", () => {
+    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
+    const movedLayout = moveDetailLayoutBlockToSlot(
+      toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
+      row.id,
+      0,
+      row.id,
+      1,
+    );
+    const movedRow = movedLayout.rows.find(
+      (candidate) => candidate.id === row.id,
+    );
+
+    expect(movedRow?.blocks.map((block) => block?.type ?? null)).toEqual([
+      "booking_contact",
+      "details",
     ]);
   });
 

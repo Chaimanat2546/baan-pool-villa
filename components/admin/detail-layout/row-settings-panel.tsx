@@ -43,6 +43,47 @@ function toRatio(value: string): DetailLayoutRatio {
     : "50/50";
 }
 
+interface RowLayoutHint {
+  description: string;
+  title: string;
+}
+
+function hasRecommendedVillasBlock(row: DetailLayoutDraftRow): boolean {
+  return row.blocks.some((block) => block?.type === "recommended_villas");
+}
+
+function getRowLayoutHint(row: DetailLayoutDraftRow): RowLayoutHint | null {
+  if (hasRecommendedVillasBlock(row)) {
+    return {
+      title: "ล็อกเต็มความกว้าง",
+      description:
+        "บ้านพักแนะนำจะแสดงเป็น section ยาวเต็มแถวเหมือน Gallery และข้อมูลบ้าน/ราคา",
+    };
+  }
+
+  if (row.columns !== 2) {
+    return null;
+  }
+
+  if (row.ratio === "70/30") {
+    return {
+      title: "Split 70/30",
+      description:
+        "ฝั่ง 70 อยู่ซ้ายและจัดเป็น 2 คอลัมน์แบบ stack / ฝั่ง 30 อยู่ขวาและเรียงแนวตั้งทีละ block",
+    };
+  }
+
+  if (row.ratio === "30/70") {
+    return {
+      title: "Split 30/70",
+      description:
+        "ฝั่ง 30 อยู่ซ้ายและเรียงแนวตั้งทีละ block / ฝั่ง 70 อยู่ขวาและจัดเป็น 2 คอลัมน์แบบ stack",
+    };
+  }
+
+  return null;
+}
+
 export function RowSettingsPanel({
   activeBlockIndex,
   row,
@@ -71,6 +112,8 @@ export function RowSettingsPanel({
       </section>
     );
   }
+
+  const rowLayoutHint = getRowLayoutHint(row);
 
   return (
     <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
@@ -130,6 +173,17 @@ export function RowSettingsPanel({
           </label>
         ) : null}
 
+        {rowLayoutHint ? (
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2 text-sm leading-6">
+            <p className="font-semibold text-[var(--site-text)]">
+              {rowLayoutHint.title}
+            </p>
+            <p className="mt-0.5 text-xs leading-5 text-[var(--site-muted)]">
+              {rowLayoutHint.description}
+            </p>
+          </div>
+        ) : null}
+
         <div className="grid gap-2">
           <p className="text-sm font-semibold text-[var(--site-text)]">
             Block ในแถว
@@ -167,6 +221,13 @@ export function RowSettingsPanel({
             })
           )}
         </div>
+
+        {activeBlock === null && activeBlockIndex !== null ? (
+          <p className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-3 text-sm leading-6 text-[var(--site-muted)]">
+            กำลังเลือกช่องว่างที่ {activeBlockIndex + 1} เพิ่ม block
+            จากคลังด้านซ้ายหรือปรับจำนวนคอลัมน์ของแถวนี้
+          </p>
+        ) : null}
 
         {activeBlock && activeBlockIndex !== null ? (
           <div className="grid gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3">

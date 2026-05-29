@@ -295,6 +295,71 @@ export function removeDetailLayoutBlock(
   }));
 }
 
+export function compactDetailLayoutRowBlocks(
+  layout: DetailLayoutDraft,
+  rowId: string,
+): DetailLayoutDraft {
+  return withUpdatedRow(layout, rowId, (row) => {
+    const blocks = row.blocks.filter(
+      (block): block is DetailLayoutBlock => block !== null,
+    );
+
+    return {
+      ...row,
+      blocks: [
+        ...blocks,
+        ...Array.from({ length: row.columns - blocks.length }, () => null),
+      ],
+    };
+  });
+}
+
+export function moveDetailLayoutBlockToSlot(
+  layout: DetailLayoutDraft,
+  fromRowId: string,
+  fromBlockIndex: number,
+  toRowId: string,
+  toBlockIndex: number,
+): DetailLayoutDraft {
+  const clonedLayout = cloneDetailLayoutDraft(layout);
+  const fromRow = clonedLayout.rows.find((row) => row.id === fromRowId);
+  const toRow = clonedLayout.rows.find((row) => row.id === toRowId);
+
+  if (!fromRow || !toRow) {
+    return clonedLayout;
+  }
+
+  const fromIsValid =
+    Number.isInteger(fromBlockIndex) &&
+    fromBlockIndex >= 0 &&
+    fromBlockIndex < fromRow.blocks.length;
+  const toIsValid =
+    Number.isInteger(toBlockIndex) &&
+    toBlockIndex >= 0 &&
+    toBlockIndex < toRow.blocks.length;
+
+  if (!fromIsValid || !toIsValid) {
+    return clonedLayout;
+  }
+
+  if (fromRow.id === toRow.id && fromBlockIndex === toBlockIndex) {
+    return clonedLayout;
+  }
+
+  const fromBlock = fromRow.blocks[fromBlockIndex];
+
+  if (!fromBlock) {
+    return clonedLayout;
+  }
+
+  const toBlock = toRow.blocks[toBlockIndex];
+
+  toRow.blocks[toBlockIndex] = fromBlock;
+  fromRow.blocks[fromBlockIndex] = toBlock;
+
+  return clonedLayout;
+}
+
 export function duplicateDetailLayoutRow(
   layout: DetailLayoutDraft,
   rowId: string,

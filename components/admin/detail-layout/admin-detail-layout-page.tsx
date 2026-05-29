@@ -25,12 +25,14 @@ import { BlockLibrary } from "./block-library";
 import { DetailLayoutPreview } from "./detail-layout-preview";
 import {
   addDetailLayoutRow,
+  compactDetailLayoutRowBlocks,
   deleteDetailLayoutRow,
   duplicateDetailLayoutRow,
   getDetailLayoutBlockTargetSlot,
   getFirstEditableRowId,
   makeDetailLayoutBlock,
   makeDetailLayoutSnapshot,
+  moveDetailLayoutBlockToSlot,
   moveDetailLayoutDraftRow,
   putDetailLayoutBlockInSlot,
   removeDetailLayoutBlock,
@@ -154,6 +156,24 @@ export function AdminDetailLayoutPage() {
     () => findBlock(activeRow, activeBlockIndex),
     [activeBlockIndex, activeRow],
   );
+  const activePlacementLabel = useMemo(() => {
+    if (!layout || !activeRow) {
+      return "เลือกแถวหรือช่องก่อน";
+    }
+
+    const rowIndex = layout.rows.findIndex((row) => row.id === activeRow.id);
+    const targetSlot = getDetailLayoutBlockTargetSlot(
+      activeRow,
+      activeBlockIndex,
+    );
+    const rowLabel = rowIndex >= 0 ? `แถวที่ ${rowIndex + 1}` : "แถวที่เลือก";
+
+    if (targetSlot === null) {
+      return `${rowLabel} เต็มแล้ว`;
+    }
+
+    return `${rowLabel} / ช่องที่ ${targetSlot + 1}`;
+  }, [activeBlockIndex, activeRow, layout]);
   const hasUnsavedChanges = useMemo(() => {
     if (!layout || savedSnapshot === null) {
       return false;
@@ -346,6 +366,25 @@ export function AdminDetailLayoutPage() {
     );
   }
 
+  function handleMoveBlock(
+    fromRowId: string,
+    fromBlockIndex: number,
+    toRowId: string,
+    toBlockIndex: number,
+  ) {
+    updateLayout((currentLayout) =>
+      moveDetailLayoutBlockToSlot(
+        currentLayout,
+        fromRowId,
+        fromBlockIndex,
+        toRowId,
+        toBlockIndex,
+      ),
+    );
+    setActiveRowId(toRowId);
+    setActiveBlockIndex(toBlockIndex);
+  }
+
   function handleDeleteRow(rowId: string) {
     updateLayout((currentLayout) => {
       const rowIndex = currentLayout.rows.findIndex((row) => row.id === rowId);
@@ -442,6 +481,21 @@ export function AdminDetailLayoutPage() {
     if (activeRowId === rowId && activeBlockIndex === blockIndex) {
       setActiveBlockIndex(null);
     }
+  }
+
+  function handleCompactRow(rowId: string) {
+    updateLayout((currentLayout) => {
+      const nextLayout = compactDetailLayoutRowBlocks(currentLayout, rowId);
+      const compactedRow =
+        nextLayout.rows.find((candidate) => candidate.id === rowId) ?? null;
+      const firstBlockIndex =
+        compactedRow?.blocks.findIndex((block) => block !== null) ?? -1;
+
+      setActiveRowId(rowId);
+      setActiveBlockIndex(firstBlockIndex >= 0 ? firstBlockIndex : 0);
+
+      return nextLayout;
+    });
   }
 
   async function handleSave() {
@@ -652,16 +706,23 @@ export function AdminDetailLayoutPage() {
       ) : (
         <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)_360px]">
           <div className="xl:sticky xl:top-4 xl:self-start">
-            <BlockLibrary onAddBlock={putBlockInActiveRow} onDragStart={() => {}} />
+            <BlockLibrary
+              onAddBlock={putBlockInActiveRow}
+              onDragStart={() => {}}
+              targetLabel={activePlacementLabel}
+            />
           </div>
 
           <LayoutCanvas
             activeBlockIndex={activeBlockIndex}
             activeRowId={activeRowId}
             layout={layout}
+            onAddRow={handleAddRow}
+            onCompactRow={handleCompactRow}
             onDeleteRow={handleDeleteRow}
             onDropBlock={handleDropBlock}
             onDuplicateRow={handleDuplicateRow}
+            onMoveBlock={handleMoveBlock}
             onMoveRow={handleMoveRow}
             onRemoveBlock={handleRemoveBlock}
             onSelectBlock={handleSelectBlock}
