@@ -2,8 +2,11 @@ import type {
   DetailLayoutBlock,
   DetailLayoutBlockType,
   DetailLayoutConfig,
+  DetailLayoutOuterRatio,
   DetailLayoutRatio,
   DetailLayoutRow,
+  DetailLayoutV2Config,
+  DetailLayoutWideRatio,
 } from "./types";
 
 export const DETAIL_LAYOUT_ALLOWED_RATIOS: DetailLayoutRatio[] = [
@@ -12,6 +15,17 @@ export const DETAIL_LAYOUT_ALLOWED_RATIOS: DetailLayoutRatio[] = [
   "70/30",
   "40/60",
   "30/70",
+];
+
+export const DETAIL_LAYOUT_OUTER_SPLIT_RATIOS: DetailLayoutOuterRatio[] = [
+  "70/30",
+  "30/70",
+];
+
+export const DETAIL_LAYOUT_WIDE_ROW_RATIOS: DetailLayoutWideRatio[] = [
+  "50/50",
+  "60/40",
+  "40/60",
 ];
 
 export const DETAIL_LAYOUT_BLOCK_LABELS: Record<DetailLayoutBlockType, string> = {
@@ -86,4 +100,60 @@ export const DEFAULT_DETAIL_LAYOUT: DetailLayoutConfig = {
     ),
     row("row_recommended", 1, [block("recommended_villas")]),
   ],
+};
+
+export const DEFAULT_DETAIL_LAYOUT_V2: DetailLayoutV2Config = {
+  version: 2,
+  lockedTop: ["gallery", "intro"],
+  mainSplit: {
+    ratio: "70/30",
+    wideRows: [
+      {
+        id: "wide_details_amenities",
+        columns: 2,
+        ratio: "60/40",
+        enabled: true,
+        blocks: [block("details"), block("amenities")],
+      },
+      {
+        id: "wide_pool_kitchen",
+        columns: 2,
+        ratio: "50/50",
+        enabled: true,
+        blocks: [block("pool"), block("kitchen")],
+      },
+      {
+        id: "wide_bedrooms_images",
+        columns: 2,
+        ratio: "50/50",
+        enabled: true,
+        blocks: [block("bedrooms"), block("categorized_images")],
+      },
+      {
+        id: "wide_costs_videos",
+        columns: 2,
+        ratio: "60/40",
+        enabled: true,
+        blocks: [block("costs_promotions"), block("review_videos")],
+      },
+    ],
+    narrowRows: [
+      {
+        id: "narrow_booking",
+        enabled: true,
+        block: block("booking_contact", false),
+      },
+      {
+        id: "narrow_rules",
+        enabled: true,
+        block: block("rules_pet_policy"),
+      },
+      {
+        id: "narrow_map",
+        enabled: true,
+        block: block("map_nearby"),
+      },
+    ],
+  },
+  lockedBottom: [block("recommended_villas")],
 };
