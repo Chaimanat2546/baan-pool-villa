@@ -9,8 +9,11 @@ import {
   DEFAULT_SITE_SETTINGS,
   SITE_SETTINGS_ID,
 } from "@/lib/site-settings/defaults";
-import { DEFAULT_DETAIL_LAYOUT } from "../defaults";
-import type { DetailLayoutConfig } from "../types";
+import {
+  DEFAULT_DETAIL_LAYOUT,
+  DEFAULT_DETAIL_LAYOUT_V2,
+} from "../defaults";
+import type { DetailLayoutConfig, DetailLayoutV2Config } from "../types";
 import { validateDetailLayout } from "../validation";
 
 vi.mock("server-only", () => ({}));
@@ -124,6 +127,50 @@ function customLayout(): DetailLayoutConfig {
   };
 }
 
+function customLayoutV2(): DetailLayoutV2Config {
+  return {
+    ...DEFAULT_DETAIL_LAYOUT_V2,
+    mainSplit: {
+      ...DEFAULT_DETAIL_LAYOUT_V2.mainSplit,
+      ratio: "30/70",
+      wideRows: [
+        {
+          id: " wide_details ",
+          columns: 2,
+          ratio: "60/40",
+          enabled: true,
+          blocks: [
+            {
+              type: "details",
+              title: " Custom details ",
+              enabled: true,
+              hideWhenEmpty: true,
+            },
+            {
+              type: "amenities",
+              title: " Amenities ",
+              enabled: true,
+              hideWhenEmpty: true,
+            },
+          ],
+        },
+      ],
+      narrowRows: [
+        {
+          id: " narrow_booking ",
+          enabled: true,
+          block: {
+            type: "booking_contact",
+            title: " Booking ",
+            enabled: true,
+            hideWhenEmpty: false,
+          },
+        },
+      ],
+    },
+  };
+}
+
 describe("admin detail layout route", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -181,6 +228,57 @@ describe("admin detail layout route", () => {
     expect(from).toHaveBeenCalledWith("site_settings");
     expect(query.select).toHaveBeenCalledWith("id,detail_layout");
     expect(query.eq).toHaveBeenCalledWith("id", SITE_SETTINGS_ID);
+  });
+
+  it("returns normalized V2 layout on GET", async () => {
+    const detailLayout = customLayoutV2();
+    const query = detailLayoutSelectQuery({
+      data: {
+        id: SITE_SETTINGS_ID,
+        detail_layout: detailLayout,
+      },
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue(query);
+
+    authSupabase({ from });
+
+    const { GET } = await import(
+      "../../../app/(admin)/api/admin/detail-layout/route"
+    );
+    const response = await GET(authenticatedRequest());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      layout: {
+        version: 2,
+        mainSplit: {
+          ratio: "30/70",
+          wideRows: [
+            {
+              id: "wide_details",
+              ratio: "60/40",
+              blocks: [
+                {
+                  title: "Custom details",
+                },
+                {
+                  title: "Amenities",
+                },
+              ],
+            },
+          ],
+          narrowRows: [
+            {
+              id: "narrow_booking",
+              block: {
+                title: "Booking",
+              },
+            },
+          ],
+        },
+      },
+    });
   });
 
   it("rejects invalid PUT layout with validation errors", async () => {
@@ -314,6 +412,55 @@ describe("admin detail layout route", () => {
             ratio: "60/40",
           },
         ],
+      },
+    });
+    expect(jsonErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("saves and returns normalized V2 layout on PUT", async () => {
+    const detailLayout = customLayoutV2();
+    const query = detailLayoutUpdateQuery({
+      data: {
+        id: SITE_SETTINGS_ID,
+        detail_layout: detailLayout,
+      },
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue(query);
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/detail-layout/route"
+    );
+    const response = await PUT(putRequest({ layout: detailLayout }));
+
+    expect(response.status).toBe(200);
+    expect(query.update).toHaveBeenCalledWith({
+      detail_layout: expect.objectContaining({
+        version: 2,
+        mainSplit: expect.objectContaining({
+          ratio: "30/70",
+          wideRows: [
+            expect.objectContaining({
+              id: "wide_details",
+              ratio: "60/40",
+            }),
+          ],
+          narrowRows: [
+            expect.objectContaining({
+              id: "narrow_booking",
+            }),
+          ],
+        }),
+      }),
+    });
+    await expect(response.json()).resolves.toMatchObject({
+      layout: {
+        version: 2,
+        mainSplit: {
+          ratio: "30/70",
+        },
       },
     });
     expect(jsonErrorMock).not.toHaveBeenCalled();

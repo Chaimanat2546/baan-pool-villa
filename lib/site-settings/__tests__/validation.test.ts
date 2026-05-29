@@ -4,7 +4,10 @@ import {
   DEFAULT_SITE_SETTINGS,
   SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
 } from "../defaults";
-import { DEFAULT_DETAIL_LAYOUT } from "../../detail-layout/defaults";
+import {
+  DEFAULT_DETAIL_LAYOUT,
+  DEFAULT_DETAIL_LAYOUT_V2,
+} from "../../detail-layout/defaults";
 import {
   normalizeSiteSettingsDraft,
   normalizeSiteSettingsRow,
@@ -114,6 +117,16 @@ describe("normalizeSiteSettingsRow", () => {
       },
       detailLayout: DEFAULT_DETAIL_LAYOUT,
     });
+  });
+
+  it("keeps a valid V2 detail layout from the database row", () => {
+    const settings = normalizeSiteSettingsRow({
+      ...validRow,
+      detail_layout: DEFAULT_DETAIL_LAYOUT_V2,
+    });
+
+    expect(settings.detailLayout).toEqual(DEFAULT_DETAIL_LAYOUT_V2);
+    expect(settings.detailLayout).not.toBe(DEFAULT_DETAIL_LAYOUT_V2);
   });
 
   it("falls back for malformed colors and missing images", () => {

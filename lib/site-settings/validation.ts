@@ -3,7 +3,7 @@ import {
   SITE_SETTINGS_ALLOWED_IMAGE_MIME_TYPES,
   SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
 } from "./defaults";
-import { normalizeDetailLayout } from "../detail-layout/validation";
+import { normalizeAnyDetailLayout } from "../detail-layout/compat";
 import type {
   SiteAssetUploadRecord,
   SiteAssetType,
@@ -121,7 +121,7 @@ export function normalizeSiteSettingsRow(
         DEFAULT_SITE_SETTINGS.seo.sameAsUrls,
       ),
     },
-    detailLayout: normalizeDetailLayout(row.detail_layout),
+    detailLayout: normalizeAnyDetailLayout(row.detail_layout),
   };
 }
 

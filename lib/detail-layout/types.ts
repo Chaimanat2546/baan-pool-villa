@@ -96,3 +96,9 @@ export interface DetailLayoutV2ValidationResult {
   errors: string[];
   layout: DetailLayoutV2Config;
 }
+
+export interface AnyDetailLayoutValidationResult {
+  ok: boolean;
+  errors: string[];
+  layout: AnyDetailLayoutConfig;
+}

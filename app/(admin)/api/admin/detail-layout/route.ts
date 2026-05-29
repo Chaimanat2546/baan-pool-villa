@@ -4,11 +4,11 @@ import {
   SITE_SETTINGS_ID,
 } from "@/lib/site-settings/defaults";
 import type { SiteSettingsRow } from "@/lib/site-settings/types";
-import type { DetailLayoutConfig } from "@/lib/detail-layout/types";
 import {
-  normalizeDetailLayout,
-  validateDetailLayout,
-} from "@/lib/detail-layout/validation";
+  normalizeAnyDetailLayout,
+  validateAnyDetailLayout,
+} from "@/lib/detail-layout/compat";
+import type { AnyDetailLayoutConfig } from "@/lib/detail-layout/types";
 
 const DETAIL_LAYOUT_SELECT = "id,detail_layout";
 
@@ -33,7 +33,7 @@ function supabaseErrorResponse(
   });
 }
 
-function buildDefaultSettingsInsertPayload(detailLayout: DetailLayoutConfig) {
+function buildDefaultSettingsInsertPayload(detailLayout: AnyDetailLayoutConfig) {
   return {
     id: SITE_SETTINGS_ID,
     site_name: DEFAULT_SITE_SETTINGS.siteName,
@@ -109,7 +109,7 @@ export async function GET(request: Request) {
   const row = (data as SiteSettingsRow | null) ?? null;
 
   return Response.json({
-    layout: normalizeDetailLayout(row?.detail_layout),
+    layout: normalizeAnyDetailLayout(row?.detail_layout),
   });
 }
 
@@ -132,7 +132,7 @@ export async function PUT(request: Request) {
     typeof body === "object" && body !== null && !Array.isArray(body)
       ? (body as { layout?: unknown }).layout
       : undefined;
-  const validation = validateDetailLayout(layout);
+  const validation = validateAnyDetailLayout(layout);
 
   if (!validation.ok) {
     return Response.json({ errors: validation.errors }, { status: 400 });
@@ -161,13 +161,13 @@ export async function PUT(request: Request) {
     }
 
     return Response.json({
-      layout: normalizeDetailLayout((insertedData as SiteSettingsRow).detail_layout),
+      layout: normalizeAnyDetailLayout((insertedData as SiteSettingsRow).detail_layout),
     });
   }
 
   const row = data as SiteSettingsRow;
 
   return Response.json({
-    layout: normalizeDetailLayout(row.detail_layout),
+    layout: normalizeAnyDetailLayout(row.detail_layout),
   });
 }

@@ -1,4 +1,4 @@
-import type { DetailLayoutConfig } from "../detail-layout/types";
+import type { AnyDetailLayoutConfig } from "../detail-layout/types";
 
 export type SiteAssetType = "logo" | "hero";
 
@@ -53,7 +53,7 @@ export interface SiteSettings {
   bank: SiteBankSettings;
   contact: SiteContactSettings;
   seo: SiteSeoSettings;
-  detailLayout: DetailLayoutConfig;
+  detailLayout: AnyDetailLayoutConfig;
 }
 
 export interface SiteSettingsLoadResult {
