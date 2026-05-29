@@ -209,19 +209,39 @@ export function AboutSection({
 
 }
 
-export function AmenitiesSection({ listing }: { listing: VillaListing }) {
+const DEFAULT_AMENITY_PREVIEW_COUNT = 12;
+
+export function AmenitiesSection({
+  compact = false,
+  listing,
+  previewCount = DEFAULT_AMENITY_PREVIEW_COUNT,
+}: {
+  compact?: boolean;
+  listing: VillaListing;
+  previewCount?: number;
+}) {
 
   const icons = [Waves, Flame, Utensils, Wifi, Home, PawPrint, Car, Star];
+  const shouldCompact = compact && listing.amenities.length > previewCount;
+  const visibleAmenities = shouldCompact
+    ? listing.amenities.slice(0, previewCount)
+    : listing.amenities;
+  const hiddenAmenities = shouldCompact
+    ? listing.amenities.slice(previewCount)
+    : [];
 
   return (
 
-    <section className="py-6">
+    <section
+      className="py-6"
+      data-detail-amenities-compact={shouldCompact ? "true" : undefined}
+    >
 
       <h2 className="text-2xl font-black text-[var(--site-text)]">สิ่งอำนวยความสะดวก</h2>
 
       <div className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
 
-        {listing.amenities.map((amenity, index) => {
+        {visibleAmenities.map((amenity, index) => {
 
           const Icon = icons[index % icons.length];
 
@@ -240,6 +260,29 @@ export function AmenitiesSection({ listing }: { listing: VillaListing }) {
         })}
 
       </div>
+
+      {hiddenAmenities.length > 0 ? (
+        <details className="mt-4 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2">
+          <summary className="cursor-pointer text-sm font-black text-[var(--site-primary)]">
+            ดูสิ่งอำนวยความสะดวกเพิ่มอีก {hiddenAmenities.length.toLocaleString("th-TH")} รายการ
+          </summary>
+          <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+            {hiddenAmenities.map((amenity, index) => {
+              const Icon = icons[(previewCount + index) % icons.length];
+
+              return (
+                <div
+                  key={amenity.key}
+                  className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]"
+                >
+                  <Icon className="h-4 w-4 text-[var(--site-primary)]" />
+                  {amenity.label}
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      ) : null}
 
     </section>
 

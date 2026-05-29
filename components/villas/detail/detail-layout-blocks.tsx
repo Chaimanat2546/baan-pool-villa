@@ -33,6 +33,8 @@ interface DetailLayoutBlockContext {
 
 type BlockRenderer = (context: DetailLayoutBlockContext) => ReactNode | null;
 
+const DEFAULT_COMPACT_LINE_LIMIT = 5;
+
 const sectionTitles = {
   details: "รายละเอียดเพิ่มเติม",
   bedrooms: "รายละเอียดห้องนอน",
@@ -55,7 +57,7 @@ function DetailCard({
   title: string;
 }) {
   return (
-    <section className="h-full rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-[0_10px_30px_rgba(6,63,53,0.06)]">
+    <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-[0_10px_30px_rgba(6,63,53,0.06)]">
       <div className="flex items-center gap-3">
         {icon ? (
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
@@ -84,6 +86,38 @@ function LineList({ lines }: { lines: string[] }) {
   );
 }
 
+function CompactLineList({
+  initialCount = DEFAULT_COMPACT_LINE_LIMIT,
+  lines,
+}: {
+  initialCount?: number;
+  lines: string[];
+}) {
+  const visibleLines = lines.slice(0, initialCount);
+  const hiddenLines = lines.slice(initialCount);
+
+  if (hiddenLines.length === 0) {
+    return <LineList lines={lines} />;
+  }
+
+  return (
+    <>
+      <LineList lines={visibleLines} />
+      <details
+        className="rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2"
+        data-detail-compact-list="true"
+      >
+        <summary className="cursor-pointer text-sm font-black text-[var(--site-primary)]">
+          ดูรายละเอียดเพิ่มอีก {hiddenLines.length.toLocaleString("th-TH")} รายการ
+        </summary>
+        <div className="mt-3 space-y-2">
+          <LineList lines={hiddenLines} />
+        </div>
+      </details>
+    </>
+  );
+}
+
 function renderSectionBlock(
   content: VillaDetailContent,
   sourceTitle: string,
@@ -97,7 +131,7 @@ function renderSectionBlock(
 
   return (
     <DetailCard icon={<Info className="h-5 w-5" />} title={publicTitle}>
-      <LineList lines={section.lines} />
+      <CompactLineList lines={section.lines} />
     </DetailCard>
   );
 }
@@ -123,7 +157,7 @@ function renderAmenities({ listing }: DetailLayoutBlockContext) {
     return null;
   }
 
-  return <AmenitiesSection listing={listing} />;
+  return <AmenitiesSection compact listing={listing} />;
 }
 
 function renderCategorizedImages({
@@ -222,7 +256,7 @@ function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
         <div key={section.title}>
           <h3 className="font-black text-[var(--site-text)]">{section.title}</h3>
           <div className="mt-2 space-y-2">
-            <LineList lines={section.lines} />
+            <CompactLineList initialCount={2} lines={section.lines} />
           </div>
         </div>
       ))}
@@ -251,7 +285,7 @@ function renderRulesPetPolicy({ content }: DetailLayoutBlockContext) {
         <div key={section.title}>
           <h3 className="font-black text-[var(--site-text)]">{section.title}</h3>
           <div className="mt-2 space-y-2">
-            <LineList lines={section.lines} />
+            <CompactLineList initialCount={4} lines={section.lines} />
           </div>
         </div>
       ))}
@@ -265,7 +299,7 @@ function renderMapNearby({ content }: DetailLayoutBlockContext) {
   }
 
   return (
-    <section className="h-full rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-[0_10px_30px_rgba(6,63,53,0.06)]">
+    <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-[0_10px_30px_rgba(6,63,53,0.06)]">
       {content.location ? (
         <div className="mb-6">
           <div className="flex items-center gap-3">
