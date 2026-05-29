@@ -1,14 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_DETAIL_LAYOUT } from "../../../../lib/detail-layout/defaults";
-import { cloneDetailLayout } from "../../../../lib/detail-layout/validation";
-
 import {
-  removeDetailLayoutBlock,
-  toDetailLayoutDraft,
-} from "../detail-layout-helpers";
-import type { DetailLayoutDraft } from "../types";
+  DEFAULT_DETAIL_LAYOUT,
+  DEFAULT_DETAIL_LAYOUT_V2,
+} from "../../../../lib/detail-layout/defaults";
+import { cloneDetailLayout } from "../../../../lib/detail-layout/validation";
+import { toDetailLayoutDraft } from "../detail-layout-helpers";
+import { toDetailLayoutV2Draft } from "../detail-layout-v2-helpers";
+import type { DetailLayoutV2Draft } from "../types";
 import {
   getDetailLayoutBlockDragLocation,
   getDetailLayoutDropType,
@@ -17,135 +17,95 @@ import {
 } from "../layout-canvas";
 
 function renderCanvas(
-  layout: DetailLayoutDraft = toDetailLayoutDraft(
-    cloneDetailLayout(DEFAULT_DETAIL_LAYOUT),
-  ),
+  layout: DetailLayoutV2Draft = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2),
 ) {
+  const firstWideRow = layout.mainSplit.wideRows[0];
+
   return renderToStaticMarkup(
     <LayoutCanvas
-      activeBlockIndex={0}
-      activeRowId={DEFAULT_DETAIL_LAYOUT.rows[0]?.id ?? null}
+      activeSelection={
+        firstWideRow
+          ? { zone: "wide", rowId: firstWideRow.id, blockIndex: 0 }
+          : null
+      }
       layout={layout}
-      onAddRow={vi.fn()}
-      onDeleteRow={vi.fn()}
-      onDropBlock={vi.fn()}
-      onDuplicateRow={vi.fn()}
-      onMoveRow={vi.fn()}
-      onMoveBlock={vi.fn()}
-      onCompactRow={vi.fn()}
-      onRemoveBlock={vi.fn()}
-      onSelectBlock={vi.fn()}
-      onSelectRow={vi.fn()}
-      onToggleRowEnabled={vi.fn()}
+      onAddNarrowRow={vi.fn()}
+      onAddWideRow={vi.fn()}
+      onDropNarrowBlock={vi.fn()}
+      onDropWideBlock={vi.fn()}
+      onMoveNarrowRow={vi.fn()}
+      onMoveWideBlock={vi.fn()}
+      onMoveWideRow={vi.fn()}
+      onOuterRatioChange={vi.fn()}
+      onRemoveNarrowBlock={vi.fn()}
+      onRemoveNarrowRow={vi.fn()}
+      onRemoveWideBlock={vi.fn()}
+      onRemoveWideRow={vi.fn()}
+      onSelectLockedBottomBlock={vi.fn()}
+      onSelectNarrowRow={vi.fn()}
+      onSelectWideBlock={vi.fn()}
+      onToggleNarrowRow={vi.fn()}
+      onToggleWideRow={vi.fn()}
+      onUpdateWideRow={vi.fn()}
     />,
   );
 }
 
 describe("LayoutCanvas", () => {
-  it("renders locked top rows and default editable rows", () => {
+  it("renders locked top, split zones, and locked recommended villas", () => {
     const markup = renderCanvas();
 
-    expect(markup).toContain("แกลเลอรี");
-    expect(markup).toContain("ข้อมูลเริ่มต้นบ้านพัก");
-    expect(markup).toContain("รายละเอียดบ้านพัก");
-    expect(markup).toContain("จอง / ติดต่อ");
+    expect(markup).toContain("ล็อกไว้ด้านบน");
+    expect(markup).toContain("Gallery");
+    expect(markup).toContain("ชื่อบ้าน / ราคา");
+    expect(markup).toContain("ฝั่ง 70");
+    expect(markup).toContain("ฝั่ง 30");
+    expect(markup).toContain("บ้านพักแนะนำ");
+    expect(markup).toContain("ล็อกเต็มความกว้าง");
   });
 
-  it("shows row ratios and block remove controls", () => {
+  it("shows outer split controls and wide-only row ratio choices", () => {
     const markup = renderCanvas();
 
-    expect(markup).toContain("70/30");
-    expect(markup).toContain("ลบ block");
+    expect(markup).toContain("70 ซ้าย / 30 ขวา");
+    expect(markup).toContain("30 ซ้าย / 70 ขวา");
+    expect(markup).toContain("1 คอลัมน์");
+    expect(markup).toContain("50/50");
+    expect(markup).toContain("60/40");
+    expect(markup).toContain("40/60");
   });
 
-  it("renders row drag handles for editable rows", () => {
+  it("marks wide and narrow row drag handles", () => {
     const markup = renderCanvas();
 
-    expect(markup).toContain("ลากแถวที่ 1");
+    expect(markup).toContain("ลากแถวฝั่ง 70 ลำดับที่ 1");
+    expect(markup).toContain("ลากแถวฝั่ง 30 ลำดับที่ 1");
     expect(markup).toContain('draggable="true"');
   });
 
-  it("marks every empty slot as a drop target", () => {
-    const layout = toDetailLayoutDraft(cloneDetailLayout(DEFAULT_DETAIL_LAYOUT));
-    layout.rows = [
+  it("marks every empty wide slot as a drop target", () => {
+    const layout = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2);
+    layout.mainSplit.wideRows = [
       {
-        id: "draft-empty",
-        columns: 3,
-        enabled: true,
-        blocks: [null, null, null],
-      },
-    ];
-
-    const markup = renderCanvas(layout);
-
-    expect(markup.match(/ลาก block ลงช่องนี้/g)).toHaveLength(3);
-    expect(markup).not.toContain("เติมช่องก่อนหน้า");
-  });
-
-  it("labels the selected empty slot as the next block target", () => {
-    const layout = toDetailLayoutDraft(cloneDetailLayout(DEFAULT_DETAIL_LAYOUT));
-    layout.rows = [
-      {
-        id: "draft-empty",
+        id: "wide_empty",
         columns: 2,
         enabled: true,
+        ratio: "50/50",
         blocks: [null, null],
       },
     ];
-    const markup = renderToStaticMarkup(
-      <LayoutCanvas
-        activeBlockIndex={1}
-        activeRowId="draft-empty"
-        layout={layout}
-        onAddRow={vi.fn()}
-        onDeleteRow={vi.fn()}
-        onDropBlock={vi.fn()}
-        onDuplicateRow={vi.fn()}
-        onMoveRow={vi.fn()}
-        onMoveBlock={vi.fn()}
-        onCompactRow={vi.fn()}
-        onRemoveBlock={vi.fn()}
-        onSelectBlock={vi.fn()}
-        onSelectRow={vi.fn()}
-        onToggleRowEnabled={vi.fn()}
-      />,
-    );
-
-    expect(markup).toContain("ช่องนี้กำลังเลือก");
-    expect(markup).toContain("กด block จากคลังเพื่อใส่ช่องนี้");
-  });
-
-  it("warns inline when a row has a gap before a block", () => {
-    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
-    const layout = removeDetailLayoutBlock(
-      toDetailLayoutDraft(cloneDetailLayout(DEFAULT_DETAIL_LAYOUT)),
-      row.id,
-      0,
-    );
     const markup = renderCanvas(layout);
 
-    expect(markup).toContain("มีช่องว่างก่อน block");
-    expect(markup).toContain("จัด block ให้ชิดซ้าย");
+    expect(markup.match(/ลาก block ลงช่องนี้/g)).toHaveLength(2);
   });
 
-  it("renders draggable handles for blocks inside slots", () => {
-    const markup = renderCanvas();
+  it("renders a clear empty state for the narrow zone", () => {
+    const layout = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2);
+    layout.mainSplit.narrowRows = [];
+    const markup = renderCanvas(layout);
 
-    expect(markup).toContain("ลาก block รายละเอียดบ้านพัก");
-    expect(markup).toContain("ลาก block จอง / ติดต่อ");
-  });
-
-  it("labels split starts, 70-side flow rows, and locked recommendation rows", () => {
-    const markup = renderCanvas();
-
-    expect(markup).toContain('data-detail-layout-admin-row-role="split"');
-    expect(markup).toContain("Split 70/30");
-    expect(markup).toContain('data-detail-layout-admin-row-role="wide-flow"');
-    expect(markup).toContain("อยู่ในฝั่ง 70");
-    expect(markup).toContain(
-      'data-detail-layout-admin-row-role="full-width-locked"',
-    );
-    expect(markup).toContain("ล็อกเต็มความกว้าง");
+    expect(markup).toContain("ยังไม่มีแถวในฝั่ง 30");
+    expect(markup).toContain("เพิ่มแถว 30 แล้วลาก block ลงช่อง");
   });
 
   it("ignores invalid dragged block payloads", () => {
@@ -160,7 +120,7 @@ describe("LayoutCanvas", () => {
     expect(getDetailLayoutDropType(validTransfer)).toBe("pool");
   });
 
-  it("reads row drag indexes only when they are valid for the row count", () => {
+  it("keeps legacy row drag index parsing for old tests and helpers", () => {
     const validTransfer = {
       getData: vi.fn(() => "2"),
     };
@@ -176,7 +136,7 @@ describe("LayoutCanvas", () => {
     expect(getDetailLayoutRowDragIndex(outOfRangeTransfer, 4)).toBeNull();
   });
 
-  it("reads block drag locations only when they match an existing slot", () => {
+  it("keeps legacy block drag location parsing for old row drafts", () => {
     const layout = toDetailLayoutDraft(cloneDetailLayout(DEFAULT_DETAIL_LAYOUT));
     const row = layout.rows[0];
     const validTransfer = {

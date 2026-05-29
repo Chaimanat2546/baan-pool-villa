@@ -37,7 +37,7 @@ export function BlockLibrary({
             เพิ่มส่วนข้อมูล
           </h2>
           <p className="mt-0.5 text-xs leading-5 text-[var(--site-muted)]">
-            กดเพื่อเพิ่มในแถวที่เลือก หรือลากลงช่อง
+            กดเพื่อเพิ่มในตำแหน่งที่เลือก หรือลากลงช่องในฝั่ง 70 / 30
           </p>
         </div>
         <span className="rounded-full bg-[var(--site-surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--site-muted)]">
@@ -46,7 +46,7 @@ export function BlockLibrary({
       </div>
 
       <div className="mb-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2 text-xs leading-5 text-[var(--site-muted)]">
-        เพิ่มด้วยการกดจะลงที่:{" "}
+        กดเพิ่มแล้วจะลงที่:{" "}
         <span className="font-semibold text-[var(--site-text)]">
           {targetLabel}
         </span>
