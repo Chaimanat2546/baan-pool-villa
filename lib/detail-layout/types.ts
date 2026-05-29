@@ -25,7 +25,7 @@ export type DetailLayoutRatio =
   | "40/60"
   | "30/70";
 
-export type DetailLayoutLockedTop = "gallery" | "intro";
+export type DetailLayoutLockedTop = ["gallery", "intro"];
 
 export interface DetailLayoutBlock {
   type: DetailLayoutBlockType;
@@ -44,7 +44,7 @@ export interface DetailLayoutRow {
 
 export interface DetailLayoutConfig {
   version: 1;
-  lockedTop: DetailLayoutLockedTop[];
+  lockedTop: DetailLayoutLockedTop;
   rows: DetailLayoutRow[];
 }
 

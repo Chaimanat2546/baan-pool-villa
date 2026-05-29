@@ -25,7 +25,7 @@ export function cloneDetailLayout(
 ): DetailLayoutConfig {
   return {
     version: layout.version,
-    lockedTop: [...layout.lockedTop],
+    lockedTop: [...layout.lockedTop] as DetailLayoutLockedTop,
     rows: layout.rows.map((row) => ({
       id: row.id,
       columns: row.columns,
@@ -103,14 +103,14 @@ function invalid(errors: string[]): DetailLayoutValidationResult {
 function normalizeLockedTop(
   value: unknown,
   errors: string[],
-): DetailLayoutLockedTop[] | null {
+): DetailLayoutLockedTop | null {
   if (!Array.isArray(value) || value.length !== 2) {
     errors.push("ส่วนบนที่ล็อกไว้ต้องเป็นแกลเลอรีและบทนำ");
     return null;
   }
 
   const lockedTop = value.filter(
-    (item): item is DetailLayoutLockedTop =>
+    (item): item is DetailLayoutLockedTop[number] =>
       typeof item === "string" && ALLOWED_LOCKED_TOP.has(item),
   );
 
@@ -123,7 +123,7 @@ function normalizeLockedTop(
     return null;
   }
 
-  return lockedTop;
+  return ["gallery", "intro"];
 }
 
 function normalizeRows(
