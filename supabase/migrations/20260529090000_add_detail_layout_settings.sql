@@ -9,8 +9,8 @@ alter table public.site_settings
         "ratio": "70/30",
         "enabled": true,
         "blocks": [
-          { "type": "details", "enabled": true, "hideWhenEmpty": true },
-          { "type": "booking_contact", "enabled": true, "hideWhenEmpty": false }
+          { "type": "details", "title": "รายละเอียดบ้านพัก", "enabled": true, "hideWhenEmpty": true },
+          { "type": "booking_contact", "title": "จอง / ติดต่อ", "enabled": true, "hideWhenEmpty": false }
         ]
       },
       {
@@ -19,8 +19,8 @@ alter table public.site_settings
         "ratio": "50/50",
         "enabled": true,
         "blocks": [
-          { "type": "bedrooms", "enabled": true, "hideWhenEmpty": true },
-          { "type": "pool", "enabled": true, "hideWhenEmpty": true }
+          { "type": "bedrooms", "title": "รายละเอียดห้องนอน", "enabled": true, "hideWhenEmpty": true },
+          { "type": "pool", "title": "สระว่ายน้ำ", "enabled": true, "hideWhenEmpty": true }
         ]
       },
       {
@@ -28,9 +28,9 @@ alter table public.site_settings
         "columns": 3,
         "enabled": true,
         "blocks": [
-          { "type": "kitchen", "enabled": true, "hideWhenEmpty": true },
-          { "type": "amenities", "enabled": true, "hideWhenEmpty": true },
-          { "type": "categorized_images", "enabled": true, "hideWhenEmpty": true }
+          { "type": "kitchen", "title": "ครัวและอุปกรณ์", "enabled": true, "hideWhenEmpty": true },
+          { "type": "amenities", "title": "สิ่งอำนวยความสะดวก", "enabled": true, "hideWhenEmpty": true },
+          { "type": "categorized_images", "title": "รูปภาพตามหมวด", "enabled": true, "hideWhenEmpty": true }
         ]
       },
       {
@@ -39,8 +39,8 @@ alter table public.site_settings
         "ratio": "70/30",
         "enabled": true,
         "blocks": [
-          { "type": "costs_promotions", "enabled": true, "hideWhenEmpty": true },
-          { "type": "rules_pet_policy", "enabled": true, "hideWhenEmpty": true }
+          { "type": "costs_promotions", "title": "ค่าใช้จ่าย / โปรโมชัน", "enabled": true, "hideWhenEmpty": true },
+          { "type": "rules_pet_policy", "title": "กฎบ้านพัก / สัตว์เลี้ยง", "enabled": true, "hideWhenEmpty": true }
         ]
       },
       {
@@ -49,8 +49,8 @@ alter table public.site_settings
         "ratio": "60/40",
         "enabled": true,
         "blocks": [
-          { "type": "map_nearby", "enabled": true, "hideWhenEmpty": true },
-          { "type": "review_videos", "enabled": true, "hideWhenEmpty": true }
+          { "type": "map_nearby", "title": "แผนที่ / สถานที่ใกล้เคียง", "enabled": true, "hideWhenEmpty": true },
+          { "type": "review_videos", "title": "คลิปรีวิว", "enabled": true, "hideWhenEmpty": true }
         ]
       },
       {
@@ -58,7 +58,7 @@ alter table public.site_settings
         "columns": 1,
         "enabled": true,
         "blocks": [
-          { "type": "recommended_villas", "enabled": true, "hideWhenEmpty": true }
+          { "type": "recommended_villas", "title": "บ้านพักแนะนำ", "enabled": true, "hideWhenEmpty": true }
         ]
       }
     ]
