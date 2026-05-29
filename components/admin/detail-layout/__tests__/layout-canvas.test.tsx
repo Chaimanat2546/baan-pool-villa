@@ -6,7 +6,7 @@ import { cloneDetailLayout } from "../../../../lib/detail-layout/validation";
 
 import { toDetailLayoutDraft } from "../detail-layout-helpers";
 import type { DetailLayoutDraft } from "../types";
-import { LayoutCanvas } from "../layout-canvas";
+import { getDetailLayoutDropType, LayoutCanvas } from "../layout-canvas";
 
 function renderCanvas(
   layout: DetailLayoutDraft = toDetailLayoutDraft(
@@ -62,5 +62,17 @@ describe("LayoutCanvas", () => {
 
     expect(markup.match(/ลาก block ลงช่องนี้/g)).toHaveLength(3);
     expect(markup).not.toContain("เติมช่องก่อนหน้า");
+  });
+
+  it("ignores invalid dragged block payloads", () => {
+    const invalidTransfer = {
+      getData: vi.fn(() => "not_a_block"),
+    };
+    const validTransfer = {
+      getData: vi.fn(() => "pool"),
+    };
+
+    expect(getDetailLayoutDropType(invalidTransfer)).toBeNull();
+    expect(getDetailLayoutDropType(validTransfer)).toBe("pool");
   });
 });

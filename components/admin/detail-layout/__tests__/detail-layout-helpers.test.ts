@@ -5,6 +5,8 @@ import { cloneDetailLayout } from "../../../../lib/detail-layout/validation";
 
 import {
   addDetailLayoutRow,
+  getDetailLayoutBlockTargetSlot,
+  isDetailLayoutBlockType,
   makeDetailLayoutBlock,
   makeDetailLayoutSnapshot,
   putDetailLayoutBlockInSlot,
@@ -140,5 +142,49 @@ describe("detail layout helpers", () => {
     expect(validateDetailLayoutDraftForSave(layout)).toEqual([
       "แถวที่ 1 มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง",
     ]);
+  });
+
+  it("guards block types with an allowlist", () => {
+    expect(isDetailLayoutBlockType("pool")).toBe(true);
+    expect(isDetailLayoutBlockType("not_a_block")).toBe(false);
+    expect(isDetailLayoutBlockType(null)).toBe(false);
+  });
+
+  it("prefers the selected empty slot for library block placement", () => {
+    const row = updateDetailLayoutRowColumns(
+      toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
+      DEFAULT_DETAIL_LAYOUT.rows[0].id,
+      3,
+    ).rows[0];
+    const layout = removeDetailLayoutBlock(
+      {
+        lockedTop: ["gallery", "intro"],
+        rows: [row],
+        version: 1,
+      },
+      row.id,
+      1,
+    );
+
+    expect(getDetailLayoutBlockTargetSlot(layout.rows[0], 1)).toBe(1);
+  });
+
+  it("falls back to the first empty slot when selection is invalid", () => {
+    const row = addDetailLayoutRow(
+      toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
+      3,
+    ).rows.at(-1);
+
+    if (!row) {
+      throw new Error("Expected a draft row");
+    }
+
+    expect(getDetailLayoutBlockTargetSlot(row, 8)).toBe(0);
+  });
+
+  it("allows replacing a clearly selected occupied slot", () => {
+    const row = toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT).rows[0];
+
+    expect(getDetailLayoutBlockTargetSlot(row, 0)).toBe(0);
   });
 });

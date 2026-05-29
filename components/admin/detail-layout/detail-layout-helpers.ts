@@ -9,10 +9,12 @@ import type {
   DetailLayoutConfig,
   DetailLayoutRatio,
 } from "../../../lib/detail-layout/types";
+import { DETAIL_LAYOUT_BLOCK_TYPES } from "../../../lib/detail-layout/types";
 import { cloneDetailLayout } from "../../../lib/detail-layout/validation";
 import type { DetailLayoutDraft, DetailLayoutDraftRow } from "./types";
 
 const DEFAULT_TWO_COLUMN_RATIO: DetailLayoutRatio = "50/50";
+const DETAIL_LAYOUT_BLOCK_TYPE_SET = new Set<string>(DETAIL_LAYOUT_BLOCK_TYPES);
 
 let rowIdFallbackCounter = 0;
 
@@ -157,6 +159,30 @@ export function makeDetailLayoutBlock(
     enabled: true,
     hideWhenEmpty: type !== "booking_contact",
   };
+}
+
+export function isDetailLayoutBlockType(
+  value: unknown,
+): value is DetailLayoutBlockType {
+  return typeof value === "string" && DETAIL_LAYOUT_BLOCK_TYPE_SET.has(value);
+}
+
+export function getDetailLayoutBlockTargetSlot(
+  row: DetailLayoutDraftRow,
+  activeBlockIndex: number | null,
+): number | null {
+  if (
+    activeBlockIndex !== null &&
+    Number.isInteger(activeBlockIndex) &&
+    activeBlockIndex >= 0 &&
+    activeBlockIndex < row.blocks.length
+  ) {
+    return activeBlockIndex;
+  }
+
+  const firstEmptyIndex = row.blocks.findIndex((block) => block === null);
+
+  return firstEmptyIndex >= 0 ? firstEmptyIndex : null;
 }
 
 export function addDetailLayoutRow(

@@ -27,6 +27,7 @@ import {
   addDetailLayoutRow,
   deleteDetailLayoutRow,
   duplicateDetailLayoutRow,
+  getDetailLayoutBlockTargetSlot,
   getFirstEditableRowId,
   makeDetailLayoutBlock,
   makeDetailLayoutSnapshot,
@@ -300,9 +301,12 @@ export function AdminDetailLayoutPage() {
       return;
     }
 
-    const nextIndex = activeRow.blocks.findIndex((block) => block === null);
+    const nextIndex = getDetailLayoutBlockTargetSlot(
+      activeRow,
+      activeBlockIndex,
+    );
 
-    if (nextIndex < 0) {
+    if (nextIndex === null) {
       setErrors(["แถวนี้เต็มแล้ว เลือกช่องว่างหรือเพิ่มคอลัมน์ก่อน"]);
       setNotice(null);
       return;

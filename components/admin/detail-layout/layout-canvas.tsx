@@ -17,6 +17,7 @@ import type {
   DetailLayoutDraftRow,
   DetailLayoutBlockType,
 } from "./types";
+import { isDetailLayoutBlockType } from "./detail-layout-helpers";
 
 const LOCKED_ROWS = [
   {
@@ -81,6 +82,14 @@ function getSlotIndexes(columns: DetailLayoutDraftRow["columns"]): number[] {
   return Array.from({ length: columns }, (_, index) => index);
 }
 
+export function getDetailLayoutDropType(
+  dataTransfer: Pick<DataTransfer, "getData">,
+): DetailLayoutBlockType | null {
+  const value = dataTransfer.getData("text/plain");
+
+  return isDetailLayoutBlockType(value) ? value : null;
+}
+
 export function LayoutCanvas({
   activeBlockIndex,
   activeRowId,
@@ -105,7 +114,7 @@ export function LayoutCanvas({
     blockIndex: number,
   ) {
     event.preventDefault();
-    const type = event.dataTransfer.getData("text/plain") as DetailLayoutBlockType;
+    const type = getDetailLayoutDropType(event.dataTransfer);
 
     if (type) {
       onDropBlock(rowId, blockIndex, type);
