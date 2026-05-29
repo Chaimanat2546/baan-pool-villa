@@ -62,7 +62,11 @@ Avoid adding top-level re-export wrapper files under `components/villas`; import
 ## Admin and CMS Rules
 
 - Admin UI pages should follow the existing visual language in `components/admin`, especially the layout and control density used by `/admin/sections`.
+- For admin pages that manage CMS/content/settings, default to the same UX pattern used by `/admin/settings` and `/admin/sections`: left side for section/list navigation when there are multiple records, center for grouped editing controls, and right side for live preview, result summary, or operational status. On narrow screens, stack in that order.
+- Group admin forms by the admin's mental model, not by database fields. Use short Thai section headings such as identity, colors, images, SEO/share preview, contact/payment, ordering, content details, selection rules, and preview/status as appropriate.
+- Prefer a live preview or concrete summary beside admin forms whenever the saved change affects public pages. The preview should show what users will see, not just repeat the field names.
 - Admin-facing copy should be Thai unless it is a technical value, API error, file name, URL, code, or environment variable.
+- Admin-facing labels should use plain human language. Avoid raw product terms like `OG image URL`, `sameAs`, or internal schema names when a Thai explanation is clearer.
 - Public and admin theme colors must come from the shared site settings theme variables instead of hard-coded one-off brand colors where practical.
 - Keep admin forms optimistic only for local draft state. Persist changes through admin APIs and show returned validation, Supabase, storage, or authorization errors clearly.
 - Redirect to `/admin/login` only for true authentication/session failures. Do not treat all `403` responses as login failures; storage and Supabase permission errors should be visible in the form.
