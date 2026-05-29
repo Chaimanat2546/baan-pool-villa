@@ -13,9 +13,9 @@ import {
 import type { DragEvent } from "react";
 
 import type {
+  DetailLayoutDraft,
+  DetailLayoutDraftRow,
   DetailLayoutBlockType,
-  DetailLayoutConfig,
-  DetailLayoutRow,
 } from "./types";
 
 const LOCKED_ROWS = [
@@ -34,7 +34,7 @@ const LOCKED_ROWS = [
 interface LayoutCanvasProps {
   activeBlockIndex: number | null;
   activeRowId: string | null;
-  layout: DetailLayoutConfig;
+  layout: DetailLayoutDraft;
   onDeleteRow: (rowId: string) => void;
   onDropBlock: (
     rowId: string,
@@ -49,7 +49,7 @@ interface LayoutCanvasProps {
   onToggleRowEnabled: (rowId: string, enabled: boolean) => void;
 }
 
-function getGridClass(row: DetailLayoutRow): string {
+function getGridClass(row: DetailLayoutDraftRow): string {
   if (row.columns === 1) {
     return "grid-cols-1";
   }
@@ -77,7 +77,7 @@ function getGridClass(row: DetailLayoutRow): string {
   return "grid-cols-1 md:grid-cols-2";
 }
 
-function getSlotIndexes(columns: DetailLayoutRow["columns"]): number[] {
+function getSlotIndexes(columns: DetailLayoutDraftRow["columns"]): number[] {
   return Array.from({ length: columns }, (_, index) => index);
 }
 
@@ -265,7 +265,6 @@ export function LayoutCanvas({
                   <div className={`mt-3 grid gap-2 ${getGridClass(row)}`}>
                     {getSlotIndexes(row.columns).map((blockIndex) => {
                       const block = row.blocks[blockIndex];
-                      const canDropInSlot = blockIndex <= row.blocks.length;
                       const isSelectedBlock =
                         isActive && activeBlockIndex === blockIndex;
 
@@ -277,14 +276,10 @@ export function LayoutCanvas({
                               : "border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)]"
                           } p-2`}
                           key={`${row.id}-${blockIndex}`}
-                          onDragOver={canDropInSlot ? handleDragOver : undefined}
-                          onDrop={
-                            canDropInSlot
-                              ? (event) => {
-                                  handleDrop(event, row.id, blockIndex);
-                                }
-                              : undefined
-                          }
+                          onDragOver={handleDragOver}
+                          onDrop={(event) => {
+                            handleDrop(event, row.id, blockIndex);
+                          }}
                         >
                           {block ? (
                             <div className="grid h-full min-h-20 w-full grid-cols-[1fr_auto] gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-2">
@@ -318,13 +313,9 @@ export function LayoutCanvas({
                                 <X aria-hidden="true" className="size-4" />
                               </button>
                             </div>
-                          ) : canDropInSlot ? (
+                          ) : (
                             <div className="flex h-full min-h-20 items-center justify-center rounded-md border border-dashed border-[var(--site-border)] px-3 py-4 text-center text-sm font-semibold text-[var(--site-muted)]">
                               ลาก block ลงช่องนี้
-                            </div>
-                          ) : (
-                            <div className="flex h-full min-h-20 items-center justify-center rounded-md border border-dashed border-[var(--site-border)] bg-[var(--site-surface)]/70 px-3 py-4 text-center text-sm font-semibold text-[var(--site-muted)]">
-                              เติมช่องก่อนหน้า
                             </div>
                           )}
                         </div>

@@ -16,7 +16,17 @@ export interface AdminDetailLayoutResponse {
   layout?: DetailLayoutConfig;
 }
 
-export type DetailLayoutDraft = DetailLayoutConfig;
+export type DetailLayoutDraftSlot = DetailLayoutBlock | null;
+
+export interface DetailLayoutDraftRow
+  extends Omit<DetailLayoutRow, "blocks"> {
+  blocks: DetailLayoutDraftSlot[];
+}
+
+export interface DetailLayoutDraft
+  extends Omit<DetailLayoutConfig, "rows"> {
+  rows: DetailLayoutDraftRow[];
+}
 
 export type {
   DetailLayoutBlock,

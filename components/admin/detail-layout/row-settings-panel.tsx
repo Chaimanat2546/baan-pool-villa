@@ -7,13 +7,13 @@ import { DETAIL_LAYOUT_ALLOWED_RATIOS } from "@/lib/detail-layout/defaults";
 import type {
   DetailLayoutBlock,
   DetailLayoutColumns,
+  DetailLayoutDraftRow,
   DetailLayoutRatio,
-  DetailLayoutRow,
 } from "./types";
 
 interface RowSettingsPanelProps {
   activeBlockIndex: number | null;
-  row: DetailLayoutRow | null;
+  row: DetailLayoutDraftRow | null;
   onRemoveBlock: (blockIndex: number) => void;
   onSelectBlock: (blockIndex: number) => void;
   onUpdateBlock: (
@@ -25,7 +25,7 @@ interface RowSettingsPanelProps {
     ratio?: DetailLayoutRatio,
   ) => void;
   onUpdateRow: (
-    changes: Partial<Pick<DetailLayoutRow, "enabled" | "ratio">>,
+    changes: Partial<Pick<DetailLayoutDraftRow, "enabled" | "ratio">>,
   ) => void;
 }
 
@@ -134,7 +134,7 @@ export function RowSettingsPanel({
           <p className="text-sm font-semibold text-[var(--site-text)]">
             Block ในแถว
           </p>
-          {row.blocks.length === 0 ? (
+          {row.blocks.every((block) => block === null) ? (
             <p className="rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-4 text-sm text-[var(--site-muted)]">
               แถวนี้ยังไม่มี block ลากจากคลังหรือกดเพิ่มจากด้านซ้าย
             </p>
@@ -150,17 +150,17 @@ export function RowSettingsPanel({
                       ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
                       : "border-[var(--site-border)] bg-[var(--site-surface-soft)] hover:bg-[var(--site-surface)]"
                   }`}
-                  key={`${block.type}-${blockIndex}`}
+                  key={`${row.id}-${blockIndex}`}
                   onClick={() => {
                     onSelectBlock(blockIndex);
                   }}
                   type="button"
                 >
                   <span className="min-w-0 truncate font-semibold text-[var(--site-text)]">
-                    {blockIndex + 1}. {block.title}
+                    {blockIndex + 1}. {block?.title ?? "ช่องว่าง"}
                   </span>
                   <span className="text-xs font-semibold text-[var(--site-muted)]">
-                    {block.enabled ? "เปิด" : "ปิด"}
+                    {block ? (block.enabled ? "เปิด" : "ปิด") : "ว่าง"}
                   </span>
                 </button>
               );

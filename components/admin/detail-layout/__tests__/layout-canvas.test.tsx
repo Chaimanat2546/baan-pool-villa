@@ -4,10 +4,15 @@ import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_DETAIL_LAYOUT } from "../../../../lib/detail-layout/defaults";
 import { cloneDetailLayout } from "../../../../lib/detail-layout/validation";
 
-import type { DetailLayoutConfig } from "../types";
+import { toDetailLayoutDraft } from "../detail-layout-helpers";
+import type { DetailLayoutDraft } from "../types";
 import { LayoutCanvas } from "../layout-canvas";
 
-function renderCanvas(layout: DetailLayoutConfig = cloneDetailLayout(DEFAULT_DETAIL_LAYOUT)) {
+function renderCanvas(
+  layout: DetailLayoutDraft = toDetailLayoutDraft(
+    cloneDetailLayout(DEFAULT_DETAIL_LAYOUT),
+  ),
+) {
   return renderToStaticMarkup(
     <LayoutCanvas
       activeBlockIndex={0}
@@ -42,20 +47,20 @@ describe("LayoutCanvas", () => {
     expect(markup).toContain("ลบ block");
   });
 
-  it("marks later empty slots unavailable until previous slots are filled", () => {
-    const layout = cloneDetailLayout(DEFAULT_DETAIL_LAYOUT);
+  it("marks every empty slot as a drop target", () => {
+    const layout = toDetailLayoutDraft(cloneDetailLayout(DEFAULT_DETAIL_LAYOUT));
     layout.rows = [
       {
         id: "draft-empty",
         columns: 3,
         enabled: true,
-        blocks: [],
+        blocks: [null, null, null],
       },
     ];
 
     const markup = renderCanvas(layout);
 
-    expect(markup).toContain("ลาก block ลงช่องนี้");
-    expect(markup).toContain("เติมช่องก่อนหน้า");
+    expect(markup.match(/ลาก block ลงช่องนี้/g)).toHaveLength(3);
+    expect(markup).not.toContain("เติมช่องก่อนหน้า");
   });
 });

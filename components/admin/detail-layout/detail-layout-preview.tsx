@@ -1,11 +1,11 @@
-import type { DetailLayoutConfig, DetailLayoutRow } from "./types";
+import type { DetailLayoutDraft, DetailLayoutDraftRow } from "./types";
 
 interface DetailLayoutPreviewProps {
   activeRowId: string | null;
-  layout: DetailLayoutConfig;
+  layout: DetailLayoutDraft;
 }
 
-function getPreviewGridClass(row: DetailLayoutRow): string {
+function getPreviewGridClass(row: DetailLayoutDraftRow): string {
   if (row.columns === 1) {
     return "grid-cols-1";
   }
@@ -33,7 +33,7 @@ function getPreviewGridClass(row: DetailLayoutRow): string {
   return "grid-cols-2";
 }
 
-function getSlotIndexes(columns: DetailLayoutRow["columns"]): number[] {
+function getSlotIndexes(columns: DetailLayoutDraftRow["columns"]): number[] {
   return Array.from({ length: columns }, (_, index) => index);
 }
 

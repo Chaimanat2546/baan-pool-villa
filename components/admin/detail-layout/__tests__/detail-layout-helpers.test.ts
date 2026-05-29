@@ -9,6 +9,8 @@ import {
   makeDetailLayoutSnapshot,
   putDetailLayoutBlockInSlot,
   removeDetailLayoutBlock,
+  toDetailLayoutDraft,
+  validateDetailLayoutDraftForSave,
   updateDetailLayoutRowColumns,
 } from "../detail-layout-helpers";
 
@@ -23,11 +25,12 @@ describe("detail layout helpers", () => {
   });
 
   it("adds a draft row with the requested column count", () => {
-    const layout = addDetailLayoutRow(DEFAULT_DETAIL_LAYOUT, 3);
+    const draft = toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT);
+    const layout = addDetailLayoutRow(draft, 3);
     const lastRow = layout.rows.at(-1);
 
     expect(lastRow).toMatchObject({
-      blocks: [],
+      blocks: [null, null, null],
       columns: 3,
       enabled: true,
     });
@@ -38,7 +41,7 @@ describe("detail layout helpers", () => {
   it("truncates overflow blocks when columns are reduced", () => {
     const row = DEFAULT_DETAIL_LAYOUT.rows[2];
     const layout = updateDetailLayoutRowColumns(
-      DEFAULT_DETAIL_LAYOUT,
+      toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
       row.id,
       2,
       "70/30",
@@ -51,58 +54,26 @@ describe("detail layout helpers", () => {
 
   it("removes a block from a row", () => {
     const row = DEFAULT_DETAIL_LAYOUT.rows[0];
-    const layout = removeDetailLayoutBlock(DEFAULT_DETAIL_LAYOUT, row.id, 1);
-    const updatedRow = layout.rows.find((candidate) => candidate.id === row.id);
-
-    expect(updatedRow?.blocks).toHaveLength(1);
-    expect(updatedRow?.blocks[0]?.type).toBe("details");
-  });
-
-  it("appends into the next compact slot without moving earlier blocks", () => {
-    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
-    const layout = removeDetailLayoutBlock(DEFAULT_DETAIL_LAYOUT, row.id, 1);
-    const updatedLayout = putDetailLayoutBlockInSlot(
-      layout,
+    const layout = removeDetailLayoutBlock(
+      toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
       row.id,
       1,
-      makeDetailLayoutBlock("pool"),
-    );
-    const updatedRow = updatedLayout.rows.find(
-      (candidate) => candidate.id === row.id,
-    );
-
-    expect(updatedRow?.blocks.map((block) => block.type)).toEqual([
-      "details",
-      "pool",
-    ]);
-  });
-
-  it("replaces an occupied compact slot without compacting later blocks", () => {
-    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
-    const layout = putDetailLayoutBlockInSlot(
-      DEFAULT_DETAIL_LAYOUT,
-      row.id,
-      0,
-      makeDetailLayoutBlock("kitchen"),
     );
     const updatedRow = layout.rows.find((candidate) => candidate.id === row.id);
 
-    expect(updatedRow?.blocks.map((block) => block.type)).toEqual([
-      "kitchen",
-      "booking_contact",
+    expect(updatedRow?.blocks.map((block) => block?.type ?? null)).toEqual([
+      "details",
+      null,
     ]);
   });
 
-  it("ignores drops beyond the next compact slot", () => {
-    const layout = addDetailLayoutRow(DEFAULT_DETAIL_LAYOUT, 3);
-    const row = layout.rows.at(-1);
-
-    if (!row) {
-      throw new Error("Expected a draft row");
-    }
-
+  it("preserves a targeted later empty slot", () => {
+    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
+    const draft = toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT);
+    const layout = updateDetailLayoutRowColumns(draft, row.id, 3);
+    const withoutBooking = removeDetailLayoutBlock(layout, row.id, 1);
     const updatedLayout = putDetailLayoutBlockInSlot(
-      layout,
+      withoutBooking,
       row.id,
       2,
       makeDetailLayoutBlock("pool"),
@@ -111,7 +82,27 @@ describe("detail layout helpers", () => {
       (candidate) => candidate.id === row.id,
     );
 
-    expect(updatedRow?.blocks).toEqual([]);
+    expect(updatedRow?.blocks.map((block) => block?.type ?? null)).toEqual([
+      "details",
+      null,
+      "pool",
+    ]);
+  });
+
+  it("replaces an occupied slot without compacting later blocks", () => {
+    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
+    const layout = putDetailLayoutBlockInSlot(
+      toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
+      row.id,
+      0,
+      makeDetailLayoutBlock("kitchen"),
+    );
+    const updatedRow = layout.rows.find((candidate) => candidate.id === row.id);
+
+    expect(updatedRow?.blocks.map((block) => block?.type ?? null)).toEqual([
+      "kitchen",
+      "booking_contact",
+    ]);
   });
 
   it("keeps booking contact visible even when content is empty", () => {
@@ -121,5 +112,33 @@ describe("detail layout helpers", () => {
       title: "จอง / ติดต่อ",
       type: "booking_contact",
     });
+  });
+
+  it("sets a removed occupied slot to empty", () => {
+    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
+    const layout = removeDetailLayoutBlock(
+      toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
+      row.id,
+      0,
+    );
+    const updatedRow = layout.rows.find((candidate) => candidate.id === row.id);
+
+    expect(updatedRow?.blocks.map((block) => block?.type ?? null)).toEqual([
+      null,
+      "booking_contact",
+    ]);
+  });
+
+  it("reports a save error when an empty slot appears before a block", () => {
+    const row = DEFAULT_DETAIL_LAYOUT.rows[0];
+    const layout = removeDetailLayoutBlock(
+      toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT),
+      row.id,
+      0,
+    );
+
+    expect(validateDetailLayoutDraftForSave(layout)).toEqual([
+      "แถวที่ 1 มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง",
+    ]);
   });
 });

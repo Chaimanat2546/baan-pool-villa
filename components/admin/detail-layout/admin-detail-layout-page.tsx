@@ -16,14 +16,9 @@ import { DEFAULT_DETAIL_LAYOUT } from "@/lib/detail-layout/defaults";
 import type {
   DetailLayoutBlockType,
   DetailLayoutColumns,
-  DetailLayoutConfig,
   DetailLayoutRatio,
 } from "@/lib/detail-layout/types";
-import {
-  cloneDetailLayout,
-  moveDetailLayoutRow,
-  validateDetailLayout,
-} from "@/lib/detail-layout/validation";
+import { validateDetailLayout } from "@/lib/detail-layout/validation";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
 import { BlockLibrary } from "./block-library";
@@ -35,18 +30,23 @@ import {
   getFirstEditableRowId,
   makeDetailLayoutBlock,
   makeDetailLayoutSnapshot,
+  moveDetailLayoutDraftRow,
   putDetailLayoutBlockInSlot,
   removeDetailLayoutBlock,
+  toDetailLayoutConfig,
+  toDetailLayoutDraft,
   updateDetailLayoutBlock,
   updateDetailLayoutRow,
   updateDetailLayoutRowColumns,
+  validateDetailLayoutDraftForSave,
 } from "./detail-layout-helpers";
 import { LayoutCanvas } from "./layout-canvas";
 import { RowSettingsPanel } from "./row-settings-panel";
 import type {
   AdminDetailLayoutResponse,
   DetailLayoutBlock,
-  DetailLayoutRow,
+  DetailLayoutDraft,
+  DetailLayoutDraftRow,
 } from "./types";
 
 const ADMIN_ACCESS_ERROR_PREFIX = "Unable to verify admin access:";
@@ -118,7 +118,7 @@ function shouldRedirectToLogin(
   );
 }
 
-function findRow(layout: DetailLayoutConfig | null, rowId: string | null) {
+function findRow(layout: DetailLayoutDraft | null, rowId: string | null) {
   if (!layout || !rowId) {
     return null;
   }
@@ -126,17 +126,17 @@ function findRow(layout: DetailLayoutConfig | null, rowId: string | null) {
   return layout.rows.find((row) => row.id === rowId) ?? null;
 }
 
-function findBlock(row: DetailLayoutRow | null, blockIndex: number | null) {
+function findBlock(row: DetailLayoutDraftRow | null, blockIndex: number | null) {
   if (!row || blockIndex === null) {
-    return undefined;
+    return null;
   }
 
-  return row.blocks[blockIndex];
+  return row.blocks[blockIndex] ?? null;
 }
 
 export function AdminDetailLayoutPage() {
   const router = useRouter();
-  const [layout, setLayout] = useState<DetailLayoutConfig | null>(null);
+  const [layout, setLayout] = useState<DetailLayoutDraft | null>(null);
   const [activeRowId, setActiveRowId] = useState<string | null>(null);
   const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -207,7 +207,7 @@ export function AdminDetailLayoutPage() {
           return;
         }
 
-        const nextLayout = cloneDetailLayout(payload.layout);
+        const nextLayout = toDetailLayoutDraft(payload.layout);
 
         setLayout(nextLayout);
         setSavedSnapshot(makeDetailLayoutSnapshot(nextLayout));
@@ -262,7 +262,7 @@ export function AdminDetailLayoutPage() {
   }, [getAccessToken, loadLayout]);
 
   function updateLayout(
-    updater: (currentLayout: DetailLayoutConfig) => DetailLayoutConfig,
+    updater: (currentLayout: DetailLayoutDraft) => DetailLayoutDraft,
   ) {
     setNotice(null);
     setErrors([]);
@@ -284,7 +284,7 @@ export function AdminDetailLayoutPage() {
   }
 
   function handleReset() {
-    const nextLayout = cloneDetailLayout(DEFAULT_DETAIL_LAYOUT);
+    const nextLayout = toDetailLayoutDraft(DEFAULT_DETAIL_LAYOUT);
 
     setNotice(null);
     setErrors([]);
@@ -300,13 +300,14 @@ export function AdminDetailLayoutPage() {
       return;
     }
 
-    if (activeRow.blocks.length >= activeRow.columns) {
+    const nextIndex = activeRow.blocks.findIndex((block) => block === null);
+
+    if (nextIndex < 0) {
       setErrors(["แถวนี้เต็มแล้ว เลือกช่องว่างหรือเพิ่มคอลัมน์ก่อน"]);
       setNotice(null);
       return;
     }
 
-    const nextIndex = activeRow.blocks.length;
     updateLayout((currentLayout) =>
       putDetailLayoutBlockInSlot(
         currentLayout,
@@ -336,7 +337,9 @@ export function AdminDetailLayoutPage() {
   }
 
   function handleMoveRow(fromIndex: number, toIndex: number) {
-    updateLayout((currentLayout) => moveDetailLayoutRow(currentLayout, fromIndex, toIndex));
+    updateLayout((currentLayout) =>
+      moveDetailLayoutDraftRow(currentLayout, fromIndex, toIndex),
+    );
   }
 
   function handleDeleteRow(rowId: string) {
@@ -345,9 +348,11 @@ export function AdminDetailLayoutPage() {
       const nextLayout = deleteDetailLayoutRow(currentLayout, rowId);
       const nextActiveRow =
         nextLayout.rows[Math.min(rowIndex, nextLayout.rows.length - 1)] ?? null;
+      const firstBlockIndex =
+        nextActiveRow?.blocks.findIndex((block) => block !== null) ?? -1;
 
       setActiveRowId(nextActiveRow?.id ?? null);
-      setActiveBlockIndex(nextActiveRow?.blocks[0] ? 0 : null);
+      setActiveBlockIndex(firstBlockIndex >= 0 ? firstBlockIndex : null);
 
       return nextLayout;
     });
@@ -360,7 +365,10 @@ export function AdminDetailLayoutPage() {
       const duplicateRow = nextLayout.rows[rowIndex + 1] ?? null;
 
       setActiveRowId(duplicateRow?.id ?? rowId);
-      setActiveBlockIndex(duplicateRow?.blocks[0] ? 0 : null);
+      const firstBlockIndex =
+        duplicateRow?.blocks.findIndex((block) => block !== null) ?? -1;
+
+      setActiveBlockIndex(firstBlockIndex >= 0 ? firstBlockIndex : null);
 
       return nextLayout;
     });
@@ -370,7 +378,9 @@ export function AdminDetailLayoutPage() {
     const row = layout?.rows.find((candidate) => candidate.id === rowId) ?? null;
 
     setActiveRowId(rowId);
-    setActiveBlockIndex(row?.blocks[0] ? 0 : null);
+    const firstBlockIndex = row?.blocks.findIndex((block) => block !== null) ?? -1;
+
+    setActiveBlockIndex(firstBlockIndex >= 0 ? firstBlockIndex : null);
   }
 
   function handleSelectBlock(rowId: string, blockIndex: number) {
@@ -396,7 +406,7 @@ export function AdminDetailLayoutPage() {
   }
 
   function handleUpdateRow(
-    changes: Partial<Pick<DetailLayoutRow, "enabled" | "ratio">>,
+    changes: Partial<Pick<DetailLayoutDraftRow, "enabled" | "ratio">>,
   ) {
     if (!activeRow) {
       return;
@@ -440,7 +450,17 @@ export function AdminDetailLayoutPage() {
       return;
     }
 
-    const validation = validateDetailLayout(layout);
+    const draftErrors = validateDetailLayoutDraftForSave(layout);
+
+    setNotice(null);
+    setErrors(draftErrors);
+
+    if (draftErrors.length > 0) {
+      return;
+    }
+
+    const compactLayout = toDetailLayoutConfig(layout);
+    const validation = validateDetailLayout(compactLayout);
 
     setNotice(null);
     setErrors(validation.errors);
@@ -480,7 +500,7 @@ export function AdminDetailLayoutPage() {
         return;
       }
 
-      const nextLayout = cloneDetailLayout(payload.layout);
+      const nextLayout = toDetailLayoutDraft(payload.layout);
 
       setLayout(nextLayout);
       setSavedSnapshot(makeDetailLayoutSnapshot(nextLayout));
