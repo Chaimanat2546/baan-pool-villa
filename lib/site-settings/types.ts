@@ -1,3 +1,5 @@
+import type { DetailLayoutConfig } from "../detail-layout/types";
+
 export type SiteAssetType = "logo" | "hero";
 
 export interface SiteAssetUploadRecord {
@@ -51,6 +53,7 @@ export interface SiteSettings {
   bank: SiteBankSettings;
   contact: SiteContactSettings;
   seo: SiteSeoSettings;
+  detailLayout: DetailLayoutConfig;
 }
 
 export interface SiteSettingsLoadResult {
@@ -81,6 +84,7 @@ export interface SiteSettingsRow {
   seo_og_image_alt?: string | null;
   seo_business_name?: string | null;
   seo_same_as_urls?: unknown;
+  detail_layout?: unknown;
 }
 
 export interface SiteSettingsDraft {

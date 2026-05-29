@@ -4,6 +4,7 @@ import {
   DEFAULT_SITE_SETTINGS,
   SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
 } from "../defaults";
+import { DEFAULT_DETAIL_LAYOUT } from "../../detail-layout/defaults";
 import {
   normalizeSiteSettingsDraft,
   normalizeSiteSettingsRow,
@@ -46,6 +47,7 @@ const validRow = {
     " https://www.facebook.com/baanpoolvillas ",
     " https://line.me/R/ti/p/@baanpoolvilla ",
   ],
+  detail_layout: DEFAULT_DETAIL_LAYOUT,
 };
 
 describe("normalizeSiteSettingsRow", () => {
@@ -110,6 +112,7 @@ describe("normalizeSiteSettingsRow", () => {
           "https://line.me/R/ti/p/@baanpoolvilla",
         ],
       },
+      detailLayout: DEFAULT_DETAIL_LAYOUT,
     });
   });
 
@@ -138,6 +141,11 @@ describe("normalizeSiteSettingsRow", () => {
         seo_og_image_alt: "",
         seo_business_name: "",
         seo_same_as_urls: ["javascript:alert(1)"],
+        detail_layout: {
+          version: 1,
+          lockedTop: ["intro", "gallery"],
+          rows: [],
+        },
       }),
     ).toEqual(DEFAULT_SITE_SETTINGS);
   });

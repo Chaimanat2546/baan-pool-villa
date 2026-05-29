@@ -4,6 +4,7 @@ import {
   defaultTitle,
   siteName,
 } from "../seo";
+import { DEFAULT_DETAIL_LAYOUT } from "../detail-layout/defaults";
 import type {
   SiteBankSettings,
   SiteContactSettings,
@@ -77,4 +78,5 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   bank: DEFAULT_SITE_BANK_SETTINGS,
   contact: DEFAULT_SITE_CONTACT_SETTINGS,
   seo: DEFAULT_SITE_SEO_SETTINGS,
+  detailLayout: DEFAULT_DETAIL_LAYOUT,
 };

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { DEFAULT_DETAIL_LAYOUT } from "../../detail-layout/defaults";
 import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "../defaults";
 import { getSiteSettings } from "../server";
 import { createHomeConfigClient } from "../supabase";
@@ -92,6 +93,7 @@ describe("getSiteSettings", () => {
           " https://www.facebook.com/baanpoolvillas ",
           " https://line.me/R/ti/p/@baanpoolvilla ",
         ],
+        detail_layout: DEFAULT_DETAIL_LAYOUT,
       },
       error: null,
     });
@@ -142,6 +144,7 @@ describe("getSiteSettings", () => {
             "https://line.me/R/ti/p/@baanpoolvilla",
           ],
         },
+        detailLayout: DEFAULT_DETAIL_LAYOUT,
       },
       source: "config",
     });
