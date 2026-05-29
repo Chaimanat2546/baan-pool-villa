@@ -8,6 +8,7 @@ import {
 import { useRouter } from "next/navigation";
 import {
   type DragEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -30,6 +31,7 @@ import { AdminSectionsHeader } from "./admin-sections-header";
 import { AutoModeSummary } from "./auto-mode-summary";
 import { ManualIdsEditor } from "./manual-ids-editor";
 import { SectionConfigForm } from "./section-config-form";
+import { SectionHomePreview } from "./section-home-preview";
 import { SectionList } from "./section-list";
 import { SectionOutcomePanel } from "./section-outcome-panel";
 import {
@@ -189,6 +191,30 @@ async function readJsonPayload(response: Response): Promise<unknown> {
   } catch {
     return null;
   }
+}
+
+function SectionEditorGroup({
+  children,
+  description,
+  title,
+}: {
+  children: ReactNode;
+  description: string;
+  title: string;
+}) {
+  return (
+    <section className="grid gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
+      <div>
+        <h3 className="text-base font-semibold text-[var(--site-text)]">
+          {title}
+        </h3>
+        <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+          {description}
+        </p>
+      </div>
+      {children}
+    </section>
+  );
 }
 
 function isAbortSignalAborted(signal: AbortSignal | undefined): boolean {
@@ -774,149 +800,186 @@ export function AdminSectionsPage() {
           กำลังโหลดการจัดหน้าแรก...
         </div>
       ) : (
-        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(260px,340px)_1fr]">
-          <SectionList
-            activeDraftId={activeSection?.draftId ?? null}
-            onDragEnd={() => setDraggedDraftId(null)}
-            onDragOver={handleDragOver}
-            onDragStart={handleDragStart}
-            onDrop={handleDrop}
-            onSelect={selectSection}
-            sections={sections}
-          />
+        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(250px,320px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(250px,300px)_minmax(0,1fr)_360px]">
+          <div className="xl:sticky xl:top-4 xl:self-start">
+            <SectionList
+              activeDraftId={activeSection?.draftId ?? null}
+              onDragEnd={() => setDraggedDraftId(null)}
+              onDragOver={handleDragOver}
+              onDragStart={handleDragStart}
+              onDrop={handleDrop}
+              onSelect={selectSection}
+              sections={sections}
+            />
+          </div>
 
           {activeSection ? (
-            <section className="overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
-              <div className="flex flex-col gap-2 border-b border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-normal text-[var(--site-muted)]">
-                    ชุดที่ {activeIndex + 1}
-                  </p>
-                  <h2 className="truncate text-lg font-semibold text-[var(--site-text)]">
-                    {activeSection.title || "ยังไม่ได้ตั้งชื่อ"}
-                  </h2>
-                  {deleteNeedsConfirmation ? (
-                    <p className="mt-1 text-xs font-semibold text-red-700">
-                      กด “ยืนยันลบ” อีกครั้งเพื่อลบชุดนี้
+            <>
+              <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] shadow-sm">
+                <div className="flex flex-col gap-2 border-b border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-normal text-[var(--site-muted)]">
+                      ชุดที่ {activeIndex + 1}
                     </p>
-                  ) : null}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    aria-label="เลื่อนชุดบ้านพักที่เลือกขึ้น"
-                    className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={activeIndex <= 0}
-                    onClick={() => {
-                      moveSection(activeIndex, activeIndex - 1);
-                    }}
-                    title="เลื่อนขึ้น"
-                    type="button"
-                  >
-                    <ArrowUp aria-hidden="true" className="size-4" />
-                  </button>
-                  <button
-                    aria-label="เลื่อนชุดบ้านพักที่เลือกลง"
-                    className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={activeIndex < 0 || activeIndex >= sections.length - 1}
-                    onClick={() => {
-                      moveSection(activeIndex, activeIndex + 1);
-                    }}
-                    title="เลื่อนลง"
-                    type="button"
-                  >
-                    <ArrowDown aria-hidden="true" className="size-4" />
-                  </button>
-                  <button
-                    className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition ${
-                      deleteNeedsConfirmation
-                        ? "border-red-700 bg-red-700 text-white hover:bg-red-800"
-                        : "border-red-200 bg-[var(--site-surface)] text-red-700 hover:bg-red-50"
-                    }`}
-                    onClick={() => {
-                      requestDeleteSection(activeSection.draftId);
-                    }}
-                    type="button"
-                  >
-                    <Trash2 aria-hidden="true" className="size-4" />
-                    {deleteNeedsConfirmation ? "ยืนยันลบ" : "ลบ"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid items-start gap-4 px-4 py-4 xl:grid-cols-[1fr_320px]">
-                <div className="grid content-start gap-4">
-                  <div className="grid gap-3">
-                    <label className="block text-sm font-medium text-[var(--site-text)]">
-                      ชื่อชุดบ้านพัก
-                      <input
-                        className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
-                        onChange={(event) => {
-                          updateSection(activeSection.draftId, {
-                            title: event.target.value,
-                          });
-                        }}
-                        placeholder="เช่น บ้านพักแนะนำ"
-                        value={activeSection.title}
-                      />
-                    </label>
-
-                    <label className="block text-sm font-medium text-[var(--site-text)]">
-                      คำอธิบาย
-                      <textarea
-                        className="mt-1 min-h-20 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
-                        onChange={(event) => {
-                          updateSection(activeSection.draftId, {
-                            description: event.target.value,
-                          });
-                        }}
-                        placeholder="ข้อความสั้น ๆ ที่แสดงใต้หัวข้อชุดบ้านพัก"
-                        value={activeSection.description}
-                      />
-                    </label>
+                    <h2 className="truncate text-lg font-semibold text-[var(--site-text)]">
+                      {activeSection.title || "ยังไม่ได้ตั้งชื่อ"}
+                    </h2>
+                    {deleteNeedsConfirmation ? (
+                      <p className="mt-1 text-xs font-semibold text-red-700">
+                        กด “ยืนยันลบ” อีกครั้งเพื่อลบชุดนี้
+                      </p>
+                    ) : null}
                   </div>
-
-                  <SectionConfigForm
-                    onChange={(changes) => {
-                      updateSection(activeSection.draftId, changes);
-                    }}
-                    section={activeSection}
-                  />
-                </div>
-                <aside className="grid content-start gap-3">
-                  {activeSection.mode === "manual" ? (
-                    <ManualIdsEditor
-                      isPreviewing={isPreviewing}
-                      manualIdText={
-                        manualIdTexts[activeSection.draftId] ??
-                        activeSection.items
-                          .map((item) => item.houseId)
-                          .join(" ")
-                      }
-                      onChange={(nextManualIdText) => {
-                        setManualIdTexts((currentTexts) => ({
-                          ...currentTexts,
-                          [activeSection.draftId]: nextManualIdText,
-                        }));
-                        updateSection(activeSection.draftId, {
-                          items: parseManualIds(nextManualIdText),
-                        });
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      aria-label="เลื่อนชุดบ้านพักที่เลือกขึ้น"
+                      className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={activeIndex <= 0}
+                      onClick={() => {
+                        moveSection(activeIndex, activeIndex - 1);
                       }}
-                      onPreview={handlePreviewManualIds}
+                      title="เลื่อนขึ้น"
+                      type="button"
+                    >
+                      <ArrowUp aria-hidden="true" className="size-4" />
+                    </button>
+                    <button
+                      aria-label="เลื่อนชุดบ้านพักที่เลือกลง"
+                      className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={
+                        activeIndex < 0 || activeIndex >= sections.length - 1
+                      }
+                      onClick={() => {
+                        moveSection(activeIndex, activeIndex + 1);
+                      }}
+                      title="เลื่อนลง"
+                      type="button"
+                    >
+                      <ArrowDown aria-hidden="true" className="size-4" />
+                    </button>
+                    <button
+                      className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition ${
+                        deleteNeedsConfirmation
+                          ? "border-red-700 bg-red-700 text-white hover:bg-red-800"
+                          : "border-red-200 bg-[var(--site-surface)] text-red-700 hover:bg-red-50"
+                      }`}
+                      onClick={() => {
+                        requestDeleteSection(activeSection.draftId);
+                      }}
+                      type="button"
+                    >
+                      <Trash2 aria-hidden="true" className="size-4" />
+                      {deleteNeedsConfirmation ? "ยืนยันลบ" : "ลบ"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 px-4 py-4">
+                  <SectionEditorGroup
+                    description="ข้อความส่วนนี้คือหัวข้อและคำโปรยที่ลูกค้าเห็นบนหน้าแรก"
+                    title="รายละเอียดชุดบ้านพัก"
+                  >
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="block text-sm font-medium text-[var(--site-text)]">
+                        ชื่อชุดบ้านพัก
+                        <input
+                          className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+                          onChange={(event) => {
+                            updateSection(activeSection.draftId, {
+                              title: event.target.value,
+                            });
+                          }}
+                          placeholder="เช่น บ้านพักแนะนำ"
+                          value={activeSection.title}
+                        />
+                      </label>
+
+                      <label className="block text-sm font-medium text-[var(--site-text)] md:row-span-2">
+                        คำอธิบาย
+                        <textarea
+                          className="mt-1 min-h-28 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+                          onChange={(event) => {
+                            updateSection(activeSection.draftId, {
+                              description: event.target.value,
+                            });
+                          }}
+                          placeholder="ข้อความสั้น ๆ ที่แสดงใต้หัวข้อชุดบ้านพัก"
+                          value={activeSection.description}
+                        />
+                      </label>
+                    </div>
+                  </SectionEditorGroup>
+
+                  <SectionEditorGroup
+                    description="กำหนดว่าจะให้ระบบเลือกบ้านแบบไหน จำนวนกี่หลัง และจะเติมบ้านเพิ่มหรือไม่"
+                    title="วิธีเลือกและจำนวนบ้าน"
+                  >
+                    <SectionConfigForm
+                      onChange={(changes) => {
+                        updateSection(activeSection.draftId, changes);
+                      }}
+                      section={activeSection}
                     />
-                  ) : (
-                    <AutoModeSummary mode={activeSection.mode} />
-                  )}
-                  <SectionOutcomePanel
-                    onActiveChange={(isActive) =>
-                      updateSection(activeSection.draftId, { isActive })
+                  </SectionEditorGroup>
+
+                  <SectionEditorGroup
+                    description={
+                      activeSection.mode === "manual"
+                        ? "ใส่เลขบ้านตามลำดับที่อยากให้ขึ้น แล้วเช็กก่อนบันทึก"
+                        : "ชุดนี้ใช้กติกาอัตโนมัติ จึงไม่ต้องพิมพ์เลขบ้านเอง"
                     }
-                    preview={activePreview}
-                    section={activeSection}
-                  />
-                </aside>
-              </div>
-            </section>
-          ) : null}
+                    title={
+                      activeSection.mode === "manual"
+                        ? "เลือกบ้านเอง"
+                        : "แหล่งบ้านที่ระบบจะคัดให้"
+                    }
+                  >
+                    {activeSection.mode === "manual" ? (
+                      <ManualIdsEditor
+                        isPreviewing={isPreviewing}
+                        manualIdText={
+                          manualIdTexts[activeSection.draftId] ??
+                          activeSection.items
+                            .map((item) => item.houseId)
+                            .join(" ")
+                        }
+                        onChange={(nextManualIdText) => {
+                          setManualIdTexts((currentTexts) => ({
+                            ...currentTexts,
+                            [activeSection.draftId]: nextManualIdText,
+                          }));
+                          updateSection(activeSection.draftId, {
+                            items: parseManualIds(nextManualIdText),
+                          });
+                        }}
+                        onPreview={handlePreviewManualIds}
+                      />
+                    ) : (
+                      <AutoModeSummary mode={activeSection.mode} />
+                    )}
+                  </SectionEditorGroup>
+                </div>
+              </section>
+
+              <aside className="grid content-start gap-3 xl:col-start-2 2xl:sticky 2xl:top-4 2xl:col-start-auto 2xl:self-start">
+                <SectionHomePreview
+                  preview={activePreview}
+                  section={activeSection}
+                />
+                <SectionOutcomePanel
+                  onActiveChange={(isActive) =>
+                    updateSection(activeSection.draftId, { isActive })
+                  }
+                  preview={activePreview}
+                  section={activeSection}
+                />
+              </aside>
+            </>
+          ) : (
+            <div className="rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)] xl:col-span-1">
+              ยังไม่มีชุดบ้านพัก กดเพิ่มชุดบ้านพักเพื่อเริ่มจัดหน้าแรก
+            </div>
+          )}
         </div>
       )}
     </div>

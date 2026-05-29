@@ -36,7 +36,7 @@ export function SectionOutcomePanel({
   const isManual = section.mode === "manual";
 
   return (
-    <div className="rounded-[20px] border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
+    <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-[var(--site-text)]">
@@ -110,21 +110,6 @@ export function SectionOutcomePanel({
                 tone="red"
               />
 
-              {preview.valid.length > 0 ? (
-                <ul className="mt-3 space-y-1 border-t border-[var(--site-border)] pt-3">
-                  {preview.valid.slice(0, 8).map((villa) => (
-                    <li
-                      className="truncate text-xs text-[var(--site-text)]"
-                      key={villa.id}
-                      title={`บ้านเลขที่ ${villa.id} โซน ${villa.zoneLabel}`}
-                    >
-                      <span className="font-mono">#{villa.id}</span>{" "}
-                      {villa.zoneLabel} / {villa.bedrooms} ห้องนอน / พักได้{" "}
-                      {villa.people} คน
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
             </div>
           ) : section.items.length > 0 ? (
             <p className="border-t border-[var(--site-border)] pt-3 text-sm leading-6 text-[var(--site-muted)]">

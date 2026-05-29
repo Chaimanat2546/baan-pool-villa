@@ -24,7 +24,7 @@ export function SectionList({
   sections,
 }: SectionListProps) {
   return (
-    <aside className="rounded-[22px] border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-sm">
+    <aside className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <div>
           <h2 className="text-sm font-semibold text-[var(--site-text)]">
@@ -39,7 +39,7 @@ export function SectionList({
         </span>
       </div>
       {sections.length === 0 ? (
-        <div className="rounded-[18px] border border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-5 text-sm text-[var(--site-muted)]">
+        <div className="rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-5 text-sm text-[var(--site-muted)]">
           ยังไม่มีชุดบ้านพัก กดเพิ่มชุดบ้านพักเพื่อเริ่มจัดหน้าแรก
         </div>
       ) : (
@@ -51,7 +51,7 @@ export function SectionList({
             return (
               <button
                 aria-pressed={isActive}
-                className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded-[18px] border px-3 py-3 text-left text-sm transition ${
+                className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg border px-3 py-3 text-left text-sm transition ${
                   isActive
                     ? "border-[var(--site-primary)] bg-[var(--site-surface-soft)] shadow-sm"
                     : "border-[var(--site-border)] bg-[var(--site-surface)] hover:bg-[var(--site-surface-soft)]"
