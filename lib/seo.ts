@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import type { VillaListing } from "@/lib/villas/types";
 
+// Visible UI can use CMS settings while metadata fallback remains stable for this pass.
 export const siteName = "Pool Villas Pattaya";
 export const defaultTitle = "Pool Villas Pattaya | บ้านพักพูลวิลล่าพัทยา";
 export const defaultDescription =

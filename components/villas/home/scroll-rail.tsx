@@ -88,7 +88,7 @@ export function ScrollRail({
           <button
             type="button"
             aria-label={`เลื่อน${label}ไปทางซ้าย`}
-            className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe7e3] bg-white text-[#064e3b] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[#f8fbf7]"
+            className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]"
             onClick={() => {
               scrollByPage("left");
             }}
@@ -101,7 +101,7 @@ export function ScrollRail({
           <button
             type="button"
             aria-label={`เลื่อน${label}ไปทางขวา`}
-            className="grid h-11 w-11 place-items-center rounded-full border border-[#dbe7e3] bg-white text-[#064e3b] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[#f8fbf7]"
+            className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]"
             onClick={() => {
               scrollByPage("right");
             }}

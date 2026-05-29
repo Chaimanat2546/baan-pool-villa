@@ -7,7 +7,7 @@ export function LoadingSkeleton() {
         {Array.from({ length: 4 }).map((_, index) => (
           <Skeleton
             key={index}
-            className="h-[373px] rounded-[22px] border border-[#dbe7e3] bg-white"
+            className="h-[373px] rounded-[22px] border border-[var(--site-border)] bg-[var(--site-surface)]"
           />
         ))}
       </div>

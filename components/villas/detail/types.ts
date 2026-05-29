@@ -3,12 +3,14 @@ import type {
   VillaImage,
   VillaListing,
 } from "@/lib/villas/types";
+import type { SiteSettings } from "@/lib/site-settings/types";
 
 export interface VillaDetailPageProps {
   id: string;
   images: VillaImage[];
   payload: VillaDetailPayload;
   recommendedVillas: VillaListing[];
+  settings: SiteSettings;
 }
 
 export interface GalleryItem {

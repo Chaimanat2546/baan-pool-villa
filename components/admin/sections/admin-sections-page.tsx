@@ -735,7 +735,7 @@ export function AdminSectionsPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 text-[#0f332d]">
+    <div className="flex w-full flex-col gap-4 text-[var(--site-text)]">
       <AdminSectionsHeader
         activeSectionsCount={activeSectionsCount}
         hasUnsavedChanges={hasUnsavedChanges}
@@ -770,7 +770,7 @@ export function AdminSectionsPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="rounded-md border border-[#c9d9d3] bg-white px-4 py-8 text-center text-sm text-[#506862]">
+        <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
           กำลังโหลดการจัดหน้าแรก...
         </div>
       ) : (
@@ -786,13 +786,13 @@ export function AdminSectionsPage() {
           />
 
           {activeSection ? (
-            <section className="overflow-hidden rounded-[24px] border border-[#dbe7e3] bg-white shadow-[0_12px_34px_rgba(6,63,53,0.07)]">
-              <div className="flex flex-col gap-2 border-b border-[#dbe6e1] bg-[#fbfdfb] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <section className="overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+              <div className="flex flex-col gap-2 border-b border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-normal text-[#687d76]">
+                  <p className="text-xs font-semibold uppercase tracking-normal text-[var(--site-muted)]">
                     ชุดที่ {activeIndex + 1}
                   </p>
-                  <h2 className="truncate text-lg font-semibold text-[#063f35]">
+                  <h2 className="truncate text-lg font-semibold text-[var(--site-text)]">
                     {activeSection.title || "ยังไม่ได้ตั้งชื่อ"}
                   </h2>
                   {deleteNeedsConfirmation ? (
@@ -804,7 +804,7 @@ export function AdminSectionsPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     aria-label="เลื่อนชุดบ้านพักที่เลือกขึ้น"
-                    className="inline-flex size-9 items-center justify-center rounded-md border border-[#b7cbc3] bg-white text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={activeIndex <= 0}
                     onClick={() => {
                       moveSection(activeIndex, activeIndex - 1);
@@ -816,7 +816,7 @@ export function AdminSectionsPage() {
                   </button>
                   <button
                     aria-label="เลื่อนชุดบ้านพักที่เลือกลง"
-                    className="inline-flex size-9 items-center justify-center rounded-md border border-[#b7cbc3] bg-white text-[#17463c] transition hover:bg-[#f6faf8] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={activeIndex < 0 || activeIndex >= sections.length - 1}
                     onClick={() => {
                       moveSection(activeIndex, activeIndex + 1);
@@ -830,7 +830,7 @@ export function AdminSectionsPage() {
                     className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition ${
                       deleteNeedsConfirmation
                         ? "border-red-700 bg-red-700 text-white hover:bg-red-800"
-                        : "border-red-200 bg-white text-red-700 hover:bg-red-50"
+                        : "border-red-200 bg-[var(--site-surface)] text-red-700 hover:bg-red-50"
                     }`}
                     onClick={() => {
                       requestDeleteSection(activeSection.draftId);
@@ -846,10 +846,10 @@ export function AdminSectionsPage() {
               <div className="grid items-start gap-4 px-4 py-4 xl:grid-cols-[1fr_320px]">
                 <div className="grid content-start gap-4">
                   <div className="grid gap-3">
-                    <label className="block text-sm font-medium text-[#173f36]">
+                    <label className="block text-sm font-medium text-[var(--site-text)]">
                       ชื่อชุดบ้านพัก
                       <input
-                        className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                        className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
                         onChange={(event) => {
                           updateSection(activeSection.draftId, {
                             title: event.target.value,
@@ -860,10 +860,10 @@ export function AdminSectionsPage() {
                       />
                     </label>
 
-                    <label className="block text-sm font-medium text-[#173f36]">
+                    <label className="block text-sm font-medium text-[var(--site-text)]">
                       คำอธิบาย
                       <textarea
-                        className="mt-1 min-h-20 w-full rounded-md border border-[#c9d9d3] bg-white px-3 py-2 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15"
+                        className="mt-1 min-h-20 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
                         onChange={(event) => {
                           updateSection(activeSection.draftId, {
                             description: event.target.value,

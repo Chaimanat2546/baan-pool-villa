@@ -1,0 +1,310 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, CircleAlert } from "lucide-react";
+
+import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
+import type { SiteSettings } from "@/lib/site-settings/types";
+
+import {
+  buildSettingsFormData,
+  extractErrors,
+  extractWarnings,
+  makeSettingsSnapshot,
+  mapSettingsToDraft,
+  readJsonPayload,
+  shouldRedirectToLogin,
+} from "./settings-helpers";
+import { SettingsForm } from "./settings-form";
+import type {
+  AdminSettingsDraft,
+  AdminSiteSettingsResponse,
+} from "./types";
+
+export function AdminSettingsPage() {
+  const router = useRouter();
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [draft, setDraft] = useState<AdminSettingsDraft | null>(null);
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!draft || savedSnapshot === null) {
+      return false;
+    }
+
+    return makeSettingsSnapshot(draft) !== savedSnapshot;
+  }, [draft, savedSnapshot]);
+
+  const redirectToLogin = useCallback(() => {
+    router.replace("/admin/login");
+  }, [router]);
+
+  const getAccessToken = useCallback(async () => {
+    const supabase = createBrowserHomeConfigClient();
+    const { data, error } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (error || !token) {
+      redirectToLogin();
+      return null;
+    }
+
+    return token;
+  }, [redirectToLogin]);
+
+  const loadSettings = useCallback(
+    async (token: string, showLoading: boolean) => {
+      if (showLoading) {
+        setIsLoading(true);
+      }
+
+      setErrors([]);
+      setNotice(null);
+      setWarnings([]);
+
+      try {
+        const response = await fetch("/api/admin/site-settings", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const payload = (await readJsonPayload(
+          response,
+        )) as AdminSiteSettingsResponse | null;
+
+        if (shouldRedirectToLogin(response.status, payload)) {
+          redirectToLogin();
+          return;
+        }
+
+        if (!response.ok || !payload?.settings) {
+          setErrors(extractErrors(payload, "ไม่สามารถโหลดข้อมูลการตั้งค่าได้"));
+          return;
+        }
+
+        const nextDraft = mapSettingsToDraft(payload.settings);
+
+        setSettings(payload.settings);
+        setDraft(nextDraft);
+        setSavedSnapshot(makeSettingsSnapshot(nextDraft));
+      } catch (caughtError) {
+        setErrors([
+          caughtError instanceof Error
+            ? caughtError.message
+            : "ไม่สามารถโหลดข้อมูลการตั้งค่าได้",
+        ]);
+      } finally {
+        if (showLoading) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [redirectToLogin],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function load() {
+      try {
+        const token = await getAccessToken();
+
+        if (!token || !isMounted) {
+          return;
+        }
+
+        await loadSettings(token, true);
+      } catch (caughtError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setErrors([
+          caughtError instanceof Error
+            ? caughtError.message
+            : "ไม่สามารถเริ่มต้นหน้า Settings ได้",
+        ]);
+        setIsLoading(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [getAccessToken, loadSettings]);
+
+  function updateDraft(changes: Partial<AdminSettingsDraft>) {
+    setNotice(null);
+    setErrors([]);
+    setWarnings([]);
+    setDraft((currentDraft) =>
+      currentDraft ? { ...currentDraft, ...changes } : currentDraft,
+    );
+  }
+
+  async function handleSave() {
+    if (!draft) {
+      return;
+    }
+
+    if (!hasUnsavedChanges) {
+      setNotice("ยังไม่มีข้อมูลที่เปลี่ยนแปลงให้บันทึก");
+      return;
+    }
+
+    const token = await getAccessToken();
+
+    if (!token) {
+      return;
+    }
+
+    setIsSaving(true);
+    setErrors([]);
+    setNotice(null);
+    setWarnings([]);
+
+    try {
+      const response = await fetch("/api/admin/site-settings", {
+        body: buildSettingsFormData(draft),
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        method: "PUT",
+      });
+      const payload = (await readJsonPayload(
+        response,
+      )) as AdminSiteSettingsResponse | null;
+
+      if (shouldRedirectToLogin(response.status, payload)) {
+        redirectToLogin();
+        return;
+      }
+
+      if (!response.ok || !payload?.settings) {
+        setErrors(extractErrors(payload, "ไม่สามารถบันทึกการตั้งค่าได้"));
+        return;
+      }
+
+      const nextDraft = mapSettingsToDraft(payload.settings);
+
+      setSettings(payload.settings);
+      setDraft(nextDraft);
+      setSavedSnapshot(makeSettingsSnapshot(nextDraft));
+      setWarnings(extractWarnings(payload));
+      setNotice("บันทึกการตั้งค่าสำเร็จ");
+    } catch (caughtError) {
+      setErrors([
+        caughtError instanceof Error
+          ? caughtError.message
+          : "ไม่สามารถบันทึกการตั้งค่าได้",
+      ]);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-4 text-[var(--site-text)]">
+      <header className="grid gap-4 border-b border-[var(--site-border)] pb-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-[var(--site-primary)]">
+            การตั้งค่าเว็บไซต์
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-[var(--site-text)]">
+            กำหนดรูปลักษณ์แบรนด์เว็บ
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
+            ปรับชื่อเว็บไซต์ สีหลัก และสไตล์ Hero/โลโก้ให้ใช้งานจริงได้ทันที
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
+                hasUnsavedChanges
+                  ? "bg-[var(--site-accent-soft)] text-[var(--site-text)] ring-[var(--site-accent)]"
+                  : "bg-[var(--site-surface)] text-[var(--site-text)] ring-[var(--site-border)]"
+              }`}
+            >
+              <CheckCircle2 aria-hidden="true" className="size-3.5" />
+              {hasUnsavedChanges
+                ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก"
+                : "ข้อมูลถูกบันทึกแล้ว"}
+            </span>
+          </div>
+        </div>
+        <div className="rounded-xl border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 py-2 text-sm font-semibold text-[var(--site-primary)]">
+          {hasUnsavedChanges ? (
+            <span className="inline-flex items-center gap-1.5 text-[var(--site-text)]">
+              <CircleAlert aria-hidden="true" className="size-4" />
+              มีการแก้ไขที่ยังไม่บันทึก
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-[var(--site-primary)]">
+              <CheckCircle2 aria-hidden="true" className="size-4" />
+              บันทึกแล้ว
+            </span>
+          )}
+        </div>
+      </header>
+
+      {errors.length > 0 ? (
+        <div
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          role="alert"
+        >
+          <p className="font-semibold">กรุณาแก้ไขก่อนบันทึก:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {errors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {notice ? (
+        <p
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+          role="status"
+        >
+          {notice}
+        </p>
+      ) : null}
+
+      {warnings.length > 0 ? (
+        <div
+          className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          role="status"
+        >
+          <p className="font-semibold">บันทึกแล้วพร้อมคำเตือน:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {isLoading ? (
+        <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
+          กำลังโหลดการตั้งค่าเว็บ...
+        </div>
+      ) : settings && draft ? (
+        <SettingsForm
+          draft={draft}
+          hasUnsavedChanges={hasUnsavedChanges}
+          isSaving={isSaving}
+          onChange={updateDraft}
+          onSave={handleSave}
+          settings={settings}
+        />
+      ) : null}
+    </div>
+  );
+}

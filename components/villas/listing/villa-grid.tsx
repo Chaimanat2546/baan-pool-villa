@@ -11,15 +11,15 @@ interface VillaGridProps {
 export function VillaGrid({ villas }: VillaGridProps) {
   if (villas.length === 0) {
     return (
-      <div className="grid min-h-72 place-items-center rounded-[24px] border border-dashed border-[#cbded8] bg-white/70 px-6 text-center">
+      <div className="grid min-h-72 place-items-center rounded-[24px] border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface)] px-6 text-center">
         <div className="max-w-md">
-          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#f4f8f5] text-[#0f5a66]">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
             <SearchX className="h-6 w-6" />
           </div>
-          <h2 className="mt-4 text-xl font-bold text-[#063f35]">
+          <h2 className="mt-4 text-xl font-bold text-[var(--site-text)]">
             ไม่พบบ้านพักที่ตรงกับเงื่อนไข
           </h2>
-          <p className="mt-2 text-sm leading-6 text-[#55746b]">
+          <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">
             ลองปรับทำเล จำนวนผู้เข้าพัก ห้องนอน สิ่งอำนวยความสะดวก หรือช่วงราคา
           </p>
         </div>

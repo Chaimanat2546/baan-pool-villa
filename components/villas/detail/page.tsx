@@ -26,6 +26,7 @@ export function VillaDetailPage({
   images,
   payload,
   recommendedVillas,
+  settings,
 }: VillaDetailPageProps) {
 
   const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(
@@ -108,7 +109,7 @@ export function VillaDetailPage({
 
   return (
 
-    <main className="min-h-screen overflow-x-hidden bg-[#fbfdfb] pb-24 text-[#063f35] lg:pb-0">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] pb-24 text-[var(--site-text)] lg:pb-0">
 
       <Breadcrumbs listing={listing} />
 
@@ -132,7 +133,7 @@ export function VillaDetailPage({
 
         <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-          <div className="grid aspect-[16/7] place-items-center rounded-2xl bg-[#e6efeb] text-[#55746b]">
+          <div className="grid aspect-[16/7] place-items-center rounded-2xl bg-[var(--site-surface-tint)] text-[var(--site-muted)]">
 
             <ImageOff className="h-10 w-10" />
 
@@ -160,7 +161,7 @@ export function VillaDetailPage({
 
         <div className="min-w-0 space-y-8">
 
-          <BookingSidebar content={content} listing={listing} />
+          <BookingSidebar content={content} listing={listing} settings={settings} />
 
           <NearbySection content={content} />
         </div>

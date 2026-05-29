@@ -50,7 +50,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     description: "ข้อมูลเว็บและค่าทั่วไป",
-    disabled: true,
     href: "/admin/settings",
     icon: Settings,
     label: "ตั้งค่าเว็บ",

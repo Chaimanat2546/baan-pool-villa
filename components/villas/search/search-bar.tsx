@@ -120,14 +120,14 @@ export function SearchBar({
   return (
     <section
       ref={containerRef}
-      className="rounded-[20px] bg-white px-6 pb-10 pt-6 shadow-[0_12px_16px_rgba(15,47,53,0.14)]"
+      className="rounded-[20px] bg-[var(--site-surface)] px-6 pb-10 pt-6 shadow-[0_12px_16px_rgba(15,47,53,0.14)]"
     >
       <div className="grid gap-3 lg:grid-cols-[227px_155px_155px_230px_178px_auto] lg:items-end">
         <div className="relative min-w-0">
-          <label className="text-sm font-medium leading-5 text-[#064e3b]">ทำเลที่พัก</label>
+          <label className="text-sm font-medium leading-5 text-[var(--site-text)]">ทำเลที่พัก</label>
           <button
             type="button"
-            className="mt-1 flex min-h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-left text-[#064e3b]"
+            className="mt-1 flex min-h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-left text-[var(--site-text)]"
             onClick={() => {
               setOpenMenu(openMenu === "location" ? null : "location");
             }}
@@ -136,27 +136,27 @@ export function SearchBar({
             aria-controls={openMenu === "location" ? locationMenuId : undefined}
           >
             <span className="flex min-w-0 items-center gap-2">
-              <MapPin className="h-5 w-5 shrink-0 text-[#0f5a66]" />
+              <MapPin className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
               <span className="truncate text-lg leading-7">{selectedLocation}</span>
             </span>
-            <ChevronDown className="h-5 w-5 shrink-0 text-[#064e3b]" />
+            <ChevronDown className="h-5 w-5 shrink-0 text-[var(--site-text)]" />
           </button>
           {openMenu === "location" ? (
             <div
               id={locationMenuId}
               role="dialog"
               aria-label="เลือกทำเลที่พัก"
-              className="absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[#dbe7e3] bg-white p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)]"
+              className="absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)]"
             >
-              <div className="flex h-10 items-center gap-2 rounded-xl border border-[#dbe7e3] px-3">
-                <Search className="h-4 w-4 text-[#7b928a]" />
+              <div className="flex h-10 items-center gap-2 rounded-xl border border-[var(--site-border)] px-3">
+                <Search className="h-4 w-4 text-[var(--site-muted)]" />
                 <input
                   value={locationQuery}
                   onChange={(event) => {
                     setLocationQuery(event.target.value);
                   }}
                   placeholder="ค้นหาทำเล"
-                  className="w-full min-w-0 border-0 bg-transparent text-sm text-[#063f35] outline-none placeholder:text-[#8aa099]"
+                  className="w-full min-w-0 border-0 bg-transparent text-sm text-[var(--site-text)] outline-none placeholder:text-[var(--site-muted)]"
                 />
               </div>
               <div role="listbox" aria-label="ทำเลที่พัก" className="mt-2 max-h-56 overflow-y-auto">
@@ -166,14 +166,14 @@ export function SearchBar({
                     key={zone.value}
                     role="option"
                     aria-selected={filters.zone === zone.value}
-                    className="flex h-11 w-full items-center justify-between rounded-xl px-3 text-left text-sm font-medium text-[#063f35] hover:bg-[#f4f8f5]"
+                    className="flex h-11 w-full items-center justify-between rounded-xl px-3 text-left text-sm font-medium text-[var(--site-text)] hover:bg-[var(--site-primary-soft)]"
                     onClick={() => {
                       updateFilters({ zone: zone.value });
                       setOpenMenu(null);
                     }}
                   >
                     <span className="truncate">{zone.label}</span>
-                    {filters.zone === zone.value ? <Check className="h-4 w-4 text-[#f6ad21]" /> : null}
+                    {filters.zone === zone.value ? <Check className="h-4 w-4 text-[var(--site-accent)]" /> : null}
                   </button>
                 ))}
               </div>
@@ -182,9 +182,9 @@ export function SearchBar({
         </div>
 
         <div className="min-w-0">
-          <label className="text-sm font-medium leading-5 text-[#064e3b]">ผู้เข้าพัก</label>
-          <div className="mt-1 flex min-h-10 items-center gap-2 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2">
-            <Users className="h-5 w-5 shrink-0 text-[#0f5a66]" />
+          <label className="text-sm font-medium leading-5 text-[var(--site-text)]">ผู้เข้าพัก</label>
+          <div className="mt-1 flex min-h-10 items-center gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
+            <Users className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
             <input
               type="text"
               inputMode="numeric"
@@ -193,16 +193,16 @@ export function SearchBar({
               onChange={(event) => {
                 updateFilters({ guests: numberFromInput(event.target.value, 1) });
               }}
-              className="w-full min-w-0 bg-transparent text-lg leading-7 text-[#064e3b] outline-none"
+              className="w-full min-w-0 bg-transparent text-lg leading-7 text-[var(--site-text)] outline-none"
               aria-label="จำนวนผู้เข้าพัก"
             />
           </div>
         </div>
 
         <div className="min-w-0">
-          <label className="text-sm font-medium leading-5 text-[#064e3b]">ห้องนอน</label>
-          <div className="mt-1 flex min-h-10 items-center gap-2 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2">
-            <BedDouble className="h-5 w-5 shrink-0 text-[#0f5a66]" />
+          <label className="text-sm font-medium leading-5 text-[var(--site-text)]">ห้องนอน</label>
+          <div className="mt-1 flex min-h-10 items-center gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
+            <BedDouble className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
             <input
               type="text"
               inputMode="numeric"
@@ -211,17 +211,17 @@ export function SearchBar({
               onChange={(event) => {
                 updateFilters({ bedrooms: numberFromInput(event.target.value, 1) });
               }}
-              className="w-full min-w-0 bg-transparent text-lg leading-7 text-[#064e3b] outline-none"
+              className="w-full min-w-0 bg-transparent text-lg leading-7 text-[var(--site-text)] outline-none"
               aria-label="จำนวนห้องนอน"
             />
           </div>
         </div>
 
         <div className="relative min-w-0">
-          <label className="text-sm font-medium leading-5 text-[#064e3b]">สิ่งอำนวยความสะดวก</label>
+          <label className="text-sm font-medium leading-5 text-[var(--site-text)]">สิ่งอำนวยความสะดวก</label>
           <button
             type="button"
-            className="mt-1 flex min-h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-left"
+            className="mt-1 flex min-h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-left"
             onClick={() => {
               setOpenMenu(openMenu === "amenities" ? null : "amenities");
             }}
@@ -230,17 +230,17 @@ export function SearchBar({
             aria-controls={openMenu === "amenities" ? amenitiesMenuId : undefined}
           >
             <span className="flex min-w-0 items-center gap-2">
-              <SlidersHorizontal className="h-5 w-5 shrink-0 text-[#0f5a66]" />
-              <span className="truncate text-lg leading-7 text-[#064e3b]">{amenityLabel}</span>
+              <SlidersHorizontal className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
+              <span className="truncate text-lg leading-7 text-[var(--site-text)]">{amenityLabel}</span>
             </span>
-            <ChevronDown className="h-5 w-5 shrink-0 text-[#064e3b]" />
+            <ChevronDown className="h-5 w-5 shrink-0 text-[var(--site-text)]" />
           </button>
           {openMenu === "amenities" ? (
             <div
               id={amenitiesMenuId}
               role="dialog"
               aria-label="เลือกสิ่งอำนวยความสะดวก"
-              className="absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[#dbe7e3] bg-white p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)] lg:min-w-80"
+              className="absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)] lg:min-w-80"
             >
               <div role="group" aria-label="สิ่งอำนวยความสะดวก" className="grid max-h-72 gap-1 overflow-y-auto">
                 {AMENITY_OPTIONS.map((amenity) => {
@@ -252,7 +252,7 @@ export function SearchBar({
                       key={amenity.key}
                       role="checkbox"
                       aria-checked={isSelected}
-                      className="flex h-11 items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-medium text-[#063f35] hover:bg-[#f4f8f5]"
+                      className="flex h-11 items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-medium text-[var(--site-text)] hover:bg-[var(--site-primary-soft)]"
                       onClick={() => {
                         toggleAmenity(amenity.key);
                       }}
@@ -261,8 +261,8 @@ export function SearchBar({
                       <span
                         className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border ${
                           isSelected
-                            ? "border-[#f6ad21] bg-[#f6ad21] text-white"
-                            : "border-[#cadad5] text-transparent"
+                            ? "border-[var(--site-accent)] bg-[var(--site-accent)] text-[var(--site-on-accent)]"
+                            : "border-[var(--site-border)] text-transparent"
                         }`}
                       >
                         <Check className="h-3.5 w-3.5" />
@@ -277,8 +277,8 @@ export function SearchBar({
 
         <div className="min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <label className="text-sm font-normal leading-[21px] text-[#0b3f48]">ราคาสูงสุด</label>
-            <span className="text-sm leading-[21px] text-[#eab308]">
+            <label className="text-sm font-normal leading-[21px] text-[var(--site-text)]">ราคาสูงสุด</label>
+            <span className="text-sm leading-[21px] text-[var(--site-text)]">
               {currencyFormatter.format(filters.maxPrice)}
             </span>
           </div>
@@ -292,7 +292,7 @@ export function SearchBar({
               onChange={(event) => {
                 updateFilters({ maxPrice: numberFromInput(event.target.value, 1000) });
               }}
-              className="h-2 w-full accent-[#164e63]"
+              className="h-2 w-full accent-[var(--site-primary)]"
               aria-label="ราคาสูงสุด"
             />
           </div>
@@ -301,7 +301,7 @@ export function SearchBar({
         <button
           type="button"
           onClick={onSearch}
-          className="flex h-11 items-center justify-center gap-2 self-end rounded-full bg-[#064e3b] px-4 text-base font-medium leading-6 text-white transition hover:bg-[#04382d] focus:outline-none focus:ring-2 focus:ring-[#f6ad21] focus:ring-offset-2"
+          className="flex h-11 items-center justify-center gap-2 self-end rounded-full bg-[var(--site-primary)] px-4 text-base font-medium leading-6 text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--site-accent)] focus:ring-offset-2"
         >
           <Search className="h-5 w-5" />
           <span className="whitespace-nowrap">{searchLabel}</span>

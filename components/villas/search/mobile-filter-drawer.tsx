@@ -61,13 +61,13 @@ export function MobileFilterDrawer({
     <>
       <button
         type="button"
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#064e3b] px-5 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(6,78,59,0.18)] lg:hidden"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 text-sm font-semibold text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)] lg:hidden"
         onClick={openDrawer}
       >
         <SlidersHorizontal className="h-4 w-4" />
         ตัวกรอง
         {activeFilterCount > 0 ? (
-          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#eab308] px-1 text-xs font-bold text-[#064e3b]">
+          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[var(--site-accent)] px-1 text-xs font-bold text-[var(--site-on-accent)]">
             {activeFilterCount}
           </span>
         ) : null}
@@ -83,18 +83,18 @@ export function MobileFilterDrawer({
               setIsOpen(false);
             }}
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[88svh] overflow-hidden rounded-t-[28px] bg-[#f8fbf7] shadow-[0_-24px_60px_rgba(2,29,25,0.22)]">
-            <div className="flex items-center justify-between border-b border-[#dbe7e3] bg-white px-5 py-4">
+          <div className="absolute inset-x-0 bottom-0 max-h-[88svh] overflow-hidden rounded-t-[28px] bg-[var(--site-surface-soft)] shadow-[0_-24px_60px_rgba(2,29,25,0.22)]">
+            <div className="flex items-center justify-between border-b border-[var(--site-border)] bg-[var(--site-surface)] px-5 py-4">
               <div>
-                <p className="text-xs font-semibold text-[#55746b]">
+                <p className="text-xs font-semibold text-[var(--site-muted)]">
                   พบ {resultCount.toLocaleString("th-TH")} หลัง
                 </p>
-                <h2 className="text-xl font-black text-[#063f35]">ตัวกรองบ้านพัก</h2>
+                <h2 className="text-xl font-black text-[var(--site-text)]">ตัวกรองบ้านพัก</h2>
               </div>
               <button
                 type="button"
                 aria-label="ปิดตัวกรอง"
-                className="grid h-10 w-10 place-items-center rounded-full border border-[#dbe7e3] bg-white text-[#064e3b]"
+                className="grid h-10 w-10 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)]"
                 onClick={() => {
                   setIsOpen(false);
                 }}

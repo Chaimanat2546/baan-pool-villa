@@ -17,8 +17,8 @@ export function VillaStats({
 }: VillaStatsProps) {
   const itemClass =
     variant === "detail"
-      ? "flex min-w-0 items-center gap-1.5 rounded-2xl bg-white px-2.5 py-3 text-xs font-semibold text-[#063f35] shadow-sm ring-1 ring-[#dbe7e3] sm:gap-2 sm:px-4 sm:text-sm"
-      : "flex min-w-0 items-center gap-1.5 rounded-xl bg-[#f4f8f5] px-3 py-2 text-[#063f35]";
+      ? "flex min-w-0 items-center gap-1.5 rounded-2xl bg-[var(--site-surface)] px-2.5 py-3 text-xs font-semibold text-[var(--site-text)] shadow-sm ring-1 ring-[var(--site-border)] sm:gap-2 sm:px-4 sm:text-sm"
+      : "flex min-w-0 items-center gap-1.5 rounded-xl bg-[var(--site-primary-soft)] px-3 py-2 text-[var(--site-text)]";
   const iconClass =
     variant === "detail" ? "h-4 w-4 sm:h-5 sm:w-5" : "h-4 w-4";
 
@@ -35,7 +35,7 @@ export function VillaStats({
 
         return (
           <div key={stat.label} className={itemClass}>
-            <Icon className={`${iconClass} shrink-0 text-[#0f5a66]`} />
+            <Icon className={`${iconClass} shrink-0 text-[var(--site-primary)]`} />
             <span className="min-w-0 whitespace-nowrap">
               {stat.value.toLocaleString("th-TH")} {stat.label}
             </span>

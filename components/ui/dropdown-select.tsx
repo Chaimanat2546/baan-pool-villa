@@ -79,7 +79,7 @@ export function DropdownSelect<TValue extends string = string>({
         aria-label={ariaLabel}
         aria-controls={isOpen ? menuId : undefined}
         className={cn(
-          "mt-2 flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-xl border border-[#dbe7e3] bg-[#fbfdfb] px-3 text-left text-sm font-bold text-[#064e3b] transition hover:bg-[#eef7f3] focus:outline-none focus:ring-2 focus:ring-[#f6ad21] focus:ring-offset-2",
+          "mt-2 flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-left text-sm font-bold text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--site-accent)] focus:ring-offset-2",
           buttonClassName,
         )}
         onClick={() => {
@@ -89,7 +89,7 @@ export function DropdownSelect<TValue extends string = string>({
         <span className="min-w-0 truncate">{selectedOption?.label ?? placeholder}</span>
         <ChevronDown
           className={cn(
-            "h-5 w-5 shrink-0 text-[#064e3b] transition",
+            "h-5 w-5 shrink-0 text-[var(--site-text)] transition",
             isOpen && "rotate-180",
           )}
         />
@@ -101,7 +101,7 @@ export function DropdownSelect<TValue extends string = string>({
           role="listbox"
           aria-label={ariaLabel}
           className={cn(
-            "absolute left-0 right-0 top-[3.75rem] z-30 rounded-2xl border border-[#dbe7e3] bg-white p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)]",
+            "absolute left-0 right-0 top-[3.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)]",
             menuClassName,
           )}
         >
@@ -115,13 +115,13 @@ export function DropdownSelect<TValue extends string = string>({
                   type="button"
                   role="option"
                   aria-selected={isSelected}
-                  className="flex h-11 items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-medium text-[#063f35] transition hover:bg-[#f4f8f5]"
+                  className="flex h-11 items-center justify-between gap-3 rounded-xl px-3 text-left text-sm font-medium text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
                   onClick={() => {
                     handleSelect(option.value);
                   }}
                 >
                   <span className="min-w-0 truncate">{option.label}</span>
-                  {isSelected ? <Check className="h-4 w-4 text-[#f6ad21]" /> : null}
+                  {isSelected ? <Check className="h-4 w-4 text-[var(--site-accent)]" /> : null}
                 </button>
               );
             })}

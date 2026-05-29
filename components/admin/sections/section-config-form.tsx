@@ -17,7 +17,7 @@ export function SectionConfigForm({
     <>
       <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)]">
         <fieldset className="min-w-0">
-          <legend className="text-sm font-medium text-[#173f36]">
+          <legend className="text-sm font-medium text-[var(--site-text)]">
             วิธีเลือกบ้านพัก
           </legend>
           <div className="mt-3 grid gap-3">
@@ -29,8 +29,8 @@ export function SectionConfigForm({
                   aria-pressed={isSelected}
                   className={`min-h-20 rounded-xl border px-4 py-4 text-left transition ${
                     isSelected
-                      ? "border-[#064e3b] bg-[#f8fbf7] shadow-[0_10px_24px_rgba(6,63,53,0.08)]"
-                      : "border-[#dbe1e7] bg-white text-[#55746b] hover:bg-[#f8fbf7]"
+                      ? "border-[var(--site-primary)] bg-[var(--site-surface-soft)] shadow-sm"
+                      : "border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] hover:bg-[var(--site-surface-soft)]"
                   }`}
                   key={mode.value}
                   onClick={() => {
@@ -38,10 +38,10 @@ export function SectionConfigForm({
                   }}
                   type="button"
                 >
-                  <span className="block text-sm font-semibold text-[#173f36]">
+                  <span className="block text-sm font-semibold text-[var(--site-text)]">
                     {mode.label}
                   </span>
-                  <span className="mt-2 block text-xs leading-5 text-[#52656f]">
+                  <span className="mt-2 block text-xs leading-5 text-[var(--site-muted)]">
                     {mode.summary}
                   </span>
                 </button>
@@ -51,10 +51,10 @@ export function SectionConfigForm({
         </fieldset>
 
         <div className="grid content-start gap-4">
-          <label className="block text-sm font-medium text-[#173f36]">
+          <label className="block text-sm font-medium text-[var(--site-text)]">
             จำนวนบ้านที่แสดง
             <input
-              className="mt-3 h-14 w-full rounded-xl border border-[#dbe1e7] bg-white px-4 text-base text-[#173f36] outline-none transition focus:border-[#2f7cff] focus:ring-2 focus:ring-[#2f7cff]/15"
+              className="mt-3 h-14 w-full rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-base text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
               max={12}
               min={1}
               onChange={(event) => {
@@ -63,19 +63,19 @@ export function SectionConfigForm({
               type="number"
               value={section.limitCount}
             />
-            <span className="mt-2 block text-xs leading-5 text-[#687d76]">
+            <span className="mt-2 block text-xs leading-5 text-[var(--site-muted)]">
               แสดงบ้านพักได้ 1-12 หลัง
             </span>
           </label>
         </div>
         <div className="grid gap-1">
-          <label className="items-center font-semibold text-[#173f36]">
+          <label className="items-center font-semibold text-[var(--site-text)]">
             <input
               checked={
                 normalizeAdminFallbackMode(section.fallbackMode) ===
                 "fill_from_all"
               }
-              className="size-5 shrink-0 accent-[#075341]"
+              className="size-5 shrink-0 accent-[var(--site-primary)]"
               onChange={(event) => {
                 onChange({
                   fallbackMode: event.target.checked ? "fill_from_all" : "none",
@@ -85,10 +85,10 @@ export function SectionConfigForm({
             />
             <span className="ml-3">เติมจากบ้านพักทั้งหมดถ้าไม่ครบ</span>
           </label>
-          <label className="items-center font-semibold text-[#173f36]">
+          <label className="items-center font-semibold text-[var(--site-text)]">
             <input
               checked={section.ctaEnabled}
-              className="size-5 shrink-0 accent-[#075341]"
+              className="size-5 shrink-0 accent-[var(--site-primary)]"
               onChange={(event) => {
                 const isEnabled = event.target.checked;
 

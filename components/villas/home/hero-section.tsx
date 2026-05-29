@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import type { SiteImageSettings } from "@/lib/site-settings/types";
 import type { VillaFilters } from "@/lib/villas/types";
 
 import { SearchBar } from "../search/search-bar";
@@ -11,6 +12,7 @@ interface ZoneOption {
 
 interface HeroSectionProps {
   filters: VillaFilters;
+  heroImage: SiteImageSettings;
   maxAvailablePrice: number;
   onChange: (filters: VillaFilters) => void;
   onSearch: () => void;
@@ -19,32 +21,24 @@ interface HeroSectionProps {
 
 export function HeroSection({
   filters,
+  heroImage,
   maxAvailablePrice,
   onChange,
   onSearch,
   zones,
 }: HeroSectionProps) {
   return (
-    <section className="relative bg-white lg:pb-20">
+    <section className="relative lg:pb-20">
       <Image
-        src="/images/BPV-66_Cover-Web.jpg"
-        alt="Pool Villa บ้านพูลวิลล่า พัทยา"
+        src={heroImage.url}
+        alt={heroImage.alt}
         width={1565}
         height={1043}
-        priority
+        preload
         sizes="100vw"
-        className="h-auto w-full object-top lg:hidden"
+        className="h-auto w-full"
       />
-      <Image
-        src="/images/BPV-66_Cover-Web.jpg"
-        alt="Pool Villa บ้านพูลวิลล่า พัทยา"
-        width={1565}
-        height={1043}
-        priority
-        sizes="100vw"
-        className="hidden h-[83.333svh] w-full object-cover object-top lg:block"
-      />
-      <div className="absolute inset-x-0 bottom-0 z-10 hidden translate-y-1/2 px-4 sm:px-6 lg:block lg:px-8">
+      <div className="absolute inset-x-0 bottom-0 z-10 hidden px-4 sm:px-6 lg:block lg:px-8">
         <div className="mx-auto max-w-7xl">
           <SearchBar
             filters={filters}

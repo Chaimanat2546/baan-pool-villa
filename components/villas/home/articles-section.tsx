@@ -46,9 +46,9 @@ export function ArticlesSection({ villas }: ArticlesSectionProps) {
           return (
             <article
               key={article.title}
-              className="w-[306px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#dbe7e3] bg-white shadow-[0_12px_34px_rgba(6,63,53,0.07)] md:w-[394px]"
+              className="w-[306px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_34px_rgba(6,63,53,0.07)] md:w-[394px]"
             >
-              <div className="relative aspect-[4/3] bg-[#e6efeb]">
+              <div className="relative aspect-[4/3] bg-[var(--site-surface-tint)]">
                 {articleImage ? (
                   <Image
                     src={articleImage}
@@ -58,17 +58,17 @@ export function ArticlesSection({ villas }: ArticlesSectionProps) {
                     className="object-cover"
                   />
                 ) : null}
-                <span className="absolute right-3 top-3 rounded-full bg-white/85 px-3 py-1 text-xs font-black text-[#064d3d] backdrop-blur">
+                <span className="absolute right-3 top-3 rounded-full bg-[var(--site-surface)] px-3 py-1 text-xs font-black text-[var(--site-primary)] backdrop-blur">
                   {article.category}
                 </span>
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-black text-[#063f35]">{article.title}</h3>
+                  <h3 className="text-xl font-black text-[var(--site-text)]">{article.title}</h3>
                   <MockBadge />
                 </div>
-                <p className="mt-3 text-sm leading-6 text-[#55746b]">{article.body}</p>
-                <span className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[#064d3d]">
+                <p className="mt-3 text-sm leading-6 text-[var(--site-muted)]">{article.body}</p>
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--site-primary)]">
                   อ่านต่อ <ArrowRight className="h-4 w-4" />
                 </span>
               </div>
