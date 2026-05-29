@@ -5,7 +5,10 @@ import {
   getBearerToken,
   jsonError,
 } from "@/lib/admin/home-config-auth";
-import { SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
+import {
+  DEFAULT_SITE_SETTINGS,
+  SITE_SETTINGS_ID,
+} from "@/lib/site-settings/defaults";
 import { DEFAULT_DETAIL_LAYOUT } from "../defaults";
 import type { DetailLayoutConfig } from "../types";
 import { validateDetailLayout } from "../validation";
@@ -41,12 +44,32 @@ function detailLayoutSelectQuery(result: { data: unknown; error: unknown }) {
 }
 
 function detailLayoutUpdateQuery(result: { data: unknown; error: unknown }) {
-  const single = vi.fn().mockResolvedValue(result);
-  const select = vi.fn().mockReturnValue({ single });
+  const maybeSingle = vi.fn().mockResolvedValue(result);
+  const select = vi.fn().mockReturnValue({ maybeSingle });
   const eq = vi.fn().mockReturnValue({ select });
   const update = vi.fn().mockReturnValue({ eq });
 
-  return { eq, select, single, update };
+  return { eq, maybeSingle, select, update };
+}
+
+function detailLayoutInsertQuery(result: { data: unknown; error: unknown }) {
+  const single = vi.fn().mockResolvedValue(result);
+  const select = vi.fn().mockReturnValue({ single });
+  const insert = vi.fn().mockReturnValue({ select });
+
+  return { insert, select, single };
+}
+
+function fromQueue(queues: Record<string, unknown[]>) {
+  return vi.fn((table: string) => {
+    const queue = queues[table];
+
+    if (!queue || queue.length === 0) {
+      throw new Error(`Unexpected Supabase table call: ${table}`);
+    }
+
+    return queue.shift();
+  });
 }
 
 function authenticatedRequest() {
@@ -294,5 +317,147 @@ describe("admin detail layout route", () => {
       },
     });
     expect(jsonErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("creates the global settings row with defaults when PUT update finds no row", async () => {
+    const detailLayout = customLayout();
+    const updateQuery = detailLayoutUpdateQuery({
+      data: null,
+      error: null,
+    });
+    const insertQuery = detailLayoutInsertQuery({
+      data: {
+        id: SITE_SETTINGS_ID,
+        detail_layout: detailLayout,
+      },
+      error: null,
+    });
+    const from = fromQueue({
+      site_settings: [updateQuery, insertQuery],
+    });
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/detail-layout/route"
+    );
+    const response = await PUT(putRequest({ layout: detailLayout }));
+
+    expect(response.status).toBe(200);
+    expect(updateQuery.maybeSingle).toHaveBeenCalled();
+    expect(insertQuery.insert).toHaveBeenCalledWith({
+      id: SITE_SETTINGS_ID,
+      site_name: DEFAULT_SITE_SETTINGS.siteName,
+      primary_color: DEFAULT_SITE_SETTINGS.primaryColor,
+      accent_color: DEFAULT_SITE_SETTINGS.accentColor,
+      logo_image_path: DEFAULT_SITE_SETTINGS.logoImage.path,
+      logo_image_url: DEFAULT_SITE_SETTINGS.logoImage.url,
+      hero_image_path: DEFAULT_SITE_SETTINGS.heroImage.path,
+      hero_image_url: DEFAULT_SITE_SETTINGS.heroImage.url,
+      hero_image_alt: DEFAULT_SITE_SETTINGS.heroImage.alt,
+      bank_account_name: DEFAULT_SITE_SETTINGS.bank.accountName,
+      bank_name: DEFAULT_SITE_SETTINGS.bank.bankName,
+      bank_account_number: DEFAULT_SITE_SETTINGS.bank.accountNumber,
+      phone_contacts: DEFAULT_SITE_SETTINGS.contact.phoneContacts,
+      messenger_url: DEFAULT_SITE_SETTINGS.contact.messengerUrl,
+      line_id: DEFAULT_SITE_SETTINGS.contact.lineId,
+      line_url: DEFAULT_SITE_SETTINGS.contact.lineUrl,
+      seo_title: DEFAULT_SITE_SETTINGS.seo.title,
+      seo_description: DEFAULT_SITE_SETTINGS.seo.description,
+      seo_og_image_url: DEFAULT_SITE_SETTINGS.seo.ogImage.url,
+      seo_og_image_alt: DEFAULT_SITE_SETTINGS.seo.ogImage.alt,
+      seo_business_name: DEFAULT_SITE_SETTINGS.seo.businessName,
+      seo_same_as_urls: DEFAULT_SITE_SETTINGS.seo.sameAsUrls,
+      detail_layout: {
+        version: 1,
+        lockedTop: ["gallery", "intro"],
+        rows: [
+          {
+            id: "custom_row",
+            columns: 2,
+            ratio: "60/40",
+            enabled: true,
+            blocks: [
+              {
+                type: "details",
+                title: "Custom details",
+                enabled: true,
+                hideWhenEmpty: true,
+              },
+              {
+                type: "booking_contact",
+                title: "Booking",
+                enabled: false,
+                hideWhenEmpty: false,
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(insertQuery.select).toHaveBeenCalledWith("id,detail_layout");
+    await expect(response.json()).resolves.toEqual({
+      layout: {
+        version: 1,
+        lockedTop: ["gallery", "intro"],
+        rows: [
+          {
+            id: "custom_row",
+            columns: 2,
+            ratio: "60/40",
+            enabled: true,
+            blocks: [
+              {
+                type: "details",
+                title: "Custom details",
+                enabled: true,
+                hideWhenEmpty: true,
+              },
+              {
+                type: "booking_contact",
+                title: "Booking",
+                enabled: false,
+                hideWhenEmpty: false,
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it("surfaces Supabase insert details when missing-row create fails", async () => {
+    const insertError = {
+      message: "Insert failed",
+      code: "23502",
+      details: "site_name cannot be null",
+      hint: "include required defaults",
+    };
+    const updateQuery = detailLayoutUpdateQuery({
+      data: null,
+      error: null,
+    });
+    const insertQuery = detailLayoutInsertQuery({
+      data: null,
+      error: insertError,
+    });
+    const from = fromQueue({
+      site_settings: [updateQuery, insertQuery],
+    });
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/detail-layout/route"
+    );
+    const response = await PUT(putRequest({ layout: DEFAULT_DETAIL_LAYOUT }));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Insert failed",
+      code: "23502",
+      details: "site_name cannot be null",
+      hint: "include required defaults",
+    });
   });
 });
