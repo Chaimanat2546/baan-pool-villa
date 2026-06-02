@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Baan Pool Villa AI Structure Map</title>
+    <meta name="description" content="Repository structure map for coding agents working on Baan Pool Villa.">
+  </head>
+  <body>
+    <main>
+      <h1>Baan Pool Villa AI Structure Map</h1>
+      <p>
+        This document is the source of truth for repository structure, ownership,
+        and common data flow. Use <code>AGENTS.md</code> for rules and this file
+        for where things live.
+      </p>
+      <p>
+        Last reviewed: 2026-06-02. Next.js App Router route groups such as
+        <code>(home)</code>, <code>(public)</code>, and <code>(admin)</code> do
+        not appear in the public URL.
+      </p>
+
+      <section id="maintenance">
+        <h2>Maintenance Triggers</h2>
+        <p>Update this file in the same change when any of these happen:</p>
+        <ul>
+          <li>A route, route group, loading UI, not-found UI, or route handler is added, moved, renamed, or removed.</li>
+          <li>A feature folder, shared component family, shared helper module, or ownership boundary changes.</li>
+          <li>A new site setting, CMS table, Supabase migration pattern, public data contract, or admin API flow is introduced.</li>
+          <li>Cache tags, cache durations, revalidation paths, SEO helpers, contact helpers, pricing helpers, or image URL ownership changes.</li>
+          <li>The recommended targeted tests for a feature area change.</li>
+        </ul>
+      </section>
+
+      <section id="top-level">
+        <h2>Top-Level Map</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Role</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>app/</code></td>
+              <td>Next.js App Router routes and route handlers</td>
+              <td>Route files should stay thin and delegate UI/data logic to feature modules.</td>
+            </tr>
+            <tr>
+              <td><code>components/</code></td>
+              <td>Public, admin, layout, and small UI components</td>
+              <td>Feature UI belongs in its feature folder; avoid top-level villa re-export wrappers.</td>
+            </tr>
+            <tr>
+              <td><code>lib/</code></td>
+              <td>Data access, normalization, validation, settings, SEO, cache, pricing, and shared helpers</td>
+              <td>Prefer these helpers over ad hoc constants or duplicated transforms in components.</td>
+            </tr>
+            <tr>
+              <td><code>supabase/</code></td>
+              <td>Schema migrations and seed data</td>
+              <td>Migrations are source-controlled history; online project changes need minimal idempotent patch SQL.</td>
+            </tr>
+            <tr>
+              <td><code>tests/</code></td>
+              <td>End-to-end and production smoke tests</td>
+              <td>Unit and component tests usually live beside the touched feature in <code>__tests__</code>.</td>
+            </tr>
+            <tr>
+              <td><code>docs/</code></td>
+              <td>Agent specs, plans, and AI-facing structure docs</td>
+              <td>This file lives at <code>docs/ai/structure.html</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="app-routes">
+        <h2>App Router Map</h2>
+
+        <section id="root-routes">
+          <h3>Root Files</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Path</th>
+                <th>URL</th>
+                <th>Responsibility</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>app/layout.tsx</code></td>
+                <td>All routes</td>
+                <td>Root HTML/body shell, global metadata base, global CSS/font wiring.</td>
+              </tr>
+              <tr>
+                <td><code>app/sitemap.ts</code></td>
+                <td><code>/sitemap.xml</code></td>
+                <td>Public sitemap using villa and site URL helpers.</td>
+              </tr>
+              <tr>
+                <td><code>app/robots.ts</code></td>
+                <td><code>/robots.txt</code></td>
+                <td>Robots configuration.</td>
+              </tr>
+              <tr>
+                <td><code>app/globals.css</code></td>
+                <td>All routes</td>
+                <td>Tailwind v4 global styles and shared theme variables.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="public-routes">
+          <h3>Public Routes</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Path</th>
+                <th>URL</th>
+                <th>Delegates To</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>app/(public)/layout.tsx</code></td>
+                <td>Public shell</td>
+                <td><code>components/layout</code>, resolved site settings, theme variables, contact config.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/(home)/page.tsx</code></td>
+                <td><code>/</code></td>
+                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/(home)/loading.tsx</code></td>
+                <td><code>/</code> loading UI</td>
+                <td><code>components/villas/home/loading-skeleton</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/search/page.tsx</code></td>
+                <td><code>/search</code></td>
+                <td><code>components/villas/search/page</code>, villa listing/filter helpers.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/search/loading.tsx</code></td>
+                <td><code>/search</code> loading UI</td>
+                <td><code>components/villas/search/search-loading-skeleton</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/villas/[id]/page.tsx</code></td>
+                <td><code>/villas/:id</code></td>
+                <td><code>components/villas/detail/page</code>, detail API data, Supabase image rows, SEO/JSON-LD helpers.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/villas/[id]/loading.tsx</code></td>
+                <td><code>/villas/:id</code> loading UI</td>
+                <td><code>components/villas/detail/detail-page-skeleton</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/villas/[id]/not-found.tsx</code></td>
+                <td><code>/villas/:id</code> missing villa UI</td>
+                <td>Detail not-found experience.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="public-route-handlers">
+          <h3>Public Route Handlers</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Path</th>
+                <th>URL</th>
+                <th>Uses</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>app/(public)/api/home-sections/route.ts</code></td>
+                <td><code>/api/home-sections</code></td>
+                <td><code>lib/home-sections</code>, public cache headers.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/api/houses/route.ts</code></td>
+                <td><code>/api/houses</code></td>
+                <td><code>lib/villas/server.ts</code>, public cache headers.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/api/villas/[id]/route.ts</code></td>
+                <td><code>/api/villas/:id</code></td>
+                <td>Villa detail data helpers, public cache headers.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/api/villas/[id]/images/route.ts</code></td>
+                <td><code>/api/villas/:id/images</code></td>
+                <td><code>lib/villas/images.ts</code>, public cache headers.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="admin-routes">
+          <h3>Admin Routes</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Path</th>
+                <th>URL</th>
+                <th>Delegates To</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>app/(admin)/admin/layout.tsx</code></td>
+                <td>Admin shell</td>
+                <td><code>components/admin/layout/admin-shell</code> and shared admin navigation.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/page.tsx</code></td>
+                <td><code>/admin</code></td>
+                <td>Admin landing/redirect surface.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/login/page.tsx</code></td>
+                <td><code>/admin/login</code></td>
+                <td><code>components/admin/login/admin-login-form</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/settings/page.tsx</code></td>
+                <td><code>/admin/settings</code></td>
+                <td><code>components/admin/settings/admin-settings-page</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/sections/page.tsx</code></td>
+                <td><code>/admin/sections</code></td>
+                <td><code>components/admin/sections/admin-sections-page</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/detail-layout/page.tsx</code></td>
+                <td><code>/admin/detail-layout</code></td>
+                <td><code>components/admin/detail-layout/admin-detail-layout-page</code>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="admin-route-handlers">
+          <h3>Admin Route Handlers</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Path</th>
+                <th>URL</th>
+                <th>Primary Responsibility</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>app/(admin)/api/admin/home-sections/route.ts</code></td>
+                <td><code>/api/admin/home-sections</code></td>
+                <td>Admin auth, parse/validate home section configs, persist to Supabase, revalidate home cache.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/api/admin/home-sections/preview/route.ts</code></td>
+                <td><code>/api/admin/home-sections/preview</code></td>
+                <td>Preview home section rules without persisting.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
+                <td><code>/api/admin/site-settings</code></td>
+                <td>Validate site settings, handle asset uploads, persist settings, revalidate public settings cache.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/api/admin/detail-layout/route.ts</code></td>
+                <td><code>/api/admin/detail-layout</code></td>
+                <td>Validate and persist admin-managed villa detail layout settings.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/api/admin/external-data/refresh/route.ts</code></td>
+                <td><code>/api/admin/external-data/refresh</code></td>
+                <td>Authenticated cache refresh for external villa listings and detail data.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+
+      <section id="component-ownership">
+        <h2>Component Ownership</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Owns</th>
+              <th>Reuse Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>components/villas/home</code></td>
+              <td>Home page sections, CMS-driven home assembly, hero/contact/articles/destination blocks, villa rails, home skeletons.</td>
+              <td>Use <code>VillaRail</code>, home shared helpers, and section header patterns before creating new section UI.</td>
+            </tr>
+            <tr>
+              <td><code>components/villas/search</code></td>
+              <td>Search page, search bar, filters, mobile filter drawer, search loading skeleton.</td>
+              <td>Keep results incremental/paginated and do not add a visible near-sea toggle unless requested.</td>
+            </tr>
+            <tr>
+              <td><code>components/villas/detail</code></td>
+              <td>Villa detail page, gallery, intro, booking sidebar, recommendations, layout renderer, detail skeletons.</td>
+              <td>Use detail layout blocks/renderers for admin-managed layout surfaces.</td>
+            </tr>
+            <tr>
+              <td><code>components/villas/listing</code></td>
+              <td>Shared villa cards, price display, stats, amenities, grids, listing skeletons.</td>
+              <td>Home, search, and recommendations should reuse these shared listing components.</td>
+            </tr>
+            <tr>
+              <td><code>components/layout</code></td>
+              <td>Public header, footer, mobile bottom contact actions, contact icons, theme provider.</td>
+              <td>Contact actions should be backed by <code>lib/site-contact.ts</code>.</td>
+            </tr>
+            <tr>
+              <td><code>components/admin</code></td>
+              <td>Admin shell, settings editor, section editor, detail layout editor, login form.</td>
+              <td>Keep admin screens compact, Thai-facing, and consistent with settings/sections UX patterns.</td>
+            </tr>
+            <tr>
+              <td><code>components/ui</code></td>
+              <td>Small generic UI primitives such as skeletons and dropdown selects.</td>
+              <td>Only place components here when they are truly generic across public/admin features.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="library-ownership">
+        <h2>Library Ownership</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Owns</th>
+              <th>Important Tests</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>lib/villas</code></td>
+              <td>External villa listings/detail fetches, normalization, filtering, amenities, Supabase image reads, villa types.</td>
+              <td><code>lib/villas/__tests__</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/home-sections</code></td>
+              <td>Admin-managed home section config types, validation, Supabase persistence, server reads, section resolution.</td>
+              <td><code>lib/home-sections/__tests__</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/site-settings</code></td>
+              <td>Site identity, theme colors, logo/hero assets, SEO/contact settings, defaults, validation, Supabase reads, retention.</td>
+              <td><code>lib/site-settings/__tests__</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/detail-layout</code></td>
+              <td>Admin-managed detail layout types, defaults, validation, compatibility, versioned layout definitions.</td>
+              <td><code>lib/detail-layout/__tests__</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/cache-policy.ts</code></td>
+              <td>Cache durations, cache tags, and public Cache-Control headers.</td>
+              <td><code>lib/__tests__/cache-policy.test.ts</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/cache-revalidation.ts</code></td>
+              <td>Shared path and tag revalidation helpers for settings, home sections, detail layout, and external villa data.</td>
+              <td><code>lib/cache-revalidation.test.ts</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/seo.ts</code> and <code>lib/json-ld.ts</code></td>
+              <td>Metadata, canonical URL support, home JSON-LD, and safe JSON-LD serialization.</td>
+              <td><code>lib/__tests__/seo.test.ts</code>, <code>lib/__tests__/json-ld.test.ts</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/site-contact.ts</code></td>
+              <td>Public contact actions and link formatting from site settings/contact defaults.</td>
+              <td>Update focused tests when contact settings are added or changed.</td>
+            </tr>
+            <tr>
+              <td><code>lib/admin</code></td>
+              <td>Admin authentication/config helpers.</td>
+              <td>Admin API route tests around auth behavior.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="data-flow">
+        <h2>Primary Data Flow</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Flow</th>
+              <th>Source</th>
+              <th>Normalization/Cache</th>
+              <th>Consumers</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Villa listings</td>
+              <td><code>https://www.devillegroups.com/api/json/getHouse_deville.json</code></td>
+              <td><code>lib/villas/server.ts</code>, <code>lib/villas/normalize.ts</code>, listing cache tag.</td>
+              <td>Home rails, search results, recommendations, sitemap, public houses API.</td>
+            </tr>
+            <tr>
+              <td>Villa detail</td>
+              <td>Deville Central accommodation API with <code>DEVILLE_BEARER_TOKEN</code>.</td>
+              <td><code>lib/villas/server.ts</code>, <code>lib/villas/detail.ts</code>, detail cache tag.</td>
+              <td>Villa detail route and public villa detail API.</td>
+            </tr>
+            <tr>
+              <td>Villa images</td>
+              <td>Supabase image rows matched by <code>images.property_id</code> to villa id.</td>
+              <td><code>lib/villas/images.ts</code>, image host builder, image cache tag.</td>
+              <td>Detail gallery and public villa images API.</td>
+            </tr>
+            <tr>
+              <td>Home sections</td>
+              <td>Supabase home-section CMS project.</td>
+              <td><code>lib/home-sections/server.ts</code>, validation/resolve helpers, home sections cache tag.</td>
+              <td>Home page and admin sections editor.</td>
+            </tr>
+            <tr>
+              <td>Site settings</td>
+              <td>Supabase settings table with defaults fallback.</td>
+              <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag.</td>
+              <td>Public/admin layouts, theme provider, metadata, contact actions, settings editor.</td>
+            </tr>
+            <tr>
+              <td>Detail layout settings</td>
+              <td>Supabase detail layout config.</td>
+              <td><code>lib/detail-layout</code>, admin detail layout API, detail layout cache revalidation.</td>
+              <td>Villa detail renderer and admin detail layout builder.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="verification-map">
+        <h2>Verification Map</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Touched Area</th>
+              <th>Start With</th>
+              <th>Then</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Villa filtering, normalization, detail, images, or external fetches</td>
+              <td><code>npm.cmd test -- lib/villas</code></td>
+              <td>Run lint and build before completion.</td>
+            </tr>
+            <tr>
+              <td>Home section config, server reads, route handlers, or admin section UI</td>
+              <td><code>npm.cmd test -- lib/home-sections</code> and relevant <code>components/admin/sections</code> tests</td>
+              <td>Run lint and build before completion.</td>
+            </tr>
+            <tr>
+              <td>Site settings, theme colors, uploads, SEO/contact settings</td>
+              <td><code>npm.cmd test -- lib/site-settings</code> and relevant <code>components/admin/settings</code> tests</td>
+              <td>Run lint and build before completion.</td>
+            </tr>
+            <tr>
+              <td>Detail layout config, renderer, or builder</td>
+              <td><code>npm.cmd test -- lib/detail-layout</code> and relevant detail/admin detail-layout tests</td>
+              <td>Run lint and build before completion.</td>
+            </tr>
+            <tr>
+              <td>Cache policy or revalidation behavior</td>
+              <td><code>npm.cmd test -- lib/__tests__/cache-policy.test.ts lib/cache-revalidation.test.ts</code></td>
+              <td>Run lint and build before completion.</td>
+            </tr>
+            <tr>
+              <td>Public/admin visual UI, loading states, layout, or responsiveness</td>
+              <td>Relevant component tests when stable and meaningful</td>
+              <td>Run lint, build, and browser verification at mobile and desktop widths.</td>
+            </tr>
+            <tr>
+              <td>Documentation-only updates</td>
+              <td>Manual diff/read-through</td>
+              <td>Skip lint/build/tests unless the docs change code generation or executable behavior.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>
