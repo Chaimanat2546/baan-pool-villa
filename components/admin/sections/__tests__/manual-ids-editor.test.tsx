@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 
-import { formatManualIdEditorText } from "../manual-ids-editor";
+import { formatManualIdEditorText, ManualIdsEditor } from "../manual-ids-editor";
 
 describe("formatManualIdEditorText", () => {
   it("formats pasted house ids with commas like the placeholder", () => {
@@ -10,5 +11,15 @@ describe("formatManualIdEditorText", () => {
 
   it("keeps a trailing comma while admins are still typing", () => {
     expect(formatManualIdEditorText("105,")).toBe("105,");
+  });
+
+  it("keeps check and public preview actions out of the manual selection editor", () => {
+    const markup = renderToStaticMarkup(
+      <ManualIdsEditor manualIdText="105,101,111" onChange={vi.fn()} />,
+    );
+
+    expect(markup).not.toContain("เช็กอีกครั้ง");
+    expect(markup).not.toContain("พรีวิว");
+    expect(markup).toContain("ระบบจะเช็กเลขบ้านให้อัตโนมัติ");
   });
 });

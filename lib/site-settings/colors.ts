@@ -52,15 +52,53 @@ function getRelativeLuminance(hex: string): number {
   return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
 }
 
+export function getContrastRatio(
+  foregroundHex: string,
+  backgroundHex: string,
+): number {
+  const foreground = getRelativeLuminance(foregroundHex);
+  const background = getRelativeLuminance(backgroundHex);
+  const lighter = Math.max(foreground, background);
+  const darker = Math.min(foreground, background);
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 export function getReadableTextColor(
   backgroundHex: string,
 ): "#ffffff" | "#0f172a" {
-  return getRelativeLuminance(backgroundHex) > 0.42 ? "#0f172a" : "#ffffff";
+  const lightText = "#ffffff";
+  const darkText = "#0f172a";
+
+  return getContrastRatio(lightText, backgroundHex) >
+    getContrastRatio(darkText, backgroundHex)
+    ? lightText
+    : darkText;
+}
+
+function ensureReadableOnSurface(
+  colorHex: string,
+  surfaceHex = "#ffffff",
+  minimumRatio = 4.5,
+): string {
+  if (getContrastRatio(colorHex, surfaceHex) >= minimumRatio) {
+    return colorHex;
+  }
+
+  for (let weight = 0.04; weight <= 1; weight += 0.04) {
+    const candidate = mixHexColors(colorHex, "#020617", weight);
+
+    if (getContrastRatio(candidate, surfaceHex) >= minimumRatio) {
+      return candidate;
+    }
+  }
+
+  return "#020617";
 }
 
 export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
-  const primaryColor = input.primaryColor.toLowerCase();
-  const accentColor = input.accentColor.toLowerCase();
+  const primaryColor = ensureReadableOnSurface(input.primaryColor.toLowerCase());
+  const accentColor = ensureReadableOnSurface(input.accentColor.toLowerCase());
   const textColor = mixHexColors(primaryColor, "#020617", 0.44);
 
   return {

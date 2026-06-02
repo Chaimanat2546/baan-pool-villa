@@ -157,7 +157,7 @@ export function makeDetailLayoutBlock(
     type,
     title: DETAIL_LAYOUT_BLOCK_LABELS[type],
     enabled: true,
-    hideWhenEmpty: type !== "booking_contact",
+    hideWhenEmpty: true,
   };
 }
 

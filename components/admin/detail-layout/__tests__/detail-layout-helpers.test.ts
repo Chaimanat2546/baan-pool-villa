@@ -109,10 +109,10 @@ describe("detail layout helpers", () => {
     ]);
   });
 
-  it("keeps booking contact visible even when content is empty", () => {
+  it("creates blocks enabled and hidden when empty by default", () => {
     expect(makeDetailLayoutBlock("booking_contact")).toMatchObject({
       enabled: true,
-      hideWhenEmpty: false,
+      hideWhenEmpty: true,
       title: "จอง / ติดต่อ",
       type: "booking_contact",
     });

@@ -3,12 +3,11 @@
 import {
   CheckCircle2,
   CircleAlert,
-  Columns2,
-  PanelTop,
+  Eye,
   RotateCcw,
   Save,
-  Sidebar,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -17,6 +16,7 @@ import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
 import { BlockLibrary } from "./block-library";
+import { DetailLayoutPreview } from "./detail-layout-preview";
 import { makeDetailLayoutBlock } from "./detail-layout-helpers";
 import {
   addDetailLayoutV2NarrowRow,
@@ -51,6 +51,9 @@ import type {
 } from "./types";
 
 const ADMIN_ACCESS_ERROR_PREFIX = "Unable to verify admin access:";
+const ADMIN_SECONDARY_BUTTON_CLASS =
+  "inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-text)] disabled:cursor-not-allowed disabled:opacity-50";
+const DETAIL_LAYOUT_PREVIEW_HREF = "/villas/2938";
 const AUTH_FAILURE_MESSAGES = new Set([
   "Invalid or expired Supabase session. Please sign in again.",
   "Signed-in user is not listed as an active home config admin.",
@@ -292,28 +295,6 @@ export function AdminDetailLayoutPage() {
     () => getPlacementLabel(layout, normalizedActiveSelection),
     [layout, normalizedActiveSelection],
   );
-  const activeBlockTitle = useMemo(() => {
-    if (!layout || !normalizedActiveSelection) {
-      return null;
-    }
-
-    if (normalizedActiveSelection.zone === "wide") {
-      return (
-        findWideRow(layout, normalizedActiveSelection.rowId)?.blocks[
-          normalizedActiveSelection.blockIndex
-        ]?.title ?? null
-      );
-    }
-
-    if (normalizedActiveSelection.zone === "narrow") {
-      return (
-        findNarrowRow(layout, normalizedActiveSelection.rowId)?.block?.title ??
-        null
-      );
-    }
-
-    return layout.lockedBottom[normalizedActiveSelection.blockIndex]?.title ?? null;
-  }, [layout, normalizedActiveSelection]);
   const hasUnsavedChanges = useMemo(() => {
     if (!layout || savedSnapshot === null) {
       return false;
@@ -330,10 +311,28 @@ export function AdminDetailLayoutPage() {
       disabledRows:
         layout.mainSplit.wideRows.filter((row) => !row.enabled).length +
         layout.mainSplit.narrowRows.filter((row) => !row.enabled).length,
-      lockedBlocks: layout.lockedBottom.length,
       narrowRows: layout.mainSplit.narrowRows.length,
       wideRows: layout.mainSplit.wideRows.length,
     };
+  }, [layout]);
+  const usedBlockTypes = useMemo(() => {
+    if (!layout) {
+      return [];
+    }
+
+    return Array.from(
+      new Set(
+        [
+          ...layout.mainSplit.wideRows.flatMap((row) =>
+            row.blocks.map((block) => block?.type),
+          ),
+          ...layout.mainSplit.narrowRows.map((row) => row.block?.type),
+          ...layout.lockedBottom.map((block) => block.type),
+        ].filter(
+          (type): type is DetailLayoutBlockType => typeof type === "string",
+        ),
+      ),
+    );
   }, [layout]);
 
   const redirectToLogin = useCallback(() => {
@@ -603,7 +602,9 @@ export function AdminDetailLayoutPage() {
       setActiveSelection((currentSelection) =>
         normalizeSelection(nextLayout, currentSelection),
       );
+      await loadLayout(token, false);
       setNotice("บันทึก layout หน้า Details แล้ว");
+      router.refresh();
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error
@@ -616,24 +617,20 @@ export function AdminDetailLayoutPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 text-[var(--site-text)]">
-      <header className="grid gap-4 border-b border-[var(--site-border)] pb-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+    <div className="flex w-full flex-col rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] text-[var(--site-text)]">
+      <header className="grid shrink-0 gap-4 border-b border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4 backdrop-blur sm:px-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-[var(--site-primary)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--site-primary)]">
             จัดหน้า Details
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-[var(--site-text)]">
+          <h1 className="mt-1 text-xl font-semibold tracking-normal text-[var(--site-text)] sm:text-2xl">
             Layout รายละเอียดบ้านพัก
           </h1>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
-            จัด block ในพื้นที่ 70/30 ของหน้ารายละเอียดบ้านพัก ส่วนแกลเลอรี ข้อมูลเริ่มต้น
-            และบ้านพักแนะนำถูกล็อกไว้เพื่อให้หน้า public คงรูปแบบหลัก
-          </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
                 hasUnsavedChanges
-                  ? "bg-[var(--site-accent-soft)] text-[var(--site-text)] ring-[var(--site-accent)]"
+                  ? "bg-[var(--site-primary-soft)] text-[var(--site-text)] ring-[var(--site-primary)]"
                   : "bg-[var(--site-surface)] text-[var(--site-text)] ring-[var(--site-border)]"
               }`}
             >
@@ -644,17 +641,9 @@ export function AdminDetailLayoutPage() {
               )}
               {hasUnsavedChanges ? "มีการแก้ไขที่ยังไม่บันทึก" : "บันทึกแล้ว"}
             </span>
-            <span className="inline-flex min-w-0 items-center rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
-              <span className="truncate">ตำแหน่ง: {activePlacementLabel}</span>
-            </span>
-            {activeBlockTitle ? (
-              <span className="inline-flex min-w-0 items-center rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
-                <span className="truncate">Block: {activeBlockTitle}</span>
-              </span>
-            ) : null}
           </div>
           {layoutSummary ? (
-            <div className="mt-3 grid gap-2 text-xs font-semibold text-[var(--site-muted)] sm:grid-cols-4">
+            <div className="mt-3 grid gap-2 text-xs font-semibold text-[var(--site-muted)] sm:grid-cols-3">
               <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
                 ฝั่ง 70: {layoutSummary.wideRows} แถว
               </span>
@@ -664,47 +653,13 @@ export function AdminDetailLayoutPage() {
               <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
                 ปิดไว้: {layoutSummary.disabledRows} แถว
               </span>
-              <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
-                ล็อกล่าง: {layoutSummary.lockedBlocks} block
-              </span>
             </div>
           ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 xl:justify-end">
           <button
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
-            disabled={isLoading || isSaving}
-            onClick={() => {
-              handleAddWideRow(1);
-            }}
-            type="button"
-          >
-            <PanelTop aria-hidden="true" className="size-4" />
-            แถว 70 / 1 ช่อง
-          </button>
-          <button
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
-            disabled={isLoading || isSaving}
-            onClick={() => {
-              handleAddWideRow(2, "50/50");
-            }}
-            type="button"
-          >
-            <Columns2 aria-hidden="true" className="size-4" />
-            แถว 70 / 50-50
-          </button>
-          <button
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
-            disabled={isLoading || isSaving}
-            onClick={handleAddNarrowRow}
-            type="button"
-          >
-            <Sidebar aria-hidden="true" className="size-4" />
-            แถว 30 / 1 block
-          </button>
-          <button
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
+            className={ADMIN_SECONDARY_BUTTON_CLASS}
             disabled={isLoading || isSaving}
             onClick={handleReset}
             type="button"
@@ -712,8 +667,17 @@ export function AdminDetailLayoutPage() {
             <RotateCcw aria-hidden="true" className="size-4" />
             ค่าเริ่มต้น
           </button>
+          <Link
+            className={ADMIN_SECONDARY_BUTTON_CLASS}
+            href={DETAIL_LAYOUT_PREVIEW_HREF}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <Eye aria-hidden="true" className="size-4" />
+            พรีวิวหน้าจริง
+          </Link>
           <button
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isLoading || isSaving || !hasUnsavedChanges}
             onClick={() => {
               void handleSave();
@@ -721,14 +685,18 @@ export function AdminDetailLayoutPage() {
             type="button"
           >
             <Save aria-hidden="true" className="size-4" />
-            {isSaving ? "กำลังบันทึก" : "บันทึก"}
+            {isSaving
+              ? "กำลังบันทึก"
+              : hasUnsavedChanges
+                ? "บันทึก"
+                : "บันทึกแล้ว"}
           </button>
         </div>
       </header>
 
       {errors.length > 0 ? (
         <div
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          className="mx-5 mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
           role="alert"
         >
           <p className="font-semibold">แก้รายการเหล่านี้ก่อนบันทึก:</p>
@@ -742,7 +710,7 @@ export function AdminDetailLayoutPage() {
 
       {notice ? (
         <p
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+          className="mx-5 mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
           role="status"
         >
           {notice}
@@ -750,20 +718,23 @@ export function AdminDetailLayoutPage() {
       ) : null}
 
       {isLoading || !layout ? (
-        <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
+        <div className="m-5 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
           กำลังโหลด layout หน้า Details...
         </div>
       ) : (
-        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)_360px]">
-          <div className="xl:sticky xl:top-4 xl:self-start">
+        <div className="grid gap-0 xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)_360px]">
+          <div className="border-b border-[var(--site-border)] bg-[var(--site-surface)] p-4 xl:border-b-0 xl:border-r">
             <BlockLibrary
               onAddBlock={putBlockInActiveSelection}
               onDragStart={() => {}}
               targetLabel={activePlacementLabel}
+              usedBlockTypes={usedBlockTypes}
             />
           </div>
 
-          <LayoutCanvas
+          <main className="px-3 py-4 sm:px-5 sm:py-6">
+            <div className="mx-auto max-w-5xl">
+              <LayoutCanvas
             activeSelection={normalizedActiveSelection}
             layout={layout}
             onAddNarrowRow={handleAddNarrowRow}
@@ -872,9 +843,11 @@ export function AdminDetailLayoutPage() {
                 ),
               );
             }}
-          />
+              />
+            </div>
+          </main>
 
-          <aside className="grid content-start gap-3 xl:col-start-2 2xl:sticky 2xl:top-4 2xl:col-start-auto 2xl:self-start">
+          <aside className="grid content-start gap-3 border-t border-[var(--site-border)] bg-[var(--site-surface)] p-4 xl:col-start-2 2xl:col-start-auto 2xl:border-l 2xl:border-t-0">
             <RowSettingsPanel
               layout={layout}
               onRemoveNarrowBlock={(rowId) => {
@@ -939,15 +912,10 @@ export function AdminDetailLayoutPage() {
               }}
               selection={normalizedActiveSelection}
             />
-            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 text-sm shadow-sm">
-              <h2 className="font-semibold text-[var(--site-text)]">
-                ตัวอย่างย่อ
-              </h2>
-              <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
-                โครงสร้าง V2 แสดงในผังกลางแล้ว: บนสุดล็อกไว้, พื้นที่หลักแบ่ง
-                {layout.mainSplit.ratio}, และบ้านพักแนะนำล็อกเต็มความกว้างด้านล่าง
-              </p>
-            </section>
+            <DetailLayoutPreview
+              activeSelection={normalizedActiveSelection}
+              layout={layout}
+            />
           </aside>
         </div>
       )}

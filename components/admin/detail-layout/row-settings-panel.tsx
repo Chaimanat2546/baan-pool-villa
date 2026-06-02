@@ -44,8 +44,8 @@ const WIDE_LAYOUT_OPTIONS: Array<{
   label: string;
   ratio?: DetailLayoutWideRatio;
 }> = [
-  { columns: 1, label: "1 คอลัมน์" },
-  { columns: 2, label: "50/50", ratio: "50/50" },
+  { columns: 1, label: "1 ช่อง" },
+  { columns: 2, label: "2 ช่อง", ratio: "50/50" },
 ];
 
 function getWideAreaLabel(
@@ -95,35 +95,11 @@ function BlockEditor({
       <label className="grid gap-2 text-sm font-semibold text-[var(--site-text)]">
         ชื่อที่แสดง
         <input
-          className="h-10 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+          className="h-10 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
           onChange={(event) => {
             onUpdate({ title: event.target.value });
           }}
           value={block.title}
-        />
-      </label>
-
-      <label className="flex items-center justify-between gap-3 text-sm font-semibold text-[var(--site-text)]">
-        เปิดใช้ block
-        <input
-          checked={block.enabled}
-          className="size-4 accent-[var(--site-primary)]"
-          onChange={(event) => {
-            onUpdate({ enabled: event.target.checked });
-          }}
-          type="checkbox"
-        />
-      </label>
-
-      <label className="flex items-center justify-between gap-3 text-sm font-semibold text-[var(--site-text)]">
-        ซ่อนเมื่อไม่มีข้อมูล
-        <input
-          checked={block.hideWhenEmpty}
-          className="size-4 accent-[var(--site-primary)]"
-          onChange={(event) => {
-            onUpdate({ hideWhenEmpty: event.target.checked });
-          }}
-          type="checkbox"
         />
       </label>
 
@@ -141,7 +117,7 @@ function BlockEditor({
 
 function EmptyPanel() {
   return (
-    <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+    <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
       <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--site-text)]">
         <SlidersHorizontal
           aria-hidden="true"
@@ -149,7 +125,7 @@ function EmptyPanel() {
         />
         ตั้งค่าพื้นที่
       </h2>
-      <p className="mt-3 rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-5 text-sm leading-6 text-[var(--site-muted)]">
+      <p className="mt-3 rounded-lg border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface-soft)] px-3 py-5 text-sm leading-6 text-[var(--site-muted)]">
         เลือกฝั่ง 70, ฝั่ง 30 หรือส่วนบ้านพักแนะนำในผังเพื่อแก้การแสดงผล
       </p>
     </section>
@@ -176,7 +152,7 @@ export function RowSettingsPanel({
     const block = layout.lockedBottom[selection.blockIndex] ?? null;
 
     return (
-      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--site-text)]">
           <Lock
             aria-hidden="true"
@@ -208,7 +184,7 @@ export function RowSettingsPanel({
     }
 
     return (
-      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--site-text)]">
           <SlidersHorizontal
             aria-hidden="true"
@@ -216,7 +192,7 @@ export function RowSettingsPanel({
           />
           ตั้งค่าพื้นที่
         </h2>
-        <p className="mt-2 rounded-md bg-[var(--site-surface-soft)] px-3 py-2 text-xs font-semibold text-[var(--site-muted)]">
+        <p className="mt-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2 text-xs font-semibold text-[var(--site-muted)]">
           {getNarrowAreaLabel(layout, row)}
         </p>
 
@@ -244,7 +220,7 @@ export function RowSettingsPanel({
               }}
             />
           ) : (
-            <p className="rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-4 text-sm leading-6 text-[var(--site-muted)]">
+            <p className="rounded-lg border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface-soft)] px-3 py-4 text-sm leading-6 text-[var(--site-muted)]">
               ฝั่ง 30 รับได้ทีละ 1 block เลือก block จากคลังด้านซ้ายเพื่อใส่ในแถวนี้
             </p>
           )}
@@ -265,7 +241,7 @@ export function RowSettingsPanel({
   const activeBlock = row.blocks[selection.blockIndex] ?? null;
 
   return (
-    <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+    <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
       <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--site-text)]">
         <SlidersHorizontal
           aria-hidden="true"
@@ -273,7 +249,7 @@ export function RowSettingsPanel({
         />
         ตั้งค่าพื้นที่
       </h2>
-      <p className="mt-2 rounded-md bg-[var(--site-surface-soft)] px-3 py-2 text-xs font-semibold text-[var(--site-muted)]">
+      <p className="mt-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2 text-xs font-semibold text-[var(--site-muted)]">
         {getWideAreaLabel(layout, row)}
       </p>
 
@@ -334,7 +310,7 @@ export function RowSettingsPanel({
             return (
               <button
                 aria-pressed={isActive}
-                className={`grid w-full grid-cols-[1fr_auto] items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                className={`grid w-full max-w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 overflow-hidden rounded-lg border px-3 py-2 text-left text-sm transition ${
                   isActive
                     ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
                     : "border-[var(--site-border)] bg-[var(--site-surface-soft)] hover:bg-[var(--site-surface)]"
@@ -345,11 +321,11 @@ export function RowSettingsPanel({
                 }}
                 type="button"
               >
-                <span className="min-w-0 truncate font-semibold text-[var(--site-text)]">
+                <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-[var(--site-text)]">
                   {blockIndex + 1}. {block?.title ?? "ช่องว่าง"}
                 </span>
                 <span className="text-xs font-semibold text-[var(--site-muted)]">
-                  {block ? (block.enabled ? "เปิด" : "ปิด") : "ว่าง"}
+                  {block ? "มี block" : "ว่าง"}
                 </span>
               </button>
             );
@@ -367,7 +343,7 @@ export function RowSettingsPanel({
             }}
           />
         ) : (
-          <p className="rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-4 text-sm leading-6 text-[var(--site-muted)]">
+          <p className="rounded-lg border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface-soft)] px-3 py-4 text-sm leading-6 text-[var(--site-muted)]">
             ช่องนี้ยังว่าง เลือก block จากคลังด้านซ้ายเพื่อใส่ในตำแหน่งที่เลือก
           </p>
         )}

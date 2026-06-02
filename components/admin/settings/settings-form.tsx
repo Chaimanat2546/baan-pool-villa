@@ -1,6 +1,4 @@
 "use client";
-
-import { Save } from "lucide-react";
 import type { CSSProperties, FormEvent, ReactNode } from "react";
 
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -11,8 +9,6 @@ import type { AdminSettingsDraft } from "./types";
 
 interface SettingsFormProps {
   draft: AdminSettingsDraft;
-  hasUnsavedChanges: boolean;
-  isSaving: boolean;
   onChange: (changes: Partial<AdminSettingsDraft>) => void;
   onSave: () => Promise<void>;
   settings: SiteSettings;
@@ -150,8 +146,6 @@ function cssImageUrl(value: string): string {
 
 export function SettingsForm({
   draft,
-  hasUnsavedChanges,
-  isSaving,
   onChange,
   onSave,
   settings,
@@ -200,7 +194,7 @@ export function SettingsForm({
     >
       <div className="grid content-start gap-6">
         <SectionGroup title="ตัวตนแบรนด์">
-          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
             <TextControl
               id="siteName"
               label="ชื่อเว็บไซต์"
@@ -226,7 +220,7 @@ export function SettingsForm({
         </SectionGroup>
 
         <SectionGroup title="สีของเว็บ">
-          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
             <div className="grid gap-4 lg:grid-cols-2">
               <ColorControl
                 id="primaryColor"
@@ -254,7 +248,7 @@ export function SettingsForm({
         </SectionGroup>
 
         <SectionGroup title="รูปภาพหลัก">
-          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
             <TextControl
               id="heroImageAlt"
               label="คำอธิบายรูปหน้าแรก"
@@ -281,7 +275,7 @@ export function SettingsForm({
         </SectionGroup>
 
         <SectionGroup title="ตอนแชร์ลิงก์และ Google">
-          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
             <div className="grid gap-4 lg:grid-cols-2">
               <TextControl
                 id="seoTitle"
@@ -346,7 +340,7 @@ export function SettingsForm({
         </SectionGroup>
 
         <SectionGroup title="ข้อมูลชำระเงินและการติดต่อ">
-          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
             <div className="grid gap-4 lg:grid-cols-3">
               <TextControl
                 id="bankAccountName"
@@ -449,7 +443,7 @@ export function SettingsForm({
 
       <aside className="grid content-start gap-4 xl:sticky xl:top-4">
         <section
-          className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm"
+          className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]"
           style={themeStyle}
         >
           <div className="border-b border-[var(--site-border)] px-4 py-3">
@@ -471,14 +465,14 @@ export function SettingsForm({
                   <span className="inline-flex h-9 items-center rounded-md bg-[var(--site-primary)] px-3 text-sm font-semibold text-[var(--site-on-primary)]">
                     ดูบ้านพัก
                   </span>
-                  <span className="inline-flex h-9 items-center rounded-md bg-[var(--site-accent-soft)] px-3 text-sm font-semibold text-[var(--site-text)]">
+                  <span className="inline-flex h-9 items-center rounded-md bg-[var(--site-primary-soft)] px-3 text-sm font-semibold text-[var(--site-text)]">
                     ติดต่อเรา
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-lg border border-[var(--site-border)] bg-white p-3 shadow-sm">
+            <div className="rounded-lg border border-[var(--site-border)] bg-white p-3">
               <p className="text-xs text-[#4d5156]">baanpoolvilla.example</p>
               <h3 className="mt-1 line-clamp-2 text-base font-medium text-[#1a0dab]">
                 {draft.seoTitle || draft.siteName}
@@ -491,7 +485,7 @@ export function SettingsForm({
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-white shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-white">
               <div
                 className="h-36 bg-cover bg-center"
                 style={{ backgroundImage: cssImageUrl(sharePreviewImageUrl) }}
@@ -510,15 +504,6 @@ export function SettingsForm({
             </div>
           </div>
         </section>
-
-        <button
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isSaving || !hasUnsavedChanges}
-          type="submit"
-        >
-          <Save aria-hidden="true" className="size-4" />
-          {isSaving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
-        </button>
       </aside>
     </form>
   );

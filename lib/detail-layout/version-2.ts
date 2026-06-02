@@ -480,8 +480,8 @@ function normalizeBlock(
   return {
     type,
     title: normalizeBlockTitle(value.title, type),
-    enabled: normalizeBoolean(value.enabled, true),
-    hideWhenEmpty: normalizeBoolean(value.hideWhenEmpty, true),
+    enabled: true,
+    hideWhenEmpty: true,
   };
 }
 

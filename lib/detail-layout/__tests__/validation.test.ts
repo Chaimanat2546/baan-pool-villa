@@ -64,8 +64,8 @@ describe("normalizeDetailLayout", () => {
           {
             type: "booking_contact",
             title: "จอง / ติดต่อ",
-            enabled: false,
-            hideWhenEmpty: false,
+            enabled: true,
+            hideWhenEmpty: true,
           },
         ],
       },

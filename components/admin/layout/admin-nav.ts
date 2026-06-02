@@ -37,8 +37,8 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     description: "จัด layout ของหน้ารายละเอียดบ้านพัก",
     href: "/admin/detail-layout",
     icon: LayoutTemplate,
-    label: "หน้า Details",
-    pageTitle: "จัดหน้า Details",
+    label: "หน้ารายละเอียดบ้านพัก",
+    pageTitle: "จัดหน้ารายละเอียดบ้านพัก",
   },
   {
     description: "รูปภาพบ้านพักและแกลเลอรี",

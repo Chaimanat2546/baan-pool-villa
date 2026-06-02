@@ -41,15 +41,12 @@ export const DETAIL_LAYOUT_BLOCK_LABELS: Record<DetailLayoutBlockType, string> =
   recommended_villas: "บ้านพักแนะนำ",
 };
 
-function block(
-  type: DetailLayoutBlockType,
-  hideWhenEmpty = true,
-): DetailLayoutBlock {
+function block(type: DetailLayoutBlockType): DetailLayoutBlock {
   return {
     type,
     title: DETAIL_LAYOUT_BLOCK_LABELS[type],
     enabled: true,
-    hideWhenEmpty,
+    hideWhenEmpty: true,
   };
 }
 
@@ -75,7 +72,7 @@ export const DEFAULT_DETAIL_LAYOUT: DetailLayoutConfig = {
     row(
       "row_details_booking",
       2,
-      [block("details"), block("booking_contact", false)],
+      [block("details"), block("booking_contact")],
       "70/30",
     ),
     row("row_bedroom_pool", 2, [block("bedrooms"), block("pool")], "50/50"),
@@ -139,7 +136,7 @@ export const DEFAULT_DETAIL_LAYOUT_V2: DetailLayoutV2Config = {
       {
         id: "narrow_booking",
         enabled: true,
-        block: block("booking_contact", false),
+        block: block("booking_contact"),
       },
       {
         id: "narrow_rules",

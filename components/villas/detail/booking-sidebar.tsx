@@ -50,12 +50,12 @@ export function BookingSidebar({
               key={day.day}
               className={`rounded-md py-2 ${
                 day.state === "booked"
-                  ? "bg-red-500 text-[var(--site-on-primary)]"
+                  ? "bg-red-500 text-white"
                   : day.state === "promo"
-                    ? "bg-yellow-300 text-[var(--site-on-primary)]"
+                    ? "bg-yellow-300 text-[#0f172a]"
                     : day.state === "selected"
                       ? "bg-[var(--site-primary)] text-[var(--site-on-primary)]"
-                      : "bg-[var(--site-primary-soft)] text-[var(--site-on-primary)]"
+                      : "bg-[var(--site-primary-soft)] text-[var(--site-primary)]"
               }`}
             >
               {day.day}

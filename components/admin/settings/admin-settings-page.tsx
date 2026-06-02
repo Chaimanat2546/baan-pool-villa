@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, CircleAlert } from "lucide-react";
+import { CheckCircle2, Eye, Save } from "lucide-react";
 
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -198,8 +199,10 @@ export function AdminSettingsPage() {
       setSettings(payload.settings);
       setDraft(nextDraft);
       setSavedSnapshot(makeSettingsSnapshot(nextDraft));
+      await loadSettings(token, false);
       setWarnings(extractWarnings(payload));
       setNotice("บันทึกการตั้งค่าสำเร็จ");
+      router.refresh();
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error
@@ -215,7 +218,7 @@ export function AdminSettingsPage() {
     <div className="flex w-full flex-col gap-4 text-[var(--site-text)]">
       <header className="grid gap-4 border-b border-[var(--site-border)] pb-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-[var(--site-primary)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--site-primary)]">
             การตั้งค่าเว็บไซต์
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-normal text-[var(--site-text)]">
@@ -228,7 +231,7 @@ export function AdminSettingsPage() {
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
                 hasUnsavedChanges
-                  ? "bg-[var(--site-accent-soft)] text-[var(--site-text)] ring-[var(--site-accent)]"
+                  ? "bg-[var(--site-primary-soft)] text-[var(--site-text)] ring-[var(--site-primary)]"
                   : "bg-[var(--site-surface)] text-[var(--site-text)] ring-[var(--site-border)]"
               }`}
             >
@@ -239,18 +242,31 @@ export function AdminSettingsPage() {
             </span>
           </div>
         </div>
-        <div className="rounded-xl border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 py-2 text-sm font-semibold text-[var(--site-primary)]">
-          {hasUnsavedChanges ? (
-            <span className="inline-flex items-center gap-1.5 text-[var(--site-text)]">
-              <CircleAlert aria-hidden="true" className="size-4" />
-              มีการแก้ไขที่ยังไม่บันทึก
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 text-[var(--site-primary)]">
-              <CheckCircle2 aria-hidden="true" className="size-4" />
-              บันทึกแล้ว
-            </span>
-          )}
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          <Link
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+            href="/"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <Eye aria-hidden="true" className="size-4" />
+            พรีวิวหน้าจริง
+          </Link>
+          <button
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80"
+            disabled={isSaving || isLoading || !hasUnsavedChanges}
+            onClick={() => {
+              void handleSave();
+            }}
+            type="button"
+          >
+            <Save aria-hidden="true" className="size-4" />
+            {isSaving
+              ? "กำลังบันทึก..."
+              : hasUnsavedChanges
+                ? "บันทึกการตั้งค่า"
+                : "บันทึกแล้ว"}
+          </button>
         </div>
       </header>
 
@@ -298,8 +314,6 @@ export function AdminSettingsPage() {
       ) : settings && draft ? (
         <SettingsForm
           draft={draft}
-          hasUnsavedChanges={hasUnsavedChanges}
-          isSaving={isSaving}
           onChange={updateDraft}
           onSave={handleSave}
           settings={settings}

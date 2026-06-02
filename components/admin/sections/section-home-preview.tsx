@@ -10,10 +10,7 @@ import { normalizeHouseId } from "@/lib/home-sections/validation";
 import type { VillaListing } from "@/lib/villas/types";
 
 import type { AdminManualPreviewResponse, AdminSectionDraft } from "./types";
-import {
-  getFallbackModeLabel,
-  MODE_LABELS,
-} from "./section-helpers";
+import { MODE_LABELS } from "./section-helpers";
 
 interface SectionHomePreviewProps {
   preview: AdminManualPreviewResponse | null;
@@ -184,6 +181,32 @@ function VillaPreviewTile({ item }: { item: PreviewVillaItem }) {
   );
 }
 
+function PreviewIssueList({
+  ids,
+  title,
+  tone,
+}: {
+  ids: string[];
+  title: string;
+  tone: "amber" | "red";
+}) {
+  if (ids.length === 0) {
+    return null;
+  }
+
+  const toneClass =
+    tone === "amber"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : "border-red-200 bg-red-50 text-red-800";
+
+  return (
+    <div className={`rounded-md border px-3 py-2 ${toneClass}`}>
+      <p className="text-xs font-semibold">{title}</p>
+      <p className="mt-1 break-words font-mono text-xs">{ids.join(", ")}</p>
+    </div>
+  );
+}
+
 export function SectionHomePreview({
   preview,
   section,
@@ -193,9 +216,15 @@ export function SectionHomePreview({
   const title = section.title.trim() || "ยังไม่ได้ตั้งชื่อชุด";
   const description =
     section.description.trim() || "คำอธิบายชุดบ้านพักจะแสดงตรงนี้";
+  const missingIds = preview?.missingIds ?? [];
+  const invalidIds = preview?.invalidIds ?? [];
+  const hasPreviewIssues =
+    section.mode === "manual" &&
+    preview !== null &&
+    (missingIds.length > 0 || invalidIds.length > 0);
 
   return (
-    <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
       <div className="border-b border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-3">
         <p className="text-xs font-semibold text-[var(--site-primary)]">
           ตัวอย่างบนหน้าแรก
@@ -247,6 +276,21 @@ export function SectionHomePreview({
             </div>
           )}
 
+          {hasPreviewIssues ? (
+            <div className="mt-3 grid gap-2">
+              <PreviewIssueList
+                ids={missingIds}
+                title="เลขบ้านที่ไม่พบในระบบ"
+                tone="amber"
+              />
+              <PreviewIssueList
+                ids={invalidIds}
+                title="เลขบ้านที่รูปแบบไม่ถูกต้อง"
+                tone="red"
+              />
+            </div>
+          ) : null}
+
           {section.ctaEnabled ? (
             <div className="mt-3 flex justify-end">
               <span className="inline-flex h-9 items-center gap-1 rounded-md bg-[var(--site-primary)] px-3 text-sm font-semibold text-[var(--site-on-primary)]">
@@ -256,27 +300,6 @@ export function SectionHomePreview({
             </div>
           ) : null}
         </div>
-
-        <dl className="grid grid-cols-3 gap-2 text-xs">
-          <div className="rounded-md bg-[var(--site-surface-soft)] px-2 py-2">
-            <dt className="text-[var(--site-muted)]">วิธีเลือก</dt>
-            <dd className="mt-1 truncate font-semibold text-[var(--site-text)]">
-              {modeLabel}
-            </dd>
-          </div>
-          <div className="rounded-md bg-[var(--site-surface-soft)] px-2 py-2">
-            <dt className="text-[var(--site-muted)]">จำนวน</dt>
-            <dd className="mt-1 font-semibold text-[var(--site-text)]">
-              {section.limitCount} หลัง
-            </dd>
-          </div>
-          <div className="rounded-md bg-[var(--site-surface-soft)] px-2 py-2">
-            <dt className="text-[var(--site-muted)]">เติมบ้าน</dt>
-            <dd className="mt-1 truncate font-semibold text-[var(--site-text)]">
-              {getFallbackModeLabel(section.fallbackMode)}
-            </dd>
-          </div>
-        </dl>
       </div>
     </section>
   );

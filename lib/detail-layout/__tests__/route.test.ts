@@ -217,8 +217,8 @@ describe("admin detail layout route", () => {
               {
                 type: "booking_contact",
                 title: "Booking",
-                enabled: false,
-                hideWhenEmpty: false,
+                enabled: true,
+                hideWhenEmpty: true,
               },
             ],
           },
@@ -394,8 +394,8 @@ describe("admin detail layout route", () => {
               {
                 type: "booking_contact",
                 title: "Booking",
-                enabled: false,
-                hideWhenEmpty: false,
+                enabled: true,
+                hideWhenEmpty: true,
               },
             ],
           },
@@ -534,8 +534,8 @@ describe("admin detail layout route", () => {
               {
                 type: "booking_contact",
                 title: "Booking",
-                enabled: false,
-                hideWhenEmpty: false,
+                enabled: true,
+                hideWhenEmpty: true,
               },
             ],
           },
@@ -563,8 +563,8 @@ describe("admin detail layout route", () => {
               {
                 type: "booking_contact",
                 title: "Booking",
-                enabled: false,
-                hideWhenEmpty: false,
+                enabled: true,
+                hideWhenEmpty: true,
               },
             ],
           },

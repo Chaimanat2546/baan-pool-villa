@@ -73,4 +73,23 @@ describe("SectionHomePreview", () => {
     expect(markup).toContain("รอเช็กบ้านจริง");
     expect(markup).toContain("#105");
   });
+
+  it("shows missing and invalid villa ids inside the homepage preview", () => {
+    const markup = renderToStaticMarkup(
+      <SectionHomePreview
+        preview={{
+          invalidIds: ["abc"],
+          missingIds: ["999"],
+          valid: [],
+        }}
+        section={baseSection}
+      />,
+    );
+
+    expect(markup).toContain("เลขบ้านที่ไม่พบในระบบ");
+    expect(markup).toContain("999");
+    expect(markup).toContain("เลขบ้านที่รูปแบบไม่ถูกต้อง");
+    expect(markup).toContain("abc");
+    expect(markup).not.toContain("วิธีเติมบ้านเพิ่มตอนนี้");
+  });
 });

@@ -20,7 +20,6 @@ import { DETAIL_LAYOUT_OUTER_SPLIT_RATIOS } from "@/lib/detail-layout/defaults";
 import { isDetailLayoutBlockType } from "./detail-layout-helpers";
 import type {
   DetailLayoutBlockType,
-  DetailLayoutDraft,
   DetailLayoutOuterRatio,
   DetailLayoutV2Draft,
   DetailLayoutV2DraftWideRow,
@@ -28,8 +27,6 @@ import type {
   DetailLayoutWideRatio,
 } from "./types";
 
-const ROW_DRAG_DATA_TYPE = "application/x-detail-layout-row-index";
-const BLOCK_DRAG_DATA_TYPE = "application/x-detail-layout-block-location";
 const WIDE_ROW_DRAG_DATA_TYPE = "application/x-detail-layout-v2-wide-row-index";
 const NARROW_ROW_DRAG_DATA_TYPE =
   "application/x-detail-layout-v2-narrow-row-index";
@@ -41,14 +38,9 @@ const WIDE_ROW_OPTIONS: Array<{
   label: string;
   ratio?: DetailLayoutWideRatio;
 }> = [
-  { columns: 1, label: "1 คอลัมน์" },
-  { columns: 2, label: "50/50", ratio: "50/50" },
+  { columns: 1, label: "1 ช่อง" },
+  { columns: 2, label: "2 ช่อง", ratio: "50/50" },
 ];
-
-interface DetailLayoutBlockDragLocation {
-  blockIndex: number;
-  rowId: string;
-}
 
 interface DetailLayoutWideBlockDragLocation {
   blockIndex: number;
@@ -116,51 +108,6 @@ export function getDetailLayoutDropType(
   const value = dataTransfer.getData("text/plain");
 
   return isDetailLayoutBlockType(value) ? value : null;
-}
-
-export function getDetailLayoutRowDragIndex(
-  dataTransfer: Pick<DataTransfer, "getData">,
-  rowCount: number,
-): number | null {
-  const value = dataTransfer.getData(ROW_DRAG_DATA_TYPE);
-  const index = Number(value);
-
-  if (!Number.isInteger(index) || index < 0 || index >= rowCount) {
-    return null;
-  }
-
-  return index;
-}
-
-export function getDetailLayoutBlockDragLocation(
-  dataTransfer: Pick<DataTransfer, "getData">,
-  layout: DetailLayoutDraft,
-): DetailLayoutBlockDragLocation | null {
-  const value = dataTransfer.getData(BLOCK_DRAG_DATA_TYPE);
-
-  try {
-    const payload = JSON.parse(value) as Partial<DetailLayoutBlockDragLocation>;
-    const rowId = payload.rowId;
-    const blockIndex = payload.blockIndex;
-
-    if (
-      typeof rowId !== "string" ||
-      typeof blockIndex !== "number" ||
-      !Number.isInteger(blockIndex)
-    ) {
-      return null;
-    }
-
-    const row = layout.rows.find((candidate) => candidate.id === rowId);
-
-    if (!row || blockIndex < 0 || blockIndex >= row.blocks.length) {
-      return null;
-    }
-
-    return { blockIndex, rowId };
-  } catch {
-    return null;
-  }
 }
 
 function getV2RowDragIndex(
@@ -253,8 +200,8 @@ function StatusPill({ enabled }: { enabled: boolean }) {
     <span
       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
         enabled
-          ? "bg-emerald-100 text-emerald-800"
-          : "bg-slate-200 text-slate-700"
+          ? "border border-emerald-200 bg-emerald-50 text-emerald-800"
+          : "border border-slate-200 bg-slate-50 text-slate-600"
       }`}
     >
       {enabled ? "เปิด" : "ปิด"}
@@ -270,12 +217,12 @@ function LockedShell({
   label: string;
 }) {
   return (
-    <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-3">
+    <div className="rounded-lg border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface-soft)] p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="text-xs font-semibold text-[var(--site-muted)]">
           {label}
         </p>
-        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--site-muted)]">
+        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-2 py-0.5 text-xs font-semibold text-[var(--site-primary)]">
           <Lock aria-hidden="true" className="size-3" />
           ล็อก
         </span>
@@ -553,24 +500,14 @@ export function LayoutCanvas({
               ฝั่ง 70
             </h3>
             <p className="mt-0.5 text-xs text-[var(--site-muted)]">
-              แถวกว้างเลือกได้ 1 ช่องหรือ 50/50
+              แถวกว้างเลือกได้ 1 ช่องหรือ 2 ช่อง
             </p>
           </div>
-          <button
-            className="inline-flex h-8 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
-            onClick={() => {
-              onAddWideRow(2, "50/50");
-            }}
-            type="button"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            แถว 70 / 50-50
-          </button>
         </div>
 
         {layout.mainSplit.wideRows.length === 0 ? (
           <button
-            className="flex min-h-28 w-full flex-col items-center justify-center rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-6 text-center text-sm font-semibold text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface)]"
+            className="flex min-h-28 w-full flex-col items-center justify-center rounded-lg border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface-soft)] px-4 py-6 text-center text-sm font-semibold text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface)]"
             onClick={() => {
               onAddWideRow(2, "50/50");
             }}
@@ -588,6 +525,17 @@ export function LayoutCanvas({
             )}
           </div>
         )}
+
+        <button
+            className="inline-flex h-8 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] mt-4 w-full justify-center"
+            onClick={() => {
+              onAddWideRow(2, "50/50");
+            }}
+            type="button"
+          >
+            <Plus aria-hidden="true" className="size-4" />
+            เพิ่มแถว 70
+          </button>
       </section>
     );
   }
@@ -618,10 +566,10 @@ export function LayoutCanvas({
           handleWideRowDrop(event, rowIndex);
         }}
       >
-        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
           <button
             aria-label={`ลากแถวฝั่ง 70 ลำดับที่ ${rowIndex + 1}`}
-            className="inline-flex size-8 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
+            className="inline-flex size-8 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
             draggable
             onDragEnd={handleRowDragEnd}
             onDragStart={(event) => {
@@ -664,10 +612,10 @@ export function LayoutCanvas({
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="col-span-2 flex flex-wrap items-center justify-end gap-1 sm:col-span-1">
             <button
               aria-label="เลื่อนแถว 70 ขึ้น"
-              className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={rowIndex <= 0}
               onClick={() => {
                 onMoveWideRow(rowIndex, rowIndex - 1);
@@ -679,7 +627,7 @@ export function LayoutCanvas({
             </button>
             <button
               aria-label="เลื่อนแถว 70 ลง"
-              className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={rowIndex >= layout.mainSplit.wideRows.length - 1}
               onClick={() => {
                 onMoveWideRow(rowIndex, rowIndex + 1);
@@ -691,7 +639,7 @@ export function LayoutCanvas({
             </button>
             <button
               aria-label={row.enabled ? "ปิดแถว 70" : "เปิดแถว 70"}
-              className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+              className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)]"
               onClick={() => {
                 onToggleWideRow(row.id, !row.enabled);
               }}
@@ -773,7 +721,7 @@ export function LayoutCanvas({
           >
             <button
               aria-label={`ลาก block ${block.title}`}
-              className="inline-flex size-7 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
+              className="inline-flex size-7 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
               draggable
               onDragEnd={handleWideBlockDragEnd}
               onDragStart={(event) => {
@@ -794,10 +742,6 @@ export function LayoutCanvas({
             >
               <span className="block truncate text-sm font-semibold text-[var(--site-text)]">
                 {block.title}
-              </span>
-              <span className="mt-1 block truncate text-xs text-[var(--site-muted)]">
-                {block.enabled ? "เปิด" : "ปิด"}
-                {block.hideWhenEmpty ? " / ซ่อนเมื่อไม่มีข้อมูล" : ""}
               </span>
             </button>
             <button
@@ -849,19 +793,11 @@ export function LayoutCanvas({
               แถวแคบ วางได้ทีละ 1 block
             </p>
           </div>
-          <button
-            className="inline-flex h-8 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
-            onClick={onAddNarrowRow}
-            type="button"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            เพิ่มแถว 30
-          </button>
         </div>
 
         {layout.mainSplit.narrowRows.length === 0 ? (
           <button
-            className="flex min-h-28 w-full flex-col items-center justify-center rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-6 text-center text-sm font-semibold text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface)]"
+            className="flex min-h-28 w-full flex-col items-center justify-center rounded-lg border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface-soft)] px-4 py-6 text-center text-sm font-semibold text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface)]"
             onClick={onAddNarrowRow}
             type="button"
           >
@@ -902,10 +838,10 @@ export function LayoutCanvas({
                     handleNarrowRowDrop(event, rowIndex);
                   }}
                 >
-                  <div className="mb-2 grid grid-cols-[auto_1fr_auto] items-center gap-2">
+                  <div className="mb-2 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
                     <button
                       aria-label={`ลากแถวฝั่ง 30 ลำดับที่ ${rowIndex + 1}`}
-                      className="inline-flex size-8 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
+                      className="inline-flex size-8 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
                       draggable
                       onDragEnd={handleRowDragEnd}
                       onDragStart={(event) => {
@@ -933,10 +869,10 @@ export function LayoutCanvas({
                       </span>
                     </button>
 
-                    <div className="flex items-center gap-1">
+                    <div className="col-span-2 flex flex-wrap items-center justify-end gap-1 sm:col-span-1">
                       <button
                         aria-label="เลื่อนแถว 30 ขึ้น"
-                        className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)] disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={rowIndex <= 0}
                         onClick={() => {
                           onMoveNarrowRow(rowIndex, rowIndex - 1);
@@ -948,7 +884,7 @@ export function LayoutCanvas({
                       </button>
                       <button
                         aria-label="เลื่อนแถว 30 ลง"
-                        className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)] disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={
                           rowIndex >= layout.mainSplit.narrowRows.length - 1
                         }
@@ -962,7 +898,7 @@ export function LayoutCanvas({
                       </button>
                       <button
                         aria-label={row.enabled ? "ปิดแถว 30" : "เปิดแถว 30"}
-                        className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+                        className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)]"
                         onClick={() => {
                           onToggleNarrowRow(row.id, !row.enabled);
                         }}
@@ -1008,7 +944,7 @@ export function LayoutCanvas({
                     }}
                   >
                     {row.block ? (
-                      <div className="grid min-h-16 grid-cols-[1fr_auto] items-center gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-2">
+                      <div className="grid min-h-16 max-w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 overflow-hidden rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-2">
                         <button
                           className="min-w-0 text-left"
                           onClick={() => {
@@ -1018,12 +954,6 @@ export function LayoutCanvas({
                         >
                           <span className="block truncate text-sm font-semibold text-[var(--site-text)]">
                             {row.block.title}
-                          </span>
-                          <span className="mt-1 block truncate text-xs text-[var(--site-muted)]">
-                            {row.block.enabled ? "เปิด" : "ปิด"}
-                            {row.block.hideWhenEmpty
-                              ? " / ซ่อนเมื่อไม่มีข้อมูล"
-                              : ""}
                           </span>
                         </button>
                         <button
@@ -1058,25 +988,30 @@ export function LayoutCanvas({
             })}
           </div>
         )}
+        <button
+            className=" mt-4 w-full justify-center inline-flex h-8 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)]"
+            onClick={onAddNarrowRow}
+            type="button"
+          >
+            <Plus aria-hidden="true" className="size-4" />
+            เพิ่มแถว 30
+          </button>
       </section>
     );
   }
 
   return (
-    <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] shadow-sm">
-      <div className="border-b border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-3">
+    <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
+      <div className="border-b border-[var(--site-border)] bg-[var(--site-surface)] px-5 py-4">
         <h2 className="text-sm font-semibold text-[var(--site-text)]">
-          โครงหน้า Details
+          โครงหน้ารายละเอียดบ้านพัก
         </h2>
-        <p className="mt-0.5 text-xs leading-5 text-[var(--site-muted)]">
-          พื้นที่ด้านบนและบ้านพักแนะนำถูกล็อกไว้ จัดได้เฉพาะฝั่ง 70 และฝั่ง 30
-        </p>
       </div>
 
-      <div className="grid gap-3 p-3">
+      <div className="grid gap-4 p-4">
         <LockedShell label="ล็อกไว้ด้านบน">
-          <div className="grid gap-2 md:grid-cols-2">
-            <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-3">
+          <div className="grid gap-2 md:grid-rows-2">
+            <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-3">
               <p className="text-sm font-semibold text-[var(--site-text)]">
                 Gallery
               </p>
@@ -1084,7 +1019,7 @@ export function LayoutCanvas({
                 รูปหลักและแกลเลอรีบ้านพัก
               </p>
             </div>
-            <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-3">
+            <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-3">
               <p className="text-sm font-semibold text-[var(--site-text)]">
                 ชื่อบ้าน / ราคา
               </p>
@@ -1101,16 +1036,13 @@ export function LayoutCanvas({
               <p className="text-sm font-semibold text-[var(--site-text)]">
                 พื้นที่จัดหน้า
               </p>
-              <p className="mt-0.5 text-xs text-[var(--site-muted)]">
-                เลือกตำแหน่งของฝั่งกว้างและฝั่งแคบ
-              </p>
             </div>
             <div className="inline-flex rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-1">
               {DETAIL_LAYOUT_OUTER_SPLIT_RATIOS.map((ratio) => (
                 <button
                   className={`inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-semibold transition ${
                     layout.mainSplit.ratio === ratio
-                      ? "bg-[var(--site-surface)] text-[var(--site-primary)] shadow-sm"
+                      ? "bg-[var(--site-surface)] text-[var(--site-primary)]"
                       : "text-[var(--site-muted)] hover:text-[var(--site-text)]"
                   }`}
                   key={ratio}
@@ -1129,8 +1061,8 @@ export function LayoutCanvas({
           <div
             className={`mt-3 grid gap-3 ${
               isWideLeft
-                ? "lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]"
-                : "lg:grid-cols-[minmax(280px,3fr)_minmax(0,7fr)]"
+                ? "xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]"
+                : "xl:grid-cols-[minmax(280px,3fr)_minmax(0,7fr)]"
             }`}
           >
             {isWideLeft ? (
@@ -1160,7 +1092,7 @@ export function LayoutCanvas({
                   className={`grid w-full grid-cols-[auto_1fr] items-center gap-2 rounded-md border px-3 py-3 text-left transition ${
                     isSelected
                       ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
-                      : "border-[var(--site-border)] bg-[var(--site-surface-soft)] hover:bg-[var(--site-surface)]"
+                      : "border-[var(--site-border)] bg-[var(--site-surface)] hover:bg-[var(--site-surface)]"
                   }`}
                   key={`${block.type}-${blockIndex}`}
                   onClick={() => {
@@ -1185,49 +1117,6 @@ export function LayoutCanvas({
             })}
           </div>
         </LockedShell>
-
-        <div className="rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[var(--site-text)]">
-                เพิ่มแถวใหม่
-              </p>
-              <p className="mt-0.5 text-xs text-[var(--site-muted)]">
-                เพิ่มแถวลงฝั่ง 70 หรือฝั่ง 30 แล้วลาก block จากคลัง
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
-                onClick={() => {
-                  onAddWideRow(1);
-                }}
-                type="button"
-              >
-                <Plus aria-hidden="true" className="size-4" />
-                แถว 70 / 1 ช่อง
-              </button>
-              <button
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
-                onClick={() => {
-                  onAddWideRow(2, "50/50");
-                }}
-                type="button"
-              >
-                <Plus aria-hidden="true" className="size-4" />
-                แถว 70 / 50-50
-              </button>
-              <button
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
-                onClick={onAddNarrowRow}
-                type="button"
-              >
-                <Plus aria-hidden="true" className="size-4" />
-                แถว 30
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );

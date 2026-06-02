@@ -26,7 +26,7 @@ export function SectionConfigForm({
                 aria-pressed={isSelected}
                 className={`min-h-24 rounded-lg border px-4 py-4 text-left transition ${
                   isSelected
-                    ? "border-[var(--site-primary)] bg-[var(--site-surface-soft)] shadow-sm"
+                    ? "border-[var(--site-primary)] bg-[var(--site-surface-soft)]"
                     : "border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] hover:bg-[var(--site-surface-soft)]"
                 }`}
                 key={mode.value}

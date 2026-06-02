@@ -33,7 +33,6 @@ import { ManualIdsEditor } from "./manual-ids-editor";
 import { SectionConfigForm } from "./section-config-form";
 import { SectionHomePreview } from "./section-home-preview";
 import { SectionList } from "./section-list";
-import { SectionOutcomePanel } from "./section-outcome-panel";
 import {
   getPreviewForSection,
   getSectionLabel,
@@ -228,7 +227,7 @@ export function AdminSectionsPage() {
   const [draggedDraftId, setDraggedDraftId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [, setIsPreviewing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [manualIdTexts, setManualIdTexts] = useState<Record<string, string>>({});
@@ -679,18 +678,6 @@ export function AdminSectionsPage() {
     return true;
   }
 
-  async function handlePreviewManualIds() {
-    if (!activeSection || activeSection.mode !== "manual") {
-      return;
-    }
-
-    await previewManualIds({
-      draftId: activeSection.draftId,
-      houseIds: activeSection.items.map((item) => item.houseId),
-      showErrors: true,
-    });
-  }
-
   async function handleSave() {
     if (!hasUnsavedChanges) {
       setNotice("ยังไม่มีรายการที่เปลี่ยนใหม่");
@@ -749,6 +736,7 @@ export function AdminSectionsPage() {
 
       setNotice("บันทึกการจัดหน้าแรกแล้ว");
       await loadSections(token, false);
+      router.refresh();
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error
@@ -815,8 +803,8 @@ export function AdminSectionsPage() {
 
           {activeSection ? (
             <>
-              <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] shadow-sm">
-                <div className="flex flex-col gap-2 border-b border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
+                <div className="flex flex-col gap-2 border-b border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-normal text-[var(--site-muted)]">
                       ชุดที่ {activeIndex + 1}
@@ -831,6 +819,19 @@ export function AdminSectionsPage() {
                     ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <label className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)]">
+                      <input
+                        checked={activeSection.isActive}
+                        className="size-4 accent-[var(--site-primary)]"
+                        onChange={(event) => {
+                          updateSection(activeSection.draftId, {
+                            isActive: event.target.checked,
+                          });
+                        }}
+                        type="checkbox"
+                      />
+                      แสดงบนหน้าแรก
+                    </label>
                     <button
                       aria-label="เลื่อนชุดบ้านพักที่เลือกขึ้น"
                       className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -936,7 +937,6 @@ export function AdminSectionsPage() {
                   >
                     {activeSection.mode === "manual" ? (
                       <ManualIdsEditor
-                        isPreviewing={isPreviewing}
                         manualIdText={
                           manualIdTexts[activeSection.draftId] ??
                           activeSection.items
@@ -952,7 +952,6 @@ export function AdminSectionsPage() {
                             items: parseManualIds(nextManualIdText),
                           });
                         }}
-                        onPreview={handlePreviewManualIds}
                       />
                     ) : (
                       <AutoModeSummary mode={activeSection.mode} />
@@ -962,13 +961,6 @@ export function AdminSectionsPage() {
               </section>
 
               <aside className="grid content-start gap-3 xl:col-start-2 2xl:sticky 2xl:top-4 2xl:col-start-auto 2xl:self-start">
-                <SectionOutcomePanel
-                  onActiveChange={(isActive) =>
-                    updateSection(activeSection.draftId, { isActive })
-                  }
-                  preview={activePreview}
-                  section={activeSection}
-                />
                 <SectionHomePreview
                   preview={activePreview}
                   section={activeSection}

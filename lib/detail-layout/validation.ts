@@ -243,8 +243,8 @@ function normalizeBlocks(
     blocks.push({
       type,
       title: normalizeBlockTitle(item.title, type),
-      enabled: normalizeBoolean(item.enabled, true),
-      hideWhenEmpty: normalizeBoolean(item.hideWhenEmpty, true),
+      enabled: true,
+      hideWhenEmpty: true,
     });
   });
 

@@ -1,20 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  DEFAULT_DETAIL_LAYOUT,
-  DEFAULT_DETAIL_LAYOUT_V2,
-} from "../../../../lib/detail-layout/defaults";
-import { cloneDetailLayout } from "../../../../lib/detail-layout/validation";
-import { toDetailLayoutDraft } from "../detail-layout-helpers";
+import { DEFAULT_DETAIL_LAYOUT_V2 } from "../../../../lib/detail-layout/defaults";
 import { toDetailLayoutV2Draft } from "../detail-layout-v2-helpers";
 import type { DetailLayoutV2Draft } from "../types";
-import {
-  getDetailLayoutBlockDragLocation,
-  getDetailLayoutDropType,
-  getDetailLayoutRowDragIndex,
-  LayoutCanvas,
-} from "../layout-canvas";
+import { getDetailLayoutDropType, LayoutCanvas } from "../layout-canvas";
 
 function renderCanvas(
   layout: DetailLayoutV2Draft = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2),
@@ -69,10 +59,17 @@ describe("LayoutCanvas", () => {
 
     expect(markup).toContain("70 ซ้าย / 30 ขวา");
     expect(markup).toContain("30 ซ้าย / 70 ขวา");
-    expect(markup).toContain("1 คอลัมน์");
-    expect(markup).toContain("50/50");
+    expect(markup).toContain("1 ช่อง");
+    expect(markup).toContain("2 ช่อง");
     expect(markup).not.toContain("60/40");
     expect(markup).not.toContain("40/60");
+  });
+
+  it("keeps the public 70/30 split stacked until wide admin viewports", () => {
+    const markup = renderCanvas();
+
+    expect(markup).toContain("xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]");
+    expect(markup).not.toContain("lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]");
   });
 
   it("marks wide and narrow row drag handles", () => {
@@ -121,46 +118,4 @@ describe("LayoutCanvas", () => {
     expect(getDetailLayoutDropType(validTransfer)).toBe("pool");
   });
 
-  it("keeps legacy row drag index parsing for old tests and helpers", () => {
-    const validTransfer = {
-      getData: vi.fn(() => "2"),
-    };
-    const invalidTransfer = {
-      getData: vi.fn(() => "not-an-index"),
-    };
-    const outOfRangeTransfer = {
-      getData: vi.fn(() => "8"),
-    };
-
-    expect(getDetailLayoutRowDragIndex(validTransfer, 4)).toBe(2);
-    expect(getDetailLayoutRowDragIndex(invalidTransfer, 4)).toBeNull();
-    expect(getDetailLayoutRowDragIndex(outOfRangeTransfer, 4)).toBeNull();
-  });
-
-  it("keeps legacy block drag location parsing for old row drafts", () => {
-    const layout = toDetailLayoutDraft(cloneDetailLayout(DEFAULT_DETAIL_LAYOUT));
-    const row = layout.rows[0];
-    const validTransfer = {
-      getData: vi.fn(() =>
-        JSON.stringify({ blockIndex: 1, rowId: row.id }),
-      ),
-    };
-    const invalidRowTransfer = {
-      getData: vi.fn(() =>
-        JSON.stringify({ blockIndex: 1, rowId: "missing-row" }),
-      ),
-    };
-    const invalidIndexTransfer = {
-      getData: vi.fn(() =>
-        JSON.stringify({ blockIndex: 99, rowId: row.id }),
-      ),
-    };
-
-    expect(getDetailLayoutBlockDragLocation(validTransfer, layout)).toEqual({
-      blockIndex: 1,
-      rowId: row.id,
-    });
-    expect(getDetailLayoutBlockDragLocation(invalidRowTransfer, layout)).toBeNull();
-    expect(getDetailLayoutBlockDragLocation(invalidIndexTransfer, layout)).toBeNull();
-  });
 });
