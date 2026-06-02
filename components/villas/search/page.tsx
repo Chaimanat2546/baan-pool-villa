@@ -4,7 +4,6 @@ import { AlertCircle, RotateCcw, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AMENITY_OPTIONS } from "@/lib/villas/amenities";
 import {
   filterVillas,
@@ -20,6 +19,7 @@ import {
 import type { VillaFilters, VillaListing } from "@/lib/villas/types";
 
 import { VillaGrid } from "../listing/villa-grid";
+import { VillaGridSkeleton } from "../listing/villa-grid-skeleton";
 import { MobileFilterDrawer } from "./mobile-filter-drawer";
 import { SearchBar } from "./search-bar";
 
@@ -269,25 +269,7 @@ export function SearchPage({
           ) : null}
 
           {isLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="overflow-hidden rounded-[22px] border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_14px_42px_rgba(6,63,53,0.07)]"
-                >
-                  <Skeleton className="aspect-[4/3] rounded-none bg-[var(--site-surface-tint)]" />
-                  <div className="flex flex-col gap-4 p-5">
-                    <Skeleton className="h-5 w-2/3 bg-[var(--site-surface-tint)]" />
-                    <Skeleton className="h-4 w-4/5 bg-[var(--site-surface-tint)]" />
-                    <div className="grid grid-cols-3 gap-2">
-                      <Skeleton className="h-10 rounded-xl bg-[var(--site-primary-soft)]" />
-                      <Skeleton className="h-10 rounded-xl bg-[var(--site-primary-soft)]" />
-                      <Skeleton className="h-10 rounded-xl bg-[var(--site-primary-soft)]" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <VillaGridSkeleton count={6} />
           ) : error ? (
             <div className="flex min-h-72 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center">
               <div className="max-w-md">
