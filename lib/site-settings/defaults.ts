@@ -1,4 +1,16 @@
-import type { SiteBankSettings, SiteContactSettings, SiteSettings } from "./types";
+import {
+  defaultDescription,
+  defaultOgImage,
+  defaultTitle,
+  siteName,
+} from "../seo";
+import { DEFAULT_DETAIL_LAYOUT } from "../detail-layout/defaults";
+import type {
+  SiteBankSettings,
+  SiteContactSettings,
+  SiteSeoSettings,
+  SiteSettings,
+} from "./types";
 
 export const SITE_SETTINGS_ID = "global";
 export const SITE_ASSETS_BUCKET = "site-assets";
@@ -34,6 +46,21 @@ export const DEFAULT_SITE_CONTACT_SETTINGS: SiteContactSettings = {
   lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
 };
 
+export const DEFAULT_SITE_SEO_SETTINGS: SiteSeoSettings = {
+  title: defaultTitle,
+  description: defaultDescription,
+  ogImage: {
+    path: defaultOgImage,
+    url: defaultOgImage,
+    alt: "Pool Villa บ้านพูลวิลล่า พัทยา",
+  },
+  businessName: siteName,
+  sameAsUrls: [
+    DEFAULT_SITE_CONTACT_SETTINGS.messengerUrl,
+    DEFAULT_SITE_CONTACT_SETTINGS.lineUrl,
+  ],
+};
+
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "Pool Villas Pattaya",
   primaryColor: "#064e3b",
@@ -50,4 +77,6 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   },
   bank: DEFAULT_SITE_BANK_SETTINGS,
   contact: DEFAULT_SITE_CONTACT_SETTINGS,
+  seo: DEFAULT_SITE_SEO_SETTINGS,
+  detailLayout: DEFAULT_DETAIL_LAYOUT,
 };

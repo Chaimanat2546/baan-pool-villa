@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Home,
   Images,
+  LayoutTemplate,
   Settings,
   Users,
   Warehouse,
@@ -31,6 +32,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Warehouse,
     label: "บ้านพัก",
     pageTitle: "บ้านพัก",
+  },
+  {
+    description: "จัด layout ของหน้ารายละเอียดบ้านพัก",
+    href: "/admin/detail-layout",
+    icon: LayoutTemplate,
+    label: "หน้ารายละเอียดบ้านพัก",
+    pageTitle: "จัดหน้ารายละเอียดบ้านพัก",
   },
   {
     description: "รูปภาพบ้านพักและแกลเลอรี",

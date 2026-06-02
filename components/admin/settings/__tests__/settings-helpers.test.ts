@@ -44,6 +44,20 @@ describe("settings helpers", () => {
         lineId: "@baanpoolvilla",
         lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
       },
+      seo: {
+        title: "Baan Pool Villa Pattaya | Private Pool Villas",
+        description: "Book private pool villas in Pattaya.",
+        ogImage: {
+          path: "/images/seo-cover.jpg",
+          url: "/images/seo-cover.jpg",
+          alt: "Pool villa with private swimming pool",
+        },
+        businessName: "Baan Pool Villa Pattaya",
+        sameAsUrls: [
+          "https://www.facebook.com/baanpoolvillas",
+          "https://line.me/R/ti/p/@baanpoolvilla",
+        ],
+      },
     });
 
     expect(draft).toMatchObject({
@@ -60,6 +74,15 @@ describe("settings helpers", () => {
       messengerUrl: "https://www.facebook.com/baanpoolvillas",
       lineId: "@baanpoolvilla",
       lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+      seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
+      seoDescription: "Book private pool villas in Pattaya.",
+      seoOgImageUrl: "/images/seo-cover.jpg",
+      seoOgImageAlt: "Pool villa with private swimming pool",
+      seoBusinessName: "Baan Pool Villa Pattaya",
+      seoSameAsUrls: [
+        "https://www.facebook.com/baanpoolvillas",
+        "https://line.me/R/ti/p/@baanpoolvilla",
+      ],
     });
   });
 
@@ -84,6 +107,15 @@ describe("settings helpers", () => {
       messengerUrl: "https://www.facebook.com/baanpoolvillas",
       lineId: "@baanpoolvilla",
       lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+      seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
+      seoDescription: "Book private pool villas in Pattaya.",
+      seoOgImageUrl: "/images/seo-cover.jpg",
+      seoOgImageAlt: "Pool villa with private swimming pool",
+      seoBusinessName: "Baan Pool Villa Pattaya",
+      seoSameAsUrls: [
+        "https://www.facebook.com/baanpoolvillas",
+        "https://line.me/R/ti/p/@baanpoolvilla",
+      ],
     });
 
     expect(formData.get("bankAccountName")).toBe("คุณ อาภัสรา จินดาวา");
@@ -96,6 +128,21 @@ describe("settings helpers", () => {
     expect(formData.get("lineUrl")).toBe(
       "https://line.me/R/ti/p/@baanpoolvilla",
     );
+    expect(formData.get("seoTitle")).toBe(
+      "Baan Pool Villa Pattaya | Private Pool Villas",
+    );
+    expect(formData.get("seoDescription")).toBe(
+      "Book private pool villas in Pattaya.",
+    );
+    expect(formData.get("seoOgImageUrl")).toBe("/images/seo-cover.jpg");
+    expect(formData.get("seoOgImageAlt")).toBe(
+      "Pool villa with private swimming pool",
+    );
+    expect(formData.get("seoBusinessName")).toBe("Baan Pool Villa Pattaya");
+    expect(JSON.parse(String(formData.get("seoSameAsUrls")))).toEqual([
+      "https://www.facebook.com/baanpoolvillas",
+      "https://line.me/R/ti/p/@baanpoolvilla",
+    ]);
     expect(JSON.parse(String(formData.get("phoneContacts")))).toEqual([
       {
         name: "คุณเกม",

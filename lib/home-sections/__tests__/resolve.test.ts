@@ -240,7 +240,7 @@ describe("resolveHomeSections", () => {
     expect(section.villas.map((item) => item.id)).toEqual(["3", "4"]);
   });
 
-  it("normalizes invalid and oversized limits to the 1 to 12 range", () => {
+  it("normalizes invalid limits to 1 and honors large maximum display counts", () => {
     const manyVillas = Array.from({ length: 20 }, (_, index) =>
       villa(String(index + 1)),
     );
@@ -264,7 +264,7 @@ describe("resolveHomeSections", () => {
     );
 
     expect(sections[0].villas.map((selectedVilla) => selectedVilla.id)).toEqual(["1"]);
-    expect(sections[1].villas).toHaveLength(12);
+    expect(sections[1].villas).toHaveLength(20);
   });
 
   it("does not dedupe villas across different sections", () => {

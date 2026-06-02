@@ -15,7 +15,7 @@ import {
 } from "@/lib/site-settings/validation";
 
 const SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url";
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls";
 const SITE_ASSET_UPLOADS_SELECT =
   "id,asset_type,storage_bucket,storage_path,is_current,created_at";
 const ASSET_UPLOAD_FIELDS: { assetType: SiteAssetType; fieldName: string }[] = [
@@ -128,6 +128,31 @@ function readPhoneContactsField(formData: FormData): SitePhoneContact[] {
     });
   } catch {
     return [];
+  }
+}
+
+function readStringArrayField(formData: FormData, fieldName: string): string[] {
+  const rawValue = readStringField(formData, fieldName);
+
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue);
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue.map((item) => (typeof item === "string" ? item : ""));
+  } catch {
+    return rawValue
+      .replaceAll("\r\n", "\n")
+      .replaceAll("\r", "\n")
+      .split("\n")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
   }
 }
 
@@ -438,6 +463,12 @@ export async function PUT(request: Request) {
     messengerUrl: readStringField(formData, "messengerUrl"),
     lineId: readStringField(formData, "lineId"),
     lineUrl: readStringField(formData, "lineUrl"),
+    seoTitle: readStringField(formData, "seoTitle"),
+    seoDescription: readStringField(formData, "seoDescription"),
+    seoOgImageUrl: readStringField(formData, "seoOgImageUrl"),
+    seoOgImageAlt: readStringField(formData, "seoOgImageAlt"),
+    seoBusinessName: readStringField(formData, "seoBusinessName"),
+    seoSameAsUrls: readStringArrayField(formData, "seoSameAsUrls"),
   });
   const errors = validateSiteSettingsDraft(draft);
   const uploadFiles: { assetType: SiteAssetType; file: File }[] = [];
@@ -522,6 +553,12 @@ export async function PUT(request: Request) {
     messenger_url: draft.messengerUrl,
     line_id: draft.lineId,
     line_url: draft.lineUrl,
+    seo_title: draft.seoTitle,
+    seo_description: draft.seoDescription,
+    seo_og_image_url: draft.seoOgImageUrl,
+    seo_og_image_alt: draft.seoOgImageAlt,
+    seo_business_name: draft.seoBusinessName,
+    seo_same_as_urls: draft.seoSameAsUrls,
   };
 
   const { data, error: saveError } = await admin.supabase

@@ -44,7 +44,9 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
               <span className="block text-[11px] leading-4 text-[var(--site-on-primary)] sm:text-sm sm:leading-5">
                 {bankNotice}{" "}
                 <br className="sm:hidden" />
-                <span className="text-[var(--site-accent)]">{bankAccount}</span>{" "}
+                <span className="inline-flex rounded-full border border-[color:var(--site-on-primary)]/35 bg-white/12 px-2 py-0.5 font-semibold text-[var(--site-on-primary)]">
+                  {bankAccount}
+                </span>{" "}
                 เท่านั้น
               </span>
             </span>

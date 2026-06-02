@@ -54,7 +54,7 @@ export function AdminLoginForm() {
 
   return (
     <form
-      className="w-full max-w-sm rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm"
+      className="w-full max-w-sm rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5"
       onSubmit={handleSubmit}
     >
       <div className="mb-5">

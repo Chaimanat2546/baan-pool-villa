@@ -8,7 +8,7 @@ interface AutoModeSummaryProps {
 
 export function AutoModeSummary({ mode }: AutoModeSummaryProps) {
   return (
-    <div className="grid gap-3 rounded-[20px] border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
+    <div className="grid gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
       <div>
         <h3 className="text-sm font-semibold text-[var(--site-text)]">
           {MODE_LABELS.get(mode) ?? "เลือกบ้านให้"}

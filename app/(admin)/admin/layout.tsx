@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
+
 import { AdminShell } from "@/components/admin/layout/admin-shell";
 import { SiteThemeProvider } from "@/components/layout/site-theme-provider";
 import { getSiteSettings } from "@/lib/site-settings/server";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AdminLayout({
   children,

@@ -23,9 +23,9 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
       {ADMIN_NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive = !item.disabled && pathname.startsWith(item.href);
-        const className = `group flex min-h-14 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+        const className = `group flex min-h-14 items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
           isActive
-            ? "border-[var(--site-primary)] bg-[var(--site-primary)] text-[var(--site-on-primary)] shadow-lg"
+            ? "border-[var(--site-primary)] bg-[var(--site-primary)] text-[var(--site-on-primary)]"
             : item.disabled
               ? "cursor-not-allowed border-transparent text-[var(--site-muted)]"
               : "border-transparent text-[var(--site-text)] hover:border-[var(--site-border)] hover:bg-[var(--site-surface)]"
@@ -37,7 +37,7 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
               className={`inline-flex size-9 shrink-0 items-center justify-center rounded-lg ${
                 isActive
                   ? "bg-white/14 text-[var(--site-on-primary)]"
-                  : "bg-[var(--site-surface)] text-[var(--site-primary)] shadow-sm"
+                  : "bg-[var(--site-surface)] text-[var(--site-primary)]"
               }`}
             >
               <Icon aria-hidden="true" className="size-4.5" />
@@ -114,8 +114,8 @@ export function AdminShell({ children, settings }: AdminShellProps) {
   return (
     <div className="min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)] lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-dvh border-r border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4 lg:flex lg:flex-col">
-        <div className="rounded-2xl bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)] shadow-lg">
-          <p className="text-xs font-semibold text-[var(--site-accent)]">
+        <div className="rounded-lg bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--site-on-primary)]/75">
             หลังบ้าน
           </p>
           <p className="mt-1 text-xl font-semibold tracking-normal">
@@ -131,7 +131,7 @@ export function AdminShell({ children, settings }: AdminShellProps) {
         </div>
 
         <button
-          className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+          className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
           onClick={handleLogout}
           type="button"
         >
@@ -146,7 +146,7 @@ export function AdminShell({ children, settings }: AdminShellProps) {
             <div className="flex min-w-0 items-center gap-3">
               <button
                 aria-label="เปิดเมนูหลังบ้าน"
-                className="inline-flex size-10 items-center justify-center rounded-xl border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] lg:hidden"
+                className="inline-flex size-10 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] lg:hidden"
                 onClick={() => {
                   setIsMobileNavOpen(true);
                 }}
@@ -165,7 +165,7 @@ export function AdminShell({ children, settings }: AdminShellProps) {
             </div>
 
             <button
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
               onClick={handleLogout}
               type="button"
             >
@@ -190,10 +190,10 @@ export function AdminShell({ children, settings }: AdminShellProps) {
             }}
             type="button"
           />
-          <aside className="relative flex h-full w-[min(340px,88vw)] flex-col bg-[var(--site-surface)] px-4 py-4 shadow-2xl">
-            <div className="flex items-start justify-between gap-3 rounded-2xl bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
+          <aside className="relative flex h-full w-[min(340px,88vw)] flex-col bg-[var(--site-surface)] px-4 py-4 shadow-xl">
+            <div className="flex items-start justify-between gap-3 rounded-lg bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
               <div>
-                <p className="text-xs font-semibold text-[var(--site-accent)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--site-on-primary)]/75">
                   หลังบ้าน
                 </p>
                 <p className="mt-1 text-xl font-semibold tracking-normal">
