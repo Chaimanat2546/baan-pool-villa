@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { unstable_cache } from "next/cache";
 import {
   buildProxyImageUrl,
   fetchVillaImages,
@@ -7,6 +9,10 @@ import {
 } from "../images";
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("next/cache", () => ({
+  unstable_cache: vi.fn((fn: unknown) => fn),
+}));
 
 const { createClientMock } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
@@ -19,6 +25,7 @@ vi.mock("@supabase/supabase-js", () => ({
 vi.mock("@/lib/villas/images", async () => import("../images"));
 
 const originalEnv = process.env;
+const unstableCacheMock = vi.mocked(unstable_cache);
 
 function setSupabaseEnv() {
   process.env.SUPABASE_URL = "https://example.supabase.co";
@@ -46,6 +53,7 @@ function mockImagesQuery(response: unknown) {
 beforeEach(() => {
   vi.restoreAllMocks();
   createClientMock.mockReset();
+  unstableCacheMock.mockClear();
   process.env = { ...originalEnv };
   setSupabaseEnv();
 });
@@ -144,6 +152,21 @@ describe("normalizeImageRows", () => {
 });
 
 describe("fetchVillaImages", () => {
+  it("wraps each villa image query in a tagged Next cache", async () => {
+    mockImagesQuery({ data: [], error: null });
+
+    await fetchVillaImages("9");
+
+    expect(unstableCacheMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      [CACHE_TAGS.villaImages("9")],
+      {
+        revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
+        tags: [CACHE_TAGS.villaImages("9")],
+      },
+    );
+  });
+
   it("queries villa images by positive decimal id and normalizes returned data", async () => {
     const { query, supabase } = mockImagesQuery({
       data: [

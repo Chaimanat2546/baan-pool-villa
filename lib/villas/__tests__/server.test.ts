@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import type { RawHouse } from "../types";
 import { fetchHouseListings, fetchVillaDetail, fetchVillaPageData } from "../server";
 
@@ -65,7 +66,10 @@ describe("fetchHouseListings", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "https://www.devillegroups.com/api/json/getHouse_deville.json",
       {
-        next: { revalidate: 300 },
+        next: {
+          revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
+          tags: [CACHE_TAGS.villaListings],
+        },
       },
     );
   });
@@ -92,6 +96,32 @@ describe("fetchVillaDetail", () => {
 
     await expect(fetchVillaDetail("999")).resolves.toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("caches successful detail API requests by villa id", async () => {
+    const listing = (await import("../normalize")).normalizeHouses([rawHouse])[0];
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ house_id: "9" }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "token");
+
+    await expect(fetchVillaDetail("9", [listing])).resolves.toMatchObject({
+      listing: { id: "9" },
+      detail: { house_id: "9" },
+      detailStatus: "available",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBeInstanceOf(URL);
+    expect((url as URL).searchParams.get("hid")).toBe("9");
+    expect(init).toEqual({
+      headers: {
+        Authorization: "Bearer token",
+      },
+      next: {
+        revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
+        tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail("9")],
+      },
+    });
   });
 });
 

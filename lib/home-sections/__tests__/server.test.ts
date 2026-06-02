@@ -1,16 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import type { VillaListing } from "../../villas/types";
 import { getResolvedHomeSections } from "../server";
 import { createHomeConfigClient } from "../supabase";
+import { unstable_cache } from "next/cache";
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("next/cache", () => ({
+  unstable_cache: vi.fn((fn: unknown) => fn),
+}));
 
 vi.mock("../supabase", () => ({
   createHomeConfigClient: vi.fn(),
 }));
 
 const createHomeConfigClientMock = vi.mocked(createHomeConfigClient);
+const unstableCacheMock = vi.mocked(unstable_cache);
 
 const villa: VillaListing = {
   amenities: [],
@@ -41,6 +48,24 @@ function mockHomeSectionsQuery(result: { data: unknown; error: unknown }) {
 }
 
 describe("getResolvedHomeSections", () => {
+  it("wraps the Supabase home section read in a tagged Next cache", async () => {
+    mockHomeSectionsQuery({
+      data: [],
+      error: null,
+    });
+
+    await getResolvedHomeSections([villa]);
+
+    expect(unstableCacheMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      [CACHE_TAGS.homeSections],
+      {
+        revalidate: CACHE_REVALIDATE_SECONDS.homeSections,
+        tags: [CACHE_TAGS.homeSections],
+      },
+    );
+  });
+
   it("returns configured sections when active rows resolve to villas", async () => {
     mockHomeSectionsQuery({
       data: [

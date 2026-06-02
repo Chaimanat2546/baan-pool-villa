@@ -1,4 +1,5 @@
 import { assertHomeConfigAdmin, getBearerToken, jsonError } from "@/lib/admin/home-config-auth";
+import { revalidateDetailLayoutCache } from "@/lib/cache-revalidation";
 import {
   DEFAULT_SITE_SETTINGS,
   SITE_SETTINGS_ID,
@@ -160,12 +161,16 @@ export async function PUT(request: Request) {
       return supabaseErrorResponse(insertError, "Unable to create detail layout settings.");
     }
 
+    revalidateDetailLayoutCache();
+
     return Response.json({
       layout: normalizeAnyDetailLayout((insertedData as SiteSettingsRow).detail_layout),
     });
   }
 
   const row = data as SiteSettingsRow;
+
+  revalidateDetailLayoutCache();
 
   return Response.json({
     layout: normalizeAnyDetailLayout(row.detail_layout),

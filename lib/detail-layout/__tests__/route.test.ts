@@ -5,6 +5,7 @@ import {
   getBearerToken,
   jsonError,
 } from "@/lib/admin/home-config-auth";
+import { revalidateDetailLayoutCache } from "@/lib/cache-revalidation";
 import {
   DEFAULT_SITE_SETTINGS,
   SITE_SETTINGS_ID,
@@ -30,6 +31,10 @@ vi.mock("@/lib/admin/home-config-auth", () => ({
   ),
 }));
 
+vi.mock("@/lib/cache-revalidation", () => ({
+  revalidateDetailLayoutCache: vi.fn(),
+}));
+
 vi.mock("@/lib/site-settings/defaults", async () => import("../../site-settings/defaults"));
 vi.mock("@/lib/detail-layout/defaults", async () => import("../defaults"));
 vi.mock("@/lib/detail-layout/validation", async () => import("../validation"));
@@ -37,6 +42,7 @@ vi.mock("@/lib/detail-layout/validation", async () => import("../validation"));
 const assertHomeConfigAdminMock = vi.mocked(assertHomeConfigAdmin);
 const getBearerTokenMock = vi.mocked(getBearerToken);
 const jsonErrorMock = vi.mocked(jsonError);
+const revalidateDetailLayoutCacheMock = vi.mocked(revalidateDetailLayoutCache);
 
 function detailLayoutSelectQuery(result: { data: unknown; error: unknown }) {
   const maybeSingle = vi.fn().mockResolvedValue(result);
@@ -415,6 +421,7 @@ describe("admin detail layout route", () => {
       },
     });
     expect(jsonErrorMock).not.toHaveBeenCalled();
+    expect(revalidateDetailLayoutCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("saves and returns normalized V2 layout on PUT", async () => {

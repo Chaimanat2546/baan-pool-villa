@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "./defaults";
 import { createHomeConfigClient } from "./supabase";
 import type { SiteSettingsLoadResult, SiteSettingsRow } from "./types";
@@ -12,8 +14,8 @@ const CONTACT_SITE_SETTINGS_SELECT =
 const LEGACY_SITE_SETTINGS_SELECT =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt";
 
-export async function getSiteSettings(): Promise<SiteSettingsLoadResult> {
-  try {
+const getCachedSiteSettings = unstable_cache(
+  async (): Promise<SiteSettingsLoadResult> => {
     const supabase = createHomeConfigClient();
     const { data, error } = await supabase
       .from("site_settings")
@@ -42,7 +44,7 @@ export async function getSiteSettings(): Promise<SiteSettingsLoadResult> {
         .maybeSingle();
 
       if (legacyError || !legacyData) {
-        return { settings: DEFAULT_SITE_SETTINGS, source: "fallback" };
+        throw new Error("Site settings config is unavailable");
       }
 
       return {
@@ -52,13 +54,24 @@ export async function getSiteSettings(): Promise<SiteSettingsLoadResult> {
     }
 
     if (!data) {
-      return { settings: DEFAULT_SITE_SETTINGS, source: "fallback" };
+      throw new Error("Site settings config is unavailable");
     }
 
     return {
       settings: normalizeSiteSettingsRow(data as SiteSettingsRow),
       source: "config",
     };
+  },
+  [CACHE_TAGS.siteSettings],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.siteSettings,
+    tags: [CACHE_TAGS.siteSettings],
+  },
+);
+
+export async function getSiteSettings(): Promise<SiteSettingsLoadResult> {
+  try {
+    return await getCachedSiteSettings();
   } catch {
     return { settings: DEFAULT_SITE_SETTINGS, source: "fallback" };
   }

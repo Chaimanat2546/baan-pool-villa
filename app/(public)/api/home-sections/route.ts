@@ -2,10 +2,9 @@ import {
   getResolvedHomeSections,
   type HomeSectionsSource,
 } from "@/lib/home-sections/server";
+import { CACHE_HEADERS } from "@/lib/cache-policy";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
 import { fetchHouseListings } from "@/lib/villas/server";
-
-const CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=300";
 
 function jsonHomeSections(
   sections: ResolvedHomeSection[],
@@ -15,7 +14,7 @@ function jsonHomeSections(
     { sections, source },
     {
       headers: {
-        "Cache-Control": CACHE_CONTROL,
+        "Cache-Control": CACHE_HEADERS.homeSections,
       },
     },
   );

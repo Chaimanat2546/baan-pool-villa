@@ -1,6 +1,8 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
+import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import type { VillaImage } from "./types";
 
 type SupabaseImageRow = {
@@ -114,8 +116,10 @@ export function parseVillaId(id: string): number {
   return villaId;
 }
 
-export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
-  const villaId = parseVillaId(id);
+async function fetchVillaImagesFromSupabase(
+  id: string,
+  villaId: number,
+): Promise<VillaImage[]> {
   const { supabaseUrl, supabaseKey } = getSupabaseConfig();
 
   const supabase = createClient(supabaseUrl, supabaseKey, {
@@ -138,4 +142,19 @@ export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   }
 
   return normalizeImageRows((data ?? []) as SupabaseImageRow[], supabaseUrl);
+}
+
+export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
+  const villaId = parseVillaId(id);
+  const tag = CACHE_TAGS.villaImages(id);
+  const getCachedVillaImages = unstable_cache(
+    () => fetchVillaImagesFromSupabase(id, villaId),
+    [tag],
+    {
+      revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
+      tags: [tag],
+    },
+  );
+
+  return getCachedVillaImages();
 }

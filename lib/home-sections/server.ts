@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { buildFallbackHomeSections, resolveHomeSections } from "./resolve";
 import { createHomeConfigClient } from "./supabase";
 import type {
@@ -141,10 +143,8 @@ function mapHomeSectionRow(row: HomeSectionRow): HomeSectionConfig {
   };
 }
 
-async function fetchConfiguredHomeSections(
-  villas: VillaListing[],
-): Promise<ResolvedHomeSection[] | null> {
-  try {
+const fetchCachedHomeSectionConfigs = unstable_cache(
+  async (): Promise<HomeSectionConfig[]> => {
     const { data, error } = await createHomeConfigClient()
       .from("home_sections")
       .select(HOME_SECTIONS_SELECT)
@@ -156,10 +156,23 @@ async function fetchConfiguredHomeSections(
       });
 
     if (error || !Array.isArray(data) || data.length === 0) {
-      return null;
+      throw new Error("Home section config is unavailable");
     }
 
-    const configs = (data as HomeSectionRow[]).map(mapHomeSectionRow);
+    return (data as HomeSectionRow[]).map(mapHomeSectionRow);
+  },
+  [CACHE_TAGS.homeSections],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.homeSections,
+    tags: [CACHE_TAGS.homeSections],
+  },
+);
+
+async function fetchConfiguredHomeSections(
+  villas: VillaListing[],
+): Promise<ResolvedHomeSection[] | null> {
+  try {
+    const configs = await fetchCachedHomeSectionConfigs();
     const sections = resolveHomeSections(configs, villas);
 
     return sections.length > 0 ? sections : null;

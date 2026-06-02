@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Eye, Save } from "lucide-react";
+import { CheckCircle2, Eye, RefreshCw, Save } from "lucide-react";
 
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -23,12 +23,23 @@ import type {
   AdminSiteSettingsResponse,
 } from "./types";
 
+type AdminExternalDataRefreshResponse =
+  | {
+      message?: string;
+      refreshed?: boolean;
+    }
+  | {
+      error?: string;
+      errors?: string[];
+    };
+
 export function AdminSettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [draft, setDraft] = useState<AdminSettingsDraft | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshingExternalData, setIsRefreshingExternalData] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
@@ -184,7 +195,12 @@ export function AdminSettingsPage() {
         response,
       )) as AdminSiteSettingsResponse | null;
 
-      if (shouldRedirectToLogin(response.status, payload)) {
+      if (
+        shouldRedirectToLogin(
+          response.status,
+          payload as AdminSiteSettingsResponse | null,
+        )
+      ) {
         redirectToLogin();
         return;
       }
@@ -211,6 +227,57 @@ export function AdminSettingsPage() {
       ]);
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleRefreshExternalData() {
+    const token = await getAccessToken();
+
+    if (!token) {
+      return;
+    }
+
+    setIsRefreshingExternalData(true);
+    setErrors([]);
+    setNotice(null);
+    setWarnings([]);
+
+    try {
+      const response = await fetch("/api/admin/external-data/refresh", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        method: "POST",
+      });
+      const payload = (await readJsonPayload(
+        response,
+      )) as AdminExternalDataRefreshResponse | null;
+
+      if (
+        shouldRedirectToLogin(
+          response.status,
+          payload as AdminSiteSettingsResponse | null,
+        )
+      ) {
+        redirectToLogin();
+        return;
+      }
+
+      if (!response.ok) {
+        setErrors(extractErrors(payload, "ไม่สามารถรีเฟรชข้อมูลบ้านพักได้"));
+        return;
+      }
+
+      setNotice("ส่งคำขอรีเฟรชข้อมูลบ้านพักแล้ว");
+      router.refresh();
+    } catch (caughtError) {
+      setErrors([
+        caughtError instanceof Error
+          ? caughtError.message
+          : "ไม่สามารถรีเฟรชข้อมูลบ้านพักได้",
+      ]);
+    } finally {
+      setIsRefreshingExternalData(false);
     }
   }
 
@@ -243,6 +310,22 @@ export function AdminSettingsPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
+          <button
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isRefreshingExternalData || isSaving}
+            onClick={() => {
+              void handleRefreshExternalData();
+            }}
+            type="button"
+          >
+            <RefreshCw
+              aria-hidden="true"
+              className={`size-4 ${isRefreshingExternalData ? "animate-spin" : ""}`}
+            />
+            {isRefreshingExternalData
+              ? "กำลังรีเฟรชข้อมูล..."
+              : "รีเฟรชข้อมูลบ้านพัก"}
+          </button>
           <Link
             className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
             href="/"
