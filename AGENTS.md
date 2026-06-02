@@ -29,6 +29,18 @@ For trivial changes, use a shortened workflow: inspect the relevant file, make t
 - Read `docs/ai/structure.html` before planning changes that touch routes, feature folders, shared helpers, admin modules, Supabase-backed data, cache behavior, SEO, contact/configuration data, or verification strategy.
 - Update `docs/ai/structure.html` in the same change when adding, moving, renaming, or removing routes, route handlers, loading UI, feature folders, shared helper ownership, public data contracts, cache/revalidation behavior, settings flows, Supabase schema ownership, or targeted test guidance.
 
+## Model Strategy
+
+Use the model names available in this Codex workspace: `GPT-5.5`, `GPT-5.4`, `GPT-5.4-Mini`, and `GPT-5.3-Codex-Spark`.
+
+- Ordinary UI work such as navbar, cards, responsive layout, bottom nav, colors, and spacing: use `GPT-5.4-Mini` with `Low` or `Medium`, or `GPT-5.4` with `Medium`.
+- Next.js, Supabase, API routes, routing, image gallery, and search filters: use `GPT-5.4` with `High` for planning. After the plan is clear, use `GPT-5.3-Codex-Spark` with `Medium` or `High` for narrow incremental code edits.
+- Data contracts, pricing, normalization, site settings, admin APIs, and RLS: use `GPT-5.5` with `High` for planning and risk review. Use `GPT-5.3-Codex-Spark` with `High` for implementation only after the plan is approved and broken into small steps. Finish with `GPT-5.5` using `Extra High` for review.
+- Hard bugs such as hydration mismatch, SSR, Suspense, Supabase policy failures, and deploy failures: use `GPT-5.5` with `Extra High` first for root-cause analysis. Then use `GPT-5.3-Codex-Spark` with `High` to fix one confirmed issue at a time.
+- Small docs, copy, README, and file-inventory work: use `GPT-5.4-Mini` with `Low`.
+- If `GPT-5.3-Codex-Spark` encounters unclear ownership, cross-module coupling, repeated test failures, or risky behavior changes, escalate back to `GPT-5.4` or `GPT-5.5` before continuing.
+- If model switching is unavailable, continue with the current model and compensate with fact checks, targeted tests, lint, build, and review before completion.
+
 ## Stack
 
 - Next.js `16.2.6` App Router with React `19.2.4`.

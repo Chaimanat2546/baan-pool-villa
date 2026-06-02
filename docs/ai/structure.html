@@ -452,6 +452,146 @@
         </table>
       </section>
 
+      <section id="model-workflow-map">
+        <h2>Model Workflow Map</h2>
+        <p>
+          Use these Codex workspace model names when model selection is
+          available: <code>GPT-5.5</code>, <code>GPT-5.4</code>,
+          <code>GPT-5.4-Mini</code>, and <code>GPT-5.3-Codex-Spark</code>.
+          If model switching is unavailable, continue with the current model
+          and compensate with fact checks, targeted tests, lint, build, and
+          review.
+        </p>
+
+        <section id="model-workflow-by-task">
+          <h3>Task-Based Model Selection</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Task Type</th>
+                <th>Planning / Analysis</th>
+                <th>Implementation</th>
+                <th>Review / Escalation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Ordinary UI: navbar, cards, responsive layout, bottom nav, colors, spacing</td>
+                <td><code>GPT-5.4-Mini</code> with <code>Low</code> or <code>Medium</code>, or <code>GPT-5.4</code> with <code>Medium</code></td>
+                <td><code>GPT-5.4-Mini</code> or <code>GPT-5.4</code> for scoped edits</td>
+                <td>Escalate to <code>GPT-5.4</code> if visual behavior becomes cross-component or responsive bugs are unclear.</td>
+              </tr>
+              <tr>
+                <td>Next.js, Supabase, API routes, routing, image gallery, search filters</td>
+                <td><code>GPT-5.4</code> with <code>High</code></td>
+                <td><code>GPT-5.3-Codex-Spark</code> with <code>Medium</code> or <code>High</code> after the plan is clear</td>
+                <td>Escalate to <code>GPT-5.5</code> when route behavior, cache, auth, or data contracts become risky.</td>
+              </tr>
+              <tr>
+                <td>Data contracts, pricing, normalization, site settings, admin APIs, RLS</td>
+                <td><code>GPT-5.5</code> with <code>High</code></td>
+                <td><code>GPT-5.3-Codex-Spark</code> with <code>High</code> only after approval and small-step breakdown</td>
+                <td><code>GPT-5.5</code> with <code>Extra High</code> for final review.</td>
+              </tr>
+              <tr>
+                <td>Hard bugs: hydration mismatch, SSR, Suspense, Supabase policy, deploy failures</td>
+                <td><code>GPT-5.5</code> with <code>Extra High</code> for root-cause analysis</td>
+                <td><code>GPT-5.3-Codex-Spark</code> with <code>High</code> to fix one confirmed issue at a time</td>
+                <td>Return to <code>GPT-5.5</code> if the symptom changes, tests fail repeatedly, or evidence contradicts the theory.</td>
+              </tr>
+              <tr>
+                <td>Small docs, copy, README, file inventory</td>
+                <td><code>GPT-5.4-Mini</code> with <code>Low</code></td>
+                <td><code>GPT-5.4-Mini</code> with <code>Low</code></td>
+                <td>Manual diff/read-through is usually enough unless docs describe executable behavior.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="model-workflow-by-step">
+          <h3>Workflow Step Model Selection</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>Work</th>
+                <th>Recommended Model</th>
+                <th>Reasoning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>Clarify outcome, flow, constraints</td>
+                <td><code>GPT-5.4-Mini</code> for simple work, <code>GPT-5.4</code> for serious work</td>
+                <td><code>Low</code> / <code>Medium</code></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>Inspect codebase, existing patterns, helpers, docs</td>
+                <td><code>GPT-5.3-Codex-Spark</code> for quick inventory, <code>GPT-5.4</code> for pattern interpretation</td>
+                <td><code>Medium</code></td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>Read and interpret Next.js docs in <code>node_modules</code></td>
+                <td><code>GPT-5.4</code></td>
+                <td><code>Medium</code> / <code>High</code></td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>Propose 2-3 approaches with trade-offs</td>
+                <td><code>GPT-5.5</code></td>
+                <td><code>High</code></td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td>Re-check approach and request approval</td>
+                <td><code>GPT-5.5</code> for risky work, otherwise <code>GPT-5.4</code></td>
+                <td><code>Medium</code> / <code>High</code></td>
+              </tr>
+              <tr>
+                <td>6</td>
+                <td>Write implementation plan and test strategy</td>
+                <td><code>GPT-5.5</code> for system/API/data, <code>GPT-5.4</code> for ordinary UI</td>
+                <td><code>High</code></td>
+              </tr>
+              <tr>
+                <td>7</td>
+                <td>Write or update tests</td>
+                <td><code>GPT-5.4</code>, or <code>GPT-5.3-Codex-Spark</code> for narrow tests</td>
+                <td><code>Medium</code> / <code>High</code></td>
+              </tr>
+              <tr>
+                <td>8</td>
+                <td>Implement incrementally</td>
+                <td><code>GPT-5.3-Codex-Spark</code> after the plan is clear; escalate to <code>GPT-5.4</code> or <code>GPT-5.5</code> for coupling or risk</td>
+                <td><code>Medium</code> / <code>High</code></td>
+              </tr>
+              <tr>
+                <td>9</td>
+                <td>Run tests, quality checks, and final review</td>
+                <td><code>GPT-5.4</code> for normal work, <code>GPT-5.5</code> for risky work</td>
+                <td><code>High</code> / <code>Extra High</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="spark-guardrail">
+          <h3>Spark Guardrail</h3>
+          <p>
+            <code>GPT-5.3-Codex-Spark</code> is for fast, narrow,
+            incremental edits after a plan exists. Escalate back to
+            <code>GPT-5.4</code> or <code>GPT-5.5</code> if ownership is
+            unclear, behavior spans multiple modules, tests fail repeatedly, or
+            the change risks public data, auth, pricing, settings, cache, or
+            Supabase behavior.
+          </p>
+        </section>
+      </section>
+
       <section id="verification-map">
         <h2>Verification Map</h2>
         <table>
