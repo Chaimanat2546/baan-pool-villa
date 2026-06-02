@@ -1,11 +1,11 @@
 "use client";
 
 import { AlertCircle, RotateCcw, Search } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AMENITY_OPTIONS } from "@/lib/villas/amenities";
 import {
   filterVillas,
   filterVillasById,
@@ -15,18 +15,19 @@ import {
   getUniqueZones,
   normalizeFiltersForSearch,
   sortVillas,
+  type VillaSortKey,
 } from "@/lib/villas/filters";
-import { AMENITY_OPTIONS } from "@/lib/villas/amenities";
 import type { VillaFilters, VillaListing } from "@/lib/villas/types";
-import type { VillaSortKey } from "@/lib/villas/filters";
 
+import { VillaGrid } from "../listing/villa-grid";
 import { MobileFilterDrawer } from "./mobile-filter-drawer";
 import { SearchBar } from "./search-bar";
-import { VillaGrid } from "../listing/villa-grid";
 
-interface HousesResponse {
-  items: VillaListing[];
-};
+interface SearchPageProps {
+  initialLoadError?: string | null;
+  initialSearchParams?: string;
+  initialVillas?: VillaListing[];
+}
 
 const PAGE_SIZE = 12;
 
@@ -58,105 +59,69 @@ function getSearchConditionLabels(
     `ราคาไม่เกิน ${filters.maxPrice.toLocaleString("th-TH")} บาท`,
     ...(filters.nearSeaOnly ? ["บ้านพักใกล้ทะเลไม่เกิน 2 กม."] : []),
     ...filters.amenities.map((amenity) => {
-      const label = AMENITY_OPTIONS.find((option) => option.key === amenity)?.label ?? amenity;
+      const label =
+        AMENITY_OPTIONS.find((option) => option.key === amenity)?.label ??
+        amenity;
       return `สิ่งอำนวยความสะดวก: ${label}`;
     }),
   ];
 }
 
-export function SearchPage() {
-  const searchParams = useSearchParams();
-  const [villas, setVillas] = useState<VillaListing[]>([]);
-  const [filters, setFilters] = useState<VillaFilters>(() =>
-    getDefaultFilters(1000),
+export function SearchPage({
+  initialLoadError = null,
+  initialSearchParams = "",
+  initialVillas = [],
+}: SearchPageProps) {
+  const searchParams = useMemo(
+    () => new URLSearchParams(initialSearchParams),
+    [initialSearchParams],
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<VillaSortKey>("recommended");
-  const [villaIdQuery, setVillaIdQuery] = useState("");
+  const initialMaxPrice = Math.max(getMaxVillaPrice(initialVillas), 1000);
+  const [villas] = useState<VillaListing[]>(() => initialVillas);
+  const [filters, setFilters] = useState<VillaFilters>(() =>
+    filtersFromSearchParams(searchParams, initialMaxPrice),
+  );
+  const [error] = useState<string | null>(initialLoadError);
+  const [sortKey, setSortKey] = useState<VillaSortKey>(() => {
+    const requestedSortKey = searchParams.get("sort");
+
+    return isVillaSortKey(requestedSortKey) ? requestedSortKey : "recommended";
+  });
+  const [villaIdQuery, setVillaIdQuery] = useState(
+    () => searchParams.get("id") ?? "",
+  );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const resultsRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadVillas() {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const response = await fetch("/api/houses");
-
-        if (!response.ok) {
-          throw new Error("ไม่สามารถโหลดข้อมูลบ้านพักได้");
-        }
-
-        const payload = (await response.json()) as HousesResponse;
-        const items = Array.isArray(payload.items) ? payload.items : [];
-
-        if (!isActive) {
-          return;
-        }
-
-        const nextMaxPrice = Math.max(getMaxVillaPrice(items), 1000);
-        setVillas(items);
-        setFilters(filtersFromSearchParams(searchParams, nextMaxPrice));
-        const requestedSortKey = searchParams.get("sort");
-
-        setVillaIdQuery(searchParams.get("id") ?? "");
-        setSortKey(isVillaSortKey(requestedSortKey) ? requestedSortKey : "recommended");
-        setVisibleCount(PAGE_SIZE);
-      } catch (caughtError) {
-        if (!isActive) {
-          return;
-        }
-
-        setError(
-          caughtError instanceof Error
-            ? caughtError.message
-            : "เกิดข้อผิดพลาดในการโหลดข้อมูล",
-        );
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadVillas();
-
-    return () => {
-      isActive = false;
-    };
-  }, [searchParams]);
+  const isLoading = false;
 
   const maxAvailablePrice = useMemo(() => getMaxVillaPrice(villas), [villas]);
   const zones = useMemo(() => getUniqueZones(villas), [villas]);
   const filteredVillas = useMemo(
-    () => sortVillas(filterVillasById(filterVillas(villas, filters), villaIdQuery), sortKey),
+    () =>
+      sortVillas(
+        filterVillasById(filterVillas(villas, filters), villaIdQuery),
+        sortKey,
+      ),
     [villas, filters, villaIdQuery, sortKey],
   );
   const visibleVillas = useMemo(
     () => filteredVillas.slice(0, visibleCount),
     [filteredVillas, visibleCount],
   );
-  const searchConditionLabels = useMemo(
-    () => {
-      const labels = getSearchConditionLabels(filters, zones);
-      const sortLabel = SORT_OPTIONS.find((option) => option.value === sortKey)?.label;
+  const searchConditionLabels = useMemo(() => {
+    const labels = getSearchConditionLabels(filters, zones);
+    const sortLabel = SORT_OPTIONS.find((option) => option.value === sortKey)?.label;
 
-      if (villaIdQuery.trim()) {
-        labels.push(`รหัสบ้าน ${villaIdQuery.trim()}`);
-      }
+    if (villaIdQuery.trim()) {
+      labels.push(`รหัสบ้าน ${villaIdQuery.trim()}`);
+    }
 
-      if (sortKey !== "recommended" && sortLabel) {
-        labels.push(`เรียง: ${sortLabel}`);
-      }
+    if (sortKey !== "recommended" && sortLabel) {
+      labels.push(`เรียง: ${sortLabel}`);
+    }
 
-      return labels;
-    },
-    [filters, zones, villaIdQuery, sortKey],
-  );
+    return labels;
+  }, [filters, zones, villaIdQuery, sortKey]);
   const isSearchReady = !isLoading && villas.length > 0;
 
   function handleSearch() {
