@@ -37,8 +37,8 @@ describe("RowSettingsPanel", () => {
     expect(markup).toContain("รูปแบบแถว");
     expect(markup).toContain("1 คอลัมน์");
     expect(markup).toContain("50/50");
-    expect(markup).toContain("60/40");
-    expect(markup).toContain("40/60");
+    expect(markup).not.toContain("60/40");
+    expect(markup).not.toContain("40/60");
     expect(markup).not.toContain("70/30");
     expect(markup).not.toContain("30/70");
   });

@@ -42,7 +42,7 @@ describe("detail layout V2 helpers", () => {
       blocks: [null, null],
       columns: 2,
       enabled: true,
-      ratio: "40/60",
+      ratio: "50/50",
     });
 
     if (!addedRow) {

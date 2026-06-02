@@ -15,7 +15,7 @@ describe("DEFAULT_DETAIL_LAYOUT_V2", () => {
     expect(DEFAULT_DETAIL_LAYOUT_V2.mainSplit.ratio).toBe("70/30");
     expect(DEFAULT_DETAIL_LAYOUT_V2.mainSplit.wideRows[0]).toMatchObject({
       columns: 2,
-      ratio: "60/40",
+      ratio: "50/50",
     });
     expect(DEFAULT_DETAIL_LAYOUT_V2.mainSplit.narrowRows[0].block.type).toBe(
       "booking_contact",
@@ -67,6 +67,27 @@ describe("validateDetailLayoutV2", () => {
     );
   });
 
+  it("normalizes old wide-row internal ratios to 50/50", () => {
+    const result = validateDetailLayoutV2({
+      ...DEFAULT_DETAIL_LAYOUT_V2,
+      mainSplit: {
+        ...DEFAULT_DETAIL_LAYOUT_V2.mainSplit,
+        wideRows: [
+          {
+            id: "legacy_wide_ratio",
+            columns: 2,
+            ratio: "60/40",
+            enabled: true,
+            blocks: [DEFAULT_DETAIL_LAYOUT_V2.mainSplit.wideRows[0].blocks[0]],
+          },
+        ],
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.layout.mainSplit.wideRows[0].ratio).toBe("50/50");
+  });
+
   it("rejects 70/30 as a wide-row internal ratio", () => {
     const result = validateDetailLayoutV2({
       ...DEFAULT_DETAIL_LAYOUT_V2,
@@ -86,7 +107,7 @@ describe("validateDetailLayoutV2", () => {
 
     expect(result.ok).toBe(false);
     expect(result.errors).toContain(
-      "แถวฝั่ง 70 ที่ 1 ต้องใช้สัดส่วน 50/50, 60/40 หรือ 40/60",
+      "แถวฝั่ง 70 ที่ 1 ต้องใช้สัดส่วน 50/50",
     );
   });
 

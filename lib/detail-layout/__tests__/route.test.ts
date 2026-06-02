@@ -257,7 +257,7 @@ describe("admin detail layout route", () => {
           wideRows: [
             {
               id: "wide_details",
-              ratio: "60/40",
+              ratio: "50/50",
               blocks: [
                 {
                   title: "Custom details",
@@ -444,7 +444,7 @@ describe("admin detail layout route", () => {
           wideRows: [
             expect.objectContaining({
               id: "wide_details",
-              ratio: "60/40",
+              ratio: "50/50",
             }),
           ],
           narrowRows: [

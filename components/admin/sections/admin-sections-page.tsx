@@ -941,7 +941,7 @@ export function AdminSectionsPage() {
                           manualIdTexts[activeSection.draftId] ??
                           activeSection.items
                             .map((item) => item.houseId)
-                            .join(" ")
+                            .join(",")
                         }
                         onChange={(nextManualIdText) => {
                           setManualIdTexts((currentTexts) => ({

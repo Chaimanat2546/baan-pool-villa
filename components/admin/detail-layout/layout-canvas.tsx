@@ -43,8 +43,6 @@ const WIDE_ROW_OPTIONS: Array<{
 }> = [
   { columns: 1, label: "1 คอลัมน์" },
   { columns: 2, label: "50/50", ratio: "50/50" },
-  { columns: 2, label: "60/40", ratio: "60/40" },
-  { columns: 2, label: "40/60", ratio: "40/60" },
 ];
 
 interface DetailLayoutBlockDragLocation {

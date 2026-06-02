@@ -83,7 +83,6 @@ export function convertDetailLayoutV1ToV2(
     appendWideRowsFromBlocks({
       blocks: row.blocks,
       enabled: row.enabled,
-      ratio: row.ratio,
       rowId: row.id,
       wideRows,
     });
@@ -194,13 +193,11 @@ function appendSplitRow({
 function appendWideRowsFromBlocks({
   blocks,
   enabled,
-  ratio,
   rowId,
   wideRows,
 }: {
   blocks: DetailLayoutBlock[];
   enabled: boolean;
-  ratio: DetailLayoutRow["ratio"];
   rowId: string;
   wideRows: DetailLayoutWideRow[];
 }) {
@@ -212,7 +209,7 @@ function appendWideRowsFromBlocks({
     wideRows.push({
       id,
       columns,
-      ...(columns === 2 ? { ratio: toWideRatio(ratio) } : {}),
+      ...(columns === 2 ? { ratio: "50/50" } : {}),
       enabled,
       blocks: rowBlocks,
     });
@@ -344,8 +341,12 @@ function normalizeWideRatio(
   }
 
   if (typeof value !== "string" || !ALLOWED_WIDE_RATIOS.has(value)) {
+    if (value === "60/40" || value === "40/60") {
+      return "50/50";
+    }
+
     errors.push(
-      `แถวฝั่ง 70 ที่ ${rowNumber} ต้องใช้สัดส่วน 50/50, 60/40 หรือ 40/60`,
+      `แถวฝั่ง 70 ที่ ${rowNumber} ต้องใช้สัดส่วน 50/50`,
     );
     return undefined;
   }
@@ -535,12 +536,6 @@ function isOuterRatio(
   value: DetailLayoutRow["ratio"],
 ): value is DetailLayoutOuterRatio {
   return value === "70/30" || value === "30/70";
-}
-
-function toWideRatio(
-  value: DetailLayoutRow["ratio"],
-): DetailLayoutWideRatio {
-  return value === "60/40" || value === "40/60" ? value : "50/50";
 }
 
 function normalizeId(value: unknown, fallback: string): string {

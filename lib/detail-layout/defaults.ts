@@ -24,8 +24,6 @@ export const DETAIL_LAYOUT_OUTER_SPLIT_RATIOS: DetailLayoutOuterRatio[] = [
 
 export const DETAIL_LAYOUT_WIDE_ROW_RATIOS: DetailLayoutWideRatio[] = [
   "50/50",
-  "60/40",
-  "40/60",
 ];
 
 export const DETAIL_LAYOUT_BLOCK_LABELS: Record<DetailLayoutBlockType, string> = {
@@ -111,7 +109,7 @@ export const DEFAULT_DETAIL_LAYOUT_V2: DetailLayoutV2Config = {
       {
         id: "wide_details_amenities",
         columns: 2,
-        ratio: "60/40",
+        ratio: "50/50",
         enabled: true,
         blocks: [block("details"), block("amenities")],
       },
@@ -132,7 +130,7 @@ export const DEFAULT_DETAIL_LAYOUT_V2: DetailLayoutV2Config = {
       {
         id: "wide_costs_videos",
         columns: 2,
-        ratio: "60/40",
+        ratio: "50/50",
         enabled: true,
         blocks: [block("costs_promotions"), block("review_videos")],
       },
