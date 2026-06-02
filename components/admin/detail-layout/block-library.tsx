@@ -1,6 +1,6 @@
 "use client";
 
-import { Blocks, Plus } from "lucide-react";
+import { Blocks, ListChecks, Plus } from "lucide-react";
 import type { DragEvent } from "react";
 
 import { DETAIL_LAYOUT_BLOCK_LABELS } from "@/lib/detail-layout/defaults";
@@ -50,6 +50,36 @@ export function BlockLibrary({
         <span className="font-semibold text-[var(--site-text)]">
           {targetLabel}
         </span>
+      </div>
+
+      <div className="mb-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-3">
+        <h3 className="flex items-center gap-2 text-xs font-semibold text-[var(--site-text)]">
+          <ListChecks
+            aria-hidden="true"
+            className="size-4 text-[var(--site-primary)]"
+          />
+          ลำดับการทำงาน
+        </h3>
+        <ol className="mt-2 grid gap-1.5 text-xs leading-5 text-[var(--site-muted)]">
+          <li className="grid grid-cols-[1.25rem_1fr] gap-2">
+            <span className="grid size-5 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+              1
+            </span>
+            <span>เลือกช่องในผัง</span>
+          </li>
+          <li className="grid grid-cols-[1.25rem_1fr] gap-2">
+            <span className="grid size-5 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+              2
+            </span>
+            <span>เพิ่มหรือวาง block</span>
+          </li>
+          <li className="grid grid-cols-[1.25rem_1fr] gap-2">
+            <span className="grid size-5 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+              3
+            </span>
+            <span>แก้ชื่อและการแสดงผลด้านขวา</span>
+          </li>
+        </ol>
       </div>
 
       <div className="grid gap-2">

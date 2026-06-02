@@ -2,8 +2,6 @@
 
 import { Lock, SlidersHorizontal, Trash2 } from "lucide-react";
 
-import { DETAIL_LAYOUT_WIDE_ROW_RATIOS } from "@/lib/detail-layout/defaults";
-
 import type { DetailLayoutCanvasSelection } from "./layout-canvas";
 import type {
   DetailLayoutBlock,
@@ -49,12 +47,6 @@ const WIDE_LAYOUT_OPTIONS: Array<{
   { columns: 1, label: "1 คอลัมน์" },
   { columns: 2, label: "50/50", ratio: "50/50" },
 ];
-
-function toWideRatio(value: string): DetailLayoutWideRatio {
-  return DETAIL_LAYOUT_WIDE_ROW_RATIOS.includes(value as DetailLayoutWideRatio)
-    ? (value as DetailLayoutWideRatio)
-    : "50/50";
-}
 
 function getWideAreaLabel(
   layout: DetailLayoutV2Draft,
@@ -326,22 +318,9 @@ export function RowSettingsPanel({
             })}
           </div>
           {row.columns === 2 ? (
-            <label className="grid gap-2 text-sm font-semibold text-[var(--site-text)]">
-              สัดส่วนคอลัมน์
-              <select
-                className="h-10 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
-                onChange={(event) => {
-                  onUpdateWideRow(row.id, 2, toWideRatio(event.target.value));
-                }}
-                value={row.ratio ?? "50/50"}
-              >
-                {DETAIL_LAYOUT_WIDE_ROW_RATIOS.map((ratio) => (
-                  <option key={ratio} value={ratio}>
-                    {ratio}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <p className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2 text-xs font-semibold text-[var(--site-muted)]">
+              แถว 2 ช่องใช้ 50/50 เสมอ
+            </p>
           ) : null}
         </div>
 

@@ -321,6 +321,20 @@ export function AdminDetailLayoutPage() {
 
     return makeDetailLayoutV2Snapshot(layout) !== savedSnapshot;
   }, [layout, savedSnapshot]);
+  const layoutSummary = useMemo(() => {
+    if (!layout) {
+      return null;
+    }
+
+    return {
+      disabledRows:
+        layout.mainSplit.wideRows.filter((row) => !row.enabled).length +
+        layout.mainSplit.narrowRows.filter((row) => !row.enabled).length,
+      lockedBlocks: layout.lockedBottom.length,
+      narrowRows: layout.mainSplit.narrowRows.length,
+      wideRows: layout.mainSplit.wideRows.length,
+    };
+  }, [layout]);
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -639,6 +653,22 @@ export function AdminDetailLayoutPage() {
               </span>
             ) : null}
           </div>
+          {layoutSummary ? (
+            <div className="mt-3 grid gap-2 text-xs font-semibold text-[var(--site-muted)] sm:grid-cols-4">
+              <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
+                ฝั่ง 70: {layoutSummary.wideRows} แถว
+              </span>
+              <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
+                ฝั่ง 30: {layoutSummary.narrowRows} แถว
+              </span>
+              <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
+                ปิดไว้: {layoutSummary.disabledRows} แถว
+              </span>
+              <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
+                ล็อกล่าง: {layoutSummary.lockedBlocks} block
+              </span>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -651,7 +681,7 @@ export function AdminDetailLayoutPage() {
             type="button"
           >
             <PanelTop aria-hidden="true" className="size-4" />
-            เพิ่มแถว 70
+            แถว 70 / 1 ช่อง
           </button>
           <button
             className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
@@ -662,7 +692,7 @@ export function AdminDetailLayoutPage() {
             type="button"
           >
             <Columns2 aria-hidden="true" className="size-4" />
-            เพิ่มแถว 70 / 2 ช่อง
+            แถว 70 / 50-50
           </button>
           <button
             className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
@@ -671,7 +701,7 @@ export function AdminDetailLayoutPage() {
             type="button"
           >
             <Sidebar aria-hidden="true" className="size-4" />
-            เพิ่มแถว 30
+            แถว 30 / 1 block
           </button>
           <button
             className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"

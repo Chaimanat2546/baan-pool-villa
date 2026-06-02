@@ -962,14 +962,14 @@ export function AdminSectionsPage() {
               </section>
 
               <aside className="grid content-start gap-3 xl:col-start-2 2xl:sticky 2xl:top-4 2xl:col-start-auto 2xl:self-start">
-                <SectionHomePreview
-                  preview={activePreview}
-                  section={activeSection}
-                />
                 <SectionOutcomePanel
                   onActiveChange={(isActive) =>
                     updateSection(activeSection.draftId, { isActive })
                   }
+                  preview={activePreview}
+                  section={activeSection}
+                />
+                <SectionHomePreview
                   preview={activePreview}
                   section={activeSection}
                 />

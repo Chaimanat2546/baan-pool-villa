@@ -68,7 +68,7 @@ export function ManualIdsEditor({
         </div>
 
         <p className="text-center text-xs leading-5 text-[var(--site-muted)]">
-          เช็กให้อัตโนมัติหลังหยุดพิมพ์
+          กรุณากดบันทึกทุกครั้งหลังแก้ไขทุกครั้ง
         </p>
       </div>
     </div>

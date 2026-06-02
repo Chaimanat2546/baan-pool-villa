@@ -553,7 +553,7 @@ export function LayoutCanvas({
               ฝั่ง 70
             </h3>
             <p className="mt-0.5 text-xs text-[var(--site-muted)]">
-              แถวกว้าง วางได้ 1 หรือ 2 คอลัมน์
+              แถวกว้างเลือกได้ 1 ช่องหรือ 50/50
             </p>
           </div>
           <button
@@ -564,7 +564,7 @@ export function LayoutCanvas({
             type="button"
           >
             <Plus aria-hidden="true" className="size-4" />
-            เพิ่มแถว 70
+            แถว 70 / 50-50
           </button>
         </div>
 
@@ -1205,7 +1205,7 @@ export function LayoutCanvas({
                 type="button"
               >
                 <Plus aria-hidden="true" className="size-4" />
-                แถว 70 / 1 คอลัมน์
+                แถว 70 / 1 ช่อง
               </button>
               <button
                 className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
@@ -1215,7 +1215,7 @@ export function LayoutCanvas({
                 type="button"
               >
                 <Plus aria-hidden="true" className="size-4" />
-                แถว 70 / 2 คอลัมน์
+                แถว 70 / 50-50
               </button>
               <button
                 className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-surface-soft)]"
