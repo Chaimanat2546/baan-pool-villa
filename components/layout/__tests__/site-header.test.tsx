@@ -13,8 +13,6 @@ describe("SiteHeader", () => {
 
     expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountNumber);
     expect(markup).toContain("text-[var(--site-on-primary)]");
-    expect(markup).not.toContain(
-      `<span class="text-[var(--site-accent)]">${DEFAULT_SITE_SETTINGS.bank.bankName}`,
-    );
+    expect(markup).toContain("text-[var(--site-accent-on-dark)]");
   });
 });

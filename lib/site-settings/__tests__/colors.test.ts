@@ -50,6 +50,7 @@ describe("buildSiteThemeStyle", () => {
       "--site-surface": "#ffffff",
     });
     expectContrast(style["--site-accent"], style["--site-surface"]);
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
     expectContrast(style["--site-on-accent"], style["--site-accent"]);
     expect(style["--site-accent-hover"]).not.toBe(style["--site-accent"]);
     expect(style["--site-border"]).not.toBe(style["--site-primary"]);
@@ -70,6 +71,7 @@ describe("buildSiteThemeStyle", () => {
     expectContrast(style["--site-on-accent"], style["--site-accent"]);
     expectContrast(style["--site-primary"], style["--site-surface"]);
     expectContrast(style["--site-accent"], style["--site-surface"]);
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
     expectContrast(style["--site-text"], style["--site-surface"]);
     expectContrast(style["--site-muted"], style["--site-surface"]);
   });
@@ -82,6 +84,7 @@ describe("buildSiteThemeStyle", () => {
 
     expectContrast(style["--site-on-primary"], style["--site-primary-hover"]);
     expectContrast(style["--site-on-accent"], style["--site-accent-hover"]);
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
     expectContrast(style["--site-primary"], style["--site-primary-soft"], 3);
     expectContrast(style["--site-accent"], style["--site-accent-soft"], 3);
   });
@@ -98,5 +101,16 @@ describe("buildSiteThemeStyle", () => {
     expectContrast(style["--site-on-primary"], style["--site-primary-hover"]);
     expectContrast(style["--site-on-accent"], style["--site-accent"]);
     expectContrast(style["--site-on-accent"], style["--site-accent-hover"]);
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
+  });
+
+  it("keeps accent text readable on solid primary backgrounds", () => {
+    const style = buildSiteThemeStyle({
+      primaryColor: "#064e3b",
+      accentColor: "#0f766e",
+    });
+
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
+    expect(style["--site-accent-on-dark"]).not.toBe(style["--site-accent"]);
   });
 });

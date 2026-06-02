@@ -1,15 +1,20 @@
 "use client";
 
-import { Phone, X } from "lucide-react";
-import Link from "next/link";
+import { Phone, PhoneCall, X } from "lucide-react";
 import { useState } from "react";
 import { buildContactLinks, withPhoneHref } from "@/lib/site-contact";
 import type { SiteSettings } from "@/lib/site-settings/types";
-import { LineIcon, MessengerIcon } from "./contact-icons";
+import { FacebookIcon, LineIcon } from "./contact-icons";
 
 interface MobileBottomNavProps {
   settings: SiteSettings;
 }
+
+const bottomNavActionClass =
+  "relative flex min-h-[4.85rem] min-w-0 flex-col items-center justify-center gap-1.5 px-1.5 text-center text-sm font-black leading-none text-[var(--site-text)] transition duration-150 active:scale-[0.98]";
+const separatedBottomNavActionClass = `${bottomNavActionClass} before:absolute before:bottom-4 before:left-0 before:top-4 before:w-px before:bg-[var(--site-border)]`;
+const largeIconClass =
+  "grid h-11 w-11 place-items-center rounded-full shadow-[0_12px_22px_rgba(15,23,42,0.16)]";
 
 export function MobileBottomNav({ settings }: MobileBottomNavProps) {
   const [isPhoneSheetOpen, setIsPhoneSheetOpen] = useState(false);
@@ -18,36 +23,47 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
 
   return (
     <>
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-2 shadow-[0_-10px_30px_rgba(6,63,53,0.12)] backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-3 gap-2 pb-[env(safe-area-inset-bottom)]">
+      <nav
+        aria-label="ช่องทางติดต่อด่วน"
+        className="fixed inset-x-0 bottom-3 z-50 px-3 pb-[env(safe-area-inset-bottom)] lg:hidden"
+      >
+        <div className="mx-auto grid max-w-md grid-cols-3 overflow-hidden rounded-[2rem] border border-white/80 bg-[var(--site-surface)] px-1 py-1.5 shadow-[0_16px_40px_rgba(15,23,42,0.16)]">
           <button
             type="button"
-            className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] px-2 text-xs font-semibold leading-none text-[var(--site-primary)]"
+            className={bottomNavActionClass}
             onClick={() => {
               setIsPhoneSheetOpen(true);
             }}
           >
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--site-primary)] text-[var(--site-on-primary)] shadow-sm ">
-              <Phone className="h-4 w-4" />
+            <span className={`${largeIconClass} bg-[#080b45] text-white shadow-[0_14px_28px_rgba(8,11,69,0.24)]`}>
+              <PhoneCall className="h-7 w-7 stroke-[2.8]" />
             </span>
             <span className="truncate">โทร</span>
           </button>
 
-          <Link
-            href={contactLinks.messenger}
-            className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] px-2 text-xs font-semibold leading-none text-[var(--site-primary)]"
+          <button
+            type="button"
+            aria-label="แชทผ่าน Messenger"
+            className={separatedBottomNavActionClass}
+            onClick={() => {
+              window.location.assign(contactLinks.messenger);
+            }}
           >
-            <MessengerIcon />
+            <FacebookIcon className="h-11 w-11" />
             <span className="truncate">แชท</span>
-          </Link>
+          </button>
 
-          <Link
-            href={contactLinks.line}
-            className="flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] px-2 text-xs font-semibold leading-none text-[var(--site-primary)]"
+          <button
+            type="button"
+            aria-label="ติดต่อผ่าน LINE"
+            className={separatedBottomNavActionClass}
+            onClick={() => {
+              window.location.assign(contactLinks.line);
+            }}
           >
-            <LineIcon />
+            <LineIcon className="h-11 w-11 text-[11px]" />
             <span className="truncate">LINE</span>
-          </Link>
+          </button>
         </div>
       </nav>
 

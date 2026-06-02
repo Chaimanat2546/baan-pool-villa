@@ -52,7 +52,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
               <p className="mt-[7px] text-sm leading-5 text-[var(--site-on-primary)]">
                 กรุณาโอนเงิน ชื่อบัญชี {settings.bank.accountName}{" "}
                 <br className="sm:hidden" />
-                <span className="font-medium text-[var(--site-accent)]">
+                <span className="font-medium text-[var(--site-accent-on-dark)]">
                   {settings.bank.bankName} เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
                 เท่านั้น

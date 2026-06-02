@@ -96,14 +96,41 @@ function ensureReadableOnSurface(
   return "#020617";
 }
 
+function ensureReadableOnBackground(
+  colorHex: string,
+  backgroundHex: string,
+  minimumRatio = 4.5,
+): string {
+  if (getContrastRatio(colorHex, backgroundHex) >= minimumRatio) {
+    return colorHex;
+  }
+
+  const readableTarget = getReadableTextColor(backgroundHex);
+
+  for (let weight = 0.04; weight <= 1; weight += 0.04) {
+    const candidate = mixHexColors(colorHex, readableTarget, weight);
+
+    if (getContrastRatio(candidate, backgroundHex) >= minimumRatio) {
+      return candidate;
+    }
+  }
+
+  return readableTarget;
+}
+
 export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
   const primaryColor = ensureReadableOnSurface(input.primaryColor.toLowerCase());
   const accentColor = ensureReadableOnSurface(input.accentColor.toLowerCase());
+  const accentOnDarkColor = ensureReadableOnBackground(
+    accentColor,
+    primaryColor,
+  );
   const textColor = mixHexColors(primaryColor, "#020617", 0.44);
 
   return {
     "--site-accent": accentColor,
     "--site-accent-hover": mixHexColors(accentColor, "#040000", 0.08),
+    "--site-accent-on-dark": accentOnDarkColor,
     "--site-accent-soft": mixHexColors(accentColor, "#ffffff", 0.901),
     "--site-border": mixHexColors(primaryColor, "#e2e8f0", 0.85),
     "--site-border-strong": mixHexColors(primaryColor, "#94a3b8", 0.58),

@@ -1,21 +1,29 @@
-import { MessageCircle } from "lucide-react";
+import { FaFacebookMessenger, FaLine } from "react-icons/fa";
 
-export function LineIcon({ className = "" }: { className?: string }) {
+interface ContactIconProps {
+  className?: string;
+}
+
+export function FacebookIcon({ className = "" }: ContactIconProps) {
   return (
     <span
-      className={`grid h-7 w-7 place-items-center rounded-lg bg-[#06c755] text-[8px] font-black leading-none text-white shadow-sm ${className}`}
+      className={`grid h-7 w-7 place-items-center rounded-full bg-[#1877f2] text-white shadow-sm ${className}`}
     >
-      LINE
+      <FaFacebookMessenger aria-hidden="true" className="h-[58%] w-[58%]" />
     </span>
   );
 }
 
-export function MessengerIcon({ className = "" }: { className?: string }) {
+export function LineIcon({ className = "" }: ContactIconProps) {
   return (
     <span
-      className={`grid h-7 w-7 place-items-center rounded-full bg-[#0a7cff] text-white shadow-sm ${className}`}
+      className={`grid h-7 w-7 place-items-center rounded-full bg-[#06c755] text-white shadow-sm ${className}`}
     >
-      <MessageCircle className="h-4 w-4" />
+      <FaLine aria-hidden="true" className="h-[62%] w-[62%]" />
     </span>
   );
+}
+
+export function MessengerIcon(props: ContactIconProps) {
+  return <FacebookIcon {...props} />;
 }
