@@ -9,6 +9,7 @@ import type { SiteSettings } from "@/lib/site-settings/types";
 const navItems = [
   { href: "/", label: "หน้าแรก" },
   { href: "/search", label: "ค้นหาบ้านพัก" },
+  { href: "/guides", label: "บทความ" },
   { href: "/#recommendations", label: "รีวิว" },
   { href: "/#cafes", label: "สถานที่ท่องเที่ยว" },
 ];
