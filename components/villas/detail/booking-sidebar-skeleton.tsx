@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function BookingSidebarSkeleton() {
   return (
     <aside className="lg:self-start" data-booking-sidebar-skeleton="true">
-      <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_14px_42px_rgba(6,63,53,0.09)]">
+      <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[var(--site-card-shadow)]">
         <div className="flex items-center justify-between">
           <Skeleton className="h-9 w-9 rounded-xl bg-[var(--site-surface-tint)]" />
           <Skeleton className="h-5 w-32 bg-[var(--site-surface-tint)]" />

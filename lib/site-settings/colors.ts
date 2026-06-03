@@ -121,6 +121,7 @@ function ensureReadableOnBackground(
 export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
   const primaryColor = ensureReadableOnSurface(input.primaryColor.toLowerCase());
   const accentColor = ensureReadableOnSurface(input.accentColor.toLowerCase());
+  const [shadowRed, shadowGreen, shadowBlue] = hexToRgb(primaryColor);
   const accentOnDarkColor = ensureReadableOnBackground(
     accentColor,
     primaryColor,
@@ -134,6 +135,7 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
     "--site-accent-soft": mixHexColors(accentColor, "#ffffff", 0.901),
     "--site-border": mixHexColors(primaryColor, "#e2e8f0", 0.85),
     "--site-border-strong": mixHexColors(primaryColor, "#94a3b8", 0.58),
+    "--site-card-shadow": `0 14px 42px rgba(${shadowRed}, ${shadowGreen}, ${shadowBlue}, 0.09)`,
     "--site-muted": mixHexColors(textColor, "#64748b", 0.58),
     "--site-on-accent": getReadableTextColor(accentColor),
     "--site-on-primary": getReadableTextColor(primaryColor),

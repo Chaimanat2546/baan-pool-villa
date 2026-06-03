@@ -576,6 +576,7 @@ describe("admin site settings route", () => {
     expect(body.warnings).toEqual([
       "Skipped cleanup for hero upload with unexpected storage location.",
     ]);
+    expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns a detailed error when storage upload fails", async () => {

@@ -122,4 +122,71 @@ describe("getResolvedHomeSections", () => {
     expect(result.source).toBe("fallback");
     expect(result.sections[0]?.villas).toEqual([villa]);
   });
+
+  it("caches an empty Supabase home section result before falling back", async () => {
+    vi.resetModules();
+
+    const from = vi.fn(() => {
+      return {
+        select: vi.fn(() => {
+          return {
+            eq: vi.fn(() => {
+              return {
+                order: vi.fn(() => {
+                  return {
+                    order: vi.fn().mockResolvedValue({
+                      data: [],
+                      error: null,
+                    }),
+                  };
+                }),
+              };
+            }),
+          };
+        }),
+      };
+    });
+    const isolatedCreateClient = vi.fn(() => ({ from }));
+    const isolatedUnstableCache = vi.fn((fn: () => Promise<unknown>) => {
+      let cachedValue: unknown;
+      let hasCachedValue = false;
+
+      return async () => {
+        if (hasCachedValue) {
+          return cachedValue;
+        }
+
+        cachedValue = await fn();
+        hasCachedValue = true;
+        return cachedValue;
+      };
+    });
+    const resolveHomeSectionsMock = vi.fn(() => []);
+
+    vi.doMock("next/cache", () => ({
+      unstable_cache: isolatedUnstableCache,
+    }));
+    vi.doMock("../supabase", () => ({
+      createHomeConfigClient: isolatedCreateClient,
+    }));
+    vi.doMock("../resolve", async () => {
+      const actual = await vi.importActual<typeof import("../resolve")>(
+        "../resolve",
+      );
+
+      return {
+        ...actual,
+        resolveHomeSections: resolveHomeSectionsMock,
+      };
+    });
+
+    const { getResolvedHomeSections: getIsolatedResolvedHomeSections } =
+      await import("../server");
+
+    await getIsolatedResolvedHomeSections([villa]);
+    await getIsolatedResolvedHomeSections([villa]);
+
+    expect(resolveHomeSectionsMock).toHaveBeenCalledWith([], [villa]);
+    expect(from).toHaveBeenCalledTimes(1);
+  });
 });

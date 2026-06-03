@@ -155,7 +155,7 @@ const fetchCachedHomeSectionConfigs = unstable_cache(
         referencedTable: "home_section_items",
       });
 
-    if (error || !Array.isArray(data) || data.length === 0) {
+    if (error || !Array.isArray(data)) {
       throw new Error("Home section config is unavailable");
     }
 

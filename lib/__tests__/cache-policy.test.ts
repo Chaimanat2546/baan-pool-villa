@@ -8,9 +8,9 @@ import {
 } from "../cache-policy";
 
 describe("cache policy", () => {
-  it("keeps external villa API cache durations long-lived", () => {
-    expect(CACHE_REVALIDATE_SECONDS.villaListings).toBe(60 * 60 * 24 * 7);
-    expect(CACHE_REVALIDATE_SECONDS.villaDetail).toBe(60 * 60 * 24 * 7);
+  it("keeps external villa API cache durations at fifteen minutes", () => {
+    expect(CACHE_REVALIDATE_SECONDS.villaListings).toBe(15 * 60);
+    expect(CACHE_REVALIDATE_SECONDS.villaDetail).toBe(15 * 60);
   });
 
   it("keeps Supabase public reads on shorter central TTLs", () => {
@@ -31,7 +31,10 @@ describe("cache policy", () => {
 
   it("centralizes public route cache-control headers", () => {
     expect(CACHE_HEADERS.villaListings).toBe(
-      "public, s-maxage=86400, stale-while-revalidate=604800",
+      "public, s-maxage=900, stale-while-revalidate=900",
+    );
+    expect(CACHE_HEADERS.villaDetail).toBe(
+      "public, s-maxage=900, stale-while-revalidate=900",
     );
     expect(CACHE_HEADERS.homeSections).toBe(
       "public, s-maxage=300, stale-while-revalidate=86400",

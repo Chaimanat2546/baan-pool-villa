@@ -19,7 +19,6 @@ import {
 import type { VillaFilters, VillaListing } from "@/lib/villas/types";
 
 import { VillaGrid } from "../listing/villa-grid";
-import { VillaGridSkeleton } from "../listing/villa-grid-skeleton";
 import { MobileFilterDrawer } from "./mobile-filter-drawer";
 import { SearchBar } from "./search-bar";
 
@@ -92,7 +91,6 @@ export function SearchPage({
   );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const resultsRef = useRef<HTMLDivElement | null>(null);
-  const isLoading = false;
 
   const maxAvailablePrice = useMemo(() => getMaxVillaPrice(villas), [villas]);
   const zones = useMemo(() => getUniqueZones(villas), [villas]);
@@ -122,7 +120,7 @@ export function SearchPage({
 
     return labels;
   }, [filters, zones, villaIdQuery, sortKey]);
-  const isSearchReady = !isLoading && villas.length > 0;
+  const isSearchReady = villas.length > 0;
 
   function handleSearch() {
     setFilters((currentFilters) =>
@@ -243,7 +241,7 @@ export function SearchPage({
               <h2 className="text-2xl font-black text-[var(--site-text)]">
                 พบ {filteredVillas.length.toLocaleString("th-TH")} หลัง
               </h2>
-              {!isLoading && filteredVillas.length > 0 ? (
+              {filteredVillas.length > 0 ? (
                 <p className="mt-1 text-sm font-semibold text-[var(--site-muted)]">
                   แสดง {visibleVillas.length.toLocaleString("th-TH")} จาก{" "}
                   {filteredVillas.length.toLocaleString("th-TH")} หลัง
@@ -268,9 +266,7 @@ export function SearchPage({
             </div>
           ) : null}
 
-          {isLoading ? (
-            <VillaGridSkeleton count={6} />
-          ) : error ? (
+          {error ? (
             <div className="flex min-h-72 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center">
               <div className="max-w-md">
                 <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-accent-soft)] text-[var(--site-accent)]">

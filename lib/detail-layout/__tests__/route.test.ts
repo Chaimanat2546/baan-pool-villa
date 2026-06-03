@@ -578,6 +578,7 @@ describe("admin detail layout route", () => {
         ],
       },
     });
+    expect(revalidateDetailLayoutCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("surfaces Supabase insert details when missing-row create fails", async () => {

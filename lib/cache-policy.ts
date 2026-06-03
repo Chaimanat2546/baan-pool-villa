@@ -1,12 +1,12 @@
 const ONE_DAY_SECONDS = 60 * 60 * 24;
-const ONE_WEEK_SECONDS = ONE_DAY_SECONDS * 7;
+const FIFTEEN_MINUTES_SECONDS = 15 * 60;
 
 export const CACHE_REVALIDATE_SECONDS = {
   homeSections: ONE_DAY_SECONDS,
   siteSettings: ONE_DAY_SECONDS,
-  villaDetail: ONE_WEEK_SECONDS,
+  villaDetail: FIFTEEN_MINUTES_SECONDS,
   villaImages: ONE_DAY_SECONDS,
-  villaListings: ONE_WEEK_SECONDS,
+  villaListings: FIFTEEN_MINUTES_SECONDS,
 } as const;
 
 export const CACHE_TAGS = {
@@ -20,9 +20,9 @@ export const CACHE_TAGS = {
 
 export const CACHE_HEADERS = {
   homeSections: "public, s-maxage=300, stale-while-revalidate=86400",
-  villaDetail: "public, s-maxage=86400, stale-while-revalidate=604800",
+  villaDetail: "public, s-maxage=900, stale-while-revalidate=900",
   villaImages: "public, s-maxage=86400, stale-while-revalidate=86400",
-  villaListings: "public, s-maxage=86400, stale-while-revalidate=604800",
+  villaListings: "public, s-maxage=900, stale-while-revalidate=900",
 } as const;
 
 export function getVillaDetailPath(id: string): string {

@@ -26,7 +26,7 @@ export function BookingSidebar({
 
   return (
     <aside id="contact" className="lg:self-start">
-      <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_14px_42px_rgba(6,63,53,0.09)]">
+      <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[var(--site-card-shadow)]">
         <div className="flex items-center justify-between">
           <button className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--site-border)]">
             <ChevronLeft className="h-4 w-4" />

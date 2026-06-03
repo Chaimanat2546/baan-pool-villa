@@ -41,29 +41,23 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
             <span className="truncate">โทร</span>
           </button>
 
-          <button
-            type="button"
+          <a
+            href={contactLinks.messenger}
             aria-label="แชทผ่าน Messenger"
             className={separatedBottomNavActionClass}
-            onClick={() => {
-              window.location.assign(contactLinks.messenger);
-            }}
           >
             <FacebookIcon className="h-11 w-11" />
             <span className="truncate">แชท</span>
-          </button>
+          </a>
 
-          <button
-            type="button"
+          <a
+            href={contactLinks.line}
             aria-label="ติดต่อผ่าน LINE"
             className={separatedBottomNavActionClass}
-            onClick={() => {
-              window.location.assign(contactLinks.line);
-            }}
           >
             <LineIcon className="h-11 w-11 text-[11px]" />
             <span className="truncate">LINE</span>
-          </button>
+          </a>
         </div>
       </nav>
 

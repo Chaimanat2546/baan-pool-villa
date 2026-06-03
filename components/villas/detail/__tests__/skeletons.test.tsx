@@ -12,6 +12,15 @@ describe("detail skeletons", () => {
     expect(markup).toContain('data-gallery-skeleton="true"');
     expect(markup).toContain("lg:h-[500px]");
     expect(markup).toContain("lg:grid-cols-[3fr_2fr]");
+    expect(markup).toContain("w-[calc(100%_-_45px)]");
+    expect(markup).not.toContain("w-[calc(100%-45px)]");
+  });
+
+  it("uses the shared themed card shadow token for the booking sidebar skeleton", () => {
+    const markup = renderToStaticMarkup(<DetailLayoutSkeleton />);
+
+    expect(markup).toContain("shadow-[var(--site-card-shadow)]");
+    expect(markup).not.toContain("shadow-[0_14px_42px_rgba(6,63,53,0.09)]");
   });
 
   it("composes route loading from detail component skeletons", () => {

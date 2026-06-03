@@ -59,6 +59,9 @@ describe("buildSiteThemeStyle", () => {
     expect(style["--site-surface-soft"]).not.toBe(style["--site-surface"]);
     expect(style["--site-surface-tint"]).not.toBe(style["--site-surface"]);
     expect(style["--site-text"]).not.toBe(style["--site-primary"]);
+    expect(style["--site-card-shadow"]).toBe(
+      "0 14px 42px rgba(6, 78, 59, 0.09)",
+    );
   });
 
   it("keeps generated text tokens readable when users pick light brand colors", () => {
