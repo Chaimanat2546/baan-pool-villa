@@ -6,6 +6,44 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Project Guide
 
+## Agent Workflow
+
+Use a risk-based workflow. Small, obvious documentation or copy edits can use the shortened path at the end of this section. Non-trivial product, UI, API, data, settings, or shared helper changes must start with request intake and fact-finding before implementation.
+
+1. Clarify the requested outcome, affected user flow, constraints, and success criteria.
+2. Inspect the current codebase before proposing new code. Look for existing components, feature-folder patterns, helpers, tests, route conventions, data contracts, `docs/ai/structure.html`, and relevant local docs. Prefer reusing or extending established components and helpers when the behavior should match other parts of the app.
+3. When the task touches Next.js APIs or conventions, read the relevant guide in `node_modules/next/dist/docs/` before planning or editing.
+4. For medium or high-risk work, propose 2-3 implementation approaches with trade-offs and a recommended option. Ground the recommendation in facts from current files, existing tests, local docs, official docs, or known runtime constraints.
+5. Re-check the selected approach against those facts, then present it to the user for approval before implementation unless the user has explicitly asked for immediate execution.
+6. After the approach is approved, write an implementation plan that includes the test strategy and quality checks. Re-check the plan against current facts before coding.
+7. Write or update focused tests before implementation where practical for logic, validation, normalization, pricing, image/detail data, site settings, contact settings, admin APIs, Supabase persistence, and shared helpers. For visual-only UI changes, define the verification path first and add tests when behavior is stable enough to assert.
+8. Implement incrementally, preserving user changes in the working tree and following existing ownership boundaries.
+9. After all code changes are complete, run the narrowest relevant tests first, then the required quality checks for the touched area before claiming the work is complete.
+
+For trivial changes, use a shortened workflow: inspect the relevant file, make the smallest safe edit, and run only the verification that is useful for that edit.
+
+## AI Structure Map
+
+- `docs/ai/structure.html` owns the detailed route, folder, component, helper, data-flow, and verification map for AI agents.
+- Use `AGENTS.md` for rules and workflow. Do not turn `AGENTS.md` into a long file-tree inventory when the information belongs in the structure map.
+- Read `docs/ai/structure.html` before planning changes that touch routes, feature folders, shared helpers, admin modules, Supabase-backed data, cache behavior, SEO, contact/configuration data, or verification strategy.
+- Update `docs/ai/structure.html` in the same change when adding, moving, renaming, or removing routes, route handlers, loading UI, feature folders, shared helper ownership, public data contracts, cache/revalidation behavior, settings flows, Supabase schema ownership, or targeted test guidance.
+
+## Model Strategy
+
+Use the model names available in this Codex workspace: `GPT-5.5`, `GPT-5.4`, `GPT-5.4-Mini`, and `GPT-5.3-Codex-Spark`.
+
+- Manual model handoff rule: for non-trivial product, UI, API, data, settings, shared helper, Supabase, Next.js, security, or debugging work, stop before implementation. Tell the user which model and reasoning level to switch to for the next step, then wait until the user switches model and explicitly says to continue.
+- Superpowers subagent rule: spawning subagents through Superpowers, including parallel agents or subagent-driven development, counts as implementation for non-trivial work. Do not dispatch subagents before the manual model handoff step above. After the user switches model and says to continue, include these `AGENTS.md` model handoff rules, scope limits, verification requirements, and ownership constraints in every subagent prompt. If the subagent tool supports model or reasoning overrides, set them explicitly according to this model strategy for each subagent. If the tool cannot control a subagent's model, do not spawn it for non-trivial work without explicit user approval. Never use subagents to bypass a required model switch.
+- Small docs, copy, README, and file-inventory edits may proceed with the current model unless they affect product behavior, schema, routes, validation, or public/admin UX.
+- Ordinary UI work such as navbar, cards, responsive layout, bottom nav, colors, and spacing: use `GPT-5.4-Mini` with `Low` or `Medium`, or `GPT-5.4` with `Medium`.
+- Next.js, Supabase, API routes, routing, image gallery, and search filters: use `GPT-5.4` with `High` for planning. After the plan is clear, use `GPT-5.3-Codex-Spark` with `Medium` or `High` for narrow incremental code edits.
+- Data contracts, pricing, normalization, site settings, admin APIs, and RLS: use `GPT-5.5` with `High` for planning and risk review. Use `GPT-5.3-Codex-Spark` with `High` for implementation only after the plan is approved and broken into small steps. Finish with `GPT-5.5` using `Extra High` for review.
+- Hard bugs such as hydration mismatch, SSR, Suspense, Supabase policy failures, and deploy failures: use `GPT-5.5` with `Extra High` first for root-cause analysis. Then use `GPT-5.3-Codex-Spark` with `High` to fix one confirmed issue at a time.
+- Small docs, copy, README, and file-inventory work: use `GPT-5.4-Mini` with `Low`.
+- If `GPT-5.3-Codex-Spark` encounters unclear ownership, cross-module coupling, repeated test failures, or risky behavior changes, escalate back to `GPT-5.4` or `GPT-5.5` before continuing.
+- If model switching is unavailable, do not continue non-trivial implementation automatically. Ask the user whether to switch manually or explicitly continue with the current model, and if the user approves continuing, compensate with fact checks, targeted tests, lint, build, and review before completion.
+
 ## Stack
 
 - Next.js `16.2.6` App Router with React `19.2.4`.
@@ -26,6 +64,14 @@ Run lint and build before saying frontend or Next.js work is complete. Run targe
 
 When a change touches admin APIs, validation helpers, Supabase persistence, or user-facing settings forms, run the narrowest relevant targeted tests first, then `npm.cmd run lint`, then `npm.cmd run build`.
 
+## Frontend Verification
+
+- For UI, layout, loading state, navigation, responsive, or visual styling changes, render the affected public or admin page locally and inspect it before saying the work is complete.
+- Check both mobile and desktop widths when changing shared layout, listing cards, rails, admin shells, headers, footers, contact actions, or route-level loading UI.
+- Verify touched loading, empty, error, long-text, and image-fallback states when they are part of the changed flow.
+- Use browser verification as a complement to lint, build, and tests. Do not rely only on static code review for user-visible layout behavior.
+- For documentation-only, comment-only, or clearly non-visual copy changes, skip browser verification unless the copy affects layout or metadata.
+
 ## Environment
 
 Use `.env` locally and keep secrets out of git.
@@ -40,15 +86,12 @@ Required keys:
 
 Never print real env values in responses or logs. Refer to env vars by name only.
 
-## App Structure
+## Architecture Boundary Rules
 
-- Public routes live under `app/(public)`.
-- Admin routes and admin APIs live under `app/(admin)`.
-- `app/(public)/page.tsx` imports the home implementation from `components/villas/home/page`.
-- `app/(public)/search/page.tsx` imports the search implementation from `components/villas/search/page`.
-- `app/(public)/villas/[id]/page.tsx` imports the detail implementation from `components/villas/detail/page`.
+- Public and admin routes, route handlers, feature folders, shared helpers, and test ownership are documented in `docs/ai/structure.html`.
 - Keep route files focused on metadata, server data loading, JSON-LD (JavaScript Object Notation for Linked Data), and passing props.
 - Keep admin API routes focused on authentication, request parsing, validation, persistence, and returning structured errors.
+- Public route handlers should use shared data, cache, and validation helpers rather than duplicating route-specific logic.
 - Keep UI components inside their feature folders:
   - `components/villas/home`
   - `components/villas/search`
@@ -84,6 +127,12 @@ Avoid adding top-level re-export wrapper files under `components/villas`; import
 - Uploaded logo and hero assets should keep only the latest retained assets per type according to the retention helper. Avoid unbounded storage growth.
 - When adding a new site setting, update the database schema or patch SQL, TypeScript types, defaults, validation, admin API, admin form, and targeted tests together.
 
+## Shared Source-of-Truth Rules
+
+- Before adding constants, check for an existing shared source of truth in `lib`, `components/layout`, site settings, contact settings, cache policy, pricing, SEO, or villa data helpers.
+- Do not hard-code brand colors, contact links, image hosts, price calculations, cache headers, metadata defaults, or public URLs in feature components when a shared helper already owns that value.
+- When creating a new shared value, place it in the narrowest existing owner module and add focused tests if it normalizes, validates, derives, or exposes public behavior.
+
 ## Data Rules
 
 - Main house listings come from `https://www.devillegroups.com/api/json/getHouse_deville.json`.
@@ -91,6 +140,14 @@ Avoid adding top-level re-export wrapper files under `components/villas`; import
 - Detail data comes from the Deville Central accommodation API and requires bearer token.
 - Detail gallery images use Supabase image rows where `images.property_id` matches `h_id` / `house_id`.
 - Public image URLs are built from `image_name` using the configured image host.
+
+## Cache and Revalidation Rules
+
+- Keep cache durations, cache tags, and public Cache-Control header values centralized in `lib/cache-policy.ts`.
+- Use `lib/cache-revalidation.ts` for path and tag invalidation. Do not scatter ad hoc `revalidatePath` or `revalidateTag` calls across route handlers when a shared helper should own the behavior.
+- When admin saves affect public pages, revalidate the relevant cache tags and paths for the changed surface, including home, search, detail pages, sitemap, or settings-driven layout as appropriate.
+- For cached external API, Supabase, or settings reads, use the existing cache tag and duration patterns and add or update focused tests around the cache options.
+- When changing cache policy or revalidation behavior, update the narrowest relevant cache tests before running lint and build.
 
 ## Supabase Rules
 
@@ -146,6 +203,15 @@ Avoid adding top-level re-export wrapper files under `components/villas`; import
 - Use `next/image` for rendered images where practical. For local selected-file previews, use an object URL with `unoptimized` if required by Next Image.
 - Ensure upload controls show the current asset and the newly selected file before save when a preview is available.
 - Keep text readable on mobile and desktop. Long labels, filenames, and status text should truncate or wrap without breaking layout.
+
+## SEO and Accessibility Rules
+
+- Build page metadata through `lib/seo.ts` where practical, and keep JSON-LD serialization centralized through `lib/json-ld.ts`.
+- Keep route-level metadata, canonical URLs, and JSON-LD aligned with the resolved site settings and public URL configuration.
+- Never hand-write unescaped JSON-LD payloads into `dangerouslySetInnerHTML`; use the shared serializer.
+- Render meaningful `alt` text for content images. Decorative images should be marked appropriately instead of receiving misleading labels.
+- Form controls need clear labels or accessible names, visible focus states, keyboard-reachable interactions, and semantic `button`, `a`, `input`, `select`, or `textarea` elements as appropriate.
+- Validate public links derived from settings, contact data, admin input, or external APIs before rendering anchors.
 
 ## Contact and Payment Configuration
 

@@ -1,3 +1,4 @@
+import { CACHE_HEADERS } from "@/lib/cache-policy";
 import { fetchHouseListings } from "@/lib/villas/server";
 
 export async function GET() {
@@ -7,7 +8,7 @@ export async function GET() {
       { items },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "Cache-Control": CACHE_HEADERS.villaListings,
         },
       },
     );

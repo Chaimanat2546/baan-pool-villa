@@ -5,6 +5,7 @@ import type { SiteSettings } from "@/lib/site-settings/types";
 const menuItems = [
   { href: "/", label: "หน้าแรก" },
   { href: "/search", label: "ค้นหาบ้านพัก" },
+  { href: "/guides", label: "บทความ" },
   { href: "/#recommendations", label: "รีวิว" },
   { href: "/#cafes", label: "สถานที่ท่องเที่ยว" },
 ];
@@ -52,7 +53,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
               <p className="mt-[7px] text-sm leading-5 text-[var(--site-on-primary)]">
                 กรุณาโอนเงิน ชื่อบัญชี {settings.bank.accountName}{" "}
                 <br className="sm:hidden" />
-                <span className="font-medium text-[var(--site-accent)]">
+                <span className="font-medium text-[var(--site-accent-on-dark)]">
                   {settings.bank.bankName} เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
                 เท่านั้น

@@ -226,7 +226,7 @@ export function Gallery({
 
       />
 
-      <div className="mx-auto grid w-[calc(100%-45px)] grid-cols-3 gap-2 sm:w-full lg:h-full lg:grid-cols-2 lg:grid-rows-2 lg:gap-1">
+      <div className="mx-auto grid w-[calc(100%_-_45px)] grid-cols-3 gap-2 sm:w-full lg:h-full lg:grid-cols-2 lg:grid-rows-2 lg:gap-1">
 
         {second ? (
 

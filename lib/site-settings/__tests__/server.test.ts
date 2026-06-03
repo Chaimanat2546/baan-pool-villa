@@ -1,17 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { DEFAULT_DETAIL_LAYOUT } from "../../detail-layout/defaults";
 import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "../defaults";
 import { getSiteSettings } from "../server";
 import { createHomeConfigClient } from "../supabase";
+import { unstable_cache } from "next/cache";
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("next/cache", () => ({
+  unstable_cache: vi.fn((fn: unknown) => fn),
+}));
 
 vi.mock("../supabase", () => ({
   createHomeConfigClient: vi.fn(),
 }));
 
 const createHomeConfigClientMock = vi.mocked(createHomeConfigClient);
+const unstableCacheMock = vi.mocked(unstable_cache);
 
 function mockSiteSettingsQuery(result: {
   data: unknown;
@@ -57,6 +64,21 @@ function mockSiteSettingsQueryQueue(
 }
 
 describe("getSiteSettings", () => {
+  it("wraps the Supabase site settings read in a tagged Next cache", async () => {
+    mockSiteSettingsQuery({ data: null, error: null });
+
+    await getSiteSettings();
+
+    expect(unstableCacheMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      [CACHE_TAGS.siteSettings],
+      {
+        revalidate: CACHE_REVALIDATE_SECONDS.siteSettings,
+        tags: [CACHE_TAGS.siteSettings],
+      },
+    );
+  });
+
   it("returns normalized settings from the config table", async () => {
     const query = mockSiteSettingsQuery({
       data: {

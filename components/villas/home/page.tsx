@@ -1,9 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
-import { buildFallbackHomeSections } from "@/lib/home-sections/resolve";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import {
@@ -20,103 +19,28 @@ import { ContactSection } from "./contact-section";
 import { DestinationsSection } from "./destinations-section";
 import { FaqSection } from "./faq-section";
 import { HeroSection } from "./hero-section";
-import { LoadingSkeleton } from "./loading-skeleton";
 import { VillaRail } from "./villa-rail";
 import { WhyChooseSection } from "./why-choose-section";
 
-interface HousesResponse {
-  items: VillaListing[];
-}
-
-interface HomeSectionsResponse {
-  sections?: unknown;
-}
-
 interface HomePageProps {
+  initialHomeSections?: ResolvedHomeSection[];
+  initialVillas?: VillaListing[];
   settings: SiteSettings;
 }
 
-function isResolvedHomeSection(value: unknown): value is ResolvedHomeSection {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const section = value as Partial<ResolvedHomeSection>;
-
-  return (
-    typeof section.slug === "string" &&
-    typeof section.title === "string" &&
-    typeof section.description === "string" &&
-    Array.isArray(section.villas) &&
-    section.villas.length > 0
-  );
-}
-
-export function HomePage({ settings }: HomePageProps) {
+export function HomePage({
+  initialHomeSections = [],
+  initialVillas = [],
+  settings,
+}: HomePageProps) {
   const router = useRouter();
-  const [villas, setVillas] = useState<VillaListing[]>([]);
-  const [homeSections, setHomeSections] = useState<ResolvedHomeSection[]>([]);
-  const [filters, setFilters] = useState<VillaFilters>(() => getDefaultFilters(1000));
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadVillas() {
-      try {
-        setIsLoading(true);
-
-        const [housesResponse, homeSectionsResponse] = await Promise.all([
-          fetch("/api/houses"),
-          fetch("/api/home-sections").catch(() => null),
-        ]);
-
-        if (!housesResponse.ok) {
-          throw new Error("ไม่สามารถโหลดข้อมูลบ้านพักได้");
-        }
-
-        const payload = (await housesResponse.json()) as HousesResponse;
-        const items = Array.isArray(payload.items) ? payload.items : [];
-        let resolvedHomeSections = buildFallbackHomeSections(items);
-
-        if (homeSectionsResponse?.ok) {
-          try {
-            const homeSectionsPayload =
-              (await homeSectionsResponse.json()) as HomeSectionsResponse;
-            const configuredSections = Array.isArray(homeSectionsPayload.sections)
-              ? homeSectionsPayload.sections.filter(isResolvedHomeSection)
-              : [];
-
-            if (configuredSections.length > 0) {
-              resolvedHomeSections = configuredSections;
-            }
-          } catch (caughtError) {
-            console.error(caughtError);
-          }
-        }
-
-        if (!isActive) {
-          return;
-        }
-
-        setVillas(items);
-        setHomeSections(resolvedHomeSections);
-        setFilters(getDefaultFilters(Math.max(getMaxVillaPrice(items), 1000)));
-      } catch (caughtError) {
-        console.error(caughtError);
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadVillas();
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
+  const [villas] = useState<VillaListing[]>(() => initialVillas);
+  const [homeSections] = useState<ResolvedHomeSection[]>(
+    () => initialHomeSections,
+  );
+  const [filters, setFilters] = useState<VillaFilters>(() =>
+    getDefaultFilters(Math.max(getMaxVillaPrice(initialVillas), 1000)),
+  );
 
   const maxAvailablePrice = useMemo(() => getMaxVillaPrice(villas), [villas]);
   const zones = useMemo(() => getUniqueZones(villas), [villas]);
@@ -145,9 +69,7 @@ export function HomePage({ settings }: HomePageProps) {
         onSearch={handleHeroSearch}
       />
 
-      <div className="pt-0 lg:pt-20">
-        {isLoading ? <LoadingSkeleton /> : null}
-
+      <div>
         {railSections.length > 0 ? (
           railSections.map((section, index) => (
             <Fragment key={section.slug}>

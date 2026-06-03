@@ -3,6 +3,7 @@ import {
   Home,
   Images,
   LayoutTemplate,
+  Newspaper,
   Settings,
   Users,
   Warehouse,
@@ -39,6 +40,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: LayoutTemplate,
     label: "หน้ารายละเอียดบ้านพัก",
     pageTitle: "จัดหน้ารายละเอียดบ้านพัก",
+  },
+  {
+    description: "บทความแนะนำบ้านพักและช่วยปิดการจอง",
+    href: "/admin/guides",
+    icon: Newspaper,
+    label: "บทความ",
+    pageTitle: "จัดการบทความ",
   },
   {
     description: "รูปภาพบ้านพักและแกลเลอรี",

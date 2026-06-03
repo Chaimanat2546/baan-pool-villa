@@ -1,11 +1,10 @@
 "use client";
 
 import { AlertCircle, RotateCcw, Search } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { DropdownSelect } from "@/components/ui/dropdown-select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AMENITY_OPTIONS } from "@/lib/villas/amenities";
 import {
   filterVillas,
   filterVillasById,
@@ -15,18 +14,19 @@ import {
   getUniqueZones,
   normalizeFiltersForSearch,
   sortVillas,
+  type VillaSortKey,
 } from "@/lib/villas/filters";
-import { AMENITY_OPTIONS } from "@/lib/villas/amenities";
 import type { VillaFilters, VillaListing } from "@/lib/villas/types";
-import type { VillaSortKey } from "@/lib/villas/filters";
 
+import { VillaGrid } from "../listing/villa-grid";
 import { MobileFilterDrawer } from "./mobile-filter-drawer";
 import { SearchBar } from "./search-bar";
-import { VillaGrid } from "../listing/villa-grid";
 
-interface HousesResponse {
-  items: VillaListing[];
-};
+interface SearchPageProps {
+  initialLoadError?: string | null;
+  initialSearchParams?: string;
+  initialVillas?: VillaListing[];
+}
 
 const PAGE_SIZE = 12;
 
@@ -58,106 +58,69 @@ function getSearchConditionLabels(
     `ราคาไม่เกิน ${filters.maxPrice.toLocaleString("th-TH")} บาท`,
     ...(filters.nearSeaOnly ? ["บ้านพักใกล้ทะเลไม่เกิน 2 กม."] : []),
     ...filters.amenities.map((amenity) => {
-      const label = AMENITY_OPTIONS.find((option) => option.key === amenity)?.label ?? amenity;
+      const label =
+        AMENITY_OPTIONS.find((option) => option.key === amenity)?.label ??
+        amenity;
       return `สิ่งอำนวยความสะดวก: ${label}`;
     }),
   ];
 }
 
-export function SearchPage() {
-  const searchParams = useSearchParams();
-  const [villas, setVillas] = useState<VillaListing[]>([]);
-  const [filters, setFilters] = useState<VillaFilters>(() =>
-    getDefaultFilters(1000),
+export function SearchPage({
+  initialLoadError = null,
+  initialSearchParams = "",
+  initialVillas = [],
+}: SearchPageProps) {
+  const searchParams = useMemo(
+    () => new URLSearchParams(initialSearchParams),
+    [initialSearchParams],
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<VillaSortKey>("recommended");
-  const [villaIdQuery, setVillaIdQuery] = useState("");
+  const initialMaxPrice = Math.max(getMaxVillaPrice(initialVillas), 1000);
+  const [villas] = useState<VillaListing[]>(() => initialVillas);
+  const [filters, setFilters] = useState<VillaFilters>(() =>
+    filtersFromSearchParams(searchParams, initialMaxPrice),
+  );
+  const [error] = useState<string | null>(initialLoadError);
+  const [sortKey, setSortKey] = useState<VillaSortKey>(() => {
+    const requestedSortKey = searchParams.get("sort");
+
+    return isVillaSortKey(requestedSortKey) ? requestedSortKey : "recommended";
+  });
+  const [villaIdQuery, setVillaIdQuery] = useState(
+    () => searchParams.get("id") ?? "",
+  );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const resultsRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadVillas() {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const response = await fetch("/api/houses");
-
-        if (!response.ok) {
-          throw new Error("ไม่สามารถโหลดข้อมูลบ้านพักได้");
-        }
-
-        const payload = (await response.json()) as HousesResponse;
-        const items = Array.isArray(payload.items) ? payload.items : [];
-
-        if (!isActive) {
-          return;
-        }
-
-        const nextMaxPrice = Math.max(getMaxVillaPrice(items), 1000);
-        setVillas(items);
-        setFilters(filtersFromSearchParams(searchParams, nextMaxPrice));
-        const requestedSortKey = searchParams.get("sort");
-
-        setVillaIdQuery(searchParams.get("id") ?? "");
-        setSortKey(isVillaSortKey(requestedSortKey) ? requestedSortKey : "recommended");
-        setVisibleCount(PAGE_SIZE);
-      } catch (caughtError) {
-        if (!isActive) {
-          return;
-        }
-
-        setError(
-          caughtError instanceof Error
-            ? caughtError.message
-            : "เกิดข้อผิดพลาดในการโหลดข้อมูล",
-        );
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadVillas();
-
-    return () => {
-      isActive = false;
-    };
-  }, [searchParams]);
 
   const maxAvailablePrice = useMemo(() => getMaxVillaPrice(villas), [villas]);
   const zones = useMemo(() => getUniqueZones(villas), [villas]);
   const filteredVillas = useMemo(
-    () => sortVillas(filterVillasById(filterVillas(villas, filters), villaIdQuery), sortKey),
+    () =>
+      sortVillas(
+        filterVillasById(filterVillas(villas, filters), villaIdQuery),
+        sortKey,
+      ),
     [villas, filters, villaIdQuery, sortKey],
   );
   const visibleVillas = useMemo(
     () => filteredVillas.slice(0, visibleCount),
     [filteredVillas, visibleCount],
   );
-  const searchConditionLabels = useMemo(
-    () => {
-      const labels = getSearchConditionLabels(filters, zones);
-      const sortLabel = SORT_OPTIONS.find((option) => option.value === sortKey)?.label;
+  const searchConditionLabels = useMemo(() => {
+    const labels = getSearchConditionLabels(filters, zones);
+    const sortLabel = SORT_OPTIONS.find((option) => option.value === sortKey)?.label;
 
-      if (villaIdQuery.trim()) {
-        labels.push(`รหัสบ้าน ${villaIdQuery.trim()}`);
-      }
+    if (villaIdQuery.trim()) {
+      labels.push(`รหัสบ้าน ${villaIdQuery.trim()}`);
+    }
 
-      if (sortKey !== "recommended" && sortLabel) {
-        labels.push(`เรียง: ${sortLabel}`);
-      }
+    if (sortKey !== "recommended" && sortLabel) {
+      labels.push(`เรียง: ${sortLabel}`);
+    }
 
-      return labels;
-    },
-    [filters, zones, villaIdQuery, sortKey],
-  );
-  const isSearchReady = !isLoading && villas.length > 0;
+    return labels;
+  }, [filters, zones, villaIdQuery, sortKey]);
+  const isSearchReady = villas.length > 0;
 
   function handleSearch() {
     setFilters((currentFilters) =>
@@ -278,7 +241,7 @@ export function SearchPage() {
               <h2 className="text-2xl font-black text-[var(--site-text)]">
                 พบ {filteredVillas.length.toLocaleString("th-TH")} หลัง
               </h2>
-              {!isLoading && filteredVillas.length > 0 ? (
+              {filteredVillas.length > 0 ? (
                 <p className="mt-1 text-sm font-semibold text-[var(--site-muted)]">
                   แสดง {visibleVillas.length.toLocaleString("th-TH")} จาก{" "}
                   {filteredVillas.length.toLocaleString("th-TH")} หลัง
@@ -303,27 +266,7 @@ export function SearchPage() {
             </div>
           ) : null}
 
-          {isLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="overflow-hidden rounded-[22px] border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_14px_42px_rgba(6,63,53,0.07)]"
-                >
-                  <Skeleton className="aspect-[4/3] rounded-none bg-[var(--site-surface-tint)]" />
-                  <div className="flex flex-col gap-4 p-5">
-                    <Skeleton className="h-5 w-2/3 bg-[var(--site-surface-tint)]" />
-                    <Skeleton className="h-4 w-4/5 bg-[var(--site-surface-tint)]" />
-                    <div className="grid grid-cols-3 gap-2">
-                      <Skeleton className="h-10 rounded-xl bg-[var(--site-primary-soft)]" />
-                      <Skeleton className="h-10 rounded-xl bg-[var(--site-primary-soft)]" />
-                      <Skeleton className="h-10 rounded-xl bg-[var(--site-primary-soft)]" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="flex min-h-72 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center">
               <div className="max-w-md">
                 <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-accent-soft)] text-[var(--site-accent)]">

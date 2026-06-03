@@ -9,6 +9,7 @@ import type { SiteSettings } from "@/lib/site-settings/types";
 const navItems = [
   { href: "/", label: "หน้าแรก" },
   { href: "/search", label: "ค้นหาบ้านพัก" },
+  { href: "/guides", label: "บทความ" },
   { href: "/#recommendations", label: "รีวิว" },
   { href: "/#cafes", label: "สถานที่ท่องเที่ยว" },
 ];
@@ -44,7 +45,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
               <span className="block text-[11px] leading-4 text-[var(--site-on-primary)] sm:text-sm sm:leading-5">
                 {bankNotice}{" "}
                 <br className="sm:hidden" />
-                <span className="inline-flex rounded-full border border-[color:var(--site-on-primary)]/35 bg-white/12 px-2 py-0.5 font-semibold text-[var(--site-on-primary)]">
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-accent-on-dark)]">
                   {bankAccount}
                 </span>{" "}
                 เท่านั้น

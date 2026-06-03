@@ -50,6 +50,7 @@ describe("buildSiteThemeStyle", () => {
       "--site-surface": "#ffffff",
     });
     expectContrast(style["--site-accent"], style["--site-surface"]);
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
     expectContrast(style["--site-on-accent"], style["--site-accent"]);
     expect(style["--site-accent-hover"]).not.toBe(style["--site-accent"]);
     expect(style["--site-border"]).not.toBe(style["--site-primary"]);
@@ -58,6 +59,9 @@ describe("buildSiteThemeStyle", () => {
     expect(style["--site-surface-soft"]).not.toBe(style["--site-surface"]);
     expect(style["--site-surface-tint"]).not.toBe(style["--site-surface"]);
     expect(style["--site-text"]).not.toBe(style["--site-primary"]);
+    expect(style["--site-card-shadow"]).toBe(
+      "0 14px 42px rgba(6, 78, 59, 0.09)",
+    );
   });
 
   it("keeps generated text tokens readable when users pick light brand colors", () => {
@@ -70,6 +74,7 @@ describe("buildSiteThemeStyle", () => {
     expectContrast(style["--site-on-accent"], style["--site-accent"]);
     expectContrast(style["--site-primary"], style["--site-surface"]);
     expectContrast(style["--site-accent"], style["--site-surface"]);
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
     expectContrast(style["--site-text"], style["--site-surface"]);
     expectContrast(style["--site-muted"], style["--site-surface"]);
   });
@@ -82,6 +87,7 @@ describe("buildSiteThemeStyle", () => {
 
     expectContrast(style["--site-on-primary"], style["--site-primary-hover"]);
     expectContrast(style["--site-on-accent"], style["--site-accent-hover"]);
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
     expectContrast(style["--site-primary"], style["--site-primary-soft"], 3);
     expectContrast(style["--site-accent"], style["--site-accent-soft"], 3);
   });
@@ -98,5 +104,16 @@ describe("buildSiteThemeStyle", () => {
     expectContrast(style["--site-on-primary"], style["--site-primary-hover"]);
     expectContrast(style["--site-on-accent"], style["--site-accent"]);
     expectContrast(style["--site-on-accent"], style["--site-accent-hover"]);
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
+  });
+
+  it("keeps accent text readable on solid primary backgrounds", () => {
+    const style = buildSiteThemeStyle({
+      primaryColor: "#064e3b",
+      accentColor: "#0f766e",
+    });
+
+    expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
+    expect(style["--site-accent-on-dark"]).not.toBe(style["--site-accent"]);
   });
 });

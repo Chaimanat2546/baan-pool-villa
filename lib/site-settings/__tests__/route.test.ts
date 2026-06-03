@@ -5,6 +5,7 @@ import {
   getBearerToken,
   jsonError,
 } from "@/lib/admin/home-config-auth";
+import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
 import { DEFAULT_DETAIL_LAYOUT } from "../../detail-layout/defaults";
 import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "../defaults";
 
@@ -22,12 +23,17 @@ vi.mock("@/lib/admin/home-config-auth", () => ({
   ),
 }));
 
+vi.mock("@/lib/cache-revalidation", () => ({
+  revalidateSiteSettingsCache: vi.fn(),
+}));
+
 vi.mock("@/lib/site-settings/defaults", async () => import("../defaults"));
 vi.mock("@/lib/site-settings/validation", async () => import("../validation"));
 
 const assertHomeConfigAdminMock = vi.mocked(assertHomeConfigAdmin);
 const getBearerTokenMock = vi.mocked(getBearerToken);
 const jsonErrorMock = vi.mocked(jsonError);
+const revalidateSiteSettingsCacheMock = vi.mocked(revalidateSiteSettingsCache);
 
 const dbRow = {
   id: SITE_SETTINGS_ID,
@@ -443,6 +449,7 @@ describe("admin site settings route", () => {
       warnings: [],
     });
     expect(jsonErrorMock).not.toHaveBeenCalled();
+    expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("uploads an image, records history, saves settings, and cleans eligible old rows", async () => {
@@ -569,6 +576,7 @@ describe("admin site settings route", () => {
     expect(body.warnings).toEqual([
       "Skipped cleanup for hero upload with unexpected storage location.",
     ]);
+    expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns a detailed error when storage upload fails", async () => {

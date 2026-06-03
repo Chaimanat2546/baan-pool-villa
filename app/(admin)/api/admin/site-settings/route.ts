@@ -1,4 +1,5 @@
 import { assertHomeConfigAdmin, getBearerToken, jsonError } from "@/lib/admin/home-config-auth";
+import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
 import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
 import type {
   SitePhoneContact,
@@ -597,6 +598,8 @@ export async function PUT(request: Request) {
       ? await cleanupRetainedAssets(admin.supabase)
       : []),
   ];
+
+  revalidateSiteSettingsCache();
 
   return Response.json({
     settings: normalizeSiteSettingsRow(data as SiteSettingsRow),
