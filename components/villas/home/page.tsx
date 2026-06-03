@@ -69,7 +69,7 @@ export function HomePage({
         onSearch={handleHeroSearch}
       />
 
-      <div className="pt-0 lg:pt-20">
+      <div>
         {railSections.length > 0 ? (
           railSections.map((section, index) => (
             <Fragment key={section.slug}>
