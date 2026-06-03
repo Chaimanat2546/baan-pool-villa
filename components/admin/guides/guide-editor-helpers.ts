@@ -8,6 +8,7 @@ export type EditableBlockType =
   | "image";
 
 export interface EditableTextContent {
+  marks?: TipTapMark[];
   styles: Record<string, unknown>;
   text: string;
   type: "text";
@@ -29,6 +30,7 @@ interface EditorBlockMeta {
 export interface TipTapNode {
   attrs?: Record<string, unknown>;
   content?: TipTapNode[];
+  marks?: TipTapMark[];
   text?: string;
   type: string;
 }
@@ -36,6 +38,11 @@ export interface TipTapNode {
 export interface TipTapDocument {
   content: TipTapNode[];
   type: "doc";
+}
+
+export interface TipTapMark {
+  attrs?: Record<string, unknown>;
+  type: string;
 }
 
 export const EDITOR_BLOCK_TYPES = [
@@ -227,6 +234,31 @@ function createTipTapTextNode(text: string): TipTapNode[] | undefined {
   return text.length > 0 ? [{ type: "text", text }] : undefined;
 }
 
+function createTipTapTextNodes(
+  content: EditableTextContent[] | undefined,
+): TipTapNode[] | undefined {
+  if (!Array.isArray(content) || content.length === 0) {
+    return undefined;
+  }
+
+  const nodes = content
+    .filter((item) => item.type === "text" && item.text.length > 0)
+    .map((item) => {
+      const textNode: TipTapNode = {
+        type: "text",
+        text: item.text,
+      };
+
+      if (Array.isArray(item.marks) && item.marks.length > 0) {
+        textNode.marks = item.marks;
+      }
+
+      return textNode;
+    });
+
+  return nodes.length > 0 ? nodes : undefined;
+}
+
 function createTipTapParagraph(text: string): TipTapNode {
   const paragraph: TipTapNode = { type: "paragraph" };
   const content = createTipTapTextNode(text);
@@ -238,10 +270,26 @@ function createTipTapParagraph(text: string): TipTapNode {
   return paragraph;
 }
 
-function createTipTapListItem(text: string, type: "listItem" | "taskItem") {
+function createTipTapParagraphFromEditableContent(
+  content: EditableTextContent[] | undefined,
+): TipTapNode {
+  const paragraph: TipTapNode = { type: "paragraph" };
+  const tipTapContent = createTipTapTextNodes(content);
+
+  if (tipTapContent) {
+    paragraph.content = tipTapContent;
+  }
+
+  return paragraph;
+}
+
+function createTipTapListItem(
+  content: EditableTextContent[] | undefined,
+  type: "listItem" | "taskItem",
+) {
   const item: TipTapNode = {
     type,
-    content: [createTipTapParagraph(text)],
+    content: [createTipTapParagraphFromEditableContent(content)],
   };
 
   if (type === "taskItem") {
@@ -270,39 +318,51 @@ function pushTipTapListNode(
 }
 
 export function guideBlocksToTipTapDocument(blocks: unknown[]): TipTapDocument {
-  const content: TipTapNode[] = [];
+  const documentContent: TipTapNode[] = [];
 
   normalizeEditableBlocks(blocks).forEach((block) => {
-    const text = getEditableBlockText(block);
+    const textContent = createTipTapTextNodes(block.content);
 
     switch (block.type) {
       case "heading":
-        content.push({
+        documentContent.push({
           type: "heading",
           attrs: { level: 2 },
-          content: createTipTapTextNode(text),
+          content: textContent,
         });
         break;
       case "bulletListItem":
-        pushTipTapListNode(content, "bulletList", createTipTapListItem(text, "listItem"));
+        pushTipTapListNode(
+          documentContent,
+          "bulletList",
+          createTipTapListItem(block.content, "listItem"),
+        );
         break;
       case "numberedListItem":
-        pushTipTapListNode(content, "orderedList", createTipTapListItem(text, "listItem"));
+        pushTipTapListNode(
+          documentContent,
+          "orderedList",
+          createTipTapListItem(block.content, "listItem"),
+        );
         break;
       case "checkListItem":
-        pushTipTapListNode(content, "taskList", createTipTapListItem(text, "taskItem"));
+        pushTipTapListNode(
+          documentContent,
+          "taskList",
+          createTipTapListItem(block.content, "taskItem"),
+        );
         break;
       case "quote":
-        content.push({
+        documentContent.push({
           type: "blockquote",
-          content: [createTipTapParagraph(text)],
+          content: [createTipTapParagraphFromEditableContent(block.content)],
         });
         break;
       case "image": {
         const src = getEditableImageBlockUrl(block);
 
         if (src.length > 0) {
-          content.push({
+          documentContent.push({
             type: "image",
             attrs: {
               alt: getEditableImageBlockAlt(block),
@@ -313,23 +373,47 @@ export function guideBlocksToTipTapDocument(blocks: unknown[]): TipTapDocument {
         break;
       }
       default:
-        content.push(createTipTapParagraph(text));
+        documentContent.push(createTipTapParagraphFromEditableContent(block.content));
         break;
     }
   });
 
   return {
     type: "doc",
-    content: content.length > 0 ? content : [createTipTapParagraph("")],
+    content:
+      documentContent.length > 0 ? documentContent : [createTipTapParagraph("")],
   };
 }
 
-function getTipTapNodeText(node: TipTapNode): string {
+function getTipTapTextContent(node: TipTapNode): EditableTextContent[] {
   if (typeof node.text === "string") {
-    return node.text;
+    const content: EditableTextContent = {
+      type: "text",
+      text: node.text,
+      styles: {},
+    };
+
+    if (Array.isArray(node.marks) && node.marks.length > 0) {
+      content.marks = node.marks;
+    }
+
+    return [content];
   }
 
-  return node.content?.map(getTipTapNodeText).join("") ?? "";
+  return node.content?.flatMap(getTipTapTextContent) ?? [];
+}
+
+function createEditableTextBlockFromContent(
+  type: EditableBlockType,
+  content: EditableTextContent[],
+): EditableBlock {
+  return {
+    id: createEditableDraftId(),
+    type,
+    props: {},
+    content,
+    children: [],
+  };
 }
 
 function mapTipTapListItems(
@@ -337,7 +421,7 @@ function mapTipTapListItems(
   type: "bulletListItem" | "numberedListItem" | "checkListItem",
 ): EditableBlock[] {
   return (node.content ?? []).map((item) =>
-    createEditableTextBlock(type, getTipTapNodeText(item)),
+    createEditableTextBlockFromContent(type, getTipTapTextContent(item)),
   );
 }
 
@@ -347,7 +431,9 @@ export function tipTapDocumentToGuideBlocks(document: TipTapDocument): EditableB
   document.content.forEach((node) => {
     switch (node.type) {
       case "heading":
-        blocks.push(createEditableTextBlock("heading", getTipTapNodeText(node)));
+        blocks.push(
+          createEditableTextBlockFromContent("heading", getTipTapTextContent(node)),
+        );
         break;
       case "bulletList":
         blocks.push(...mapTipTapListItems(node, "bulletListItem"));
@@ -359,7 +445,9 @@ export function tipTapDocumentToGuideBlocks(document: TipTapDocument): EditableB
         blocks.push(...mapTipTapListItems(node, "checkListItem"));
         break;
       case "blockquote":
-        blocks.push(createEditableTextBlock("quote", getTipTapNodeText(node)));
+        blocks.push(
+          createEditableTextBlockFromContent("quote", getTipTapTextContent(node)),
+        );
         break;
       case "image": {
         const src = typeof node.attrs?.src === "string" ? node.attrs.src : "";
@@ -375,9 +463,9 @@ export function tipTapDocumentToGuideBlocks(document: TipTapDocument): EditableB
         break;
       }
       default: {
-        const text = getTipTapNodeText(node);
-
-        blocks.push(createEditableTextBlock("paragraph", text));
+        blocks.push(
+          createEditableTextBlockFromContent("paragraph", getTipTapTextContent(node)),
+        );
         break;
       }
     }

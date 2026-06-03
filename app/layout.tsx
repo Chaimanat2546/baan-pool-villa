@@ -44,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={`${prompt.variable} h-full antialiased`}>
-      <body className="min-h-full bg-[#f4f7f4] text-[#063f35] ">
+      <body className="min-h-full bg-[#f4f7f4] text-[#063f35] select-none">
         {children}
       </body>
     </html>

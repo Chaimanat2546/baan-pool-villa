@@ -1,7 +1,8 @@
-import { ArrowRight } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import type { ReactNode } from "react";
 
+import { ArticlesSection } from "@/components/villas/home/articles-section";
+import { ScrollRail } from "@/components/villas/home/scroll-rail";
 import { VillaCard } from "@/components/villas/listing/villa-card";
 import type { GuidePost } from "@/lib/guides/types";
 import type { VillaListing } from "@/lib/villas/types";
@@ -9,11 +10,22 @@ import type { VillaListing } from "@/lib/villas/types";
 interface GuideDetailPageProps {
   guide: GuidePost;
   recommendedVillas: VillaListing[];
+  relatedGuides: GuidePost[];
 }
 
 interface GuideBlock {
-  content?: { text?: unknown }[];
+  content?: GuideTextContent[];
   props?: Record<string, unknown>;
+  type?: unknown;
+}
+
+interface GuideTextContent {
+  marks?: GuideTextMark[];
+  text?: unknown;
+}
+
+interface GuideTextMark {
+  attrs?: Record<string, unknown>;
   type?: unknown;
 }
 
@@ -23,6 +35,10 @@ function getBlockText(block: GuideBlock): string {
       ?.map((content) => (typeof content.text === "string" ? content.text : ""))
       .join("") ?? ""
   );
+}
+
+function getBlockContent(block: GuideBlock): GuideTextContent[] {
+  return Array.isArray(block.content) ? block.content : [];
 }
 
 function getImageUrl(block: GuideBlock): string | null {
@@ -157,6 +173,59 @@ export function getYouTubeEmbedUrl(text: string): string | null {
   return null;
 }
 
+function normalizePublicLinkHref(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const href = value.trim();
+
+  if (href.startsWith("/") && !href.startsWith("//")) {
+    return href;
+  }
+
+  try {
+    const url = new URL(href);
+
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.href;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function renderInlineContent(content: GuideTextContent[]): ReactNode[] {
+  return content.flatMap((item, index) => {
+    if (typeof item.text !== "string" || item.text.length === 0) {
+      return [];
+    }
+
+    const linkMark = item.marks?.find((mark) => mark.type === "link");
+    const href = normalizePublicLinkHref(linkMark?.attrs?.href);
+
+    if (!href) {
+      return item.text;
+    }
+
+    const isExternal = href.startsWith("http://") || href.startsWith("https://");
+
+    return (
+      <a
+        className="font-semibold text-[var(--site-primary)] underline underline-offset-4 transition hover:text-[var(--site-primary-hover)]"
+        href={href}
+        key={`${href}-${index}`}
+        rel={isExternal ? "noopener noreferrer" : undefined}
+        target={isExternal ? "_blank" : undefined}
+      >
+        {item.text}
+      </a>
+    );
+  });
+}
+
 function YouTubeEmbed({ embedUrl, title }: { embedUrl: string; title: string }) {
   return (
     <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_14px_30px_rgba(6,63,53,0.08)]">
@@ -183,6 +252,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
 
         const guideBlock = block as GuideBlock;
         const text = getBlockText(guideBlock);
+        const inlineContent = renderInlineContent(getBlockContent(guideBlock));
         const youtubeEmbedUrl = getYouTubeEmbedUrl(text);
 
         switch (guideBlock.type) {
@@ -192,7 +262,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
                 className="pt-4 text-2xl font-semibold leading-tight sm:text-3xl"
                 key={index}
               >
-                {text}
+                {inlineContent}
               </h2>
             );
           case "quote":
@@ -201,7 +271,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
                 className="border-l-4 border-[var(--site-primary)] pl-4 text-xl font-medium leading-9 text-[var(--site-text)]"
                 key={index}
               >
-                {text}
+                {inlineContent}
               </blockquote>
             );
           case "bulletListItem":
@@ -213,7 +283,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
                 key={index}
               >
                 {guideBlock.type === "checkListItem" ? "✓ " : "• "}
-                {text}
+                {inlineContent}
               </p>
             );
           case "image": {
@@ -253,7 +323,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
 
             return (
               <p className="text-lg leading-9 text-[var(--site-text)]" key={index}>
-                {text}
+                {inlineContent}
               </p>
             );
         }
@@ -278,14 +348,22 @@ function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
             เริ่มดูบ้านที่ตรงกับคำแนะนำก่อน แล้วค่อยคุยรายละเอียดการจอง
           </p>
         </div>
-        <Link
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-primary)]"
-          href={`/villas/${villas[0].id}`}
-        >
-          ดูรายละเอียดบ้านพัก <ArrowRight aria-hidden="true" className="size-4" />
-        </Link>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+      <div className="lg:hidden">
+        <ScrollRail
+          label="บ้านพักแนะนำ"
+          className="-mx-4 mt-4 gap-5 px-4 py-4 sm:-mx-6 sm:px-6"
+          controlsClassName="sm:hidden"
+        >
+          {villas.slice(0, 6).map((villa, index) => (
+            <div key={villa.id} className="w-[290px] shrink-0 snap-start">
+              <VillaCard villa={villa} preload={index === 0} />
+            </div>
+          ))}
+        </ScrollRail>
+      </div>
+
+      <div className="hidden gap-4 lg:grid lg:grid-cols-1">
         {villas.slice(0, 6).map((villa, index) => (
           <VillaCard key={villa.id} villa={villa} preload={index === 0} />
         ))}
@@ -297,6 +375,7 @@ function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
 export function GuideDetailPage({
   guide,
   recommendedVillas,
+  relatedGuides,
 }: GuideDetailPageProps) {
   const coverImageUrl = guide.coverImage?.url;
 
@@ -345,6 +424,7 @@ export function GuideDetailPage({
           <RecommendedVillaSidebar villas={recommendedVillas} />
         </div>
       </article>
+      <ArticlesSection guides={relatedGuides} />
     </main>
   );
 }

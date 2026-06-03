@@ -57,6 +57,14 @@ select {
   margin: 0;
 }
 
+.guide-tiptap-editor .guide-tiptap-prose a,
+.guide-tiptap-editor .guide-tiptap-prose .guide-tiptap-link {
+  color: var(--site-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
 .guide-tiptap-editor .guide-tiptap-prose h2 {
   color: var(--site-text);
   font-size: 1.875rem;

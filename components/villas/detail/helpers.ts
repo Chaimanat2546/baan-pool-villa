@@ -138,7 +138,7 @@ export function getGalleryItemDescription(item: GalleryItem): string {
   if (caption && caption.toLowerCase() !== item.zoneKey) {
     return caption;
   }
-  return "รูปบ้านพักจาก Supabase images";
+  return "รูปบ้านพัก";
 }
 
 export function findSection(content: VillaDetailContent, title: string): VillaDetailSection | null {

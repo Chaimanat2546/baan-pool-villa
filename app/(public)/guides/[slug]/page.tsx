@@ -6,8 +6,10 @@ import { serializeJsonLd } from "@/lib/json-ld";
 import { absoluteUrl, buildPageMetadata } from "@/lib/seo";
 import {
   getGuideBySlug,
+  getPublishedGuides,
   resolveGuideRecommendedVillas,
 } from "@/lib/guides/server";
+import type { GuidePost } from "@/lib/guides/types";
 import { fetchHouseListings } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -47,15 +49,21 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
   }
 
   let recommendedVillas: VillaListing[] = [];
+  let relatedGuides: GuidePost[] = [];
 
   try {
-    const villas = await fetchHouseListings();
+    const [villas, guides] = await Promise.all([
+      fetchHouseListings(),
+      getPublishedGuides(),
+    ]);
+
     recommendedVillas = resolveGuideRecommendedVillas(
       guide.recommendedHouseIds,
       villas,
     );
+    relatedGuides = guides.filter((relatedGuide) => relatedGuide.id !== guide.id);
   } catch (error) {
-    console.error("Unable to load guide recommended villas", error);
+    console.error("Unable to load guide recommendations", error);
   }
 
   const jsonLd = {
@@ -75,7 +83,11 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      <GuideDetailPage guide={guide} recommendedVillas={recommendedVillas} />
+      <GuideDetailPage
+        guide={guide}
+        recommendedVillas={recommendedVillas}
+        relatedGuides={relatedGuides}
+      />
     </>
   );
 }

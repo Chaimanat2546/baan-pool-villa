@@ -6,16 +6,19 @@ import {
   FileText,
   Heading2,
   Image as ImageIcon,
+  Link2,
   List,
   Plus,
   Quote,
   Save,
   Trash2,
+  Unlink,
   Upload,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ImageExtension from "@tiptap/extension-image";
+import LinkExtension from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
@@ -355,6 +358,56 @@ function applyEditorFormat(editor: Editor, type: EditableBlockType) {
   }
 }
 
+function normalizeEditorLinkHref(value: string): string | null {
+  const href = value.trim();
+
+  if (href.length === 0) {
+    return null;
+  }
+
+  if (href.startsWith("/") && !href.startsWith("//")) {
+    return href;
+  }
+
+  try {
+    const url = new URL(href);
+
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.href;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function applyEditorLink(editor: Editor) {
+  const currentHref = editor.getAttributes("link").href;
+  const nextHref = window.prompt(
+    "ใส่ลิงก์ เช่น /villas/66 หรือ https://example.com",
+    typeof currentHref === "string" ? currentHref : "",
+  );
+
+  if (nextHref === null) {
+    return;
+  }
+
+  if (nextHref.trim().length === 0) {
+    editor.chain().focus().extendMarkRange("link").unsetLink().run();
+    return;
+  }
+
+  const normalizedHref = normalizeEditorLinkHref(nextHref);
+
+  if (!normalizedHref) {
+    window.alert("ลิงก์ต้องขึ้นต้นด้วย /, http:// หรือ https://");
+    return;
+  }
+
+  editor.chain().focus().extendMarkRange("link").setLink({ href: normalizedHref }).run();
+}
+
 function TipTapFormatToolbar({
   editor,
   trailingAction,
@@ -399,6 +452,42 @@ function TipTapFormatToolbar({
           </button>
         );
       })}
+      <button
+        aria-label="แนบลิงก์"
+        className={`inline-flex size-9 items-center justify-center rounded-md border transition ${
+          editor.isActive("link")
+            ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)] text-[var(--site-primary)]"
+            : "border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] hover:bg-[var(--site-primary-soft)]"
+        }`}
+        data-guide-link-action="set"
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
+        onClick={() => {
+          applyEditorLink(editor);
+        }}
+        title="แนบลิงก์"
+        type="button"
+      >
+        <Link2 aria-hidden="true" className="size-4" />
+      </button>
+      {editor.isActive("link") ? (
+        <button
+          aria-label="เอาลิงก์ออก"
+          className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+          data-guide-link-action="unset"
+          onMouseDown={(event) => {
+            event.preventDefault();
+          }}
+          onClick={() => {
+            editor.chain().focus().extendMarkRange("link").unsetLink().run();
+          }}
+          title="เอาลิงก์ออก"
+          type="button"
+        >
+          <Unlink aria-hidden="true" className="size-4" />
+        </button>
+      ) : null}
       {trailingAction ? <div className="ml-auto shrink-0">{trailingAction}</div> : null}
     </div>
   );
@@ -428,6 +517,17 @@ function BlockEditor({
         HTMLAttributes: {
           class: "guide-tiptap-image",
         },
+      }),
+      LinkExtension.configure({
+        autolink: true,
+        HTMLAttributes: {
+          class: "guide-tiptap-link",
+          rel: "noopener noreferrer",
+          target: null,
+        },
+        linkOnPaste: true,
+        openOnClick: false,
+        validate: (href) => normalizeEditorLinkHref(href) !== null,
       }),
       Placeholder.configure({
         placeholder: "เริ่มเขียน...",
@@ -1001,10 +1101,15 @@ export function AdminGuidesPage() {
     }
 
     if (!activeGuide.id) {
-      setGuides((currentGuides) =>
-        currentGuides.filter((guide) => guide.draftId !== activeGuide.draftId),
-      );
-      setActiveDraftId(guides[0]?.draftId ?? null);
+      setGuides((currentGuides) => {
+        const nextGuides = currentGuides.filter(
+          (guide) => guide.draftId !== activeGuide.draftId,
+        );
+        const safeGuides = nextGuides.length > 0 ? nextGuides : [makeNewGuide([])];
+
+        setActiveDraftId(safeGuides[0]?.draftId ?? null);
+        return safeGuides;
+      });
       return;
     }
 
@@ -1114,6 +1219,7 @@ export function AdminGuidesPage() {
             <>
               <main className="min-w-0">
                 <BlockEditor
+                  key={activeGuide.draftId}
                   blocks={normalizeBlocks(activeGuide.contentBlocks)}
                   documentHeader={
                     <>

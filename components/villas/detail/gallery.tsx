@@ -1,9 +1,26 @@
-import { ChevronLeft, ChevronRight, ImageIcon, ImageOff, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, ImageIcon, ImageOff, X } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import type { VillaListing } from "@/lib/villas/types";
 import { getGalleryItemDescription, getVillaTitle, shouldBypassImageOptimizer } from "./helpers";
 import { MockBadge } from "./shared";
 import type { GalleryCategory, GalleryItem } from "./types";
+
+function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string {
+  const params = new URLSearchParams({
+    url: item.url,
+  });
+
+  if (item.imageName) {
+    params.set("name", item.imageName);
+  }
+
+  if (item.zoneKey) {
+    params.set("zone", item.zoneKey);
+  }
+
+  return `/api/villas/${encodeURIComponent(listingId)}/images/download?${params.toString()}`;
+}
 
 function GalleryImage({
 
@@ -353,6 +370,60 @@ export function GalleryLightbox({
 
 }) {
 
+  const [isActiveImageLoading, setIsActiveImageLoading] = useState(false);
+  const thumbnailStripRef = useRef<HTMLDivElement>(null);
+  const touchStartXRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!activeItem) {
+      return;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    document.body.style.overflow = "hidden";
+
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
+    };
+  }, [activeItem]);
+
+  useEffect(() => {
+    setIsActiveImageLoading(Boolean(activeItem));
+  }, [activeItem]);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      const thumbnailStrip = thumbnailStripRef.current;
+      const activeThumbnail = thumbnailStrip?.querySelector(".border-white");
+
+      if (!thumbnailStrip || !(activeThumbnail instanceof HTMLElement)) {
+        return;
+      }
+
+      const targetLeft =
+        activeThumbnail.offsetLeft -
+        thumbnailStrip.clientWidth / 2 +
+        activeThumbnail.clientWidth / 2;
+
+      thumbnailStrip.scrollTo({
+        behavior: "auto",
+        left: Math.max(0, targetLeft),
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [activeItem]);
+
   if (!activeItem) {
 
     return null;
@@ -380,11 +451,37 @@ export function GalleryLightbox({
     activeItems[(activeIndex - 1 + activeItems.length) % activeItems.length];
 
   const nextItem = activeItems[(activeIndex + 1) % activeItems.length];
+  const activeImageDownloadHref = buildGalleryDownloadHref(listing.id, activeItem);
+  const handleImageTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = event.touches[0]?.clientX ?? null;
+  };
+  const handleImageTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    const touchStartX = touchStartXRef.current;
+    touchStartXRef.current = null;
+
+    if (touchStartX === null || activeItems.length <= 1) {
+      return;
+    }
+
+    const touchEndX = event.changedTouches[0]?.clientX;
+
+    if (touchEndX === undefined) {
+      return;
+    }
+
+    const deltaX = touchEndX - touchStartX;
+
+    if (Math.abs(deltaX) < 48) {
+      return;
+    }
+
+    onSelect(deltaX > 0 ? previousItem : nextItem);
+  };
 
   return (
 
-    <div className="fixed inset-0 z-[70] bg-[var(--site-primary-hover)] text-[var(--site-on-primary)]">
-      <div className="flex h-dvh flex-col">
+    <div className="fixed inset-0 z-[70] overscroll-contain bg-[var(--site-primary-hover)] text-[var(--site-on-primary)]">
+      <div className="flex h-dvh flex-col overflow-hidden">
 
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
 
@@ -464,9 +561,13 @@ export function GalleryLightbox({
 
         </div>
 
-        <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden px-3 pb-8 pt-3 sm:gap-3 sm:px-6 sm:py-4 lg:grid lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4">
 
-          <div className="relative h-[52dvh] min-h-[260px] min-w-0 max-w-full overflow-hidden rounded-2xl bg-white/5 sm:h-[58dvh] lg:h-auto lg:min-h-0">
+          <div
+            className="relative h-[46dvh] min-h-[250px] min-w-0 max-w-full shrink-0 touch-pan-y overflow-hidden rounded-2xl bg-white/5 sm:h-auto sm:flex-1 lg:h-auto lg:min-h-0"
+            onTouchStart={handleImageTouchStart}
+            onTouchEnd={handleImageTouchEnd}
+          >
             <Image
 
               src={activeItem.url}
@@ -483,10 +584,39 @@ export function GalleryLightbox({
 
               className="object-contain"
 
+              onLoad={() => {
+                setIsActiveImageLoading(false);
+              }}
+
               onError={() => {
+                setIsActiveImageLoading(false);
                 onImageError(activeItem.url);
               }}
             />
+
+            {isActiveImageLoading ? (
+              <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-black/20 backdrop-blur-[1px]">
+                <div className="h-full w-full animate-pulse bg-[linear-gradient(110deg,rgba(255,255,255,0.06),rgba(255,255,255,0.16),rgba(255,255,255,0.06))] bg-[length:220%_100%]" />
+                <div className="absolute h-10 w-10 animate-spin rounded-full border-2 border-white/25 border-t-white/80" />
+              </div>
+            ) : null}
+
+            <div className="absolute left-2 top-2 z-20 max-w-[calc(100%_-_4.5rem)] rounded-full bg-black/50 px-3 py-1.5 text-xs font-black text-[var(--site-on-primary)] backdrop-blur sm:hidden">
+              {activeItem.zoneLabel}
+              <span className="ml-2 opacity-70">
+                {activeIndex + 1}/{activeItems.length}
+              </span>
+            </div>
+
+            <a
+              href={activeImageDownloadHref}
+              aria-label="ดาวน์โหลดรูปนี้"
+              title="ดาวน์โหลดรูปนี้"
+              download
+              className="absolute right-2 top-2 z-20 grid h-10 w-10 place-items-center rounded-full bg-black/50 text-[var(--site-on-primary)] backdrop-blur transition hover:bg-black/65 sm:right-3 sm:top-3 sm:h-11 sm:w-11"
+            >
+              <Download className="h-5 w-5" />
+            </a>
 
             {activeItems.length > 1 ? (
 
@@ -498,7 +628,7 @@ export function GalleryLightbox({
 
                   aria-label="รูปก่อนหน้า"
 
-                  className="absolute left-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-[var(--site-on-primary)] backdrop-blur transition hover:bg-black/60 sm:left-3 sm:h-11 sm:w-11"
+                  className="absolute left-2 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-[var(--site-on-primary)] backdrop-blur transition hover:bg-black/60 sm:left-3 sm:h-11 sm:w-11"
 
                   onClick={() => {
                     onSelect(previousItem);
@@ -515,7 +645,7 @@ export function GalleryLightbox({
 
                   aria-label="รูปถัดไป"
 
-                  className="absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-[var(--site-on-primary)] backdrop-blur transition hover:bg-black/60 sm:right-3 sm:h-11 sm:w-11"
+                  className="absolute right-2 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-[var(--site-on-primary)] backdrop-blur transition hover:bg-black/60 sm:right-3 sm:h-11 sm:w-11"
 
                   onClick={() => {
                     onSelect(nextItem);
@@ -532,9 +662,9 @@ export function GalleryLightbox({
 
           </div>
 
-          <aside className="min-h-0 min-w-0 max-w-full lg:overflow-y-auto">
+          <aside className="min-h-0 min-w-0 max-w-full shrink-0 lg:overflow-y-auto">
 
-            <div className="rounded-2xl bg-white/10 p-4">
+            <div className="rounded-2xl bg-white/10 p-3 sm:p-4">
               <p className="text-xs font-black text-[var(--site-on-primary)] opacity-60">หมวดรูป</p>
               <h3 className="mt-1 text-xl font-black">{activeItem.zoneLabel}</h3>
 
@@ -545,7 +675,7 @@ export function GalleryLightbox({
 
             </div>
 
-            <div className="mt-3 flex max-w-full snap-x gap-2 overflow-x-auto overflow-y-hidden pb-2 lg:grid lg:grid-cols-2 lg:overflow-visible lg:pb-0">
+            <div ref={thumbnailStripRef} className="mt-2 flex max-w-full snap-x gap-2 overflow-x-auto overflow-y-hidden pb-1 sm:mt-3 sm:pb-2 lg:grid lg:grid-cols-2 lg:overflow-visible lg:pb-0">
 
               {activeItems.map((item) => (
 
