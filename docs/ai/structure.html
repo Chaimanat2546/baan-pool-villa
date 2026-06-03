@@ -98,7 +98,7 @@
               <tr>
                 <td><code>app/sitemap.ts</code></td>
                 <td><code>/sitemap.xml</code></td>
-                <td>Public sitemap using villa and site URL helpers.</td>
+                <td>Public sitemap using villa, guide CMS, and site URL helpers.</td>
               </tr>
               <tr>
                 <td><code>app/robots.ts</code></td>
@@ -149,6 +149,16 @@
                 <td><code>app/(public)/search/loading.tsx</code></td>
                 <td><code>/search</code> loading UI</td>
                 <td><code>components/villas/search/search-loading-skeleton</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/guides/page.tsx</code></td>
+                <td><code>/guides</code></td>
+                <td><code>components/guides/guide-list-page</code>, guide CMS server reads, SEO helpers.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/guides/[slug]/page.tsx</code></td>
+                <td><code>/guides/:slug</code></td>
+                <td><code>components/guides/guide-detail-page</code>, guide CMS server reads, villa listing recommendations, SEO/JSON-LD helpers.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/villas/[id]/page.tsx</code></td>
@@ -241,6 +251,11 @@
                 <td><code>components/admin/sections/admin-sections-page</code>.</td>
               </tr>
               <tr>
+                <td><code>app/(admin)/admin/guides/page.tsx</code></td>
+                <td><code>/admin/guides</code></td>
+                <td><code>components/admin/guides/admin-guides-page</code>.</td>
+              </tr>
+              <tr>
                 <td><code>app/(admin)/admin/detail-layout/page.tsx</code></td>
                 <td><code>/admin/detail-layout</code></td>
                 <td><code>components/admin/detail-layout/admin-detail-layout-page</code>.</td>
@@ -274,6 +289,16 @@
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
                 <td>Validate site settings, handle asset uploads, persist settings, revalidate public settings cache.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/api/admin/guides/route.ts</code></td>
+                <td><code>/api/admin/guides</code></td>
+                <td>Admin auth, parse/validate guide drafts, generate unique slugs, persist guide posts, revalidate guide cache.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/api/admin/guides/assets/route.ts</code></td>
+                <td><code>/api/admin/guides/assets</code></td>
+                <td>Admin-authenticated guide cover/inline image uploads to Supabase Storage with upload history and cleanup on failure.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/detail-layout/route.ts</code></td>
@@ -327,8 +352,13 @@
               <td>Contact actions should be backed by <code>lib/site-contact.ts</code>.</td>
             </tr>
             <tr>
+              <td><code>components/guides</code></td>
+              <td>Public guide list/detail pages, guide content rendering, and guide-to-villa recommendation surfaces.</td>
+              <td>Keep public guide pages article-focused and reuse <code>components/villas/listing</code> for recommended villa cards.</td>
+            </tr>
+            <tr>
               <td><code>components/admin</code></td>
-              <td>Admin shell, settings editor, section editor, detail layout editor, login form.</td>
+              <td>Admin shell, settings editor, section editor, guide editor, detail layout editor, login form.</td>
               <td>Keep admin screens compact, Thai-facing, and consistent with settings/sections UX patterns.</td>
             </tr>
             <tr>
@@ -372,13 +402,18 @@
               <td><code>lib/detail-layout/__tests__</code></td>
             </tr>
             <tr>
+              <td><code>lib/guides</code></td>
+              <td>Guide CMS types, defaults, slug/validation helpers, Supabase server reads, recommendation ordering, admin API tests.</td>
+              <td><code>lib/guides/__tests__</code></td>
+            </tr>
+            <tr>
               <td><code>lib/cache-policy.ts</code></td>
-              <td>Cache durations, cache tags, and public Cache-Control headers. External villa listing/detail caches use a 15-minute TTL.</td>
+              <td>Cache durations, cache tags, and public Cache-Control headers. External villa listing/detail caches use a 15-minute TTL; guide CMS uses guide/list tags.</td>
               <td><code>lib/__tests__/cache-policy.test.ts</code></td>
             </tr>
             <tr>
               <td><code>lib/cache-revalidation.ts</code></td>
-              <td>Shared path and tag revalidation helpers for settings, home sections, detail layout, and external villa data.</td>
+              <td>Shared path and tag revalidation helpers for settings, home sections, guide pages, detail layout, and external villa data.</td>
               <td><code>lib/cache-revalidation.test.ts</code></td>
             </tr>
             <tr>
@@ -447,6 +482,12 @@
               <td>Supabase detail layout config.</td>
               <td><code>lib/detail-layout</code>, admin detail layout API, detail layout cache revalidation.</td>
               <td>Villa detail renderer and admin detail layout builder.</td>
+            </tr>
+            <tr>
+              <td>Guide CMS</td>
+              <td>Supabase <code>guide_posts</code>, <code>guide_asset_uploads</code>, and public <code>guide-assets</code> storage bucket.</td>
+              <td><code>lib/guides</code>, guide cache tags, slug validation, admin guide APIs.</td>
+              <td>Public guide list/detail pages, admin guide editor, sitemap guide URLs.</td>
             </tr>
           </tbody>
         </table>
@@ -622,6 +663,11 @@
               <td>Detail layout config, renderer, or builder</td>
               <td><code>npm.cmd test -- lib/detail-layout</code> and relevant detail/admin detail-layout tests</td>
               <td>Run lint and build before completion.</td>
+            </tr>
+            <tr>
+              <td>Guide CMS, guide routes, guide validation, uploads, or guide admin UI</td>
+              <td><code>npm.cmd test -- lib/guides</code> plus guide-related cache tests when cache behavior changes</td>
+              <td>Run lint, build, and browser verification for <code>/guides</code>, <code>/guides/:slug</code>, and <code>/admin/guides</code> when UI changes.</td>
             </tr>
             <tr>
               <td>Cache policy or revalidation behavior</td>
