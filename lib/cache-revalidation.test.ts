@@ -4,6 +4,7 @@ import { CACHE_TAGS } from "./cache-policy";
 import {
   revalidateDetailLayoutCache,
   revalidateExternalVillaCache,
+  revalidateGuideCache,
   revalidateHomeSectionsCache,
   revalidateSiteSettingsCache,
 } from "./cache-revalidation";
@@ -37,6 +38,21 @@ describe("cache revalidation", () => {
       expire: 0,
     });
     expect(revalidatePathMock).toHaveBeenCalledWith("/");
+  });
+
+  it("expires guide tags and public guide paths", () => {
+    revalidateGuideCache("family-pool-villa");
+
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.guides, {
+      expire: 0,
+    });
+    expect(revalidateTagMock).toHaveBeenCalledWith(
+      CACHE_TAGS.guide("family-pool-villa"),
+      { expire: 0 },
+    );
+    expect(revalidatePathMock).toHaveBeenCalledWith("/guides");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/guides/family-pool-villa");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/sitemap.xml");
   });
 
   it("expires detail layout settings and detail pages", () => {

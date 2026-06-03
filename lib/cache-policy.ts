@@ -2,6 +2,7 @@ const ONE_DAY_SECONDS = 60 * 60 * 24;
 const FIFTEEN_MINUTES_SECONDS = 15 * 60;
 
 export const CACHE_REVALIDATE_SECONDS = {
+  guides: ONE_DAY_SECONDS,
   homeSections: ONE_DAY_SECONDS,
   siteSettings: ONE_DAY_SECONDS,
   villaDetail: FIFTEEN_MINUTES_SECONDS,
@@ -10,6 +11,8 @@ export const CACHE_REVALIDATE_SECONDS = {
 } as const;
 
 export const CACHE_TAGS = {
+  guide: (slug: string) => `guide:${slug}`,
+  guides: "guides",
   homeSections: "home-sections",
   siteSettings: "site-settings",
   villaDetail: (id: string) => `villa-detail:${id}`,

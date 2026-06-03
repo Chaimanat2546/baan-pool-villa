@@ -27,6 +27,18 @@ export function revalidateHomeSectionsCache() {
   revalidatePaths(["/"]);
 }
 
+export function revalidateGuideCache(slug?: string | null) {
+  revalidateTags([
+    CACHE_TAGS.guides,
+    ...(slug ? [CACHE_TAGS.guide(slug)] : []),
+  ]);
+  revalidatePaths(["/guides", "/sitemap.xml"]);
+
+  if (slug) {
+    revalidatePath(`/guides/${slug}`);
+  }
+}
+
 export function revalidateDetailLayoutCache() {
   revalidateTags([CACHE_TAGS.siteSettings]);
   revalidatePath("/villas/[id]", "page");

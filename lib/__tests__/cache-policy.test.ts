@@ -17,9 +17,14 @@ describe("cache policy", () => {
     expect(CACHE_REVALIDATE_SECONDS.siteSettings).toBe(60 * 60 * 24);
     expect(CACHE_REVALIDATE_SECONDS.homeSections).toBe(60 * 60 * 24);
     expect(CACHE_REVALIDATE_SECONDS.villaImages).toBe(60 * 60 * 24);
+    expect(CACHE_REVALIDATE_SECONDS.guides).toBe(60 * 60 * 24);
   });
 
   it("builds stable cache tags and public paths", () => {
+    expect(CACHE_TAGS.guide("family-pool-villa")).toBe(
+      "guide:family-pool-villa",
+    );
+    expect(CACHE_TAGS.guides).toBe("guides");
     expect(CACHE_TAGS.villaListings).toBe("villa-listings");
     expect(CACHE_TAGS.villaDetails).toBe("villa-details");
     expect(CACHE_TAGS.villaDetail("42")).toBe("villa-detail:42");
