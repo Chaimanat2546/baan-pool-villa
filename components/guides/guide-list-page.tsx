@@ -1,4 +1,4 @@
-import { ArrowRight, Pin } from "lucide-react";
+import { ArrowRight, FileText, Pin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -23,10 +23,10 @@ function GuideCard({
 
   return (
     <Link
-      className="group grid overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_36px_rgba(15,47,53,0.14)]"
+      className="group block overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-px shadow-[0_10px_15px_-3px_rgba(0,0,0,0.05),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_28px_-8px_rgba(15,47,53,0.18)]"
       href={`/guides/${guide.slug}`}
     >
-      <div className="relative aspect-[16/10] overflow-hidden bg-[var(--site-surface-tint)]">
+      <div className="relative h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]">
         {imageUrl ? (
           <Image
             alt={guide.coverImage?.alt ?? guide.title}
@@ -37,7 +37,7 @@ function GuideCard({
             src={imageUrl}
           />
         ) : (
-          <div className="grid h-full place-items-center text-sm text-[var(--site-muted)]">
+          <div className="grid h-full place-items-center text-sm font-semibold text-[var(--site-muted)]">
             บทความบ้านพัก
           </div>
         )}
@@ -74,65 +74,47 @@ function GuideCard({
 }
 
 export function GuideListPage({ guides }: GuideListPageProps) {
-  const pinnedGuides = guides.filter((guide) => guide.isPinned);
-  const allGuides = guides;
-
   return (
-    <main className="bg-[var(--site-surface-soft)] text-[var(--site-text)]">
-      <section className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold text-[var(--site-primary)]">
-            Baan Pool Villa Guide
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
-            บทความแนะนำบ้านพักและทริปพัทยา
-          </h1>
-          <p className="mt-3 text-base leading-8 text-[var(--site-muted)]">
-            รวมวิธีเลือกบ้านพักพูลวิลล่า เตรียมทริป และดูบ้านที่เหมาะกับกลุ่มของคุณ
-          </p>
-        </div>
-
-        {guides.length === 0 ? (
-          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-10 text-center text-sm text-[var(--site-muted)]">
-            ยังไม่มีบทความเผยแพร่
+    <main className="min-h-screen bg-[var(--site-surface-soft)] px-4 py-5 text-[var(--site-text)] sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
+        <header className="py-3">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--site-accent)]">
+              Baan Pool Villa Guide
+            </p>
+            <h1 className="mt-2 max-w-3xl text-3xl font-black leading-tight text-[var(--site-text)] sm:text-4xl">
+              บทความแนะนำบ้านพักและทริปพัทยา
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--site-muted)] sm:text-base sm:leading-7">
+              รวมวิธีเลือกบ้านพักพูลวิลล่า เตรียมทริป และดูบ้านที่เหมาะกับกลุ่มของคุณ
+            </p>
           </div>
-        ) : null}
-      </section>
+        </header>
 
-      {pinnedGuides.length > 0 ? (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-8 sm:px-6 lg:px-8">
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-semibold">บทความเด่น</h2>
-              <p className="mt-1 text-sm text-[var(--site-muted)]">
-                อ่านก่อนเพื่อเลือกบ้านพักได้เร็วขึ้น
-              </p>
+        <section className="scroll-mt-6">
+          {guides.length === 0 ? (
+            <div className="flex min-h-80 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center shadow-[0_14px_42px_rgba(6,63,53,0.06)]">
+              <div className="max-w-md">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <h2 className="mt-4 text-2xl font-black text-[var(--site-text)]">
+                  ยังไม่มีบทความเผยแพร่
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">
+                  เมื่อเผยแพร่บทความจาก CMS แล้ว บทความจะแสดงในหน้านี้ตามลำดับปักหมุดก่อน
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {pinnedGuides.map((guide, index) => (
-              <GuideCard guide={guide} key={guide.id} priority={index === 0} />
-            ))}
-          </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {guides.map((guide, index) => (
+                <GuideCard guide={guide} key={guide.id} priority={index === 0} />
+              ))}
+            </div>
+          )}
         </section>
-      ) : null}
-
-      {allGuides.length > 0 ? (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-14 sm:px-6 lg:px-8 lg:pb-20">
-          <div className="mb-4">
-            <h2 className="text-2xl font-semibold">บทความทั้งหมด</h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {allGuides.map((guide, index) => (
-              <GuideCard
-                guide={guide}
-                key={guide.id}
-                priority={pinnedGuides.length === 0 && index === 0}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
+      </div>
     </main>
   );
 }

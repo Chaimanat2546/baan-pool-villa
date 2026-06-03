@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 
+import type { GuidePost } from "@/lib/guides/types";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import {
@@ -23,18 +24,21 @@ import { VillaRail } from "./villa-rail";
 import { WhyChooseSection } from "./why-choose-section";
 
 interface HomePageProps {
+  initialGuides?: GuidePost[];
   initialHomeSections?: ResolvedHomeSection[];
   initialVillas?: VillaListing[];
   settings: SiteSettings;
 }
 
 export function HomePage({
+  initialGuides = [],
   initialHomeSections = [],
   initialVillas = [],
   settings,
 }: HomePageProps) {
   const router = useRouter();
   const [villas] = useState<VillaListing[]>(() => initialVillas);
+  const [guides] = useState<GuidePost[]>(() => initialGuides);
   const [homeSections] = useState<ResolvedHomeSection[]>(
     () => initialHomeSections,
   );
@@ -88,7 +92,7 @@ export function HomePage({
         )}
 
         <DestinationsSection villas={villas} />
-        <ArticlesSection villas={villas} />
+        <ArticlesSection guides={guides} />
         <FaqSection />
         <ContactSection settings={settings} />
       </div>

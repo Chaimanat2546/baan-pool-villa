@@ -1,78 +1,100 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Pin } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
-import type { VillaListing } from "@/lib/villas/types";
+import type { GuidePost } from "@/lib/guides/types";
 
 import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
-import { MockBadge } from "./shared";
 
-const articleCards = [
-  {
-    body: "คาเฟ่บรรยากาศทะเล เหมาะกับถ่ายรูปและนั่งชิลระหว่างทริป",
-    category: "จอมเทียน",
-    title: "Sea Salt Cafe",
-  },
-  {
-    body: "คาเฟ่สวนใกล้ชายหาด เหมาะกับครอบครัวและกลุ่มเพื่อน",
-    category: "บางแสน",
-    title: "Garden Beach Cafe",
-  },
-  {
-    body: "เช็กลิสต์สิ่งอำนวยความสะดวกที่ควรมองหาก่อนจองบ้านพักสำหรับกลุ่มใหญ่",
-    category: "Checklist",
-    title: "เตรียมตัวก่อนจองบ้านพัก",
-  },
-];
+const HOME_GUIDE_LIMIT = 7;
 
 interface ArticlesSectionProps {
-  villas: VillaListing[];
+  guides: GuidePost[];
 }
 
-export function ArticlesSection({ villas }: ArticlesSectionProps) {
+export function selectHomeGuides(guides: GuidePost[]): GuidePost[] {
+  return guides.slice(0, HOME_GUIDE_LIMIT);
+}
+
+function getGuideImage(guide: GuidePost) {
+  return guide.coverImage?.url ?? null;
+}
+
+export function ArticlesSection({ guides }: ArticlesSectionProps) {
+  const visibleGuides = selectHomeGuides(guides);
+
+  if (visibleGuides.length === 0) {
+    return null;
+  }
+
   return (
-    <section id="cafes" className="mx-auto w-full max-w-7xl scroll-mt-28 px-4 py-14 sm:px-6 lg:px-8">
+    <section
+      id="guides"
+      className="mx-auto w-full max-w-7xl scroll-mt-28 px-4 py-14 sm:px-6 lg:px-8"
+      data-home-guides
+    >
       <SectionHeader
-        title="คาเฟ่ที่แนะนำ"
-        description="รวมคาเฟ่น่าแวะใกล้โซนบ้านพัก ช่วยให้วางแผนทริปได้ครบทั้งที่พักและที่เที่ยว"
+        title="บทความแนะนำ"
+        description="อ่านไกด์เลือกพูลวิลล่า วิธีเตรียมทริป และบ้านพักที่เหมาะกับกลุ่มของคุณ"
       />
       <ScrollRail
-        label="คาเฟ่ที่แนะนำ"
+        label="บทความแนะนำ"
         className="-mx-4 mt-8 gap-6 px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
       >
-        {articleCards.slice(0, 12).map((article, index) => {
-          const articleImage = villas[index + 2]?.coverImage;
+        {visibleGuides.map((guide, index) => {
+          const imageUrl = getGuideImage(guide);
 
           return (
-            <article
-              key={article.title}
-              className="w-[306px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_34px_rgba(6,63,53,0.07)] md:w-[394px]"
+            <Link
+              className="group w-[306px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_34px_rgba(6,63,53,0.07)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_36px_rgba(15,47,53,0.14)] md:w-[394px]"
+              href={`/guides/${guide.slug}`}
+              key={guide.id}
             >
               <div className="relative aspect-[4/3] bg-[var(--site-surface-tint)]">
-                {articleImage ? (
+                {imageUrl ? (
                   <Image
-                    src={articleImage}
-                    alt={article.title}
+                    alt={guide.coverImage?.alt ?? guide.title}
+                    className="object-cover transition duration-500 group-hover:scale-105"
                     fill
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover"
+                    priority={index === 0}
+                    sizes="(max-width: 768px) 306px, 394px"
+                    src={imageUrl}
                   />
-                ) : null}
-                <span className="absolute right-3 top-3 rounded-full bg-[var(--site-surface)] px-3 py-1 text-xs font-black text-[var(--site-primary)] backdrop-blur">
-                  {article.category}
-                </span>
+                ) : (
+                  <div className="grid h-full place-items-center text-sm font-semibold text-[var(--site-muted)]">
+                    บทความบ้านพัก
+                  </div>
+                )}
+                <div className="absolute left-3 right-3 top-3 flex flex-wrap gap-2">
+                  {guide.isPinned ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--site-primary)] px-3 py-1 text-xs font-semibold text-[var(--site-on-primary)] shadow-[0_8px_18px_rgba(6,63,53,0.16)]">
+                      <Pin aria-hidden="true" className="size-3" />
+                      เด่น
+                    </span>
+                  ) : null}
+                  {guide.tags.slice(0, 1).map((tag) => (
+                    <span
+                      className="rounded-full bg-[var(--site-surface)]/95 px-3 py-1 text-xs font-semibold text-[var(--site-primary)] backdrop-blur"
+                      key={tag}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
               <div className="p-6">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-black text-[var(--site-text)]">{article.title}</h3>
-                  <MockBadge />
-                </div>
-                <p className="mt-3 text-sm leading-6 text-[var(--site-muted)]">{article.body}</p>
-                <span className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--site-primary)]">
-                  อ่านต่อ <ArrowRight className="h-4 w-4" />
+                <h3 className="line-clamp-2 text-xl font-semibold leading-7 text-[var(--site-text)]">
+                  {guide.title}
+                </h3>
+                <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--site-muted)]">
+                  {guide.excerpt}
+                </p>
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-primary)]">
+                  อ่านบทความ <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </span>
               </div>
-            </article>
+            </Link>
           );
         })}
       </ScrollRail>
