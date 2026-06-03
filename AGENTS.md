@@ -33,13 +33,16 @@ For trivial changes, use a shortened workflow: inspect the relevant file, make t
 
 Use the model names available in this Codex workspace: `GPT-5.5`, `GPT-5.4`, `GPT-5.4-Mini`, and `GPT-5.3-Codex-Spark`.
 
+- Manual model handoff rule: for non-trivial product, UI, API, data, settings, shared helper, Supabase, Next.js, security, or debugging work, stop before implementation. Tell the user which model and reasoning level to switch to for the next step, then wait until the user switches model and explicitly says to continue.
+- Superpowers subagent rule: spawning subagents through Superpowers, including parallel agents or subagent-driven development, counts as implementation for non-trivial work. Do not dispatch subagents before the manual model handoff step above. After the user switches model and says to continue, include these `AGENTS.md` model handoff rules, scope limits, verification requirements, and ownership constraints in every subagent prompt. If the subagent tool supports model or reasoning overrides, set them explicitly according to this model strategy for each subagent. If the tool cannot control a subagent's model, do not spawn it for non-trivial work without explicit user approval. Never use subagents to bypass a required model switch.
+- Small docs, copy, README, and file-inventory edits may proceed with the current model unless they affect product behavior, schema, routes, validation, or public/admin UX.
 - Ordinary UI work such as navbar, cards, responsive layout, bottom nav, colors, and spacing: use `GPT-5.4-Mini` with `Low` or `Medium`, or `GPT-5.4` with `Medium`.
 - Next.js, Supabase, API routes, routing, image gallery, and search filters: use `GPT-5.4` with `High` for planning. After the plan is clear, use `GPT-5.3-Codex-Spark` with `Medium` or `High` for narrow incremental code edits.
 - Data contracts, pricing, normalization, site settings, admin APIs, and RLS: use `GPT-5.5` with `High` for planning and risk review. Use `GPT-5.3-Codex-Spark` with `High` for implementation only after the plan is approved and broken into small steps. Finish with `GPT-5.5` using `Extra High` for review.
 - Hard bugs such as hydration mismatch, SSR, Suspense, Supabase policy failures, and deploy failures: use `GPT-5.5` with `Extra High` first for root-cause analysis. Then use `GPT-5.3-Codex-Spark` with `High` to fix one confirmed issue at a time.
 - Small docs, copy, README, and file-inventory work: use `GPT-5.4-Mini` with `Low`.
 - If `GPT-5.3-Codex-Spark` encounters unclear ownership, cross-module coupling, repeated test failures, or risky behavior changes, escalate back to `GPT-5.4` or `GPT-5.5` before continuing.
-- If model switching is unavailable, continue with the current model and compensate with fact checks, targeted tests, lint, build, and review before completion.
+- If model switching is unavailable, do not continue non-trivial implementation automatically. Ask the user whether to switch manually or explicitly continue with the current model, and if the user approves continuing, compensate with fact checks, targeted tests, lint, build, and review before completion.
 
 ## Stack
 
