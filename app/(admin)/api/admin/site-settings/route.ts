@@ -16,7 +16,9 @@ import {
 } from "@/lib/site-settings/validation";
 
 const SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls";
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,tiktok_account_url,tiktok_video_urls";
+const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
 const SITE_ASSET_UPLOADS_SELECT =
   "id,asset_type,storage_bucket,storage_path,is_current,created_at";
 const ASSET_UPLOAD_FIELDS: { assetType: SiteAssetType; fieldName: string }[] = [
@@ -52,6 +54,59 @@ interface SiteAssetUploadRow {
 
 type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
 type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
+
+function isMissingColumnError(error: SupabaseLikeError | null | undefined): boolean {
+  if (!error) {
+    return false;
+  }
+
+  const message = (error.message ?? "").toLowerCase();
+  return (
+    error.code === "42703" ||
+    (message.includes("column") && message.includes("does not exist")) ||
+    message.includes("schema cache") ||
+    message.includes("unknown column")
+  );
+}
+
+async function loadAdminSiteSettings(
+  supabase: HomeConfigSupabaseClient,
+): Promise<{
+  data: SiteSettingsRow | null;
+  error: SupabaseLikeError | null;
+}> {
+  const primary = await supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_SELECT)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (!primary.error) {
+    return {
+      data: (primary.data as SiteSettingsRow | null) ?? null,
+      error: null,
+    };
+  }
+
+  if (!isMissingColumnError(primary.error)) {
+    return { data: null, error: primary.error };
+  }
+
+  const fallback = await supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_SELECT_WITHOUT_TIKTOK)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (!fallback.error) {
+    return {
+      data: (fallback.data as SiteSettingsRow | null) ?? null,
+      error: null,
+    };
+  }
+
+  return { data: null, error: primary.error };
+}
 
 function supabaseErrorResponse(
   error: SupabaseLikeError | null | undefined,
@@ -422,11 +477,7 @@ export async function GET(request: Request) {
     return admin.response;
   }
 
-  const { data, error } = await admin.supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
+  const { data, error } = await loadAdminSiteSettings(admin.supabase);
 
   if (error) {
     return supabaseErrorResponse(error, "Unable to load site settings.");
@@ -470,6 +521,8 @@ export async function PUT(request: Request) {
     seoOgImageAlt: readStringField(formData, "seoOgImageAlt"),
     seoBusinessName: readStringField(formData, "seoBusinessName"),
     seoSameAsUrls: readStringArrayField(formData, "seoSameAsUrls"),
+    tiktokAccountUrl: readStringField(formData, "tiktokAccountUrl"),
+    tiktokVideoUrls: readStringArrayField(formData, "tiktokVideoUrls").slice(0, 3),
   });
   const errors = validateSiteSettingsDraft(draft);
   const uploadFiles: { assetType: SiteAssetType; file: File }[] = [];
@@ -489,11 +542,9 @@ export async function PUT(request: Request) {
     return Response.json({ errors }, { status: 400 });
   }
 
-  const { data: existingRow, error: loadError } = await admin.supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
+  const { data: existingRow, error: loadError } = await loadAdminSiteSettings(
+    admin.supabase,
+  );
 
   if (loadError) {
     return supabaseErrorResponse(loadError, "Unable to load site settings.");
@@ -560,6 +611,8 @@ export async function PUT(request: Request) {
     seo_og_image_alt: draft.seoOgImageAlt,
     seo_business_name: draft.seoBusinessName,
     seo_same_as_urls: draft.seoSameAsUrls,
+    tiktok_account_url: draft.tiktokAccountUrl,
+    tiktok_video_urls: draft.tiktokVideoUrls,
   };
 
   const { data, error: saveError } = await admin.supabase

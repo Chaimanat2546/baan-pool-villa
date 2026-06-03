@@ -67,6 +67,16 @@ const dbRow = {
     " https://www.facebook.com/baanpoolvillas ",
     " https://line.me/R/ti/p/@baanpoolvilla ",
   ],
+  tiktok_account_url: " https://www.tiktok.com/@baanpoolvilla ",
+  tiktok_video_urls: [
+    "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001?lang=th-TH",
+    "https://www.tiktok.com/player/v1/7370000000000000002",
+  ],
+};
+const dbRowWithoutTiktokColumns = {
+  ...dbRow,
+  tiktok_account_url: undefined,
+  tiktok_video_urls: undefined,
 };
 
 function siteSettingsSelectQuery(result: { data: unknown; error: unknown }) {
@@ -197,6 +207,18 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
         " https://line.me/R/ti/p/@baanpoolvilla ",
       ]),
   );
+  formData.set(
+    "tiktokAccountUrl",
+    overrides.tiktokAccountUrl ?? " https://www.tiktok.com/@baanpoolvilla ",
+  );
+  formData.set(
+    "tiktokVideoUrls",
+    overrides.tiktokVideoUrls ??
+      JSON.stringify([
+        "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+        "https://www.tiktok.com/player/v1/7370000000000000002",
+      ]),
+  );
 
   return formData;
 }
@@ -284,10 +306,80 @@ describe("admin site settings route", () => {
           ],
         },
         detailLayout: DEFAULT_DETAIL_LAYOUT,
+        tiktok: {
+          accountUrl: "https://www.tiktok.com/@baanpoolvilla",
+          videos: [
+            {
+              url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001?lang=th-TH",
+              videoId: "7370000000000000001",
+            },
+            {
+              url: "https://www.tiktok.com/player/v1/7370000000000000002",
+              videoId: "7370000000000000002",
+            },
+          ],
+        },
       },
     });
     expect(from).toHaveBeenCalledWith("site_settings");
+    expect(siteSettingsQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_account_url"),
+    );
+    expect(siteSettingsQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_video_urls"),
+    );
     expect(siteSettingsQuery.eq).toHaveBeenCalledWith("id", SITE_SETTINGS_ID);
+  });
+
+  it("falls back to a non-TikTok schema for GET when TikTok columns are missing", async () => {
+    const missingColumnError = {
+      message: "column site_settings.tiktok_account_url does not exist",
+      code: "42703",
+    };
+    const primaryQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingColumnError,
+    });
+    const fallbackQuery = siteSettingsSelectQuery({
+      data: dbRowWithoutTiktokColumns,
+      error: null,
+    });
+    const from = fromQueue({
+      site_settings: [primaryQuery, fallbackQuery],
+    });
+
+    authSupabase({ from });
+
+    const { GET } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await GET(authenticatedRequest());
+
+    await expect(response.json()).resolves.toMatchObject({
+      settings: {
+        siteName: "Baan Pool Villa",
+        primaryColor: "#064e3b",
+        accentColor: "#eab308",
+        heroImage: {
+          path: "hero/2026/05/hero.webp",
+          url: "https://example.com/hero.webp",
+          alt: "Pool villas",
+        },
+        tiktok: {
+          accountUrl: "",
+          videos: [],
+        },
+      },
+    });
+    expect(primaryQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_account_url"),
+    );
+    expect(fallbackQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_account_url"),
+    );
+    expect(fallbackQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_video_urls"),
+    );
   });
 
   it("rejects missing auth before reading settings", async () => {
@@ -365,7 +457,7 @@ describe("admin site settings route", () => {
     const response = await PUT(putRequest(settingsForm()));
 
     expect(saveQuery.upsert).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         id: SITE_SETTINGS_ID,
         site_name: "Updated Villas",
         primary_color: "#123abc",
@@ -397,7 +489,12 @@ describe("admin site settings route", () => {
           "https://www.facebook.com/baanpoolvillas",
           "https://line.me/R/ti/p/@baanpoolvilla",
         ],
-      },
+        tiktok_account_url: "https://www.tiktok.com/@baanpoolvilla",
+        tiktok_video_urls: [
+          "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+          "https://www.tiktok.com/player/v1/7370000000000000002",
+        ],
+      }),
       { onConflict: "id" },
     );
     await expect(response.json()).resolves.toMatchObject({
@@ -450,6 +547,64 @@ describe("admin site settings route", () => {
     });
     expect(jsonErrorMock).not.toHaveBeenCalled();
     expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back before save on PUT when TikTok columns are missing and surfaces save failure", async () => {
+    const missingColumnError = {
+      message: "column site_settings.tiktok_account_url does not exist",
+      code: "42703",
+    };
+    const loadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingColumnError,
+    });
+    const fallbackLoadQuery = siteSettingsSelectQuery({
+      data: dbRowWithoutTiktokColumns,
+      error: null,
+    });
+    const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: missingColumnError,
+    });
+    const from = fromQueue({
+      site_settings: [loadQuery, fallbackLoadQuery, saveQuery],
+    });
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await PUT(putRequest(settingsForm()));
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toMatchObject({
+      error: "column site_settings.tiktok_account_url does not exist",
+      code: "42703",
+    });
+    expect(fallbackLoadQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_video_urls"),
+    );
+    expect(saveQuery.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: SITE_SETTINGS_ID,
+        site_name: "Updated Villas",
+        primary_color: "#123abc",
+        accent_color: "#fedcba",
+        logo_image_path: "logo/2026/05/logo.webp",
+        logo_image_url: "https://example.com/logo.webp",
+        hero_image_path: "hero/2026/05/hero.webp",
+        hero_image_url: "https://example.com/hero.webp",
+        hero_image_alt: "Updated hero",
+        tiktok_account_url: "https://www.tiktok.com/@baanpoolvilla",
+        tiktok_video_urls: [
+          "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+          "https://www.tiktok.com/player/v1/7370000000000000002",
+        ],
+      }),
+      { onConflict: "id" },
+    );
   });
 
   it("uploads an image, records history, saves settings, and cleans eligible old rows", async () => {

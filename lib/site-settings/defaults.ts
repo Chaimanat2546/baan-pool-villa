@@ -10,6 +10,7 @@ import type {
   SiteContactSettings,
   SiteSeoSettings,
   SiteSettings,
+  SiteTikTokSettings,
 } from "./types";
 
 export const SITE_SETTINGS_ID = "global";
@@ -61,6 +62,11 @@ export const DEFAULT_SITE_SEO_SETTINGS: SiteSeoSettings = {
   ],
 };
 
+export const DEFAULT_SITE_TIKTOK_SETTINGS: SiteTikTokSettings = {
+  accountUrl: "",
+  videos: [],
+};
+
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "Pool Villas Pattaya",
   primaryColor: "#064e3b",
@@ -78,5 +84,6 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   bank: DEFAULT_SITE_BANK_SETTINGS,
   contact: DEFAULT_SITE_CONTACT_SETTINGS,
   seo: DEFAULT_SITE_SEO_SETTINGS,
+  tiktok: DEFAULT_SITE_TIKTOK_SETTINGS,
   detailLayout: DEFAULT_DETAIL_LAYOUT,
 };

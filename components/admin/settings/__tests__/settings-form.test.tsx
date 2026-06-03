@@ -23,15 +23,15 @@ import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import { SettingsForm } from "../settings-form";
 import { mapSettingsToDraft } from "../settings-helpers";
 
-function renderSettingsForm() {
+function renderSettingsForm(
+  settings = DEFAULT_SITE_SETTINGS,
+) {
   return renderToStaticMarkup(
     <SettingsForm
-      draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
-      hasUnsavedChanges={false}
-      isSaving={false}
+      draft={mapSettingsToDraft(settings)}
       onChange={vi.fn()}
       onSave={vi.fn()}
-      settings={DEFAULT_SITE_SETTINGS}
+      settings={settings}
     />,
   );
 }
@@ -62,5 +62,46 @@ describe("SettingsForm", () => {
     expect(html).toContain("ตัวอย่างผลค้นหา Google");
     expect(html).toContain("ตัวอย่างตอนแชร์ลิงก์");
     expect(html).toContain("ดูบ้านพัก");
+  });
+  it("shows TikTok controls in form and side preview", () => {
+    const html = renderSettingsForm({
+      ...DEFAULT_SITE_SETTINGS,
+      tiktok: {
+        accountUrl: "https://www.tiktok.com/@baanpoolvilla",
+        videos: [
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
+            videoId: "7370000000000000001",
+          },
+          {
+            url: "",
+            videoId: "",
+          },
+          {
+            url: "",
+            videoId: "",
+          },
+        ],
+      },
+    });
+
+    expect(html).toContain("TikTok");
+    expect(html).toContain("ตั้งค่าแล้ว 1 วิดีโอ");
+    expect(html).toContain("https://www.tiktok.com/@baanpoolvilla");
+    expect(html).toContain("ลิงก์บัญชี TikTok");
+    expect(html).toContain("ลิงก์วิดีโอ TikTok 1");
+  });
+
+  it("shows TikTok empty state when no configured videos", () => {
+    const html = renderSettingsForm({
+      ...DEFAULT_SITE_SETTINGS,
+      tiktok: {
+        accountUrl: "",
+        videos: [],
+      },
+    });
+
+    expect(html).toContain("ยังไม่แสดงวิดีโอ TikTok บนหน้าแรก");
+    expect(html).toContain("ยังไม่ได้ใส่ลิงก์บัญชี");
   });
 });

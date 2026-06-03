@@ -187,6 +187,26 @@ export function SettingsForm({
     });
   }
 
+  const tiktokVideoUrls = [...draft.tiktokVideoUrls];
+  while (tiktokVideoUrls.length < 3) {
+    tiktokVideoUrls.push("");
+  }
+  const tiktokConfiguredCount = draft.tiktokVideoUrls.filter(
+    (videoUrl) => videoUrl.trim().length > 0,
+  ).length;
+
+  function updateTiktokVideoUrl(index: number, value: string) {
+    const nextTiktokVideoUrls = [...draft.tiktokVideoUrls];
+
+    while (nextTiktokVideoUrls.length <= index) {
+      nextTiktokVideoUrls.push("");
+    }
+
+    nextTiktokVideoUrls[index] = value;
+
+    onChange({ tiktokVideoUrls: nextTiktokVideoUrls.slice(0, 3) });
+  }
+
   return (
     <form
       className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]"
@@ -437,6 +457,32 @@ export function SettingsForm({
                 value={draft.lineUrl}
               />
             </div>
+            <div className="mt-4 grid gap-3">
+              <h3 className="text-sm font-semibold text-[var(--site-text)]">TikTok</h3>
+              <TextControl
+                id="tiktokAccountUrl"
+                label="ลิงก์บัญชี TikTok"
+                onChange={(tiktokAccountUrl) => {
+                  onChange({ tiktokAccountUrl });
+                }}
+                placeholder="https://www.tiktok.com/@baanpoolvilla"
+                value={draft.tiktokAccountUrl}
+              />
+              <div className="grid gap-3 lg:grid-cols-3">
+                {tiktokVideoUrls.slice(0, 3).map((url, index) => (
+                  <TextControl
+                    key={`tiktokVideoUrl-${index}`}
+                    id={`tiktokVideoUrl-${index + 1}`}
+                    label={`ลิงก์วิดีโอ TikTok ${index + 1}`}
+                    onChange={(videoUrl) => {
+                      updateTiktokVideoUrl(index, videoUrl);
+                    }}
+                    placeholder={`https://www.tiktok.com/@baanpoolvilla/video/737000000000000000${index + 1}`}
+                    value={url}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </SectionGroup>
       </div>
@@ -501,6 +547,18 @@ export function SettingsForm({
                   ตัวอย่างตอนแชร์ลิงก์
                 </p>
               </div>
+            </div>
+
+            <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-3">
+              <h3 className="text-sm font-semibold text-[var(--site-text)]">TikTok</h3>
+              <p className="mt-1 text-sm text-[var(--site-text)]">
+                {tiktokConfiguredCount > 0
+                  ? `ตั้งค่าแล้ว ${tiktokConfiguredCount} วิดีโอ`
+                  : "ยังไม่แสดงวิดีโอ TikTok บนหน้าแรก"}
+              </p>
+              <p className="mt-2 line-clamp-2 text-sm text-[var(--site-muted)]">
+                {draft.tiktokAccountUrl.trim() || "ยังไม่ได้ใส่ลิงก์บัญชี"}
+              </p>
             </div>
           </div>
         </section>

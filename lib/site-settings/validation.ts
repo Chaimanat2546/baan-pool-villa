@@ -10,6 +10,7 @@ import type {
   SiteImageSettings,
   SitePhoneContact,
   SiteSettings,
+  SiteTikTokVideoSettings,
   SiteSettingsDraft,
   SiteSettingsRow,
 } from "./types";
@@ -21,6 +22,12 @@ const SEO_DESCRIPTION_MAX_LENGTH = 180;
 const SEO_IMAGE_ALT_MAX_LENGTH = 160;
 const SEO_BUSINESS_NAME_MAX_LENGTH = 100;
 const SEO_SAME_AS_URLS_MAX_COUNT = 6;
+const TIKTOK_VIDEO_URLS_MAX_COUNT = 3;
+const TIKTOK_HOSTS = new Set(["tiktok.com", "www.tiktok.com", "m.tiktok.com"]);
+const TIKTOK_VIDEO_ID_PATTERN = /^\d{8,30}$/;
+const TIKTOK_PROFILE_PATH_PATTERN = /^\/@[^/]+\/?$/;
+const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
+const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
 
 export function isHexColor(value: string): boolean {
@@ -45,6 +52,9 @@ export function normalizeSiteSettingsRow(
   const accentColor = normalizeColor(
     row.accent_color,
     DEFAULT_SITE_SETTINGS.accentColor,
+  );
+  const tiktokAccountUrl = normalizeTikTokAccountUrl(
+    row.tiktok_account_url,
   );
 
   return {
@@ -121,6 +131,10 @@ export function normalizeSiteSettingsRow(
         DEFAULT_SITE_SETTINGS.seo.sameAsUrls,
       ),
     },
+    tiktok: {
+      accountUrl: tiktokAccountUrl,
+      videos: normalizeTikTokVideosFromRow(row.tiktok_video_urls),
+    },
     detailLayout: normalizeAnyDetailLayout(row.detail_layout),
   };
 }
@@ -152,6 +166,10 @@ export function normalizeSiteSettingsDraft(
     seoSameAsUrls: draft.seoSameAsUrls
       .map((url) => url.trim())
       .filter((url) => url.length > 0),
+    tiktokAccountUrl: draft.tiktokAccountUrl.trim(),
+    tiktokVideoUrls: draft.tiktokVideoUrls
+      .map((url) => url.trim())
+      .slice(0, TIKTOK_VIDEO_URLS_MAX_COUNT),
   };
 }
 
@@ -258,6 +276,34 @@ export function validateSiteSettingsDraft(
     errors.push("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");
   }
 
+  const trimmedTiktokAccountUrl = draft.tiktokAccountUrl.trim();
+
+  if (trimmedTiktokAccountUrl.length === 0) {
+    if (draft.tiktokVideoUrls.some((videoUrl) => videoUrl.trim().length > 0)) {
+      errors.push(
+        "ต้องใส่ลิงก์บัญชี TikTok เมื่อใส่วิดีโอ TikTok",
+      );
+    }
+  } else if (!isValidTikTokAccountUrl(trimmedTiktokAccountUrl)) {
+    errors.push(
+      "ลิงก์บัญชี TikTok ต้องเป็น URL โปรไฟล์ TikTok เช่น https://www.tiktok.com/@baanpoolvilla",
+    );
+  }
+
+  draft.tiktokVideoUrls.forEach((videoUrl, index) => {
+    const trimmedUrl = videoUrl.trim();
+
+    if (trimmedUrl.length === 0) {
+      return;
+    }
+
+    if (!isValidTikTokVideoUrl(trimmedUrl)) {
+      errors.push(
+        `ลิงก์วิดีโอ TikTok รายการที่ ${index + 1} ต้องเป็นลิงก์วิดีโอแบบเต็ม เช่น https://www.tiktok.com/@account/video/1234567890`,
+      );
+    }
+  });
+
   return errors;
 }
 
@@ -358,6 +404,109 @@ function normalizePublicImage(
     url: trimmedUrl,
     alt,
   };
+}
+
+function normalizeTikTokVideosFromRow(
+  value: unknown,
+): SiteTikTokVideoSettings[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const videos = value
+    .filter((item): item is string => typeof item === "string")
+    .map((url) => url.trim())
+    .map((url) => {
+      const videoId = parseTikTokVideoId(url);
+
+      if (videoId === null) {
+        return null;
+      }
+
+      return {
+        url,
+        videoId,
+      };
+    })
+    .filter((video): video is SiteTikTokVideoSettings => video !== null);
+
+  return videos.slice(0, TIKTOK_VIDEO_URLS_MAX_COUNT);
+}
+
+function normalizeTikTokAccountUrl(value: string | null | undefined): string {
+  const trimmed = value?.trim() ?? "";
+
+  return isValidTikTokAccountUrl(trimmed) ? trimmed : "";
+}
+
+function isValidTikTokAccountUrl(value: string): boolean {
+  const videoId = parseTikTokVideoId(value);
+
+  return videoId === null && isValidTikTokHostAndPath(value, TIKTOK_PROFILE_PATH_PATTERN);
+}
+
+function isValidTikTokVideoUrl(value: string): boolean {
+  return parseTikTokVideoId(value) !== null;
+}
+
+function parseTikTokVideoId(value: string): string | null {
+  const parsed = parseTikTokUrl(value);
+
+  if (parsed === null) {
+    return null;
+  }
+
+  const profileMatch = TIKTOK_PROFILE_VIDEO_PATH_PATTERN.exec(parsed.pathname);
+  if (profileMatch) {
+    const videoId = profileMatch[1];
+    if (videoId && TIKTOK_VIDEO_ID_PATTERN.test(videoId)) {
+      return videoId;
+    }
+  }
+
+  const playerMatch = TIKTOK_PLAYER_VIDEO_PATH_PATTERN.exec(parsed.pathname);
+  if (playerMatch) {
+    const videoId = playerMatch[1];
+    if (videoId && TIKTOK_VIDEO_ID_PATTERN.test(videoId)) {
+      return videoId;
+    }
+  }
+
+  return null;
+}
+
+function isValidTikTokHostAndPath(
+  value: string,
+  pathPattern: RegExp,
+): boolean {
+  const parsed = parseTikTokUrl(value);
+
+  if (parsed === null) {
+    return false;
+  }
+
+  return (
+    TIKTOK_HOSTS.has(parsed.hostname.toLowerCase()) &&
+    pathPattern.test(parsed.pathname)
+  );
+}
+
+function parseTikTokUrl(value: string): URL | null {
+  try {
+    const url = new URL(value);
+
+    if (!TIKTOK_HOSTS.has(url.hostname.toLowerCase())) {
+      return null;
+    }
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+
+    return url;
+  } catch {
+    return null;
+  }
 }
 
 function normalizePhoneContacts(

@@ -44,6 +44,16 @@ export interface SiteSeoSettings {
   sameAsUrls: string[];
 }
 
+export interface SiteTikTokVideoSettings {
+  url: string;
+  videoId: string;
+}
+
+export interface SiteTikTokSettings {
+  accountUrl: string;
+  videos: SiteTikTokVideoSettings[];
+}
+
 export interface SiteSettings {
   siteName: string;
   primaryColor: string;
@@ -53,6 +63,7 @@ export interface SiteSettings {
   bank: SiteBankSettings;
   contact: SiteContactSettings;
   seo: SiteSeoSettings;
+  tiktok: SiteTikTokSettings;
   detailLayout: AnyDetailLayoutConfig;
 }
 
@@ -84,6 +95,8 @@ export interface SiteSettingsRow {
   seo_og_image_alt?: string | null;
   seo_business_name?: string | null;
   seo_same_as_urls?: unknown;
+  tiktok_account_url?: string | null;
+  tiktok_video_urls?: unknown;
   detail_layout?: unknown;
 }
 
@@ -105,4 +118,6 @@ export interface SiteSettingsDraft {
   seoOgImageAlt: string;
   seoBusinessName: string;
   seoSameAsUrls: string[];
+  tiktokAccountUrl: string;
+  tiktokVideoUrls: string[];
 }

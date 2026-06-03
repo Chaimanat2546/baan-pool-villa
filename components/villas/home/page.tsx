@@ -22,6 +22,7 @@ import { FaqSection } from "./faq-section";
 import { HeroSection } from "./hero-section";
 import { VillaRail } from "./villa-rail";
 import { WhyChooseSection } from "./why-choose-section";
+import { TikTokSection } from "./tiktok-section";
 
 interface HomePageProps {
   initialGuides?: GuidePost[];
@@ -92,6 +93,7 @@ export function HomePage({
         )}
 
         <DestinationsSection villas={villas} />
+        <TikTokSection tiktok={settings.tiktok} />
         <ArticlesSection guides={guides} />
         <FaqSection />
         <ContactSection settings={settings} />

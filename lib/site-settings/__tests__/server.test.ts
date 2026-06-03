@@ -116,6 +116,11 @@ describe("getSiteSettings", () => {
           " https://line.me/R/ti/p/@baanpoolvilla ",
         ],
         detail_layout: DEFAULT_DETAIL_LAYOUT,
+        tiktok_account_url: " https://www.tiktok.com/@baanpoolvilla ",
+        tiktok_video_urls: [
+          "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
+          "https://www.tiktok.com/player/v1/7370000000000000002",
+        ],
       },
       error: null,
     });
@@ -166,10 +171,29 @@ describe("getSiteSettings", () => {
             "https://line.me/R/ti/p/@baanpoolvilla",
           ],
         },
+        tiktok: {
+          accountUrl: "https://www.tiktok.com/@baanpoolvilla",
+          videos: [
+            {
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
+              videoId: "7370000000000000001",
+            },
+            {
+              url: "https://www.tiktok.com/player/v1/7370000000000000002",
+              videoId: "7370000000000000002",
+            },
+          ],
+        },
         detailLayout: DEFAULT_DETAIL_LAYOUT,
       },
       source: "config",
     });
+    expect(query.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_account_url"),
+    );
+    expect(query.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_video_urls"),
+    );
     expect(query.from).toHaveBeenCalledWith("site_settings");
     expect(query.eq).toHaveBeenCalledWith("id", SITE_SETTINGS_ID);
   });
@@ -240,6 +264,79 @@ describe("getSiteSettings", () => {
           ],
         },
         seo: DEFAULT_SITE_SETTINGS.seo,
+      },
+      source: "config",
+    });
+  });
+
+  it("falls back to a full non-TikTok schema when TikTok columns are missing", async () => {
+    mockSiteSettingsQueryQueue([
+      {
+        data: null,
+        error: { message: "column site_settings.tiktok_account_url does not exist" },
+      },
+      {
+        data: {
+          id: SITE_SETTINGS_ID,
+          site_name: " Baan Pool Villa ",
+          primary_color: "#123456",
+          accent_color: "#abcdef",
+          logo_image_path: "logo/2026/05/logo.webp",
+          logo_image_url:
+            "https://example.supabase.co/storage/v1/object/public/site-assets/logo/2026/05/logo.webp",
+          hero_image_path: "hero/2026/05/hero.webp",
+          hero_image_url:
+            "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
+          hero_image_alt: "Pool villas",
+          bank_account_name: " Account Name ",
+          bank_name: " Bank Name ",
+          bank_account_number: " 398-289-7482 ",
+          phone_contacts: [
+            {
+              name: " Game ",
+              phone: " 0617485213 ",
+              time: " 07.00-15.00 ",
+            },
+          ],
+          messenger_url: " https://www.facebook.com/baanpoolvillas ",
+          line_id: " @baanpoolvilla ",
+          line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
+          seo_title: " Baan Pool Villa Pattaya | Private Pool Villas ",
+          seo_description: " Book private pool villas in Pattaya. ",
+          seo_og_image_url: " /images/seo-cover.jpg ",
+          seo_og_image_alt: " Pool villa with private swimming pool ",
+          seo_business_name: " Baan Pool Villa Pattaya ",
+          seo_same_as_urls: [
+            " https://www.facebook.com/baanpoolvillas ",
+            " https://line.me/R/ti/p/@baanpoolvilla ",
+          ],
+          detail_layout: DEFAULT_DETAIL_LAYOUT,
+        },
+        error: null,
+      },
+    ]);
+
+    await expect(getSiteSettings()).resolves.toMatchObject({
+      settings: {
+        seo: {
+          title: "Baan Pool Villa Pattaya | Private Pool Villas",
+          description: "Book private pool villas in Pattaya.",
+          businessName: "Baan Pool Villa Pattaya",
+          sameAsUrls: [
+            "https://www.facebook.com/baanpoolvillas",
+            "https://line.me/R/ti/p/@baanpoolvilla",
+          ],
+          ogImage: {
+            path: "/images/seo-cover.jpg",
+            url: "/images/seo-cover.jpg",
+            alt: "Pool villa with private swimming pool",
+          },
+        },
+        detailLayout: DEFAULT_DETAIL_LAYOUT,
+        tiktok: {
+          accountUrl: "",
+          videos: [],
+        },
       },
       source: "config",
     });
