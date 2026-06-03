@@ -2,6 +2,7 @@
 
 # dependencies
 docs/mockups
+.npm-cache
 /.agents
 /.superpowers
 /node_modules
