@@ -2,9 +2,9 @@ import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { VillaCard } from "@/components/villas/listing/villa-card";
 import type { GuidePost } from "@/lib/guides/types";
 import type { VillaListing } from "@/lib/villas/types";
-import { VillaCard } from "@/components/villas/listing/villa-card";
 
 interface GuideDetailPageProps {
   guide: GuidePost;
@@ -12,15 +12,17 @@ interface GuideDetailPageProps {
 }
 
 interface GuideBlock {
-  content?: Array<{ text?: unknown }>;
+  content?: { text?: unknown }[];
   props?: Record<string, unknown>;
   type?: unknown;
 }
 
 function getBlockText(block: GuideBlock): string {
-  return block.content
-    ?.map((content) => (typeof content.text === "string" ? content.text : ""))
-    .join("") ?? "";
+  return (
+    block.content
+      ?.map((content) => (typeof content.text === "string" ? content.text : ""))
+      .join("") ?? ""
+  );
 }
 
 function getImageUrl(block: GuideBlock): string | null {
@@ -35,9 +37,145 @@ function getImageAlt(block: GuideBlock, fallback: string): string {
   return typeof alt === "string" && alt.length > 0 ? alt : fallback;
 }
 
+function isAllowedYouTubeIdCharacter(character: string): boolean {
+  return (
+    (character >= "a" && character <= "z") ||
+    (character >= "A" && character <= "Z") ||
+    (character >= "0" && character <= "9") ||
+    character === "_" ||
+    character === "-"
+  );
+}
+
+function normalizeYouTubeId(value: string | null): string | null {
+  if (!value || value.length !== 11) {
+    return null;
+  }
+
+  for (const character of value) {
+    if (!isAllowedYouTubeIdCharacter(character)) {
+      return null;
+    }
+  }
+
+  return value;
+}
+
+function trimUrlToken(value: string): string {
+  let end = value.length;
+
+  while (end > 0) {
+    const character = value[end - 1];
+
+    if (
+      character === "." ||
+      character === "," ||
+      character === ")" ||
+      character === "]" ||
+      character === "}"
+    ) {
+      end -= 1;
+    } else {
+      break;
+    }
+  }
+
+  return value.slice(0, end);
+}
+
+function tokenizeText(value: string): string[] {
+  const tokens: string[] = [];
+  let current = "";
+
+  for (const character of value) {
+    if (character.trim().length === 0) {
+      if (current.length > 0) {
+        tokens.push(current);
+        current = "";
+      }
+    } else {
+      current += character;
+    }
+  }
+
+  if (current.length > 0) {
+    tokens.push(current);
+  }
+
+  return tokens;
+}
+
+function getYouTubeVideoIdFromUrl(url: URL): string | null {
+  const hostname = url.hostname.toLowerCase();
+  const segments = url.pathname
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+
+  if (hostname === "youtu.be") {
+    return normalizeYouTubeId(segments[0] ?? null);
+  }
+
+  if (
+    hostname === "youtube.com" ||
+    hostname === "www.youtube.com" ||
+    hostname === "m.youtube.com" ||
+    hostname === "youtube-nocookie.com" ||
+    hostname === "www.youtube-nocookie.com"
+  ) {
+    if (segments[0] === "watch") {
+      return normalizeYouTubeId(url.searchParams.get("v"));
+    }
+
+    if (segments[0] === "shorts" || segments[0] === "embed") {
+      return normalizeYouTubeId(segments[1] ?? null);
+    }
+  }
+
+  return null;
+}
+
+export function getYouTubeEmbedUrl(text: string): string | null {
+  for (const token of tokenizeText(text)) {
+    const candidate = trimUrlToken(token.trim());
+
+    if (!candidate.startsWith("https://")) {
+      continue;
+    }
+
+    try {
+      const videoId = getYouTubeVideoIdFromUrl(new URL(candidate));
+
+      if (videoId) {
+        return `https://www.youtube-nocookie.com/embed/${videoId}`;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+function YouTubeEmbed({ embedUrl, title }: { embedUrl: string; title: string }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_14px_30px_rgba(6,63,53,0.08)]">
+      <iframe
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        className="aspect-video w-full"
+        loading="lazy"
+        referrerPolicy="strict-origin-when-cross-origin"
+        src={embedUrl}
+        title={title}
+      />
+    </div>
+  );
+}
+
 function GuideContent({ blocks }: { blocks: unknown[] }) {
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-5 px-4 py-8 text-[var(--site-text)] sm:px-6 lg:px-0">
+    <div className="grid w-full gap-5 text-[var(--site-text)]" data-guide-content>
       {blocks.map((block, index) => {
         if (!block || typeof block !== "object" || Array.isArray(block)) {
           return null;
@@ -45,6 +183,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
 
         const guideBlock = block as GuideBlock;
         const text = getBlockText(guideBlock);
+        const youtubeEmbedUrl = getYouTubeEmbedUrl(text);
 
         switch (guideBlock.type) {
           case "heading":
@@ -102,6 +241,16 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
             );
           }
           default:
+            if (youtubeEmbedUrl) {
+              return (
+                <YouTubeEmbed
+                  embedUrl={youtubeEmbedUrl}
+                  key={index}
+                  title={`${text} - YouTube`}
+                />
+              );
+            }
+
             return (
               <p className="text-lg leading-9 text-[var(--site-text)]" key={index}>
                 {text}
@@ -113,29 +262,19 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
   );
 }
 
-function RecommendedVillaSection({
-  compact = false,
-  villas,
-}: {
-  compact?: boolean;
-  villas: VillaListing[];
-}) {
+function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
   if (villas.length === 0) {
     return null;
   }
 
   return (
-    <section
-      className={`mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 ${
-        compact ? "py-8" : "py-10 lg:py-14"
-      }`}
-    >
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start" data-guide-sidebar>
+      <div className="mb-4 grid gap-2">
         <div>
-          <h2 className="text-2xl font-semibold text-[var(--site-text)]">
+          <h2 className="text-xl font-semibold leading-7 text-[var(--site-text)]">
             บ้านพักที่แนะนำในบทความนี้
           </h2>
-          <p className="mt-1 text-sm text-[var(--site-muted)]">
+          <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
             เริ่มดูบ้านที่ตรงกับคำแนะนำก่อน แล้วค่อยคุยรายละเอียดการจอง
           </p>
         </div>
@@ -146,12 +285,12 @@ function RecommendedVillaSection({
           ดูรายละเอียดบ้านพัก <ArrowRight aria-hidden="true" className="size-4" />
         </Link>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {villas.slice(0, compact ? 3 : 6).map((villa, index) => (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+        {villas.slice(0, 6).map((villa, index) => (
           <VillaCard key={villa.id} villa={villa} preload={index === 0} />
         ))}
       </div>
-    </section>
+    </aside>
   );
 }
 
@@ -198,9 +337,13 @@ export function GuideDetailPage({
           ) : null}
         </header>
 
-        <RecommendedVillaSection compact villas={recommendedVillas} />
-        <GuideContent blocks={guide.contentBlocks} />
-        <RecommendedVillaSection villas={recommendedVillas} />
+        <div
+          className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)] lg:px-8 lg:py-14"
+          data-guide-detail-layout
+        >
+          <GuideContent blocks={guide.contentBlocks} />
+          <RecommendedVillaSidebar villas={recommendedVillas} />
+        </div>
       </article>
     </main>
   );

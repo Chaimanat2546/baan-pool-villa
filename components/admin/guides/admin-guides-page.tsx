@@ -2,6 +2,7 @@
 
 import {
   CheckSquare,
+  ExternalLink,
   FileText,
   Heading2,
   Image as ImageIcon,
@@ -356,17 +357,19 @@ function applyEditorFormat(editor: Editor, type: EditableBlockType) {
 
 function TipTapFormatToolbar({
   editor,
+  trailingAction,
   variant = "bar",
 }: {
   editor: Editor;
+  trailingAction?: ReactNode;
   variant?: "bar" | "bubble";
 }) {
   return (
     <div
       className={
         variant === "bubble"
-          ? "flex items-center gap-1 rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-2 py-1 shadow-lg"
-          : "flex flex-wrap items-center gap-2 border-b border-[var(--site-border)] px-4 py-3"
+          ? "flex flex-nowrap items-center gap-1 rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-2 py-1 shadow-lg"
+          : "sticky top-0 z-30 flex flex-nowrap items-center gap-2 overflow-x-auto border-b border-[var(--site-border)] bg-[var(--site-surface)]/95 px-4 py-3 backdrop-blur"
       }
     >
       {BLOCK_TYPES.map((blockType) => {
@@ -396,6 +399,7 @@ function TipTapFormatToolbar({
           </button>
         );
       })}
+      {trailingAction ? <div className="ml-auto shrink-0">{trailingAction}</div> : null}
     </div>
   );
 }
@@ -457,30 +461,35 @@ function BlockEditor({
   }
 
   return (
-    <section className="relative min-w-0 overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
-      {editor ? <TipTapFormatToolbar editor={editor} /> : null}
-      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--site-border)] px-4 pb-3">
-        <label
-          className="inline-flex size-9 cursor-pointer items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
-          title="เพิ่มรูป"
-        >
-          <ImageIcon aria-hidden="true" className="size-4" />
-          <input
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
+    <section className="relative min-w-0 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
+      {editor ? (
+        <TipTapFormatToolbar
+          editor={editor}
+          variant="bar"
+          trailingAction={
+            <label
+              className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+              title="เพิ่มรูป"
+            >
+              <ImageIcon aria-hidden="true" className="size-4" />
+              <input
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
 
-              if (file) {
-                void uploadInlineImage(file);
-              }
+                  if (file) {
+                    void uploadInlineImage(file);
+                  }
 
-              event.currentTarget.value = "";
-            }}
-            type="file"
-          />
-        </label>
-      </div>
+                  event.currentTarget.value = "";
+                }}
+                type="file"
+              />
+            </label>
+          }
+        />
+      ) : null}
 
       <div
         className="guide-tiptap-editor relative mx-auto grid w-full min-w-0 max-w-3xl px-5 py-8 sm:px-8 lg:px-10"
@@ -528,11 +537,21 @@ function GuideStatusPanel({
     formatCommaSeparatedInput(guide.recommendedHouseIds),
   );
   const slugPreview = createSlugFromTitle(guide.title);
+  const previewHref = `/guides/${slugPreview}`;
 
   return (
     <aside className="grid content-start gap-3">
       <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
         <div className="flex gap-2">
+          <a
+            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+            href={previewHref}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <ExternalLink aria-hidden="true" className="size-4" />
+            พรีวิว
+          </a>
           <button
             className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSaving || isUploading || !hasUnsavedChanges}
