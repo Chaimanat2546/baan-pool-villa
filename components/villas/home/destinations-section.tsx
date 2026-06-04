@@ -1,7 +1,5 @@
 import Image from "next/image";
 
-import type { VillaListing } from "@/lib/villas/types";
-
 import { SectionHeader } from "./section-header";
 import { MockBadge } from "./shared";
 
@@ -18,9 +16,13 @@ const destinations = [
   },
 ];
 
-interface DestinationsSectionProps {
-  villas: VillaListing[];
+type DestinationVilla = {
+  coverImage: string | null;
 };
+
+interface DestinationsSectionProps {
+  villas: DestinationVilla[];
+}
 
 export function DestinationsSection({ villas }: DestinationsSectionProps) {
   return (

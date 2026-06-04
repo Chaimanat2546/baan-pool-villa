@@ -6,15 +6,26 @@ import type { GuidePost } from "@/lib/guides/types";
 import { getResolvedHomeSections } from "@/lib/home-sections/server";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildPageMetadata } from "@/lib/seo";
+import { getMaxVillaPrice, getUniqueZones } from "@/lib/villas/filters";
 import { getSiteSettings } from "@/lib/site-settings/server";
-import { getTikTokPreviewSettings } from "@/lib/tiktok/oembed";
 import { fetchHouseListings } from "@/lib/villas/server";
-import type { VillaListing } from "@/lib/villas/types";
+
+export const revalidate = 900;
+
+type FilterSummary = {
+  maxAvailablePrice: number;
+  zones: Array<{ value: string; label: string }>;
+};
+
+type DestinationVilla = {
+  coverImage: string | null;
+};
 
 async function getHomePageData(): Promise<{
   guides: GuidePost[];
   homeSections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"];
-  villas: VillaListing[];
+  filterSummary: FilterSummary;
+  destinationVillas: DestinationVilla[];
 }> {
   try {
     const [guides, villas] = await Promise.all([
@@ -23,11 +34,29 @@ async function getHomePageData(): Promise<{
     ]);
     const { sections } = await getResolvedHomeSections(villas);
 
-    return { guides, homeSections: sections, villas };
+    return {
+      guides,
+      homeSections: sections,
+      filterSummary: {
+        maxAvailablePrice: getMaxVillaPrice(villas),
+        zones: getUniqueZones(villas),
+      },
+      destinationVillas: villas.slice(0, 12).map((villa) => ({
+        coverImage: villa.coverImage,
+      })),
+    };
   } catch (error) {
     console.error("Unable to load homepage villa data", error);
 
-    return { guides: [], homeSections: [], villas: [] };
+    return {
+      guides: [],
+      homeSections: [],
+      filterSummary: {
+        maxAvailablePrice: 0,
+        zones: [],
+      },
+      destinationVillas: [],
+    };
   }
 }
 
@@ -45,18 +74,17 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Render the homepage server component populated with site settings, guides, home sections, villas, TikTok preview settings, and JSON-LD.
+ * Render the homepage server component populated with site settings, guides, home sections, filter summary, and JSON-LD.
  *
- * Loads site settings and homepage data, builds JSON-LD for the site, injects the JSON-LD script into the page, and renders the HomePage component with the initial data and TikTok preview configuration.
+ * Loads site settings and homepage data, builds JSON-LD for the site, injects the JSON-LD script into the page, and renders the HomePage component with resolved sections, filter summary, and destination villa payload.
  *
  * @returns A React element for the homepage containing the injected JSON-LD script and the HomePage component initialized with fetched data and settings.
  */
 export default async function Page() {
-  const [{ settings }, { guides, homeSections, villas }] = await Promise.all([
+  const [{ settings }, homePageData] = await Promise.all([
     getSiteSettings(),
     getHomePageData(),
   ]);
-  const tiktokPreview = await getTikTokPreviewSettings(settings.tiktok);
   const jsonLd = buildHomeJsonLd(settings);
 
   return (
@@ -66,11 +94,11 @@ export default async function Page() {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <HomePage
-        initialGuides={guides}
-        initialHomeSections={homeSections}
-        initialVillas={villas}
+        initialGuides={homePageData.guides}
+        initialHomeSections={homePageData.homeSections}
+        filterSummary={homePageData.filterSummary}
+        destinationVillas={homePageData.destinationVillas}
         settings={settings}
-        tiktokPreview={tiktokPreview}
       />
     </>
   );
