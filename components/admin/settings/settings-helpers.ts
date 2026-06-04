@@ -56,12 +56,6 @@ export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
     seoSameAsUrls: [...settings.seo.sameAsUrls],
     seoTitle: settings.seo.title,
     siteName: settings.siteName,
-    tiktokAccountUrl: settings.tiktok.accountUrl,
-    tiktokVideoUrls: [
-      settings.tiktok.videos[0]?.url ?? "",
-      settings.tiktok.videos[1]?.url ?? "",
-      settings.tiktok.videos[2]?.url ?? "",
-    ],
   };
 }
 
@@ -86,8 +80,6 @@ export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
     seoSameAsUrls: draft.seoSameAsUrls,
     seoTitle: draft.seoTitle,
     siteName: draft.siteName,
-    tiktokAccountUrl: draft.tiktokAccountUrl,
-    tiktokVideoUrls: draft.tiktokVideoUrls,
   });
 }
 
@@ -111,8 +103,6 @@ export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
   formData.set("seoOgImageAlt", draft.seoOgImageAlt);
   formData.set("seoBusinessName", draft.seoBusinessName);
   formData.set("seoSameAsUrls", JSON.stringify(draft.seoSameAsUrls));
-  formData.set("tiktokAccountUrl", draft.tiktokAccountUrl);
-  formData.set("tiktokVideoUrls", JSON.stringify(draft.tiktokVideoUrls.slice(0, 3)));
 
   if (draft.logoFile) {
     formData.set("logo", draft.logoFile);

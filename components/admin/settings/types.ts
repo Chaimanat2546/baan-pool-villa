@@ -20,8 +20,6 @@ export interface AdminSettingsDraft {
   seoOgImageAlt: string;
   seoBusinessName: string;
   seoSameAsUrls: string[];
-  tiktokAccountUrl: string;
-  tiktokVideoUrls: string[];
 }
 
 export interface AdminSiteSettingsResponse {

@@ -61,19 +61,6 @@ describe("settings helpers", () => {
           "https://line.me/R/ti/p/@baanpoolvilla",
         ],
       },
-      tiktok: {
-        accountUrl: "https://www.tiktok.com/@baanpoolvilla",
-        videos: [
-          {
-            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
-            videoId: "7370000000000000001",
-          },
-          {
-            url: "https://www.tiktok.com/player/v1/7370000000000000002",
-            videoId: "7370000000000000002",
-          },
-        ],
-      },
     });
 
     expect(draft).toMatchObject({
@@ -98,12 +85,6 @@ describe("settings helpers", () => {
       seoSameAsUrls: [
         "https://www.facebook.com/baanpoolvillas",
         "https://line.me/R/ti/p/@baanpoolvilla",
-      ],
-      tiktokAccountUrl: "https://www.tiktok.com/@baanpoolvilla",
-      tiktokVideoUrls: [
-        "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
-        "https://www.tiktok.com/player/v1/7370000000000000002",
-        "",
       ],
     });
   });
@@ -134,13 +115,6 @@ describe("settings helpers", () => {
       seoOgImageUrl: "/images/seo-cover.jpg",
       seoOgImageAlt: "Pool villa with private swimming pool",
       seoBusinessName: "Baan Pool Villa Pattaya",
-      tiktokAccountUrl: "https://www.tiktok.com/@baanpoolvilla",
-      tiktokVideoUrls: [
-        "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
-        "https://www.tiktok.com/player/v1/7370000000000000002",
-        "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000003",
-        "https://www.tiktok.com/@ignored/video/7370000000000000004",
-      ],
       seoSameAsUrls: [
         "https://www.facebook.com/baanpoolvillas",
         "https://line.me/R/ti/p/@baanpoolvilla",
@@ -168,14 +142,6 @@ describe("settings helpers", () => {
       "Pool villa with private swimming pool",
     );
     expect(formData.get("seoBusinessName")).toBe("Baan Pool Villa Pattaya");
-    expect(formData.get("tiktokAccountUrl")).toBe(
-      "https://www.tiktok.com/@baanpoolvilla",
-    );
-    expect(JSON.parse(String(formData.get("tiktokVideoUrls")))).toEqual([
-      "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
-      "https://www.tiktok.com/player/v1/7370000000000000002",
-      "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000003",
-    ]);
     expect(JSON.parse(String(formData.get("seoSameAsUrls")))).toEqual([
       "https://www.facebook.com/baanpoolvillas",
       "https://line.me/R/ti/p/@baanpoolvilla",
@@ -187,6 +153,42 @@ describe("settings helpers", () => {
         time: "ช่วง 07.00-15.00",
       },
     ]);
+  });
+
+  it("does not include TikTok fields in form data produced for the settings save endpoint", () => {
+    const formData = buildSettingsFormData({
+      siteName: "Pool Villas Pattaya",
+      primaryColor: "#064e3b",
+      accentColor: "#eab308",
+      heroImageAlt: "Hero",
+      logoFile: null,
+      heroFile: null,
+      bankAccountName: "นายใจดี",
+      bankName: "Kasikorn",
+      bankAccountNumber: "398-289-7482",
+      phoneContacts: [
+        {
+          name: "นายใจดี",
+          phone: "0617485213",
+          time: "08.00-16.00",
+        },
+      ],
+      messengerUrl: "https://www.facebook.com/baanpoolvillas",
+      lineId: "@baanpoolvilla",
+      lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+      seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
+      seoDescription: "Book private pool villas in Pattaya.",
+      seoOgImageUrl: "/images/seo-cover.jpg",
+      seoOgImageAlt: "Pool villa with private swimming pool",
+      seoBusinessName: "Baan Pool Villa Pattaya",
+      seoSameAsUrls: [
+        "https://www.facebook.com/baanpoolvillas",
+        "https://line.me/R/ti/p/@baanpoolvilla",
+      ],
+    });
+
+    expect(formData.has("tiktokAccountUrl")).toBe(false);
+    expect(formData.has("tiktokVideoUrls")).toBe(false);
   });
 
   it("does not redirect message-only Supabase or storage errors", () => {

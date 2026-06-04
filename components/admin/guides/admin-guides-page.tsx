@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  CheckCircle2,
   CheckSquare,
+  Eye,
   ExternalLink,
   FileText,
   Heading2,
   Image as ImageIcon,
+  LayoutPanelLeft,
   Link2,
   List,
   Plus,
@@ -190,23 +193,30 @@ function GuideList({
   onSelect: (draftId: string) => void;
 }) {
   return (
-    <aside className="min-w-0 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
-      <div className="border-b border-[var(--site-border)] px-4 py-3">
-        <p className="text-sm font-semibold text-[var(--site-text)]">บทความ</p>
-        <p className="mt-0.5 text-xs text-[var(--site-muted)]">
-          ปักหมุดจะแสดงก่อนในหน้าเว็บ
-        </p>
+    <aside className="min-w-0 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+      <div className="border-b border-[var(--site-border)] px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-[var(--site-text)]">รายการบทความ</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
+              เลือกบทความเพื่อแก้ไขหรือดูสถานะการเผยแพร่
+            </p>
+          </div>
+          <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--site-primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--site-primary)]">
+            {guides.length} รายการ
+          </span>
+        </div>
       </div>
-      <div className="grid max-h-[640px] gap-1 overflow-y-auto p-2">
+      <div className="grid max-h-[680px] gap-2 overflow-y-auto p-3">
         {guides.map((guide) => {
           const isActive = guide.draftId === activeDraftId;
 
           return (
             <button
-              className={`min-w-0 rounded-md border px-3 py-3 text-left transition ${
+              className={`min-w-0 rounded-lg border px-3 py-3 text-left shadow-sm transition ${
                 isActive
-                  ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
-                  : "border-transparent hover:border-[var(--site-border)] hover:bg-[var(--site-surface-soft)]"
+                  ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)] ring-1 ring-[var(--site-primary)]/10"
+                  : "border-[var(--site-border)] bg-[var(--site-surface)] hover:border-[var(--site-primary)]/35 hover:bg-[var(--site-surface-soft)]"
               }`}
               key={guide.draftId}
               onClick={() => {
@@ -214,19 +224,35 @@ function GuideList({
               }}
               type="button"
             >
-              <span className="flex items-center gap-2 text-xs font-semibold text-[var(--site-muted)]">
-                {getStatusLabel(guide.status)}
+              <span className="flex items-center gap-2 text-xs font-semibold">
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 ${
+                    guide.status === "published"
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                      : "bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+                  }`}
+                >
+                  {getStatusLabel(guide.status)}
+                </span>
                 {guide.isPinned ? (
-                  <span className="rounded-full bg-[var(--site-primary)] px-2 py-0.5 text-[10px] text-[var(--site-on-primary)]">
+                  <span className="rounded-full bg-[var(--site-primary)] px-2.5 py-1 text-[10px] text-[var(--site-on-primary)]">
                     ปักหมุด
                   </span>
                 ) : null}
               </span>
-              <span className="mt-1 line-clamp-2 block text-sm font-semibold leading-5 text-[var(--site-text)]">
+              <span className="mt-3 line-clamp-2 block text-sm font-semibold leading-6 text-[var(--site-text)]">
                 {guide.title || "ยังไม่ตั้งชื่อ"}
               </span>
-              <span className="mt-1 block truncate text-xs text-[var(--site-muted)]">
+              <span className="mt-2 block truncate text-xs text-[var(--site-muted)]">
                 /guides/{createSlugFromTitle(guide.title)}
+              </span>
+              <span className="mt-3 flex items-center justify-between gap-3 text-xs text-[var(--site-muted)]">
+                <span className="truncate">
+                  {guide.recommendedHouseIds.length} บ้านพักแนะนำ
+                </span>
+                <span className="shrink-0">
+                  {guide.tags.length} แท็ก
+                </span>
               </span>
             </button>
           );
@@ -561,7 +587,7 @@ function BlockEditor({
   }
 
   return (
-    <section className="relative min-w-0 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
+    <section className="relative min-w-0 overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
       {editor ? (
         <TipTapFormatToolbar
           editor={editor}
@@ -638,40 +664,43 @@ function GuideStatusPanel({
   );
   const slugPreview = createSlugFromTitle(guide.title);
   const previewHref = `/guides/${slugPreview}`;
+  const statusTone =
+    guide.status === "published"
+      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+      : "bg-amber-50 text-amber-800 ring-amber-200";
 
   return (
-    <aside className="grid content-start gap-3">
-      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
-        <div className="flex gap-2">
-          <a
-            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
-            href={previewHref}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <ExternalLink aria-hidden="true" className="size-4" />
-            พรีวิว
-          </a>
-          <button
-            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isSaving || isUploading || !hasUnsavedChanges}
-            onClick={onSave}
-            type="button"
-          >
-            <Save aria-hidden="true" className="size-4" />
-            บันทึก
-          </button>
-          <button
-            aria-label="ลบบทความ"
-            className="inline-flex size-10 items-center justify-center rounded-md border border-red-200 bg-[var(--site-surface)] text-red-700 transition hover:bg-red-50"
-            onClick={onDelete}
-            type="button"
-          >
-            <Trash2 aria-hidden="true" className="size-4" />
-          </button>
+    <aside className="grid content-start gap-4">
+      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
+        <div className="flex items-start gap-3">
+          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+            <FileText aria-hidden="true" className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-[var(--site-text)]">สถานะบทความ</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+              จัดการการเผยแพร่ เส้นทางลิงก์ และตำแหน่งแสดงผลของบทความนี้
+            </p>
+          </div>
         </div>
 
         <div className="mt-4 grid gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+            <span className={`inline-flex items-center rounded-full px-3 py-1.5 ring-1 ${statusTone}`}>
+              {getStatusLabel(guide.status)}
+            </span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
+                hasUnsavedChanges
+                  ? "bg-amber-50 text-amber-800 ring-amber-200"
+                  : "bg-emerald-50 text-emerald-700 ring-emerald-200"
+              }`}
+            >
+              <CheckCircle2 aria-hidden="true" className="size-3.5" />
+              {hasUnsavedChanges ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก" : "บันทึกล่าสุดแล้ว"}
+            </span>
+          </div>
+
           <label className="block text-sm font-medium text-[var(--site-text)]">
             สถานะ
             <select
@@ -698,14 +727,39 @@ function GuideStatusPanel({
             ปักหมุดบทความ
           </label>
 
-          <div className="rounded-md bg-[var(--site-surface-soft)] px-3 py-2 text-xs text-[var(--site-muted)]">
-            /guides/{slugPreview}
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-3">
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--site-muted)]">
+              เส้นทางบทความ
+            </p>
+            <div className="mt-1 truncate text-sm font-semibold text-[var(--site-text)]">
+              /guides/{slugPreview}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <a
+              className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+              href={previewHref}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <ExternalLink aria-hidden="true" className="size-4" />
+              พรีวิว
+            </a>
+            <button
+              aria-label="ลบบทความ"
+              className="inline-flex size-10 items-center justify-center rounded-md border border-red-200 bg-[var(--site-surface)] text-red-700 transition hover:bg-red-50"
+              onClick={onDelete}
+              type="button"
+            >
+              <Trash2 aria-hidden="true" className="size-4" />
+            </button>
           </div>
         </div>
       </section>
 
-      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
-        <p className="text-sm font-semibold text-[var(--site-text)]">รูปปก</p>
+      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
+        <p className="text-sm font-bold text-[var(--site-text)]">รูปปก</p>
         <div className="mt-3 overflow-hidden rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)]">
           {guide.coverImage?.url ? (
             <Image
@@ -762,7 +816,7 @@ function GuideStatusPanel({
         </label>
       </section>
 
-      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
+      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
         <label className="block text-sm font-medium text-[var(--site-text)]">
           แท็ก
           <input
@@ -781,7 +835,7 @@ function GuideStatusPanel({
         </p>
       </section>
 
-      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
+      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
         <label className="block text-sm font-medium text-[var(--site-text)]">
           บ้านพักแนะนำ
           <input
@@ -804,9 +858,14 @@ function GuideStatusPanel({
         </p>
       </section>
 
-      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
-        <p className="text-sm font-semibold text-[var(--site-text)]">ตัวอย่าง</p>
-        <div className="mt-3 rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3">
+      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex size-8 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+            <Eye aria-hidden="true" className="size-4" />
+          </span>
+          <h2 className="text-base font-bold text-[var(--site-text)]">ตัวอย่างการ์ดบทความ</h2>
+        </div>
+        <div className="mt-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
           <p className="text-xs font-semibold text-[var(--site-primary)]">
             {guide.tags[0] ?? "บทความ"}
           </p>
@@ -821,6 +880,16 @@ function GuideStatusPanel({
           </p>
         </div>
       </section>
+
+      <button
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] shadow-md shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
+        disabled={isSaving || isUploading || !hasUnsavedChanges}
+        onClick={onSave}
+        type="button"
+      >
+        <Save aria-hidden="true" className={`size-4 ${isSaving ? "animate-pulse" : ""}`} />
+        {isSaving ? "กำลังบันทึก..." : "บันทึกบทความ"}
+      </button>
     </aside>
   );
 }
@@ -846,6 +915,9 @@ export function AdminGuidesPage() {
   const currentSnapshot = useMemo(() => makeSnapshot(guides), [guides]);
   const hasUnsavedChanges =
     savedSnapshot !== null && currentSnapshot !== savedSnapshot;
+  const activePreviewHref = activeGuide
+    ? `/guides/${createSlugFromTitle(activeGuide.title)}`
+    : null;
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -1156,27 +1228,73 @@ export function AdminGuidesPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 text-[var(--site-text)]">
-      <header className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-[var(--site-muted)]">
-              Conversion Travel Guide
+    <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
+      <div
+        className="sticky top-0 z-30 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6"
+        id="guidesPageHeader"
+      >
+        <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
+              คู่มือคอนเทนต์
             </p>
-            <h1 className="mt-1 text-xl font-semibold text-[var(--site-text)]">
-              จัดการบทความ
+            <h1 className="mt-2 text-3xl font-bold tracking-normal text-[var(--site-text)]">
+              จัดการบทความไกด์
             </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
+              จัดการบทความสำหรับหน้าไกด์ พร้อมพรีวิวสถานะ รูปปก และบ้านพักแนะนำในมุมมองเดียว
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
+                  hasUnsavedChanges
+                    ? "bg-amber-50 text-amber-800 ring-amber-200"
+                    : "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                }`}
+              >
+                <CheckCircle2 aria-hidden="true" className="size-3.5" />
+                {hasUnsavedChanges ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก" : "บันทึกล่าสุดแล้ว"}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--site-primary-soft)] px-3 py-1.5 text-[var(--site-primary)] ring-1 ring-[var(--site-primary)]/10">
+                <LayoutPanelLeft aria-hidden="true" className="size-3.5" />
+                {guides.length} บทความ
+              </span>
+            </div>
           </div>
-          <button
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:opacity-92"
-            onClick={addGuide}
-            type="button"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            เพิ่มบทความ
-          </button>
-        </div>
-      </header>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            {activePreviewHref ? (
+              <a
+                className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+                href={activePreviewHref}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <Eye aria-hidden="true" className="size-4" />
+                ดูบทความ
+              </a>
+            ) : null}
+            <button
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-text)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+              onClick={addGuide}
+              type="button"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              เพิ่มบทความ
+            </button>
+            <button
+              className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
+              disabled={!activeGuide || isSaving || isLoading || isUploading || !hasUnsavedChanges}
+              onClick={() => {
+                void handleSave();
+              }}
+              type="button"
+            >
+              <Save aria-hidden="true" className={`size-4 ${isSaving ? "animate-pulse" : ""}`} />
+              {isSaving ? "กำลังบันทึก..." : "บันทึกบทความ"}
+            </button>
+          </div>
+        </header>
+      </div>
 
       {errors.length > 0 ? (
         <div
@@ -1194,7 +1312,7 @@ export function AdminGuidesPage() {
 
       {notice ? (
         <p
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
           role="status"
         >
           {notice}
@@ -1206,8 +1324,8 @@ export function AdminGuidesPage() {
           กำลังโหลดบทความ...
         </div>
       ) : (
-        <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(250px,320px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(250px,300px)_minmax(0,1fr)_360px]">
-          <div className="min-w-0 xl:sticky xl:top-4 xl:self-start">
+        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_380px]">
+          <div className="min-w-0 xl:sticky xl:top-36 xl:self-start">
             <GuideList
               activeDraftId={activeGuide?.draftId ?? null}
               guides={guides}
@@ -1222,17 +1340,29 @@ export function AdminGuidesPage() {
                   key={activeGuide.draftId}
                   blocks={normalizeBlocks(activeGuide.contentBlocks)}
                   documentHeader={
-                    <>
-                      <EditablePlainTextField
-                        ariaLabel="ชื่อบทความ"
-                        className="min-h-[2.75rem] w-full break-words text-3xl font-semibold leading-tight text-[var(--site-text)] outline-none sm:text-4xl"
-                        onChange={(title) => {
-                          updateActiveGuide({ title });
-                        }}
-                        placeholder="ชื่อบทความ"
-                        value={activeGuide.title}
-                      />
-                      <div>
+                    <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-4 shadow-sm">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                        <span className={`inline-flex items-center rounded-full px-3 py-1.5 ring-1 ${activeGuide.status === "published" ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-amber-50 text-amber-800 ring-amber-200"}`}>
+                          {getStatusLabel(activeGuide.status)}
+                        </span>
+                        {activeGuide.isPinned ? (
+                          <span className="inline-flex items-center rounded-full bg-[var(--site-primary)] px-3 py-1.5 text-[10px] text-[var(--site-on-primary)]">
+                            ปักหมุด
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-4">
+                        <EditablePlainTextField
+                          ariaLabel="ชื่อบทความ"
+                          className="min-h-[2.75rem] w-full break-words text-3xl font-semibold leading-tight text-[var(--site-text)] outline-none sm:text-4xl"
+                          onChange={(title) => {
+                            updateActiveGuide({ title });
+                          }}
+                          placeholder="ชื่อบทความ"
+                          value={activeGuide.title}
+                        />
+                      </div>
+                      <div className="mt-3">
                         <EditablePlainTextField
                           ariaLabel="คำโปรยบทความ"
                           className="min-h-[2rem] w-full break-words text-lg leading-8 text-[var(--site-muted)] outline-none focus:text-[var(--site-text)]"
@@ -1243,7 +1373,7 @@ export function AdminGuidesPage() {
                           value={activeGuide.excerpt}
                         />
                       </div>
-                    </>
+                    </div>
                   }
                   onChange={(contentBlocks) => {
                     updateActiveGuide({ contentBlocks });
@@ -1252,7 +1382,7 @@ export function AdminGuidesPage() {
                 />
               </main>
 
-              <div className="min-w-0 xl:col-start-2 2xl:sticky 2xl:top-4 2xl:col-start-auto 2xl:self-start">
+              <div className="min-w-0 xl:col-start-2 2xl:sticky 2xl:top-36 2xl:col-start-auto 2xl:self-start">
                 <GuideStatusPanel
                   key={activeGuide.draftId}
                   guide={activeGuide}

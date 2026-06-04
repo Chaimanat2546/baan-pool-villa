@@ -11,8 +11,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
 import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
+import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
 import { BlockLibrary } from "./block-library";
@@ -193,7 +193,7 @@ function normalizeSelection(
 
 function getWideSlotLabel(columns: DetailLayoutWideColumns, blockIndex: number) {
   if (columns === 1) {
-    return "ช่องเดียว";
+    return "ช่องเดี่ยว";
   }
 
   return blockIndex === 0 ? "ช่องซ้าย" : "ช่องขวา";
@@ -334,6 +334,37 @@ export function AdminDetailLayoutPage() {
       ),
     );
   }, [layout]);
+  const overviewStats = useMemo(() => {
+    if (!layoutSummary) {
+      return [];
+    }
+
+    return [
+      {
+        label: "ฝั่ง 70",
+        tone: "text-[var(--site-text)]",
+        value: `${layoutSummary.wideRows} แถว`,
+      },
+      {
+        label: "ฝั่ง 30",
+        tone: "text-[var(--site-text)]",
+        value: `${layoutSummary.narrowRows} แถว`,
+      },
+      {
+        label: "ปิดไว้",
+        tone:
+          layoutSummary.disabledRows > 0
+            ? "text-amber-700"
+            : "text-[var(--site-text)]",
+        value: `${layoutSummary.disabledRows} แถว`,
+      },
+      {
+        label: "บล็อกที่ใช้",
+        tone: "text-[var(--site-text)]",
+        value: `${usedBlockTypes.length} แบบ`,
+      },
+    ];
+  }, [layoutSummary, usedBlockTypes.length]);
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -486,7 +517,9 @@ export function AdminDetailLayoutPage() {
     setErrors([]);
     setLayout(nextLayout);
     setActiveSelection(
-      nextRow ? { zone: "narrow", rowId: nextRow.id } : getDefaultSelection(nextLayout),
+      nextRow
+        ? { zone: "narrow", rowId: nextRow.id }
+        : getDefaultSelection(nextLayout),
     );
   }
 
@@ -507,7 +540,9 @@ export function AdminDetailLayoutPage() {
     }
 
     if (normalizedActiveSelection.zone === "lockedBottom") {
-      setErrors(["บ้านพักแนะนำเป็นส่วนที่ล็อกไว้ ไม่สามารถเพิ่ม block ตรงนี้ได้"]);
+      setErrors([
+        "บ้านพักแนะนำเป็นส่วนที่ล็อกไว้ ไม่สามารถเพิ่ม block ตรงนี้ได้",
+      ]);
       setNotice(null);
       return;
     }
@@ -617,86 +652,100 @@ export function AdminDetailLayoutPage() {
   }
 
   return (
-    <div className="flex w-full flex-col rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] text-[var(--site-text)]">
-      <header className="grid shrink-0 gap-4 border-b border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4 backdrop-blur sm:px-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--site-primary)]">
-            จัดหน้า Details
-          </p>
-          <h1 className="mt-1 text-xl font-semibold tracking-normal text-[var(--site-text)] sm:text-2xl">
-            Layout รายละเอียดบ้านพัก
-          </h1>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
-                hasUnsavedChanges
-                  ? "bg-[var(--site-primary-soft)] text-[var(--site-text)] ring-[var(--site-primary)]"
-                  : "bg-[var(--site-surface)] text-[var(--site-text)] ring-[var(--site-border)]"
-              }`}
-            >
-              {hasUnsavedChanges ? (
-                <CircleAlert aria-hidden="true" className="size-3.5" />
-              ) : (
-                <CheckCircle2 aria-hidden="true" className="size-3.5" />
-              )}
-              {hasUnsavedChanges ? "มีการแก้ไขที่ยังไม่บันทึก" : "บันทึกแล้ว"}
-            </span>
-          </div>
-          {layoutSummary ? (
-            <div className="mt-3 grid gap-2 text-xs font-semibold text-[var(--site-muted)] sm:grid-cols-3">
-              <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
-                ฝั่ง 70: {layoutSummary.wideRows} แถว
+    <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
+      <div className="sticky top-0 z-30 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6">
+        <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
+              Detail Layout
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-normal text-[var(--site-text)]">
+              จัดหน้า Details
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
+              จัดลำดับแถว เปิดหรือปิดการแสดงผล และวางบล็อกของหน้ารายละเอียดบ้านพักในมุมมองแบบ
+              master-detail-preview
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
+                  hasUnsavedChanges
+                    ? "bg-amber-50 text-amber-800 ring-amber-200"
+                    : "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                }`}
+              >
+                {hasUnsavedChanges ? (
+                  <CircleAlert aria-hidden="true" className="size-3.5" />
+                ) : (
+                  <CheckCircle2 aria-hidden="true" className="size-3.5" />
+                )}
+                {hasUnsavedChanges ? "มีการแก้ไขที่ยังไม่บันทึก" : "บันทึกล่าสุดแล้ว"}
               </span>
-              <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
-                ฝั่ง 30: {layoutSummary.narrowRows} แถว
-              </span>
-              <span className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
-                ปิดไว้: {layoutSummary.disabledRows} แถว
-              </span>
+              {layout ? (
+                <span className="inline-flex items-center rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
+                  ตำแหน่งที่เลือก: {activePlacementLabel}
+                </span>
+              ) : null}
             </div>
-          ) : null}
-        </div>
+          </div>
 
-        <div className="flex flex-wrap gap-2 xl:justify-end">
-          <button
-            className={ADMIN_SECONDARY_BUTTON_CLASS}
-            disabled={isLoading || isSaving}
-            onClick={handleReset}
-            type="button"
-          >
-            <RotateCcw aria-hidden="true" className="size-4" />
-            ค่าเริ่มต้น
-          </button>
-          <Link
-            className={ADMIN_SECONDARY_BUTTON_CLASS}
-            href={DETAIL_LAYOUT_PREVIEW_HREF}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <Eye aria-hidden="true" className="size-4" />
-            พรีวิวหน้าจริง
-          </Link>
-          <button
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isLoading || isSaving || !hasUnsavedChanges}
-            onClick={() => {
-              void handleSave();
-            }}
-            type="button"
-          >
-            <Save aria-hidden="true" className="size-4" />
-            {isSaving
-              ? "กำลังบันทึก"
-              : hasUnsavedChanges
-                ? "บันทึก"
-                : "บันทึกแล้ว"}
-          </button>
-        </div>
-      </header>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <button
+              className={ADMIN_SECONDARY_BUTTON_CLASS}
+              disabled={isLoading || isSaving}
+              onClick={handleReset}
+              type="button"
+            >
+              <RotateCcw aria-hidden="true" className="size-4" />
+              ค่าเริ่มต้น
+            </button>
+            <Link
+              className={ADMIN_SECONDARY_BUTTON_CLASS}
+              href={DETAIL_LAYOUT_PREVIEW_HREF}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <Eye aria-hidden="true" className="size-4" />
+              พรีวิวหน้าจริง
+            </Link>
+            <button
+              className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
+              disabled={isLoading || isSaving || !hasUnsavedChanges}
+              onClick={() => {
+                void handleSave();
+              }}
+              type="button"
+            >
+              <Save aria-hidden="true" className={`size-4 ${isSaving ? "animate-pulse" : ""}`} />
+              {isSaving
+                ? "กำลังบันทึก..."
+                : hasUnsavedChanges
+                  ? "บันทึก layout"
+                  : "บันทึกแล้ว"}
+            </button>
+          </div>
+        </header>
+
+        {overviewStats.length > 0 ? (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {overviewStats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-3 shadow-sm"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
+                  {stat.label}
+                </p>
+                <p className={`mt-2 text-lg font-semibold ${stat.tone}`}>{stat.value}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       {errors.length > 0 ? (
         <div
-          className="mx-5 mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
           role="alert"
         >
           <p className="font-semibold">แก้รายการเหล่านี้ก่อนบันทึก:</p>
@@ -710,7 +759,7 @@ export function AdminDetailLayoutPage() {
 
       {notice ? (
         <p
-          className="mx-5 mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
           role="status"
         >
           {notice}
@@ -718,204 +767,263 @@ export function AdminDetailLayoutPage() {
       ) : null}
 
       {isLoading || !layout ? (
-        <div className="m-5 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
+        <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)] shadow-sm">
           กำลังโหลด layout หน้า Details...
         </div>
       ) : (
-        <div className="grid gap-0 xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(230px,280px)_minmax(0,1fr)_360px]">
-          <div className="border-b border-[var(--site-border)] bg-[var(--site-surface)] p-4 xl:border-b-0 xl:border-r">
-            <BlockLibrary
-              onAddBlock={putBlockInActiveSelection}
-              onDragStart={() => {}}
-              targetLabel={activePlacementLabel}
-              usedBlockTypes={usedBlockTypes}
-            />
-          </div>
+        <div className="grid gap-6 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]">
+          <aside className="grid content-start gap-4 xl:sticky xl:top-36 xl:self-start">
+            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+              <div className="border-b border-[var(--site-border)] pb-3">
+                <h2 className="text-base font-semibold text-[var(--site-text)]">
+                  คลังบล็อก
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                  เลือกบล็อกที่จะวางลงในตำแหน่งที่กำลังแก้ไข
+                </p>
+              </div>
+              <div className="mt-4">
+                <BlockLibrary
+                  onAddBlock={putBlockInActiveSelection}
+                  onDragStart={() => {}}
+                  targetLabel={activePlacementLabel}
+                  usedBlockTypes={usedBlockTypes}
+                />
+              </div>
+            </section>
+          </aside>
 
-          <main className="px-3 py-4 sm:px-5 sm:py-6">
-            <div className="mx-auto max-w-5xl">
-              <LayoutCanvas
-            activeSelection={normalizedActiveSelection}
-            layout={layout}
-            onAddNarrowRow={handleAddNarrowRow}
-            onAddWideRow={handleAddWideRow}
-            onDropNarrowBlock={(rowId, type) => {
-              updateLayout(
-                (currentLayout) =>
-                  putDetailLayoutV2NarrowBlock(
-                    currentLayout,
-                    rowId,
-                    makeDetailLayoutBlock(type),
-                  ),
-                { zone: "narrow", rowId },
-              );
-            }}
-            onDropWideBlock={(rowId, blockIndex, type) => {
-              updateLayout(
-                (currentLayout) =>
-                  putDetailLayoutV2WideBlockInSlot(
-                    currentLayout,
-                    rowId,
-                    blockIndex,
-                    makeDetailLayoutBlock(type),
-                  ),
-                { zone: "wide", rowId, blockIndex },
-              );
-            }}
-            onMoveNarrowRow={(fromIndex, toIndex) => {
-              updateLayout((currentLayout) =>
-                moveDetailLayoutV2NarrowRow(currentLayout, fromIndex, toIndex),
-              );
-            }}
-            onMoveWideBlock={(fromRowId, fromBlockIndex, toRowId, toBlockIndex) => {
-              updateLayout(
-                (currentLayout) =>
-                  moveWideBlock(
-                    currentLayout,
-                    fromRowId,
-                    fromBlockIndex,
-                    toRowId,
-                    toBlockIndex,
-                  ),
-                { zone: "wide", rowId: toRowId, blockIndex: toBlockIndex },
-              );
-            }}
-            onMoveWideRow={(fromIndex, toIndex) => {
-              updateLayout((currentLayout) =>
-                moveDetailLayoutV2WideRow(currentLayout, fromIndex, toIndex),
-              );
-            }}
-            onOuterRatioChange={(ratio) => {
-              updateLayout((currentLayout) =>
-                updateDetailLayoutV2OuterRatio(currentLayout, ratio),
-              );
-            }}
-            onRemoveNarrowBlock={(rowId) => {
-              updateLayout(
-                (currentLayout) =>
-                  removeDetailLayoutV2NarrowBlock(currentLayout, rowId),
-                { zone: "narrow", rowId },
-              );
-            }}
-            onRemoveNarrowRow={(rowId) => {
-              updateLayout((currentLayout) =>
-                deleteDetailLayoutV2NarrowRow(currentLayout, rowId),
-              );
-            }}
-            onRemoveWideBlock={(rowId, blockIndex) => {
-              updateLayout(
-                (currentLayout) =>
-                  removeDetailLayoutV2WideBlock(currentLayout, rowId, blockIndex),
-                { zone: "wide", rowId, blockIndex },
-              );
-            }}
-            onRemoveWideRow={(rowId) => {
-              updateLayout((currentLayout) =>
-                deleteDetailLayoutV2WideRow(currentLayout, rowId),
-              );
-            }}
-            onSelectLockedBottomBlock={(blockIndex) => {
-              setActiveSelection({ zone: "lockedBottom", blockIndex });
-            }}
-            onSelectNarrowRow={(rowId) => {
-              setActiveSelection({ zone: "narrow", rowId });
-            }}
-            onSelectWideBlock={(rowId, blockIndex) => {
-              setActiveSelection({ zone: "wide", rowId, blockIndex });
-            }}
-            onToggleNarrowRow={(rowId, enabled) => {
-              updateLayout((currentLayout) =>
-                updateDetailLayoutV2NarrowRow(currentLayout, rowId, { enabled }),
-              );
-            }}
-            onToggleWideRow={(rowId, enabled) => {
-              updateLayout((currentLayout) =>
-                updateDetailLayoutV2WideRow(currentLayout, rowId, { enabled }),
-              );
-            }}
-            onUpdateWideRow={(rowId, columns, ratio) => {
-              updateLayout((currentLayout) =>
-                updateDetailLayoutV2WideRowColumns(
-                  currentLayout,
-                  rowId,
-                  columns,
-                  ratio,
-                ),
-              );
-            }}
-              />
-            </div>
+          <main className="min-w-0">
+            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--site-border)] px-4 py-4 sm:px-5">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-[var(--site-text)]">
+                    ผังหน้า Details
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                    ลากสลับตำแหน่ง เพิ่มแถว และปรับสัดส่วนของแต่ละส่วนได้จากพื้นที่นี้
+                  </p>
+                </div>
+                <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2 text-right">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
+                    ตำแหน่งที่เลือก
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--site-text)]">
+                    {activePlacementLabel}
+                  </p>
+                </div>
+              </div>
+              <div className="px-3 py-4 sm:px-5 sm:py-6">
+                <div className="mx-auto max-w-5xl">
+                  <LayoutCanvas
+                    activeSelection={normalizedActiveSelection}
+                    layout={layout}
+                    onAddNarrowRow={handleAddNarrowRow}
+                    onAddWideRow={handleAddWideRow}
+                    onDropNarrowBlock={(rowId, type) => {
+                      updateLayout(
+                        (currentLayout) =>
+                          putDetailLayoutV2NarrowBlock(
+                            currentLayout,
+                            rowId,
+                            makeDetailLayoutBlock(type),
+                          ),
+                        { zone: "narrow", rowId },
+                      );
+                    }}
+                    onDropWideBlock={(rowId, blockIndex, type) => {
+                      updateLayout(
+                        (currentLayout) =>
+                          putDetailLayoutV2WideBlockInSlot(
+                            currentLayout,
+                            rowId,
+                            blockIndex,
+                            makeDetailLayoutBlock(type),
+                          ),
+                        { zone: "wide", rowId, blockIndex },
+                      );
+                    }}
+                    onMoveNarrowRow={(fromIndex, toIndex) => {
+                      updateLayout((currentLayout) =>
+                        moveDetailLayoutV2NarrowRow(currentLayout, fromIndex, toIndex),
+                      );
+                    }}
+                    onMoveWideBlock={(fromRowId, fromBlockIndex, toRowId, toBlockIndex) => {
+                      updateLayout(
+                        (currentLayout) =>
+                          moveWideBlock(
+                            currentLayout,
+                            fromRowId,
+                            fromBlockIndex,
+                            toRowId,
+                            toBlockIndex,
+                          ),
+                        { zone: "wide", rowId: toRowId, blockIndex: toBlockIndex },
+                      );
+                    }}
+                    onMoveWideRow={(fromIndex, toIndex) => {
+                      updateLayout((currentLayout) =>
+                        moveDetailLayoutV2WideRow(currentLayout, fromIndex, toIndex),
+                      );
+                    }}
+                    onOuterRatioChange={(ratio) => {
+                      updateLayout((currentLayout) =>
+                        updateDetailLayoutV2OuterRatio(currentLayout, ratio),
+                      );
+                    }}
+                    onRemoveNarrowBlock={(rowId) => {
+                      updateLayout(
+                        (currentLayout) =>
+                          removeDetailLayoutV2NarrowBlock(currentLayout, rowId),
+                        { zone: "narrow", rowId },
+                      );
+                    }}
+                    onRemoveNarrowRow={(rowId) => {
+                      updateLayout((currentLayout) =>
+                        deleteDetailLayoutV2NarrowRow(currentLayout, rowId),
+                      );
+                    }}
+                    onRemoveWideBlock={(rowId, blockIndex) => {
+                      updateLayout(
+                        (currentLayout) =>
+                          removeDetailLayoutV2WideBlock(
+                            currentLayout,
+                            rowId,
+                            blockIndex,
+                          ),
+                        { zone: "wide", rowId, blockIndex },
+                      );
+                    }}
+                    onRemoveWideRow={(rowId) => {
+                      updateLayout((currentLayout) =>
+                        deleteDetailLayoutV2WideRow(currentLayout, rowId),
+                      );
+                    }}
+                    onSelectLockedBottomBlock={(blockIndex) => {
+                      setActiveSelection({ zone: "lockedBottom", blockIndex });
+                    }}
+                    onSelectNarrowRow={(rowId) => {
+                      setActiveSelection({ zone: "narrow", rowId });
+                    }}
+                    onSelectWideBlock={(rowId, blockIndex) => {
+                      setActiveSelection({ zone: "wide", rowId, blockIndex });
+                    }}
+                    onToggleNarrowRow={(rowId, enabled) => {
+                      updateLayout((currentLayout) =>
+                        updateDetailLayoutV2NarrowRow(currentLayout, rowId, { enabled }),
+                      );
+                    }}
+                    onToggleWideRow={(rowId, enabled) => {
+                      updateLayout((currentLayout) =>
+                        updateDetailLayoutV2WideRow(currentLayout, rowId, { enabled }),
+                      );
+                    }}
+                    onUpdateWideRow={(rowId, columns, ratio) => {
+                      updateLayout((currentLayout) =>
+                        updateDetailLayoutV2WideRowColumns(
+                          currentLayout,
+                          rowId,
+                          columns,
+                          ratio,
+                        ),
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+            </section>
           </main>
 
-          <aside className="grid content-start gap-3 border-t border-[var(--site-border)] bg-[var(--site-surface)] p-4 xl:col-start-2 2xl:col-start-auto 2xl:border-l 2xl:border-t-0">
-            <RowSettingsPanel
-              layout={layout}
-              onRemoveNarrowBlock={(rowId) => {
-                updateLayout(
-                  (currentLayout) =>
-                    removeDetailLayoutV2NarrowBlock(currentLayout, rowId),
-                  { zone: "narrow", rowId },
-                );
-              }}
-              onRemoveWideBlock={(rowId, blockIndex) => {
-                updateLayout(
-                  (currentLayout) =>
-                    removeDetailLayoutV2WideBlock(
-                      currentLayout,
-                      rowId,
-                      blockIndex,
-                    ),
-                  { zone: "wide", rowId, blockIndex },
-                );
-              }}
-              onSelectWideBlock={(rowId, blockIndex) => {
-                setActiveSelection({ zone: "wide", rowId, blockIndex });
-              }}
-              onUpdateNarrowBlock={(rowId, changes) => {
-                updateLayout((currentLayout) =>
-                  updateDetailLayoutV2NarrowBlock(
-                    currentLayout,
-                    rowId,
-                    changes,
-                  ),
-                );
-              }}
-              onUpdateNarrowRow={(rowId, changes) => {
-                updateLayout((currentLayout) =>
-                  updateDetailLayoutV2NarrowRow(currentLayout, rowId, changes),
-                );
-              }}
-              onUpdateWideBlock={(rowId, blockIndex, changes) => {
-                updateLayout((currentLayout) =>
-                  updateDetailLayoutV2WideBlock(
-                    currentLayout,
-                    rowId,
-                    blockIndex,
-                    changes,
-                  ),
-                );
-              }}
-              onUpdateWideRow={(rowId, columns, ratio) => {
-                updateLayout((currentLayout) =>
-                  updateDetailLayoutV2WideRowColumns(
-                    currentLayout,
-                    rowId,
-                    columns,
-                    ratio,
-                  ),
-                );
-              }}
-              onUpdateWideRowEnabled={(rowId, enabled) => {
-                updateLayout((currentLayout) =>
-                  updateDetailLayoutV2WideRow(currentLayout, rowId, { enabled }),
-                );
-              }}
-              selection={normalizedActiveSelection}
-            />
-            <DetailLayoutPreview
-              activeSelection={normalizedActiveSelection}
-              layout={layout}
-            />
+          <aside className="grid content-start gap-4 2xl:sticky 2xl:top-36 2xl:self-start">
+            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+              <div className="border-b border-[var(--site-border)] px-4 py-4">
+                <h2 className="text-base font-semibold text-[var(--site-text)]">
+                  ตั้งค่าแถวและบล็อก
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                  ปรับรายละเอียดของส่วนที่เลือก รวมถึงการแสดงผลและลำดับการวาง
+                </p>
+              </div>
+              <div className="p-4">
+                <RowSettingsPanel
+                  layout={layout}
+                  onRemoveNarrowBlock={(rowId) => {
+                    updateLayout(
+                      (currentLayout) =>
+                        removeDetailLayoutV2NarrowBlock(currentLayout, rowId),
+                      { zone: "narrow", rowId },
+                    );
+                  }}
+                  onRemoveWideBlock={(rowId, blockIndex) => {
+                    updateLayout(
+                      (currentLayout) =>
+                        removeDetailLayoutV2WideBlock(
+                          currentLayout,
+                          rowId,
+                          blockIndex,
+                        ),
+                      { zone: "wide", rowId, blockIndex },
+                    );
+                  }}
+                  onSelectWideBlock={(rowId, blockIndex) => {
+                    setActiveSelection({ zone: "wide", rowId, blockIndex });
+                  }}
+                  onUpdateNarrowBlock={(rowId, changes) => {
+                    updateLayout((currentLayout) =>
+                      updateDetailLayoutV2NarrowBlock(currentLayout, rowId, changes),
+                    );
+                  }}
+                  onUpdateNarrowRow={(rowId, changes) => {
+                    updateLayout((currentLayout) =>
+                      updateDetailLayoutV2NarrowRow(currentLayout, rowId, changes),
+                    );
+                  }}
+                  onUpdateWideBlock={(rowId, blockIndex, changes) => {
+                    updateLayout((currentLayout) =>
+                      updateDetailLayoutV2WideBlock(
+                        currentLayout,
+                        rowId,
+                        blockIndex,
+                        changes,
+                      ),
+                    );
+                  }}
+                  onUpdateWideRow={(rowId, columns, ratio) => {
+                    updateLayout((currentLayout) =>
+                      updateDetailLayoutV2WideRowColumns(
+                        currentLayout,
+                        rowId,
+                        columns,
+                        ratio,
+                      ),
+                    );
+                  }}
+                  onUpdateWideRowEnabled={(rowId, enabled) => {
+                    updateLayout((currentLayout) =>
+                      updateDetailLayoutV2WideRow(currentLayout, rowId, { enabled }),
+                    );
+                  }}
+                  selection={normalizedActiveSelection}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+              <div className="border-b border-[var(--site-border)] px-4 py-4">
+                <h2 className="text-base font-semibold text-[var(--site-text)]">
+                  พรีวิวย่อ
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                  ตรวจดูภาพรวมของหน้า detail พร้อมตำแหน่งที่กำลังแก้ไข
+                </p>
+              </div>
+              <div className="p-4">
+                <DetailLayoutPreview
+                  activeSelection={normalizedActiveSelection}
+                  layout={layout}
+                />
+              </div>
+            </section>
           </aside>
         </div>
       )}

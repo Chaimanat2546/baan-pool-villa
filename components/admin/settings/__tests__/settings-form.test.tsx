@@ -20,15 +20,15 @@ vi.mock("@/lib/site-settings/colors", () => ({
 
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 
-import { SettingsForm } from "../settings-form";
 import { mapSettingsToDraft } from "../settings-helpers";
+import { SettingsForm } from "../settings-form";
 
-function renderSettingsForm(
-  settings = DEFAULT_SITE_SETTINGS,
-) {
+function renderSettingsForm(settings = DEFAULT_SITE_SETTINGS) {
   return renderToStaticMarkup(
     <SettingsForm
       draft={mapSettingsToDraft(settings)}
+      hasUnsavedChanges={false}
+      isSaving={false}
       onChange={vi.fn()}
       onSave={vi.fn()}
       settings={settings}
@@ -37,13 +37,14 @@ function renderSettingsForm(
 }
 
 describe("SettingsForm", () => {
-  it("groups brand appearance fields in the order admins expect", () => {
+  it("renders the settings rail in the order admins expect", () => {
     const html = renderSettingsForm();
     const expectedOrder = [
-      "ตัวตนแบรนด์",
-      "สีของเว็บ",
-      "รูปภาพหลัก",
-      "ตอนแชร์ลิงก์และ Google",
+      "ข้อมูลแบรนด์",
+      "สีและธีม",
+      "รูปหลัก",
+      "SEO และการแชร์",
+      "ติดต่อและชำระเงิน",
     ];
 
     expectedOrder.reduce((previousIndex, label) => {
@@ -55,15 +56,17 @@ describe("SettingsForm", () => {
     }, -1);
   });
 
-  it("shows live brand, Google, and share previews beside the form", () => {
+  it("shows status plus live site, Google, and share previews beside the form", () => {
     const html = renderSettingsForm();
 
+    expect(html).toContain("สถานะการตั้งค่า");
     expect(html).toContain("ตัวอย่างหน้าเว็บ");
     expect(html).toContain("ตัวอย่างผลค้นหา Google");
     expect(html).toContain("ตัวอย่างตอนแชร์ลิงก์");
     expect(html).toContain("ดูบ้านพัก");
   });
-  it("shows TikTok controls in form and side preview", () => {
+
+  it("does not render TikTok controls in general settings form", () => {
     const html = renderSettingsForm({
       ...DEFAULT_SITE_SETTINGS,
       tiktok: {
@@ -85,23 +88,8 @@ describe("SettingsForm", () => {
       },
     });
 
-    expect(html).toContain("TikTok");
-    expect(html).toContain("ตั้งค่าแล้ว 1 วิดีโอ");
-    expect(html).toContain("https://www.tiktok.com/@baanpoolvilla");
-    expect(html).toContain("ลิงก์บัญชี TikTok");
-    expect(html).toContain("ลิงก์วิดีโอ TikTok 1");
-  });
-
-  it("shows TikTok empty state when no configured videos", () => {
-    const html = renderSettingsForm({
-      ...DEFAULT_SITE_SETTINGS,
-      tiktok: {
-        accountUrl: "",
-        videos: [],
-      },
-    });
-
-    expect(html).toContain("ยังไม่แสดงวิดีโอ TikTok บนหน้าแรก");
-    expect(html).toContain("ยังไม่ได้ใส่ลิงก์บัญชี");
+    expect(html).not.toContain('id="tiktokAccountUrl"');
+    expect(html).not.toContain("ลิงก์บัญชี TikTok");
+    expect(html).not.toContain("ลิงก์วิดีโอ TikTok 1");
   });
 });

@@ -3,8 +3,14 @@
 import {
   ArrowDown,
   ArrowUp,
+  CheckCircle2,
+  Eye,
+  Layers3,
+  Plus,
+  Save,
   Trash2,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   type DragEvent,
@@ -27,15 +33,18 @@ import type {
   AdminManualPreviewResponse,
   AdminSectionDraft,
 } from "./types";
-import { AdminSectionsHeader } from "./admin-sections-header";
 import { AutoModeSummary } from "./auto-mode-summary";
 import { ManualIdsEditor } from "./manual-ids-editor";
 import { SectionConfigForm } from "./section-config-form";
 import { SectionHomePreview } from "./section-home-preview";
 import { SectionList } from "./section-list";
 import {
+  getFallbackExplanation,
+  getFallbackModeLabel,
+  getManualIdStatus,
   getPreviewForSection,
   getSectionLabel,
+  MODE_LABELS,
   normalizeAdminFallbackMode,
 } from "./section-helpers";
 
@@ -202,7 +211,7 @@ function SectionEditorGroup({
   title: string;
 }) {
   return (
-    <section className="grid gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
+    <section className="grid gap-4 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
       <div>
         <h3 className="text-base font-semibold text-[var(--site-text)]">
           {title}
@@ -273,6 +282,19 @@ export function AdminSectionsPage() {
     activeSection?.mode === "manual"
       ? activeSection.items.map((item) => item.houseId).join("\n")
       : "";
+  const activeModeLabel = activeSection
+    ? (MODE_LABELS.get(activeSection.mode) ?? activeSection.mode)
+    : null;
+  const activeManualStatus =
+    activeSection?.mode === "manual"
+      ? getManualIdStatus(activeSection)
+      : null;
+  const duplicateManualIds = activeManualStatus?.duplicateIds.length ?? 0;
+  const invalidManualIds = activeManualStatus?.invalidIds.length ?? 0;
+  const isPreviewVerified =
+    activeSection?.mode === "manual" &&
+    activePreview !== null &&
+    activePreview.valid.length > 0;
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -749,16 +771,79 @@ export function AdminSectionsPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 text-[var(--site-text)]">
-      <AdminSectionsHeader
-        activeSectionsCount={activeSectionsCount}
-        hasUnsavedChanges={hasUnsavedChanges}
-        isLoading={isLoading}
-        isSaving={isSaving}
-        onAddSection={addSection}
-        onSave={handleSave}
-        sectionsCount={sections.length}
-      />
+    <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
+      <div
+        className="sticky top-0 z-30 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6"
+        id="adminSectionsPageHeader"
+      >
+        <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
+              หน้าแรก
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-normal text-[var(--site-text)]">
+              จัดชุดบ้านพักหน้าแรก
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
+              จัดลำดับแต่ละชุด กำหนดวิธีคัดบ้าน และเช็กภาพรวมก่อนบันทึกให้หน้าแรกแสดงผลตามที่ต้องการ
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+              <span className="rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-text)] ring-1 ring-[var(--site-border)]">
+                ทั้งหมด {sections.length} ชุด
+              </span>
+              <span className="rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-text)] ring-1 ring-[var(--site-border)]">
+                เปิดใช้งาน {activeSectionsCount} ชุด
+              </span>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
+                  hasUnsavedChanges
+                    ? "bg-amber-50 text-amber-800 ring-amber-200"
+                    : "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                }`}
+              >
+                <CheckCircle2 aria-hidden="true" className="size-3.5" />
+                {hasUnsavedChanges
+                  ? "มีรายการที่ยังไม่บันทึก"
+                  : "บันทึกล่าสุดแล้ว"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <button
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+              onClick={addSection}
+              type="button"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              เพิ่มชุดบ้านพัก
+            </button>
+            <Link
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+              href="/"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <Eye aria-hidden="true" className="size-4" />
+              ดูหน้าแรก
+            </Link>
+            <button
+              className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
+              disabled={isSaving || isLoading || !hasUnsavedChanges}
+              onClick={() => {
+                void handleSave();
+              }}
+              type="button"
+            >
+              <Save
+                aria-hidden="true"
+                className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
+              />
+              {isSaving ? "กำลังตรวจและบันทึก..." : "บันทึกหน้าแรก"}
+            </button>
+          </div>
+        </header>
+      </div>
 
       {hasErrors ? (
         <div
@@ -788,8 +873,19 @@ export function AdminSectionsPage() {
           กำลังโหลดการจัดหน้าแรก...
         </div>
       ) : (
-        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(250px,320px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(250px,300px)_minmax(0,1fr)_360px]">
-          <div className="xl:sticky xl:top-4 xl:self-start">
+        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]">
+          <aside className="grid content-start gap-3 xl:sticky xl:top-24 xl:self-start">
+            <div className="px-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
+                Master
+              </p>
+              <h2 className="mt-1 text-lg font-semibold text-[var(--site-text)]">
+                รายการชุดบนหน้าแรก
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                เลือกชุดที่ต้องการแก้ไข หรือลากเพื่อเปลี่ยนลำดับการแสดงผล
+              </p>
+            </div>
             <SectionList
               activeDraftId={activeSection?.draftId ?? null}
               onDragEnd={() => setDraggedDraftId(null)}
@@ -799,83 +895,140 @@ export function AdminSectionsPage() {
               onSelect={selectSection}
               sections={sections}
             />
-          </div>
+          </aside>
 
           {activeSection ? (
             <>
-              <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
-                <div className="flex flex-col gap-2 border-b border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-normal text-[var(--site-muted)]">
-                      ชุดที่ {activeIndex + 1}
-                    </p>
-                    <h2 className="truncate text-lg font-semibold text-[var(--site-text)]">
-                      {activeSection.title || "ยังไม่ได้ตั้งชื่อ"}
-                    </h2>
-                    {deleteNeedsConfirmation ? (
-                      <p className="mt-1 text-xs font-semibold text-red-700">
-                        กด “ยืนยันลบ” อีกครั้งเพื่อลบชุดนี้
+              <section className="overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+                <div className="border-b border-[var(--site-border)] bg-[var(--site-surface-soft)]/80 px-4 py-4 sm:px-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-primary)]">
+                        Detail
                       </p>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)]">
-                      <input
-                        checked={activeSection.isActive}
-                        className="size-4 accent-[var(--site-primary)]"
-                        onChange={(event) => {
-                          updateSection(activeSection.draftId, {
-                            isActive: event.target.checked,
-                          });
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                        <span className="rounded-full bg-[var(--site-surface)] px-2.5 py-1 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
+                          ชุดที่ {activeIndex + 1}
+                        </span>
+                        <span className="rounded-full bg-[var(--site-surface)] px-2.5 py-1 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
+                          {activeModeLabel}
+                        </span>
+                        <span className="rounded-full bg-[var(--site-surface)] px-2.5 py-1 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
+                          {activeSection.limitCount.toLocaleString("th-TH")} หลัง
+                        </span>
+                      </div>
+                      <h2 className="mt-3 text-2xl font-semibold text-[var(--site-text)]">
+                        {activeSection.title || "ยังไม่ได้ตั้งชื่อชุด"}
+                      </h2>
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
+                        ปรับข้อความ วิธีคัดบ้าน และสถานะการแสดงผลของชุดนี้ก่อนบันทึกขึ้นหน้าแรก
+                      </p>
+                      {deleteNeedsConfirmation ? (
+                        <p className="mt-3 text-sm font-semibold text-red-700">
+                          กด &quot;ยืนยันลบ&quot; อีกครั้งเพื่อลบชุดนี้
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                      <label className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] shadow-sm">
+                        <input
+                          checked={activeSection.isActive}
+                          className="size-4 accent-[var(--site-primary)]"
+                          onChange={(event) => {
+                            updateSection(activeSection.draftId, {
+                              isActive: event.target.checked,
+                            });
+                          }}
+                          type="checkbox"
+                        />
+                        แสดงบนหน้าแรก
+                      </label>
+                      <button
+                        aria-label="เลื่อนชุดบ้านพักที่เลือกขึ้น"
+                        className="inline-flex size-10 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={activeIndex <= 0}
+                        onClick={() => {
+                          moveSection(activeIndex, activeIndex - 1);
                         }}
-                        type="checkbox"
-                      />
-                      แสดงบนหน้าแรก
-                    </label>
-                    <button
-                      aria-label="เลื่อนชุดบ้านพักที่เลือกขึ้น"
-                      className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={activeIndex <= 0}
-                      onClick={() => {
-                        moveSection(activeIndex, activeIndex - 1);
-                      }}
-                      title="เลื่อนขึ้น"
-                      type="button"
-                    >
-                      <ArrowUp aria-hidden="true" className="size-4" />
-                    </button>
-                    <button
-                      aria-label="เลื่อนชุดบ้านพักที่เลือกลง"
-                      className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={
-                        activeIndex < 0 || activeIndex >= sections.length - 1
-                      }
-                      onClick={() => {
-                        moveSection(activeIndex, activeIndex + 1);
-                      }}
-                      title="เลื่อนลง"
-                      type="button"
-                    >
-                      <ArrowDown aria-hidden="true" className="size-4" />
-                    </button>
-                    <button
-                      className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition ${
-                        deleteNeedsConfirmation
-                          ? "border-red-700 bg-red-700 text-white hover:bg-red-800"
-                          : "border-red-200 bg-[var(--site-surface)] text-red-700 hover:bg-red-50"
-                      }`}
-                      onClick={() => {
-                        requestDeleteSection(activeSection.draftId);
-                      }}
-                      type="button"
-                    >
-                      <Trash2 aria-hidden="true" className="size-4" />
-                      {deleteNeedsConfirmation ? "ยืนยันลบ" : "ลบ"}
-                    </button>
+                        title="เลื่อนขึ้น"
+                        type="button"
+                      >
+                        <ArrowUp aria-hidden="true" className="size-4" />
+                      </button>
+                      <button
+                        aria-label="เลื่อนชุดบ้านพักที่เลือกลง"
+                        className="inline-flex size-10 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={
+                          activeIndex < 0 || activeIndex >= sections.length - 1
+                        }
+                        onClick={() => {
+                          moveSection(activeIndex, activeIndex + 1);
+                        }}
+                        title="เลื่อนลง"
+                        type="button"
+                      >
+                        <ArrowDown aria-hidden="true" className="size-4" />
+                      </button>
+                      <button
+                        className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-semibold shadow-sm transition ${
+                          deleteNeedsConfirmation
+                            ? "border-red-700 bg-red-700 text-white hover:bg-red-800"
+                            : "border-red-200 bg-[var(--site-surface)] text-red-700 hover:bg-red-50"
+                        }`}
+                        onClick={() => {
+                          requestDeleteSection(activeSection.draftId);
+                        }}
+                        type="button"
+                      >
+                        <Trash2 aria-hidden="true" className="size-4" />
+                        {deleteNeedsConfirmation ? "ยืนยันลบ" : "ลบชุดนี้"}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid gap-4 px-4 py-4">
+                <div className="grid gap-4 px-4 py-4 sm:px-5">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
+                        สถานะ
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-[var(--site-text)]">
+                        {activeSection.isActive ? "พร้อมแสดงผล" : "ปิดการแสดงผล"}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--site-muted)]">
+                        {activeSection.isActive
+                          ? "ชุดนี้จะถูกนำไปแสดงตามลำดับที่ตั้งไว้"
+                          : "เก็บร่างไว้ก่อน ยังไม่ขึ้นบนหน้าแรก"}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
+                        วิธีคัดบ้าน
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-[var(--site-text)]">
+                        {activeModeLabel}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--site-muted)]">
+                        {getFallbackExplanation(activeSection)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
+                        ปุ่มลิงก์
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-[var(--site-text)]">
+                        {activeSection.ctaEnabled ? "เปิดใช้งาน" : "ไม่แสดงปุ่ม"}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--site-muted)]">
+                        {activeSection.ctaEnabled
+                          ? activeSection.ctaLabel.trim() || "ดูเพิ่มเติม"
+                          : "หน้าแรกจะแสดงเฉพาะรายการบ้านในชุดนี้"}
+                      </p>
+                    </div>
+                  </div>
+
                   <SectionEditorGroup
                     description="ข้อความส่วนนี้คือหัวข้อและคำโปรยที่ลูกค้าเห็นบนหน้าแรก"
                     title="รายละเอียดชุดบ้านพัก"
@@ -884,7 +1037,7 @@ export function AdminSectionsPage() {
                       <label className="block text-sm font-medium text-[var(--site-text)]">
                         ชื่อชุดบ้านพัก
                         <input
-                          className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+                          className="mt-1 h-11 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
                           onChange={(event) => {
                             updateSection(activeSection.draftId, {
                               title: event.target.value,
@@ -960,7 +1113,81 @@ export function AdminSectionsPage() {
                 </div>
               </section>
 
-              <aside className="grid content-start gap-3 xl:col-start-2 2xl:sticky 2xl:top-4 2xl:col-start-auto 2xl:self-start">
+              <aside className="grid content-start gap-4 xl:col-start-2 2xl:sticky 2xl:top-24 2xl:col-start-auto 2xl:self-start">
+                <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-primary)]">
+                        Preview
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold text-[var(--site-text)]">
+                        สรุปก่อนบันทึก
+                      </h3>
+                    </div>
+                    <Layers3
+                      aria-hidden="true"
+                      className="size-5 text-[var(--site-primary)]"
+                    />
+                  </div>
+
+                  <dl className="mt-4 grid gap-3 text-sm">
+                    <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
+                      <dt className="text-[var(--site-muted)]">ลำดับแสดงผล</dt>
+                      <dd className="text-right font-semibold text-[var(--site-text)]">
+                        ชุดที่ {activeIndex + 1}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
+                      <dt className="text-[var(--site-muted)]">รูปแบบการคัด</dt>
+                      <dd className="text-right font-semibold text-[var(--site-text)]">
+                        {activeModeLabel}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
+                      <dt className="text-[var(--site-muted)]">จำนวนที่ตั้งไว้</dt>
+                      <dd className="text-right font-semibold text-[var(--site-text)]">
+                        {activeSection.limitCount.toLocaleString("th-TH")} หลัง
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
+                      <dt className="text-[var(--site-muted)]">การเติมรายการ</dt>
+                      <dd className="max-w-[14rem] text-right font-semibold text-[var(--site-text)]">
+                        {getFallbackModeLabel(activeSection.fallbackMode)}
+                      </dd>
+                    </div>
+                    {activeSection.mode === "manual" ? (
+                      <>
+                        <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
+                          <dt className="text-[var(--site-muted)]">เลขบ้านที่กรอก</dt>
+                          <dd className="text-right font-semibold text-[var(--site-text)]">
+                            {activeSection.items.length.toLocaleString("th-TH")} รายการ
+                          </dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
+                          <dt className="text-[var(--site-muted)]">เลขซ้ำ / ไม่ถูกต้อง</dt>
+                          <dd className="text-right font-semibold text-[var(--site-text)]">
+                            {duplicateManualIds.toLocaleString("th-TH")} /{" "}
+                            {invalidManualIds.toLocaleString("th-TH")}
+                          </dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-4">
+                          <dt className="text-[var(--site-muted)]">สถานะพรีวิว</dt>
+                          <dd className="text-right font-semibold text-[var(--site-text)]">
+                            {isPreviewVerified ? "เช็กบ้านแล้ว" : "รอเช็กข้อมูล"}
+                          </dd>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-start justify-between gap-4">
+                        <dt className="text-[var(--site-muted)]">เลื่อนรายการเริ่มที่</dt>
+                        <dd className="text-right font-semibold text-[var(--site-text)]">
+                          {activeSection.sliceOffset.toLocaleString("th-TH")}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                </section>
+
                 <SectionHomePreview
                   preview={activePreview}
                   section={activeSection}
@@ -968,8 +1195,26 @@ export function AdminSectionsPage() {
               </aside>
             </>
           ) : (
-            <div className="rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)] xl:col-span-1">
-              ยังไม่มีชุดบ้านพัก กดเพิ่มชุดบ้านพักเพื่อเริ่มจัดหน้าแรก
+            <div className="grid place-items-center rounded-2xl border border-dashed border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-10 text-center xl:col-span-2">
+              <div className="max-w-md">
+                <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+                  <Layers3 aria-hidden="true" className="size-6" />
+                </div>
+                <h2 className="mt-4 text-xl font-semibold text-[var(--site-text)]">
+                  ยังไม่มีชุดบ้านพัก
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">
+                  เริ่มจากเพิ่มชุดบ้านพักชุดแรก แล้วค่อยกำหนดข้อความ รูปแบบคัดบ้าน และพรีวิวก่อนบันทึก
+                </p>
+                <button
+                  className="mt-5 inline-flex h-11 items-center gap-2 rounded-md bg-[var(--site-primary)] px-5 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)]"
+                  onClick={addSection}
+                  type="button"
+                >
+                  <Plus aria-hidden="true" className="size-4" />
+                  เพิ่มชุดบ้านพัก
+                </button>
+              </div>
             </div>
           )}
         </div>
