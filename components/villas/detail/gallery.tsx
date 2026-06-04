@@ -179,7 +179,7 @@ function GalleryViewAllTile({
 
           <ImageIcon className="h-4 w-4 lg:h-5 lg:w-5" />
 
-              <span>ดูอีก {totalImageCount} รูป</span>
+              <span>+ {totalImageCount} รูป</span>
 
         </span>
 
@@ -289,7 +289,7 @@ export function Gallery({
 
             alt={`${getVillaTitle(listing.id)} รวมรูปบ้านพัก`}
 
-            className="aspect-[4/3] w-full lg:aspect-auto lg:h-full lg:rounded-none [&_img]:scale-110 [&_img]:blur-md [&_img]:brightness-75"
+            className="aspect-[4/3] w-full lg:aspect-auto lg:h-full lg:rounded-none [&_img]:scale-110 [&_img]:brightness-75"
 
             item={fourth}
 
@@ -303,7 +303,7 @@ export function Gallery({
 
             type="button"
 
-            className="absolute inset-0 grid place-items-center bg-black/20 text-[11px] font-black text-[var(--site-on-primary)] lg:text-sm"
+            className="absolute inset-0 grid place-items-center bg-black/5 text-[11px] font-black text-[var(--site-on-primary)] lg:text-sm"
 
             onClick={() => {
               onImageClick(fourth);
@@ -312,9 +312,9 @@ export function Gallery({
 
             <span className="inline-flex max-w-[92%] items-center gap-1 rounded-full bg-black/40 px-2 py-1 backdrop-blur-md lg:gap-2 lg:px-4 lg:py-2">
 
-              <ImageIcon className="h-4 w-4" />
+              {/* <ImageIcon className="h-4 w-4" /> */}
 
-              <span>ดูอีก {totalImageCount} รูป</span>
+              <span>+ {totalImageCount} รูป</span>
 
               {items.some((item) => item.isMock) ? (
 
@@ -370,7 +370,7 @@ export function GalleryLightbox({
 
 }) {
 
-  const [isActiveImageLoading, setIsActiveImageLoading] = useState(false);
+  const [loadedImageKey, setLoadedImageKey] = useState<string | null>(null);
   const thumbnailStripRef = useRef<HTMLDivElement>(null);
   const touchStartXRef = useRef<number | null>(null);
 
@@ -396,26 +396,36 @@ export function GalleryLightbox({
   }, [activeItem]);
 
   useEffect(() => {
-    setIsActiveImageLoading(Boolean(activeItem));
-  }, [activeItem]);
-
-  useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
       const thumbnailStrip = thumbnailStripRef.current;
-      const activeThumbnail = thumbnailStrip?.querySelector(".border-white");
+      const activeThumbnail = thumbnailStrip?.querySelector("[data-active-thumbnail='true']");
 
       if (!thumbnailStrip || !(activeThumbnail instanceof HTMLElement)) {
         return;
       }
 
+      const stripRect = thumbnailStrip.getBoundingClientRect();
+      const thumbnailRect = activeThumbnail.getBoundingClientRect();
+      const shouldScrollVertically =
+        window.matchMedia("(min-width: 1024px)").matches &&
+        thumbnailStrip.scrollHeight > thumbnailStrip.clientHeight;
       const targetLeft =
-        activeThumbnail.offsetLeft -
+        thumbnailStrip.scrollLeft +
+        thumbnailRect.left -
+        stripRect.left -
         thumbnailStrip.clientWidth / 2 +
-        activeThumbnail.clientWidth / 2;
+        thumbnailRect.width / 2;
+      const targetTop =
+        thumbnailStrip.scrollTop +
+        thumbnailRect.top -
+        stripRect.top -
+        thumbnailStrip.clientHeight / 2 +
+        thumbnailRect.height / 2;
 
       thumbnailStrip.scrollTo({
         behavior: "auto",
-        left: Math.max(0, targetLeft),
+        left: shouldScrollVertically ? thumbnailStrip.scrollLeft : Math.max(0, targetLeft),
+        top: shouldScrollVertically ? Math.max(0, targetTop) : thumbnailStrip.scrollTop,
       });
     });
 
@@ -423,6 +433,55 @@ export function GalleryLightbox({
       window.cancelAnimationFrame(frameId);
     };
   }, [activeItem]);
+
+  useEffect(() => {
+    if (!activeItem) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      const activeCategoryForKey =
+        categories.find((category) => category.key === activeItem.zoneKey) ??
+        categories[0];
+      const activeItemsForKey = activeCategoryForKey?.items ?? [];
+
+      if (activeItemsForKey.length <= 1) {
+        return;
+      }
+
+      const activeIndexForKey = Math.max(
+        activeItemsForKey.findIndex((item) => item.key === activeItem.key),
+        0,
+      );
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        onSelect(
+          activeItemsForKey[
+            (activeIndexForKey - 1 + activeItemsForKey.length) %
+              activeItemsForKey.length
+          ],
+        );
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        onSelect(activeItemsForKey[(activeIndexForKey + 1) % activeItemsForKey.length]);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeItem, categories, onClose, onSelect]);
 
   if (!activeItem) {
 
@@ -452,6 +511,7 @@ export function GalleryLightbox({
 
   const nextItem = activeItems[(activeIndex + 1) % activeItems.length];
   const activeImageDownloadHref = buildGalleryDownloadHref(listing.id, activeItem);
+  const isActiveImageLoading = loadedImageKey !== activeItem.key;
   const handleImageTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     touchStartXRef.current = event.touches[0]?.clientX ?? null;
   };
@@ -517,7 +577,7 @@ export function GalleryLightbox({
 
         </header>
 
-        <div className="shrink-0 border-b border-white/10 px-4 py-3 sm:px-6">
+        <div className="shrink-0 border-b border-white/10 px-4 py-3 sm:px-6 lg:hidden">
 
           <div className="mb-2 flex items-center justify-between gap-3">
 
@@ -561,7 +621,7 @@ export function GalleryLightbox({
 
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden px-3 pb-8 pt-3 sm:gap-3 sm:px-6 sm:py-4 lg:grid lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden px-3 pb-8 pt-3 sm:gap-3 sm:px-6 sm:py-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-5 lg:px-6 lg:pb-6 lg:pt-5">
 
           <div
             className="relative h-[46dvh] min-h-[250px] min-w-0 max-w-full shrink-0 touch-pan-y overflow-hidden rounded-2xl bg-white/5 sm:h-auto sm:flex-1 lg:h-auto lg:min-h-0"
@@ -569,6 +629,8 @@ export function GalleryLightbox({
             onTouchEnd={handleImageTouchEnd}
           >
             <Image
+
+              key={activeItem.key}
 
               src={activeItem.url}
 
@@ -580,16 +642,16 @@ export function GalleryLightbox({
 
               unoptimized={shouldBypassImageOptimizer(activeItem.url)}
 
-              sizes="100vw"
+              sizes="(max-width: 1024px) 100vw, calc(100vw - 400px)"
 
               className="object-contain"
 
               onLoad={() => {
-                setIsActiveImageLoading(false);
+                setLoadedImageKey(activeItem.key);
               }}
 
               onError={() => {
-                setIsActiveImageLoading(false);
+                setLoadedImageKey(activeItem.key);
                 onImageError(activeItem.url);
               }}
             />
@@ -604,6 +666,14 @@ export function GalleryLightbox({
             <div className="absolute left-2 top-2 z-20 max-w-[calc(100%_-_4.5rem)] rounded-full bg-black/50 px-3 py-1.5 text-xs font-black text-[var(--site-on-primary)] backdrop-blur sm:hidden">
               {activeItem.zoneLabel}
               <span className="ml-2 opacity-70">
+                {activeIndex + 1}/{activeItems.length}
+              </span>
+            </div>
+
+            <div className="absolute left-4 top-4 z-20 hidden max-w-[calc(100%_-_5.5rem)] items-center rounded-full bg-black/50 px-4 py-2 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(0,0,0,0.2)] backdrop-blur lg:inline-flex">
+              {activeItem.zoneLabel}
+              <span className="mx-2 opacity-50">•</span>
+              <span className="opacity-80">
                 {activeIndex + 1}/{activeItems.length}
               </span>
             </div>
@@ -662,9 +732,32 @@ export function GalleryLightbox({
 
           </div>
 
-          <aside className="min-h-0 min-w-0 max-w-full shrink-0 lg:overflow-y-auto">
+          <aside className="min-h-0 min-w-0 max-w-full shrink-0 lg:flex lg:h-full lg:flex-col lg:overflow-hidden">
 
-            <div className="rounded-2xl bg-white/10 p-3 sm:p-4">
+            <div className="hidden shrink-0 rounded-2xl bg-white/10 p-3 lg:block">
+              <p className="text-xs font-black text-[var(--site-on-primary)] opacity-60">เลือกหมวดหมู่</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {categories.map((category) => (
+                  <button
+                    key={category.key}
+                    type="button"
+                    className={`min-h-10 rounded-xl px-3 py-2 text-left text-xs font-black transition ${
+                      category.key === activeItem.zoneKey
+                        ? "bg-[var(--site-surface)] text-[var(--site-text)]"
+                        : "bg-white/10 text-[var(--site-on-primary)] hover:bg-white/20"
+                    }`}
+                    onClick={() => {
+                      onSelect(category.items[0]);
+                    }}
+                  >
+                    <span className="block truncate">{category.label}</span>
+                    <span className="text-[11px] opacity-70">{category.items.length} รูป</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white/10 p-3 sm:p-4 lg:mt-3 lg:shrink-0">
               <p className="text-xs font-black text-[var(--site-on-primary)] opacity-60">หมวดรูป</p>
               <h3 className="mt-1 text-xl font-black">{activeItem.zoneLabel}</h3>
 
@@ -675,7 +768,7 @@ export function GalleryLightbox({
 
             </div>
 
-            <div ref={thumbnailStripRef} className="mt-2 flex max-w-full snap-x gap-2 overflow-x-auto overflow-y-hidden pb-1 sm:mt-3 sm:pb-2 lg:grid lg:grid-cols-2 lg:overflow-visible lg:pb-0">
+            <div ref={thumbnailStripRef} className="mt-2 flex max-w-full snap-x gap-2 overflow-x-auto overflow-y-hidden pb-1 sm:mt-3 sm:pb-2 lg:min-h-0 lg:flex-1 lg:grid lg:auto-rows-[112px] lg:grid-cols-2 lg:content-start lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1">
 
               {activeItems.map((item) => (
 
@@ -683,17 +776,19 @@ export function GalleryLightbox({
 
                   key={item.key}
 
+                  data-active-thumbnail={item.key === activeItem.key ? "true" : undefined}
+
                   type="button"
 
                   aria-label={`ดูรูปหมวด${item.zoneLabel}`}
 
-                  className={`relative h-20 w-24 shrink-0 snap-start overflow-hidden rounded-xl border transition sm:h-24 sm:w-32 lg:h-24 lg:w-auto ${
+                  className={`relative h-20 w-24 shrink-0 snap-start overflow-hidden rounded-xl border transition sm:h-24 sm:w-32 lg:h-[112px] lg:w-full lg:rounded-lg lg:border-2 ${
 
                     item.key === activeItem.key
 
-                      ? "border-white"
+                      ? "border-white opacity-100 shadow-[0_0_0_2px_rgba(255,255,255,0.22)]"
 
-                      : "border-white/10 opacity-70 hover:opacity-100"
+                      : "border-white/10 opacity-75 hover:border-white/35 hover:opacity-100"
 
                   }`}
 
@@ -712,7 +807,7 @@ export function GalleryLightbox({
 
                     unoptimized={shouldBypassImageOptimizer(item.url)}
 
-                    sizes="120px"
+                    sizes="(max-width: 1024px) 120px, 150px"
 
                     className="object-cover"
 
