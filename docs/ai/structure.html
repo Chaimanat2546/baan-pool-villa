@@ -133,7 +133,7 @@
               <tr>
                 <td><code>app/(public)/(home)/page.tsx</code></td>
                 <td><code>/</code></td>
-                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>.</td>
+                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; route-level revalidation is declared on the page, while the public layout currently remains dynamic.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/(home)/loading.tsx</code></td>
@@ -143,7 +143,7 @@
               <tr>
                 <td><code>app/(public)/search/page.tsx</code></td>
                 <td><code>/search</code></td>
-                <td><code>components/villas/search/page</code>, villa listing/filter helpers.</td>
+                <td><code>components/villas/search/page</code>, villa listing/filter helpers, and first-page search result metadata.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/search/loading.tsx</code></td>
@@ -338,8 +338,8 @@
           <tbody>
             <tr>
               <td><code>components/villas/home</code></td>
-              <td>Home page sections, CMS-driven home assembly, hero/contact/articles/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), villa rails, home skeletons.</td>
-              <td>Use <code>VillaRail</code>, home shared helpers, and section header patterns before creating new section UI.</td>
+              <td>Home page sections, CMS-driven home assembly, hero/contact/articles/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), villa rails, home skeletons, and minimal homepage client payloads.</td>
+              <td>Use <code>VillaRail</code>, home shared helpers, and section header patterns before creating new section UI. The homepage server may use the full villa catalog to resolve sections, but the client receives only <code>filterSummary</code>, <code>destinationVillas</code>, and resolved home sections rather than the full catalog.</td>
             </tr>
             <tr>
               <td><code>components/admin/tiktok</code></td>
@@ -348,8 +348,8 @@
             </tr>
             <tr>
               <td><code>components/villas/search</code></td>
-              <td>Search page, search bar, filters, mobile filter drawer, search loading skeleton.</td>
-              <td>Keep results incremental/paginated and do not add a visible near-sea toggle unless requested.</td>
+              <td>Search page, search bar, filters, mobile filter drawer, search loading skeleton, first-page server result hydration, and on-demand catalog hydration through <code>/api/houses</code>.</td>
+              <td>Keep results incremental/paginated and do not add a visible near-sea toggle unless requested. The route sends the initial filtered page plus result metadata marked as a partial catalog; the client fetches the full catalog only when an interaction needs more results or broader filtering.</td>
             </tr>
             <tr>
               <td><code>components/villas/detail</code></td>
@@ -494,7 +494,7 @@
             <tr>
               <td>Site settings</td>
               <td>Supabase settings table with defaults fallback.</td>
-              <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. TikTok homepage thumbnails are resolved through <code>lib/tiktok/oembed.ts</code> with the TikTok oEmbed cache tag.</td>
+              <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. TikTok homepage settings flow directly to the client renderer; thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
               <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
             </tr>
             <tr>
