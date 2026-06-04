@@ -138,6 +138,59 @@ describe("normalizeSiteSettingsRow", () => {
     });
   });
 
+  it("keeps all valid TikTok URLs from the row in order", () => {
+    const tiktokVideoUrls = [
+      "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
+      "https://www.tiktok.com/player/v1/7370000000000000002",
+      "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000003",
+      "https://www.tiktok.com/player/v1/7370000000000000004",
+      "https://m.tiktok.com/@baanpoolvilla/video/7370000000000000005",
+      "https://m.tiktok.com/player/v1/7370000000000000006",
+      "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000007",
+      "https://www.tiktok.com/player/v1/7370000000000000008",
+    ];
+
+    const settings = normalizeSiteSettingsRow({
+      ...validRow,
+      tiktok_video_urls: tiktokVideoUrls,
+    });
+
+    expect(settings.tiktok.videos).toEqual([
+      {
+        url: tiktokVideoUrls[0],
+        videoId: "7370000000000000001",
+      },
+      {
+        url: tiktokVideoUrls[1],
+        videoId: "7370000000000000002",
+      },
+      {
+        url: tiktokVideoUrls[2],
+        videoId: "7370000000000000003",
+      },
+      {
+        url: tiktokVideoUrls[3],
+        videoId: "7370000000000000004",
+      },
+      {
+        url: tiktokVideoUrls[4],
+        videoId: "7370000000000000005",
+      },
+      {
+        url: tiktokVideoUrls[5],
+        videoId: "7370000000000000006",
+      },
+      {
+        url: tiktokVideoUrls[6],
+        videoId: "7370000000000000007",
+      },
+      {
+        url: tiktokVideoUrls[7],
+        videoId: "7370000000000000008",
+      },
+    ]);
+  });
+
   it("keeps a valid V2 detail layout from the database row", () => {
     const settings = normalizeSiteSettingsRow({
       ...validRow,
@@ -287,7 +340,7 @@ describe("normalizeSiteSettingsDraft", () => {
     });
   });
 
-  it("trims and slices TikTok draft URLs", () => {
+  it("trims and filters empty TikTok draft URLs without capping", () => {
     expect(
       normalizeSiteSettingsDraft({
         siteName: "Baan Pool Villa",
@@ -337,8 +390,9 @@ describe("normalizeSiteSettingsDraft", () => {
       tiktokAccountUrl: "https://www.tiktok.com/@baanpoolvilla",
       tiktokVideoUrls: [
         "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
-        "",
         "https://www.tiktok.com/player/v1/7370000000000000002",
+        "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000003",
+        "https://www.tiktok.com/player/v1/7370000000000000004",
       ],
     });
   });

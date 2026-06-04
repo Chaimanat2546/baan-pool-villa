@@ -22,7 +22,6 @@ const SEO_DESCRIPTION_MAX_LENGTH = 180;
 const SEO_IMAGE_ALT_MAX_LENGTH = 160;
 const SEO_BUSINESS_NAME_MAX_LENGTH = 100;
 const SEO_SAME_AS_URLS_MAX_COUNT = 6;
-const TIKTOK_VIDEO_URLS_MAX_COUNT = 3;
 const TIKTOK_HOSTS = new Set(["tiktok.com", "www.tiktok.com", "m.tiktok.com"]);
 const TIKTOK_VIDEO_ID_PATTERN = /^\d{8,30}$/;
 const TIKTOK_PROFILE_PATH_PATTERN = /^\/@[^/]+\/?$/;
@@ -169,8 +168,59 @@ export function normalizeSiteSettingsDraft(
     tiktokAccountUrl: draft.tiktokAccountUrl.trim(),
     tiktokVideoUrls: draft.tiktokVideoUrls
       .map((url) => url.trim())
-      .slice(0, TIKTOK_VIDEO_URLS_MAX_COUNT),
+      .filter((url) => url.length > 0),
   };
+}
+
+export interface TikTokSettingsDraftInput {
+  accountUrl: string;
+  videoUrls: string[];
+}
+
+export function normalizeTikTokSettingsDraft(
+  draft: TikTokSettingsDraftInput,
+): TikTokSettingsDraftInput {
+  return {
+    accountUrl: draft.accountUrl.trim(),
+    videoUrls: draft.videoUrls
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0),
+  };
+}
+
+export function validateTikTokSettingsDraft(
+  draft: TikTokSettingsDraftInput,
+): string[] {
+  const errors: string[] = [];
+  const trimmedTiktokAccountUrl = draft.accountUrl.trim();
+
+  if (trimmedTiktokAccountUrl.length === 0) {
+    if (draft.videoUrls.some((videoUrl) => videoUrl.trim().length > 0)) {
+      errors.push(
+        "ต้องใส่ลิงก์บัญชี TikTok เมื่อใส่วิดีโอ TikTok",
+      );
+    }
+  } else if (!isValidTikTokAccountUrl(trimmedTiktokAccountUrl)) {
+    errors.push(
+      "ลิงก์บัญชี TikTok ต้องเป็น URL โปรไฟล์ TikTok เช่น https://www.tiktok.com/@baanpoolvilla",
+    );
+  }
+
+  draft.videoUrls.forEach((videoUrl, index) => {
+    const trimmedUrl = videoUrl.trim();
+
+    if (trimmedUrl.length === 0) {
+      return;
+    }
+
+    if (!isValidTikTokVideoUrl(trimmedUrl)) {
+      errors.push(
+        `ลิงก์วิดีโอ TikTok รายการที่ ${index + 1} ต้องเป็นลิงก์วิดีโอแบบเต็ม เช่น https://www.tiktok.com/@account/video/1234567890`,
+      );
+    }
+  });
+
+  return errors;
 }
 
 export function validateSiteSettingsDraft(
@@ -276,37 +326,15 @@ export function validateSiteSettingsDraft(
     errors.push("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");
   }
 
-  const trimmedTiktokAccountUrl = draft.tiktokAccountUrl.trim();
-
-  if (trimmedTiktokAccountUrl.length === 0) {
-    if (draft.tiktokVideoUrls.some((videoUrl) => videoUrl.trim().length > 0)) {
-      errors.push(
-        "ต้องใส่ลิงก์บัญชี TikTok เมื่อใส่วิดีโอ TikTok",
-      );
-    }
-  } else if (!isValidTikTokAccountUrl(trimmedTiktokAccountUrl)) {
-    errors.push(
-      "ลิงก์บัญชี TikTok ต้องเป็น URL โปรไฟล์ TikTok เช่น https://www.tiktok.com/@baanpoolvilla",
-    );
-  }
-
-  draft.tiktokVideoUrls.forEach((videoUrl, index) => {
-    const trimmedUrl = videoUrl.trim();
-
-    if (trimmedUrl.length === 0) {
-      return;
-    }
-
-    if (!isValidTikTokVideoUrl(trimmedUrl)) {
-      errors.push(
-        `ลิงก์วิดีโอ TikTok รายการที่ ${index + 1} ต้องเป็นลิงก์วิดีโอแบบเต็ม เช่น https://www.tiktok.com/@account/video/1234567890`,
-      );
-    }
-  });
+  errors.push(
+    ...validateTikTokSettingsDraft({
+      accountUrl: draft.tiktokAccountUrl,
+      videoUrls: draft.tiktokVideoUrls,
+    }),
+  );
 
   return errors;
 }
-
 export function validateUploadMetadata(
   assetType: SiteAssetType,
   mimeType: string,
@@ -430,7 +458,7 @@ function normalizeTikTokVideosFromRow(
     })
     .filter((video): video is SiteTikTokVideoSettings => video !== null);
 
-  return videos.slice(0, TIKTOK_VIDEO_URLS_MAX_COUNT);
+  return videos;
 }
 
 function normalizeTikTokAccountUrl(value: string | null | undefined): string {
@@ -586,3 +614,4 @@ function isHttpUrl(value: string): boolean {
     return false;
   }
 }
+

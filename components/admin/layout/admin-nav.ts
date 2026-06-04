@@ -6,6 +6,7 @@ import {
   Newspaper,
   Settings,
   Users,
+  Video,
   Warehouse,
 } from "lucide-react";
 
@@ -63,6 +64,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Users,
     label: "ผู้ดูแล",
     pageTitle: "ผู้ดูแล",
+  },
+  {
+    description: "จัดการลิงก์ TikTok ที่แสดงบนหน้าแรกเว็บไซต์",
+    href: "/admin/tiktok",
+    icon: Video,
+    label: "TikTok",
+    pageTitle: "TikTok",
   },
   {
     description: "ข้อมูลเว็บและค่าทั่วไป",

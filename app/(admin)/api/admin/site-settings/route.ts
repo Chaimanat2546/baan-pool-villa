@@ -521,8 +521,8 @@ export async function PUT(request: Request) {
     seoOgImageAlt: readStringField(formData, "seoOgImageAlt"),
     seoBusinessName: readStringField(formData, "seoBusinessName"),
     seoSameAsUrls: readStringArrayField(formData, "seoSameAsUrls"),
-    tiktokAccountUrl: readStringField(formData, "tiktokAccountUrl"),
-    tiktokVideoUrls: readStringArrayField(formData, "tiktokVideoUrls").slice(0, 3),
+    tiktokAccountUrl: "",
+    tiktokVideoUrls: [],
   });
   const errors = validateSiteSettingsDraft(draft);
   const uploadFiles: { assetType: SiteAssetType; file: File }[] = [];
@@ -611,8 +611,6 @@ export async function PUT(request: Request) {
     seo_og_image_alt: draft.seoOgImageAlt,
     seo_business_name: draft.seoBusinessName,
     seo_same_as_urls: draft.seoSameAsUrls,
-    tiktok_account_url: draft.tiktokAccountUrl,
-    tiktok_video_urls: draft.tiktokVideoUrls,
   };
 
   const { data, error: saveError } = await admin.supabase

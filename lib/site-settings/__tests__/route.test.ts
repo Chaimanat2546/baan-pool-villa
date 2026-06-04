@@ -207,18 +207,13 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
         " https://line.me/R/ti/p/@baanpoolvilla ",
       ]),
   );
-  formData.set(
-    "tiktokAccountUrl",
-    overrides.tiktokAccountUrl ?? " https://www.tiktok.com/@baanpoolvilla ",
-  );
-  formData.set(
-    "tiktokVideoUrls",
-    overrides.tiktokVideoUrls ??
-      JSON.stringify([
-        "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
-        "https://www.tiktok.com/player/v1/7370000000000000002",
-      ]),
-  );
+  if (overrides.tiktokAccountUrl !== undefined) {
+    formData.set("tiktokAccountUrl", overrides.tiktokAccountUrl);
+  }
+
+  if (overrides.tiktokVideoUrls !== undefined) {
+    formData.set("tiktokVideoUrls", overrides.tiktokVideoUrls);
+  }
 
   return formData;
 }
@@ -489,11 +484,6 @@ describe("admin site settings route", () => {
           "https://www.facebook.com/baanpoolvillas",
           "https://line.me/R/ti/p/@baanpoolvilla",
         ],
-        tiktok_account_url: "https://www.tiktok.com/@baanpoolvilla",
-        tiktok_video_urls: [
-          "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
-          "https://www.tiktok.com/player/v1/7370000000000000002",
-        ],
       }),
       { onConflict: "id" },
     );
@@ -549,6 +539,68 @@ describe("admin site settings route", () => {
     expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });
 
+  it("does not persist TikTok form fields in the site-settings upsert payload", async () => {
+    const loadQuery = siteSettingsSelectQuery({ data: dbRow, error: null });
+    const saveQuery = siteSettingsUpsertQuery({
+      data: {
+        ...dbRow,
+        site_name: "Updated Villas",
+        primary_color: "#123abc",
+        accent_color: "#fedcba",
+        hero_image_alt: "Updated hero",
+      },
+      error: null,
+    });
+    const from = fromQueue({
+      site_settings: [loadQuery, saveQuery],
+    });
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await PUT(
+      putRequest(
+        settingsForm({
+          tiktokAccountUrl: " https://www.tiktok.com/@stale-client ",
+          tiktokVideoUrls: JSON.stringify([
+            "https://www.tiktok.com/@stale-client/video/7370000000000000001",
+          ]),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const [payload] = saveQuery.upsert.mock.calls[0];
+
+    expect(payload).toMatchObject({
+      id: SITE_SETTINGS_ID,
+      site_name: "Updated Villas",
+      primary_color: "#123abc",
+      accent_color: "#fedcba",
+      logo_image_path: "logo/2026/05/logo.webp",
+      logo_image_url: "https://example.com/logo.webp",
+      hero_image_path: "hero/2026/05/hero.webp",
+      hero_image_url: "https://example.com/hero.webp",
+      hero_image_alt: "Updated hero",
+      messenger_url: "https://www.facebook.com/baanpoolvillas",
+      line_id: "@baanpoolvilla",
+      line_url: "https://line.me/R/ti/p/@baanpoolvilla",
+      seo_title: "Baan Pool Villa Pattaya | Private Pool Villas",
+      seo_description: "Book private pool villas in Pattaya.",
+      seo_og_image_url: "/images/seo-cover.jpg",
+      seo_og_image_alt: "Pool villa with private swimming pool",
+      seo_business_name: "Baan Pool Villa Pattaya",
+      seo_same_as_urls: [
+        "https://www.facebook.com/baanpoolvillas",
+        "https://line.me/R/ti/p/@baanpoolvilla",
+      ],
+    });
+    expect(payload).not.toHaveProperty("tiktok_account_url");
+    expect(payload).not.toHaveProperty("tiktok_video_urls");
+  });
+
   it("falls back before save on PUT when TikTok columns are missing and surfaces save failure", async () => {
     const missingColumnError = {
       message: "column site_settings.tiktok_account_url does not exist",
@@ -597,11 +649,6 @@ describe("admin site settings route", () => {
         hero_image_path: "hero/2026/05/hero.webp",
         hero_image_url: "https://example.com/hero.webp",
         hero_image_alt: "Updated hero",
-        tiktok_account_url: "https://www.tiktok.com/@baanpoolvilla",
-        tiktok_video_urls: [
-          "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
-          "https://www.tiktok.com/player/v1/7370000000000000002",
-        ],
       }),
       { onConflict: "id" },
     );
