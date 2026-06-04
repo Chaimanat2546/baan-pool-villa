@@ -9,6 +9,8 @@ export const CACHE_REVALIDATE_SECONDS = {
   villaDetail: FIFTEEN_MINUTES_SECONDS,
   villaImages: ONE_DAY_SECONDS,
   villaListings: FIFTEEN_MINUTES_SECONDS,
+  homePage: FIFTEEN_MINUTES_SECONDS,
+  searchPage: FIFTEEN_MINUTES_SECONDS,
 } as const;
 
 export const CACHE_TAGS = {
