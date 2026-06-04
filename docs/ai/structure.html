@@ -432,6 +432,11 @@
               <td><code>lib/__tests__/cache-policy.test.ts</code></td>
             </tr>
             <tr>
+              <td><code>worker.js</code></td>
+              <td>Cloudflare Worker wrapper around OpenNext output. Adds browser/CDN cache headers to successful <code>/_next/image</code> optimizer responses because the OpenNext image handler only emits <code>Cache-Control</code> for immutable/static sources.</td>
+              <td>Wrangler dry-run plus deployed response-header checks for <code>/_next/image</code>.</td>
+            </tr>
+            <tr>
               <td><code>lib/cache-revalidation.ts</code></td>
               <td>Shared path and tag revalidation helpers for settings, home sections, guide pages, detail layout, and external villa data.</td>
               <td><code>lib/cache-revalidation.test.ts</code></td>
