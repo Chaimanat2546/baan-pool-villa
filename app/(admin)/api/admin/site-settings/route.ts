@@ -16,7 +16,9 @@ import {
 } from "@/lib/site-settings/validation";
 
 const SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls";
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout,tiktok_account_url,tiktok_video_urls";
+const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
 const SITE_ASSET_UPLOADS_SELECT =
   "id,asset_type,storage_bucket,storage_path,is_current,created_at";
 const ASSET_UPLOAD_FIELDS: { assetType: SiteAssetType; fieldName: string }[] = [
@@ -53,6 +55,80 @@ interface SiteAssetUploadRow {
 type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
 type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
 
+/**
+ * Determines whether a Supabase-style error likely indicates a missing column or schema cache issue.
+ *
+ * @param error - The Supabase-like error object to inspect, or `null`/`undefined`.
+ * @returns `true` if the error appears to be caused by a missing column or schema-cache/schema-mismatch problem, `false` otherwise.
+ */
+function isMissingColumnError(error: SupabaseLikeError | null | undefined): boolean {
+  if (!error) {
+    return false;
+  }
+
+  const message = (error.message ?? "").toLowerCase();
+  return (
+    error.code === "42703" ||
+    (message.includes("column") && message.includes("does not exist")) ||
+    message.includes("schema cache") ||
+    message.includes("unknown column")
+  );
+}
+
+/**
+ * Load the admin-visible site settings row, falling back to a reduced column set if the database schema is missing recently added columns.
+ *
+ * Attempts to select the full `SITE_SETTINGS_SELECT` projection by the fixed site settings ID; if that query fails with an error that appears to indicate a missing column or schema cache issue, retries using `SITE_SETTINGS_SELECT_WITHOUT_TIKTOK`.
+ *
+ * @returns An object with `data` set to the found site settings row or `null` when not found, and `error` set to a Supabase-like error object when retrieval failed or `null` on success.
+ */
+async function loadAdminSiteSettings(
+  supabase: HomeConfigSupabaseClient,
+): Promise<{
+  data: SiteSettingsRow | null;
+  error: SupabaseLikeError | null;
+}> {
+  const primary = await supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_SELECT)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (!primary.error) {
+    return {
+      data: (primary.data as SiteSettingsRow | null) ?? null,
+      error: null,
+    };
+  }
+
+  if (!isMissingColumnError(primary.error)) {
+    return { data: null, error: primary.error };
+  }
+
+  const fallback = await supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_SELECT_WITHOUT_TIKTOK)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (!fallback.error) {
+    return {
+      data: (fallback.data as SiteSettingsRow | null) ?? null,
+      error: null,
+    };
+  }
+
+  return { data: null, error: fallback.error };
+}
+
+/**
+ * Create a standardized JSON error response for Supabase-related failures.
+ *
+ * @param error - Supabase-like error whose `message`, `code`, `details`, and `hint` will be included when present
+ * @param fallbackMessage - Message to use if `error.message` is missing
+ * @param warning - Optional additional warning text to include in the response metadata
+ * @returns The JSON error response with HTTP status 403 and metadata `{ code, details, hint, warning }`
+ */
 function supabaseErrorResponse(
   error: SupabaseLikeError | null | undefined,
   fallbackMessage: string,
@@ -415,6 +491,15 @@ async function cleanupRetainedAssets(
   return warnings;
 }
 
+/**
+ * Handle GET requests to return the current admin-visible site settings.
+ *
+ * Performs admin authorization and, if authorized, returns a JSON response
+ * containing the normalized site settings. On authorization failure or data
+ * loading errors, returns an appropriate JSON error response.
+ *
+ * @returns A Response whose body is JSON `{ settings: <normalized site settings or null> }` on success, or a JSON error response on failure.
+ */
 export async function GET(request: Request) {
   const admin = await requireAdmin(request);
 
@@ -422,11 +507,7 @@ export async function GET(request: Request) {
     return admin.response;
   }
 
-  const { data, error } = await admin.supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
+  const { data, error } = await loadAdminSiteSettings(admin.supabase);
 
   if (error) {
     return supabaseErrorResponse(error, "Unable to load site settings.");
@@ -437,6 +518,11 @@ export async function GET(request: Request) {
   });
 }
 
+/**
+ * Handles an admin-authenticated multipart PUT request to validate and persist site settings, optionally upload logo/hero images, record upload history, clean up retained assets, and revalidate the site settings cache.
+ *
+ * @returns On success, a JSON object with `settings` containing the saved site settings and `warnings` as an array of cleanup warnings (may be empty). On failure, a JSON error response describing the authorization, validation, upload, or persistence error.
+ */
 export async function PUT(request: Request) {
   const admin = await requireAdmin(request);
 
@@ -470,6 +556,8 @@ export async function PUT(request: Request) {
     seoOgImageAlt: readStringField(formData, "seoOgImageAlt"),
     seoBusinessName: readStringField(formData, "seoBusinessName"),
     seoSameAsUrls: readStringArrayField(formData, "seoSameAsUrls"),
+    tiktokAccountUrl: "",
+    tiktokVideoUrls: [],
   });
   const errors = validateSiteSettingsDraft(draft);
   const uploadFiles: { assetType: SiteAssetType; file: File }[] = [];
@@ -489,11 +577,9 @@ export async function PUT(request: Request) {
     return Response.json({ errors }, { status: 400 });
   }
 
-  const { data: existingRow, error: loadError } = await admin.supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
+  const { data: existingRow, error: loadError } = await loadAdminSiteSettings(
+    admin.supabase,
+  );
 
   if (loadError) {
     return supabaseErrorResponse(loadError, "Unable to load site settings.");

@@ -37,6 +37,11 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Root layout component that provides the document <html> and <body> wrapper with global styles and font variable.
+ *
+ * @param children - The content to render inside the page body
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,7 +49,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={`${prompt.variable} h-full antialiased`}>
-      <body className="min-h-full bg-[#f4f7f4] text-[#063f35] ">
+      <body className="min-h-full bg-[#f4f7f4] text-[#063f35] select-none">
         {children}
       </body>
     </html>

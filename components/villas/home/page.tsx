@@ -6,6 +6,7 @@ import { Fragment, useMemo, useState } from "react";
 import type { GuidePost } from "@/lib/guides/types";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
 import {
   filtersToSearchParams,
   getDefaultFilters,
@@ -22,19 +23,36 @@ import { FaqSection } from "./faq-section";
 import { HeroSection } from "./hero-section";
 import { VillaRail } from "./villa-rail";
 import { WhyChooseSection } from "./why-choose-section";
+import { TikTokSection } from "./tiktok-section";
 
 interface HomePageProps {
   initialGuides?: GuidePost[];
   initialHomeSections?: ResolvedHomeSection[];
   initialVillas?: VillaListing[];
   settings: SiteSettings;
+  tiktokPreview?: TikTokPreviewSettings;
 }
 
+/**
+ * Render the site's homepage with hero, villa rails, and supporting content sections.
+ *
+ * Renders a HeroSection (driving search filters), a sequence of VillaRail sections when available
+ * (inserting WhyChooseSection after the first rail), and the Destinations, TikTok, Articles,
+ * FAQ, and Contact sections.
+ *
+ * @param initialGuides - Optional initial list of guide articles used to populate the ArticlesSection
+ * @param initialHomeSections - Optional initial home sections used to build villa rails
+ * @param initialVillas - Optional initial villa listings used to populate rails, destinations, and filter values
+ * @param settings - Required site settings (visual assets, contact info, default TikTok settings, etc.)
+ * @param tiktokPreview - Optional TikTok preview settings that override `settings.tiktok` when present
+ * @returns The React element tree for the homepage
+ */
 export function HomePage({
   initialGuides = [],
   initialHomeSections = [],
   initialVillas = [],
   settings,
+  tiktokPreview,
 }: HomePageProps) {
   const router = useRouter();
   const [villas] = useState<VillaListing[]>(() => initialVillas);
@@ -92,6 +110,7 @@ export function HomePage({
         )}
 
         <DestinationsSection villas={villas} />
+        <TikTokSection tiktok={tiktokPreview ?? settings.tiktok} />
         <ArticlesSection guides={guides} />
         <FaqSection />
         <ContactSection settings={settings} />

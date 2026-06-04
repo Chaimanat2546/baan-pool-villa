@@ -19,9 +19,11 @@ vi.mock("@/lib/home-sections/supabase", () => ({
 import { AdminSettingsPage } from "../admin-settings-page";
 
 describe("AdminSettingsPage", () => {
-  it("shows an operational action for refreshing external villa data", () => {
+  it("shows the modern settings header with operational actions", () => {
     const html = renderToStaticMarkup(<AdminSettingsPage />);
 
+    expect(html).toContain("settingsPageHeader");
     expect(html).toContain("รีเฟรชข้อมูลบ้านพัก");
+    expect(html).toContain("ดูหน้าเว็บจริง");
   });
 });

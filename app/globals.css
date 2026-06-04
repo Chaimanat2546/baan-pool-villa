@@ -41,6 +41,26 @@ select {
   font: inherit;
 }
 
+:where(
+  a[href]:not([aria-disabled="true"]),
+  button:not(:disabled):not([aria-disabled="true"]),
+  summary,
+  label[for],
+  select:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="color"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="range"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="link"]:not([aria-disabled="true"])
+) {
+  cursor: pointer;
+}
+
 .guide-tiptap-editor .guide-tiptap-prose {
   min-height: 24rem;
   outline: none;
@@ -55,6 +75,14 @@ select {
   font-size: 1.125rem;
   line-height: 2.25rem;
   margin: 0;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose a,
+.guide-tiptap-editor .guide-tiptap-prose .guide-tiptap-link {
+  color: var(--site-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
 }
 
 .guide-tiptap-editor .guide-tiptap-prose h2 {

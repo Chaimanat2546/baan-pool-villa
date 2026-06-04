@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Eye, RefreshCw, Save } from "lucide-react";
 
@@ -33,6 +33,15 @@ type AdminExternalDataRefreshResponse =
       errors?: string[];
     };
 
+/**
+ * Admin page UI for viewing and editing site appearance and contact settings.
+ *
+ * Loads current site settings into an editable draft, displays loading/errors/notices/warnings,
+ * and provides controls to save changes, refresh external data, and open the live site.
+ * Handles access-token retrieval and redirects to the admin login when authentication fails.
+ *
+ * @returns The React element that renders the Admin Settings page
+ */
 export function AdminSettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -282,76 +291,80 @@ export function AdminSettingsPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 text-[var(--site-text)]">
-      <header className="grid gap-4 border-b border-[var(--site-border)] pb-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--site-primary)]">
-            การตั้งค่าเว็บไซต์
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-[var(--site-text)]">
-            กำหนดรูปลักษณ์แบรนด์เว็บ
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
-            ปรับชื่อเว็บไซต์ สีหลัก และสไตล์ Hero/โลโก้ให้ใช้งานจริงได้ทันที
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
-                hasUnsavedChanges
-                  ? "bg-[var(--site-primary-soft)] text-[var(--site-text)] ring-[var(--site-primary)]"
-                  : "bg-[var(--site-surface)] text-[var(--site-text)] ring-[var(--site-border)]"
-              }`}
-            >
-              <CheckCircle2 aria-hidden="true" className="size-3.5" />
-              {hasUnsavedChanges
-                ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก"
-                : "ข้อมูลถูกบันทึกแล้ว"}
-            </span>
+    <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
+      <div
+        className="sticky top-0 z-30 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6"
+        id="settingsPageHeader"
+      >
+        <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
+              การตั้งค่าเว็บไซต์
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-normal text-[var(--site-text)]">
+              จัดการภาพลักษณ์และข้อมูลติดต่อ
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
+              ปรับแบรนด์ สี รูปหลัก SEO และข้อมูลติดต่อที่ใช้จริงบนหน้าเว็บจากหน้าจอเดียว
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
+                  hasUnsavedChanges
+                    ? "bg-amber-50 text-amber-800 ring-amber-200"
+                    : "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                }`}
+              >
+                <CheckCircle2 aria-hidden="true" className="size-3.5" />
+                {hasUnsavedChanges
+                  ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก"
+                  : "บันทึกล่าสุดแล้ว"}
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2 lg:justify-end">
-          <button
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isRefreshingExternalData || isSaving}
-            onClick={() => {
-              void handleRefreshExternalData();
-            }}
-            type="button"
-          >
-            <RefreshCw
-              aria-hidden="true"
-              className={`size-4 ${isRefreshingExternalData ? "animate-spin" : ""}`}
-            />
-            {isRefreshingExternalData
-              ? "กำลังรีเฟรชข้อมูล..."
-              : "รีเฟรชข้อมูลบ้านพัก"}
-          </button>
-          <Link
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
-            href="/"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <Eye aria-hidden="true" className="size-4" />
-            พรีวิวหน้าจริง
-          </Link>
-          <button
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80"
-            disabled={isSaving || isLoading || !hasUnsavedChanges}
-            onClick={() => {
-              void handleSave();
-            }}
-            type="button"
-          >
-            <Save aria-hidden="true" className="size-4" />
-            {isSaving
-              ? "กำลังบันทึก..."
-              : hasUnsavedChanges
-                ? "บันทึกการตั้งค่า"
-                : "บันทึกแล้ว"}
-          </button>
-        </div>
-      </header>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <button
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isRefreshingExternalData || isSaving}
+              onClick={() => {
+                void handleRefreshExternalData();
+              }}
+              type="button"
+            >
+              <RefreshCw
+                aria-hidden="true"
+                className={`size-4 ${isRefreshingExternalData ? "animate-spin" : ""}`}
+              />
+              {isRefreshingExternalData
+                ? "กำลังรีเฟรชข้อมูล..."
+                : "รีเฟรชข้อมูลบ้านพัก"}
+            </button>
+            <Link
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+              href="/"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <Eye aria-hidden="true" className="size-4" />
+              ดูหน้าเว็บจริง
+            </Link>
+            <button
+              className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
+              disabled={isSaving || isLoading || !hasUnsavedChanges}
+              onClick={() => {
+                void handleSave();
+              }}
+              type="button"
+            >
+              <Save
+                aria-hidden="true"
+                className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
+              />
+              {isSaving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
+            </button>
+          </div>
+        </header>
+      </div>
 
       {errors.length > 0 ? (
         <div
@@ -392,11 +405,13 @@ export function AdminSettingsPage() {
 
       {isLoading ? (
         <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
-          กำลังโหลดการตั้งค่าเว็บ...
+          กำลังโหลดการตั้งค่าเว็บไซต์...
         </div>
       ) : settings && draft ? (
         <SettingsForm
           draft={draft}
+          hasUnsavedChanges={hasUnsavedChanges}
+          isSaving={isSaving}
           onChange={updateDraft}
           onSave={handleSave}
           settings={settings}

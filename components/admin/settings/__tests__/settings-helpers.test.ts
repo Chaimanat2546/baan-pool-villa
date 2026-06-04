@@ -4,6 +4,8 @@ vi.mock("@/lib/site-settings/colors", () => ({
   buildSiteThemeStyle: vi.fn(),
 }));
 
+import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
+
 import {
   buildSettingsFormData,
   extractErrors,
@@ -14,6 +16,7 @@ import {
 describe("settings helpers", () => {
   it("maps editable bank and contact settings into the admin draft", () => {
     const draft = mapSettingsToDraft({
+      ...DEFAULT_SITE_SETTINGS,
       siteName: "Pool Villas Pattaya",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
@@ -150,6 +153,42 @@ describe("settings helpers", () => {
         time: "ช่วง 07.00-15.00",
       },
     ]);
+  });
+
+  it("does not include TikTok fields in form data produced for the settings save endpoint", () => {
+    const formData = buildSettingsFormData({
+      siteName: "Pool Villas Pattaya",
+      primaryColor: "#064e3b",
+      accentColor: "#eab308",
+      heroImageAlt: "Hero",
+      logoFile: null,
+      heroFile: null,
+      bankAccountName: "นายใจดี",
+      bankName: "Kasikorn",
+      bankAccountNumber: "398-289-7482",
+      phoneContacts: [
+        {
+          name: "นายใจดี",
+          phone: "0617485213",
+          time: "08.00-16.00",
+        },
+      ],
+      messengerUrl: "https://www.facebook.com/baanpoolvillas",
+      lineId: "@baanpoolvilla",
+      lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+      seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
+      seoDescription: "Book private pool villas in Pattaya.",
+      seoOgImageUrl: "/images/seo-cover.jpg",
+      seoOgImageAlt: "Pool villa with private swimming pool",
+      seoBusinessName: "Baan Pool Villa Pattaya",
+      seoSameAsUrls: [
+        "https://www.facebook.com/baanpoolvillas",
+        "https://line.me/R/ti/p/@baanpoolvilla",
+      ],
+    });
+
+    expect(formData.has("tiktokAccountUrl")).toBe(false);
+    expect(formData.has("tiktokVideoUrls")).toBe(false);
   });
 
   it("does not redirect message-only Supabase or storage errors", () => {

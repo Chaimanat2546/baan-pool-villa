@@ -20,30 +20,31 @@ vi.mock("@/lib/site-settings/colors", () => ({
 
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 
-import { SettingsForm } from "../settings-form";
 import { mapSettingsToDraft } from "../settings-helpers";
+import { SettingsForm } from "../settings-form";
 
-function renderSettingsForm() {
+function renderSettingsForm(settings = DEFAULT_SITE_SETTINGS) {
   return renderToStaticMarkup(
     <SettingsForm
-      draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+      draft={mapSettingsToDraft(settings)}
       hasUnsavedChanges={false}
       isSaving={false}
       onChange={vi.fn()}
       onSave={vi.fn()}
-      settings={DEFAULT_SITE_SETTINGS}
+      settings={settings}
     />,
   );
 }
 
 describe("SettingsForm", () => {
-  it("groups brand appearance fields in the order admins expect", () => {
+  it("renders the settings rail in the order admins expect", () => {
     const html = renderSettingsForm();
     const expectedOrder = [
-      "ตัวตนแบรนด์",
-      "สีของเว็บ",
-      "รูปภาพหลัก",
-      "ตอนแชร์ลิงก์และ Google",
+      "ข้อมูลแบรนด์",
+      "สีและธีม",
+      "รูปหลัก",
+      "SEO และการแชร์",
+      "ติดต่อและชำระเงิน",
     ];
 
     expectedOrder.reduce((previousIndex, label) => {
@@ -55,12 +56,40 @@ describe("SettingsForm", () => {
     }, -1);
   });
 
-  it("shows live brand, Google, and share previews beside the form", () => {
+  it("shows status plus live site, Google, and share previews beside the form", () => {
     const html = renderSettingsForm();
 
+    expect(html).toContain("สถานะการตั้งค่า");
     expect(html).toContain("ตัวอย่างหน้าเว็บ");
     expect(html).toContain("ตัวอย่างผลค้นหา Google");
     expect(html).toContain("ตัวอย่างตอนแชร์ลิงก์");
     expect(html).toContain("ดูบ้านพัก");
+  });
+
+  it("does not render TikTok controls in general settings form", () => {
+    const html = renderSettingsForm({
+      ...DEFAULT_SITE_SETTINGS,
+      tiktok: {
+        accountUrl: "https://www.tiktok.com/@baanpoolvilla",
+        videos: [
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
+            videoId: "7370000000000000001",
+          },
+          {
+            url: "",
+            videoId: "",
+          },
+          {
+            url: "",
+            videoId: "",
+          },
+        ],
+      },
+    });
+
+    expect(html).not.toContain('id="tiktokAccountUrl"');
+    expect(html).not.toContain("ลิงก์บัญชี TikTok");
+    expect(html).not.toContain("ลิงก์วิดีโอ TikTok 1");
   });
 });

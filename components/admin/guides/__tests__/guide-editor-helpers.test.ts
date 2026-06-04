@@ -184,4 +184,62 @@ describe("guide editor helpers", () => {
       createEditableTextBlock("checkListItem", "เช็กรายการ", expect.any(String)),
     ]);
   });
+  it("keeps link marks when converting between guide blocks and TipTap documents", () => {
+    const linkMark = {
+      type: "link",
+      attrs: {
+        href: "/villas/66",
+      },
+    };
+    const guideBlocks = [
+      {
+        id: "paragraph-with-link",
+        type: "paragraph" as const,
+        props: {},
+        content: [
+          {
+            type: "text" as const,
+            text: "Open villa",
+            styles: {},
+            marks: [linkMark],
+          },
+        ],
+        children: [],
+      },
+    ];
+
+    const tipTapDocument = guideBlocksToTipTapDocument(guideBlocks);
+
+    expect(tipTapDocument).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "Open villa",
+              marks: [linkMark],
+            },
+          ],
+        },
+      ],
+    });
+    expect(tipTapDocumentToGuideBlocks(tipTapDocument)).toEqual([
+      {
+        id: expect.any(String),
+        type: "paragraph",
+        props: {},
+        content: [
+          {
+            type: "text",
+            text: "Open villa",
+            styles: {},
+            marks: [linkMark],
+          },
+        ],
+        children: [],
+      },
+    ]);
+  });
 });

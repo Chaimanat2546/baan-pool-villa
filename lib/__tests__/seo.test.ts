@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { buildHomeJsonLd, buildPageMetadata } from "../seo";
+import { DEFAULT_SITE_SETTINGS } from "../site-settings/defaults";
 import type { SiteSettings } from "../site-settings/types";
 
 const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -51,6 +52,8 @@ function cmsSettings(): SiteSettings {
         "https://line.me/R/ti/p/@baanpoolvilla",
       ],
     },
+    detailLayout: DEFAULT_SITE_SETTINGS.detailLayout,
+    tiktok: DEFAULT_SITE_SETTINGS.tiktok,
   };
 }
 
