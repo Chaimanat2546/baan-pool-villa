@@ -90,7 +90,7 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
             target="_blank"
           >
             <SiTiktok aria-hidden="true" className="size-5" />
-            Follow us on TikTok
+            ติดตามพวกเราบน TikTok
           </a>
         </div>
       ) : null}
