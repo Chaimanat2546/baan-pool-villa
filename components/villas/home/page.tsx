@@ -6,6 +6,7 @@ import { Fragment, useMemo, useState } from "react";
 import type { GuidePost } from "@/lib/guides/types";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
 import {
   filtersToSearchParams,
   getDefaultFilters,
@@ -29,6 +30,7 @@ interface HomePageProps {
   initialHomeSections?: ResolvedHomeSection[];
   initialVillas?: VillaListing[];
   settings: SiteSettings;
+  tiktokPreview?: TikTokPreviewSettings;
 }
 
 export function HomePage({
@@ -36,6 +38,7 @@ export function HomePage({
   initialHomeSections = [],
   initialVillas = [],
   settings,
+  tiktokPreview,
 }: HomePageProps) {
   const router = useRouter();
   const [villas] = useState<VillaListing[]>(() => initialVillas);
@@ -93,7 +96,7 @@ export function HomePage({
         )}
 
         <DestinationsSection villas={villas} />
-        <TikTokSection tiktok={settings.tiktok} />
+        <TikTokSection tiktok={tiktokPreview ?? settings.tiktok} />
         <ArticlesSection guides={guides} />
         <FaqSection />
         <ContactSection settings={settings} />

@@ -1,16 +1,22 @@
 import { SiTiktok } from "react-icons/si";
 
 import type { SiteTikTokSettings } from "@/lib/site-settings/types";
+import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
+import { ScrollRail } from "./scroll-rail";
+import { TikTokLazyCard } from "./tiktok-lazy-card";
 
 interface TikTokSectionProps {
-  tiktok: SiteTikTokSettings;
+  tiktok: SiteTikTokSettings | TikTokPreviewSettings;
 }
 
-function getVisibleVideos(videos: SiteTikTokSettings["videos"]) {
-  const seen = new Set<string>();
-  const visibleVideos: SiteTikTokSettings["videos"] = [];
+const HOMEPAGE_TIKTOK_VIDEO_LIMIT = 6;
+type TikTokSectionVideo = SiteTikTokSettings["videos"][number] | TikTokPreviewSettings["videos"][number];
 
-  for (const video of videos) {
+function getVisibleVideos(tiktok: TikTokSectionProps["tiktok"]) {
+  const seen = new Set<string>();
+  const visibleVideos: TikTokSectionVideo[] = [];
+
+  for (const video of tiktok.videos) {
     const trimmedVideoId = video.videoId.trim();
 
     if (!trimmedVideoId || seen.has(trimmedVideoId)) {
@@ -20,7 +26,7 @@ function getVisibleVideos(videos: SiteTikTokSettings["videos"]) {
     seen.add(trimmedVideoId);
     visibleVideos.push({ ...video, videoId: trimmedVideoId });
 
-    if (visibleVideos.length === 3) {
+    if (visibleVideos.length === HOMEPAGE_TIKTOK_VIDEO_LIMIT) {
       break;
     }
   }
@@ -28,32 +34,8 @@ function getVisibleVideos(videos: SiteTikTokSettings["videos"]) {
   return visibleVideos;
 }
 
-function renderVideoFrame(videoId: string, index: number, loading: "eager" | "lazy") {
-  return (
-    <iframe
-      allow="fullscreen"
-      className="h-full w-full border-0"
-      loading={loading}
-      src={`https://www.tiktok.com/player/v1/${videoId}?controls=1&rel=0`}
-      title={`TikTok video ${index + 1}`}
-    />
-  );
-}
-
-function TikTokCard({ videoId, index }: { index: number; videoId: string }) {
-  return (
-    <article
-      className="w-[292px] flex-shrink-0 overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_30px_rgba(15,47,53,0.08)] lg:w-full"
-    >
-      <div className="relative aspect-[9/16] bg-[var(--site-surface-soft)]">
-        {renderVideoFrame(videoId, index, index === 0 ? "eager" : "lazy")}
-      </div>
-    </article>
-  );
-}
-
 export function TikTokSection({ tiktok }: TikTokSectionProps) {
-  const videos = getVisibleVideos(tiktok.videos);
+  const videos = getVisibleVideos(tiktok);
   const accountUrl = tiktok.accountUrl.trim();
 
   if (videos.length === 0) {
@@ -71,11 +53,16 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
         </h2>
       </div>
 
-      <div className="mt-8 flex gap-4 overflow-x-auto pb-2 pl-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:pb-0">
+      <ScrollRail
+        alwaysShowControls
+        className="-mx-4 mt-8 gap-4 px-4 pb-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8"
+        controlsClassName="mt-5"
+        label="วิดีโอ TikTok"
+      >
         {videos.map((video, index) => (
-          <TikTokCard index={index} videoId={video.videoId} key={video.videoId} />
+          <TikTokLazyCard index={index} video={video} key={video.videoId} />
         ))}
-      </div>
+      </ScrollRail>
 
       {accountUrl ? (
         <div className="mt-8 flex justify-center">

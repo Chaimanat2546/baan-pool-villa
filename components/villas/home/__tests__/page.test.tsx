@@ -82,6 +82,8 @@ describe("HomePage", () => {
     expect(markup).toContain('section id="featured"');
     expect(markup).toContain("501");
     expect(markup).toContain("Jomtien");
+    expect(markup).toContain("เลื่อนบ้านพักแนะนำไปทางซ้าย");
+    expect(markup).toContain("เลื่อนบ้านพักแนะนำไปทางขวา");
     expect(markup).not.toContain("animate-pulse");
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -112,33 +114,67 @@ describe("HomePage", () => {
             ],
           },
         }}
+        tiktokPreview={{
+          accountUrl: "https://www.tiktok.com/@baanpoolvilla",
+          videos: [
+            {
+              authorName: "@baanpoolvilla",
+              thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/cover-1.jpeg",
+              title: "Pool villa clip 1",
+              url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
+              videoId: "7370000000000000001",
+            },
+            {
+              authorName: "@baanpoolvilla",
+              thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/cover-2.jpeg",
+              title: "Pool villa clip 2",
+              url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000002",
+              videoId: "7370000000000000002",
+            },
+            {
+              authorName: "@baanpoolvilla",
+              thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/cover-3.jpeg",
+              title: "Pool villa clip 3",
+              url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000003",
+              videoId: "7370000000000000003",
+            },
+          ],
+        }}
       />,
     );
 
     expect(markup).toContain("TikTok");
-    expect(markup).toContain(
-      "https://www.tiktok.com/player/v1/7370000000000000001?controls=1&amp;rel=0",
-    );
-    expect(markup).toContain(
-      "https://www.tiktok.com/player/v1/7370000000000000002?controls=1&amp;rel=0",
-    );
-    expect(markup).toContain(
-      "https://www.tiktok.com/player/v1/7370000000000000003?controls=1&amp;rel=0",
-    );
+    expect(markup).toContain("https://p16-sign.tiktokcdn-us.com/cover-1.jpeg");
+    expect(markup).toContain("https://p16-sign.tiktokcdn-us.com/cover-2.jpeg");
+    expect(markup).toContain("https://p16-sign.tiktokcdn-us.com/cover-3.jpeg");
+    expect(markup).toContain("Pool villa clip 1");
+    expect(markup).toContain("@baanpoolvilla");
     expect(markup).toContain("Follow us on TikTok");
     expect(markup).toContain('href="https://www.tiktok.com/@baanpoolvilla"');
     expect(markup).toContain('rel="noopener noreferrer"');
-
-    const playerCount = (markup.match(/www\.tiktok\.com\/player\/v1/g) ?? []).length;
-    expect(playerCount).toBe(3);
 
     const tiktokSectionIndex = markup.indexOf("data-home-tiktok");
     const guidesSectionIndex = markup.indexOf('data-home-guides="true"');
     expect(tiktokSectionIndex).toBeGreaterThan(-1);
     expect(guidesSectionIndex).toBeGreaterThan(tiktokSectionIndex);
+
+    const tiktokSectionMarkup = markup.slice(tiktokSectionIndex, guidesSectionIndex);
+    expect(tiktokSectionMarkup).toContain("เลื่อนวิดีโอ TikTokไปทางซ้าย");
+    expect(tiktokSectionMarkup).toContain("เลื่อนวิดีโอ TikTokไปทางขวา");
+    expect(tiktokSectionMarkup).toContain("snap-x");
+    expect(tiktokSectionMarkup).not.toContain("lg:grid-cols-3");
+
+    const posterCount = (tiktokSectionMarkup.match(/data-tiktok-poster/g) ?? [])
+      .length;
+    expect(posterCount).toBe(3);
+    expect(tiktokSectionMarkup).not.toContain("www.tiktok.com/player/v1");
+
+    const guidesSectionMarkup = markup.slice(guidesSectionIndex);
+    expect(guidesSectionMarkup).toContain("เลื่อนบทความแนะนำไปทางซ้าย");
+    expect(guidesSectionMarkup).toContain("เลื่อนบทความแนะนำไปทางขวา");
   });
 
-  it("dedupes TikTok videos by videoId and keeps max 3 visible players", () => {
+  it("dedupes TikTok videos by videoId and keeps max 6 visible posters", () => {
     const markup = renderToStaticMarkup(
       <HomePage
         initialGuides={[makeGuide(1)]}
@@ -161,23 +197,106 @@ describe("HomePage", () => {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000011",
                 videoId: "7370000000000000011",
               },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000012",
+                videoId: "7370000000000000012",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000013",
+                videoId: "7370000000000000013",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000014",
+                videoId: "7370000000000000014",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000015",
+                videoId: "7370000000000000015",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000014",
+                videoId: " 7370000000000000014 ",
+              },
             ],
           },
         }}
       />,
     );
 
-    const playerCount = (markup.match(/www\.tiktok\.com\/player\/v1/g) ?? []).length;
-    expect(playerCount).toBe(2);
+    const posterCount = (markup.match(/data-tiktok-poster/g) ?? []).length;
+    expect(posterCount).toBe(6);
+    expect(markup).not.toContain("www.tiktok.com/player/v1");
 
-    const duplicatePlayerCount = (markup.match(
-      /www\.tiktok\.com\/player\/v1\/7370000000000000010/g,
-    ) ?? []).length;
+    expect(markup).toContain("video/7370000000000000010");
+    expect(markup).toContain("video/7370000000000000014");
+    expect(markup).toContain("video/7370000000000000015");
+    expect(markup).not.toContain("video/7370000000000000016");
+    expect(markup).not.toContain("video/7370000000000000017");
+
+    const duplicatePlayerCount = (
+      markup.match(/video\/7370000000000000010/g) ?? []
+    ).length;
 
     expect(duplicatePlayerCount).toBe(1);
-    expect(markup).toContain(
-      "https://www.tiktok.com/player/v1/7370000000000000011?controls=1&amp;rel=0",
+    expect(markup).toContain("video/7370000000000000015");
+  });
+
+  it("limits TikTok render to first 6 normalized videos when 8 are configured", () => {
+    const markup = renderToStaticMarkup(
+      <HomePage
+        initialGuides={[makeGuide(1)]}
+        initialHomeSections={[homeSection]}
+        initialVillas={[villa]}
+        settings={{
+          ...DEFAULT_SITE_SETTINGS,
+          tiktok: {
+            accountUrl: "https://www.tiktok.com/@baanpoolvilla",
+            videos: [
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
+                videoId: "7370000000000000001",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000002",
+                videoId: "7370000000000000002",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000003",
+                videoId: "7370000000000000003",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000004",
+                videoId: "7370000000000000004",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000005",
+                videoId: "7370000000000000005",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000006",
+                videoId: "7370000000000000006",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000007",
+                videoId: "7370000000000000007",
+              },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000007",
+                videoId: " 7370000000000000007 ",
+              },
+            ],
+          },
+        }}
+      />,
     );
+
+    const posterCount = (markup.match(/data-tiktok-poster/g) ?? []).length;
+    expect(posterCount).toBe(6);
+    expect(markup).not.toContain("www.tiktok.com/player/v1");
+
+    expect(markup).toContain("video/7370000000000000001");
+    expect(markup).toContain("video/7370000000000000006");
+    expect(markup).not.toContain("video/7370000000000000007");
   });
 
   it("dedupes TikTok videos by trimmed videoId and renders canonical IDs", () => {
@@ -209,22 +328,15 @@ describe("HomePage", () => {
       />,
     );
 
-    const playerCount = (markup.match(/www\.tiktok\.com\/player\/v1/g) ?? []).length;
-    expect(playerCount).toBe(2);
+    const posterCount = (markup.match(/data-tiktok-poster/g) ?? []).length;
+    expect(posterCount).toBe(2);
+    expect(markup).not.toContain("www.tiktok.com/player/v1");
 
-    expect(markup).toContain(
-      "https://www.tiktok.com/player/v1/7370000000000000020?controls=1&amp;rel=0",
-    );
-    expect(markup).toContain(
-      "https://www.tiktok.com/player/v1/7370000000000000021?controls=1&amp;rel=0",
-    );
+    expect(markup).toContain("video/7370000000000000020");
+    expect(markup).toContain("video/7370000000000000021");
 
-    expect(markup).not.toContain(
-      "https://www.tiktok.com/player/v1/ 7370000000000000020?controls=1&amp;rel=0",
-    );
-    expect(markup).not.toContain(
-      "https://www.tiktok.com/player/v1/7370000000000000020%20?controls=1&amp;rel=0",
-    );
+    expect(markup).not.toContain("video/ 7370000000000000020");
+    expect(markup).not.toContain("video/7370000000000000020 ");
   });
 
   it("does not render TikTok section when no videos are configured", () => {

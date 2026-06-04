@@ -7,6 +7,7 @@ import { getResolvedHomeSections } from "@/lib/home-sections/server";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { getTikTokPreviewSettings } from "@/lib/tiktok/oembed";
 import { fetchHouseListings } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -48,6 +49,7 @@ export default async function Page() {
     getSiteSettings(),
     getHomePageData(),
   ]);
+  const tiktokPreview = await getTikTokPreviewSettings(settings.tiktok);
   const jsonLd = buildHomeJsonLd(settings);
 
   return (
@@ -61,6 +63,7 @@ export default async function Page() {
         initialHomeSections={homeSections}
         initialVillas={villas}
         settings={settings}
+        tiktokPreview={tiktokPreview}
       />
     </>
   );

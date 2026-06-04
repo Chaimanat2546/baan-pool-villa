@@ -10,9 +10,11 @@ interface ScrollRailProps {
   className?: string;
   label: string;
   controlsClassName?: string;
-};
+  alwaysShowControls?: boolean;
+}
 
 export function ScrollRail({
+  alwaysShowControls = true,
   children,
   className,
   controlsClassName,
@@ -84,11 +86,16 @@ export function ScrollRail({
           controlsClassName,
         )}
       >
-        {canScrollLeft ? (
+        {alwaysShowControls || canScrollLeft ? (
           <button
             type="button"
             aria-label={`เลื่อน${label}ไปทางซ้าย`}
-            className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]"
+            className={cn(
+              "grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]",
+              !canScrollLeft &&
+                "cursor-not-allowed opacity-45 hover:bg-[var(--site-surface)]",
+            )}
+            disabled={!canScrollLeft}
             onClick={() => {
               scrollByPage("left");
             }}
@@ -97,11 +104,16 @@ export function ScrollRail({
           </button>
         ) : null}
 
-        {canScrollRight ? (
+        {alwaysShowControls || canScrollRight ? (
           <button
             type="button"
             aria-label={`เลื่อน${label}ไปทางขวา`}
-            className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]"
+            className={cn(
+              "grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]",
+              !canScrollRight &&
+                "cursor-not-allowed opacity-45 hover:bg-[var(--site-surface)]",
+            )}
+            disabled={!canScrollRight}
             onClick={() => {
               scrollByPage("right");
             }}
