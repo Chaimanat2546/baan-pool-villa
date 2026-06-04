@@ -1,0 +1,49 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+
+import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
+import { ContactSection } from "../contact-section";
+
+describe("ContactSection", () => {
+  it("shows the current bank account number", () => {
+    const markup = renderToStaticMarkup(
+      <ContactSection settings={DEFAULT_SITE_SETTINGS} />,
+    );
+
+    expect(markup).toContain("398-289-7482");
+    expect(markup).not.toContain("137-1-17528-4");
+  });
+
+  it("renders editable contact and bank settings from site settings", () => {
+    const markup = renderToStaticMarkup(
+      <ContactSection
+        settings={{
+          ...DEFAULT_SITE_SETTINGS,
+          bank: {
+            accountName: "คุณ อาภัสรา จินดาวา",
+            bankName: "ธนาคารกสิกรไทย",
+            accountNumber: "999-999-9999",
+          },
+          contact: {
+            phoneContacts: [
+              {
+                name: "คุณทดสอบ",
+                phone: "0991234567",
+                time: "ช่วง 09.00-18.00",
+              },
+            ],
+            messengerUrl: "https://www.facebook.com/custom",
+            lineId: "@customline",
+            lineUrl: "https://line.me/R/ti/p/@customline",
+          },
+        }}
+      />,
+    );
+
+    expect(markup).toContain("999-999-9999");
+    expect(markup).toContain("คุณ อาภัสรา จินดาวา");
+    expect(markup).toContain("คุณทดสอบ");
+    expect(markup).toContain("0991234567");
+    expect(markup).toContain("@customline");
+  });
+});

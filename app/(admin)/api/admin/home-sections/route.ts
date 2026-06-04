@@ -4,6 +4,7 @@ import type {
   HomeSectionMode,
   HomeSectionSavePayload,
 } from "@/lib/home-sections/types";
+import { revalidateHomeSectionsCache } from "@/lib/cache-revalidation";
 import {
   normalizeHomeSectionDraftsForSave,
   validateHomeSectionDrafts,
@@ -462,6 +463,8 @@ export async function PUT(request: Request) {
       hint: error.hint,
     });
   }
+
+  revalidateHomeSectionsCache();
 
   return Response.json({ sections: rpcPayload });
 }

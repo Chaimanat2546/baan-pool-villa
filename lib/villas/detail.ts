@@ -125,19 +125,113 @@ function normalizeUrl(value: string): string | null {
   }
 }
 
+const HTTP_URL_PREFIX = "http://";
+const HTTPS_URL_PREFIX = "https://";
+
+function isUrlBoundary(charCode: number): boolean {
+  return (
+    charCode === 34 ||
+    charCode === 39 ||
+    charCode === 60 ||
+    charCode === 62 ||
+    charCode === 160 ||
+    charCode === 32 ||
+    (charCode >= 9 && charCode <= 13)
+  );
+}
+
+function isVideoUrlDelimiter(charCode: number): boolean {
+  return charCode === 10 || charCode === 13 || charCode === 44;
+}
+
+function findNextVideoUrlStart(value: string, fromIndex: number): number {
+  const httpIndex = value.indexOf(HTTP_URL_PREFIX, fromIndex);
+  const httpsIndex = value.indexOf(HTTPS_URL_PREFIX, fromIndex);
+
+  if (httpIndex === -1) {
+    return httpsIndex;
+  }
+
+  if (httpsIndex === -1) {
+    return httpIndex;
+  }
+
+  return Math.min(httpIndex, httpsIndex);
+}
+
+function extractVideoUrlCandidates(value: string): string[] {
+  const candidates: string[] = [];
+  let searchIndex = 0;
+
+  while (searchIndex < value.length) {
+    const startIndex = findNextVideoUrlStart(value, searchIndex);
+
+    if (startIndex === -1) {
+      break;
+    }
+
+    let endIndex = startIndex;
+
+    while (
+      endIndex < value.length &&
+      !isUrlBoundary(value.charCodeAt(endIndex))
+    ) {
+      endIndex += 1;
+    }
+
+    candidates.push(value.slice(startIndex, endIndex));
+    searchIndex = endIndex > startIndex ? endIndex : startIndex + 1;
+  }
+
+  return candidates;
+}
+
+function splitVideoUrlCandidates(value: string): string[] {
+  const candidates: string[] = [];
+  let startIndex = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    if (isVideoUrlDelimiter(value.charCodeAt(index))) {
+      candidates.push(value.slice(startIndex, index));
+      startIndex = index + 1;
+    }
+  }
+
+  candidates.push(value.slice(startIndex));
+  return candidates;
+}
+
+function trimTrailingVideoUrlPunctuation(value: string): string {
+  let endIndex = value.length;
+
+  while (endIndex > 0) {
+    const charCode = value.charCodeAt(endIndex - 1);
+
+    if (charCode !== 41 && charCode !== 44 && charCode !== 46) {
+      break;
+    }
+
+    endIndex -= 1;
+  }
+
+  return value.slice(0, endIndex);
+}
+
 function normalizeVideoUrls(value: string | null): string[] {
   if (!value) {
     return [];
   }
 
-  const urlMatches = value.match(/https?:\/\/[^\s"'<>]+/g) ?? [];
+  const urlMatches = extractVideoUrlCandidates(value);
   const candidates =
-    urlMatches.length > 0 ? urlMatches : value.split(/[\r\n,]+/);
+    urlMatches.length > 0 ? urlMatches : splitVideoUrlCandidates(value);
 
   return Array.from(
     new Set(
       candidates
-        .map((candidate) => candidate.trim().replace(/[),.]+$/, ""))
+        .map((candidate) =>
+          trimTrailingVideoUrlPunctuation(candidate.trim()),
+        )
         .map(normalizeUrl)
         .filter((url): url is string => Boolean(url)),
     ),

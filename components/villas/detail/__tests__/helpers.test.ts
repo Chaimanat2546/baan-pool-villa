@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDisplayGallery } from "../helpers";
+import { buildDisplayGallery, getGalleryItemDescription } from "../helpers";
 import type { GalleryItem } from "../types";
 
 function galleryItem(key: string, zoneKey: string): GalleryItem {
@@ -42,5 +42,13 @@ describe("buildDisplayGallery", () => {
     ]);
 
     expect(displayItems.map((item) => item.key)).toEqual(["cover", "pool"]);
+  });
+});
+
+describe("getGalleryItemDescription", () => {
+  it("uses a plain fallback without exposing the image data source", () => {
+    expect(getGalleryItemDescription(galleryItem("pool", "pool"))).toBe(
+      "รูปบ้านพัก",
+    );
   });
 });

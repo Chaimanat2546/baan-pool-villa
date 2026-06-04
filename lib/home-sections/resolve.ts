@@ -7,7 +7,7 @@ function getLimitCount(section: HomeSectionConfig): number {
     return 1;
   }
 
-  return Math.min(12, Math.max(1, Math.trunc(section.limitCount)));
+  return Math.max(1, Math.trunc(section.limitCount));
 }
 
 function isInternalHref(value: string): boolean {

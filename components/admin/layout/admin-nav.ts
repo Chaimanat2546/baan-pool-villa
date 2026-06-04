@@ -2,8 +2,11 @@ import type { LucideIcon } from "lucide-react";
 import {
   Home,
   Images,
+  LayoutTemplate,
+  Newspaper,
   Settings,
   Users,
+  Video,
   Warehouse,
 } from "lucide-react";
 
@@ -33,6 +36,20 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     pageTitle: "บ้านพัก",
   },
   {
+    description: "จัด layout ของหน้ารายละเอียดบ้านพัก",
+    href: "/admin/detail-layout",
+    icon: LayoutTemplate,
+    label: "หน้ารายละเอียดบ้านพัก",
+    pageTitle: "จัดหน้ารายละเอียดบ้านพัก",
+  },
+  {
+    description: "บทความแนะนำบ้านพักและช่วยปิดการจอง",
+    href: "/admin/guides",
+    icon: Newspaper,
+    label: "บทความ",
+    pageTitle: "จัดการบทความ",
+  },
+  {
     description: "รูปภาพบ้านพักและแกลเลอรี",
     disabled: true,
     href: "/admin/images",
@@ -49,8 +66,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     pageTitle: "ผู้ดูแล",
   },
   {
+    description: "จัดการลิงก์ TikTok ที่แสดงบนหน้าแรกเว็บไซต์",
+    href: "/admin/tiktok",
+    icon: Video,
+    label: "TikTok",
+    pageTitle: "TikTok",
+  },
+  {
     description: "ข้อมูลเว็บและค่าทั่วไป",
-    disabled: true,
     href: "/admin/settings",
     icon: Settings,
     label: "ตั้งค่าเว็บ",

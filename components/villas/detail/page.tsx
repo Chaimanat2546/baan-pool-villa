@@ -3,29 +3,22 @@
 import { ImageOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { buildVillaDetailContent } from "@/lib/villas/detail";
-import { BookingSidebar } from "./booking-sidebar";
 import { Breadcrumbs } from "./breadcrumbs";
-import {
-  AboutSection,
-  AmenitiesSection,
-  PolicySection,
-  VideoReviewSection,
-  VillaIntro,
-} from "./content-sections";
+import { VillaIntro } from "./content-sections";
+import { DetailLayoutRenderer } from "./detail-layout-renderer";
 import { Gallery, GalleryLightbox } from "./gallery";
 import {
   buildDisplayGallery,
   buildGalleryCategories,
   buildGalleryItems,
 } from "./helpers";
-import { NearbySection } from "./nearby-section";
-import { RecommendedVillas } from "./recommended-villas";
 import type { GalleryItem, VillaDetailPageProps } from "./types";
 
 export function VillaDetailPage({
   images,
   payload,
   recommendedVillas,
+  settings,
 }: VillaDetailPageProps) {
 
   const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(
@@ -108,7 +101,7 @@ export function VillaDetailPage({
 
   return (
 
-    <main className="min-h-screen overflow-x-hidden bg-[#fbfdfb] pb-24 text-[#063f35] lg:pb-0">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] pb-24 text-[var(--site-text)] lg:pb-0">
 
       <Breadcrumbs listing={listing} />
 
@@ -132,7 +125,7 @@ export function VillaDetailPage({
 
         <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-          <div className="grid aspect-[16/7] place-items-center rounded-2xl bg-[#e6efeb] text-[#55746b]">
+          <div className="grid aspect-[16/7] place-items-center rounded-2xl bg-[var(--site-surface-tint)] text-[var(--site-muted)]">
 
             <ImageOff className="h-10 w-10" />
 
@@ -142,32 +135,27 @@ export function VillaDetailPage({
 
       )}
 
-      <div className="mx-auto grid w-full max-w-[402px] gap-8 overflow-hidden px-[22.5px] py-8 sm:max-w-7xl sm:px-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:px-8">
+      <div className="mx-auto w-full max-w-[402px] px-[22.5px] py-8 sm:max-w-7xl sm:px-6 lg:px-8">
 
-        <div className="min-w-0">
-
-          <VillaIntro content={content} listing={listing} />
-
-          <AboutSection content={content} listing={listing} />
-
-          <VideoReviewSection videos={content.videos} />
-
-          <AmenitiesSection listing={listing} />
-
-          <PolicySection content={content} listing={listing} />
-
-        </div>
-
-        <div className="min-w-0 space-y-8">
-
-          <BookingSidebar content={content} listing={listing} />
-
-          <NearbySection content={content} />
-        </div>
+        <VillaIntro content={content} listing={listing} />
 
       </div>
 
-      <RecommendedVillas villas={recommendedVillas} />
+      <DetailLayoutRenderer
+
+        content={content}
+
+        galleryCategories={galleryCategories}
+
+        layout={settings.detailLayout}
+
+        listing={listing}
+
+        recommendedVillas={recommendedVillas}
+
+        settings={settings}
+
+      />
 
       <GalleryLightbox
 

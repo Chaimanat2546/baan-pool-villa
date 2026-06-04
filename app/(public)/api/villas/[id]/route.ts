@@ -1,3 +1,4 @@
+import { CACHE_HEADERS } from "@/lib/cache-policy";
 import { fetchVillaDetail } from "@/lib/villas/server";
 
 export async function GET(
@@ -13,7 +14,11 @@ export async function GET(
       return Response.json({ error: "Villa not found" }, { status: 404 });
     }
 
-    return Response.json(payload);
+    return Response.json(payload, {
+      headers: {
+        "Cache-Control": CACHE_HEADERS.villaDetail,
+      },
+    });
   } catch (error) {
     return Response.json(
       {

@@ -74,12 +74,11 @@ export function validateHomeSectionDrafts(sections: HomeSectionDraft[]): string[
     }
 
     if (
-      !Number.isInteger(section.limitCount) ||
-      section.limitCount < 1 ||
-      section.limitCount > 12
+      !Number.isSafeInteger(section.limitCount) ||
+      section.limitCount < 1
     ) {
       errors.push(
-        `${sectionLabel} จำนวนบ้านที่แสดงต้องอยู่ระหว่าง 1 ถึง 12`,
+        `${sectionLabel} จำนวนบ้านสูงสุดที่แสดงต้องเป็นเลขตั้งแต่ 1 ขึ้นไป`,
       );
     }
 

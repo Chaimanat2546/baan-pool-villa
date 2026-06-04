@@ -41,6 +41,12 @@ const villas: VillaListing[] = [
   },
 ];
 
+describe("getDefaultFilters", () => {
+  it("uses the minimum searchable price when the available maximum is lower", () => {
+    expect(getDefaultFilters(0).maxPrice).toBe(1000);
+  });
+});
+
 describe("normalizeFiltersForSearch", () => {
   it("keeps an explicit minimum price selection", () => {
     expect(normalizeFiltersForSearch(getDefaultFilters(1000), 61900).maxPrice).toBe(1000);
@@ -53,11 +59,31 @@ describe("normalizeFiltersForSearch", () => {
   it("clamps a user-selected price above the available maximum", () => {
     expect(normalizeFiltersForSearch(getDefaultFilters(90000), 61900).maxPrice).toBe(61900);
   });
+
+  it("normalizes guest and bedroom counts to whole positive values", () => {
+    expect(
+      normalizeFiltersForSearch(
+        {
+          ...getDefaultFilters(61900),
+          bedrooms: 0.2,
+          guests: 2.2,
+        },
+        61900,
+      ),
+    ).toMatchObject({
+      bedrooms: 1,
+      guests: 3,
+    });
+  });
 });
 
 describe("filtersFromSearchParams", () => {
   it("uses the available maximum when maxPrice is missing", () => {
     expect(filtersFromSearchParams(new URLSearchParams(), 61900).maxPrice).toBe(61900);
+  });
+
+  it("uses the minimum searchable price when available maximum is lower", () => {
+    expect(filtersFromSearchParams(new URLSearchParams(), 0).maxPrice).toBe(1000);
   });
 
   it("keeps an explicit maxPrice=1000 selection", () => {
@@ -74,6 +100,27 @@ describe("filtersFromSearchParams", () => {
 
   it("reads the near sea filter from search params", () => {
     expect(filtersFromSearchParams(new URLSearchParams("nearSea=1"), 61900).nearSeaOnly).toBe(true);
+  });
+
+  it("keeps only supported amenities from search params", () => {
+    expect(
+      filtersFromSearchParams(
+        new URLSearchParams("amenities=wifi,unknown,wifi,grill"),
+        61900,
+      ).amenities,
+    ).toEqual(["wifi", "grill"]);
+  });
+
+  it("normalizes guest and bedroom search params to whole positive values", () => {
+    expect(
+      filtersFromSearchParams(
+        new URLSearchParams("guests=2.2&bedrooms=0.2"),
+        61900,
+      ),
+    ).toMatchObject({
+      bedrooms: 1,
+      guests: 3,
+    });
   });
 });
 

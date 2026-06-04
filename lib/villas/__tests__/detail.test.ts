@@ -101,4 +101,20 @@ describe("buildVillaDetailContent", () => {
       videos: [],
     });
   });
+
+  it("normalizes video URLs without trailing prose punctuation", () => {
+    const content = buildVillaDetailContent({
+      h_videos:
+        "รีวิวบ้านพัก (https://youtu.be/dQw4w9WgXcQ), https://example.com/review-video.",
+    });
+
+    expect(content.videos).toEqual([
+      expect.objectContaining({
+        url: "https://youtu.be/dQw4w9WgXcQ",
+      }),
+      expect.objectContaining({
+        url: "https://example.com/review-video",
+      }),
+    ]);
+  });
 });

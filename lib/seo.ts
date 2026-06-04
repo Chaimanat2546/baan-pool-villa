@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 
 export const siteName = "Pool Villas Pattaya";
@@ -28,6 +29,28 @@ export function absoluteUrl(pathname: string): string {
   return new URL(pathname, getSiteUrl()).toString();
 }
 
+function absoluteHttpUrl(value: string | null | undefined, fallback: string): string {
+  const trimmedValue = value?.trim() ?? "";
+
+  if (trimmedValue.length === 0) {
+    return absoluteUrl(fallback);
+  }
+
+  try {
+    const url = new URL(trimmedValue);
+
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.toString();
+    }
+  } catch {
+    if (trimmedValue.startsWith("/") && !trimmedValue.startsWith("//")) {
+      return absoluteUrl(trimmedValue);
+    }
+  }
+
+  return absoluteUrl(fallback);
+}
+
 export function getVillaTitle(villa: VillaListing): string {
   return `พูลวิลล่า ${villa.id} พัทยา`;
 }
@@ -48,15 +71,20 @@ export function buildPageMetadata({
   canonicalPath,
   description = defaultDescription,
   image = defaultOgImage,
+  imageAlt,
+  siteName: metadataSiteName = siteName,
   title,
 }: {
   canonicalPath: string;
   description?: string;
   image?: string | null;
+  imageAlt?: string;
+  siteName?: string;
   title: string;
 }): Metadata {
   const canonicalUrl = absoluteUrl(canonicalPath);
-  const imageUrl = image?.startsWith("http") ? image : absoluteUrl(image ?? defaultOgImage);
+  const imageUrl = absoluteHttpUrl(image, defaultOgImage);
+  const openGraphImageAlt = imageAlt?.trim() || title;
 
   return {
     title,
@@ -68,7 +96,7 @@ export function buildPageMetadata({
       title,
       description,
       url: canonicalUrl,
-      siteName,
+      siteName: metadataSiteName,
       locale: "th_TH",
       type: "website",
       images: [
@@ -76,7 +104,7 @@ export function buildPageMetadata({
           url: imageUrl,
           width: 1200,
           height: 630,
-          alt: title,
+          alt: openGraphImageAlt,
         },
       ],
     },
@@ -87,4 +115,32 @@ export function buildPageMetadata({
       images: [imageUrl],
     },
   };
+}
+
+export function buildHomeJsonLd(settings: SiteSettings): Record<string, unknown> {
+  const firstPhone = settings.contact.phoneContacts.at(0)?.phone;
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "LodgingBusiness",
+    name: settings.seo.businessName,
+    description: settings.seo.description,
+    image: absoluteHttpUrl(settings.seo.ogImage.url, defaultOgImage),
+    url: absoluteUrl("/"),
+    areaServed: ["พัทยา", "จอมเทียน", "บางแสน", "หัวหิน"],
+    amenityFeature: [
+      { "@type": "LocationFeatureSpecification", name: "สระว่ายน้ำส่วนตัว" },
+      { "@type": "LocationFeatureSpecification", name: "บ้านพักสำหรับกลุ่ม" },
+      { "@type": "LocationFeatureSpecification", name: "บ้านพักใกล้ทะเล" },
+    ],
+  };
+
+  if (firstPhone) {
+    jsonLd.telephone = firstPhone;
+  }
+
+  if (settings.seo.sameAsUrls.length > 0) {
+    jsonLd.sameAs = settings.seo.sameAsUrls;
+  }
+
+  return jsonLd;
 }

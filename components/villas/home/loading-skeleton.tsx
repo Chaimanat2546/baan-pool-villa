@@ -1,16 +1,14 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { HeroSectionSkeleton } from "./hero-section-skeleton";
+import { VillaRailSkeleton } from "./villa-rail-skeleton";
 
 export function LoadingSkeleton() {
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton
-            key={index}
-            className="h-[373px] rounded-[22px] border border-[#dbe7e3] bg-white"
-          />
-        ))}
+    <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] text-[var(--site-text)]">
+      <HeroSectionSkeleton />
+      <div className="pt-0 lg:pt-20">
+        <VillaRailSkeleton />
+        <VillaRailSkeleton cardCount={4} withCta={false} />
       </div>
-    </section>
+    </main>
   );
 }

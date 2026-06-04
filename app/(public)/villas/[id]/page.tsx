@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { VillaDetailPage } from "@/components/villas/detail/page";
+import { serializeJsonLd } from "@/lib/json-ld";
 import {
   absoluteUrl,
   buildPageMetadata,
   getVillaDescription,
   getVillaTitle,
 } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings/server";
 import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
 interface VillaPageProps {
@@ -38,7 +40,10 @@ export async function generateMetadata({
 
 export default async function Page({ params }: VillaPageProps) {
   const { id } = await params;
-  const data = await fetchVillaPageData(id);
+  const [data, siteSettingsResult] = await Promise.all([
+    fetchVillaPageData(id),
+    getSiteSettings(),
+  ]);
 
   if (!data) {
     notFound();
@@ -75,13 +80,14 @@ export default async function Page({ params }: VillaPageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <VillaDetailPage
         id={id}
         images={data.images}
         payload={data.payload}
         recommendedVillas={data.recommendedVillas}
+        settings={siteSettingsResult.settings}
       />
     </>
   );

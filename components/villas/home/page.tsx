@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
-import { buildFallbackHomeSections } from "@/lib/home-sections/resolve";
+import type { GuidePost } from "@/lib/guides/types";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
+import type { SiteSettings } from "@/lib/site-settings/types";
+import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
 import {
   filtersToSearchParams,
   getDefaultFilters,
@@ -19,99 +21,48 @@ import { ContactSection } from "./contact-section";
 import { DestinationsSection } from "./destinations-section";
 import { FaqSection } from "./faq-section";
 import { HeroSection } from "./hero-section";
-import { LoadingSkeleton } from "./loading-skeleton";
 import { VillaRail } from "./villa-rail";
 import { WhyChooseSection } from "./why-choose-section";
+import { TikTokSection } from "./tiktok-section";
 
-interface HousesResponse {
-  items: VillaListing[];
+interface HomePageProps {
+  initialGuides?: GuidePost[];
+  initialHomeSections?: ResolvedHomeSection[];
+  initialVillas?: VillaListing[];
+  settings: SiteSettings;
+  tiktokPreview?: TikTokPreviewSettings;
 }
 
-interface HomeSectionsResponse {
-  sections?: unknown;
-}
-
-function isResolvedHomeSection(value: unknown): value is ResolvedHomeSection {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const section = value as Partial<ResolvedHomeSection>;
-
-  return (
-    typeof section.slug === "string" &&
-    typeof section.title === "string" &&
-    typeof section.description === "string" &&
-    Array.isArray(section.villas) &&
-    section.villas.length > 0
-  );
-}
-
-export function HomePage() {
+/**
+ * Render the site's homepage with hero, villa rails, and supporting content sections.
+ *
+ * Renders a HeroSection (driving search filters), a sequence of VillaRail sections when available
+ * (inserting WhyChooseSection after the first rail), and the Destinations, TikTok, Articles,
+ * FAQ, and Contact sections.
+ *
+ * @param initialGuides - Optional initial list of guide articles used to populate the ArticlesSection
+ * @param initialHomeSections - Optional initial home sections used to build villa rails
+ * @param initialVillas - Optional initial villa listings used to populate rails, destinations, and filter values
+ * @param settings - Required site settings (visual assets, contact info, default TikTok settings, etc.)
+ * @param tiktokPreview - Optional TikTok preview settings that override `settings.tiktok` when present
+ * @returns The React element tree for the homepage
+ */
+export function HomePage({
+  initialGuides = [],
+  initialHomeSections = [],
+  initialVillas = [],
+  settings,
+  tiktokPreview,
+}: HomePageProps) {
   const router = useRouter();
-  const [villas, setVillas] = useState<VillaListing[]>([]);
-  const [homeSections, setHomeSections] = useState<ResolvedHomeSection[]>([]);
-  const [filters, setFilters] = useState<VillaFilters>(() => getDefaultFilters(1000));
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadVillas() {
-      try {
-        setIsLoading(true);
-
-        const [housesResponse, homeSectionsResponse] = await Promise.all([
-          fetch("/api/houses"),
-          fetch("/api/home-sections").catch(() => null),
-        ]);
-
-        if (!housesResponse.ok) {
-          throw new Error("ไม่สามารถโหลดข้อมูลบ้านพักได้");
-        }
-
-        const payload = (await housesResponse.json()) as HousesResponse;
-        const items = Array.isArray(payload.items) ? payload.items : [];
-        let resolvedHomeSections = buildFallbackHomeSections(items);
-
-        if (homeSectionsResponse?.ok) {
-          try {
-            const homeSectionsPayload =
-              (await homeSectionsResponse.json()) as HomeSectionsResponse;
-            const configuredSections = Array.isArray(homeSectionsPayload.sections)
-              ? homeSectionsPayload.sections.filter(isResolvedHomeSection)
-              : [];
-
-            if (configuredSections.length > 0) {
-              resolvedHomeSections = configuredSections;
-            }
-          } catch (caughtError) {
-            console.error(caughtError);
-          }
-        }
-
-        if (!isActive) {
-          return;
-        }
-
-        setVillas(items);
-        setHomeSections(resolvedHomeSections);
-        setFilters(getDefaultFilters(Math.max(getMaxVillaPrice(items), 1000)));
-      } catch (caughtError) {
-        console.error(caughtError);
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadVillas();
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
+  const [villas] = useState<VillaListing[]>(() => initialVillas);
+  const [guides] = useState<GuidePost[]>(() => initialGuides);
+  const [homeSections] = useState<ResolvedHomeSection[]>(
+    () => initialHomeSections,
+  );
+  const [filters, setFilters] = useState<VillaFilters>(() =>
+    getDefaultFilters(Math.max(getMaxVillaPrice(initialVillas), 1000)),
+  );
 
   const maxAvailablePrice = useMemo(() => getMaxVillaPrice(villas), [villas]);
   const zones = useMemo(() => getUniqueZones(villas), [villas]);
@@ -130,18 +81,17 @@ export function HomePage() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#fbfdfb] text-[#063f35]">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] text-[var(--site-text)]">
       <HeroSection
         filters={filters}
+        heroImage={settings.heroImage}
         zones={zones}
         maxAvailablePrice={maxAvailablePrice}
         onChange={setFilters}
         onSearch={handleHeroSearch}
       />
 
-      <div className="pt-0 lg:pt-20">
-        {isLoading ? <LoadingSkeleton /> : null}
-
+      <div>
         {railSections.length > 0 ? (
           railSections.map((section, index) => (
             <Fragment key={section.slug}>
@@ -160,9 +110,10 @@ export function HomePage() {
         )}
 
         <DestinationsSection villas={villas} />
-        <ArticlesSection villas={villas} />
+        <TikTokSection tiktok={tiktokPreview ?? settings.tiktok} />
+        <ArticlesSection guides={guides} />
         <FaqSection />
-        <ContactSection />
+        <ContactSection settings={settings} />
       </div>
     </main>
   );

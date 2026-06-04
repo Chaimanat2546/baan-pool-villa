@@ -36,7 +36,7 @@ export function DestinationsSection({ villas }: DestinationsSectionProps) {
           return (
             <article
               key={destination.title}
-              className="relative min-h-[420px] overflow-hidden rounded-3xl bg-[#063f35] text-white shadow-[0_18px_52px_rgba(6,63,53,0.16)]"
+              className="relative min-h-[420px] overflow-hidden rounded-3xl bg-[var(--site-primary)] text-[var(--site-on-primary)] shadow-[0_18px_52px_rgba(6,63,53,0.16)]"
             >
               {destinationImage ? (
                 <Image
@@ -47,13 +47,19 @@ export function DestinationsSection({ villas }: DestinationsSectionProps) {
                   className="object-cover opacity-70"
                 />
               ) : null}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#032f29]/90 via-[#032f29]/25 to-transparent" />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(to top, color-mix(in srgb, var(--site-primary) 92%, transparent), color-mix(in srgb, var(--site-primary) 28%, transparent), transparent)",
+                }}
+              />
               <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-white/15 p-6 backdrop-blur">
                 <div className="flex items-center gap-2">
                   <h3 className="text-2xl font-black">{destination.title}</h3>
                   <MockBadge />
                 </div>
-                <p className="mt-3 text-sm leading-6 text-emerald-50">{destination.body}</p>
+                <p className="mt-3 text-sm leading-6 text-[var(--site-on-primary)] opacity-90">{destination.body}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {destination.tags.map((tag) => (
                     <span key={tag} className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold">

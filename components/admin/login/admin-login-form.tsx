@@ -54,26 +54,26 @@ export function AdminLoginForm() {
 
   return (
     <form
-      className="w-full max-w-sm rounded-md border border-[#c9d9d3] bg-white p-5 shadow-sm"
+      className="w-full max-w-sm rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5"
       onSubmit={handleSubmit}
     >
       <div className="mb-5">
-        <h1 className="text-xl font-semibold text-[#063f35]">
+        <h1 className="text-xl font-semibold text-[var(--site-text)]">
           เข้าสู่ระบบหลังบ้าน
         </h1>
-        <p className="mt-1 text-sm text-[#4b625b]">
+        <p className="mt-1 text-sm text-[var(--site-muted)]">
           จัดชุดบ้านพักบนหน้าแรก
         </p>
       </div>
 
       <div className="space-y-4">
-        <label className="block text-sm font-medium text-[#173f36]">
+        <label className="block text-sm font-medium text-[var(--site-text)]">
           อีเมล
           <input
             aria-describedby={hasError ? errorId : undefined}
             aria-invalid={hasError}
             autoComplete="email"
-            className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#f3f6f4]"
+            className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15 disabled:bg-[var(--site-surface-soft)]"
             disabled={isSubmitting}
             inputMode="email"
             name="email"
@@ -86,13 +86,13 @@ export function AdminLoginForm() {
           />
         </label>
 
-        <label className="block text-sm font-medium text-[#173f36]">
+        <label className="block text-sm font-medium text-[var(--site-text)]">
           รหัสผ่าน
           <input
             aria-describedby={hasError ? errorId : undefined}
             aria-invalid={hasError}
             autoComplete="current-password"
-            className="mt-1 h-10 w-full rounded-md border border-[#c9d9d3] bg-white px-3 text-sm text-[#063f35] outline-none transition focus:border-[#0f5a66] focus:ring-2 focus:ring-[#0f5a66]/15 disabled:bg-[#f3f6f4]"
+            className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15 disabled:bg-[var(--site-surface-soft)]"
             disabled={isSubmitting}
             name="password"
             onChange={(event) => {
@@ -116,7 +116,7 @@ export function AdminLoginForm() {
       ) : null}
 
       <button
-        className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[#064d3d] px-4 text-sm font-semibold text-white transition hover:bg-[#04382d] disabled:cursor-not-allowed disabled:bg-[#8aa39b]"
+        className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)]"
         disabled={isSubmitting}
         type="submit"
       >

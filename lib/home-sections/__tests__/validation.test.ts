@@ -115,6 +115,12 @@ describe("validateHomeSectionDrafts", () => {
     ).toContain("ชุดที่ 1 มีเลขบ้าน 66 ซ้ำ");
   });
 
+  it("allows large positive maximum display counts", () => {
+    expect(validateHomeSectionDrafts([validDraft({ limitCount: 99 })])).toEqual(
+      [],
+    );
+  });
+
   it("validates section fields and duplicate slugs", () => {
     expect(
       validateHomeSectionDrafts([
@@ -123,7 +129,7 @@ describe("validateHomeSectionDrafts", () => {
           title: "",
           description: " ",
           mode: "other" as HomeSectionDraft["mode"],
-          limitCount: 13,
+          limitCount: 0,
           fallbackMode: "all" as HomeSectionDraft["fallbackMode"],
         }),
         validDraft({ slug: "Featured Villas" }),
@@ -139,7 +145,7 @@ describe("validateHomeSectionDrafts", () => {
         "ชุดที่ 1 ต้องมีชื่อชุดบ้านพัก",
         "ชุดที่ 1 ต้องมีคำอธิบาย",
         "ชุดที่ 1 รูปแบบการเลือกบ้านไม่ถูกต้อง",
-        "ชุดที่ 1 จำนวนบ้านที่แสดงต้องอยู่ระหว่าง 1 ถึง 12",
+        "ชุดที่ 1 จำนวนบ้านสูงสุดที่แสดงต้องเป็นเลขตั้งแต่ 1 ขึ้นไป",
         "ชุดที่ 1 วิธีเติมบ้านเมื่อจำนวนไม่ครบไม่ถูกต้อง",
         "ชุดที่ 3 เลขบ้านลำดับที่ 1 ไม่ถูกต้อง",
       ]),

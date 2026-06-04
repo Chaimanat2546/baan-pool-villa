@@ -24,22 +24,22 @@ export function SectionList({
   sections,
 }: SectionListProps) {
   return (
-    <aside className="rounded-[22px] border border-[#dbe7e3] bg-white p-3 shadow-[0_12px_34px_rgba(6,63,53,0.07)]">
+    <aside className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-3">
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <div>
-          <h2 className="text-sm font-semibold text-[#063f35]">
+          <h2 className="text-sm font-semibold text-[var(--site-text)]">
             ลำดับชุดบ้านพัก
           </h2>
-          <p className="mt-0.5 text-xs text-[#687d76]">
+          <p className="mt-0.5 text-xs text-[var(--site-muted)]">
             ลากเพื่อเรียงลำดับ หรือใช้ปุ่มลูกศรในชุดที่เลือก
           </p>
         </div>
-        <span className="rounded-full bg-[#f4f8f5] px-2.5 py-1 text-xs font-semibold text-[#55746b]">
+        <span className="rounded-full bg-[var(--site-surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--site-muted)]">
           {sections.length} ชุด
         </span>
       </div>
       {sections.length === 0 ? (
-        <div className="rounded-[18px] border border-dashed border-[#c9d9d3] bg-[#f8fbf7] px-4 py-5 text-sm text-[#506862]">
+        <div className="rounded-lg border border-dashed border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-5 text-sm text-[var(--site-muted)]">
           ยังไม่มีชุดบ้านพัก กดเพิ่มชุดบ้านพักเพื่อเริ่มจัดหน้าแรก
         </div>
       ) : (
@@ -51,10 +51,10 @@ export function SectionList({
             return (
               <button
                 aria-pressed={isActive}
-                className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded-[18px] border px-3 py-3 text-left text-sm transition ${
+                className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg border px-3 py-3 text-left text-sm transition ${
                   isActive
-                    ? "border-[#064e3b] bg-[#f8fbf7] shadow-[0_10px_24px_rgba(6,63,53,0.08)]"
-                    : "border-[#dbe7e3] bg-white hover:bg-[#f8fbf7]"
+                    ? "border-[var(--site-primary)] bg-[var(--site-surface-soft)]"
+                    : "border-[var(--site-border)] bg-[var(--site-surface)] hover:bg-[var(--site-surface-soft)]"
                 }`}
                 draggable
                 key={section.draftId}
@@ -73,14 +73,14 @@ export function SectionList({
               >
                 <GripVertical
                   aria-hidden="true"
-                  className="size-4 text-[#668178]"
+                  className="size-4 text-[var(--site-muted)]"
                 />
                 <span className="min-w-0">
-                  <span className="block truncate font-semibold text-[#123f36]">
+                  <span className="block truncate font-semibold text-[var(--site-text)]">
                     {sectionIndex + 1}.{" "}
                     {section.title || "ยังไม่ได้ตั้งชื่อ"}
                   </span>
-                  <span className="block truncate text-xs text-[#58726a]">
+                  <span className="block truncate text-xs text-[var(--site-muted)]">
                     {MODE_LABELS.get(section.mode) ?? section.mode}
                     {section.mode === "manual" ? ` / ${manualCount} หลัง` : ""}
                   </span>

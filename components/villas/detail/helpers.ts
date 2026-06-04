@@ -133,14 +133,27 @@ export function buildGalleryCategories(items: GalleryItem[]): GalleryCategory[] 
   return Array.from(categories.values());
 }
 
+/**
+ * Produce the display description for a gallery item.
+ *
+ * @param item - The gallery item whose caption and zoneKey determine the description
+ * @returns The trimmed `caption` if it exists and (case-insensitively) differs from `item.zoneKey`, otherwise `"รูปบ้านพัก"`
+ */
 export function getGalleryItemDescription(item: GalleryItem): string {
   const caption = item.caption?.trim();
   if (caption && caption.toLowerCase() !== item.zoneKey) {
     return caption;
   }
-  return "รูปบ้านพักจาก Supabase images";
+  return "รูปบ้านพัก";
 }
 
+/**
+ * Locate a section in villa detail content by its exact title.
+ *
+ * @param content - The villa detail content containing sections to search
+ * @param title - The exact section title to match
+ * @returns The matching section if found, `null` otherwise
+ */
 export function findSection(content: VillaDetailContent, title: string): VillaDetailSection | null {
   return content.sections.find((section) => section.title === title) ?? null;
 }

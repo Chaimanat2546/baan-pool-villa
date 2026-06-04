@@ -1,4 +1,5 @@
-import type { VillaFilters, VillaListing } from "./types";
+import { AMENITY_OPTIONS } from "./amenities";
+import type { AmenityKey, VillaFilters, VillaListing } from "./types";
 
 export type VillaSortKey =
   | "recommended"
@@ -7,15 +8,29 @@ export type VillaSortKey =
   | "people_desc"
   | "bedrooms_desc";
 
+const MIN_SEARCH_PRICE = 1000;
+
 export function getDefaultFilters(maxPrice: number): VillaFilters {
   return {
     zone: "all",
     guests: 2,
     bedrooms: 1,
     amenities: [],
-    maxPrice,
+    maxPrice: Math.max(maxPrice, MIN_SEARCH_PRICE),
     nearSeaOnly: false,
   };
+}
+
+const AMENITY_KEYS = new Set<AmenityKey>(
+  AMENITY_OPTIONS.map((amenity) => amenity.key),
+);
+
+function normalizeMinimumCount(value: number, fallback: number): number {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(1, Math.ceil(value));
 }
 
 type FiltersToSearchParamsOptions = {
@@ -54,11 +69,16 @@ export function normalizeFiltersForSearch(
   filters: VillaFilters,
   maxPrice: number,
 ): VillaFilters {
-  const normalizedMaxPrice = Math.max(maxPrice, 1000);
+  const normalizedMaxPrice = Math.max(maxPrice, MIN_SEARCH_PRICE);
 
   return {
     ...filters,
-    maxPrice: Math.min(Math.max(1000, filters.maxPrice), normalizedMaxPrice),
+    guests: normalizeMinimumCount(filters.guests, 1),
+    bedrooms: normalizeMinimumCount(filters.bedrooms, 1),
+    maxPrice: Math.min(
+      Math.max(MIN_SEARCH_PRICE, filters.maxPrice),
+      normalizedMaxPrice,
+    ),
   };
 }
 
@@ -66,25 +86,34 @@ export function filtersFromSearchParams(
   searchParams: URLSearchParams,
   maxPrice: number,
 ): VillaFilters {
-  const defaults = getDefaultFilters(maxPrice);
+  const normalizedMaxPrice = Math.max(maxPrice, MIN_SEARCH_PRICE);
+  const defaults = getDefaultFilters(normalizedMaxPrice);
   const guests = Number(searchParams.get("guests"));
   const bedrooms = Number(searchParams.get("bedrooms"));
   const requestedMaxPriceParam = searchParams.get("maxPrice");
   const requestedMaxPrice =
     requestedMaxPriceParam === null ? NaN : Number(requestedMaxPriceParam);
-  const amenities = searchParams
+  const amenities: AmenityKey[] = [];
+
+  searchParams
     .get("amenities")
     ?.split(",")
     .map((amenity) => amenity.trim())
-    .filter(Boolean) ?? [];
+    .forEach((amenity) => {
+      const amenityKey = amenity as AmenityKey;
+
+      if (AMENITY_KEYS.has(amenityKey) && !amenities.includes(amenityKey)) {
+        amenities.push(amenityKey);
+      }
+    });
 
   return {
     zone: searchParams.get("zone") || defaults.zone,
-    guests: Number.isFinite(guests) ? Math.max(1, guests) : defaults.guests,
-    bedrooms: Number.isFinite(bedrooms) ? Math.max(1, bedrooms) : defaults.bedrooms,
-    amenities: amenities as VillaFilters["amenities"],
+    guests: normalizeMinimumCount(guests, defaults.guests),
+    bedrooms: normalizeMinimumCount(bedrooms, defaults.bedrooms),
+    amenities,
     maxPrice: Number.isFinite(requestedMaxPrice)
-      ? Math.min(Math.max(1000, requestedMaxPrice), maxPrice)
+      ? Math.min(Math.max(MIN_SEARCH_PRICE, requestedMaxPrice), normalizedMaxPrice)
       : defaults.maxPrice,
     nearSeaOnly: searchParams.get("nearSea") === "1",
   };

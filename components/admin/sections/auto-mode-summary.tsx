@@ -8,12 +8,12 @@ interface AutoModeSummaryProps {
 
 export function AutoModeSummary({ mode }: AutoModeSummaryProps) {
   return (
-    <div className="grid gap-3 rounded-[20px] border border-[#dbe6e1] bg-[#f8fbf9] p-4">
+    <div className="grid gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
       <div>
-        <h3 className="text-sm font-semibold text-[#173f36]">
+        <h3 className="text-sm font-semibold text-[var(--site-text)]">
           {MODE_LABELS.get(mode) ?? "เลือกบ้านให้"}
         </h3>
-        <p className="mt-0.5 text-xs leading-5 text-[#58726a]">
+        <p className="mt-0.5 text-xs leading-5 text-[var(--site-muted)]">
           เลือกบ้านตามวิธีนี้ โดยใช้จำนวนบ้านที่ตั้งไว้ด้านบน
         </p>
       </div>

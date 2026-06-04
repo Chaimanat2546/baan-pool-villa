@@ -21,8 +21,8 @@ export function VillaPrice({
 }: VillaPriceProps) {
   const baseClass =
     variant === "badge"
-      ? "rounded-full bg-white/95 px-3 py-1.5 text-sm font-bold text-[#d88d00] shadow-sm"
-      : "text-2xl font-black text-[#d88d00]";
+      ? "rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-sm font-bold text-[var(--site-accent)] shadow-sm"
+      : "text-2xl font-black text-[var(--site-accent)]";
 
   return <span className={`${baseClass} ${className}`}>{formatVillaPrice(price)}</span>;
 }

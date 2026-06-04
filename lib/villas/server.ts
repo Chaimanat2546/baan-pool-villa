@@ -1,5 +1,6 @@
 import "server-only";
 
+import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { fetchVillaImages } from "./images";
 import { normalizeHouses } from "./normalize";
 import type { RawHouse, VillaDetailPayload, VillaImage, VillaListing } from "./types";
@@ -19,7 +20,10 @@ async function readJson<T>(response: Response): Promise<T> {
 
 export async function fetchHouseListings(): Promise<VillaListing[]> {
   const response = await fetch(HOUSE_LIST_URL, {
-    next: { revalidate: 300 },
+    next: {
+      revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
+      tags: [CACHE_TAGS.villaListings],
+    },
   });
 
   if (!response.ok) {
@@ -65,7 +69,10 @@ export async function fetchVillaDetail(
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      cache: "no-store",
+      next: {
+        revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
+        tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail(id)],
+      },
     });
 
     if (!response.ok) {

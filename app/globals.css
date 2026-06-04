@@ -40,3 +40,118 @@ input,
 select {
   font: inherit;
 }
+
+:where(
+  a[href]:not([aria-disabled="true"]),
+  button:not(:disabled):not([aria-disabled="true"]),
+  summary,
+  label[for],
+  select:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="color"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="range"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="link"]:not([aria-disabled="true"])
+) {
+  cursor: pointer;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose {
+  min-height: 24rem;
+  outline: none;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose > * + * {
+  margin-top: 1rem;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose p {
+  color: var(--site-text);
+  font-size: 1.125rem;
+  line-height: 2.25rem;
+  margin: 0;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose a,
+.guide-tiptap-editor .guide-tiptap-prose .guide-tiptap-link {
+  color: var(--site-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose h2 {
+  color: var(--site-text);
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 2rem 0 0.75rem;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose ul,
+.guide-tiptap-editor .guide-tiptap-prose ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose li {
+  color: var(--site-text);
+  font-size: 1rem;
+  line-height: 2rem;
+  padding-left: 0.25rem;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose blockquote {
+  border-left: 4px solid var(--site-primary);
+  color: var(--site-text);
+  font-size: 1.25rem;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 2.25rem;
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose ul[data-type="taskList"] li {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose ul[data-type="taskList"] label {
+  padding-top: 0.35rem;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose ul[data-type="taskList"] input {
+  accent-color: var(--site-primary);
+}
+
+.guide-tiptap-editor .guide-tiptap-prose ul[data-type="taskList"] div {
+  flex: 1;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose .guide-tiptap-image {
+  border-radius: 0.5rem;
+  display: block;
+  margin: 1.5rem 0;
+  max-width: 100%;
+}
+
+.guide-tiptap-editor .guide-tiptap-prose .is-empty::before {
+  color: var(--site-muted);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  opacity: 0.72;
+  pointer-events: none;
+}
