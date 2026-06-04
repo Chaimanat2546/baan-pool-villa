@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, RotateCcw, Search } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { AMENITY_OPTIONS } from "@/lib/villas/amenities";
@@ -22,10 +22,18 @@ import { VillaGrid } from "../listing/villa-grid";
 import { MobileFilterDrawer } from "./mobile-filter-drawer";
 import { SearchBar } from "./search-bar";
 
+export interface SearchPageInitialMeta {
+  catalogComplete: boolean;
+  maxPrice: number;
+  resultCount: number;
+  zones: Array<{ value: string; label: string }>;
+}
+
 interface SearchPageProps {
   initialLoadError?: string | null;
   initialSearchParams?: string;
   initialVillas?: VillaListing[];
+  initialMeta?: SearchPageInitialMeta;
 }
 
 const PAGE_SIZE = 12;
@@ -66,21 +74,48 @@ function getSearchConditionLabels(
   ];
 }
 
+interface SearchCatalogApiResponse {
+  error?: string;
+  items?: VillaListing[];
+}
+
+export function getInitialCatalogComplete(
+  initialMeta: SearchPageInitialMeta | undefined,
+): boolean {
+  return initialMeta?.catalogComplete ?? true;
+}
+
 export function SearchPage({
   initialLoadError = null,
   initialSearchParams = "",
   initialVillas = [],
+  initialMeta,
 }: SearchPageProps) {
+  const resolvedMeta = useMemo(() => {
+    const fallbackZones = getUniqueZones(initialVillas);
+    const fallbackMaxPrice = Math.max(getMaxVillaPrice(initialVillas), 1000);
+
+    return {
+      maxPrice: Math.max(initialMeta?.maxPrice ?? fallbackMaxPrice, 1000),
+      resultCount: initialMeta?.resultCount ?? initialVillas.length,
+      zones: initialMeta?.zones?.length ? initialMeta.zones : fallbackZones,
+    };
+  }, [initialMeta, initialVillas]);
+
   const searchParams = useMemo(
     () => new URLSearchParams(initialSearchParams),
     [initialSearchParams],
   );
-  const initialMaxPrice = Math.max(getMaxVillaPrice(initialVillas), 1000);
-  const [villas] = useState<VillaListing[]>(() => initialVillas);
-  const [filters, setFilters] = useState<VillaFilters>(() =>
-    filtersFromSearchParams(searchParams, initialMaxPrice),
+  const [villas, setVillas] = useState<VillaListing[]>(() => initialVillas);
+  const pendingVillaIdQuery = useRef<string | null>(null);
+  const [isCatalogComplete, setIsCatalogComplete] = useState(
+    getInitialCatalogComplete(initialMeta),
   );
-  const [error] = useState<string | null>(initialLoadError);
+  const [isCatalogHydrating, setIsCatalogHydrating] = useState(false);
+  const [error, setError] = useState<string | null>(initialLoadError);
+  const [filters, setFilters] = useState<VillaFilters>(() =>
+    filtersFromSearchParams(searchParams, resolvedMeta.maxPrice),
+  );
   const [sortKey, setSortKey] = useState<VillaSortKey>(() => {
     const requestedSortKey = searchParams.get("sort");
 
@@ -89,23 +124,32 @@ export function SearchPage({
   const [villaIdQuery, setVillaIdQuery] = useState(
     () => searchParams.get("id") ?? "",
   );
+  const [villaIdInput, setVillaIdInput] = useState(
+    () => searchParams.get("id") ?? "",
+  );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const pendingHydration = useRef<Promise<boolean> | null>(null);
 
-  const maxAvailablePrice = useMemo(() => getMaxVillaPrice(villas), [villas]);
-  const zones = useMemo(() => getUniqueZones(villas), [villas]);
-  const filteredVillas = useMemo(
-    () =>
-      sortVillas(
-        filterVillasById(filterVillas(villas, filters), villaIdQuery),
-        sortKey,
-      ),
-    [villas, filters, villaIdQuery, sortKey],
-  );
+  const maxAvailablePrice = resolvedMeta.maxPrice;
+  const zones = useMemo(() => resolvedMeta.zones, [resolvedMeta.zones]);
+
+  const filteredVillas = useMemo(() => {
+    if (!isCatalogComplete && isCatalogHydrating) {
+      return [];
+    }
+
+    return sortVillas(
+      filterVillasById(filterVillas(villas, filters), villaIdQuery),
+      sortKey,
+    );
+  }, [isCatalogComplete, isCatalogHydrating, villas, filters, villaIdQuery, sortKey]);
   const visibleVillas = useMemo(
     () => filteredVillas.slice(0, visibleCount),
     [filteredVillas, visibleCount],
   );
+  const resultCount = isCatalogComplete ? filteredVillas.length : resolvedMeta.resultCount;
+  const canLoadMore = visibleVillas.length < resultCount;
   const searchConditionLabels = useMemo(() => {
     const labels = getSearchConditionLabels(filters, zones);
     const sortLabel = SORT_OPTIONS.find((option) => option.value === sortKey)?.label;
@@ -120,9 +164,77 @@ export function SearchPage({
 
     return labels;
   }, [filters, zones, villaIdQuery, sortKey]);
-  const isSearchReady = villas.length > 0;
+  const isSearchReady =
+    villas.length > 0 ||
+    !getInitialCatalogComplete(initialMeta) ||
+    resolvedMeta.zones.length > 0;
+
+  const hydrateCatalog = useCallback(async () => {
+    if (isCatalogComplete) {
+      return true;
+    }
+
+    if (pendingHydration.current) {
+      return pendingHydration.current;
+    }
+
+    setIsCatalogHydrating(true);
+
+    const hydration = (async () => {
+      try {
+        const response = await fetch("/api/houses");
+
+        if (!response.ok) {
+          throw new Error(`Unable to load houses (${response.status})`);
+        }
+
+        const payload = (await response.json()) as SearchCatalogApiResponse;
+
+        if (!Array.isArray(payload.items)) {
+          throw new Error(payload.error ?? "Invalid house list payload");
+        }
+
+        setVillas(payload.items);
+        setIsCatalogComplete(true);
+        setError(null);
+        return true;
+      } catch (hydrateError) {
+        setError(
+          hydrateError instanceof Error
+            ? hydrateError.message
+            : "Unable to load houses",
+        );
+
+        return false;
+      } finally {
+        setIsCatalogHydrating(false);
+      }
+    })();
+
+    pendingHydration.current = hydration;
+
+    void hydration.finally(() => {
+      if (pendingHydration.current === hydration) {
+        pendingHydration.current = null;
+      }
+    });
+
+    return hydration;
+  }, [isCatalogComplete]);
+
+  useEffect(() => {
+    if (isCatalogComplete && pendingVillaIdQuery.current !== null) {
+      setVillaIdQuery(pendingVillaIdQuery.current);
+      pendingVillaIdQuery.current = null;
+      setVisibleCount(PAGE_SIZE);
+    }
+  }, [isCatalogComplete]);
 
   function handleSearch() {
+    if (!isCatalogComplete) {
+      void hydrateCatalog();
+    }
+
     setFilters((currentFilters) =>
       normalizeFiltersForSearch(currentFilters, maxAvailablePrice),
     );
@@ -132,6 +244,9 @@ export function SearchPage({
 
   function handleFilterChange(nextFilters: VillaFilters) {
     setFilters(normalizeFiltersForSearch(nextFilters, maxAvailablePrice));
+    if (!isCatalogComplete) {
+      void hydrateCatalog();
+    }
     setVisibleCount(PAGE_SIZE);
   }
 
@@ -143,22 +258,44 @@ export function SearchPage({
   }
 
   function showMoreResults() {
+    if (!isCatalogComplete) {
+      void hydrateCatalog();
+    }
+
     setVisibleCount((current) => current + PAGE_SIZE);
   }
 
   function handleVillaIdQueryChange(value: string) {
+    setVillaIdInput(value);
+
+    if (!isCatalogComplete) {
+      pendingVillaIdQuery.current = value;
+      void hydrateCatalog();
+      return;
+    }
+
     setVillaIdQuery(value);
     setVisibleCount(PAGE_SIZE);
   }
 
   function handleSortKeyChange(value: string) {
+    if (!isCatalogComplete) {
+      void hydrateCatalog();
+    }
+
     setSortKey(isVillaSortKey(value) ? value : "recommended");
     setVisibleCount(PAGE_SIZE);
   }
 
   function clearSearchConditions() {
+    if (!isCatalogComplete) {
+      void hydrateCatalog();
+    }
+
     setFilters(getDefaultFilters(Math.max(maxAvailablePrice, 1000)));
+    setVillaIdInput("");
     setVillaIdQuery("");
+    pendingVillaIdQuery.current = null;
     setSortKey("recommended");
     setVisibleCount(PAGE_SIZE);
   }
@@ -188,7 +325,7 @@ export function SearchPage({
                 <Search className="h-4 w-4 shrink-0 text-[var(--site-primary)]" />
                 <input
                   type="search"
-                  value={villaIdQuery}
+                  value={villaIdInput}
                   onChange={(event) => {
                     handleVillaIdQueryChange(event.target.value);
                   }}
@@ -216,7 +353,7 @@ export function SearchPage({
               filters={filters}
               zones={zones}
               maxAvailablePrice={maxAvailablePrice}
-              resultCount={filteredVillas.length}
+              resultCount={resultCount}
               onApply={handleApplyMobileFilters}
             />
           </div>
@@ -239,12 +376,12 @@ export function SearchPage({
             <div>
               <p className="text-sm font-semibold text-[var(--site-muted)]">รายการบ้านพัก</p>
               <h2 className="text-2xl font-black text-[var(--site-text)]">
-                พบ {filteredVillas.length.toLocaleString("th-TH")} หลัง
+                พบ {resultCount.toLocaleString("th-TH")} หลัง
               </h2>
               {filteredVillas.length > 0 ? (
                 <p className="mt-1 text-sm font-semibold text-[var(--site-muted)]">
                   แสดง {visibleVillas.length.toLocaleString("th-TH")} จาก{" "}
-                  {filteredVillas.length.toLocaleString("th-TH")} หลัง
+                  {resultCount.toLocaleString("th-TH")} หลัง
                 </p>
               ) : null}
             </div>
@@ -278,6 +415,20 @@ export function SearchPage({
                 <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">{error}</p>
               </div>
             </div>
+          ) : isCatalogHydrating && !isCatalogComplete ? (
+            <div className="flex min-h-80 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center">
+              <div className="max-w-md">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+                  <Search className="h-6 w-6 animate-pulse" />
+                </div>
+                <h2 className="mt-4 text-2xl font-black text-[var(--site-text)]">
+                  กำลังโหลดรายชื่อบ้านพักเพิ่มเติม
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">
+                  กรุณารอสักครู่เพื่อคำนวณผลลัพธ์ล่าสุด
+                </p>
+              </div>
+            </div>
           ) : filteredVillas.length === 0 ? (
             <div className="flex min-h-80 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center shadow-[0_14px_42px_rgba(6,63,53,0.06)]">
               <div className="max-w-md">
@@ -303,7 +454,7 @@ export function SearchPage({
           ) : (
             <>
               <VillaGrid villas={visibleVillas} />
-              {visibleVillas.length < filteredVillas.length ? (
+              {canLoadMore ? (
                 <div className="mt-8 flex justify-center">
                   <button
                     type="button"
@@ -311,10 +462,9 @@ export function SearchPage({
                     onClick={showMoreResults}
                   >
                     ดูเพิ่มเติมอีก{" "}
-                    {Math.min(
-                      PAGE_SIZE,
-                      filteredVillas.length - visibleVillas.length,
-                    ).toLocaleString("th-TH")}{" "}
+                    {Math.min(PAGE_SIZE, resultCount - visibleVillas.length).toLocaleString(
+                      "th-TH",
+                    )}{" "}
                     หลัง
                   </button>
                 </div>

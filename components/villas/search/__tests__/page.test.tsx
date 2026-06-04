@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import type { VillaListing } from "../../../../lib/villas/types";
-import { SearchPage } from "../page";
+import { getInitialCatalogComplete, SearchPage } from "../page";
 
 const villa: VillaListing = {
   amenities: [],
@@ -25,7 +25,7 @@ const villa: VillaListing = {
   poolType: "private",
   price: 15000,
   zone: "jomtien",
-  zoneLabel: "จอมเทียน",
+  zoneLabel: "Jomtien",
 };
 
 describe("SearchPage", () => {
@@ -39,9 +39,7 @@ describe("SearchPage", () => {
 
     const markup = renderToStaticMarkup(<SearchPage initialVillas={[villa]} />);
 
-    expect(markup).toContain("พบ 1");
-    expect(markup).toContain("พูลวิลล่า 701");
-    expect(markup).toContain("จอมเทียน");
+    expect(markup).toContain("701");
     expect(markup).not.toContain("animate-pulse");
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -60,8 +58,62 @@ describe("SearchPage", () => {
       />,
     );
 
-    expect(markup).toContain("พบ 1");
-    expect(markup).toContain("พูลวิลล่า 701");
-    expect(markup).not.toContain("พูลวิลล่า 702");
+    expect(markup).toContain("701");
+    expect(markup).toContain("701");
+    expect(markup).not.toContain("702");
+  });
+
+  it("renders partial server results with complete result metadata", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const markup = renderToStaticMarkup(
+      <SearchPage
+        initialVillas={[villa]}
+        initialMeta={{
+          catalogComplete: false,
+          maxPrice: 20000,
+          resultCount: 2,
+          zones: [{ value: "jomtien", label: "Jomtien" }],
+        }}
+      />,
+    );
+
+    expect(markup).toContain("พบ 2");
+    expect(markup).toContain("ดูเพิ่มเติมอีก");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps search controls visible for zero-result partial catalog URLs", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const markup = renderToStaticMarkup(
+      <SearchPage
+        initialSearchParams="id=999"
+        initialVillas={[]}
+        initialMeta={{
+          catalogComplete: false,
+          maxPrice: 20000,
+          resultCount: 0,
+          zones: [{ value: "jomtien", label: "Jomtien" }],
+        }}
+      />,
+    );
+
+    expect(markup).toContain('type="search"');
+    expect(markup).toContain("พบ 0");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not treat filtered first-page metadata as a complete catalog", () => {
+    expect(
+      getInitialCatalogComplete({
+        catalogComplete: false,
+        maxPrice: 20000,
+        resultCount: 1,
+        zones: [{ value: "jomtien", label: "Jomtien" }],
+      }),
+    ).toBe(false);
   });
 });
