@@ -2,11 +2,12 @@
 
 import { Play } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiTiktok } from "react-icons/si";
 
 import type { SiteTikTokVideoSettings } from "@/lib/site-settings/types";
 import type { TikTokVideoPreview } from "@/lib/tiktok/types";
+import { loadTikTokClientOEmbed, type TikTokClientOEmbed } from "./tiktok-client-oembed";
 
 interface TikTokLazyCardProps {
   index: number;
@@ -70,14 +71,42 @@ function TikTokPlayer({ index, video }: TikTokLazyCardProps) {
  */
 export function TikTokLazyCard({ index, video }: TikTokLazyCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [clientPreview, setClientPreview] = useState<TikTokClientOEmbed | null>(
+    null,
+  );
+  const thumbnailUrl = hasThumbnail(video)
+    ? video.thumbnailUrl.trim()
+    : (clientPreview?.thumbnailUrl ?? "");
   const title =
     "title" in video && video.title.trim().length > 0
       ? video.title.trim()
+      : clientPreview?.title
+        ? clientPreview.title
       : `video/${video.videoId}`;
   const authorName =
     "authorName" in video && video.authorName.trim().length > 0
       ? video.authorName.trim()
+      : clientPreview?.authorName
+        ? clientPreview.authorName
       : "TikTok";
+
+  useEffect(() => {
+    if (hasThumbnail(video) || isPlaying || !video.url.trim()) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void loadTikTokClientOEmbed(video.url, controller.signal).then((metadata) => {
+      if (metadata) {
+        setClientPreview(metadata);
+      }
+    });
+
+    return () => {
+      controller.abort();
+    };
+  }, [isPlaying, video]);
 
   return (
     <article className="w-[244px] flex-shrink-0 snap-start overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_30px_rgba(15,47,53,0.08)] sm:w-[292px] lg:w-[320px]">
@@ -93,7 +122,7 @@ export function TikTokLazyCard({ index, video }: TikTokLazyCardProps) {
               setIsPlaying(true);
             }}
           >
-            {hasThumbnail(video) ? (
+            {thumbnailUrl ? (
               <Image
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
@@ -102,7 +131,7 @@ export function TikTokLazyCard({ index, video }: TikTokLazyCardProps) {
                 loading={index === 0 ? "eager" : "lazy"}
                 referrerPolicy="no-referrer"
                 sizes="(max-width: 640px) 244px, (max-width: 1024px) 292px, 320px"
-                src={video.thumbnailUrl}
+                src={thumbnailUrl}
                 unoptimized
               />
             ) : (
