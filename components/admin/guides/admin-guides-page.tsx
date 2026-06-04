@@ -37,7 +37,7 @@ import {
   useState,
 } from "react";
 
-import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
+import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import type { GuideDraft, GuideImage, GuidePost, GuideStatus } from "@/lib/guides/types";
 import {
   createSlugFromTitle,
@@ -1009,11 +1009,9 @@ export function AdminGuidesPage() {
   }, [router]);
 
   const getAccessToken = useCallback(async () => {
-    const supabase = createBrowserHomeConfigClient();
-    const { data, error } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    const token = await readAdminAccessToken();
 
-    if (error || !token) {
+    if (!token) {
       redirectToLogin();
       return null;
     }

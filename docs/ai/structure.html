@@ -373,8 +373,8 @@
             </tr>
             <tr>
               <td><code>components/admin</code></td>
-              <td>Admin shell, settings editor, section editor, guide editor, detail layout editor, login form.</td>
-              <td>Keep admin screens compact, Thai-facing, and consistent with settings/sections UX patterns.</td>
+              <td>Admin shell, browser admin token helper, settings editor, section editor, guide editor, detail layout editor, login form.</td>
+              <td>Keep admin screens compact, Thai-facing, consistent with settings/sections UX patterns, and redirect unauthenticated browser sessions to <code>/admin/login</code>.</td>
             </tr>
             <tr>
               <td><code>components/ui</code></td>
@@ -693,6 +693,11 @@
               <td>Cache policy or revalidation behavior</td>
               <td><code>npm.cmd test -- lib/__tests__/cache-policy.test.ts lib/cache-revalidation.test.ts</code></td>
               <td>Run lint and build before completion.</td>
+            </tr>
+            <tr>
+              <td>Admin browser auth helpers or shared admin access-token reads</td>
+              <td><code>npm.cmd test -- components/admin</code></td>
+              <td>Run lint, build, and production smoke for admin redirects.</td>
             </tr>
             <tr>
               <td>Public/admin visual UI, loading states, layout, or responsiveness</td>

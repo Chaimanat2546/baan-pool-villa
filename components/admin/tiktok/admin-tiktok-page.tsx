@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
+import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import {
   readJsonPayload,
 } from "../settings/settings-helpers";
@@ -53,11 +53,9 @@ export function AdminTikTokPage() {
   }, [router]);
 
   const getAccessToken = useCallback(async () => {
-    const supabase = createBrowserHomeConfigClient();
-    const { data, error } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    const token = await readAdminAccessToken();
 
-    if (error || !token) {
+    if (!token) {
       redirectToLogin();
       return null;
     }
