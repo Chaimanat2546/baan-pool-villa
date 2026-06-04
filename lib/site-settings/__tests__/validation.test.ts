@@ -630,6 +630,19 @@ describe("validateSiteSettingsDraft", () => {
     ]);
   });
 
+  it("requires HTTPS for TikTok account and video URLs", () => {
+    expect(
+      validateSiteSettingsDraft({
+        ...validDraft,
+        tiktokAccountUrl: "http://www.tiktok.com/@baanpoolvilla",
+        tiktokVideoUrls: ["http://www.tiktok.com/@baanpoolvilla/video/7370000000000000001"],
+      }),
+    ).toEqual([
+      "ลิงก์บัญชี TikTok ต้องเป็น URL โปรไฟล์ TikTok เช่น https://www.tiktok.com/@baanpoolvilla",
+      "ลิงก์วิดีโอ TikTok รายการที่ 1 ต้องเป็นลิงก์วิดีโอแบบเต็ม เช่น https://www.tiktok.com/@account/video/1234567890",
+    ]);
+  });
+
   it("allows empty TikTok account and empty video slots", () => {
     expect(
       validateSiteSettingsDraft({

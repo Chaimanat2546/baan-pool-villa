@@ -1207,7 +1207,7 @@ export function AdminGuidesPage() {
           guide: {
             ...guideDraft,
             id: activeGuide.id,
-            slug: activeGuide.slug,
+            slug: guideDraft.slug,
           },
         }),
         headers: {
@@ -1270,7 +1270,8 @@ export function AdminGuidesPage() {
       return;
     }
 
-    const token = await getAccessToken();
+    try {
+      const token = await getAccessToken();
 
     if (!token) {
       return;
@@ -1309,6 +1310,10 @@ export function AdminGuidesPage() {
       setSavedSnapshot(makeSnapshot(safeGuides));
       return safeGuides;
     });
+    } catch {
+      setErrors(extractErrors(null, "à¸¥à¸šà¸šà¸—à¸„à¸§à¸²à¸¡à¹„à¸¡à¹ˆà¹„à¸”à¹‰"));
+      return;
+    }
     setNotice("ลบบทความแล้ว");
   }
 

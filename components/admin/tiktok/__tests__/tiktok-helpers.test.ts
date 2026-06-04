@@ -112,6 +112,8 @@ describe("TikTok helper conversions and form data serialization", () => {
     expect(shouldRedirectTikTokToLogin(401, null)).toBe(true);
     expect(shouldRedirectTikTokToLogin(403, { error: "Invalid or expired Supabase session. Please sign in again." })).toBe(true);
     expect(shouldRedirectTikTokToLogin(403, { error: "Signed-in user is not listed as an active home config admin." })).toBe(true);
+    expect(shouldRedirectTikTokToLogin(403, { error: "Invalid or expired Supabase session. Please sign in again.", code: "42501" })).toBe(false);
+    expect(shouldRedirectTikTokToLogin(403, { error: "Unable to verify admin access: code: 42501" })).toBe(false);
     expect(shouldRedirectTikTokToLogin(403, { error: "Some other permission error" })).toBe(false);
     expect(shouldRedirectTikTokToLogin(403, null)).toBe(false);
     expect(shouldRedirectTikTokToLogin(500, null)).toBe(false);

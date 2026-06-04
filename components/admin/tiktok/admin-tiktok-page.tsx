@@ -148,18 +148,18 @@ export function AdminTikTokPage() {
       return;
     }
 
-    const token = await getAccessToken();
-
-    if (!token) {
-      return;
-    }
-
     setIsSaving(true);
     setErrors([]);
     setNotice(null);
     setWarnings([]);
 
     try {
+      const token = await getAccessToken();
+
+      if (!token) {
+        return;
+      }
+
       const response = await fetch("/api/admin/tiktok", {
         body: buildTikTokFormData(draft),
         headers: {

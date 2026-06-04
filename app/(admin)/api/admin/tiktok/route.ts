@@ -22,6 +22,8 @@ interface SupabaseLikeError {
   code?: string;
   details?: string;
   hint?: string;
+  status?: number;
+  statusCode?: number;
 }
 
 interface TikTokSettingsUpdatePayload {
@@ -46,6 +48,7 @@ interface StringArrayFieldResult {
 
 type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
 type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
+type AdminTikTokSettingsSource = "config" | "fallback" | "none";
 
 /**
  * Checks whether a Supabase-style error indicates a missing database column or related schema/cache issue.
@@ -98,11 +101,33 @@ function supabaseErrorResponse(
   error: SupabaseLikeError | null | undefined,
   fallbackMessage: string,
 ) {
-  return jsonError(error?.message ?? fallbackMessage, 403, {
+  return jsonError(error?.message ?? fallbackMessage, getSupabaseErrorStatus(error), {
     code: error?.code,
     details: error?.details,
     hint: error?.hint,
   });
+}
+
+function getSupabaseErrorStatus(error: SupabaseLikeError | null | undefined): number {
+  const explicitStatus = error?.status ?? error?.statusCode;
+
+  if (typeof explicitStatus === "number" && explicitStatus >= 400 && explicitStatus <= 599) {
+    return explicitStatus;
+  }
+
+  if (error?.code === "42501") {
+    return 403;
+  }
+
+  if (error?.code === "PGRST301") {
+    return 401;
+  }
+
+  if (isNoRowsError(error)) {
+    return 404;
+  }
+
+  return 500;
 }
 
 /**
@@ -252,6 +277,7 @@ function parseTikTokPayload(formData: FormData): {
 async function loadAdminTikTokSettings(supabase: HomeConfigSupabaseClient): Promise<{
   data: SiteSettingsRow | null;
   error: SupabaseLikeError | null;
+  source: AdminTikTokSettingsSource;
 }> {
   const primary = await supabase
     .from("site_settings")
@@ -263,11 +289,12 @@ async function loadAdminTikTokSettings(supabase: HomeConfigSupabaseClient): Prom
     return {
       data: (primary.data as SiteSettingsRow | null) ?? null,
       error: null,
+      source: primary.data ? "config" : "none",
     };
   }
 
   if (!isMissingColumnError(primary.error)) {
-    return { data: null, error: primary.error };
+    return { data: null, error: primary.error, source: "none" };
   }
 
   const fallback = await supabase
@@ -279,6 +306,7 @@ async function loadAdminTikTokSettings(supabase: HomeConfigSupabaseClient): Prom
   return {
     data: fallback.error ? null : (fallback.data as SiteSettingsRow | null),
     error: fallback.error ? fallback.error : null,
+    source: fallback.data ? "fallback" : "none",
   };
 }
 
@@ -296,7 +324,7 @@ export async function GET(request: Request) {
     return admin.response;
   }
 
-  const { data, error } = await loadAdminTikTokSettings(admin.supabase);
+  const { data, error, source } = await loadAdminTikTokSettings(admin.supabase);
 
   if (error) {
     return supabaseErrorResponse(error, "Unable to load TikTok settings.");
@@ -304,7 +332,7 @@ export async function GET(request: Request) {
 
   return Response.json({
     settings: normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null).tiktok,
-    source: data ? "config" : "fallback",
+    source,
   });
 }
 
@@ -377,5 +405,6 @@ export async function PUT(request: Request) {
 
   return Response.json({
     settings: normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null).tiktok,
+    source: data ? "config" : "none",
   });
 }

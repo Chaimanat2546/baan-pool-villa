@@ -182,6 +182,18 @@ export function shouldRedirectTikTokToLogin(
 
   const message = payload?.error;
 
+  if (
+    typeof payload?.code === "string" ||
+    typeof payload?.details === "string" ||
+    typeof payload?.hint === "string" ||
+    (typeof message === "string" &&
+      (message.includes("code:") ||
+        message.includes("details:") ||
+        message.includes("hint:")))
+  ) {
+    return false;
+  }
+
   return (
     typeof message === "string" &&
     (AUTH_FAILURE_MESSAGES.has(message) || message.startsWith(ADMIN_ACCESS_ERROR_PREFIX))

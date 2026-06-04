@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VillaDetailPayload, VillaImage } from "@/lib/villas/types";
 import {
   buildImageDownloadFilename,
@@ -49,6 +49,10 @@ beforeEach(() => {
   vi.restoreAllMocks();
   fetchVillaImagesMock.mockReset();
   fetchVillaDetailMock.mockReset();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("download image validation helpers", () => {
@@ -166,6 +170,7 @@ describe("GET /api/villas/[id]/images/download", () => {
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith("https://images.example.com/pool.jpg", {
       cache: "no-store",
+      signal: expect.any(AbortSignal),
     });
     expect(response.headers.get("Content-Disposition")).toBe(
       'attachment; filename="villa-9-pool-pool.jpg"',
@@ -190,6 +195,39 @@ describe("GET /api/villas/[id]/images/download", () => {
       ),
       { params: Promise.resolve({ id: "9" }) },
     );
+
+    await expect(response.json()).resolves.toEqual({ error: "Unable to download image" });
+    expect(response.status).toBe(502);
+  });
+
+  it("times out slow upstream image downloads", async () => {
+    vi.useFakeTimers();
+    fetchVillaImagesMock.mockResolvedValue(imageRows);
+    fetchVillaDetailMock.mockResolvedValue(null);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => {
+              reject(new DOMException("The operation was aborted.", "AbortError"));
+            });
+          }),
+      ),
+    );
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/images/download/route"
+    );
+
+    const responsePromise = GET(
+      new Request(
+        "https://example.com/api/villas/9/images/download?url=https%3A%2F%2Fimages.example.com%2Fpool.jpg",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    await vi.advanceTimersByTimeAsync(10_000);
+    const response = await responsePromise;
 
     await expect(response.json()).resolves.toEqual({ error: "Unable to download image" });
     expect(response.status).toBe(502);

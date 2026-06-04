@@ -191,7 +191,7 @@ describe("admin tikTok route", () => {
         accountUrl: "",
         videos: [],
       },
-      source: "config",
+      source: "fallback",
     });
     expect(fallbackQuery.select).toHaveBeenCalledWith("id");
   });
@@ -487,6 +487,39 @@ describe("admin tikTok route", () => {
       code: "42703",
       details: "column not found",
       hint: "migrate schema",
+    };
+    const saveQuery = siteSettingsUpdateQuery({ data: null, error: saveError });
+    const from = fromQueue({
+      site_settings: [saveQuery],
+    });
+
+    authSupabase({ from });
+
+    const { PUT } = await import("../../../app/(admin)/api/admin/tiktok/route");
+    const response = await PUT(
+      putRequest(
+        tiktokSettingsForm({
+          tiktokAccountUrl: "https://www.tiktok.com/@baanpoolvilla",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: saveError.message,
+      code: saveError.code,
+      details: saveError.details,
+      hint: saveError.hint,
+    });
+    expect(revalidateSiteSettingsCacheMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves Supabase permission status and payload details", async () => {
+    const saveError = {
+      message: "permission denied for table site_settings",
+      code: "42501",
+      details: "RLS denied update",
+      hint: "check admin policy",
     };
     const saveQuery = siteSettingsUpdateQuery({ data: null, error: saveError });
     const from = fromQueue({

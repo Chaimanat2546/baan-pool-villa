@@ -307,9 +307,7 @@ export function AdminSectionsPage() {
   const duplicateManualIds = activeManualStatus?.duplicateIds.length ?? 0;
   const invalidManualIds = activeManualStatus?.invalidIds.length ?? 0;
   const isPreviewVerified =
-    activeSection?.mode === "manual" &&
-    activePreview !== null &&
-    activePreview.valid.length > 0;
+    activeSection?.mode === "manual" && activePreview !== null;
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");

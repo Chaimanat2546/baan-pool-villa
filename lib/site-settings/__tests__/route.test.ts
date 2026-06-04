@@ -323,6 +323,9 @@ describe("admin site settings route", () => {
     expect(siteSettingsQuery.select).toHaveBeenCalledWith(
       expect.stringContaining("tiktok_video_urls"),
     );
+    expect(siteSettingsQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("detail_layout"),
+    );
     expect(siteSettingsQuery.eq).toHaveBeenCalledWith("id", SITE_SETTINGS_ID);
   });
 
@@ -375,6 +378,44 @@ describe("admin site settings route", () => {
     expect(fallbackQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_video_urls"),
     );
+    expect(fallbackQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("detail_layout"),
+    );
+  });
+
+  it("surfaces the fallback query error when non-TikTok schema fallback also fails", async () => {
+    const primaryError = {
+      message: "column site_settings.tiktok_account_url does not exist",
+      code: "42703",
+    };
+    const fallbackError = {
+      message: "column site_settings.detail_layout does not exist",
+      code: "42703",
+    };
+    const primaryQuery = siteSettingsSelectQuery({
+      data: null,
+      error: primaryError,
+    });
+    const fallbackQuery = siteSettingsSelectQuery({
+      data: null,
+      error: fallbackError,
+    });
+    const from = fromQueue({
+      site_settings: [primaryQuery, fallbackQuery],
+    });
+
+    authSupabase({ from });
+
+    const { GET } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await GET(authenticatedRequest());
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: fallbackError.message,
+      code: fallbackError.code,
+    });
   });
 
   it("rejects missing auth before reading settings", async () => {

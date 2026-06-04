@@ -7,6 +7,8 @@ import {
 import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
 import { fetchVillaDetail } from "@/lib/villas/server";
 
+const IMAGE_DOWNLOAD_TIMEOUT_MS = 10_000;
+
 /**
  * Handle GET requests to download a villa image identified by the route `id`.
  *
@@ -51,7 +53,21 @@ export async function GET(
       return Response.json({ error: "Image not found" }, { status: 404 });
     }
 
-    const upstreamResponse = await fetch(targetUrl, { cache: "no-store" });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, IMAGE_DOWNLOAD_TIMEOUT_MS);
+    let upstreamResponse: Response;
+
+    try {
+      upstreamResponse = await fetch(targetUrl, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
     const contentType = upstreamResponse.headers.get("Content-Type") ?? "";
 
     if (

@@ -633,7 +633,7 @@ function parseTikTokUrl(value: string): URL | null {
       return null;
     }
 
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
+    if (url.protocol !== "https:") {
       return null;
     }
 

@@ -16,7 +16,7 @@ import {
 } from "@/lib/site-settings/validation";
 
 const SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,tiktok_account_url,tiktok_video_urls";
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
 const SITE_ASSET_UPLOADS_SELECT =
@@ -118,7 +118,7 @@ async function loadAdminSiteSettings(
     };
   }
 
-  return { data: null, error: primary.error };
+  return { data: null, error: fallback.error };
 }
 
 /**

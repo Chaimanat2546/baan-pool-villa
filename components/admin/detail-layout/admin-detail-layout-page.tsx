@@ -422,12 +422,12 @@ export function AdminDetailLayoutPage() {
 
         if (shouldRedirectToLogin(response.status, payload)) {
           redirectToLogin();
-          return;
+          return false;
         }
 
         if (!response.ok || !payload?.layout) {
           setErrors(extractErrors(payload, "โหลด layout หน้า Details ไม่ได้"));
-          return;
+          return false;
         }
 
         const nextLayout = toDetailLayoutV2Draft(payload.layout);
@@ -435,12 +435,14 @@ export function AdminDetailLayoutPage() {
         setLayout(nextLayout);
         setSavedSnapshot(makeDetailLayoutV2Snapshot(nextLayout));
         setActiveSelection(getDefaultSelection(nextLayout));
+        return true;
       } catch (caughtError) {
         setErrors([
           caughtError instanceof Error
             ? caughtError.message
             : "โหลด layout หน้า Details ไม่ได้",
         ]);
+        return false;
       } finally {
         if (showLoading) {
           setIsLoading(false);
@@ -655,7 +657,10 @@ export function AdminDetailLayoutPage() {
       setActiveSelection((currentSelection) =>
         normalizeSelection(nextLayout, currentSelection),
       );
-      await loadLayout(token, false);
+      const reloaded = await loadLayout(token, false);
+      if (!reloaded) {
+        return;
+      }
       setNotice("บันทึก layout หน้า Details แล้ว");
       router.refresh();
     } catch (caughtError) {

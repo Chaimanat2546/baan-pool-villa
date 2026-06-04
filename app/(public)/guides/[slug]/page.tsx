@@ -61,19 +61,26 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
   let recommendedVillas: VillaListing[] = [];
   let relatedGuides: GuidePost[] = [];
 
-  try {
-    const [villas, guides] = await Promise.all([
-      fetchHouseListings(),
-      getPublishedGuides(),
-    ]);
+  const [villasResult, guidesResult] = await Promise.allSettled([
+    fetchHouseListings(),
+    getPublishedGuides(),
+  ]);
 
+  if (villasResult.status === "fulfilled") {
     recommendedVillas = resolveGuideRecommendedVillas(
       guide.recommendedHouseIds,
-      villas,
+      villasResult.value,
     );
-    relatedGuides = guides.filter((relatedGuide) => relatedGuide.id !== guide.id);
-  } catch (error) {
-    console.error("Unable to load guide recommendations", error);
+  } else {
+    console.error("Unable to load guide villa recommendations", villasResult.reason);
+  }
+
+  if (guidesResult.status === "fulfilled") {
+    relatedGuides = guidesResult.value.filter(
+      (relatedGuide) => relatedGuide.id !== guide.id,
+    );
+  } else {
+    console.error("Unable to load related guides", guidesResult.reason);
   }
 
   const jsonLd = {
