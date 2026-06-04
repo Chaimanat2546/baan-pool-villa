@@ -40,6 +40,16 @@ export async function generateMetadata({
   });
 }
 
+/**
+ * Render the guide detail route for a given guide slug, injecting JSON-LD and loading recommendations.
+ *
+ * Resolves the route params to fetch the guide by slug, returns a 404 via `notFound()` when no guide exists,
+ * concurrently loads house listings and published guides to compute recommended villas and related guides,
+ * and renders the page along with an Article JSON-LD script.
+ *
+ * @param params - A promise that resolves to an object containing the route `slug`
+ * @returns The JSX for the guide detail page and its JSON-LD script element
+ */
 export default async function GuideDetailRoute({ params }: GuidePageProps) {
   const { slug } = await params;
   const guide = await getGuideBySlug(slug);

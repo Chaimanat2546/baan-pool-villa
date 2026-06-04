@@ -47,6 +47,12 @@ interface StringArrayFieldResult {
 type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
 type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
 
+/**
+ * Checks whether a Supabase-style error indicates a missing database column or related schema/cache issue.
+ *
+ * @param error - The Supabase-like error object to inspect (may be null/undefined)
+ * @returns `true` if the error indicates a missing column or schema/cache problem, `false` otherwise
+ */
 function isMissingColumnError(error: SupabaseLikeError | null | undefined): boolean {
   if (!error) {
     return false;
@@ -62,6 +68,11 @@ function isMissingColumnError(error: SupabaseLikeError | null | undefined): bool
   );
 }
 
+/**
+ * Determines whether a Supabase-style error indicates an empty result (no rows).
+ *
+ * @returns `true` if the error represents a "no rows" condition, `false` otherwise.
+ */
 function isNoRowsError(error: SupabaseLikeError | null | undefined): boolean {
   if (!error) {
     return false;
@@ -76,6 +87,13 @@ function isNoRowsError(error: SupabaseLikeError | null | undefined): boolean {
   );
 }
 
+/**
+ * Builds a standardized JSON error response using a Supabase-style error or a fallback message.
+ *
+ * @param error - Optional Supabase-like error containing `message`, `code`, `details`, and `hint`
+ * @param fallbackMessage - Message to use when `error.message` is not provided
+ * @returns A JSON error response with the selected message, HTTP status 403, and `code`, `details`, and `hint` populated from the Supabase-like error when available
+ */
 function supabaseErrorResponse(
   error: SupabaseLikeError | null | undefined,
   fallbackMessage: string,
@@ -87,6 +105,11 @@ function supabaseErrorResponse(
   });
 }
 
+/**
+ * Authenticate the incoming request and produce either an authorized Supabase client for admin operations or an HTTP error response.
+ *
+ * @returns An object with `ok: true` and `supabase` when authentication and admin check succeed, or `ok: false` and a `Response` containing the appropriate HTTP error when authentication or authorization fails.
+ */
 async function requireAdmin(request: Request): Promise<
   | {
       ok: true;
@@ -115,6 +138,13 @@ async function requireAdmin(request: Request): Promise<
   return { ok: true, supabase: adminCheck.supabase };
 }
 
+/**
+ * Reads a single string field from FormData, enforcing that at most one string value is provided and returning any validation errors.
+ *
+ * @param formData - The FormData object to read the field from.
+ * @param fieldName - The name of the field to read; when `fieldName` is `"tiktokVideoUrls"` or `"tiktokAccountUrl"` the function returns field-specific error messages for duplicate or non-string values.
+ * @returns An object with `value` set to the field string (empty if missing or invalid) and `errors` containing zero or more validation messages.
+ */
 function readStringField(formData: FormData, fieldName: string): StringFieldResult {
   const values = formData.getAll(fieldName);
 
@@ -145,6 +175,18 @@ function readStringField(formData: FormData, fieldName: string): StringFieldResu
   return { value, errors: [] };
 }
 
+/**
+ * Parse a FormData field expected to contain a JSON-encoded array of strings.
+ *
+ * Reads `fieldName` from `formData`, preserves any read errors, and returns:
+ * - `values` as the parsed string array when the field contains a valid JSON array of strings,
+ * - an empty `values` array with no errors when the field is missing or contains only whitespace,
+ * - an empty `values` array and `errors` containing `INVALID_TIKTOK_VIDEO_URL_LIST_ERROR` when the field contains invalid JSON or a value that is not an array of strings.
+ *
+ * @param formData - The multipart form data to read from.
+ * @param fieldName - The field name that holds the JSON-encoded array of strings.
+ * @returns An object with `values` (the parsed string array) and `errors` (validation or parsing errors).
+ */
 function readStringArrayField(formData: FormData, fieldName: string): StringArrayFieldResult {
   const rawValue = readStringField(formData, fieldName);
 
@@ -177,6 +219,12 @@ function readStringArrayField(formData: FormData, fieldName: string): StringArra
   }
 }
 
+/**
+ * Parse TikTok settings fields from multipart FormData into a normalized draft and collect validation errors.
+ *
+ * @param formData - FormData expected to contain `tiktokAccountUrl` (single string) and `tiktokVideoUrls` (JSON-encoded array string)
+ * @returns An object with `draft` (the normalized TikTok settings draft) and `errors` (array of validation error messages; empty if no issues)
+ */
 function parseTikTokPayload(formData: FormData): {
   draft: ReturnType<typeof normalizeTikTokSettingsDraft>;
   errors: string[];
@@ -194,6 +242,13 @@ function parseTikTokPayload(formData: FormData): {
   };
 }
 
+/**
+ * Load TikTok-related site settings, using a fallback query when the TikTok columns are missing.
+ *
+ * @returns An object with:
+ * - `data`: the `site_settings` row containing TikTok fields when available, or `null` if not found.
+ * - `error`: a Supabase-style error object when the query failed, or `null` on success.
+ */
 async function loadAdminTikTokSettings(supabase: HomeConfigSupabaseClient): Promise<{
   data: SiteSettingsRow | null;
   error: SupabaseLikeError | null;
@@ -227,6 +282,13 @@ async function loadAdminTikTokSettings(supabase: HomeConfigSupabaseClient): Prom
   };
 }
 
+/**
+ * Serve the admin GET endpoint that returns the TikTok settings and which data source was used.
+ *
+ * @returns A Response whose JSON has:
+ *  - `settings`: the normalized TikTok settings object (may be empty when using fallback)
+ *  - `source`: `"config"` if settings were loaded from the `site_settings` row, `"fallback"` if a fallback row was used
+ */
 export async function GET(request: Request) {
   const admin = await requireAdmin(request);
 
@@ -246,6 +308,15 @@ export async function GET(request: Request) {
   });
 }
 
+/**
+ * Handles authenticated updates to TikTok settings submitted as multipart/form-data.
+ *
+ * @returns A `Response` whose JSON body varies by outcome:
+ * - Success: `{ settings: <tiktok-settings> }` with the saved TikTok settings.
+ * - Validation error: status `400` and `{ errors: string[] }` for malformed input.
+ * - Authentication/authorization failure: the JSON error response produced by the auth helper.
+ * - Supabase failure: a JSON error response (status `403`) describing the persistence error.
+ */
 export async function PUT(request: Request) {
   const admin = await requireAdmin(request);
 

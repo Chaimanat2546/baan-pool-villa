@@ -201,6 +201,14 @@ async function readJsonPayload(response: Response): Promise<unknown> {
   }
 }
 
+/**
+ * Renders a titled section block with a short description and arbitrary child content.
+ *
+ * @param children - Content to render inside the section below the description
+ * @param title - Heading text displayed at the top of the section
+ * @param description - Supporting text shown beneath the title
+ * @returns A section element containing the title, description, and provided children
+ */
 function SectionEditorGroup({
   children,
   description,
@@ -229,6 +237,13 @@ function isAbortSignalAborted(signal: AbortSignal | undefined): boolean {
   return signal ? signal.aborted : false;
 }
 
+/**
+ * Admin interface for managing home-page sections.
+ *
+ * Provides a full-featured page that loads section drafts, lets administrators add, edit, reorder, delete, and preview sections (including manual house-ID preview/validation), and save changes back to the server.
+ *
+ * @returns The React element rendering the admin home-sections management page.
+ */
 export function AdminSectionsPage() {
   const router = useRouter();
   const [sections, setSections] = useState<AdminSectionDraft[]>([]);

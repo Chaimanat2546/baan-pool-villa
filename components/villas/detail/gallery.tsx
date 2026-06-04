@@ -6,6 +6,13 @@ import { getGalleryItemDescription, getVillaTitle, shouldBypassImageOptimizer } 
 import { MockBadge } from "./shared";
 import type { GalleryCategory, GalleryItem } from "./types";
 
+/**
+ * Build a download URL for a gallery image under the villas images download API.
+ *
+ * @param listingId - The villa listing identifier to include in the request path
+ * @param item - The gallery item whose `url` and optional `imageName`/`zoneKey` will be serialized as query parameters
+ * @returns The API path for downloading the image, including encoded `listingId` and query parameters (`url`, and optionally `name` and `zone`)
+ */
 function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string {
   const params = new URLSearchParams({
     url: item.url,
@@ -22,6 +29,22 @@ function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string 
   return `/api/villas/${encodeURIComponent(listingId)}/images/download?${params.toString()}`;
 }
 
+/**
+ * Renders a clickable gallery image tile that displays either the provided image or a placeholder.
+ *
+ * The tile is a full-width button that:
+ * - Shows the image when `item.url` is present, including an optional mock badge and a zone label overlay.
+ * - Shows a centered placeholder icon when `item.url` is falsy.
+ * - Calls `onClick(item)` when the tile is clicked (if `onClick` is provided).
+ * - Calls `onError(url)` when the image fails to load.
+ *
+ * @param alt - Alt text for the image
+ * @param className - Additional CSS class names to apply to the root button
+ * @param item - The gallery item to render (provides `url`, `isMock`, `zoneLabel`, etc.)
+ * @param onClick - Optional callback invoked with `item` when the tile is clicked
+ * @param onError - Callback invoked with the image `url` when the image fails to load
+ * @returns The JSX element for the gallery image tile
+ */
 function GalleryImage({
 
   alt,
@@ -112,6 +135,15 @@ function GalleryImage({
 
 }
 
+/**
+ * Renders a "view all" gallery tile that displays an image preview (when available) and an overlay showing the total additional image count.
+ *
+ * @param item - The gallery item used to render the tile (image URL, labels, mock flag, etc.)
+ * @param onClick - Callback invoked with `item` when the tile is activated
+ * @param onError - Callback invoked with the image URL when the image fails to load
+ * @param totalImageCount - The total number of images displayed in the overlay (shown as "+ {n} รูป")
+ * @returns A JSX element representing the tiled button used to open or view all gallery images
+ */
 function GalleryViewAllTile({
 
   item,
@@ -195,6 +227,19 @@ void GalleryViewAllTile;
 
 
 
+/**
+ * Renders a responsive image gallery grid for a villa listing with up to four visible tiles.
+ *
+ * The first four entries of `items` are used as the main, second, third, and fourth tiles.
+ * Each tile calls `onImageClick` when activated and reports image load failures via `onImageError`.
+ * The fourth tile (when present) displays an overlay showing `+ {totalImageCount} รูป` and includes a `MockBadge` if any item is marked as a mock.
+ *
+ * @param items - Gallery items; the first four elements map to the visible tiles (main, second, third, fourth)
+ * @param listing - Villa listing used to build image alt text and titles
+ * @param onImageClick - Callback invoked with the clicked `GalleryItem`
+ * @param onImageError - Callback invoked with the image `url` when an image fails to load
+ * @param totalImageCount - Total number of images in the gallery, shown on the fourth-tile overlay as `+ {n} รูป`
+ */
 export function Gallery({
 
   items,
@@ -340,6 +385,19 @@ export function Gallery({
 
 }
 
+/**
+ * Render a full-screen gallery lightbox for viewing and navigating a listing's images.
+ *
+ * Renders a modal UI with the active image, download link, navigation controls, category list, description, and a thumbnail strip. Locks page scroll while open, aligns the thumbnail strip to the active thumbnail, supports keyboard (Escape, ArrowLeft, ArrowRight) and touch swipe navigation, and reports image load errors.
+ *
+ * @param activeItem - The currently selected gallery item; when `null` the component renders `null`.
+ * @param categories - Gallery categories used to group and navigate images.
+ * @param listing - The villa listing used to build the gallery title and download link.
+ * @param onClose - Called when the lightbox should be closed (e.g., close button or Escape key).
+ * @param onImageError - Called with the image `url` when an image fails to load.
+ * @param onSelect - Called with a `GalleryItem` when the user selects or navigates to a different image.
+ * @returns The lightbox DOM element, or `null` when `activeItem` is `null`.
+ */
 export function GalleryLightbox({
 
   activeItem,

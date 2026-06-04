@@ -37,6 +37,11 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Root layout component that provides the document <html> and <body> wrapper with global styles and font variable.
+ *
+ * @param children - The content to render inside the page body
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

@@ -13,6 +13,17 @@ interface ScrollRailProps {
   alwaysShowControls?: boolean;
 }
 
+/**
+ * A horizontally scrollable container that optionally shows left/right pagination controls.
+ *
+ * Renders children inside a horizontal scroller and displays left/right buttons when scrolling is possible or when `alwaysShowControls` is true. Buttons are keyboard- and screen-reader-friendly via `aria-label`.
+ *
+ * @param alwaysShowControls - When true, render pagination controls even if scrolling is not currently possible (default: `true`).
+ * @param label - Text used in the `aria-label` for the left/right buttons to describe the content being scrolled.
+ * @param className - Additional class names applied to the scroll container.
+ * @param controlsClassName - Additional class names applied to the controls wrapper.
+ * @returns The ScrollRail React element containing the scrollable content and optional controls.
+ */
 export function ScrollRail({
   alwaysShowControls = true,
   children,

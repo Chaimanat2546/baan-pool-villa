@@ -44,6 +44,13 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
+/**
+ * Render the homepage server component populated with site settings, guides, home sections, villas, TikTok preview settings, and JSON-LD.
+ *
+ * Loads site settings and homepage data, builds JSON-LD for the site, injects the JSON-LD script into the page, and renders the HomePage component with the initial data and TikTok preview configuration.
+ *
+ * @returns A React element for the homepage containing the injected JSON-LD script and the HomePage component initialized with fetched data and settings.
+ */
 export default async function Page() {
   const [{ settings }, { guides, homeSections, villas }] = await Promise.all([
     getSiteSettings(),

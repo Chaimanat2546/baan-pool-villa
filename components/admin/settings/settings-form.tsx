@@ -90,6 +90,18 @@ const SECTION_NAV_ITEMS: SectionNavItem[] = [
   },
 ];
 
+/**
+ * Render a labeled color picker paired with a textual hex input for editing a color value.
+ *
+ * Renders a color input and a text input side-by-side; the color input reflects a valid trimmed
+ * hex value or `#000000` as a fallback, and either control updates the value via `onChange`.
+ *
+ * @param id - DOM id applied to the text input and its label
+ * @param label - Visible label text for the control
+ * @param description - Optional descriptive text shown beneath the label
+ * @param value - Current color string; will be trimmed before display and when sent to `onChange`
+ * @param onChange - Called with the trimmed string value when either input changes
+ */
 function ColorControl({
   description,
   id,
@@ -134,6 +146,22 @@ function ColorControl({
   );
 }
 
+/**
+ * Renders a labeled text input or textarea and forwards trimmed input values via `onChange`.
+ *
+ * Renders a label with optional description and either an input or a textarea depending on `multiline`.
+ *
+ * @param id - HTML id used for the input/textarea and label association
+ * @param label - Visible label text for the control
+ * @param description - Optional descriptive text shown under the label
+ * @param value - Current text value shown in the input/textarea
+ * @param onChange - Called when the user edits the value with the new string
+ * @param placeholder - Optional placeholder shown when `value` is empty
+ * @param maxLength - Optional maximum number of characters allowed
+ * @param multiline - When `true`, renders a textarea instead of a single-line input
+ * @param rows - Number of rows for the textarea (when `multiline` is `true`)
+ * @returns A labeled form control element (an input or textarea) bound to the provided props
+ */
 function TextControl({
   description,
   id,
@@ -181,6 +209,16 @@ function TextControl({
   );
 }
 
+/**
+ * Render a styled section card with a header (icon, title, description) and a content area.
+ *
+ * @param id - HTML id attribute used as the section's anchor target.
+ * @param title - Visible heading text for the section.
+ * @param description - Short descriptive text shown under the heading.
+ * @param icon - Visual icon node displayed to the left of the heading.
+ * @param children - Content rendered inside the section's body below the header.
+ * @returns A section element containing the header (icon, title, description) and the provided children.
+ */
 function SectionCard({
   children,
   description,
@@ -233,6 +271,13 @@ function cssImageUrl(value: string): string {
   return `url("${value.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"")}")`;
 }
 
+/**
+ * Renders the administrative settings form for site branding, theme, hero image, SEO/share metadata, and contact/payment fields.
+ *
+ * The form reflects `draft` values for live previews, calls `onChange` to propagate edits, and invokes `onSave` when submitted. It uses `isSaving` to set form busy state and `hasUnsavedChanges` to display unsaved status.
+ *
+ * @returns The rendered settings form element
+ */
 export function SettingsForm({
   draft,
   hasUnsavedChanges,

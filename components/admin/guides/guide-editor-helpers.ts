@@ -230,10 +230,22 @@ export function getEditorBlockMeta(type: EditableBlockType): EditorBlockMeta {
   return EDITOR_BLOCK_META[type];
 }
 
+/**
+ * Create a single text node from a non-empty string.
+ *
+ * @param text - Source string for the text node
+ * @returns An array containing one text node when `text` is non-empty, `undefined` otherwise.
+ */
 function createTipTapTextNode(text: string): TipTapNode[] | undefined {
   return text.length > 0 ? [{ type: "text", text }] : undefined;
 }
 
+/**
+ * Convert an array of EditableTextContent into TipTap `text` nodes, preserving any `marks`.
+ *
+ * @param content - An array of editable text content items (each expected to have `type: "text"` and a non-empty `text`).
+ * @returns A list of TipTap `text` nodes with `text` and optional `marks`, or `undefined` if `content` is empty or yields no valid text nodes.
+ */
 function createTipTapTextNodes(
   content: EditableTextContent[] | undefined,
 ): TipTapNode[] | undefined {
@@ -259,6 +271,12 @@ function createTipTapTextNodes(
   return nodes.length > 0 ? nodes : undefined;
 }
 
+/**
+ * Creates a TipTap paragraph node from a plain text string.
+ *
+ * @param text - The paragraph text. If empty, the returned node will not include a `content` property.
+ * @returns A TipTap paragraph node; when `text` is non-empty the node's `content` contains a single text node for that text.
+ */
 function createTipTapParagraph(text: string): TipTapNode {
   const paragraph: TipTapNode = { type: "paragraph" };
   const content = createTipTapTextNode(text);
@@ -270,6 +288,14 @@ function createTipTapParagraph(text: string): TipTapNode {
   return paragraph;
 }
 
+/**
+ * Create a TipTap paragraph node from editable text content.
+ *
+ * Converts provided `EditableTextContent[]` into TipTap text nodes and attaches them as the paragraph's `content` when any non-empty text items exist; returns a paragraph node without `content` when `content` is `undefined` or contains no text.
+ *
+ * @param content - Editable text content to convert; items with non-empty `text` are included as text nodes and their `marks` (if present) are preserved
+ * @returns A TipTap `paragraph` node. If conversion yields text nodes they are assigned to the node's `content`; otherwise the node has no `content` property.
+ */
 function createTipTapParagraphFromEditableContent(
   content: EditableTextContent[] | undefined,
 ): TipTapNode {
@@ -283,6 +309,13 @@ function createTipTapParagraphFromEditableContent(
   return paragraph;
 }
 
+/**
+ * Create a TipTap list-item node whose content is a paragraph generated from the given editable content.
+ *
+ * @param content - Editable text content to populate the paragraph; if omitted or empty, the paragraph will have no text content.
+ * @param type - The node type to create: `"listItem"` or `"taskItem"`.
+ * @returns A TipTap node representing the list item; when `type` is `"taskItem"`, the node includes `attrs.checked` set to `false`.
+ */
 function createTipTapListItem(
   content: EditableTextContent[] | undefined,
   type: "listItem" | "taskItem",
@@ -299,6 +332,13 @@ function createTipTapListItem(
   return item;
 }
 
+/**
+ * Append a list item node to the last TipTap list of the given type or create a new list node containing the item.
+ *
+ * @param content - Array of TipTap document nodes to modify in place
+ * @param listType - Target list node type: `"bulletList"`, `"orderedList"`, or `"taskList"`
+ * @param item - The list item node to append
+ */
 function pushTipTapListNode(
   content: TipTapNode[],
   listType: "bulletList" | "orderedList" | "taskList",
@@ -317,6 +357,17 @@ function pushTipTapListNode(
   });
 }
 
+/**
+ * Convert an array of editable guide blocks into a TipTap document.
+ *
+ * The function normalizes the input blocks, maps supported guide block types
+ * (paragraph, heading, lists, tasks, quote, image) to corresponding TipTap nodes,
+ * and groups consecutive list items into list nodes. Image blocks with an empty
+ * URL are omitted.
+ *
+ * @param blocks - Array of potentially unnormalized editable blocks (will be normalized before conversion)
+ * @returns A `TipTapDocument` whose `content` contains the converted TipTap nodes; if no nodes are produced, the document contains a single empty paragraph node
+ */
 export function guideBlocksToTipTapDocument(blocks: unknown[]): TipTapDocument {
   const documentContent: TipTapNode[] = [];
 
@@ -385,6 +436,12 @@ export function guideBlocksToTipTapDocument(blocks: unknown[]): TipTapDocument {
   };
 }
 
+/**
+ * Convert a TipTap node into a flattened array of `EditableTextContent`, preserving any `marks`.
+ *
+ * @param node - TipTap node to extract text content from. If `node.text` is a string, returns a single content item (including `marks` when present); otherwise recursively extracts text content from `node.content`.
+ * @returns An array of `EditableTextContent` items representing the node's text fragments, or an empty array if no text is found.
+ */
 function getTipTapTextContent(node: TipTapNode): EditableTextContent[] {
   if (typeof node.text === "string") {
     const content: EditableTextContent = {
@@ -403,6 +460,13 @@ function getTipTapTextContent(node: TipTapNode): EditableTextContent[] {
   return node.content?.flatMap(getTipTapTextContent) ?? [];
 }
 
+/**
+ * Create an editable block of the specified type populated with the provided text content.
+ *
+ * @param type - The block type to create
+ * @param content - The array of `EditableTextContent` items to set as the block's `content`
+ * @returns An `EditableBlock` with a new draft id, empty `props` and `children`, and `content` set to `content`
+ */
 function createEditableTextBlockFromContent(
   type: EditableBlockType,
   content: EditableTextContent[],
@@ -416,6 +480,13 @@ function createEditableTextBlockFromContent(
   };
 }
 
+/**
+ * Convert items of a TipTap list node into editable list-item blocks of the given type.
+ *
+ * @param node - A TipTap node whose `content` contains list item nodes
+ * @param type - The editable block type to produce for each list item (`bulletListItem`, `numberedListItem`, or `checkListItem`)
+ * @returns An array of `EditableBlock` objects, one per list item, each created from the corresponding TipTap item content
+ */
 function mapTipTapListItems(
   node: TipTapNode,
   type: "bulletListItem" | "numberedListItem" | "checkListItem",
@@ -425,6 +496,12 @@ function mapTipTapListItems(
   );
 }
 
+/**
+ * Convert a TipTap document into an array of editable guide blocks.
+ *
+ * @param document - The TipTap document to convert
+ * @returns An array of `EditableBlock` objects representing the document; if no blocks are produced, returns a single paragraph block
+ */
 export function tipTapDocumentToGuideBlocks(document: TipTapDocument): EditableBlock[] {
   const blocks: EditableBlock[] = [];
 

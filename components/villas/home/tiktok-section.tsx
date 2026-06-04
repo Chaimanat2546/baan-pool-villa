@@ -12,6 +12,15 @@ interface TikTokSectionProps {
 const HOMEPAGE_TIKTOK_VIDEO_LIMIT = 6;
 type TikTokSectionVideo = SiteTikTokSettings["videos"][number] | TikTokPreviewSettings["videos"][number];
 
+/**
+ * Selects up to six unique TikTok videos with trimmed `videoId`s from the provided settings.
+ *
+ * Iterates `tiktok.videos` in order and returns a list that preserves that order, omitting entries whose
+ * `videoId` is empty after trimming or duplicates by `videoId`.
+ *
+ * @param tiktok - Settings object containing a `videos` array to select from
+ * @returns An array of videos with `videoId` trimmed, preserving original order, containing at most `HOMEPAGE_TIKTOK_VIDEO_LIMIT` entries; entries with empty or duplicate `videoId`s are excluded
+ */
 function getVisibleVideos(tiktok: TikTokSectionProps["tiktok"]) {
   const seen = new Set<string>();
   const visibleVideos: TikTokSectionVideo[] = [];
@@ -34,6 +43,14 @@ function getVisibleVideos(tiktok: TikTokSectionProps["tiktok"]) {
   return visibleVideos;
 }
 
+/**
+ * Render a homepage TikTok section with a horizontally scrollable rail of videos and an optional follow link.
+ *
+ * Renders nothing if there are no valid videos to display.
+ *
+ * @param tiktok - TikTok settings (site or preview) that provide `videos` and an `accountUrl`; video IDs are trimmed, deduplicated, and limited before rendering.
+ * @returns A section element containing the TikTok header, a scrollable list of TikTok cards, and an optional "Follow us on TikTok" link, or `null` when no videos are available.
+ */
 export function TikTokSection({ tiktok }: TikTokSectionProps) {
   const videos = getVisibleVideos(tiktok);
   const accountUrl = tiktok.accountUrl.trim();

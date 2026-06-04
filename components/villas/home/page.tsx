@@ -33,6 +33,20 @@ interface HomePageProps {
   tiktokPreview?: TikTokPreviewSettings;
 }
 
+/**
+ * Render the site's homepage with hero, villa rails, and supporting content sections.
+ *
+ * Renders a HeroSection (driving search filters), a sequence of VillaRail sections when available
+ * (inserting WhyChooseSection after the first rail), and the Destinations, TikTok, Articles,
+ * FAQ, and Contact sections.
+ *
+ * @param initialGuides - Optional initial list of guide articles used to populate the ArticlesSection
+ * @param initialHomeSections - Optional initial home sections used to build villa rails
+ * @param initialVillas - Optional initial villa listings used to populate rails, destinations, and filter values
+ * @param settings - Required site settings (visual assets, contact info, default TikTok settings, etc.)
+ * @param tiktokPreview - Optional TikTok preview settings that override `settings.tiktok` when present
+ * @returns The React element tree for the homepage
+ */
 export function HomePage({
   initialGuides = [],
   initialHomeSections = [],

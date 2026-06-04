@@ -7,6 +7,19 @@ import {
 import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
 import { fetchVillaDetail } from "@/lib/villas/server";
 
+/**
+ * Handle GET requests to download a villa image identified by the route `id`.
+ *
+ * This endpoint expects a query parameter `url` (the image URL to download). It validates the `id` format, normalizes and validates the target image URL, checks authorization against the villa's images (and optionally villa detail), downloads the image from the upstream URL, and returns the upstream image stream with appropriate download headers.
+ *
+ * @param request - Incoming Request whose URL search params must include `url`; optional search params: `name` (override filename) and `zone` (zone key for filename).
+ * @param context - Route context containing `params` that resolve to an object with `id` (the villa id).
+ * @returns A Response containing either:
+ *  - a JSON error with status 400 when `id` or `url` is invalid,
+ *  - a JSON error with status 404 when the image is not allowed/found,
+ *  - a JSON error with status 502 when the upstream image cannot be retrieved or is invalid,
+ *  - or a streamed image Response with `Cache-Control: no-store`, `Content-Disposition` set for attachment, and `Content-Type` matching the upstream image.
+ */
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },

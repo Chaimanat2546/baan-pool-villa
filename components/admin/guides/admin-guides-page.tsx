@@ -183,6 +183,14 @@ function getStatusLabel(status: GuideStatus) {
   return status === "published" ? "เผยแพร่" : "ฉบับร่าง";
 }
 
+/**
+ * Render an aside list of guide drafts showing status, pinned badge, title, slug preview, and counts.
+ *
+ * @param activeDraftId - The `draftId` of the currently selected guide or `null` when none is selected.
+ * @param guides - Array of guide drafts to display.
+ * @param onSelect - Called with a guide's `draftId` when the corresponding list item is clicked.
+ * @returns A JSX element rendering the guide list sidebar.
+ */
 function GuideList({
   activeDraftId,
   guides,
@@ -362,6 +370,16 @@ function isFormatActive(editor: Editor, type: EditableBlockType): boolean {
   }
 }
 
+/**
+ * Apply a block-level format to the given editor corresponding to the specified editable block type.
+ *
+ * @param type - The block type to apply. Supported values:
+ *   - `"heading"`: set a level-2 heading
+ *   - `"bulletListItem"`: toggle a bulleted list
+ *   - `"checkListItem"`: toggle a task (check) list
+ *   - `"quote"`: toggle a blockquote
+ *   - any other value: set a paragraph
+ */
 function applyEditorFormat(editor: Editor, type: EditableBlockType) {
   const chain = editor.chain().focus();
 
@@ -384,6 +402,14 @@ function applyEditorFormat(editor: Editor, type: EditableBlockType) {
   }
 }
 
+/**
+ * Normalize and validate a user-provided link for insertion into the editor.
+ *
+ * Accepts root-relative paths (starting with `/` but not `//`) and absolute `http://` or `https://` URLs.
+ *
+ * @param value - The raw link string entered by the user
+ * @returns The normalized href string for supported inputs, or `null` if the value is empty or not a supported/valid URL
+ */
 function normalizeEditorLinkHref(value: string): string | null {
   const href = value.trim();
 
@@ -408,6 +434,13 @@ function normalizeEditorLinkHref(value: string): string | null {
   return null;
 }
 
+/**
+ * Prompt the user for a URL and apply or remove a link mark on the editor selection.
+ *
+ * If the user provides an empty string the existing link mark is removed. If the input is not a supported href (must start with `/`, `http://`, or `https://`), the user is alerted and no change is made. Valid inputs are normalized before being set as the link href.
+ *
+ * @param editor - TipTap Editor instance whose current selection will be updated
+ */
 function applyEditorLink(editor: Editor) {
   const currentHref = editor.getAttributes("link").href;
   const nextHref = window.prompt(
@@ -434,6 +467,16 @@ function applyEditorLink(editor: Editor) {
   editor.chain().focus().extendMarkRange("link").setLink({ href: normalizedHref }).run();
 }
 
+/**
+ * Render a formatting toolbar for a TipTap editor that provides block-type buttons and link attach/remove actions.
+ *
+ * The toolbar highlights active formats, applies block formatting via the provided editor, and exposes an optional trailing action area.
+ *
+ * @param editor - TipTap `Editor` instance used to query active formats and apply formatting/link actions
+ * @param trailingAction - Optional React node rendered at the end of the toolbar (aligned to the right)
+ * @param variant - Layout variant: `"bar"` for a sticky top toolbar or `"bubble"` for a compact rounded bubble
+ * @returns A React element containing the toolbar UI
+ */
 function TipTapFormatToolbar({
   editor,
   trailingAction,
@@ -519,6 +562,18 @@ function TipTapFormatToolbar({
   );
 }
 
+/**
+ * Render a TipTap-based rich text editor for guide content with formatting controls and inline image upload.
+ *
+ * The editor initializes from `blocks`, converts editor changes back to `EditableBlock[]` via `onChange`, and
+ * supports inserting uploaded inline images through `onUploadImage`.
+ *
+ * @param blocks - The current content blocks to load into the editor; editor changes are emitted through `onChange`.
+ * @param documentHeader - Node rendered above the editor content (e.g., title/excerpt fields).
+ * @param onChange - Called with the updated `EditableBlock[]` whenever the editor content changes.
+ * @param onUploadImage - Receives a selected File and should upload it, returning the uploaded `GuideImage` or `null` on failure.
+ * @returns The editor UI containing the formatting toolbar, bubble menu, and editable content area.
+ */
 function BlockEditor({
   blocks,
   documentHeader,
@@ -637,6 +692,24 @@ function BlockEditor({
   );
 }
 
+/**
+ * Renders the right-side status and metadata panel for editing a guide.
+ *
+ * The panel displays and allows editing of publication status, pinned state,
+ * preview route, cover image (upload and alt text), tags, recommended house IDs,
+ * and a live card preview. It also exposes actions for uploading a cover image,
+ * saving changes, and deleting the guide.
+ *
+ * @param guide - The current admin guide draft being edited.
+ * @param hasUnsavedChanges - Whether the guide has local changes not yet saved.
+ * @param isSaving - Whether a save operation is in progress (disables the save button).
+ * @param isUploading - Whether an image upload is in progress (disables upload controls).
+ * @param onCoverUpload - Called with the selected File when the cover image is uploaded.
+ * @param onDelete - Called when the delete action is triggered.
+ * @param onSave - Called to persist the current guide (save action).
+ * @param onUpdate - Called with a partial set of guide fields to apply local updates.
+ * @returns A React element that provides UI for guide status, metadata editing, preview, and actions.
+ */
 function GuideStatusPanel({
   guide,
   hasUnsavedChanges,
@@ -894,6 +967,18 @@ function GuideStatusPanel({
   );
 }
 
+/**
+ * Renders the admin UI for managing guide articles, including list navigation,
+ * rich content editing, metadata/status controls, image uploads, validation,
+ * and save/delete actions.
+ *
+ * The page handles loading guides from the authenticated API, detects unsaved
+ * changes, uploads cover/inline images, validates drafts before saving, and
+ * persists updates via authenticated requests. UI is split into a left guide
+ * list, a central editor (Tiptap) and a right-side status/metadata panel.
+ *
+ * @returns The Admin Guides management page as a React element.
+ */
 export function AdminGuidesPage() {
   const router = useRouter();
   const [guides, setGuides] = useState<AdminGuideDraft[]>([]);

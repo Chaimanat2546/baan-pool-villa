@@ -191,6 +191,13 @@ function normalizeSelection(
   return getDefaultSelection(layout);
 }
 
+/**
+ * Produce a localized label for a wide-row slot based on the row's column count and the block position.
+ *
+ * @param columns - Number of columns in the wide row (1 or 2)
+ * @param blockIndex - Zero-based index of the block within the row
+ * @returns The label text: `ช่องเดี่ยว` when `columns` is 1; otherwise `ช่องซ้าย` for `blockIndex === 0` or `ช่องขวา` for other indexes
+ */
 function getWideSlotLabel(columns: DetailLayoutWideColumns, blockIndex: number) {
   if (columns === 1) {
     return "ช่องเดี่ยว";
@@ -276,6 +283,17 @@ function moveWideBlock(
   );
 }
 
+/**
+ * Admin page UI for editing the Details page layout.
+ *
+ * Renders a full editor that lets administrators add, move, enable/disable, and
+ * remove wide/narrow rows and blocks, preview the layout, and save changes to
+ * the server. Manages loading/saving state, validation, error and notice
+ * messages, selection state on the canvas, and redirects to the login page if
+ * the current session is not authorized.
+ *
+ * @returns The rendered JSX element for the admin detail layout editor.
+ */
 export function AdminDetailLayoutPage() {
   const router = useRouter();
   const [layout, setLayout] = useState<DetailLayoutV2Draft | null>(null);

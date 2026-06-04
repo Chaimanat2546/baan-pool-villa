@@ -13,6 +13,11 @@ interface TikTokLazyCardProps {
   video: SiteTikTokVideoSettings | TikTokVideoPreview;
 }
 
+/**
+ * Builds a TikTok player URL for the given video ID.
+ *
+ * @returns The fully qualified TikTok player URL for the video (includes `autoplay`, `controls`, and `rel` query parameters).
+ */
 function getPlayerSrc(videoId: string) {
   const params = new URLSearchParams({
     autoplay: "1",
@@ -23,12 +28,27 @@ function getPlayerSrc(videoId: string) {
   return `https://www.tiktok.com/player/v1/${videoId}?${params.toString()}`;
 }
 
+/**
+ * Type guard that detects whether a video object contains a non-empty thumbnail URL.
+ *
+ * When this function returns `true`, the `video` value is narrowed to `TikTokVideoPreview`.
+ *
+ * @param video - The video object to inspect
+ * @returns `true` if `video.thumbnailUrl` exists and is not empty after trimming, `false` otherwise.
+ */
 function hasThumbnail(
   video: SiteTikTokVideoSettings | TikTokVideoPreview,
 ): video is TikTokVideoPreview {
   return "thumbnailUrl" in video && video.thumbnailUrl.trim().length > 0;
 }
 
+/**
+ * Render an iframe TikTok player for the given video.
+ *
+ * @param index - Zero-based position of the video; used in the iframe title for accessibility
+ * @param video - Video data containing `videoId` used to construct the player `src`
+ * @returns The configured `<iframe>` element that embeds the TikTok player with autoplay and fullscreen enabled
+ */
 function TikTokPlayer({ index, video }: TikTokLazyCardProps) {
   return (
     <iframe
@@ -41,6 +61,13 @@ function TikTokPlayer({ index, video }: TikTokLazyCardProps) {
   );
 }
 
+/**
+ * Render a TikTok "lazy" video card that displays a poster (thumbnail or gradient) and replaces it with an embedded player when played.
+ *
+ * @param index - Zero-based index used for display, accessibility labels, and the iframe title.
+ * @param video - Video metadata or preview object; if it contains a non-empty `thumbnailUrl`, a poster image is shown, otherwise a gradient poster is used. Title and author fall back to sensible defaults when missing.
+ * @returns The card element that toggles between a poster view and an embedded TikTok iframe when activated.
+ */
 export function TikTokLazyCard({ index, video }: TikTokLazyCardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const title =

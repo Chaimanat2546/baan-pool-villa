@@ -29,6 +29,12 @@ interface GuideTextMark {
   type?: unknown;
 }
 
+/**
+ * Concatenates the inline text segments from a guide block into a single string.
+ *
+ * @param block - The guide block whose `content` array contains text segments to extract
+ * @returns The joined text from `block.content` or an empty string if no text is present
+ */
 function getBlockText(block: GuideBlock): string {
   return (
     block.content
@@ -37,10 +43,22 @@ function getBlockText(block: GuideBlock): string {
   );
 }
 
+/**
+ * Retrieve the `content` array from a guide block.
+ *
+ * @param block - The guide block to read content from
+ * @returns The `content` array from `block` when present, otherwise an empty array
+ */
 function getBlockContent(block: GuideBlock): GuideTextContent[] {
   return Array.isArray(block.content) ? block.content : [];
 }
 
+/**
+ * Extracts the image URL from a guide block's props when available.
+ *
+ * @param block - The guide block to read `props.url` from
+ * @returns The `props.url` string if it exists and is non-empty, `null` otherwise
+ */
 function getImageUrl(block: GuideBlock): string | null {
   const url = block.props?.url;
 
@@ -151,6 +169,12 @@ function getYouTubeVideoIdFromUrl(url: URL): string | null {
   return null;
 }
 
+/**
+ * Extracts the first YouTube embed URL found within a whitespace-separated text string.
+ *
+ * @param text - The text to scan for YouTube URL tokens.
+ * @returns The embed URL in the form `https://www.youtube-nocookie.com/embed/<videoId>` if a valid YouTube link is found, `null` otherwise.
+ */
 export function getYouTubeEmbedUrl(text: string): string | null {
   for (const token of tokenizeText(text)) {
     const candidate = trimUrlToken(token.trim());
@@ -173,6 +197,12 @@ export function getYouTubeEmbedUrl(text: string): string | null {
   return null;
 }
 
+/**
+ * Convert an arbitrary value into a canonical public hyperlink or return `null` if it isn't a usable link.
+ *
+ * @param value - The candidate href to normalize; may be any type.
+ * @returns A usable href string: either a relative path beginning with `/` (but not `//`) or an absolute `http(s)` URL; `null` when the input is not a valid public link.
+ */
 function normalizePublicLinkHref(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -197,6 +227,12 @@ function normalizePublicLinkHref(value: unknown): string | null {
   return null;
 }
 
+/**
+ * Convert inline guide text segments into renderable React nodes, turning link marks into anchor elements when a valid href is present.
+ *
+ * @param content - An array of inline text segments (each may contain `text` and optional `marks` describing links or formatting)
+ * @returns An array of React nodes: plain text strings for segments without a valid link and `<a>` elements for segments with a normalized link. External links use `target="_blank"` and `rel="noopener noreferrer"`.
+ */
 function renderInlineContent(content: GuideTextContent[]): ReactNode[] {
   return content.flatMap((item, index) => {
     if (typeof item.text !== "string" || item.text.length === 0) {
@@ -226,6 +262,13 @@ function renderInlineContent(content: GuideTextContent[]): ReactNode[] {
   });
 }
 
+/**
+ * Renders a styled responsive iframe for an embedded YouTube video.
+ *
+ * @param embedUrl - Absolute URL to load into the iframe (typically a YouTube embed URL)
+ * @param title - Accessible title for the iframe content
+ * @returns A React element containing a responsive, styled iframe for the provided `embedUrl`
+ */
 function YouTubeEmbed({ embedUrl, title }: { embedUrl: string; title: string }) {
   return (
     <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_14px_30px_rgba(6,63,53,0.08)]">
@@ -242,6 +285,21 @@ function YouTubeEmbed({ embedUrl, title }: { embedUrl: string; title: string }) 
   );
 }
 
+/**
+ * Renders guide content blocks into corresponding HTML elements and embeds.
+ *
+ * Converts each block in `blocks` into the appropriate element based on its `type`:
+ * - "heading" → <h2>
+ * - "quote" → <blockquote>
+ * - "bulletListItem", "numberedListItem", "checkListItem" → styled callout paragraph (checkListItem prefixed with "✓")
+ * - "image" → <figure> with responsive Image and caption (skips if image URL is missing)
+ * - default → paragraph or YouTube embed if a YouTube URL is detected in the block text
+ *
+ * Inline text marks (links) are rendered using `renderInlineContent`, and YouTube URLs discovered in block text are converted to no-cookie embed URLs via `getYouTubeEmbedUrl`.
+ *
+ * @param blocks - Array of raw guide blocks (each expected to be an object shaped like `GuideBlock`); non-object or array entries are ignored.
+ * @returns A JSX element containing the rendered guide content grid.
+ */
 function GuideContent({ blocks }: { blocks: unknown[] }) {
   return (
     <div className="grid w-full gap-5 text-[var(--site-text)]" data-guide-content>
@@ -332,6 +390,16 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
   );
 }
 
+/**
+ * Render a sidebar showing up to six recommended villa cards for the guide.
+ *
+ * The component displays a localized heading and explanatory text, a horizontal
+ * scroll rail of villa cards for small screens, and a vertical list for larger
+ * screens. If `villas` is empty, nothing is rendered.
+ *
+ * @param villas - Array of villa listings to show; only the first six items are displayed
+ * @returns A sidebar JSX element containing the recommended villa cards, or `null` when `villas` is empty
+ */
 function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
   if (villas.length === 0) {
     return null;
@@ -372,6 +440,14 @@ function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
   );
 }
 
+/**
+ * Render the guide detail page including the guide header, article content blocks, a recommended-villas sidebar, and a related-articles section.
+ *
+ * @param guide - Guide post data to display (title, excerpt, tags, cover image, and content blocks)
+ * @param recommendedVillas - List of villa listings to show in the sidebar (up to the first 6 are used)
+ * @param relatedGuides - List of related guide posts displayed in the related-articles section
+ * @returns The rendered page element for the guide detail view
+ */
 export function GuideDetailPage({
   guide,
   recommendedVillas,
