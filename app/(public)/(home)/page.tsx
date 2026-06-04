@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 import { HomePage } from "@/components/villas/home/page";
+import { getPublishedGuides } from "@/lib/guides/server";
+import type { GuidePost } from "@/lib/guides/types";
 import { getResolvedHomeSections } from "@/lib/home-sections/server";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildPageMetadata } from "@/lib/seo";
@@ -9,18 +11,22 @@ import { fetchHouseListings } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
 
 async function getHomePageData(): Promise<{
+  guides: GuidePost[];
   homeSections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"];
   villas: VillaListing[];
 }> {
   try {
-    const villas = await fetchHouseListings();
+    const [guides, villas] = await Promise.all([
+      getPublishedGuides(),
+      fetchHouseListings(),
+    ]);
     const { sections } = await getResolvedHomeSections(villas);
 
-    return { homeSections: sections, villas };
+    return { guides, homeSections: sections, villas };
   } catch (error) {
     console.error("Unable to load homepage villa data", error);
 
-    return { homeSections: [], villas: [] };
+    return { guides: [], homeSections: [], villas: [] };
   }
 }
 
@@ -38,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [{ settings }, { homeSections, villas }] = await Promise.all([
+  const [{ settings }, { guides, homeSections, villas }] = await Promise.all([
     getSiteSettings(),
     getHomePageData(),
   ]);
@@ -51,6 +57,7 @@ export default async function Page() {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <HomePage
+        initialGuides={guides}
         initialHomeSections={homeSections}
         initialVillas={villas}
         settings={settings}
