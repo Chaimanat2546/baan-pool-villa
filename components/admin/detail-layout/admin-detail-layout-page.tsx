@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
 import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
-import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
+import { readAdminAccessToken } from "@/components/admin/admin-auth";
 
 import { BlockLibrary } from "./block-library";
 import { DetailLayoutPreview } from "./detail-layout-preview";
@@ -389,11 +389,9 @@ export function AdminDetailLayoutPage() {
   }, [router]);
 
   const getAccessToken = useCallback(async () => {
-    const supabase = createBrowserHomeConfigClient();
-    const { data, error } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    const token = await readAdminAccessToken();
 
-    if (error || !token) {
+    if (!token) {
       redirectToLogin();
       return null;
     }
