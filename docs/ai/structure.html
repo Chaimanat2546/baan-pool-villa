@@ -246,6 +246,11 @@
                 <td><code>components/admin/settings/admin-settings-page</code>.</td>
               </tr>
               <tr>
+                <td><code>app/(admin)/admin/tiktok/page.tsx</code></td>
+                <td><code>/admin/tiktok</code></td>
+                <td><code>components/admin/tiktok/admin-tiktok-page</code>.</td>
+              </tr>
+              <tr>
                 <td><code>app/(admin)/admin/sections/page.tsx</code></td>
                 <td><code>/admin/sections</code></td>
                 <td><code>components/admin/sections/admin-sections-page</code>.</td>
@@ -288,7 +293,12 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
-                <td>Validate site settings, handle asset uploads, persist settings, revalidate public settings cache.</td>
+                <td>Validate site settings (excluding TikTok fields), handle asset uploads, persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
+                <td><code>/api/admin/tiktok</code></td>
+                <td>Admin auth, validate TikTok URLs only, persist TikTok account/video settings to site-settings columns, and revalidate public settings cache.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/guides/route.ts</code></td>
@@ -328,8 +338,13 @@
           <tbody>
             <tr>
               <td><code>components/villas/home</code></td>
-              <td>Home page sections, CMS-driven home assembly, hero/contact/articles/destination/TikTok blocks, villa rails, home skeletons.</td>
+              <td>Home page sections, CMS-driven home assembly, hero/contact/articles/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), villa rails, home skeletons.</td>
               <td>Use <code>VillaRail</code>, home shared helpers, and section header patterns before creating new section UI.</td>
+            </tr>
+            <tr>
+              <td><code>components/admin/tiktok</code></td>
+              <td>TikTok account/video settings manager with add/delete/reorder controls, URL-only input handling, and homepage preview/status messaging for first-6 video usage.</td>
+              <td>Render edits as draft-local previews until save; keep settings contract aligned to <code>lib/site-settings</code>.</td>
             </tr>
             <tr>
               <td><code>components/villas/search</code></td>
@@ -395,6 +410,11 @@
               <td><code>lib/site-settings</code></td>
               <td>Site identity, theme colors, logo/hero assets, SEO/contact/TikTok settings, defaults, validation, Supabase reads, retention.</td>
               <td><code>lib/site-settings/__tests__</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/tiktok</code></td>
+              <td>TikTok public embed metadata helpers, including server-side oEmbed thumbnail resolution for homepage previews.</td>
+              <td><code>lib/tiktok/__tests__</code></td>
             </tr>
             <tr>
               <td><code>lib/detail-layout</code></td>
@@ -474,8 +494,8 @@
             <tr>
               <td>Site settings</td>
               <td>Supabase settings table with defaults fallback.</td>
-              <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag.</td>
-              <td>Public/admin layouts, theme provider, metadata, contact actions, TikTok block settings editor, settings editor, homepage section composition.</td>
+              <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. TikTok homepage thumbnails are resolved through <code>lib/tiktok/oembed.ts</code> with the TikTok oEmbed cache tag.</td>
+              <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
             </tr>
             <tr>
               <td>Detail layout settings</td>
@@ -655,9 +675,9 @@
               <td>Run lint and build before completion.</td>
             </tr>
             <tr>
-              <td>Site settings, theme colors, uploads, SEO/contact settings</td>
-              <td><code>npm.cmd test -- lib/site-settings</code> and relevant <code>components/admin/settings</code> tests</td>
-              <td>Include TikTok settings coverage in settings/editor tests, then run lint and build before completion.</td>
+              <td>Site settings + TikTok settings</td>
+              <td><code>npm.cmd test -- lib/site-settings</code>, <code>npm.cmd test -- lib/tiktok</code>, and relevant <code>components/admin/settings</code>, <code>components/admin/tiktok</code>, <code>components/villas/home</code> tests.</td>
+              <td>Add TikTok-route assertions (including /api/admin/site-settings not overwriting TikTok columns, /api/admin/tiktok normalizing URL-only payloads), oEmbed thumbnail fallback/cache assertions, and homepage first-6/click-to-load expectations; run lint and build before completion.</td>
             </tr>
             <tr>
               <td>Detail layout config, renderer, or builder</td>
