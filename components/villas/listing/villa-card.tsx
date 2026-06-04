@@ -32,7 +32,8 @@ export function VillaCard({ villa, preload = false }: VillaCardProps) {
             alt={getVillaTitle(villa)}
             fill
             preload={preload}
-            sizes="(max-width: 768px) 290px, (max-width: 1200px) 50vw, 33vw"
+            quality={60}
+            sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
             className="object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
