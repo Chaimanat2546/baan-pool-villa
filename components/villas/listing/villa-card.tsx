@@ -1,6 +1,5 @@
 import { BedDouble, MapPin, Users } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -21,9 +20,8 @@ export function VillaCard({ villa, preload = false }: VillaCardProps) {
   const visibleAmenities = villa.amenities.slice(0, 3);
 
   return (
-    <Link
+    <a
       href={`/villas/${villa.id}`}
-      prefetch={false}
       className="group block overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-px shadow-[0_10px_15px_-3px_rgba(0,0,0,0.05),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_28px_-8px_rgba(15,47,53,0.18)]"
     >
       <div className="relative h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]">
@@ -93,6 +91,6 @@ export function VillaCard({ villa, preload = false }: VillaCardProps) {
           <span className="shrink-0 text-sm leading-5 text-[var(--site-primary)]">ดูรายละเอียด</span>
         </div>
       </div>
-    </Link>
+    </a>
   );
 }

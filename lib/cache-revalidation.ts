@@ -19,12 +19,10 @@ function revalidatePaths(paths: string[]) {
 
 export function revalidateSiteSettingsCache() {
   revalidateTags([CACHE_TAGS.siteSettings]);
-  revalidatePaths(["/", "/search"]);
 }
 
 export function revalidateHomeSectionsCache() {
   revalidateTags([CACHE_TAGS.homeSections]);
-  revalidatePaths(["/"]);
 }
 
 export function revalidateGuideCache(slug?: string | null) {
@@ -32,16 +30,10 @@ export function revalidateGuideCache(slug?: string | null) {
     CACHE_TAGS.guides,
     ...(slug ? [CACHE_TAGS.guide(slug)] : []),
   ]);
-  revalidatePaths(["/guides", "/sitemap.xml"]);
-
-  if (slug) {
-    revalidatePath(`/guides/${slug}`);
-  }
 }
 
 export function revalidateDetailLayoutCache() {
   revalidateTags([CACHE_TAGS.siteSettings]);
-  revalidatePath("/villas/[id]", "page");
 }
 
 export function revalidateExternalVillaCache() {
