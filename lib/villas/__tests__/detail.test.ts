@@ -78,13 +78,15 @@ describe("buildVillaDetailContent", () => {
     expect(content.videos).toEqual([
       {
         url: "https://youtu.be/dQw4w9WgXcQ",
-        embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        embedUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+        thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
         watchUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         label: "คลิปรีวิวบ้านพัก 1",
       },
       {
         url: "https://example.com/review-video",
         embedUrl: null,
+        thumbnailUrl: null,
         watchUrl: "https://example.com/review-video",
         label: "คลิปรีวิวบ้านพัก 2",
       },

@@ -6,6 +6,7 @@ import { ScrollRail } from "@/components/villas/home/scroll-rail";
 import { VillaCard } from "@/components/villas/listing/villa-card";
 import type { GuidePost } from "@/lib/guides/types";
 import type { VillaListing } from "@/lib/villas/types";
+import { YouTubeLiteEmbed } from "./youtube-lite-embed";
 
 interface GuideDetailPageProps {
   guide: GuidePost;
@@ -176,6 +177,12 @@ function getYouTubeVideoIdFromUrl(url: URL): string | null {
  * @returns The embed URL in the form `https://www.youtube-nocookie.com/embed/<videoId>` if a valid YouTube link is found, `null` otherwise.
  */
 export function getYouTubeEmbedUrl(text: string): string | null {
+  const videoId = getYouTubeVideoIdFromText(text);
+
+  return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : null;
+}
+
+function getYouTubeVideoIdFromText(text: string): string | null {
   for (const token of tokenizeText(text)) {
     const candidate = trimUrlToken(token.trim());
 
@@ -187,7 +194,7 @@ export function getYouTubeEmbedUrl(text: string): string | null {
       const videoId = getYouTubeVideoIdFromUrl(new URL(candidate));
 
       if (videoId) {
-        return `https://www.youtube-nocookie.com/embed/${videoId}`;
+        return videoId;
       }
     } catch {
       continue;
@@ -269,20 +276,8 @@ function renderInlineContent(content: GuideTextContent[]): ReactNode[] {
  * @param title - Accessible title for the iframe content
  * @returns A React element containing a responsive, styled iframe for the provided `embedUrl`
  */
-function YouTubeEmbed({ embedUrl, title }: { embedUrl: string; title: string }) {
-  return (
-    <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_14px_30px_rgba(6,63,53,0.08)]">
-      <iframe
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-        className="aspect-video w-full"
-        loading="lazy"
-        referrerPolicy="strict-origin-when-cross-origin"
-        src={embedUrl}
-        title={title}
-      />
-    </div>
-  );
+function YouTubeEmbed({ title, videoId }: { title: string; videoId: string }) {
+  return <YouTubeLiteEmbed title={title} videoId={videoId} />;
 }
 
 /**
@@ -311,7 +306,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
         const guideBlock = block as GuideBlock;
         const text = getBlockText(guideBlock);
         const inlineContent = renderInlineContent(getBlockContent(guideBlock));
-        const youtubeEmbedUrl = getYouTubeEmbedUrl(text);
+        const youtubeVideoId = getYouTubeVideoIdFromText(text);
 
         switch (guideBlock.type) {
           case "heading":
@@ -369,12 +364,12 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
             );
           }
           default:
-            if (youtubeEmbedUrl) {
+            if (youtubeVideoId) {
               return (
                 <YouTubeEmbed
-                  embedUrl={youtubeEmbedUrl}
                   key={index}
                   title={`${text} - YouTube`}
+                  videoId={youtubeVideoId}
                 />
               );
             }

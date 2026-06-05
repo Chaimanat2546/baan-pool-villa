@@ -9,7 +9,7 @@ import {
   Home,
   MapPin,
   PawPrint,
-  PlayCircle,
+  Play,
   ShieldCheck,
   Star,
   Users,
@@ -17,7 +17,8 @@ import {
   Wifi,
   Utensils,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import Image from "next/image";
+import { useState, type ReactNode } from "react";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
@@ -291,11 +292,33 @@ export function AmenitiesSection({
 }
 
 export function VideoReviewSection({ videos }: { videos: VillaDetailContent["videos"] }) {
+  const [activeVideoUrls, setActiveVideoUrls] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   if (videos.length === 0) {
 
     return null;
 
+  }
+
+  function playVideo(videoUrl: string) {
+    setActiveVideoUrls((currentVideoUrls) => {
+      if (currentVideoUrls.has(videoUrl)) {
+        return currentVideoUrls;
+      }
+
+      const nextVideoUrls = new Set(currentVideoUrls);
+      nextVideoUrls.add(videoUrl);
+      return nextVideoUrls;
+    });
+  }
+
+  function getPlayerUrl(embedUrl: string) {
+    const url = new URL(embedUrl);
+    url.searchParams.set("autoplay", "1");
+    url.searchParams.set("rel", "0");
+    return url.href;
   }
 
 
@@ -307,7 +330,7 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
       <div className="flex items-center gap-3">
 
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
-          <PlayCircle className="h-5 w-5" />
+          <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
 
         </span>
 
@@ -327,13 +350,13 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
 
           >
 
-            {video.embedUrl ? (
+            {video.embedUrl && activeVideoUrls.has(video.url) ? (
 
               <div className="aspect-video bg-[var(--site-primary-hover)]">
 
                 <iframe
 
-                  src={video.embedUrl}
+                  src={getPlayerUrl(video.embedUrl)}
 
                   title={video.label}
 
@@ -343,9 +366,49 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
 
                   allowFullScreen
 
+                  loading="lazy"
+
+                  referrerPolicy="strict-origin-when-cross-origin"
+
                 />
 
               </div>
+
+            ) : video.embedUrl ? (
+
+              <button
+                type="button"
+                className="group relative grid aspect-video w-full cursor-pointer place-items-center overflow-hidden bg-[var(--site-primary-hover)] text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2"
+                onClick={() => {
+                  playVideo(video.url);
+                }}
+              >
+                {video.thumbnailUrl ? (
+                  <Image
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    height={360}
+                    sizes="(max-width: 768px) 100vw, 768px"
+                    src={video.thumbnailUrl}
+                    width={640}
+                  />
+                ) : null}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,15,40,0.06),rgba(5,15,40,0.72))]"
+                />
+                <span className="relative grid h-16 w-16 place-items-center rounded-full bg-white/92 text-[var(--site-primary)] shadow-[0_18px_42px_rgba(0,0,0,0.24)] transition group-hover:scale-105">
+                  <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
+                </span>
+                <span className="absolute bottom-4 left-4 right-4 text-left">
+                  <span className="block text-base font-black text-white drop-shadow">
+                    {video.label}
+                  </span>
+                  <span className="mt-1 block text-sm font-semibold text-white/85">
+                    กดเพื่อเล่นวิดีโอ
+                  </span>
+                </span>
+              </button>
 
             ) : (
 
@@ -353,7 +416,7 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
 
                 <div>
 
-                  <PlayCircle className="mx-auto h-10 w-10 text-[var(--site-primary)]" />
+                  <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
 
                   <p className="mt-3 text-sm font-bold text-[var(--site-muted)]">
 

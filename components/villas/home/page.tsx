@@ -1,20 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useState } from "react";
 
 import type { GuidePost } from "@/lib/guides/types";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
-import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
 import {
   filtersToSearchParams,
   getDefaultFilters,
-  getMaxVillaPrice,
-  getUniqueZones,
   normalizeFiltersForSearch,
 } from "@/lib/villas/filters";
-import type { VillaFilters, VillaListing } from "@/lib/villas/types";
+import type { VillaFilters } from "@/lib/villas/types";
 
 import { ArticlesSection } from "./articles-section";
 import { ContactSection } from "./contact-section";
@@ -25,12 +22,21 @@ import { VillaRail } from "./villa-rail";
 import { WhyChooseSection } from "./why-choose-section";
 import { TikTokSection } from "./tiktok-section";
 
+type FilterSummary = {
+  maxAvailablePrice: number;
+  zones: Array<{ value: string; label: string }>;
+};
+
+type DestinationVilla = {
+  coverImage: string | null;
+};
+
 interface HomePageProps {
   initialGuides?: GuidePost[];
   initialHomeSections?: ResolvedHomeSection[];
-  initialVillas?: VillaListing[];
+  filterSummary?: FilterSummary;
+  destinationVillas?: DestinationVilla[];
   settings: SiteSettings;
-  tiktokPreview?: TikTokPreviewSettings;
 }
 
 /**
@@ -42,30 +48,29 @@ interface HomePageProps {
  *
  * @param initialGuides - Optional initial list of guide articles used to populate the ArticlesSection
  * @param initialHomeSections - Optional initial home sections used to build villa rails
- * @param initialVillas - Optional initial villa listings used to populate rails, destinations, and filter values
+ * @param filterSummary - Optional precomputed filter summary used to initialize hero filter defaults and price/zone controls
+ * @param destinationVillas - Optional minimal villa records for destination cards
  * @param settings - Required site settings (visual assets, contact info, default TikTok settings, etc.)
- * @param tiktokPreview - Optional TikTok preview settings that override `settings.tiktok` when present
  * @returns The React element tree for the homepage
  */
 export function HomePage({
   initialGuides = [],
   initialHomeSections = [],
-  initialVillas = [],
+  filterSummary,
+  destinationVillas = [],
   settings,
-  tiktokPreview,
 }: HomePageProps) {
+  const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? 0;
+  const zones = filterSummary?.zones ?? [];
   const router = useRouter();
-  const [villas] = useState<VillaListing[]>(() => initialVillas);
   const [guides] = useState<GuidePost[]>(() => initialGuides);
   const [homeSections] = useState<ResolvedHomeSection[]>(
     () => initialHomeSections,
   );
   const [filters, setFilters] = useState<VillaFilters>(() =>
-    getDefaultFilters(Math.max(getMaxVillaPrice(initialVillas), 1000)),
+    getDefaultFilters(Math.max(maxAvailablePrice, 1000)),
   );
 
-  const maxAvailablePrice = useMemo(() => getMaxVillaPrice(villas), [villas]);
-  const zones = useMemo(() => getUniqueZones(villas), [villas]);
   const railSections = homeSections.filter((section) => section.villas.length > 0);
 
   function handleHeroSearch() {
@@ -109,8 +114,8 @@ export function HomePage({
           <WhyChooseSection />
         )}
 
-        <DestinationsSection villas={villas} />
-        <TikTokSection tiktok={tiktokPreview ?? settings.tiktok} />
+        <DestinationsSection villas={destinationVillas} />
+        <TikTokSection tiktok={settings.tiktok} />
         <ArticlesSection guides={guides} />
         <FaqSection />
         <ContactSection settings={settings} />

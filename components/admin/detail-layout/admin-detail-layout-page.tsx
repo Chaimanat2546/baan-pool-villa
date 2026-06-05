@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
 import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { AdminDetailLayoutSkeleton } from "@/components/admin/loading/admin-detail-layout-skeleton";
 
 import { BlockLibrary } from "./block-library";
 import { DetailLayoutPreview } from "./detail-layout-preview";
@@ -788,9 +789,7 @@ export function AdminDetailLayoutPage() {
       ) : null}
 
       {isLoading || !layout ? (
-        <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)] shadow-sm">
-          กำลังโหลด layout หน้า Details...
-        </div>
+        <AdminDetailLayoutSkeleton />
       ) : (
         <div className="grid gap-6 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]">
           <aside className="grid content-start gap-4 xl:sticky xl:top-36 xl:self-start">

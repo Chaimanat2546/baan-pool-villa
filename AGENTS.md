@@ -104,6 +104,8 @@ Avoid adding top-level re-export wrapper files under `components/villas`; import
 
 ## Admin and CMS Rules
 
+- Admin UI pages must share one product style: Modern SaaS Dashboard / Clean Card UI with compact, scannable controls, restrained shadows, clear borders, consistent spacing, and no marketing-style hero treatment.
+- Admin CMS/content pages should use a master-detail-preview layout when the workflow has multiple records or a public-facing result: left/list or navigation, center/detail editor, and right sticky preview/status. On narrow screens, stack in that order.
 - Admin UI pages should follow the existing visual language in `components/admin`, especially the layout and control density used by `/admin/sections`.
 - For admin pages that manage CMS/content/settings, default to the same UX pattern used by `/admin/settings` and `/admin/sections`: left side for section/list navigation when there are multiple records, center for grouped editing controls, and right side for live preview, result summary, or operational status. On narrow screens, stack in that order.
 - Group admin forms by the admin's mental model, not by database fields. Use short Thai section headings such as identity, colors, images, SEO/share preview, contact/payment, ordering, content details, selection rules, and preview/status as appropriate.

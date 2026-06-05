@@ -36,6 +36,11 @@ describe("cache policy", () => {
     expect(getVillaDetailPath("42")).toBe("/villas/42");
   });
 
+  it("defines shared route-level revalidate seconds for homepage and search", () => {
+    expect(CACHE_REVALIDATE_SECONDS.homePage).toBe(15 * 60);
+    expect(CACHE_REVALIDATE_SECONDS.searchPage).toBe(15 * 60);
+  });
+
   it("centralizes public route cache-control headers", () => {
     expect(CACHE_HEADERS.villaListings).toBe(
       "public, s-maxage=900, stale-while-revalidate=900",

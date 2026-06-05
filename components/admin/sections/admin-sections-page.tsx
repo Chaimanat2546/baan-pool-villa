@@ -27,6 +27,7 @@ import {
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { AdminSectionsSkeleton } from "@/components/admin/loading/admin-sections-skeleton";
 
 import type {
   AdminHomeSectionsResponse,
@@ -880,9 +881,7 @@ export function AdminSectionsPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
-          กำลังโหลดการจัดหน้าแรก...
-        </div>
+        <AdminSectionsSkeleton />
       ) : (
         <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]">
           <aside className="grid content-start gap-3 xl:sticky xl:top-24 xl:self-start">

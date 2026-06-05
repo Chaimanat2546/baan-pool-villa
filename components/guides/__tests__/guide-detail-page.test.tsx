@@ -89,4 +89,29 @@ describe("getYouTubeEmbedUrl", () => {
     expect(markup).toContain("Unsafe link");
     expect(markup).not.toContain("javascript:alert");
   });
+
+  it("renders YouTube links as thumbnail posters without loading embeds before play", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "https://youtu.be/dQw4w9WgXcQ",
+              },
+            ],
+          },
+        ])}
+        recommendedVillas={[]}
+        relatedGuides={[]}
+      />,
+    );
+
+    expect(markup).toContain("i.ytimg.com%2Fvi%2FdQw4w9WgXcQ%2Fhqdefault.jpg");
+    expect(markup).not.toContain("<iframe");
+    expect(markup).not.toContain("youtube.com/embed");
+    expect(markup).not.toContain("youtube-nocookie.com/embed");
+  });
 });
