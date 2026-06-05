@@ -1,16 +1,15 @@
-const ONE_DAY_SECONDS = 60 * 60 * 24;
-const FIFTEEN_MINUTES_SECONDS = 15 * 60;
+const TWELVE_HOURS_SECONDS = 12 * 60 * 60;
 
 export const CACHE_REVALIDATE_SECONDS = {
-  guides: ONE_DAY_SECONDS,
-  homeSections: ONE_DAY_SECONDS,
-  siteSettings: ONE_DAY_SECONDS,
-  tiktokOEmbed: ONE_DAY_SECONDS,
-  villaDetail: FIFTEEN_MINUTES_SECONDS,
-  villaImages: ONE_DAY_SECONDS,
-  villaListings: FIFTEEN_MINUTES_SECONDS,
-  homePage: FIFTEEN_MINUTES_SECONDS,
-  searchPage: FIFTEEN_MINUTES_SECONDS,
+  guides: TWELVE_HOURS_SECONDS,
+  homeSections: TWELVE_HOURS_SECONDS,
+  siteSettings: TWELVE_HOURS_SECONDS,
+  tiktokOEmbed: TWELVE_HOURS_SECONDS,
+  villaDetail: TWELVE_HOURS_SECONDS,
+  villaImages: TWELVE_HOURS_SECONDS,
+  villaListings: TWELVE_HOURS_SECONDS,
+  homePage: TWELVE_HOURS_SECONDS,
+  searchPage: TWELVE_HOURS_SECONDS,
 } as const;
 
 export const CACHE_TAGS = {
@@ -26,10 +25,10 @@ export const CACHE_TAGS = {
 } as const;
 
 export const CACHE_HEADERS = {
-  homeSections: "public, s-maxage=300, stale-while-revalidate=86400",
-  villaDetail: "public, s-maxage=900, stale-while-revalidate=900",
-  villaImages: "public, s-maxage=86400, stale-while-revalidate=86400",
-  villaListings: "public, s-maxage=900, stale-while-revalidate=900",
+  homeSections: "public, s-maxage=43200, stale-while-revalidate=43200",
+  villaDetail: "public, s-maxage=43200, stale-while-revalidate=43200",
+  villaImages: "public, s-maxage=43200, stale-while-revalidate=43200",
+  villaListings: "public, s-maxage=43200, stale-while-revalidate=43200",
 } as const;
 
 export function getVillaDetailPath(id: string): string {

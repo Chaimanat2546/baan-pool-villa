@@ -42,7 +42,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
         label="บทความแนะนำ"
         className="-mx-4 mt-8 gap-6 px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
       >
-        {visibleGuides.map((guide, index) => {
+        {visibleGuides.map((guide) => {
           const imageUrl = getGuideImage(guide);
 
           return (
@@ -50,6 +50,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
               className="group w-[306px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_34px_rgba(6,63,53,0.07)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_36px_rgba(15,47,53,0.14)] md:w-[394px]"
               href={`/guides/${guide.slug}`}
               key={guide.id}
+              prefetch={false}
             >
               <div className="relative aspect-[4/3] bg-[var(--site-surface-tint)]">
                 {imageUrl ? (
@@ -57,7 +58,6 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                     alt={guide.coverImage?.alt ?? guide.title}
                     className="object-cover transition duration-500 group-hover:scale-105"
                     fill
-                    priority={index === 0}
                     sizes="(max-width: 768px) 306px, 394px"
                     src={imageUrl}
                   />

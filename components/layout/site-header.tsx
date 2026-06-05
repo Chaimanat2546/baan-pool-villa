@@ -26,7 +26,11 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
     <header className="sticky top-0 z-50 bg-[var(--site-primary)] text-[var(--site-on-primary)]">
       <div className="border-b border-[color:var(--site-on-primary)] bg-[var(--site-primary)]/95 shadow-[0_1px_1px_rgba(0,0,0,0.05)] backdrop-blur-[6px]">
         <div className="relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Link href="/" className="flex min-w-0 flex-1 items-center gap-3">
+          <Link
+            href="/"
+            prefetch={false}
+            className="flex min-w-0 flex-1 items-center gap-3"
+          >
             <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-white/10">
               <Image
                 src={settings.logoImage.url}
@@ -58,6 +62,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 <Link
                   key={`${item.href}-${item.label}`}
                   href={item.href}
+                  prefetch={false}
                   className="whitespace-nowrap transition hover:text-[var(--site-accent)]"
                 >
                   {item.label}
@@ -66,6 +71,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
             </nav>
             <Link
               href="/#contact"
+              prefetch={false}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-4 text-sm font-medium leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
             >
               <MapPin className="h-4 w-4" />
@@ -92,6 +98,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                   <Link
                     key={`mobile-${item.href}-${item.label}`}
                     href={item.href}
+                    prefetch={false}
                     className="px-4 py-3"
                     onClick={() => {
                       setIsMenuOpen(false);
@@ -102,6 +109,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 ))}
                 <Link
                   href="/#contact"
+                  prefetch={false}
                   className="flex items-center gap-2 px-4 py-3 text-[var(--site-primary)]"
                   onClick={() => {
                     setIsMenuOpen(false);

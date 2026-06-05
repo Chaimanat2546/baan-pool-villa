@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { fetchVillaImages } from "./images";
 import { normalizeHouses } from "./normalize";
@@ -18,7 +19,7 @@ async function readJson<T>(response: Response): Promise<T> {
   }
 }
 
-export async function fetchHouseListings(): Promise<VillaListing[]> {
+async function fetchHouseListingsFromApi(): Promise<VillaListing[]> {
   const response = await fetch(HOUSE_LIST_URL, {
     next: {
       revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
@@ -32,6 +33,19 @@ export async function fetchHouseListings(): Promise<VillaListing[]> {
 
   const data = await readJson<RawHouse[]>(response);
   return normalizeHouses(Array.isArray(data) ? data : []);
+}
+
+const fetchCachedHouseListings = unstable_cache(
+  fetchHouseListingsFromApi,
+  [CACHE_TAGS.villaListings],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
+    tags: [CACHE_TAGS.villaListings],
+  },
+);
+
+export async function fetchHouseListings(): Promise<VillaListing[]> {
+  return fetchCachedHouseListings();
 }
 
 export async function getListingById(id: string): Promise<VillaListing | null> {

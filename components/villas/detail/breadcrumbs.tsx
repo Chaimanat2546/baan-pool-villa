@@ -7,7 +7,11 @@ export function Breadcrumbs({ listing }: { listing: VillaListing }) {
 
     <div className="mx-auto hidden w-full max-w-7xl items-center gap-2 px-4 py-4 text-xs font-semibold text-[var(--site-muted)] sm:px-6 lg:flex lg:px-8">
 
-      <Link href="/" className="hover:text-[var(--site-primary)]">
+      <Link
+        href="/"
+        prefetch={false}
+        className="hover:text-[var(--site-primary)]"
+      >
 
         Home
 
@@ -15,7 +19,11 @@ export function Breadcrumbs({ listing }: { listing: VillaListing }) {
 
       <span>{">"}</span>
 
-      <Link href="/" className="hover:text-[var(--site-primary)]">
+      <Link
+        href="/"
+        prefetch={false}
+        className="hover:text-[var(--site-primary)]"
+      >
 
         Pattaya Villas
 

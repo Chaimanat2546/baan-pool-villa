@@ -58,9 +58,9 @@ export function VillaRail({
         label={title}
         className="-mx-4 mt-4 gap-5 px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8"
       >
-        {villas.slice(0, 12).map((villa, index) => (
+        {villas.slice(0, 12).map((villa) => (
           <div key={villa.id} className="w-[290px] shrink-0 snap-start">
-            <VillaCard villa={villa} preload={index === 0} />
+            <VillaCard villa={villa} />
           </div>
         ))}
       </ScrollRail>
@@ -68,6 +68,7 @@ export function VillaRail({
         <div className="mt-8 text-center">
           <Link
             href={ctaConfig.href}
+            prefetch={false}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--site-primary)] px-5 py-3 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_30px_rgba(6,77,61,0.22)] transition hover:bg-[var(--site-primary-hover)]"
           >
             {ctaConfig.label} <ArrowRight className="h-4 w-4" />

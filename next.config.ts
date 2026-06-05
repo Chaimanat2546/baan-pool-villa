@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     imageSizes: [64, 96, 128, 160, 192, 244, 256, 292, 320, 384, 448, 512],
     minimumCacheTTL: 60 * 60 * 24 * 30,
     qualities: [60, 75],
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
