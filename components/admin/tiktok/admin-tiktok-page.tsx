@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { AdminTikTokSkeleton } from "@/components/admin/loading/admin-tiktok-skeleton";
 import {
   readJsonPayload,
 } from "../settings/settings-helpers";
@@ -292,9 +293,7 @@ export function AdminTikTokPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
-          กำลังโหลดการตั้งค่า TikTok...
-        </div>
+        <AdminTikTokSkeleton />
       ) : (
         <TikTokForm
           draft={draft}

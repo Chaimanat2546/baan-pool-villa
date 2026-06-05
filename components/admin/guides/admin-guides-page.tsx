@@ -38,6 +38,7 @@ import {
 } from "react";
 
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { AdminGuidesSkeleton } from "@/components/admin/loading/admin-guides-skeleton";
 import type { GuideDraft, GuideImage, GuidePost, GuideStatus } from "@/lib/guides/types";
 import {
   createSlugFromTitle,
@@ -1408,9 +1409,7 @@ export function AdminGuidesPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
-          กำลังโหลดบทความ...
-        </div>
+        <AdminGuidesSkeleton />
       ) : (
         <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_380px]">
           <div className="min-w-0 xl:sticky xl:top-36 xl:self-start">

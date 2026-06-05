@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Eye, RefreshCw, Save } from "lucide-react";
 
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { AdminSettingsSkeleton } from "@/components/admin/loading/admin-settings-skeleton";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 import {
@@ -402,9 +403,7 @@ export function AdminSettingsPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">
-          กำลังโหลดการตั้งค่าเว็บไซต์...
-        </div>
+        <AdminSettingsSkeleton />
       ) : settings && draft ? (
         <SettingsForm
           draft={draft}
