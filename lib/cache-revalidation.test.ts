@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CACHE_TAGS } from "./cache-policy";
 import {
@@ -21,26 +21,29 @@ const revalidatePathMock = vi.mocked(revalidatePath);
 const revalidateTagMock = vi.mocked(revalidateTag);
 
 describe("cache revalidation", () => {
-  it("expires site settings tags and public settings-driven paths", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("expires only the CMS site settings tag", () => {
     revalidateSiteSettingsCache();
 
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.siteSettings, {
       expire: 0,
     });
-    expect(revalidatePathMock).toHaveBeenCalledWith("/");
-    expect(revalidatePathMock).toHaveBeenCalledWith("/search");
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
-  it("expires home section tags and the home path", () => {
+  it("expires only the CMS home section tag", () => {
     revalidateHomeSectionsCache();
 
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.homeSections, {
       expire: 0,
     });
-    expect(revalidatePathMock).toHaveBeenCalledWith("/");
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
-  it("expires guide tags and public guide paths", () => {
+  it("expires only CMS guide tags", () => {
     revalidateGuideCache("family-pool-villa");
 
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.guides, {
@@ -50,18 +53,16 @@ describe("cache revalidation", () => {
       CACHE_TAGS.guide("family-pool-villa"),
       { expire: 0 },
     );
-    expect(revalidatePathMock).toHaveBeenCalledWith("/guides");
-    expect(revalidatePathMock).toHaveBeenCalledWith("/guides/family-pool-villa");
-    expect(revalidatePathMock).toHaveBeenCalledWith("/sitemap.xml");
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
-  it("expires detail layout settings and detail pages", () => {
+  it("expires only the CMS detail layout settings tag", () => {
     revalidateDetailLayoutCache();
 
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.siteSettings, {
       expire: 0,
     });
-    expect(revalidatePathMock).toHaveBeenCalledWith("/villas/[id]", "page");
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("expires shared external villa tags and public villa paths", () => {

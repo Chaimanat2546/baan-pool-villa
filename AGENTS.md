@@ -70,6 +70,7 @@ When a change touches admin APIs, validation helpers, Supabase persistence, or u
 - Check both mobile and desktop widths when changing shared layout, listing cards, rails, admin shells, headers, footers, contact actions, or route-level loading UI.
 - Verify touched loading, empty, error, long-text, and image-fallback states when they are part of the changed flow.
 - Use browser verification as a complement to lint, build, and tests. Do not rely only on static code review for user-visible layout behavior.
+- When changing public image rendering, navigation prefetch, cache policy, ISR, or public server data loading, run a production browser network check for the affected pages and confirm that public navigation does not create unexpected `_rsc` requests, public pages do not request `/_next/image`, and route/API request counts stay bounded.
 - For documentation-only, comment-only, or clearly non-visual copy changes, skip browser verification unless the copy affects layout or metadata.
 
 ## Environment
@@ -146,10 +147,12 @@ Avoid adding top-level re-export wrapper files under `components/villas`; import
 ## Cache and Revalidation Rules
 
 - Keep cache durations, cache tags, and public Cache-Control header values centralized in `lib/cache-policy.ts`.
+- Public external API, Supabase, settings, guide, image, and embed reads should use the shared 12-hour cache policy unless the user explicitly approves a different request budget. Keep route-level ISR for public data pages aligned to `43200` seconds where a static route segment value is required.
 - Use `lib/cache-revalidation.ts` for path and tag invalidation. Do not scatter ad hoc `revalidatePath` or `revalidateTag` calls across route handlers when a shared helper should own the behavior.
-- When admin saves affect public pages, revalidate the relevant cache tags and paths for the changed surface, including home, search, detail pages, sitemap, or settings-driven layout as appropriate.
+- When admin saves Supabase-backed CMS data such as site settings, home sections, guides, TikTok settings, or detail layout, revalidate only the relevant CMS data tags by default. Do not revalidate public page paths for CMS saves unless the user explicitly accepts the extra Cloudflare/OpenNext regeneration cost.
 - For cached external API, Supabase, or settings reads, use the existing cache tag and duration patterns and add or update focused tests around the cache options.
 - When changing cache policy or revalidation behavior, update the narrowest relevant cache tests before running lint and build.
+- Do not shorten public cache durations, add broad eager regeneration, or re-enable frequent ISR without checking Cloudflare/OpenNext CPU and request-budget impact.
 
 ## Supabase Rules
 
@@ -202,7 +205,9 @@ Avoid adding top-level re-export wrapper files under `components/villas`; import
 - Do not reintroduce mock badges on actions that already work.
 - Preserve the Prompt font setup.
 - Keep operational/admin screens compact, scannable, and consistent with the existing admin shell. Avoid marketing-style hero sections inside admin tools.
-- Use `next/image` for rendered images where practical. For local selected-file previews, use an object URL with `unoptimized` if required by Next Image.
+- Use `next/image` for rendered images where practical, but keep the global Next image optimizer disabled in `next.config.ts` so remote images do not consume Cloudflare Free `/_next/image` transformation quota. Do not remove `images.unoptimized = true` unless the deployment has an approved paid image-optimization plan and updated verification.
+- Avoid enabling public `Link` prefetch or image priority/preload on large repeated rails, listing grids, recommendations, breadcrumbs, or footer/header navigation unless there is measured evidence that the extra requests are acceptable.
+- Shared villa listing cards that link to `/villas/[id]` should use normal document navigation instead of `next/link` client navigation, so detail page clicks do not create RSC `?_rsc=` worker requests.
 - Ensure upload controls show the current asset and the newly selected file before save when a preview is available.
 - Keep text readable on mobile and desktop. Long labels, filenames, and status text should truncate or wrap without breaking layout.
 
