@@ -34,11 +34,20 @@ const villa: VillaListing = {
 };
 
 const homeSection: ResolvedHomeSection = {
-  description: "ตัวอย่างส่วนจัดแสดง",
+  description: "Section description",
   slug: "featured",
-  title: "บ้านพักแนะนำ",
+  title: "Featured",
   villas: [villa],
 };
+
+const filterSummary = {
+  maxAvailablePrice: 12000,
+  zones: [{ value: "jomtien", label: "Jomtien" }],
+};
+
+const destinationVillas = [
+  { coverImage: "https://devillegroups.com/imgs/profile_imgs_large/501-destination.jpg" },
+];
 
 function makeGuide(index: number): GuidePost {
   return {
@@ -67,14 +76,15 @@ describe("HomePage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders server-provided villas without waiting for a client fetch", () => {
+  it("renders home-section rails and hero filters from compact payload without initialVillas", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     const markup = renderToStaticMarkup(
       <HomePage
         initialHomeSections={[homeSection]}
-        initialVillas={[villa]}
+        filterSummary={filterSummary}
+        destinationVillas={destinationVillas}
         settings={DEFAULT_SITE_SETTINGS}
       />,
     );
@@ -82,18 +92,61 @@ describe("HomePage", () => {
     expect(markup).toContain('section id="featured"');
     expect(markup).toContain("501");
     expect(markup).toContain("Jomtien");
-    expect(markup).toContain("เลื่อนบ้านพักแนะนำไปทางซ้าย");
-    expect(markup).toContain("เลื่อนบ้านพักแนะนำไปทางขวา");
-    expect(markup).not.toContain("animate-pulse");
+    expect(markup).toContain("max=\"12000\"");
+    expect(markup).not.toContain("max=\"1000\"");
+    expect(markup).toContain('id="recommendations"');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("renders TikTok section from settings and places it before recommended guides", () => {
+  it("uses compact destinationVillas payload for destination cards", () => {
+    const compactDestinationVillas = [
+      { coverImage: "https://example.com/destination-1.jpg" },
+      { coverImage: "https://example.com/destination-2.jpg" },
+    ];
+
+    const markup = renderToStaticMarkup(
+      <HomePage
+        initialHomeSections={[homeSection]}
+        filterSummary={filterSummary}
+        destinationVillas={compactDestinationVillas}
+        settings={{
+          ...DEFAULT_SITE_SETTINGS,
+          tiktok: {
+            accountUrl: "https://www.tiktok.com/@baanpoolvilla",
+            videos: [
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000001000",
+                videoId: "7370000000000001000",
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    const destinationHeader = "สำรวจจุดหมายปลายทางของเรา";
+    const destinationSectionStart = markup.indexOf(destinationHeader);
+    const tiktokSectionStart = markup.indexOf("data-home-tiktok");
+
+    const destinationsMarkup = markup.slice(
+      destinationSectionStart,
+      tiktokSectionStart,
+    );
+
+    expect(destinationSectionStart).toBeGreaterThan(-1);
+    expect(tiktokSectionStart).toBeGreaterThan(destinationSectionStart);
+
+    expect(destinationsMarkup).toContain("https://example.com/destination-1.jpg");
+    expect(destinationsMarkup).toContain("https://example.com/destination-2.jpg");
+  });
+
+  it("renders TikTok section from settings without server preview props and keeps guide placement after it", () => {
     const markup = renderToStaticMarkup(
       <HomePage
         initialGuides={[makeGuide(1)]}
         initialHomeSections={[homeSection]}
-        initialVillas={[villa]}
+        filterSummary={filterSummary}
+        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_SITE_SETTINGS,
           tiktok: {
@@ -114,42 +167,12 @@ describe("HomePage", () => {
             ],
           },
         }}
-        tiktokPreview={{
-          accountUrl: "https://www.tiktok.com/@baanpoolvilla",
-          videos: [
-            {
-              authorName: "@baanpoolvilla",
-              thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/cover-1.jpeg",
-              title: "Pool villa clip 1",
-              url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
-              videoId: "7370000000000000001",
-            },
-            {
-              authorName: "@baanpoolvilla",
-              thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/cover-2.jpeg",
-              title: "Pool villa clip 2",
-              url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000002",
-              videoId: "7370000000000000002",
-            },
-            {
-              authorName: "@baanpoolvilla",
-              thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/cover-3.jpeg",
-              title: "Pool villa clip 3",
-              url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000003",
-              videoId: "7370000000000000003",
-            },
-          ],
-        }}
       />,
     );
 
     expect(markup).toContain("TikTok");
-    expect(markup).toContain("https://p16-sign.tiktokcdn-us.com/cover-1.jpeg");
-    expect(markup).toContain("https://p16-sign.tiktokcdn-us.com/cover-2.jpeg");
-    expect(markup).toContain("https://p16-sign.tiktokcdn-us.com/cover-3.jpeg");
-    expect(markup).toContain("Pool villa clip 1");
-    expect(markup).toContain("@baanpoolvilla");
-    expect(markup).toContain("Follow us on TikTok");
+    expect(markup).not.toContain("https://p16-sign.tiktokcdn-us.com/cover-1.jpeg");
+    expect(markup).toContain("ติดตามพวกเราบน TikTok");
     expect(markup).toContain('href="https://www.tiktok.com/@baanpoolvilla"');
     expect(markup).toContain('rel="noopener noreferrer"');
 
@@ -159,19 +182,16 @@ describe("HomePage", () => {
     expect(guidesSectionIndex).toBeGreaterThan(tiktokSectionIndex);
 
     const tiktokSectionMarkup = markup.slice(tiktokSectionIndex, guidesSectionIndex);
-    expect(tiktokSectionMarkup).toContain("เลื่อนวิดีโอ TikTokไปทางซ้าย");
-    expect(tiktokSectionMarkup).toContain("เลื่อนวิดีโอ TikTokไปทางขวา");
     expect(tiktokSectionMarkup).toContain("snap-x");
     expect(tiktokSectionMarkup).not.toContain("lg:grid-cols-3");
+    expect(tiktokSectionMarkup).not.toContain("www.tiktok.com/player/v1");
 
     const posterCount = (tiktokSectionMarkup.match(/data-tiktok-poster/g) ?? [])
       .length;
     expect(posterCount).toBe(3);
-    expect(tiktokSectionMarkup).not.toContain("www.tiktok.com/player/v1");
 
     const guidesSectionMarkup = markup.slice(guidesSectionIndex);
-    expect(guidesSectionMarkup).toContain("เลื่อนบทความแนะนำไปทางซ้าย");
-    expect(guidesSectionMarkup).toContain("เลื่อนบทความแนะนำไปทางขวา");
+    expect(guidesSectionMarkup).toContain("Guide 1");
   });
 
   it("dedupes TikTok videos by videoId and keeps max 6 visible posters", () => {
@@ -179,7 +199,8 @@ describe("HomePage", () => {
       <HomePage
         initialGuides={[makeGuide(1)]}
         initialHomeSections={[homeSection]}
-        initialVillas={[villa]}
+        filterSummary={filterSummary}
+        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_SITE_SETTINGS,
           tiktok: {
@@ -246,7 +267,8 @@ describe("HomePage", () => {
       <HomePage
         initialGuides={[makeGuide(1)]}
         initialHomeSections={[homeSection]}
-        initialVillas={[villa]}
+        filterSummary={filterSummary}
+        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_SITE_SETTINGS,
           tiktok: {
@@ -304,7 +326,8 @@ describe("HomePage", () => {
       <HomePage
         initialGuides={[makeGuide(1)]}
         initialHomeSections={[homeSection]}
-        initialVillas={[villa]}
+        filterSummary={filterSummary}
+        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_SITE_SETTINGS,
           tiktok: {
@@ -344,7 +367,8 @@ describe("HomePage", () => {
       <HomePage
         initialGuides={[makeGuide(1)]}
         initialHomeSections={[homeSection]}
-        initialVillas={[villa]}
+        filterSummary={filterSummary}
+        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_SITE_SETTINGS,
           tiktok: {

@@ -4,6 +4,15 @@ import { Suspense } from "react";
 import { SearchPage } from "@/components/villas/search/page";
 import { buildPageMetadata, searchDescription } from "@/lib/seo";
 import { fetchHouseListings } from "@/lib/villas/server";
+import {
+  filterVillas,
+  filterVillasById,
+  filtersFromSearchParams,
+  getMaxVillaPrice,
+  getUniqueZones,
+  sortVillas,
+  type VillaSortKey,
+} from "@/lib/villas/filters";
 import type { VillaListing } from "@/lib/villas/types";
 
 interface SearchRouteProps {
@@ -16,19 +25,67 @@ export const metadata: Metadata = buildPageMetadata({
   title: "ค้นหาบ้านพักพูลวิลล่าพัทยา",
 });
 
-async function getSearchPageData(): Promise<{
+const PAGE_SIZE = 12;
+
+export interface SearchPageInitialMeta {
+  catalogComplete: boolean;
+  maxPrice: number;
+  resultCount: number;
+  zones: Array<{ value: string; label: string }>;
+}
+
+function isVillaSortKey(value: string | null): value is VillaSortKey {
+  return (
+    value === "recommended" ||
+    value === "price_asc" ||
+    value === "price_desc" ||
+    value === "people_desc" ||
+    value === "bedrooms_desc"
+  );
+}
+
+async function getSearchPageData(
+  routeSearchParams: Record<string, string | string[] | undefined>,
+): Promise<{
   error: string | null;
   villas: VillaListing[];
+  meta: SearchPageInitialMeta;
 }> {
+  const serialized = serializeSearchParams(routeSearchParams);
+  const searchParams = new URLSearchParams(serialized);
+
   try {
+    const villas = await fetchHouseListings();
+    const maxPrice = Math.max(getMaxVillaPrice(villas), 1000);
+    const filters = filtersFromSearchParams(searchParams, maxPrice);
+    const villaIdQuery = searchParams.get("id") ?? "";
+    const requestedSort = searchParams.get("sort");
+    const sortKey = isVillaSortKey(requestedSort) ? requestedSort : "recommended";
+    const filteredAndSorted = sortVillas(
+      filterVillasById(filterVillas(villas, filters), villaIdQuery),
+      sortKey,
+    );
+
     return {
       error: null,
-      villas: await fetchHouseListings(),
+      villas: filteredAndSorted.slice(0, PAGE_SIZE),
+      meta: {
+        catalogComplete: false,
+        maxPrice,
+        resultCount: filteredAndSorted.length,
+        zones: getUniqueZones(villas),
+      },
     };
   } catch {
     return {
-      error: "โหลดข้อมูลบ้านพักไม่ได้",
+      error: "ไม่สามารถโหลดรายการบ้านพักได้ในขณะนี้",
       villas: [],
+      meta: {
+        catalogComplete: true,
+        maxPrice: 1000,
+        resultCount: 0,
+        zones: [],
+      },
     };
   }
 }
@@ -55,10 +112,8 @@ function serializeSearchParams(
 }
 
 export default async function Page({ searchParams }: SearchRouteProps) {
-  const [{ error, villas }, routeSearchParams] = await Promise.all([
-    getSearchPageData(),
-    searchParams ?? Promise.resolve({}),
-  ]);
+  const routeSearchParams = await (searchParams ?? Promise.resolve({}));
+  const { error, villas, meta } = await getSearchPageData(routeSearchParams);
   const serializedSearchParams = serializeSearchParams(routeSearchParams);
 
   return (
@@ -68,6 +123,7 @@ export default async function Page({ searchParams }: SearchRouteProps) {
         initialLoadError={error}
         initialSearchParams={serializedSearchParams}
         initialVillas={villas}
+        initialMeta={meta}
       />
     </Suspense>
   );

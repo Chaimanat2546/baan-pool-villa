@@ -13,8 +13,16 @@ import type { GuidePost } from "@/lib/guides/types";
 import { fetchHouseListings } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
 
+export const revalidate = 900;
+
 interface GuidePageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateStaticParams() {
+  const guides = await getPublishedGuides();
+
+  return guides.map((guide) => ({ slug: guide.slug }));
 }
 
 export async function generateMetadata({
