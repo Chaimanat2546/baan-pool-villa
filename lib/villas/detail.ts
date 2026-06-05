@@ -23,6 +23,7 @@ export type VillaNearbyPlace = {
 export type VillaDetailVideo = {
   url: string;
   embedUrl: string | null;
+  thumbnailUrl: string | null;
   watchUrl: string;
   label: string;
 };
@@ -275,6 +276,21 @@ function toVideoEmbedUrl(value: string): string | null {
   }
 }
 
+function toVideoThumbnailUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    const youtubeId = getYouTubeVideoId(url);
+
+    if (youtubeId) {
+      return `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function toVideoWatchUrl(value: string): string {
   try {
     const url = new URL(value);
@@ -359,6 +375,7 @@ function buildVillaVideos(detail: DetailRecord): VillaDetailVideo[] {
   return normalizeVideoUrls(readString(detail, "h_videos")).map((url, index) => ({
     url,
     embedUrl: toVideoEmbedUrl(url),
+    thumbnailUrl: toVideoThumbnailUrl(url),
     watchUrl: toVideoWatchUrl(url),
     label: `คลิปรีวิวบ้านพัก ${index + 1}`,
   }));

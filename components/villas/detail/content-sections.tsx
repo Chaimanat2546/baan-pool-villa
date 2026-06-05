@@ -17,6 +17,7 @@ import {
   Wifi,
   Utensils,
 } from "lucide-react";
+import Image from "next/image";
 import { useState, type ReactNode } from "react";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
@@ -377,14 +378,24 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
 
               <button
                 type="button"
-                className="group relative grid aspect-video w-full place-items-center overflow-hidden bg-[linear-gradient(145deg,color-mix(in_srgb,var(--site-primary)_88%,black),color-mix(in_srgb,var(--site-primary)_38%,white)_54%,color-mix(in_srgb,var(--site-accent)_45%,white))] text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2"
+                className="group relative grid aspect-video w-full cursor-pointer place-items-center overflow-hidden bg-[var(--site-primary-hover)] text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2"
                 onClick={() => {
                   playVideo(video.url);
                 }}
               >
+                {video.thumbnailUrl ? (
+                  <Image
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    height={360}
+                    sizes="(max-width: 768px) 100vw, 768px"
+                    src={video.thumbnailUrl}
+                    width={640}
+                  />
+                ) : null}
                 <span
                   aria-hidden="true"
-                  className="absolute inset-0 bg-[radial-gradient(circle_at_28%_24%,rgba(255,255,255,0.28),transparent_28%),linear-gradient(180deg,transparent,rgba(0,0,0,0.42))] transition duration-500 group-hover:scale-105"
+                  className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,15,40,0.06),rgba(5,15,40,0.72))]"
                 />
                 <span className="relative grid h-16 w-16 place-items-center rounded-full bg-white/92 text-[var(--site-primary)] shadow-[0_18px_42px_rgba(0,0,0,0.24)] transition group-hover:scale-105">
                   <PlayCircle className="h-9 w-9" />
