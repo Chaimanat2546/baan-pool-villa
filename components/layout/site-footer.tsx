@@ -75,6 +75,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className="text-[var(--site-on-primary)] opacity-60 transition hover:opacity-100"
               >
                 {item.label}

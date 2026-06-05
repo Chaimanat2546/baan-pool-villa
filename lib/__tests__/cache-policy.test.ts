@@ -8,17 +8,19 @@ import {
 } from "../cache-policy";
 
 describe("cache policy", () => {
-  it("keeps external villa API cache durations at fifteen minutes", () => {
-    expect(CACHE_REVALIDATE_SECONDS.villaListings).toBe(15 * 60);
-    expect(CACHE_REVALIDATE_SECONDS.villaDetail).toBe(15 * 60);
+  const TWELVE_HOURS_SECONDS = 12 * 60 * 60;
+
+  it("keeps public villa API cache durations at twelve hours", () => {
+    expect(CACHE_REVALIDATE_SECONDS.villaListings).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.villaDetail).toBe(TWELVE_HOURS_SECONDS);
   });
 
-  it("keeps Supabase public reads on shorter central TTLs", () => {
-    expect(CACHE_REVALIDATE_SECONDS.siteSettings).toBe(60 * 60 * 24);
-    expect(CACHE_REVALIDATE_SECONDS.homeSections).toBe(60 * 60 * 24);
-    expect(CACHE_REVALIDATE_SECONDS.villaImages).toBe(60 * 60 * 24);
-    expect(CACHE_REVALIDATE_SECONDS.guides).toBe(60 * 60 * 24);
-    expect(CACHE_REVALIDATE_SECONDS.tiktokOEmbed).toBe(60 * 60 * 24);
+  it("keeps public Supabase and third-party reads on twelve-hour TTLs", () => {
+    expect(CACHE_REVALIDATE_SECONDS.siteSettings).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.homeSections).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.villaImages).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.guides).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.tiktokOEmbed).toBe(TWELVE_HOURS_SECONDS);
   });
 
   it("builds stable cache tags and public paths", () => {
@@ -37,19 +39,22 @@ describe("cache policy", () => {
   });
 
   it("defines shared route-level revalidate seconds for homepage and search", () => {
-    expect(CACHE_REVALIDATE_SECONDS.homePage).toBe(15 * 60);
-    expect(CACHE_REVALIDATE_SECONDS.searchPage).toBe(15 * 60);
+    expect(CACHE_REVALIDATE_SECONDS.homePage).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.searchPage).toBe(TWELVE_HOURS_SECONDS);
   });
 
   it("centralizes public route cache-control headers", () => {
     expect(CACHE_HEADERS.villaListings).toBe(
-      "public, s-maxage=900, stale-while-revalidate=900",
+      "public, s-maxage=43200, stale-while-revalidate=43200",
     );
     expect(CACHE_HEADERS.villaDetail).toBe(
-      "public, s-maxage=900, stale-while-revalidate=900",
+      "public, s-maxage=43200, stale-while-revalidate=43200",
     );
     expect(CACHE_HEADERS.homeSections).toBe(
-      "public, s-maxage=300, stale-while-revalidate=86400",
+      "public, s-maxage=43200, stale-while-revalidate=43200",
+    );
+    expect(CACHE_HEADERS.villaImages).toBe(
+      "public, s-maxage=43200, stale-while-revalidate=43200",
     );
   });
 });

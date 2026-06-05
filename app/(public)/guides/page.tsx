@@ -4,6 +4,8 @@ import { GuideListPage } from "@/components/guides/guide-list-page";
 import { buildPageMetadata } from "@/lib/seo";
 import { getPublishedGuides } from "@/lib/guides/server";
 
+export const revalidate = 43200;
+
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     canonicalPath: "/guides",
