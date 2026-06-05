@@ -16,6 +16,12 @@ interface VillaPageProps {
   params: Promise<{ id: string }>;
 }
 
+export const revalidate = 900;
+
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: VillaPageProps): Promise<Metadata> {
