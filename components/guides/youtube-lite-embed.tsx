@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { PlayCircle } from "lucide-react";
+import { Play } from "lucide-react";
 
 interface YouTubeLiteEmbedProps {
   title: string;
@@ -57,7 +57,7 @@ export function YouTubeLiteEmbed({ title, videoId }: YouTubeLiteEmbedProps) {
             className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,15,40,0.04),rgba(5,15,40,0.68))]"
           />
           <span className="relative grid h-16 w-16 place-items-center rounded-full bg-white/92 text-[var(--site-primary)] shadow-[0_18px_42px_rgba(0,0,0,0.24)] transition group-hover:scale-105">
-            <PlayCircle className="h-9 w-9" />
+            <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
           </span>
         </button>
       )}

@@ -9,7 +9,7 @@ import {
   Home,
   MapPin,
   PawPrint,
-  PlayCircle,
+  Play,
   ShieldCheck,
   Star,
   Users,
@@ -330,7 +330,7 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
       <div className="flex items-center gap-3">
 
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
-          <PlayCircle className="h-5 w-5" />
+          <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
 
         </span>
 
@@ -398,7 +398,7 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
                   className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,15,40,0.06),rgba(5,15,40,0.72))]"
                 />
                 <span className="relative grid h-16 w-16 place-items-center rounded-full bg-white/92 text-[var(--site-primary)] shadow-[0_18px_42px_rgba(0,0,0,0.24)] transition group-hover:scale-105">
-                  <PlayCircle className="h-9 w-9" />
+                  <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
                 </span>
                 <span className="absolute bottom-4 left-4 right-4 text-left">
                   <span className="block text-base font-black text-white drop-shadow">
@@ -416,7 +416,7 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
 
                 <div>
 
-                  <PlayCircle className="mx-auto h-10 w-10 text-[var(--site-primary)]" />
+                  <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
 
                   <p className="mt-3 text-sm font-bold text-[var(--site-muted)]">
 
