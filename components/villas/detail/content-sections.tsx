@@ -17,7 +17,7 @@ import {
   Wifi,
   Utensils,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
@@ -291,11 +291,33 @@ export function AmenitiesSection({
 }
 
 export function VideoReviewSection({ videos }: { videos: VillaDetailContent["videos"] }) {
+  const [activeVideoUrls, setActiveVideoUrls] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   if (videos.length === 0) {
 
     return null;
 
+  }
+
+  function playVideo(videoUrl: string) {
+    setActiveVideoUrls((currentVideoUrls) => {
+      if (currentVideoUrls.has(videoUrl)) {
+        return currentVideoUrls;
+      }
+
+      const nextVideoUrls = new Set(currentVideoUrls);
+      nextVideoUrls.add(videoUrl);
+      return nextVideoUrls;
+    });
+  }
+
+  function getPlayerUrl(embedUrl: string) {
+    const url = new URL(embedUrl);
+    url.searchParams.set("autoplay", "1");
+    url.searchParams.set("rel", "0");
+    return url.href;
   }
 
 
@@ -327,13 +349,13 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
 
           >
 
-            {video.embedUrl ? (
+            {video.embedUrl && activeVideoUrls.has(video.url) ? (
 
               <div className="aspect-video bg-[var(--site-primary-hover)]">
 
                 <iframe
 
-                  src={video.embedUrl}
+                  src={getPlayerUrl(video.embedUrl)}
 
                   title={video.label}
 
@@ -343,9 +365,39 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
 
                   allowFullScreen
 
+                  loading="lazy"
+
+                  referrerPolicy="strict-origin-when-cross-origin"
+
                 />
 
               </div>
+
+            ) : video.embedUrl ? (
+
+              <button
+                type="button"
+                className="group relative grid aspect-video w-full place-items-center overflow-hidden bg-[linear-gradient(145deg,color-mix(in_srgb,var(--site-primary)_88%,black),color-mix(in_srgb,var(--site-primary)_38%,white)_54%,color-mix(in_srgb,var(--site-accent)_45%,white))] text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2"
+                onClick={() => {
+                  playVideo(video.url);
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 bg-[radial-gradient(circle_at_28%_24%,rgba(255,255,255,0.28),transparent_28%),linear-gradient(180deg,transparent,rgba(0,0,0,0.42))] transition duration-500 group-hover:scale-105"
+                />
+                <span className="relative grid h-16 w-16 place-items-center rounded-full bg-white/92 text-[var(--site-primary)] shadow-[0_18px_42px_rgba(0,0,0,0.24)] transition group-hover:scale-105">
+                  <PlayCircle className="h-9 w-9" />
+                </span>
+                <span className="absolute bottom-4 left-4 right-4 text-left">
+                  <span className="block text-base font-black text-white drop-shadow">
+                    {video.label}
+                  </span>
+                  <span className="mt-1 block text-sm font-semibold text-white/85">
+                    กดเพื่อเล่นวิดีโอ
+                  </span>
+                </span>
+              </button>
 
             ) : (
 

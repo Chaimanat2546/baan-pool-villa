@@ -266,7 +266,7 @@ function toVideoEmbedUrl(value: string): string | null {
     const youtubeId = getYouTubeVideoId(url);
 
     if (youtubeId) {
-      return `https://www.youtube.com/embed/${youtubeId}`;
+      return `https://www.youtube-nocookie.com/embed/${youtubeId}`;
     }
 
     return null;

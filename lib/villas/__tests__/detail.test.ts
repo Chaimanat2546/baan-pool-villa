@@ -78,7 +78,7 @@ describe("buildVillaDetailContent", () => {
     expect(content.videos).toEqual([
       {
         url: "https://youtu.be/dQw4w9WgXcQ",
-        embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        embedUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
         watchUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         label: "คลิปรีวิวบ้านพัก 1",
       },

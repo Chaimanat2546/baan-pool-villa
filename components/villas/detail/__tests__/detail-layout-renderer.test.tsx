@@ -102,7 +102,7 @@ const content: VillaDetailContent = {
   videos: [
     {
       url: "https://youtu.be/example",
-      embedUrl: "https://www.youtube.com/embed/example",
+      embedUrl: "https://www.youtube-nocookie.com/embed/example",
       watchUrl: "https://www.youtube.com/watch?v=example",
       label: "คลิปรีวิวบ้านพัก 1",
     },
@@ -190,6 +190,15 @@ describe("DetailLayoutRenderer", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT, { videos: [] });
 
     expect(markup).not.toContain("คลิปรีวิวบ้านพัก");
+  });
+
+  it("renders review videos without loading third-party iframes before play", () => {
+    const markup = render(DEFAULT_DETAIL_LAYOUT);
+
+    expect(markup).toContain("https://youtu.be/example");
+    expect(markup).not.toContain("<iframe");
+    expect(markup).not.toContain("youtube.com/embed");
+    expect(markup).not.toContain("youtube-nocookie.com/embed");
   });
 
   it("renders long text blocks as compact expandable previews", () => {
