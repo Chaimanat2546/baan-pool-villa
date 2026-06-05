@@ -15,8 +15,10 @@ export function shouldBypassImageOptimizer(imageUrl: string): boolean {
   try {
     const url = new URL(imageUrl);
     return (
-      url.hostname === "s3.ap-southeast-1.amazonaws.com" &&
-      url.pathname.startsWith("/poolvillas.co.ltd/")
+      (url.hostname === "s3.ap-southeast-1.amazonaws.com" &&
+        url.pathname.startsWith("/poolvillas.co.ltd/")) ||
+      url.hostname ===
+        "d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws"
     );
   } catch {
     return false;

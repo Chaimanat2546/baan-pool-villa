@@ -1,9 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { unstable_cache } from "next/cache";
 import type { RawHouse } from "../types";
 import { fetchHouseListings, fetchVillaDetail, fetchVillaPageData } from "../server";
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("next/cache", () => ({
+  unstable_cache: vi.fn((fn: unknown) => fn),
+}));
+
+const unstableCacheMock = vi.mocked(unstable_cache);
 
 const rawHouse: RawHouse = {
   h_id: "9",
@@ -41,6 +48,17 @@ afterEach(() => {
 });
 
 describe("fetchHouseListings", () => {
+  it("wraps the normalized villa catalog in a tagged Next cache", () => {
+    expect(unstableCacheMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      [CACHE_TAGS.villaListings],
+      {
+        revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
+        tags: [CACHE_TAGS.villaListings],
+      },
+    );
+  });
+
   it("normalizes raw list API rows from the external API", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([rawHouse]));
     vi.stubGlobal("fetch", fetchMock);

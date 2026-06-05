@@ -418,17 +418,17 @@ function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
           className="-mx-4 mt-4 gap-5 px-4 py-4 sm:-mx-6 sm:px-6"
           controlsClassName="sm:hidden"
         >
-          {villas.slice(0, 6).map((villa, index) => (
+          {villas.slice(0, 6).map((villa) => (
             <div key={villa.id} className="w-[290px] shrink-0 snap-start">
-              <VillaCard villa={villa} preload={index === 0} />
+              <VillaCard villa={villa} />
             </div>
           ))}
         </ScrollRail>
       </div>
 
       <div className="hidden gap-4 lg:grid lg:grid-cols-1">
-        {villas.slice(0, 6).map((villa, index) => (
-          <VillaCard key={villa.id} villa={villa} preload={index === 0} />
+        {villas.slice(0, 6).map((villa) => (
+          <VillaCard key={villa.id} villa={villa} />
         ))}
       </div>
     </aside>

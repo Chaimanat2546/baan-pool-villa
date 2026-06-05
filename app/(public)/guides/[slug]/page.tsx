@@ -13,7 +13,7 @@ import type { GuidePost } from "@/lib/guides/types";
 import { fetchHouseListings } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
 
-export const revalidate = 900;
+export const revalidate = 43200;
 
 interface GuidePageProps {
   params: Promise<{ slug: string }>;
