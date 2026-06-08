@@ -17,6 +17,17 @@ type AdminCheckResult =
 
 const BEARER_SCHEME = "bearer";
 const MAX_AUTHORIZATION_HEADER_LENGTH = 8192;
+const ADMIN_AUTH_CACHE_TTL_MS = 30_000;
+const MAX_ADMIN_AUTH_CACHE_ENTRIES = 100;
+
+type SuccessfulAdminCheckResult = Extract<AdminCheckResult, { ok: true }>;
+
+interface AdminAuthCacheEntry {
+  expiresAt: number;
+  result: SuccessfulAdminCheckResult;
+}
+
+const adminAuthCache = new Map<string, AdminAuthCacheEntry>();
 
 export function jsonError(
   message: string,
@@ -62,9 +73,103 @@ export function getBearerToken(request: Request): string | null {
   return token ? token : null;
 }
 
+function decodeBase64Url(value: string): string {
+  const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
+  const paddingLength = (4 - (base64.length % 4)) % 4;
+
+  return globalThis.atob(`${base64}${"=".repeat(paddingLength)}`);
+}
+
+function getTokenExpiresAt(token: string): number | null {
+  const parts = token.split(".");
+
+  if (parts.length < 2) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(decodeBase64Url(parts[1])) as {
+      exp?: unknown;
+    };
+    const expiresAtSeconds = payload.exp;
+
+    return typeof expiresAtSeconds === "number" &&
+      Number.isFinite(expiresAtSeconds)
+      ? expiresAtSeconds * 1000
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function getAdminAuthCacheExpiresAt(token: string, now: number): number {
+  const tokenExpiresAt = getTokenExpiresAt(token);
+  const ttlExpiresAt = now + ADMIN_AUTH_CACHE_TTL_MS;
+
+  return tokenExpiresAt === null
+    ? ttlExpiresAt
+    : Math.min(ttlExpiresAt, tokenExpiresAt);
+}
+
+async function getAdminAuthCacheKey(token: string): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(token),
+  );
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function pruneExpiredAdminAuthCache(now: number) {
+  adminAuthCache.forEach((entry, key) => {
+    if (entry.expiresAt <= now) {
+      adminAuthCache.delete(key);
+    }
+  });
+}
+
+function cacheSuccessfulAdminAuth(
+  key: string,
+  token: string,
+  result: SuccessfulAdminCheckResult,
+  now: number,
+) {
+  const expiresAt = getAdminAuthCacheExpiresAt(token, now);
+
+  if (expiresAt <= now) {
+    return;
+  }
+
+  pruneExpiredAdminAuthCache(now);
+
+  if (adminAuthCache.size >= MAX_ADMIN_AUTH_CACHE_ENTRIES) {
+    const oldestKey = adminAuthCache.keys().next().value;
+
+    if (typeof oldestKey === "string") {
+      adminAuthCache.delete(oldestKey);
+    }
+  }
+
+  adminAuthCache.set(key, { expiresAt, result });
+}
+
 export async function assertHomeConfigAdmin(
   token: string,
 ): Promise<AdminCheckResult> {
+  const now = Date.now();
+  const cacheKey = await getAdminAuthCacheKey(token);
+  const cachedResult = adminAuthCache.get(cacheKey);
+
+  if (cachedResult && cachedResult.expiresAt > now) {
+    return cachedResult.result;
+  }
+
+  if (cachedResult) {
+    adminAuthCache.delete(cacheKey);
+  }
+
   const supabase = createHomeConfigClient(token);
   const { data: userData, error: userError } = await supabase.auth.getUser(token);
   const user = userData.user;
@@ -100,5 +205,9 @@ export async function assertHomeConfigAdmin(
     };
   }
 
-  return { ok: true, supabase };
+  const result = { ok: true, supabase } as const;
+
+  cacheSuccessfulAdminAuth(cacheKey, token, result, now);
+
+  return result;
 }

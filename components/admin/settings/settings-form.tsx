@@ -568,6 +568,110 @@ export function SettingsForm({
               value={draft.seoOgImageAlt}
             />
           </div>
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-[var(--site-text)]">
+                SEO หน้าค้นหา (/search)
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                ตั้งค่าชื่อหน้า คำอธิบาย และรูปแชร์ลิงก์สำหรับหน้าค้นหาโดยเฉพาะ
+              </p>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <TextControl
+                id="searchSeoTitle"
+                label="ชื่อหน้า /search"
+                maxLength={80}
+                onChange={(searchSeoTitle) => {
+                  onChange({ searchSeoTitle });
+                }}
+                placeholder="ค้นหาบ้านพักพูลวิลล่าพัทยา"
+                value={draft.searchSeoTitle}
+              />
+              <TextControl
+                id="searchSeoOgImageUrl"
+                label="รูปแชร์ /search"
+                onChange={(searchSeoOgImageUrl) => {
+                  onChange({ searchSeoOgImageUrl });
+                }}
+                placeholder="/images/BPV-66_Cover-Web.jpg"
+                value={draft.searchSeoOgImageUrl}
+              />
+              <TextControl
+                id="searchSeoDescription"
+                label="คำอธิบาย /search"
+                maxLength={180}
+                multiline
+                onChange={(searchSeoDescription) => {
+                  onChange({ searchSeoDescription });
+                }}
+                placeholder="ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเล จำนวนผู้เข้าพัก ห้องนอน และราคา"
+                value={draft.searchSeoDescription}
+              />
+              <TextControl
+                id="searchSeoOgImageAlt"
+                label="คำอธิบายรูป /search"
+                maxLength={160}
+                onChange={(searchSeoOgImageAlt) => {
+                  onChange({ searchSeoOgImageAlt });
+                }}
+                placeholder="Pool Villa บ้านพูลวิลล่า พัทยา"
+                value={draft.searchSeoOgImageAlt}
+              />
+            </div>
+          </div>
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-[var(--site-text)]">
+                SEO หน้าบทความ (/guides)
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                ตั้งค่าชื่อหน้า คำอธิบาย และรูปแชร์ลิงก์สำหรับหน้ารวมบทความ
+              </p>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <TextControl
+                id="guidesSeoTitle"
+                label="ชื่อหน้า /guides"
+                maxLength={80}
+                onChange={(guidesSeoTitle) => {
+                  onChange({ guidesSeoTitle });
+                }}
+                placeholder="บทความแนะนำบ้านพักพูลวิลล่าพัทยา"
+                value={draft.guidesSeoTitle}
+              />
+              <TextControl
+                id="guidesSeoOgImageUrl"
+                label="รูปแชร์ /guides"
+                onChange={(guidesSeoOgImageUrl) => {
+                  onChange({ guidesSeoOgImageUrl });
+                }}
+                placeholder="/images/BPV-66_Cover-Web.jpg"
+                value={draft.guidesSeoOgImageUrl}
+              />
+              <TextControl
+                id="guidesSeoDescription"
+                label="คำอธิบาย /guides"
+                maxLength={180}
+                multiline
+                onChange={(guidesSeoDescription) => {
+                  onChange({ guidesSeoDescription });
+                }}
+                placeholder="บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก และการเตรียมตัวก่อนเที่ยว"
+                value={draft.guidesSeoDescription}
+              />
+              <TextControl
+                id="guidesSeoOgImageAlt"
+                label="คำอธิบายรูป /guides"
+                maxLength={160}
+                onChange={(guidesSeoOgImageAlt) => {
+                  onChange({ guidesSeoOgImageAlt });
+                }}
+                placeholder="Pool Villa บ้านพูลวิลล่า พัทยา"
+                value={draft.guidesSeoOgImageAlt}
+              />
+            </div>
+          </div>
         </SectionCard>
 
         <SectionCard

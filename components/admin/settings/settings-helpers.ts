@@ -54,6 +54,14 @@ export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
     seoOgImageAlt: settings.seo.ogImage.alt,
     seoOgImageUrl: settings.seo.ogImage.url,
     seoSameAsUrls: [...settings.seo.sameAsUrls],
+    searchSeoTitle: settings.pageSeo.search.title,
+    searchSeoDescription: settings.pageSeo.search.description,
+    searchSeoOgImageUrl: settings.pageSeo.search.ogImage.url,
+    searchSeoOgImageAlt: settings.pageSeo.search.ogImage.alt,
+    guidesSeoTitle: settings.pageSeo.guides.title,
+    guidesSeoDescription: settings.pageSeo.guides.description,
+    guidesSeoOgImageUrl: settings.pageSeo.guides.ogImage.url,
+    guidesSeoOgImageAlt: settings.pageSeo.guides.ogImage.alt,
     seoTitle: settings.seo.title,
     siteName: settings.siteName,
   };
@@ -78,6 +86,14 @@ export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
     seoOgImageAlt: draft.seoOgImageAlt,
     seoOgImageUrl: draft.seoOgImageUrl,
     seoSameAsUrls: draft.seoSameAsUrls,
+    searchSeoTitle: draft.searchSeoTitle,
+    searchSeoDescription: draft.searchSeoDescription,
+    searchSeoOgImageUrl: draft.searchSeoOgImageUrl,
+    searchSeoOgImageAlt: draft.searchSeoOgImageAlt,
+    guidesSeoTitle: draft.guidesSeoTitle,
+    guidesSeoDescription: draft.guidesSeoDescription,
+    guidesSeoOgImageUrl: draft.guidesSeoOgImageUrl,
+    guidesSeoOgImageAlt: draft.guidesSeoOgImageAlt,
     seoTitle: draft.seoTitle,
     siteName: draft.siteName,
   });
@@ -103,6 +119,14 @@ export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
   formData.set("seoOgImageAlt", draft.seoOgImageAlt);
   formData.set("seoBusinessName", draft.seoBusinessName);
   formData.set("seoSameAsUrls", JSON.stringify(draft.seoSameAsUrls));
+  formData.set("searchSeoTitle", draft.searchSeoTitle);
+  formData.set("searchSeoDescription", draft.searchSeoDescription);
+  formData.set("searchSeoOgImageUrl", draft.searchSeoOgImageUrl);
+  formData.set("searchSeoOgImageAlt", draft.searchSeoOgImageAlt);
+  formData.set("guidesSeoTitle", draft.guidesSeoTitle);
+  formData.set("guidesSeoDescription", draft.guidesSeoDescription);
+  formData.set("guidesSeoOgImageUrl", draft.guidesSeoOgImageUrl);
+  formData.set("guidesSeoOgImageAlt", draft.guidesSeoOgImageAlt);
 
   if (draft.logoFile) {
     formData.set("logo", draft.logoFile);

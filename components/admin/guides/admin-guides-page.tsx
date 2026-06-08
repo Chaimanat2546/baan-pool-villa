@@ -590,6 +590,7 @@ function BlockEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [2] },
+        link: false,
       }),
       TaskList,
       TaskItem.configure({
@@ -840,6 +841,7 @@ function GuideStatusPanel({
               alt={guide.coverImage.alt}
               className="aspect-[16/10] w-full object-cover"
               height={600}
+              loading="eager"
               src={guide.coverImage.url}
               unoptimized
               width={960}
@@ -1241,7 +1243,6 @@ export function AdminGuidesPage() {
       });
       setActiveDraftId(savedGuide.id ?? activeGuide.draftId);
       setNotice("บันทึกบทความแล้ว");
-      router.refresh();
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error ? caughtError.message : "บันทึกบทความไม่ได้",

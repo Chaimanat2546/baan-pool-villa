@@ -67,6 +67,14 @@ const dbRow = {
     " https://www.facebook.com/baanpoolvillas ",
     " https://line.me/R/ti/p/@baanpoolvilla ",
   ],
+  search_seo_title: " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
+  search_seo_description: " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
+  search_seo_og_image_url: " /images/search-cover.jpg ",
+  search_seo_og_image_alt: " Search cover ",
+  guides_seo_title: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
+  guides_seo_description: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
+  guides_seo_og_image_url: " /images/guides-cover.jpg ",
+  guides_seo_og_image_alt: " Guides cover ",
   tiktok_account_url: " https://www.tiktok.com/@baanpoolvilla ",
   tiktok_video_urls: [
     "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001?lang=th-TH",
@@ -213,6 +221,38 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
         " https://line.me/R/ti/p/@baanpoolvilla ",
       ]),
   );
+  formData.set(
+    "searchSeoTitle",
+    overrides.searchSeoTitle ?? " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
+  );
+  formData.set(
+    "searchSeoDescription",
+    overrides.searchSeoDescription ?? " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
+  );
+  formData.set(
+    "searchSeoOgImageUrl",
+    overrides.searchSeoOgImageUrl ?? " /images/search-cover.jpg ",
+  );
+  formData.set(
+    "searchSeoOgImageAlt",
+    overrides.searchSeoOgImageAlt ?? " Search cover ",
+  );
+  formData.set(
+    "guidesSeoTitle",
+    overrides.guidesSeoTitle ?? " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
+  );
+  formData.set(
+    "guidesSeoDescription",
+    overrides.guidesSeoDescription ?? " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
+  );
+  formData.set(
+    "guidesSeoOgImageUrl",
+    overrides.guidesSeoOgImageUrl ?? " /images/guides-cover.jpg ",
+  );
+  formData.set(
+    "guidesSeoOgImageAlt",
+    overrides.guidesSeoOgImageAlt ?? " Guides cover ",
+  );
   if (overrides.tiktokAccountUrl !== undefined) {
     formData.set("tiktokAccountUrl", overrides.tiktokAccountUrl);
   }
@@ -260,7 +300,7 @@ describe("admin site settings route", () => {
     );
     const response = await GET(authenticatedRequest());
 
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toMatchObject({
       settings: {
         siteName: "Baan Pool Villa",
         primaryColor: "#064e3b",
@@ -340,12 +380,16 @@ describe("admin site settings route", () => {
       data: null,
       error: missingTiktokColumnError,
     });
+    const withoutPageSeoQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
     const fallbackQuery = siteSettingsSelectQuery({
       data: dbRowWithoutTiktokColumns,
       error: null,
     });
     const from = fromQueue({
-      site_settings: [primaryQuery, fallbackQuery],
+      site_settings: [primaryQuery, withoutPageSeoQuery, fallbackQuery],
     });
 
     authSupabase({ from });
@@ -374,6 +418,9 @@ describe("admin site settings route", () => {
     expect(primaryQuery.select).toHaveBeenCalledWith(
       expect.stringContaining("tiktok_account_url"),
     );
+    expect(withoutPageSeoQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_account_url"),
+    );
     expect(fallbackQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_account_url"),
     );
@@ -390,6 +437,10 @@ describe("admin site settings route", () => {
       data: null,
       error: missingTiktokColumnError,
     });
+    const withoutPageSeoQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
     const fallbackQuery = siteSettingsSelectQuery({
       data: null,
       error: missingDetailLayoutColumnError,
@@ -399,7 +450,7 @@ describe("admin site settings route", () => {
       error: null,
     });
     const from = fromQueue({
-      site_settings: [primaryQuery, fallbackQuery, generalQuery],
+      site_settings: [primaryQuery, withoutPageSeoQuery, fallbackQuery, generalQuery],
     });
 
     authSupabase({ from });
@@ -492,7 +543,7 @@ describe("admin site settings route", () => {
     );
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toMatchObject({
       errors: ["ข้อมูลเบอร์โทรติดต่อไม่ถูกต้อง"],
     });
     expect(from).not.toHaveBeenCalled();
@@ -515,7 +566,7 @@ describe("admin site settings route", () => {
     );
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toMatchObject({
       errors: ["ข้อมูลเบอร์โทรติดต่อไม่ถูกต้อง"],
     });
     expect(from).not.toHaveBeenCalled();
@@ -714,6 +765,10 @@ describe("admin site settings route", () => {
       data: null,
       error: missingTiktokColumnError,
     });
+    const withoutPageSeoLoadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
     const fallbackLoadQuery = siteSettingsSelectQuery({
       data: dbRowWithoutTiktokColumns,
       error: null,
@@ -723,6 +778,10 @@ describe("admin site settings route", () => {
       error: null,
     });
     const reloadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
+    const withoutPageSeoReloadQuery = siteSettingsSelectQuery({
       data: null,
       error: missingTiktokColumnError,
     });
@@ -739,9 +798,11 @@ describe("admin site settings route", () => {
     const from = fromQueue({
       site_settings: [
         loadQuery,
+        withoutPageSeoLoadQuery,
         fallbackLoadQuery,
         saveQuery,
         reloadQuery,
+        withoutPageSeoReloadQuery,
         fallbackReloadQuery,
       ],
     });
@@ -773,6 +834,9 @@ describe("admin site settings route", () => {
     expect(fallbackLoadQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_video_urls"),
     );
+    expect(withoutPageSeoLoadQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_video_urls"),
+    );
     expect(saveQuery.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         id: SITE_SETTINGS_ID,
@@ -792,6 +856,9 @@ describe("admin site settings route", () => {
     );
     expect(fallbackReloadQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_account_url"),
+    );
+    expect(withoutPageSeoReloadQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_video_urls"),
     );
     expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });

@@ -28,11 +28,18 @@ type AdminExternalDataRefreshResponse =
   | {
       message?: string;
       refreshed?: boolean;
+      retryAfterSeconds?: number;
+      scope?: ExternalDataRefreshScope;
     }
   | {
       error?: string;
       errors?: string[];
+      retryAfterSeconds?: number;
     };
+
+type ExternalDataRefreshScope = "tags-only" | "full-public";
+
+const EXTERNAL_DATA_REFRESH_COOLDOWN_MS = 60_000;
 
 /**
  * Admin page UI for viewing and editing site appearance and contact settings.
@@ -50,6 +57,10 @@ export function AdminSettingsPage() {
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshingExternalData, setIsRefreshingExternalData] = useState(false);
+  const [externalRefreshPendingScope, setExternalRefreshPendingScope] =
+    useState<ExternalDataRefreshScope | null>(null);
+  const [externalRefreshCooldownActive, setExternalRefreshCooldownActive] =
+    useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
@@ -161,6 +172,20 @@ export function AdminSettingsPage() {
     };
   }, [getAccessToken, loadSettings]);
 
+  useEffect(() => {
+    if (!externalRefreshCooldownActive) {
+      return;
+    }
+
+    const cooldownTimer = window.setTimeout(() => {
+      setExternalRefreshCooldownActive(false);
+    }, EXTERNAL_DATA_REFRESH_COOLDOWN_MS);
+
+    return () => {
+      window.clearTimeout(cooldownTimer);
+    };
+  }, [externalRefreshCooldownActive]);
+
   function updateDraft(changes: Partial<AdminSettingsDraft>) {
     setNotice(null);
     setErrors([]);
@@ -223,10 +248,8 @@ export function AdminSettingsPage() {
       setSettings(payload.settings);
       setDraft(nextDraft);
       setSavedSnapshot(makeSettingsSnapshot(nextDraft));
-      await loadSettings(token, false);
       setWarnings(extractWarnings(payload));
       setNotice("บันทึกการตั้งค่าสำเร็จ");
-      router.refresh();
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error
@@ -238,7 +261,23 @@ export function AdminSettingsPage() {
     }
   }
 
-  async function handleRefreshExternalData() {
+  async function handleRefreshExternalData(scope: ExternalDataRefreshScope) {
+    if (externalRefreshCooldownActive) {
+      return;
+    }
+
+    if (externalRefreshPendingScope !== scope) {
+      setExternalRefreshPendingScope(scope);
+      setErrors([]);
+      setWarnings([]);
+      setNotice(
+        scope === "full-public"
+          ? "กดปุ่มรีเฟรชหน้าเว็บอีกครั้งเพื่อยืนยัน คำสั่งนี้จะล้างแคชข้อมูลบ้านพักและมาร์กหน้าเว็บสาธารณะให้สร้างใหม่เมื่อมีคนเปิด"
+          : "กดปุ่มรีเฟรชข้อมูลบ้านพักอีกครั้งเพื่อยืนยัน คำสั่งนี้จะล้างเฉพาะแคชข้อมูลบ้านพักโดยไม่มาร์กหน้าเว็บสาธารณะให้สร้างใหม่",
+      );
+      return;
+    }
+
     const token = await getAccessToken();
 
     if (!token) {
@@ -254,6 +293,8 @@ export function AdminSettingsPage() {
       const response = await fetch("/api/admin/external-data/refresh", {
         headers: {
           Authorization: `Bearer ${token}`,
+          "x-admin-refresh-confirmation": "external-villa-cache",
+          "x-admin-refresh-scope": scope,
         },
         method: "POST",
       });
@@ -272,13 +313,20 @@ export function AdminSettingsPage() {
       }
 
       if (!response.ok) {
+        setExternalRefreshPendingScope(null);
         setErrors(extractErrors(payload, "ไม่สามารถรีเฟรชข้อมูลบ้านพักได้"));
         return;
       }
 
-      setNotice("ส่งคำขอรีเฟรชข้อมูลบ้านพักแล้ว");
-      router.refresh();
+      setExternalRefreshPendingScope(null);
+      setExternalRefreshCooldownActive(true);
+      setNotice(
+        scope === "full-public"
+          ? "ส่งคำขอรีเฟรชข้อมูลบ้านพักและหน้าเว็บสาธารณะแล้ว รอสักครู่ก่อนรีเฟรชซ้ำ"
+          : "ส่งคำขอรีเฟรชแคชข้อมูลบ้านพักแล้ว รอสักครู่ก่อนรีเฟรชซ้ำ",
+      );
     } catch (caughtError) {
+      setExternalRefreshPendingScope(null);
       setErrors([
         caughtError instanceof Error
           ? caughtError.message
@@ -324,9 +372,13 @@ export function AdminSettingsPage() {
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isRefreshingExternalData || isSaving}
+              disabled={
+                isRefreshingExternalData ||
+                isSaving ||
+                externalRefreshCooldownActive
+              }
               onClick={() => {
-                void handleRefreshExternalData();
+                void handleRefreshExternalData("tags-only");
               }}
               type="button"
             >
@@ -336,7 +388,35 @@ export function AdminSettingsPage() {
               />
               {isRefreshingExternalData
                 ? "กำลังรีเฟรชข้อมูล..."
-                : "รีเฟรชข้อมูลบ้านพัก"}
+                : externalRefreshCooldownActive
+                  ? "เพิ่งรีเฟรชแล้ว"
+                  : externalRefreshPendingScope === "tags-only"
+                    ? "ยืนยันรีเฟรชข้อมูล"
+                    : "รีเฟรชข้อมูลบ้านพัก"}
+            </button>
+            <button
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={
+                isRefreshingExternalData ||
+                isSaving ||
+                externalRefreshCooldownActive
+              }
+              onClick={() => {
+                void handleRefreshExternalData("full-public");
+              }}
+              type="button"
+            >
+              <RefreshCw
+                aria-hidden="true"
+                className={`size-4 ${isRefreshingExternalData ? "animate-spin" : ""}`}
+              />
+              {isRefreshingExternalData
+                ? "กำลังรีเฟรชหน้าเว็บ..."
+                : externalRefreshCooldownActive
+                  ? "เพิ่งรีเฟรชแล้ว"
+                  : externalRefreshPendingScope === "full-public"
+                    ? "ยืนยันรีเฟรชหน้าเว็บ"
+                    : "รีเฟรชหน้าเว็บด้วย"}
             </button>
             <Link
               className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"

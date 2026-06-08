@@ -20,6 +20,14 @@ export interface AdminSettingsDraft {
   seoOgImageAlt: string;
   seoBusinessName: string;
   seoSameAsUrls: string[];
+  searchSeoTitle: string;
+  searchSeoDescription: string;
+  searchSeoOgImageUrl: string;
+  searchSeoOgImageAlt: string;
+  guidesSeoTitle: string;
+  guidesSeoDescription: string;
+  guidesSeoOgImageUrl: string;
+  guidesSeoOgImageAlt: string;
 }
 
 export interface AdminSiteSettingsResponse {

@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 
 import { GuideListPage } from "@/components/guides/guide-list-page";
-import { buildPageMetadata } from "@/lib/seo";
 import { getPublishedGuides } from "@/lib/guides/server";
+import { buildSiteSettingsPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings/server";
 
 export const revalidate = 43200;
 
 export async function generateMetadata(): Promise<Metadata> {
-  return buildPageMetadata({
+  const { settings } = await getSiteSettings();
+
+  return buildSiteSettingsPageMetadata({
     canonicalPath: "/guides",
-    description:
-      "บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก และการเตรียมตัวก่อนเที่ยว",
-    title: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา",
+    section: "guides",
+    settings,
   });
 }
 

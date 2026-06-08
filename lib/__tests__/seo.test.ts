@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { buildHomeJsonLd, buildPageMetadata } from "../seo";
+import {
+  buildBreadcrumbJsonLd,
+  buildHomeJsonLd,
+  buildPageMetadata,
+  buildSiteSettingsPageMetadata,
+} from "../seo";
 import { DEFAULT_SITE_SETTINGS } from "../site-settings/defaults";
 import type { SiteSettings } from "../site-settings/types";
 
@@ -52,6 +57,26 @@ function cmsSettings(): SiteSettings {
         "https://line.me/R/ti/p/@baanpoolvilla",
       ],
     },
+    pageSeo: {
+      search: {
+        title: "Search SEO Title",
+        description: "Search SEO Description",
+        ogImage: {
+          path: "/images/search-cover.jpg",
+          url: "/images/search-cover.jpg",
+          alt: "Search cover",
+        },
+      },
+      guides: {
+        title: "Guides SEO Title",
+        description: "Guides SEO Description",
+        ogImage: {
+          path: "/images/guides-cover.jpg",
+          url: "/images/guides-cover.jpg",
+          alt: "Guides cover",
+        },
+      },
+    },
     detailLayout: DEFAULT_SITE_SETTINGS.detailLayout,
     tiktok: DEFAULT_SITE_SETTINGS.tiktok,
   };
@@ -98,6 +123,20 @@ describe("SEO helpers", () => {
     });
   });
 
+  it("can build an absolute page title without inheriting the root template", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    const metadata = buildPageMetadata({
+      absoluteTitle: true,
+      canonicalPath: "/",
+      title: "Homepage SEO Title",
+    });
+
+    expect(metadata.title).toEqual({
+      absolute: "Homepage SEO Title",
+    });
+  });
+
   it("builds LodgingBusiness JSON-LD from CMS SEO and contact settings", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
 
@@ -119,6 +158,124 @@ describe("SEO helpers", () => {
         { "@type": "LocationFeatureSpecification", name: "บ้านพักสำหรับกลุ่ม" },
         { "@type": "LocationFeatureSpecification", name: "บ้านพักใกล้ทะเล" },
       ],
+    });
+  });
+
+  it("builds breadcrumb JSON-LD with canonical item URLs", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    expect(
+      buildBreadcrumbJsonLd([
+        { name: "หน้าแรก", path: "/" },
+        { name: "บทความ", path: "/guides" },
+        { name: "คู่มือเที่ยวพัทยา", path: "/guides/pattaya-guide" },
+      ]),
+    ).toEqual({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "หน้าแรก",
+          item: "https://example.com/",
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "บทความ",
+          item: "https://example.com/guides",
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: "คู่มือเที่ยวพัทยา",
+          item: "https://example.com/guides/pattaya-guide",
+        },
+      ],
+    });
+  });
+
+  it("uses CMS SEO settings as public metadata defaults", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    const metadata = buildSiteSettingsPageMetadata({
+      canonicalPath: "/guides",
+      settings: cmsSettings(),
+      title: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา",
+    });
+
+    expect(metadata).toMatchObject({
+      title: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา",
+      description: "Book private pool villas in Pattaya.",
+      alternates: {
+        canonical: "https://example.com/guides",
+      },
+      openGraph: {
+        siteName: "Baan Pool Villa Pattaya",
+        images: [
+          {
+            url: "https://example.com/images/seo-cover.jpg",
+            alt: "Pool villa with private swimming pool",
+          },
+        ],
+      },
+      twitter: {
+        images: ["https://example.com/images/seo-cover.jpg"],
+      },
+    });
+  });
+
+  it("lets route-level SEO values override CMS defaults when needed", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    const metadata = buildSiteSettingsPageMetadata({
+      canonicalPath: "/villas/66",
+      description: "Villa-specific description",
+      image: "https://example.com/villa-66.jpg",
+      imageAlt: "Villa 66 cover",
+      settings: cmsSettings(),
+      title: "พูลวิลล่า 66 พัทยา",
+    });
+
+    expect(metadata).toMatchObject({
+      title: "พูลวิลล่า 66 พัทยา",
+      description: "Villa-specific description",
+      openGraph: {
+        siteName: "Baan Pool Villa Pattaya",
+        images: [
+          {
+            url: "https://example.com/villa-66.jpg",
+            alt: "Villa 66 cover",
+          },
+        ],
+      },
+      twitter: {
+        images: ["https://example.com/villa-66.jpg"],
+      },
+    });
+  });
+
+  it("uses section SEO templates when a public page requests them", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    const metadata = buildSiteSettingsPageMetadata({
+      canonicalPath: "/search",
+      section: "search",
+      settings: cmsSettings(),
+    });
+
+    expect(metadata).toMatchObject({
+      title: "Search SEO Title",
+      description: "Search SEO Description",
+      openGraph: {
+        images: [
+          {
+            url: "https://example.com/images/search-cover.jpg",
+            alt: "Search cover",
+          },
+        ],
+      },
     });
   });
 });

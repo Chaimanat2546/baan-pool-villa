@@ -72,15 +72,14 @@ export function AssetUploadField({
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <figure className="overflow-hidden rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)]">
-          <div className="flex h-32 items-center justify-center overflow-hidden bg-[var(--site-surface)]">
+          <div className="relative flex h-32 items-center justify-center overflow-hidden bg-[var(--site-surface)]">
             {currentUrl ? (
               <Image
                 alt={currentAlt}
-                className="h-full w-full object-contain"
-                height={128}
+                className="object-contain"
+                fill
                 sizes="(max-width: 768px) 100vw, 320px"
                 src={currentUrl}
-                width={320}
               />
             ) : (
               <span className="text-xs font-medium text-[var(--site-muted)]">
@@ -94,17 +93,16 @@ export function AssetUploadField({
         </figure>
 
         <figure className="overflow-hidden rounded-md border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface-soft)]">
-          <div className="flex h-32 items-center justify-center overflow-hidden bg-[var(--site-surface)]">
+          <div className="relative flex h-32 items-center justify-center overflow-hidden bg-[var(--site-surface)]">
             {selectedFile ? (
               selectedPreviewUrl ? (
                 <Image
                   alt={selectedFile.name}
-                  className="h-full w-full object-contain"
-                  height={128}
+                  className="object-contain"
+                  fill
                   sizes="(max-width: 768px) 100vw, 320px"
                   unoptimized
                   src={selectedPreviewUrl}
-                  width={320}
                 />
               ) : (
                 <span className="max-w-full truncate px-3 text-xs font-semibold text-[var(--site-primary)]">

@@ -81,6 +81,7 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
             href={item.href}
             key={item.href}
             onClick={onNavigate}
+            prefetch={false}
           >
             {content}
           </Link>

@@ -4,11 +4,25 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("next/image", () => ({
   default: ({
     alt,
+    fill,
+    height,
     src,
+    width,
   }: {
     alt: string;
+    fill?: boolean;
+    height?: number;
     src: string;
-  }) => <span aria-label={alt} data-src={src} />,
+    width?: number;
+  }) => (
+    <span
+      aria-label={alt}
+      data-fill={fill ? "true" : "false"}
+      data-height={height?.toString() ?? ""}
+      data-src={src}
+      data-width={width?.toString() ?? ""}
+    />
+  ),
 }));
 
 vi.mock("@/lib/site-settings/colors", () => ({
@@ -91,5 +105,16 @@ describe("SettingsForm", () => {
     expect(html).not.toContain('id="tiktokAccountUrl"');
     expect(html).not.toContain("ลิงก์บัญชี TikTok");
     expect(html).not.toContain("ลิงก์วิดีโอ TikTok 1");
+  });
+
+  it("renders asset preview images with fill layout inside fixed preview frames", () => {
+    const html = renderSettingsForm();
+
+    expect(html).toContain(
+      `aria-label="${DEFAULT_SITE_SETTINGS.logoImage.alt}" data-fill="true" data-height=""`,
+    );
+    expect(html).toContain(
+      `aria-label="${DEFAULT_SITE_SETTINGS.heroImage.alt}" data-fill="true" data-height=""`,
+    );
   });
 });
