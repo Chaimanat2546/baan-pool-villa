@@ -78,6 +78,14 @@ const dbRowWithoutTiktokColumns = {
   tiktok_account_url: undefined,
   tiktok_video_urls: undefined,
 };
+const missingTiktokColumnError = {
+  message: "expected TikTok settings column is unavailable in the current schema",
+  code: "42703",
+};
+const missingDetailLayoutColumnError = {
+  message: "expected detail layout column is unavailable in the current schema",
+  code: "42703",
+};
 
 function siteSettingsSelectQuery(result: { data: unknown; error: unknown }) {
   const maybeSingle = vi.fn().mockResolvedValue(result);
@@ -328,13 +336,9 @@ describe("admin site settings route", () => {
   });
 
   it("falls back to a non-TikTok schema for GET when TikTok columns are missing", async () => {
-    const missingColumnError = {
-      message: "column site_settings.tiktok_account_url does not exist",
-      code: "42703",
-    };
     const primaryQuery = siteSettingsSelectQuery({
       data: null,
-      error: missingColumnError,
+      error: missingTiktokColumnError,
     });
     const fallbackQuery = siteSettingsSelectQuery({
       data: dbRowWithoutTiktokColumns,
@@ -382,21 +386,13 @@ describe("admin site settings route", () => {
   });
 
   it("falls back to a general schema for GET when feature columns are missing", async () => {
-    const primaryError = {
-      message: "column site_settings.tiktok_account_url does not exist",
-      code: "42703",
-    };
-    const fallbackError = {
-      message: "column site_settings.detail_layout does not exist",
-      code: "42703",
-    };
     const primaryQuery = siteSettingsSelectQuery({
       data: null,
-      error: primaryError,
+      error: missingTiktokColumnError,
     });
     const fallbackQuery = siteSettingsSelectQuery({
       data: null,
-      error: fallbackError,
+      error: missingDetailLayoutColumnError,
     });
     const generalQuery = siteSettingsSelectQuery({
       data: dbRowWithoutTiktokColumns,
@@ -714,13 +710,9 @@ describe("admin site settings route", () => {
   });
 
   it("falls back after write-only save on PUT when TikTok columns are missing", async () => {
-    const missingColumnError = {
-      message: "column site_settings.tiktok_account_url does not exist",
-      code: "42703",
-    };
     const loadQuery = siteSettingsSelectQuery({
       data: null,
-      error: missingColumnError,
+      error: missingTiktokColumnError,
     });
     const fallbackLoadQuery = siteSettingsSelectQuery({
       data: dbRowWithoutTiktokColumns,
@@ -732,7 +724,7 @@ describe("admin site settings route", () => {
     });
     const reloadQuery = siteSettingsSelectQuery({
       data: null,
-      error: missingColumnError,
+      error: missingTiktokColumnError,
     });
     const fallbackReloadQuery = siteSettingsSelectQuery({
       data: {
