@@ -329,7 +329,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/home-sections/preview/route.ts</code></td>
                 <td><code>/api/admin/home-sections/preview</code></td>
-                <td>Preview home section rules without persisting.</td>
+                <td>Validate manual home section house IDs without persisting or returning real listing details to the admin prototype preview.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
@@ -717,7 +717,7 @@
             </tr>
             <tr>
               <td>Home section config, server reads, route handlers, or admin section UI</td>
-              <td><code>npm.cmd test -- lib/home-sections</code> and relevant <code>components/admin/sections</code> tests</td>
+              <td><code>npm.cmd test -- lib/home-sections</code>, <code>npm.cmd test -- lib/home-sections/__tests__/preview-route.test.ts</code>, and relevant <code>components/admin/sections</code> tests</td>
               <td>Run lint and build before completion.</td>
             </tr>
             <tr>

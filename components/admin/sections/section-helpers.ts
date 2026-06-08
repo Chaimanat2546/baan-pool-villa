@@ -146,9 +146,7 @@ export function getPreviewForSection(
   section: AdminSectionDraft,
   sourcePreview: AdminManualPreviewResponse,
 ): AdminManualPreviewResponse {
-  const validById = new Map(
-    sourcePreview.valid.map((villa) => [villa.id, villa]),
-  );
+  const validIds = new Set(sourcePreview.validIds);
   const requestedIds = section.items.reduce<string[]>((ids, item) => {
     const normalizedId = normalizeHouseId(item.houseId);
 
@@ -160,12 +158,8 @@ export function getPreviewForSection(
   }, []);
 
   return {
-    valid: requestedIds.flatMap((houseId) => {
-      const villa = validById.get(houseId);
-
-      return villa ? [villa] : [];
-    }),
-    missingIds: requestedIds.filter((houseId) => !validById.has(houseId)),
+    validIds: requestedIds.filter((houseId) => validIds.has(houseId)),
+    missingIds: requestedIds.filter((houseId) => !validIds.has(houseId)),
     invalidIds: section.items
       .map((item) => item.houseId)
       .filter((houseId) => normalizeHouseId(houseId) === null),

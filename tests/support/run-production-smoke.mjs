@@ -25,6 +25,7 @@ const nextCliPath = fileURLToPath(
 const playwrightCliPath = fileURLToPath(
   new URL("../../node_modules/playwright/cli.js", import.meta.url),
 );
+const smokeProjects = ["chromium", "mobile-chromium"];
 
 let serverProcess;
 let serverExited = false;
@@ -109,7 +110,12 @@ async function main() {
 
   const result = await run(
     process.execPath,
-    [playwrightCliPath, "test", "--project=chromium", ...process.argv.slice(2)],
+    [
+      playwrightCliPath,
+      "test",
+      ...smokeProjects.flatMap((project) => ["--project", project]),
+      ...process.argv.slice(2),
+    ],
     {
       env: testEnv,
     },

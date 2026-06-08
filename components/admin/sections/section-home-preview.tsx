@@ -1,13 +1,6 @@
-import {
-  BedDouble,
-  ChevronRight,
-  MapPin,
-  Users,
-} from "lucide-react";
-import type { CSSProperties } from "react";
+import { ChevronRight, MapPin } from "lucide-react";
 
 import { normalizeHouseId } from "@/lib/home-sections/validation";
-import type { VillaListing } from "@/lib/villas/types";
 
 import type { AdminManualPreviewResponse, AdminSectionDraft } from "./types";
 import { MODE_LABELS } from "./section-helpers";
@@ -18,42 +11,15 @@ interface SectionHomePreviewProps {
 }
 
 interface PreviewVillaItem {
+  detail: string;
   idLabel: string;
-  imageUrl: string | null;
   key: string;
   meta: string;
-  peopleLabel: string;
-  priceLabel: string | null;
+  status: string;
   title: string;
 }
 
 const MAX_PREVIEW_ITEMS = 4;
-
-function getSafeImageUrl(value: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const url = new URL(value);
-
-    if (url.protocol === "https:") {
-      return url.toString();
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function cssImageUrl(value: string): string {
-  return `url("${value.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"")}")`;
-}
-
-function formatPrice(price: number): string {
-  return price.toLocaleString("th-TH");
-}
 
 function getAutoItemMeta(section: AdminSectionDraft): string {
   return section.mode === "near_sea"
@@ -69,32 +35,33 @@ function getPreviewLimit(section: AdminSectionDraft): number {
   return Math.min(MAX_PREVIEW_ITEMS, Math.max(1, section.limitCount));
 }
 
-function villaToPreviewItem(villa: VillaListing): PreviewVillaItem {
-  return {
-    idLabel: `#${villa.id}`,
-    imageUrl: getSafeImageUrl(villa.coverImage),
-    key: `villa-${villa.id}`,
-    meta: `${villa.zoneLabel} / ${villa.bedrooms.toLocaleString("th-TH")} ห้องนอน`,
-    peopleLabel: `พักได้ ${villa.people.toLocaleString("th-TH")} คน`,
-    priceLabel: `${formatPrice(villa.price)} บาท`,
-    title: `พูลวิลล่า ${villa.id}`,
-  };
-}
-
 function manualDraftItemToPreviewItem(
   houseId: string,
   itemIndex: number,
+  preview: AdminManualPreviewResponse | null,
 ): PreviewVillaItem {
   const normalizedId = normalizeHouseId(houseId);
+  const isValidated =
+    normalizedId !== null && (preview?.validIds.includes(normalizedId) ?? false);
+  const hasPreview = preview !== null;
 
   return {
+    detail: "ตัวอย่างจำลอง ไม่แสดงรูป ราคา หรือรายละเอียดบ้านจริง",
     idLabel: normalizedId ? `#${normalizedId}` : houseId,
-    imageUrl: null,
-    key: `draft-${houseId}-${itemIndex}`,
-    meta: normalizedId ? "รอเช็กบ้านจริง" : "เลขบ้านรูปแบบไม่ถูกต้อง",
-    peopleLabel: "จะแสดงหลังบันทึก",
-    priceLabel: null,
-    title: normalizedId ? `บ้านพัก ${normalizedId}` : "ตรวจเลขบ้าน",
+    key: `prototype-${houseId}-${itemIndex}`,
+    meta: normalizedId
+      ? "ตัวอย่างตำแหน่งบ้านพัก"
+      : "เลขบ้านรูปแบบไม่ถูกต้อง",
+    status: normalizedId
+      ? isValidated
+        ? "ตรวจพบเลขบ้านในระบบ"
+        : hasPreview
+          ? "ยังไม่พบเลขบ้านนี้"
+          : "รอตรวจเลขบ้านจริง"
+      : "ต้องแก้เลขบ้านก่อนบันทึก",
+    title: normalizedId
+      ? `บ้านพักตัวอย่าง ${itemIndex + 1}`
+      : "รายการตัวอย่าง",
   };
 }
 
@@ -105,13 +72,12 @@ function autoDraftItemToPreviewItem(
   const displayIndex = section.sliceOffset + itemIndex + 1;
 
   return {
+    detail: "การ์ดนี้เป็นภาพจำลองของตำแหน่งบนหน้าแรก",
     idLabel: `ลำดับ ${displayIndex.toLocaleString("th-TH")}`,
-    imageUrl: null,
     key: `auto-${section.mode}-${itemIndex}`,
     meta: getAutoItemMeta(section),
-    peopleLabel: "ดึงจากรายการบ้านจริง",
-    priceLabel: null,
-    title: `บ้านพักลำดับที่ ${displayIndex.toLocaleString("th-TH")}`,
+    status: "ระบบจะเลือกข้อมูลจริงตอนแสดงผลหน้าแรก",
+    title: `บ้านพักตัวอย่างลำดับที่ ${displayIndex.toLocaleString("th-TH")}`,
   };
 }
 
@@ -122,14 +88,10 @@ function getPreviewItems(
   const previewLimit = getPreviewLimit(section);
 
   if (section.mode === "manual") {
-    if (preview && preview.valid.length > 0) {
-      return preview.valid.slice(0, previewLimit).map(villaToPreviewItem);
-    }
-
     return section.items
       .slice(0, previewLimit)
       .map((item, itemIndex) =>
-        manualDraftItemToPreviewItem(item.houseId, itemIndex),
+        manualDraftItemToPreviewItem(item.houseId, itemIndex, preview),
       );
   }
 
@@ -139,21 +101,17 @@ function getPreviewItems(
 }
 
 function VillaPreviewTile({ item }: { item: PreviewVillaItem }) {
-  const imageStyle: CSSProperties | undefined = item.imageUrl
-    ? { backgroundImage: cssImageUrl(item.imageUrl) }
-    : undefined;
-
   return (
     <article className="min-w-0 overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
-      <div
-        className="relative h-20 bg-[var(--site-surface-tint)] bg-cover bg-center"
-        style={imageStyle}
-      >
-        {item.imageUrl ? null : (
-          <div className="grid h-full place-items-center px-2 text-center text-xs font-semibold leading-5 text-[var(--site-muted)]">
+      <div className="relative grid h-20 place-items-center bg-[var(--site-surface-tint)] px-3 text-center">
+        <div>
+          <p className="text-xs font-semibold leading-5 text-[var(--site-muted)]">
             {item.meta}
-          </div>
-        )}
+          </p>
+          <p className="mt-1 text-[11px] leading-4 text-[var(--site-muted)]">
+            Prototype only
+          </p>
+        </div>
         <span className="absolute left-2 top-2 rounded bg-[var(--site-surface)]/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-[var(--site-text)] shadow-sm">
           {item.idLabel}
         </span>
@@ -164,18 +122,11 @@ function VillaPreviewTile({ item }: { item: PreviewVillaItem }) {
         </h4>
         <p className="flex min-w-0 items-center gap-1 truncate text-xs text-[var(--site-muted)]">
           <MapPin aria-hidden="true" className="size-3 shrink-0" />
-          <span className="truncate">{item.meta}</span>
+          <span className="truncate">{item.status}</span>
         </p>
-        <p className="flex min-w-0 items-center gap-1 truncate text-xs text-[var(--site-muted)]">
-          <Users aria-hidden="true" className="size-3 shrink-0" />
-          <span className="truncate">{item.peopleLabel}</span>
+        <p className="line-clamp-2 text-xs leading-5 text-[var(--site-muted)]">
+          {item.detail}
         </p>
-        {item.priceLabel ? (
-          <p className="flex min-w-0 items-center gap-1 truncate text-xs font-semibold text-[var(--site-primary)]">
-            <BedDouble aria-hidden="true" className="size-3 shrink-0" />
-            <span className="truncate">{item.priceLabel}</span>
-          </p>
-        ) : null}
       </div>
     </article>
   );
@@ -227,7 +178,10 @@ export function SectionHomePreview({
     <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
       <div className="border-b border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-3">
         <p className="text-xs font-semibold text-[var(--site-primary)]">
-          ตัวอย่างบนหน้าแรก
+          ตัวอย่างจำลองบนหน้าแรก
+        </p>
+        <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
+          ไม่ดึงรูป ราคา โซน จำนวนคน หรือรายละเอียดบ้านจริงมาแสดงในหน้านี้
         </p>
         <div className="mt-1 flex items-start justify-between gap-3">
           <h3 className="min-w-0 text-base font-semibold text-[var(--site-text)]">
