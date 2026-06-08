@@ -7,9 +7,18 @@ export const siteName = "Pool Villas Pattaya";
 export const defaultTitle = "Pool Villas Pattaya | บ้านพักพูลวิลล่าพัทยา";
 export const defaultDescription =
   "รวมบ้านพักพูลวิลล่าพัทยา บ้านพักสระส่วนตัวสำหรับครอบครัว กลุ่มเพื่อน และทริปปาร์ตี้ เลือกทำเล จำนวนคน ห้องนอน ราคา และดูบ้านพักใกล้ทะเลได้ง่าย";
+export const searchTitle = "ค้นหาบ้านพักพูลวิลล่าพัทยา";
 export const searchDescription =
   "ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเล จำนวนผู้เข้าพัก ห้องนอน ราคา สิ่งอำนวยความสะดวก รหัสบ้าน และการเรียงลำดับที่ต้องการ";
+export const guidesTitle = "บทความแนะนำบ้านพักพูลวิลล่าพัทยา";
+export const guidesDescription =
+  "บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก และการเตรียมตัวก่อนเที่ยว";
 export const defaultOgImage = "/images/BPV-66_Cover-Web.jpg";
+
+interface BreadcrumbItem {
+  name: string;
+  path: string;
+}
 
 export function getSiteUrl(): URL {
   const configuredUrl =
@@ -68,6 +77,7 @@ export function getVillaDescription(villa: VillaListing): string {
 }
 
 export function buildPageMetadata({
+  absoluteTitle = false,
   canonicalPath,
   description = defaultDescription,
   image = defaultOgImage,
@@ -75,6 +85,7 @@ export function buildPageMetadata({
   siteName: metadataSiteName = siteName,
   title,
 }: {
+  absoluteTitle?: boolean;
   canonicalPath: string;
   description?: string;
   image?: string | null;
@@ -87,7 +98,7 @@ export function buildPageMetadata({
   const openGraphImageAlt = imageAlt?.trim() || title;
 
   return {
-    title,
+    title: absoluteTitle ? { absolute: title } : title,
     description,
     alternates: {
       canonical: canonicalUrl,
@@ -114,6 +125,54 @@ export function buildPageMetadata({
       description,
       images: [imageUrl],
     },
+  };
+}
+
+export function buildSiteSettingsPageMetadata({
+  absoluteTitle = false,
+  canonicalPath,
+  description,
+  image,
+  imageAlt,
+  section,
+  settings,
+  title,
+}: {
+  absoluteTitle?: boolean;
+  canonicalPath: string;
+  description?: string;
+  image?: string | null;
+  imageAlt?: string;
+  section?: keyof SiteSettings["pageSeo"];
+  settings: SiteSettings;
+  title?: string;
+}): Metadata {
+  const sectionSeo = section ? settings.pageSeo[section] : null;
+  const resolvedTitle = title ?? sectionSeo?.title ?? settings.seo.title;
+
+  return buildPageMetadata({
+    absoluteTitle,
+    canonicalPath,
+    description: description ?? sectionSeo?.description ?? settings.seo.description,
+    image: image ?? sectionSeo?.ogImage.url ?? settings.seo.ogImage.url,
+    imageAlt: imageAlt ?? sectionSeo?.ogImage.alt ?? settings.seo.ogImage.alt,
+    siteName: settings.seo.businessName,
+    title: resolvedTitle,
+  });
+}
+
+export function buildBreadcrumbJsonLd(
+  items: BreadcrumbItem[],
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: absoluteUrl(item.path),
+    })),
   };
 }
 

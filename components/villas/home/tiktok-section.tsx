@@ -1,4 +1,7 @@
+"use client";
+
 import { SiTiktok } from "react-icons/si";
+import { useState } from "react";
 
 import type { SiteTikTokSettings } from "@/lib/site-settings/types";
 import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
@@ -54,6 +57,7 @@ function getVisibleVideos(tiktok: TikTokSectionProps["tiktok"]) {
 export function TikTokSection({ tiktok }: TikTokSectionProps) {
   const videos = getVisibleVideos(tiktok);
   const accountUrl = tiktok.accountUrl.trim();
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   if (videos.length === 0) {
     return null;
@@ -77,7 +81,13 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
         label="วิดีโอ TikTok"
       >
         {videos.map((video, index) => (
-          <TikTokLazyCard index={index} video={video} key={video.videoId} />
+          <TikTokLazyCard
+            index={index}
+            isPlaying={activeVideoId === video.videoId}
+            key={video.videoId}
+            onPlay={setActiveVideoId}
+            video={video}
+          />
         ))}
       </ScrollRail>
 

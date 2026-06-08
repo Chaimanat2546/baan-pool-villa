@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   click,
+  flushEffects,
   makeFetchMock,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
@@ -15,6 +16,10 @@ const mocks = vi.hoisted(() => ({
   readAdminAccessToken: vi.fn(),
   refresh: vi.fn(),
   replace: vi.fn(),
+  router: {
+    refresh: vi.fn(),
+    replace: vi.fn(),
+  },
 }));
 
 const savedLayout: DetailLayoutV2Config = {
@@ -26,10 +31,7 @@ const savedLayout: DetailLayoutV2Config = {
 };
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    refresh: mocks.refresh,
-    replace: mocks.replace,
-  }),
+  useRouter: () => mocks.router,
 }));
 
 vi.mock("@/components/admin/admin-auth", () => ({
@@ -43,6 +45,8 @@ describe("AdminDetailLayoutPage", () => {
     mocks.readAdminAccessToken.mockResolvedValue("admin-token");
     mocks.refresh.mockReset();
     mocks.replace.mockReset();
+    mocks.router.refresh = mocks.refresh;
+    mocks.router.replace = mocks.replace;
   });
 
   afterEach(() => {
@@ -80,6 +84,53 @@ describe("AdminDetailLayoutPage", () => {
         return url === "/api/admin/detail-layout" && init?.method === undefined;
       }),
     ).toBe(true);
+
+    await page.unmount();
+  });
+
+  it("saves a locally reset layout without refetching the page data", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { layout: savedLayout },
+        url: "/api/admin/detail-layout",
+      },
+      {
+        body: { layout: DEFAULT_DETAIL_LAYOUT_V2 },
+        method: "PUT",
+        url: "/api/admin/detail-layout",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    const buttons = Array.from(page.container.querySelectorAll("header button"));
+    const resetButton = buttons[0] as HTMLButtonElement | undefined;
+
+    expect(resetButton).not.toBeUndefined();
+
+    await click(resetButton as HTMLButtonElement);
+    await flushEffects();
+    const callsBeforeSave = fetchMock.mock.calls.length;
+
+    const saveButton = Array.from(page.container.querySelectorAll("header button"))[1];
+
+    expect(saveButton).not.toBeUndefined();
+
+    await click(saveButton as HTMLButtonElement);
+    await flushEffects();
+
+    expect(fetchMock.mock.calls.length - callsBeforeSave).toBe(1);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/admin/detail-layout",
+      expect.objectContaining({
+        headers: {
+          Authorization: "Bearer admin-token",
+          "Content-Type": "application/json",
+        },
+        method: "PUT",
+      }),
+    );
+    expect(mocks.refresh).not.toHaveBeenCalled();
 
     await page.unmount();
   });

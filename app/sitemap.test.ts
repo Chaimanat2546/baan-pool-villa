@@ -63,13 +63,54 @@ describe("sitemap", () => {
     ]);
 
     const routes = await sitemap();
-
-    expect(routes).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ url: "https://example.com/villas/101" }),
-        expect.objectContaining({ url: "https://example.com/guides/family-guide" }),
-      ]),
+    const villaRoute = routes.find((route) => route.url === "https://example.com/villas/101");
+    const guideRoute = routes.find(
+      (route) => route.url === "https://example.com/guides/family-guide",
     );
+
+    expect(villaRoute).toMatchObject({
+      images: ["https://example.com/villa.jpg"],
+      url: "https://example.com/villas/101",
+    });
+    expect(villaRoute).not.toHaveProperty("lastModified");
+    expect(guideRoute).toMatchObject({
+      images: ["https://example.com/guide.jpg"],
+      lastModified: new Date("2026-06-02T00:00:00.000Z"),
+      url: "https://example.com/guides/family-guide",
+    });
+  });
+
+  it("does not stamp static routes and villa URLs with synthetic freshness dates", async () => {
+    fetchHouseListingsMock.mockResolvedValue([
+      {
+        amenities: [],
+        bathrooms: 2,
+        bedrooms: 3,
+        coverImage: "https://example.com/villa.jpg",
+        distanceToSea: "500m",
+        id: "101",
+        people: 8,
+        poolType: "private",
+        price: 9000,
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+    ]);
+    getPublishedGuidesMock.mockResolvedValue([]);
+
+    const routes = await sitemap();
+    const staticRouteUrls = [
+      "https://example.com/",
+      "https://example.com/search",
+      "https://example.com/guides",
+      "https://example.com/villas/101",
+    ];
+
+    staticRouteUrls.forEach((url) => {
+      expect(routes.find((route) => route.url === url)).not.toHaveProperty(
+        "lastModified",
+      );
+    });
   });
 
   it("rejects instead of returning a partial sitemap when villa routes cannot load", async () => {

@@ -65,8 +65,23 @@ describe("cache revalidation", () => {
     expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
-  it("expires shared external villa tags and public villa paths", () => {
+  it("expires only shared external villa tags by default", () => {
     revalidateExternalVillaCache();
+
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaListings, {
+      expire: 0,
+    });
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaDetails, {
+      expire: 0,
+    });
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaImages, {
+      expire: 0,
+    });
+    expect(revalidatePathMock).not.toHaveBeenCalled();
+  });
+
+  it("expires shared external villa tags and public villa paths for full public refresh", () => {
+    revalidateExternalVillaCache("full-public");
 
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaListings, {
       expire: 0,

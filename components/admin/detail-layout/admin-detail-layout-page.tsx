@@ -656,12 +656,7 @@ export function AdminDetailLayoutPage() {
       setActiveSelection((currentSelection) =>
         normalizeSelection(nextLayout, currentSelection),
       );
-      const reloaded = await loadLayout(token, false);
-      if (!reloaded) {
-        return;
-      }
       setNotice("บันทึก layout หน้า Details แล้ว");
-      router.refresh();
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error

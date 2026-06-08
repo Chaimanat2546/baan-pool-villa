@@ -6,17 +6,22 @@ import {
   serializeSearchParams,
 } from "@/components/villas/search/page-data";
 import { SearchPage } from "@/components/villas/search/page";
-import { buildPageMetadata, searchDescription } from "@/lib/seo";
+import { buildSiteSettingsPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings/server";
 
 interface SearchRouteProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export const metadata: Metadata = buildPageMetadata({
-  canonicalPath: "/search",
-  description: searchDescription,
-  title: "ค้นหาบ้านพักพูลวิลล่าพัทยา",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const { settings } = await getSiteSettings();
+
+  return buildSiteSettingsPageMetadata({
+    canonicalPath: "/search",
+    section: "search",
+    settings,
+  });
+}
 
 export default async function Page({ searchParams }: SearchRouteProps) {
   const routeSearchParams = await (searchParams ?? Promise.resolve({}));

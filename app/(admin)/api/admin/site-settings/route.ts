@@ -23,6 +23,8 @@ import {
 } from "@/lib/site-settings/validation";
 
 const SITE_SETTINGS_SELECT =
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_og_image_url,guides_seo_og_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
+const SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
@@ -102,6 +104,23 @@ async function loadAdminSiteSettings(
 
   if (!isMissingColumnError(primary.error)) {
     return { data: null, error: primary.error };
+  }
+
+  const fallbackWithoutPageSeo = await supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (!fallbackWithoutPageSeo.error) {
+    return {
+      data: (fallbackWithoutPageSeo.data as SiteSettingsRow | null) ?? null,
+      error: null,
+    };
+  }
+
+  if (!isMissingColumnError(fallbackWithoutPageSeo.error)) {
+    return { data: null, error: fallbackWithoutPageSeo.error };
   }
 
   const fallback = await supabase
@@ -570,6 +589,14 @@ export async function PUT(request: Request) {
     seoOgImageAlt: readStringField(formData, "seoOgImageAlt"),
     seoBusinessName: readStringField(formData, "seoBusinessName"),
     seoSameAsUrls: readStringArrayField(formData, "seoSameAsUrls"),
+    searchSeoTitle: readStringField(formData, "searchSeoTitle"),
+    searchSeoDescription: readStringField(formData, "searchSeoDescription"),
+    searchSeoOgImageUrl: readStringField(formData, "searchSeoOgImageUrl"),
+    searchSeoOgImageAlt: readStringField(formData, "searchSeoOgImageAlt"),
+    guidesSeoTitle: readStringField(formData, "guidesSeoTitle"),
+    guidesSeoDescription: readStringField(formData, "guidesSeoDescription"),
+    guidesSeoOgImageUrl: readStringField(formData, "guidesSeoOgImageUrl"),
+    guidesSeoOgImageAlt: readStringField(formData, "guidesSeoOgImageAlt"),
     tiktokAccountUrl: "",
     tiktokVideoUrls: [],
   });
@@ -660,6 +687,14 @@ export async function PUT(request: Request) {
     seo_og_image_alt: draft.seoOgImageAlt,
     seo_business_name: draft.seoBusinessName,
     seo_same_as_urls: draft.seoSameAsUrls,
+    search_seo_title: draft.searchSeoTitle,
+    search_seo_description: draft.searchSeoDescription,
+    search_seo_og_image_url: draft.searchSeoOgImageUrl,
+    search_seo_og_image_alt: draft.searchSeoOgImageAlt,
+    guides_seo_title: draft.guidesSeoTitle,
+    guides_seo_description: draft.guidesSeoDescription,
+    guides_seo_og_image_url: draft.guidesSeoOgImageUrl,
+    guides_seo_og_image_alt: draft.guidesSeoOgImageAlt,
   };
 
   const { error: saveError } = await admin.supabase

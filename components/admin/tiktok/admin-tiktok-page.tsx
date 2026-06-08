@@ -186,7 +186,6 @@ export function AdminTikTokPage() {
       setSavedSnapshot(makeTikTokSnapshot(nextDraft));
       setWarnings(extractTikTokWarnings(payload));
       setNotice("บันทึกการตั้งค่า TikTok สำเร็จ");
-      router.refresh();
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error

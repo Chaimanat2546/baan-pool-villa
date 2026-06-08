@@ -8,7 +8,7 @@ import { getPublishedGuides } from "@/lib/guides/server";
 import type { GuidePost } from "@/lib/guides/types";
 import { getResolvedHomeSections } from "@/lib/home-sections/server";
 import { serializeJsonLd } from "@/lib/json-ld";
-import { buildHomeJsonLd, buildPageMetadata } from "@/lib/seo";
+import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
 import { getMaxVillaPrice, getUniqueZones } from "@/lib/villas/filters";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { fetchHouseListings } from "@/lib/villas/server";
@@ -92,12 +92,10 @@ async function getHomePageData(): Promise<{
 export async function generateMetadata(): Promise<Metadata> {
   const { settings } = await getSiteSettings();
 
-  return buildPageMetadata({
+  return buildSiteSettingsPageMetadata({
+    absoluteTitle: true,
     canonicalPath: "/",
-    description: settings.seo.description,
-    image: settings.seo.ogImage.url,
-    imageAlt: settings.seo.ogImage.alt,
-    siteName: settings.seo.businessName,
+    settings,
     title: settings.seo.title,
   });
 }

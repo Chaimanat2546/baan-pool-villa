@@ -255,7 +255,7 @@ export function AdminSectionsPage() {
   const [draggedDraftId, setDraggedDraftId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [, setIsPreviewing] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [manualIdTexts, setManualIdTexts] = useState<Record<string, string>>({});
@@ -612,31 +612,19 @@ export function AdminSectionsPage() {
     [fetchManualPreview, getAccessToken],
   );
 
-  useEffect(() => {
-    if (!activeManualDraftId) {
+  async function handlePreviewActiveManualIds() {
+    if (!activeManualDraftId || !activeManualHouseIdsKey) {
+      setPreview(null);
+      setPreviewDraftId(null);
       return;
     }
 
-    if (!activeManualHouseIdsKey) {
-      return;
-    }
-
-    const houseIds = activeManualHouseIdsKey.split("\n");
-    const controller = new AbortController();
-    const previewTimer = window.setTimeout(() => {
-      void previewManualIds({
-        draftId: activeManualDraftId,
-        houseIds,
-        showErrors: false,
-        signal: controller.signal,
-      });
-    }, 650);
-
-    return () => {
-      window.clearTimeout(previewTimer);
-      controller.abort();
-    };
-  }, [activeManualDraftId, activeManualHouseIdsKey, previewManualIds]);
+    await previewManualIds({
+      draftId: activeManualDraftId,
+      houseIds: activeManualHouseIdsKey.split("\n"),
+      showErrors: true,
+    });
+  }
 
   async function validateManualSectionsBeforeSave(token: string) {
     const manualSections = sections
@@ -772,8 +760,16 @@ export function AdminSectionsPage() {
       }
 
       setNotice("บันทึกการจัดหน้าแรกแล้ว");
-      await loadSections(token, false);
-      router.refresh();
+      const mappedSections = mapResponseSections(
+        payload as AdminHomeSectionsResponse,
+      );
+      setSections(mappedSections);
+      setSavedSnapshot(makeSectionsSnapshot(mappedSections));
+      setManualIdTexts({});
+      setActiveDraftId(mappedSections[0]?.draftId ?? null);
+      setPreview(null);
+      setPreviewDraftId(null);
+      setPendingDeleteDraftId(null);
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error
@@ -1102,23 +1098,48 @@ export function AdminSectionsPage() {
                     }
                   >
                     {activeSection.mode === "manual" ? (
-                      <ManualIdsEditor
-                        manualIdText={
-                          manualIdTexts[activeSection.draftId] ??
-                          activeSection.items
-                            .map((item) => item.houseId)
-                            .join(",")
-                        }
-                        onChange={(nextManualIdText) => {
-                          setManualIdTexts((currentTexts) => ({
-                            ...currentTexts,
-                            [activeSection.draftId]: nextManualIdText,
-                          }));
-                          updateSection(activeSection.draftId, {
-                            items: parseManualIds(nextManualIdText),
-                          });
-                        }}
-                      />
+                      <div className="grid gap-3">
+                        <ManualIdsEditor
+                          manualIdText={
+                            manualIdTexts[activeSection.draftId] ??
+                            activeSection.items
+                              .map((item) => item.houseId)
+                              .join(",")
+                          }
+                          onChange={(nextManualIdText) => {
+                            setManualIdTexts((currentTexts) => ({
+                              ...currentTexts,
+                              [activeSection.draftId]: nextManualIdText,
+                            }));
+                            updateSection(activeSection.draftId, {
+                              items: parseManualIds(nextManualIdText),
+                            });
+                          }}
+                        />
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={
+                              isPreviewing || activeSection.items.length === 0
+                            }
+                            onClick={() => {
+                              void handlePreviewActiveManualIds();
+                            }}
+                            type="button"
+                          >
+                            <CheckCircle2
+                              aria-hidden="true"
+                              className={`size-4 ${isPreviewing ? "animate-pulse" : ""}`}
+                            />
+                            {isPreviewing
+                              ? "กำลังเช็กเลขบ้าน..."
+                              : "เช็กเลขบ้าน"}
+                          </button>
+                          <p className="text-xs leading-5 text-[var(--site-muted)]">
+                            ระบบจะตรวจซ้ำให้อีกครั้งตอนกดบันทึก
+                          </p>
+                        </div>
+                      </div>
                     ) : (
                       <AutoModeSummary mode={activeSection.mode} />
                     )}

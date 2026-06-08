@@ -20,6 +20,6 @@ describe("formatManualIdEditorText", () => {
 
     expect(markup).not.toContain("เช็กอีกครั้ง");
     expect(markup).not.toContain("พรีวิว");
-    expect(markup).toContain("ระบบจะเช็กเลขบ้านให้อัตโนมัติ");
+    expect(markup).toContain("กดเช็กเลขบ้านเมื่ออยากตรวจรายการ");
   });
 });

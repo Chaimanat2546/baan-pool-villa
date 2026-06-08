@@ -44,6 +44,11 @@ export interface SiteSeoSettings {
   sameAsUrls: string[];
 }
 
+export interface SitePageSeoSettings {
+  guides: Pick<SiteSeoSettings, "description" | "ogImage" | "title">;
+  search: Pick<SiteSeoSettings, "description" | "ogImage" | "title">;
+}
+
 export interface SiteTikTokVideoSettings {
   url: string;
   videoId: string;
@@ -63,6 +68,7 @@ export interface SiteSettings {
   bank: SiteBankSettings;
   contact: SiteContactSettings;
   seo: SiteSeoSettings;
+  pageSeo: SitePageSeoSettings;
   tiktok: SiteTikTokSettings;
   detailLayout: AnyDetailLayoutConfig;
 }
@@ -96,6 +102,14 @@ export interface SiteSettingsRow {
   seo_og_image_alt?: string | null;
   seo_business_name?: string | null;
   seo_same_as_urls?: unknown;
+  search_seo_title?: string | null;
+  search_seo_description?: string | null;
+  search_seo_og_image_url?: string | null;
+  search_seo_og_image_alt?: string | null;
+  guides_seo_title?: string | null;
+  guides_seo_description?: string | null;
+  guides_seo_og_image_url?: string | null;
+  guides_seo_og_image_alt?: string | null;
   tiktok_account_url?: string | null;
   tiktok_video_urls?: unknown;
   detail_layout?: unknown;
@@ -119,6 +133,14 @@ export interface SiteSettingsDraft {
   seoOgImageAlt: string;
   seoBusinessName: string;
   seoSameAsUrls: string[];
+  searchSeoTitle: string;
+  searchSeoDescription: string;
+  searchSeoOgImageUrl: string;
+  searchSeoOgImageAlt: string;
+  guidesSeoTitle: string;
+  guidesSeoDescription: string;
+  guidesSeoOgImageUrl: string;
+  guidesSeoOgImageAlt: string;
   tiktokAccountUrl: string;
   tiktokVideoUrls: string[];
 }
