@@ -156,10 +156,12 @@ describe("getPublishedGuides", () => {
     });
   });
 
-  it("returns an empty list when guide config is unavailable", async () => {
+  it("throws when guide config is unavailable", async () => {
     mockGuideListQuery({ data: null, error: { message: "RLS denied" } });
 
-    await expect(getPublishedGuides()).resolves.toEqual([]);
+    await expect(getPublishedGuides()).rejects.toThrow(
+      "Guide posts config is unavailable",
+    );
   });
 });
 
@@ -207,6 +209,17 @@ describe("getGuideBySlug", () => {
     mockGuideDetailQuery({ data: null, error: null });
 
     await expect(getGuideBySlug("missing")).resolves.toBeNull();
+  });
+
+  it("throws when the guide detail config is unavailable", async () => {
+    mockGuideDetailQuery({
+      data: null,
+      error: { message: "RLS denied" },
+    });
+
+    await expect(getGuideBySlug("family-pool-villa")).rejects.toThrow(
+      "Guide posts config is unavailable",
+    );
   });
 });
 

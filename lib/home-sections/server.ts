@@ -13,8 +13,13 @@ import type {
 import type { VillaListing } from "../villas/types";
 
 export type HomeSectionsSource = "config" | "fallback";
+export type HomeSectionsFallbackReason =
+  | "config_unavailable"
+  | "empty_config";
 
 export interface ResolvedHomeSectionsResult {
+  degraded: boolean;
+  fallbackReason?: HomeSectionsFallbackReason;
   sections: ResolvedHomeSection[];
   source: HomeSectionsSource;
 }
@@ -168,16 +173,41 @@ const fetchCachedHomeSectionConfigs = unstable_cache(
   },
 );
 
+type ConfiguredHomeSectionsResult =
+  | {
+      sections: ResolvedHomeSection[];
+      status: "config";
+    }
+  | {
+      degraded: boolean;
+      reason: HomeSectionsFallbackReason;
+      status: "fallback";
+    };
+
 async function fetchConfiguredHomeSections(
   villas: VillaListing[],
-): Promise<ResolvedHomeSection[] | null> {
+): Promise<ConfiguredHomeSectionsResult> {
   try {
     const configs = await fetchCachedHomeSectionConfigs();
     const sections = resolveHomeSections(configs, villas);
 
-    return sections.length > 0 ? sections : null;
-  } catch {
-    return null;
+    if (sections.length > 0) {
+      return { sections, status: "config" };
+    }
+
+    return { degraded: false, reason: "empty_config", status: "fallback" };
+  } catch (error) {
+    const reportedError =
+      error instanceof Error
+        ? error
+        : new Error("Home section config is unavailable");
+    console.error("Unable to load home section config", reportedError);
+
+    return {
+      degraded: true,
+      reason: "config_unavailable",
+      status: "fallback",
+    };
   }
 }
 
@@ -186,11 +216,13 @@ export async function getResolvedHomeSections(
 ): Promise<ResolvedHomeSectionsResult> {
   const sections = await fetchConfiguredHomeSections(villas);
 
-  if (sections) {
-    return { sections, source: "config" };
+  if (sections.status === "config") {
+    return { degraded: false, sections: sections.sections, source: "config" };
   }
 
   return {
+    degraded: sections.degraded,
+    fallbackReason: sections.reason,
     sections: buildFallbackHomeSections(villas),
     source: "fallback",
   };

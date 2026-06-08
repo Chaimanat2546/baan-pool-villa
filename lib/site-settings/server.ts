@@ -34,6 +34,7 @@ const getCachedSiteSettings = unstable_cache(
 
       if (!withoutTikTokError && withoutTikTokData) {
         return {
+          degraded: false,
           settings: normalizeSiteSettingsRow(withoutTikTokData as SiteSettingsRow),
           source: "config",
         };
@@ -47,6 +48,7 @@ const getCachedSiteSettings = unstable_cache(
 
       if (!contactError && contactData) {
         return {
+          degraded: false,
           settings: normalizeSiteSettingsRow(contactData as SiteSettingsRow),
           source: "config",
         };
@@ -63,6 +65,7 @@ const getCachedSiteSettings = unstable_cache(
       }
 
       return {
+        degraded: false,
         settings: normalizeSiteSettingsRow(legacyData as SiteSettingsRow),
         source: "config",
       };
@@ -73,6 +76,7 @@ const getCachedSiteSettings = unstable_cache(
     }
 
     return {
+      degraded: false,
       settings: normalizeSiteSettingsRow(data as SiteSettingsRow),
       source: "config",
     };
@@ -88,6 +92,10 @@ export async function getSiteSettings(): Promise<SiteSettingsLoadResult> {
   try {
     return await getCachedSiteSettings();
   } catch {
-    return { settings: DEFAULT_SITE_SETTINGS, source: "fallback" };
+    return {
+      degraded: true,
+      settings: DEFAULT_SITE_SETTINGS,
+      source: "fallback",
+    };
   }
 }

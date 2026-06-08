@@ -95,6 +95,7 @@ describe("getResolvedHomeSections", () => {
     });
 
     await expect(getResolvedHomeSections([villa])).resolves.toEqual({
+      degraded: false,
       sections: [
         {
           cta: {
@@ -111,7 +112,7 @@ describe("getResolvedHomeSections", () => {
     });
   });
 
-  it("returns fallback sections when config rows are unavailable", async () => {
+  it("returns intentional fallback sections when no config rows resolve", async () => {
     mockHomeSectionsQuery({
       data: [],
       error: null,
@@ -120,7 +121,30 @@ describe("getResolvedHomeSections", () => {
     const result = await getResolvedHomeSections([villa]);
 
     expect(result.source).toBe("fallback");
+    expect(result.degraded).toBe(false);
+    expect(result.fallbackReason).toBe("empty_config");
     expect(result.sections[0]?.villas).toEqual([villa]);
+  });
+
+  it("marks fallback sections as degraded when config rows cannot be loaded", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockHomeSectionsQuery({
+      data: null,
+      error: { message: "RLS denied" },
+    });
+
+    const result = await getResolvedHomeSections([villa]);
+
+    expect(result.source).toBe("fallback");
+    expect(result.degraded).toBe(true);
+    expect(result.fallbackReason).toBe("config_unavailable");
+    expect(result.sections[0]?.villas).toEqual([villa]);
+    expect(consoleError).toHaveBeenCalledWith(
+      "Unable to load home section config",
+      expect.any(Error),
+    );
+
+    consoleError.mockRestore();
   });
 
   it("caches an empty Supabase home section result before falling back", async () => {

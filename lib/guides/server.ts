@@ -43,11 +43,7 @@ const fetchCachedPublishedGuides = unstable_cache(
 );
 
 export async function getPublishedGuides(): Promise<GuidePost[]> {
-  try {
-    return await fetchCachedPublishedGuides();
-  } catch {
-    return [];
-  }
+  return fetchCachedPublishedGuides();
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuidePost | null> {
@@ -61,7 +57,11 @@ export async function getGuideBySlug(slug: string): Promise<GuidePost | null> {
         .eq("slug", normalizedSlug)
         .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        throw new Error("Guide posts config is unavailable");
+      }
+
+      if (!data) {
         return null;
       }
 
@@ -74,11 +74,7 @@ export async function getGuideBySlug(slug: string): Promise<GuidePost | null> {
     },
   );
 
-  try {
-    return await fetchCachedGuide();
-  } catch {
-    return null;
-  }
+  return fetchCachedGuide();
 }
 
 export function resolveGuideRecommendedVillas(

@@ -103,7 +103,7 @@
               <tr>
                 <td><code>app/sitemap.ts</code></td>
                 <td><code>/sitemap.xml</code></td>
-                <td>Public sitemap using villa, guide CMS, and site URL helpers.</td>
+                <td>Public sitemap using villa, guide CMS, and site URL helpers. Dynamic villa or guide source failures should fail the sitemap route instead of returning a silent partial sitemap.</td>
               </tr>
               <tr>
                 <td><code>app/robots.ts</code></td>
@@ -138,7 +138,7 @@
               <tr>
                 <td><code>app/(public)/(home)/page.tsx</code></td>
                 <td><code>/</code></td>
-                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; route-level revalidation is 12 hours, while public shell settings come from tagged cached reads.</td>
+                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; route-level revalidation is 12 hours, while public shell settings come from tagged cached reads. The homepage passes non-visible degraded source data when guides, villa catalog, home sections, or site settings fall back or fail independently.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/(home)/loading.tsx</code></td>
@@ -525,30 +525,30 @@
               <td><code>lib/villas/images.ts</code>, image host builder, shared villa-images tag, and per-villa image cache tag.</td>
               <td>Detail gallery and public villa images API.</td>
             </tr>
-            <tr>
-              <td>Home sections</td>
-              <td>Supabase home-section CMS project.</td>
-              <td><code>lib/home-sections/server.ts</code>, validation/resolve helpers, home sections cache tag.</td>
-              <td>Home page and admin sections editor.</td>
-            </tr>
-            <tr>
-              <td>Site settings</td>
-              <td>Supabase settings table with defaults fallback.</td>
-              <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. TikTok homepage settings flow directly to the client renderer; thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
-              <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
-            </tr>
+              <tr>
+                <td>Home sections</td>
+                <td>Supabase home-section CMS project.</td>
+                <td><code>lib/home-sections/server.ts</code>, validation/resolve helpers, home sections cache tag. Results include <code>source</code>, <code>degraded</code>, and an optional fallback reason so callers can distinguish intentional empty-config fallback from config-load failure fallback.</td>
+                <td>Home page and admin sections editor.</td>
+              </tr>
+              <tr>
+                <td>Site settings</td>
+                <td>Supabase settings table with defaults fallback.</td>
+                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
+                <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
+              </tr>
             <tr>
               <td>Detail layout settings</td>
               <td>Supabase detail layout config.</td>
               <td><code>lib/detail-layout</code>, admin detail layout API, detail layout cache revalidation.</td>
               <td>Villa detail renderer and admin detail layout builder.</td>
             </tr>
-            <tr>
-              <td>Guide CMS</td>
-              <td>Supabase <code>guide_posts</code>, <code>guide_asset_uploads</code>, and public <code>guide-assets</code> storage bucket.</td>
-              <td><code>lib/guides</code>, guide cache tags, slug validation, admin guide APIs.</td>
-              <td>Public guide list/detail pages, homepage guide article rail, admin guide editor, sitemap guide URLs.</td>
-            </tr>
+              <tr>
+                <td>Guide CMS</td>
+                <td>Supabase <code>guide_posts</code>, <code>guide_asset_uploads</code>, and public <code>guide-assets</code> storage bucket.</td>
+                <td><code>lib/guides</code>, guide cache tags, slug validation, admin guide APIs. Public guide reads throw on CMS/config failures and return empty/null only for true empty list or missing slug outcomes.</td>
+                <td>Public guide list/detail pages, homepage guide article rail, admin guide editor, sitemap guide URLs.</td>
+              </tr>
           </tbody>
         </table>
       </section>
@@ -724,11 +724,16 @@
               <td><code>npm.cmd test -- lib/detail-layout</code> and relevant detail/admin detail-layout tests</td>
               <td>Run lint and build before completion.</td>
             </tr>
-            <tr>
-              <td>Guide CMS, guide routes, guide validation, uploads, or guide admin UI</td>
-              <td><code>npm.cmd test -- lib/guides</code> plus guide-related cache tests when cache behavior changes</td>
-              <td>Run lint, build, and browser verification for <code>/guides</code>, <code>/guides/:slug</code>, and <code>/admin/guides</code> when UI changes.</td>
-            </tr>
+              <tr>
+                <td>Guide CMS, guide routes, guide validation, uploads, or guide admin UI</td>
+                <td><code>npm.cmd test -- lib/guides</code> plus guide-related cache tests when cache behavior changes</td>
+                <td>Run lint, build, and browser verification for <code>/guides</code>, <code>/guides/:slug</code>, and <code>/admin/guides</code> when UI changes.</td>
+              </tr>
+              <tr>
+                <td>Sitemap dynamic route policy</td>
+                <td><code>npm.cmd test -- app/sitemap.test.ts</code></td>
+                <td>Run lint and build before completion.</td>
+              </tr>
             <tr>
               <td>Cache policy or revalidation behavior</td>
               <td><code>npm.cmd test -- lib/__tests__/cache-policy.test.ts lib/cache-revalidation.test.ts</code></td>
