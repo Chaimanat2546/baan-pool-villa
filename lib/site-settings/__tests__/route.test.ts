@@ -88,11 +88,9 @@ function siteSettingsSelectQuery(result: { data: unknown; error: unknown }) {
 }
 
 function siteSettingsUpsertQuery(result: { data: unknown; error: unknown }) {
-  const single = vi.fn().mockResolvedValue(result);
-  const select = vi.fn().mockReturnValue({ single });
-  const upsert = vi.fn().mockReturnValue({ select });
+  const upsert = vi.fn().mockResolvedValue(result);
 
-  return { select, single, upsert };
+  return { upsert };
 }
 
 function uploadHistoryInsertQuery(result: { data: unknown; error: unknown }) {
@@ -383,7 +381,7 @@ describe("admin site settings route", () => {
     );
   });
 
-  it("surfaces the fallback query error when non-TikTok schema fallback also fails", async () => {
+  it("falls back to a general schema for GET when feature columns are missing", async () => {
     const primaryError = {
       message: "column site_settings.tiktok_account_url does not exist",
       code: "42703",
@@ -400,8 +398,12 @@ describe("admin site settings route", () => {
       data: null,
       error: fallbackError,
     });
+    const generalQuery = siteSettingsSelectQuery({
+      data: dbRowWithoutTiktokColumns,
+      error: null,
+    });
     const from = fromQueue({
-      site_settings: [primaryQuery, fallbackQuery],
+      site_settings: [primaryQuery, fallbackQuery, generalQuery],
     });
 
     authSupabase({ from });
@@ -411,11 +413,23 @@ describe("admin site settings route", () => {
     );
     const response = await GET(authenticatedRequest());
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      error: fallbackError.message,
-      code: fallbackError.code,
+      settings: {
+        siteName: "Baan Pool Villa",
+        detailLayout: DEFAULT_DETAIL_LAYOUT,
+        tiktok: {
+          accountUrl: "",
+          videos: [],
+        },
+      },
     });
+    expect(generalQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("detail_layout"),
+    );
+    expect(generalQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_account_url"),
+    );
   });
 
   it("rejects missing auth before reading settings", async () => {
@@ -465,6 +479,10 @@ describe("admin site settings route", () => {
   it("preserves existing image fields when PUT has no files", async () => {
     const loadQuery = siteSettingsSelectQuery({ data: dbRow, error: null });
     const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
       data: {
         ...dbRow,
         site_name: "Updated Villas",
@@ -482,7 +500,7 @@ describe("admin site settings route", () => {
       error: null,
     });
     const from = fromQueue({
-      site_settings: [loadQuery, saveQuery],
+      site_settings: [loadQuery, saveQuery, reloadQuery],
     });
 
     authSupabase({ from });
@@ -583,6 +601,10 @@ describe("admin site settings route", () => {
   it("does not persist TikTok form fields in the site-settings upsert payload", async () => {
     const loadQuery = siteSettingsSelectQuery({ data: dbRow, error: null });
     const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
       data: {
         ...dbRow,
         site_name: "Updated Villas",
@@ -593,7 +615,7 @@ describe("admin site settings route", () => {
       error: null,
     });
     const from = fromQueue({
-      site_settings: [loadQuery, saveQuery],
+      site_settings: [loadQuery, saveQuery, reloadQuery],
     });
 
     authSupabase({ from });
@@ -642,7 +664,7 @@ describe("admin site settings route", () => {
     expect(payload).not.toHaveProperty("tiktok_video_urls");
   });
 
-  it("falls back before save on PUT when TikTok columns are missing and surfaces save failure", async () => {
+  it("falls back after write-only save on PUT when TikTok columns are missing", async () => {
     const missingColumnError = {
       message: "column site_settings.tiktok_account_url does not exist",
       code: "42703",
@@ -657,10 +679,30 @@ describe("admin site settings route", () => {
     });
     const saveQuery = siteSettingsUpsertQuery({
       data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
+      data: null,
       error: missingColumnError,
     });
+    const fallbackReloadQuery = siteSettingsSelectQuery({
+      data: {
+        ...dbRowWithoutTiktokColumns,
+        site_name: "Updated Villas",
+        primary_color: "#123abc",
+        accent_color: "#fedcba",
+        hero_image_alt: "Updated hero",
+      },
+      error: null,
+    });
     const from = fromQueue({
-      site_settings: [loadQuery, fallbackLoadQuery, saveQuery],
+      site_settings: [
+        loadQuery,
+        fallbackLoadQuery,
+        saveQuery,
+        reloadQuery,
+        fallbackReloadQuery,
+      ],
     });
 
     authSupabase({ from });
@@ -671,10 +713,21 @@ describe("admin site settings route", () => {
     const response = await PUT(putRequest(settingsForm()));
     const body = await response.json();
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(200);
     expect(body).toMatchObject({
-      error: "column site_settings.tiktok_account_url does not exist",
-      code: "42703",
+      settings: {
+        siteName: "Updated Villas",
+        primaryColor: "#123abc",
+        accentColor: "#fedcba",
+        heroImage: {
+          alt: "Updated hero",
+        },
+        tiktok: {
+          accountUrl: "",
+          videos: [],
+        },
+      },
+      warnings: [],
     });
     expect(fallbackLoadQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_video_urls"),
@@ -693,6 +746,10 @@ describe("admin site settings route", () => {
       }),
       { onConflict: "id" },
     );
+    expect(fallbackReloadQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_video_urls"),
+    );
+    expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("uploads an image, records history, saves settings, and cleans eligible old rows", async () => {
@@ -702,6 +759,10 @@ describe("admin site settings route", () => {
       error: null,
     });
     const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
       data: {
         ...dbRow,
         logo_image_path: "logo/2026/05/upload.webp",
@@ -763,7 +824,7 @@ describe("admin site settings route", () => {
         historySelectQuery,
         historyCleanupDeleteQuery,
       ],
-      site_settings: [loadQuery, saveQuery],
+      site_settings: [loadQuery, saveQuery, reloadQuery],
     });
     const upload = vi.fn().mockResolvedValue({ error: null });
     const getPublicUrl = vi.fn().mockReturnValue({
@@ -918,6 +979,10 @@ describe("admin site settings route", () => {
       error: null,
     });
     const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
       data: {
         ...dbRow,
         logo_image_path: "logo/2026/05/upload.webp",
@@ -934,7 +999,7 @@ describe("admin site settings route", () => {
     const historyUpdateQuery = uploadHistoryUpdateQuery({ error: updateError });
     const from = fromQueue({
       site_asset_uploads: [historyInsertQuery, historyUpdateQuery],
-      site_settings: [loadQuery, saveQuery],
+      site_settings: [loadQuery, saveQuery, reloadQuery],
     });
     const upload = vi.fn().mockResolvedValue({ error: null });
     const getPublicUrl = vi.fn().mockReturnValue({
