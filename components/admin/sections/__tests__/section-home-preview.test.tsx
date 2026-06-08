@@ -64,7 +64,7 @@ describe("SectionHomePreview", () => {
 
     expect(markup).toContain("รอตรวจเลขบ้านจริง");
     expect(markup).toContain("#105");
-    expect(markup).toContain("Prototype only");
+    expect(markup).toContain("ตัวอย่างการแสดงผลเท่านั้น");
   });
 
   it("shows missing and invalid villa ids inside the prototype preview", () => {

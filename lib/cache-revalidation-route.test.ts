@@ -77,6 +77,7 @@ describe("admin external data refresh route", () => {
     await expect(response.json()).resolves.toEqual({
       refreshed: true,
       scope: "tags-only",
+      retryAfterSeconds: 60,
       message: "External villa data cache refresh requested.",
     });
     expect(revalidateExternalVillaCacheMock).toHaveBeenCalledWith("tags-only");
@@ -94,6 +95,7 @@ describe("admin external data refresh route", () => {
     await expect(response.json()).resolves.toEqual({
       refreshed: true,
       scope: "full-public",
+      retryAfterSeconds: 60,
       message: "External villa data cache refresh requested.",
     });
     expect(revalidateExternalVillaCacheMock).toHaveBeenCalledWith(
