@@ -430,6 +430,9 @@ describe("admin site settings route", () => {
     expect(generalQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_account_url"),
     );
+    expect(generalQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_video_urls"),
+    );
   });
 
   it("rejects missing auth before reading settings", async () => {
@@ -748,6 +751,9 @@ describe("admin site settings route", () => {
     );
     expect(fallbackReloadQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_video_urls"),
+    );
+    expect(fallbackReloadQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_account_url"),
     );
     expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });
