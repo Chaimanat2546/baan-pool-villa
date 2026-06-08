@@ -479,6 +479,52 @@ describe("admin site settings route", () => {
     expect(body.errors).toContain("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");
   });
 
+  it("rejects malformed phoneContacts payloads before reading site settings", async () => {
+    const from = vi.fn();
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await PUT(
+      putRequest(
+        settingsForm({
+          phoneContacts: "{not-json}",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["ข้อมูลเบอร์โทรติดต่อไม่ถูกต้อง"],
+    });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("rejects phoneContacts payloads that are not contact arrays", async () => {
+    const from = vi.fn();
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await PUT(
+      putRequest(
+        settingsForm({
+          phoneContacts: JSON.stringify({ name: "ทีมงาน" }),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["ข้อมูลเบอร์โทรติดต่อไม่ถูกต้อง"],
+    });
+    expect(from).not.toHaveBeenCalled();
+  });
+
   it("preserves existing image fields when PUT has no files", async () => {
     const loadQuery = siteSettingsSelectQuery({ data: dbRow, error: null });
     const saveQuery = siteSettingsUpsertQuery({

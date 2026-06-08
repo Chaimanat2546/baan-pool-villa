@@ -219,35 +219,59 @@ function readStringField(formData: FormData, fieldName: string): string {
   return typeof value === "string" ? value : "";
 }
 
-function readPhoneContactsField(formData: FormData): SitePhoneContact[] {
+type PhoneContactsFieldResult =
+  | {
+      ok: true;
+      value: SitePhoneContact[];
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+function readPhoneContactsField(formData: FormData): PhoneContactsFieldResult {
   const rawValue = readStringField(formData, "phoneContacts");
 
   if (!rawValue) {
-    return [];
+    return { ok: true, value: [] };
   }
+
+  const invalidPhoneContactsError = "ข้อมูลเบอร์โทรติดต่อไม่ถูกต้อง";
 
   try {
     const parsedValue = JSON.parse(rawValue);
 
     if (!Array.isArray(parsedValue)) {
-      return [];
+      return { ok: false, error: invalidPhoneContactsError };
     }
 
-    return parsedValue.map((item) => {
+    const phoneContacts: SitePhoneContact[] = [];
+
+    for (const item of parsedValue) {
       if (!item || typeof item !== "object") {
-        return { name: "", phone: "", time: "" };
+        return { ok: false, error: invalidPhoneContactsError };
       }
 
       const contact = item as Partial<Record<keyof SitePhoneContact, unknown>>;
 
-      return {
-        name: typeof contact.name === "string" ? contact.name : "",
-        phone: typeof contact.phone === "string" ? contact.phone : "",
-        time: typeof contact.time === "string" ? contact.time : "",
-      };
-    });
+      if (
+        typeof contact.name !== "string" ||
+        typeof contact.phone !== "string" ||
+        typeof contact.time !== "string"
+      ) {
+        return { ok: false, error: invalidPhoneContactsError };
+      }
+
+      phoneContacts.push({
+        name: contact.name,
+        phone: contact.phone,
+        time: contact.time,
+      });
+    }
+
+    return { ok: true, value: phoneContacts };
   } catch {
-    return [];
+    return { ok: false, error: invalidPhoneContactsError };
   }
 }
 
@@ -581,6 +605,12 @@ export async function PUT(request: Request) {
     return Response.json({ errors: ["Request body must be multipart/form-data."] }, { status: 400 });
   }
 
+  const phoneContactsResult = readPhoneContactsField(formData);
+
+  if (!phoneContactsResult.ok) {
+    return Response.json({ errors: [phoneContactsResult.error] }, { status: 400 });
+  }
+
   const draft = normalizeSiteSettingsDraft({
     siteName: readStringField(formData, "siteName"),
     primaryColor: readStringField(formData, "primaryColor"),
@@ -589,7 +619,7 @@ export async function PUT(request: Request) {
     bankAccountName: readStringField(formData, "bankAccountName"),
     bankName: readStringField(formData, "bankName"),
     bankAccountNumber: readStringField(formData, "bankAccountNumber"),
-    phoneContacts: readPhoneContactsField(formData),
+    phoneContacts: phoneContactsResult.value,
     messengerUrl: readStringField(formData, "messengerUrl"),
     lineId: readStringField(formData, "lineId"),
     lineUrl: readStringField(formData, "lineUrl"),

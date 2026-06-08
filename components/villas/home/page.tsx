@@ -31,7 +31,15 @@ type DestinationVilla = {
   coverImage: string | null;
 };
 
+export interface HomePageDegradedSources {
+  guidePosts: boolean;
+  homeSections: boolean;
+  siteSettings: boolean;
+  villaCatalog: boolean;
+}
+
 interface HomePageProps {
+  degradedSources?: HomePageDegradedSources;
   initialGuides?: GuidePost[];
   initialHomeSections?: ResolvedHomeSection[];
   filterSummary?: FilterSummary;
@@ -54,6 +62,7 @@ interface HomePageProps {
  * @returns The React element tree for the homepage
  */
 export function HomePage({
+  degradedSources,
   initialGuides = [],
   initialHomeSections = [],
   filterSummary,
@@ -85,8 +94,21 @@ export function HomePage({
     router.push(query ? `/search?${query}` : "/search");
   }
 
+  const degradedSourceNames = [
+    degradedSources?.siteSettings ? "siteSettings" : null,
+    degradedSources?.guidePosts ? "guidePosts" : null,
+    degradedSources?.villaCatalog ? "villaCatalog" : null,
+    degradedSources?.homeSections ? "homeSections" : null,
+  ].filter((source): source is string => source !== null);
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] text-[var(--site-text)]">
+    <main
+      className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] text-[var(--site-text)]"
+      data-home-degraded={degradedSourceNames.length > 0 ? "true" : undefined}
+      data-home-degraded-sources={
+        degradedSourceNames.length > 0 ? degradedSourceNames.join(",") : undefined
+      }
+    >
       <HeroSection
         filters={filters}
         heroImage={settings.heroImage}

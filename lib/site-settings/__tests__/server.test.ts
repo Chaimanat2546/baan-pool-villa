@@ -126,6 +126,7 @@ describe("getSiteSettings", () => {
     });
 
     await expect(getSiteSettings()).resolves.toEqual({
+      degraded: false,
       settings: {
         siteName: "Baan Pool Villa",
         primaryColor: "#123456",
@@ -202,6 +203,7 @@ describe("getSiteSettings", () => {
     mockSiteSettingsQuery({ data: null, error: null });
 
     await expect(getSiteSettings()).resolves.toEqual({
+      degraded: true,
       settings: DEFAULT_SITE_SETTINGS,
       source: "fallback",
     });

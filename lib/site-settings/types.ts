@@ -68,6 +68,7 @@ export interface SiteSettings {
 }
 
 export interface SiteSettingsLoadResult {
+  degraded: boolean;
   settings: SiteSettings;
   source: "config" | "fallback";
 }

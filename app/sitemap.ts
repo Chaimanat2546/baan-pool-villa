@@ -29,36 +29,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  let villaRoutes: MetadataRoute.Sitemap = [];
-  let guideRoutes: MetadataRoute.Sitemap = [];
+  const [listings, guides] = await Promise.all([
+    fetchHouseListings(),
+    getPublishedGuides(),
+  ]);
 
-  try {
-    const listings = await fetchHouseListings();
+  const villaRoutes: MetadataRoute.Sitemap = listings.map((listing) => ({
+    changeFrequency: "daily" as const,
+    images: listing.coverImage ? [listing.coverImage] : undefined,
+    lastModified: now,
+    priority: 0.8,
+    url: absoluteUrl(`/villas/${listing.id}`),
+  }));
 
-    villaRoutes = listings.map((listing) => ({
-      changeFrequency: "daily" as const,
-      images: listing.coverImage ? [listing.coverImage] : undefined,
-      lastModified: now,
-      priority: 0.8,
-      url: absoluteUrl(`/villas/${listing.id}`),
-    }));
-  } catch {
-    villaRoutes = [];
-  }
-
-  try {
-    const guides = await getPublishedGuides();
-
-    guideRoutes = guides.map((guide) => ({
-      changeFrequency: "weekly" as const,
-      images: guide.coverImage?.url ? [guide.coverImage.url] : undefined,
-      lastModified: guide.updatedAt ? new Date(guide.updatedAt) : now,
-      priority: guide.isPinned ? 0.75 : 0.65,
-      url: absoluteUrl(`/guides/${guide.slug}`),
-    }));
-  } catch {
-    guideRoutes = [];
-  }
+  const guideRoutes: MetadataRoute.Sitemap = guides.map((guide) => ({
+    changeFrequency: "weekly" as const,
+    images: guide.coverImage?.url ? [guide.coverImage.url] : undefined,
+    lastModified: guide.updatedAt ? new Date(guide.updatedAt) : now,
+    priority: guide.isPinned ? 0.75 : 0.65,
+    url: absoluteUrl(`/guides/${guide.slug}`),
+  }));
 
   return [...staticRoutes, ...villaRoutes, ...guideRoutes];
 }
