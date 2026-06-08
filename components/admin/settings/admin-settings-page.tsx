@@ -35,11 +35,10 @@ type AdminExternalDataRefreshResponse =
       error?: string;
       errors?: string[];
       retryAfterSeconds?: number;
+      scope?: ExternalDataRefreshScope;
     };
 
 type ExternalDataRefreshScope = "tags-only" | "full-public";
-
-const EXTERNAL_DATA_REFRESH_COOLDOWN_MS = 60_000;
 
 /**
  * Admin page UI for viewing and editing site appearance and contact settings.
@@ -59,8 +58,10 @@ export function AdminSettingsPage() {
   const [isRefreshingExternalData, setIsRefreshingExternalData] = useState(false);
   const [externalRefreshPendingScope, setExternalRefreshPendingScope] =
     useState<ExternalDataRefreshScope | null>(null);
-  const [externalRefreshCooldownActive, setExternalRefreshCooldownActive] =
-    useState(false);
+  const [externalRefreshCooldownScope, setExternalRefreshCooldownScope] =
+    useState<ExternalDataRefreshScope | null>(null);
+  const [externalRefreshCooldownSeconds, setExternalRefreshCooldownSeconds] =
+    useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
@@ -173,18 +174,22 @@ export function AdminSettingsPage() {
   }, [getAccessToken, loadSettings]);
 
   useEffect(() => {
-    if (!externalRefreshCooldownActive) {
+    if (externalRefreshCooldownSeconds <= 0) {
       return;
     }
 
     const cooldownTimer = window.setTimeout(() => {
-      setExternalRefreshCooldownActive(false);
-    }, EXTERNAL_DATA_REFRESH_COOLDOWN_MS);
+      setExternalRefreshCooldownSeconds((current) => {
+        const nextSeconds = current - 1;
+
+        return nextSeconds > 0 ? nextSeconds : 0;
+      });
+    }, 1_000);
 
     return () => {
       window.clearTimeout(cooldownTimer);
     };
-  }, [externalRefreshCooldownActive]);
+  }, [externalRefreshCooldownSeconds]);
 
   function updateDraft(changes: Partial<AdminSettingsDraft>) {
     setNotice(null);
@@ -193,6 +198,47 @@ export function AdminSettingsPage() {
     setDraft((currentDraft) =>
       currentDraft ? { ...currentDraft, ...changes } : currentDraft,
     );
+  }
+
+  const isExternalRefreshCoolingDown = externalRefreshCooldownSeconds > 0;
+
+  function getScopeLabel(scope: ExternalDataRefreshScope | null): string {
+    if (scope === "full-public") {
+      return "อัปเดตหน้าเว็บไซต์ทั้งหมด";
+    }
+
+    if (scope === "tags-only") {
+      return "อัปเดตเฉพาะหน้าหมวดหมู่ที่ใช้ข้อมูลเดียวกัน";
+    }
+
+    return "อัปเดตตามที่เลือก";
+  }
+
+  function parseRetryAfterSeconds(
+    payload: AdminExternalDataRefreshResponse | null,
+  ): number | null {
+    const retryAfterSeconds =
+      payload &&
+      typeof payload.retryAfterSeconds === "number" &&
+      Number.isInteger(payload.retryAfterSeconds)
+        ? payload.retryAfterSeconds
+        : null;
+
+    return retryAfterSeconds !== null && retryAfterSeconds > 0
+      ? retryAfterSeconds
+      : null;
+  }
+
+  function parseRefreshScope(
+    payload: AdminExternalDataRefreshResponse | null,
+  ): ExternalDataRefreshScope | null {
+    const value = payload ? "scope" in payload ? payload.scope : null : null;
+
+    if (value === "tags-only" || value === "full-public") {
+      return value;
+    }
+
+    return null;
   }
 
   async function handleSave() {
@@ -262,7 +308,7 @@ export function AdminSettingsPage() {
   }
 
   async function handleRefreshExternalData(scope: ExternalDataRefreshScope) {
-    if (externalRefreshCooldownActive) {
+    if (isExternalRefreshCoolingDown || isRefreshingExternalData) {
       return;
     }
 
@@ -272,8 +318,8 @@ export function AdminSettingsPage() {
       setWarnings([]);
       setNotice(
         scope === "full-public"
-          ? "กดปุ่มรีเฟรชหน้าเว็บอีกครั้งเพื่อยืนยัน คำสั่งนี้จะล้างแคชข้อมูลบ้านพักและมาร์กหน้าเว็บสาธารณะให้สร้างใหม่เมื่อมีคนเปิด"
-          : "กดปุ่มรีเฟรชข้อมูลบ้านพักอีกครั้งเพื่อยืนยัน คำสั่งนี้จะล้างเฉพาะแคชข้อมูลบ้านพักโดยไม่มาร์กหน้าเว็บสาธารณะให้สร้างใหม่",
+          ? "ขอให้ตรวจสอบก่อนส่งคำขออัปเดตข้อมูลสำหรับ public ทั้งหมด"
+          : "ขอให้ตรวจสอบก่อนส่งคำขออัปเดตข้อมูลเฉพาะหน้าหมวดหมู่",
       );
       return;
     }
@@ -302,6 +348,12 @@ export function AdminSettingsPage() {
         response,
       )) as AdminExternalDataRefreshResponse | null;
 
+      const responseScope = parseRefreshScope(payload);
+      const responseRetryAfterSeconds = parseRetryAfterSeconds(payload);
+
+      setExternalRefreshCooldownScope(responseScope);
+      setExternalRefreshCooldownSeconds(responseRetryAfterSeconds ?? 0);
+
       if (
         shouldRedirectToLogin(
           response.status,
@@ -314,23 +366,22 @@ export function AdminSettingsPage() {
 
       if (!response.ok) {
         setExternalRefreshPendingScope(null);
-        setErrors(extractErrors(payload, "ไม่สามารถรีเฟรชข้อมูลบ้านพักได้"));
+        setErrors(extractErrors(payload, "ไม่สามารถอัปเดตข้อมูลได้"));
         return;
       }
 
       setExternalRefreshPendingScope(null);
-      setExternalRefreshCooldownActive(true);
       setNotice(
-        scope === "full-public"
-          ? "ส่งคำขอรีเฟรชข้อมูลบ้านพักและหน้าเว็บสาธารณะแล้ว รอสักครู่ก่อนรีเฟรชซ้ำ"
-          : "ส่งคำขอรีเฟรชแคชข้อมูลบ้านพักแล้ว รอสักครู่ก่อนรีเฟรชซ้ำ",
+        `อัปเดตข้อมูล${
+          responseScope ? ` (${getScopeLabel(responseScope)})` : ""
+        } สำเร็จแล้ว`,
       );
     } catch (caughtError) {
       setExternalRefreshPendingScope(null);
       setErrors([
         caughtError instanceof Error
           ? caughtError.message
-          : "ไม่สามารถรีเฟรชข้อมูลบ้านพักได้",
+          : "ไม่สามารถอัปเดตข้อมูลได้",
       ]);
     } finally {
       setIsRefreshingExternalData(false);
@@ -375,7 +426,7 @@ export function AdminSettingsPage() {
               disabled={
                 isRefreshingExternalData ||
                 isSaving ||
-                externalRefreshCooldownActive
+                isExternalRefreshCoolingDown
               }
               onClick={() => {
                 void handleRefreshExternalData("tags-only");
@@ -388,8 +439,10 @@ export function AdminSettingsPage() {
               />
               {isRefreshingExternalData
                 ? "กำลังรีเฟรชข้อมูล..."
-                : externalRefreshCooldownActive
-                  ? "เพิ่งรีเฟรชแล้ว"
+                : isExternalRefreshCoolingDown
+                  ? `รออีก ${externalRefreshCooldownSeconds} วินาที (${getScopeLabel(
+                    externalRefreshCooldownScope,
+                  )})`
                   : externalRefreshPendingScope === "tags-only"
                     ? "ยืนยันรีเฟรชข้อมูล"
                     : "รีเฟรชข้อมูลบ้านพัก"}
@@ -399,7 +452,7 @@ export function AdminSettingsPage() {
               disabled={
                 isRefreshingExternalData ||
                 isSaving ||
-                externalRefreshCooldownActive
+                isExternalRefreshCoolingDown
               }
               onClick={() => {
                 void handleRefreshExternalData("full-public");
@@ -412,8 +465,10 @@ export function AdminSettingsPage() {
               />
               {isRefreshingExternalData
                 ? "กำลังรีเฟรชหน้าเว็บ..."
-                : externalRefreshCooldownActive
-                  ? "เพิ่งรีเฟรชแล้ว"
+                : isExternalRefreshCoolingDown
+                  ? `รออีก ${externalRefreshCooldownSeconds} วินาที (${getScopeLabel(
+                    externalRefreshCooldownScope,
+                  )})`
                   : externalRefreshPendingScope === "full-public"
                     ? "ยืนยันรีเฟรชหน้าเว็บ"
                     : "รีเฟรชหน้าเว็บด้วย"}

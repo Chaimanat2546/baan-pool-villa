@@ -123,7 +123,68 @@ describe("AdminSectionsPage", () => {
     await page.unmount();
   });
 
+  it("keeps the current section selected after saving", async () => {
+    const firstSection = {
+      ...savedSection,
+      slug: "featured",
+      title: "Featured",
+    };
+    const secondSection = {
+      ...savedSection,
+      displayOrder: 1,
+      limitCount: 4,
+      slug: "family",
+      title: "Family",
+    };
+    const fetchMock = makeFetchMock([
+      {
+        body: { sections: [firstSection, secondSection] },
+        url: "/api/admin/home-sections",
+      },
+      {
+        body: {
+          sections: [firstSection, { ...secondSection, limitCount: 8 }],
+        },
+        method: "PUT",
+        url: "/api/admin/home-sections",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminSectionsPage />);
+    const sectionButtons = page.container.querySelectorAll("aside button");
+
+    expect(sectionButtons).toHaveLength(2);
+
+    await click(sectionButtons[1] as HTMLButtonElement);
+
+    const limitCountInput = page.container.querySelector(
+      "input[type='number']",
+    ) as HTMLInputElement | null;
+
+    expect(limitCountInput).not.toBeNull();
+
+    await changeInput(limitCountInput as HTMLInputElement, "8");
+
+    const headerButtons = page.container.querySelectorAll(
+      "#adminSectionsPageHeader button",
+    );
+    const saveButton = headerButtons[1] ?? null;
+
+    expect(saveButton).not.toBeNull();
+
+    await click(saveButton as HTMLButtonElement);
+    await flushEffects();
+
+    const nextSectionButtons = page.container.querySelectorAll("aside button");
+
+    expect(nextSectionButtons[1]?.getAttribute("aria-pressed")).toBe("true");
+
+    await page.unmount();
+  });
+
   it("does not auto-preview manual house IDs while editing", async () => {
+    vi.useFakeTimers();
     const fetchMock = makeFetchMock([
       {
         body: { sections: [manualSection] },
@@ -134,9 +195,7 @@ describe("AdminSectionsPage", () => {
 
     const page = await mountAdminPage(<AdminSectionsPage />);
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 800);
-    });
+    await vi.advanceTimersByTimeAsync(800);
 
     expect(
       fetchMock.mock.calls.filter(([url]) => {
@@ -145,5 +204,6 @@ describe("AdminSectionsPage", () => {
     ).toHaveLength(0);
 
     await page.unmount();
+    vi.useRealTimers();
   });
 });

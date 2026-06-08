@@ -104,13 +104,18 @@ function normalizeDisplayOrder(sections: AdminSectionDraft[]): AdminSectionDraft
 
 function mapResponseSections(
   payload: AdminHomeSectionsResponse,
+  existingSections: AdminSectionDraft[] = [],
 ): AdminSectionDraft[] {
+  const existingDraftIdsBySlug = new Map(
+    existingSections.map((section) => [section.slug, section.draftId]),
+  );
+
   return normalizeDisplayOrder(
     payload.sections
       .map((section) => ({
         ...section,
         fallbackMode: normalizeAdminFallbackMode(section.fallbackMode),
-        draftId: makeDraftId(),
+        draftId: existingDraftIdsBySlug.get(section.slug) ?? makeDraftId(),
         items: section.items.map((item, itemIndex) => ({
           houseId: item.houseId,
           position: item.position ?? itemIndex,
@@ -329,7 +334,11 @@ export function AdminSectionsPage() {
   }, [redirectToLogin]);
 
   const loadSections = useCallback(
-    async (token: string, showLoading: boolean) => {
+    async (
+      token: string,
+      showLoading: boolean,
+      activeSectionDraftId: string | null,
+    ) => {
       if (showLoading) {
         setIsLoading(true);
       }
@@ -356,11 +365,14 @@ export function AdminSectionsPage() {
         }
 
         const mappedSections = mapResponseSections(payload);
+        const nextActiveDraftId =
+          mappedSections.find((section) => section.draftId === activeSectionDraftId)
+            ?.draftId ?? mappedSections[0]?.draftId ?? null;
 
         setSections(mappedSections);
         setSavedSnapshot(makeSectionsSnapshot(mappedSections));
         setManualIdTexts({});
-        setActiveDraftId(mappedSections[0]?.draftId ?? null);
+        setActiveDraftId(nextActiveDraftId);
         setPreview(null);
         setPreviewDraftId(null);
         setPendingDeleteDraftId(null);
@@ -390,7 +402,7 @@ export function AdminSectionsPage() {
           return;
         }
 
-        await loadSections(token, true);
+        await loadSections(token, true, null);
       } catch (caughtError) {
         if (!isMounted) {
           return;
@@ -762,11 +774,15 @@ export function AdminSectionsPage() {
       setNotice("บันทึกการจัดหน้าแรกแล้ว");
       const mappedSections = mapResponseSections(
         payload as AdminHomeSectionsResponse,
+        sections,
       );
       setSections(mappedSections);
       setSavedSnapshot(makeSectionsSnapshot(mappedSections));
       setManualIdTexts({});
-      setActiveDraftId(mappedSections[0]?.draftId ?? null);
+      setActiveDraftId(
+        mappedSections.find((section) => section.draftId === activeDraftId)
+          ?.draftId ?? mappedSections[0]?.draftId ?? null,
+      );
       setPreview(null);
       setPreviewDraftId(null);
       setPendingDeleteDraftId(null);

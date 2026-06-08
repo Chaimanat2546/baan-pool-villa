@@ -69,7 +69,10 @@ describe("AdminSettingsPage", () => {
     );
     expect(page.container.querySelector("#settingsPageHeader")).not.toBeNull();
 
-    const refreshButton = page.container.querySelector("button");
+    const headerButtons = Array.from(
+      page.container.querySelectorAll("#settingsPageHeader button"),
+    );
+    const refreshButton = headerButtons[0] ?? null;
     expect(refreshButton).not.toBeNull();
 
     await click(refreshButton as HTMLButtonElement);
@@ -126,10 +129,10 @@ describe("AdminSettingsPage", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const page = await mountAdminPage(<AdminSettingsPage />);
-    const buttons = Array.from(page.container.querySelectorAll("button"));
-    const fullPublicButton = buttons.find((button) => {
-      return button.textContent?.includes("หน้าเว็บ");
-    });
+    const headerButtons = Array.from(
+      page.container.querySelectorAll("#settingsPageHeader button"),
+    );
+    const fullPublicButton = headerButtons[1] ?? null;
 
     expect(fullPublicButton).not.toBeNull();
 
@@ -187,10 +190,10 @@ describe("AdminSettingsPage", () => {
     await changeInput(siteNameInput as HTMLInputElement, savedSettings.siteName);
     const callsBeforeSave = fetchMock.mock.calls.length;
 
-    const buttons = Array.from(page.container.querySelectorAll("button"));
-    const saveButton = buttons.find((button) => {
-      return button.textContent?.includes("บันทึกการตั้งค่า");
-    });
+    const headerButtons = Array.from(
+      page.container.querySelectorAll("#settingsPageHeader button"),
+    );
+    const saveButton = headerButtons[2] ?? null;
 
     expect(saveButton).not.toBeNull();
 

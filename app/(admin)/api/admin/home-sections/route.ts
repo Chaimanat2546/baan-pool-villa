@@ -408,8 +408,11 @@ export async function GET(request: Request) {
     return Response.json({
       sections: (data as HomeSectionRow[]).map(mapHomeSectionRow),
     });
-  } catch {
-    return jsonError("Invalid home section data.", 403);
+  } catch (error) {
+    return jsonError("Invalid home section data.", 500, {
+      details:
+        error instanceof Error ? error.message : "Unable to map home section row.",
+    });
   }
 }
 

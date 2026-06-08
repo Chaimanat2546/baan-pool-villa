@@ -16,7 +16,7 @@ export interface SearchPageInitialMeta {
   catalogComplete: boolean;
   maxPrice: number;
   resultCount: number;
-  zones: Array<{ value: string; label: string }>;
+  zones: { value: string; label: string }[];
 }
 
 function isVillaSortKey(value: string | null): value is VillaSortKey {

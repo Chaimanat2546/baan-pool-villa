@@ -4,10 +4,10 @@ export type HomeSectionMode = "manual" | "near_sea" | "slice";
 
 export type HomeSectionFallbackMode = "none" | "fill_from_all" | "fill_near_sea";
 
-export type HomeSectionItemDraft = {
+export interface HomeSectionItemDraft {
   houseId: string;
   isActive: boolean;
-};
+}
 
 export type HomeSectionDraft = {
   slug: string;
@@ -24,11 +24,11 @@ export type HomeSectionDraft = {
   items: HomeSectionItemDraft[];
 };
 
-export type HomeSectionSaveItem = {
+export interface HomeSectionSaveItem {
   houseId: string;
   position: number;
   isActive: boolean;
-};
+}
 
 export type HomeSectionSavePayload = {
   slug: string;
