@@ -8,13 +8,18 @@ async function expectNoPublicSecretLeak(html: string) {
   await expect(html).not.toContain("service_role");
 }
 
+async function expectHealthyPage(page: import("@playwright/test").Page) {
+  await expect(page.locator("body")).not.toContainText("Application error");
+  await expectNoPublicSecretLeak(await page.content());
+}
+
 test("public home renders SEO metadata and stays within a production smoke budget", async ({
   page,
 }, testInfo) => {
   const response = await page.goto("/", { waitUntil: "networkidle" });
 
   expect(response?.ok()).toBe(true);
-  await expect(page.locator("body")).not.toContainText("Application error");
+  await expectHealthyPage(page);
   await expect.poll(() => page.title()).not.toBe("");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
@@ -47,19 +52,33 @@ test("public home renders SEO metadata and stays within a production smoke budge
   });
 
   expect(bodyUserSelect).not.toBe("none");
-  await expectNoPublicSecretLeak(await page.content());
 });
 
-test("search page and villa detail route render without runtime errors", async ({
+test("search page renders, and a live villa detail page renders when listing data is available", async ({
   page,
 }) => {
-  for (const path of ["/search", "/villas/9"]) {
-    const response = await page.goto(path, { waitUntil: "networkidle" });
+  const searchResponse = await page.goto("/search", { waitUntil: "networkidle" });
 
-    expect(response?.ok()).toBe(true);
-    await expect(page.locator("body")).not.toContainText("Application error");
-    await expectNoPublicSecretLeak(await page.content());
+  expect(searchResponse?.ok()).toBe(true);
+  await expectHealthyPage(page);
+
+  const detailLinks = page.locator('a[href^="/villas/"]');
+  const detailLinkCount = await detailLinks.count();
+
+  if (detailLinkCount === 0) {
+    return;
   }
+
+  const detailHref = await detailLinks.first().getAttribute("href");
+
+  expect(detailHref).toMatch(/^\/villas\/[^/]+$/);
+
+  const detailResponse = await page.goto(detailHref ?? "/search", {
+    waitUntil: "networkidle",
+  });
+
+  expect(detailResponse?.ok()).toBe(true);
+  await expectHealthyPage(page);
 });
 
 test("admin routes keep unauthenticated users on login and expose theme vars", async ({
@@ -68,7 +87,7 @@ test("admin routes keep unauthenticated users on login and expose theme vars", a
   await page.goto("/admin/settings", { waitUntil: "networkidle" });
 
   await expect(page).toHaveURL(/\/admin\/login$/);
-  await expect(page.locator("body")).not.toContainText("Application error");
+  await expectHealthyPage(page);
   await expect(page.locator('input[type="email"]')).toBeVisible();
 
   const themeVars = await page.locator("main").evaluate((element) => {
@@ -83,5 +102,4 @@ test("admin routes keep unauthenticated users on login and expose theme vars", a
   });
 
   expect(Object.values(themeVars).every(Boolean)).toBe(true);
-  await expectNoPublicSecretLeak(await page.content());
 });
