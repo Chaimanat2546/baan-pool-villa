@@ -84,7 +84,10 @@ function toHomeSectionDraft(section: AdminSectionDraft): HomeSectionDraft {
     ctaEnabled: section.ctaEnabled,
     ctaLabel: section.ctaEnabled ? "ดูเพิ่มเติม" : section.ctaLabel,
     ctaHref: section.ctaEnabled ? "/search" : section.ctaHref,
-    items: section.items.map((item) => ({ houseId: item.houseId })),
+    items: section.items.map((item) => ({
+      houseId: item.houseId,
+      isActive: item.isActive ?? true,
+    })),
   };
 }
 
@@ -151,7 +154,7 @@ function parseManualIds(value: string) {
     .split(/[\s,;]+/)
     .map((houseId) => houseId.trim())
     .filter(Boolean)
-    .map((houseId) => ({ houseId }));
+    .map((houseId) => ({ houseId, isActive: true }));
 }
 
 function extractErrors(payload: unknown, fallback: string): string[] {
