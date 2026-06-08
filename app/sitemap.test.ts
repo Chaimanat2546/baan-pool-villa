@@ -120,10 +120,36 @@ describe("sitemap", () => {
     await expect(sitemap()).rejects.toThrow("villa catalog offline");
   });
 
-  it("rejects instead of returning a partial sitemap when guide routes cannot load", async () => {
-    fetchHouseListingsMock.mockResolvedValue([]);
+  it("returns a partial sitemap when guide routes cannot load", async () => {
+    fetchHouseListingsMock.mockResolvedValue([
+      {
+        amenities: [],
+        bathrooms: 2,
+        bedrooms: 3,
+        coverImage: "https://example.com/villa.jpg",
+        distanceToSea: "500m",
+        id: "101",
+        people: 8,
+        poolType: "private",
+        price: 9000,
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+    ]);
     getPublishedGuidesMock.mockRejectedValue(new Error("guide CMS offline"));
 
-    await expect(sitemap()).rejects.toThrow("guide CMS offline");
+    const routes = await sitemap();
+
+    expect(routes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ url: "https://example.com/" }),
+        expect.objectContaining({ url: "https://example.com/search" }),
+        expect.objectContaining({ url: "https://example.com/guides" }),
+        expect.objectContaining({ url: "https://example.com/villas/101" }),
+      ]),
+    );
+    expect(routes.some((route) => route.url.startsWith("https://example.com/guides/"))).toBe(
+      false,
+    );
   });
 });
