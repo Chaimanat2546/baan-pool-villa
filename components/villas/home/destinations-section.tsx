@@ -1,7 +1,6 @@
 import Image from "next/image";
 
 import { SectionHeader } from "./section-header";
-import { MockBadge } from "./shared";
 
 const destinations = [
   {
@@ -59,7 +58,6 @@ export function DestinationsSection({ villas }: DestinationsSectionProps) {
               <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-white/15 p-6 backdrop-blur">
                 <div className="flex items-center gap-2">
                   <h3 className="text-2xl font-black">{destination.title}</h3>
-                  <MockBadge />
                 </div>
                 <p className="mt-3 text-sm leading-6 text-[var(--site-on-primary)] opacity-90">{destination.body}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
