@@ -719,14 +719,12 @@ export async function PUT(request: Request) {
     historyResult.recordedAssets,
   );
 
-  if (historyUpdateError) {
-    return adminSupabaseErrorResponse(
-      historyUpdateError,
-      "Unable to mark previous site asset uploads inactive.",
-    );
-  }
-
   const warnings = [
+    ...(historyUpdateError
+      ? [
+          `Unable to mark previous site asset uploads inactive: ${historyUpdateError.message ?? "Please refresh the page and check upload state manually."}`,
+        ]
+      : []),
     ...(uploadedAssets.length > 0
       ? await cleanupRetainedAssets(admin.supabase)
       : []),

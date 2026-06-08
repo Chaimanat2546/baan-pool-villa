@@ -31,7 +31,9 @@ export function makeJsonResponse({
 export function makeFetchMock(routes: FetchRoute[]) {
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const requestUrl = input instanceof Request ? input.url : String(input);
-    const requestMethod = init?.method ?? "GET";
+    const requestMethod = input instanceof Request
+      ? input.method
+      : init?.method ?? "GET";
     const route = routes.find((candidate) => {
       return (
         candidate.url === requestUrl &&
@@ -55,6 +57,10 @@ export function makeFetchMock(routes: FetchRoute[]) {
 export async function flushEffects() {
   await Promise.resolve();
   await Promise.resolve();
+  if (vi.isFakeTimers()) {
+    return;
+  }
+
   await new Promise((resolve) => {
     setTimeout(resolve, 0);
   });

@@ -36,7 +36,7 @@ const getCachedSiteSettings = unstable_cache(
 
       if (!withoutPageSeoError && withoutPageSeoData) {
         return {
-          degraded: false,
+          degraded: true,
           settings: normalizeSiteSettingsRow(withoutPageSeoData as SiteSettingsRow),
           source: "config",
         };
@@ -50,7 +50,7 @@ const getCachedSiteSettings = unstable_cache(
 
       if (!withoutTikTokError && withoutTikTokData) {
         return {
-          degraded: false,
+          degraded: true,
           settings: normalizeSiteSettingsRow(withoutTikTokData as SiteSettingsRow),
           source: "config",
         };
@@ -64,7 +64,7 @@ const getCachedSiteSettings = unstable_cache(
 
       if (!contactError && contactData) {
         return {
-          degraded: false,
+          degraded: true,
           settings: normalizeSiteSettingsRow(contactData as SiteSettingsRow),
           source: "config",
         };

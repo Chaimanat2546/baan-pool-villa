@@ -1311,7 +1311,7 @@ export function AdminGuidesPage() {
       return safeGuides;
     });
     } catch {
-      setErrors(extractErrors(null, "à¸¥à¸šà¸šà¸—à¸„à¸§à¸²à¸¡à¹„à¸¡à¹ˆà¹„à¸”à¹‰"));
+      setErrors(extractErrors(null, "ลบบทความไม่ได้"));
       return;
     }
     setNotice("ลบบทความแล้ว");

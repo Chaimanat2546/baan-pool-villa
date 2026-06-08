@@ -1,7 +1,7 @@
 "use client";
 
 import { SiTiktok } from "react-icons/si";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { SiteTikTokSettings } from "@/lib/site-settings/types";
 import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
@@ -55,8 +55,26 @@ function getVisibleVideos(tiktok: TikTokSectionProps["tiktok"]) {
  * @returns A section element containing the TikTok header, a scrollable list of TikTok cards, and an optional "Follow us on TikTok" link, or `null` when no videos are available.
  */
 export function TikTokSection({ tiktok }: TikTokSectionProps) {
-  const videos = getVisibleVideos(tiktok);
-  const accountUrl = tiktok.accountUrl.trim();
+  const videos = useMemo(() => getVisibleVideos(tiktok), [tiktok]);
+  const accountUrl = useMemo(() => {
+    const rawAccountUrl = tiktok.accountUrl.trim();
+
+    if (!rawAccountUrl) {
+      return null;
+    }
+
+    try {
+      const parsedUrl = new URL(rawAccountUrl);
+
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        return null;
+      }
+
+      return parsedUrl.href;
+    } catch {
+      return null;
+    }
+  }, [tiktok.accountUrl]);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   if (videos.length === 0) {

@@ -29,7 +29,9 @@ export function BookingSidebar({
     return index - firstWeekday + 1;
   });
   const checkIn = findFact(content.facts, "เช็คอิน");
-  const checkOut = findFact(content.facts, "เช็คเอาท์");
+  const checkOut =
+    findFact(content.facts, "เช็คเอ้า") ??
+    findFact(content.facts, "เช็คเอาท์");
   const contactLinks = buildContactLinks(settings.contact);
   const phoneContacts = settings.contact.phoneContacts.map(withPhoneHref);
 

@@ -9,6 +9,7 @@ const REFRESH_CONFIRMATION_VALUE = "external-villa-cache";
 const REFRESH_SCOPE_HEADER = "x-admin-refresh-scope";
 const DEFAULT_REFRESH_SCOPE: ExternalVillaCacheRefreshScope = "tags-only";
 const REFRESH_COOLDOWN_MS = 60_000;
+const REFRESH_COOLDOWN_SECONDS = Math.ceil(REFRESH_COOLDOWN_MS / 1000);
 
 let lastRefreshRequestedAt = 0;
 
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
   return Response.json({
     refreshed: true,
     scope,
+    retryAfterSeconds: REFRESH_COOLDOWN_SECONDS,
     message: "External villa data cache refresh requested.",
   });
 }

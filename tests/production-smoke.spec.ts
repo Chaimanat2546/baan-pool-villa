@@ -40,8 +40,13 @@ test("public home renders SEO metadata and stays within a production smoke budge
   await expect(page.getByRole("button", { name: /ค้นหาบ้านพัก/i }).first()).toBeVisible();
 
   const mobileSearch = page.locator('[data-home-mobile-search="true"]');
+  const isMobileProject =
+    testInfo.project.use?.isMobile ??
+    (typeof testInfo.project.use?.viewport?.width === "number"
+      ? testInfo.project.use.viewport.width <= 768
+      : false);
 
-  if (testInfo.project.name === "mobile-chromium") {
+  if (isMobileProject) {
     await expect(mobileSearch).toBeVisible();
   } else {
     await expect(mobileSearch).not.toBeVisible();

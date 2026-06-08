@@ -9,8 +9,10 @@ describe("production smoke runner", () => {
       "utf8",
     );
 
-    expect(script).toContain('const smokeProjects = ["chromium", "mobile-chromium"]');
-    expect(script).toContain("smokeProjects.flatMap");
+    expect(script).toMatch(
+      /const\s+smokeProjects\s*=\s*\[\s*"chromium"\s*,\s*"mobile-chromium"\s*\]/,
+    );
+    expect(script).toMatch(/smokeProjects\.flatMap/);
   });
 
   it("keeps Playwright from collecting Vitest support tests", async () => {

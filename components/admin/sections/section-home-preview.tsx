@@ -109,7 +109,7 @@ function VillaPreviewTile({ item }: { item: PreviewVillaItem }) {
             {item.meta}
           </p>
           <p className="mt-1 text-[11px] leading-4 text-[var(--site-muted)]">
-            Prototype only
+            ตัวอย่างการแสดงผลเท่านั้น
           </p>
         </div>
         <span className="absolute left-2 top-2 rounded bg-[var(--site-surface)]/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-[var(--site-text)] shadow-sm">
