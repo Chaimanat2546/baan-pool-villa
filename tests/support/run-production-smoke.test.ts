@@ -12,4 +12,13 @@ describe("production smoke runner", () => {
     expect(script).toContain('const smokeProjects = ["chromium", "mobile-chromium"]');
     expect(script).toContain("smokeProjects.flatMap");
   });
+
+  it("keeps Playwright from collecting Vitest support tests", async () => {
+    const config = await readFile(
+      path.join(process.cwd(), "playwright.config.ts"),
+      "utf8",
+    );
+
+    expect(config).toContain('testMatch: "**/*.spec.ts"');
+  });
 });
