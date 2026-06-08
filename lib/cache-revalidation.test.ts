@@ -74,6 +74,9 @@ describe("cache revalidation", () => {
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaDetails, {
       expire: 0,
     });
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaImages, {
+      expire: 0,
+    });
     expect(revalidatePathMock).toHaveBeenCalledWith("/");
     expect(revalidatePathMock).toHaveBeenCalledWith("/search");
     expect(revalidatePathMock).toHaveBeenCalledWith("/sitemap.xml");
