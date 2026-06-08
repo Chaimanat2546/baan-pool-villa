@@ -10,7 +10,7 @@ async function expectNoPublicSecretLeak(html: string) {
 
 test("public home renders SEO metadata and stays within a production smoke budget", async ({
   page,
-}) => {
+}, testInfo) => {
   const response = await page.goto("/", { waitUntil: "networkidle" });
 
   expect(response?.ok()).toBe(true);
@@ -32,6 +32,21 @@ test("public home renders SEO metadata and stays within a production smoke budge
 
   expect(navigationDuration).toBeGreaterThan(0);
   expect(navigationDuration).toBeLessThan(maxNavigationDurationMs);
+  await expect(page.getByRole("button", { name: /ค้นหาบ้านพัก/i }).first()).toBeVisible();
+
+  const mobileSearch = page.locator('[data-home-mobile-search="true"]');
+
+  if (testInfo.project.name === "mobile-chromium") {
+    await expect(mobileSearch).toBeVisible();
+  } else {
+    await expect(mobileSearch).not.toBeVisible();
+  }
+
+  const bodyUserSelect = await page.locator("body").evaluate((element) => {
+    return getComputedStyle(element).userSelect;
+  });
+
+  expect(bodyUserSelect).not.toBe("none");
   await expectNoPublicSecretLeak(await page.content());
 });
 

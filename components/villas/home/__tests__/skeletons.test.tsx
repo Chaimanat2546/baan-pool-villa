@@ -9,6 +9,7 @@ describe("home skeletons", () => {
     const markup = renderToStaticMarkup(<LoadingSkeleton />);
 
     expect(markup).toContain('data-hero-section-skeleton="true"');
+    expect(markup).toContain('data-home-mobile-search-skeleton="true"');
     expect(markup).toContain('data-villa-rail-skeleton="true"');
   });
 
@@ -16,6 +17,7 @@ describe("home skeletons", () => {
     const markup = renderToStaticMarkup(<HomeLoading />);
 
     expect(markup).toContain('data-hero-section-skeleton="true"');
+    expect(markup).toContain('data-home-mobile-search-skeleton="true"');
     expect(markup).toContain('data-villa-rail-skeleton="true"');
   });
 
