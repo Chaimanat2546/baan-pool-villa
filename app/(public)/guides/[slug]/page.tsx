@@ -25,7 +25,13 @@ interface GuidePageProps {
 }
 
 export async function generateStaticParams() {
-  const guides = await getPublishedGuides();
+  let guides: GuidePost[] = [];
+
+  try {
+    guides = await getPublishedGuides();
+  } catch (error) {
+    console.error("Unable to prebuild guide detail pages", error);
+  }
 
   return guides.map((guide) => ({ slug: guide.slug }));
 }
