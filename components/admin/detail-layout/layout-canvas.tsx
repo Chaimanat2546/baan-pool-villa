@@ -169,14 +169,6 @@ function getWideGridClass(row: DetailLayoutV2DraftWideRow): string {
     return "grid-cols-1";
   }
 
-  if (row.ratio === "60/40") {
-    return "grid-cols-1 md:grid-cols-[minmax(0,6fr)_minmax(0,4fr)]";
-  }
-
-  if (row.ratio === "40/60") {
-    return "grid-cols-1 md:grid-cols-[minmax(0,4fr)_minmax(0,6fr)]";
-  }
-
   return "grid-cols-1 md:grid-cols-2";
 }
 

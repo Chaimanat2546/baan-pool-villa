@@ -14,7 +14,7 @@ import {
   DEFAULT_DETAIL_LAYOUT,
   DEFAULT_DETAIL_LAYOUT_V2,
 } from "../defaults";
-import type { DetailLayoutConfig, DetailLayoutV2Config } from "../types";
+import type { DetailLayoutConfig } from "../types";
 import { validateDetailLayout } from "../validation";
 
 vi.mock("server-only", () => ({}));
@@ -133,7 +133,7 @@ function customLayout(): DetailLayoutConfig {
   };
 }
 
-function customLayoutV2(): DetailLayoutV2Config {
+function customLayoutV2() {
   return {
     ...DEFAULT_DETAIL_LAYOUT_V2,
     mainSplit: {

@@ -33,9 +33,9 @@ describe("detail layout V2 helpers", () => {
     expect(draft.lockedBottom[0].type).toBe("recommended_villas");
   });
 
-  it("adds and resizes wide rows with the allowed internal ratios", () => {
+  it("adds and resizes wide rows with the supported internal ratio", () => {
     const draft = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2);
-    const added = addDetailLayoutV2WideRow(draft, 2, "40/60");
+    const added = addDetailLayoutV2WideRow(draft, 2, "50/50");
     const addedRow = added.mainSplit.wideRows.at(-1);
 
     expect(addedRow).toMatchObject({

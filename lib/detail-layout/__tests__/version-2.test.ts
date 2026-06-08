@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_DETAIL_LAYOUT, DEFAULT_DETAIL_LAYOUT_V2 } from "../defaults";
+import {
+  DEFAULT_DETAIL_LAYOUT,
+  DEFAULT_DETAIL_LAYOUT_V2,
+  DETAIL_LAYOUT_WIDE_ROW_RATIOS,
+} from "../defaults";
 import {
   cloneDetailLayoutV2,
   convertDetailLayoutV1ToV2,
@@ -44,6 +48,10 @@ describe("convertDetailLayoutV1ToV2", () => {
 });
 
 describe("validateDetailLayoutV2", () => {
+  it("states that wide rows support only 50/50 as the current internal ratio", () => {
+    expect(DETAIL_LAYOUT_WIDE_ROW_RATIOS).toEqual(["50/50"]);
+  });
+
   it("accepts a valid V2 layout without sharing references", () => {
     const result = validateDetailLayoutV2(DEFAULT_DETAIL_LAYOUT_V2);
 
