@@ -1,56 +1,12 @@
-import { assertHomeConfigAdmin, getBearerToken, jsonError } from "@/lib/admin/home-config-auth";
+import {
+  adminSupabaseErrorResponse,
+  requireHomeConfigAdmin,
+} from "@/lib/admin/route-helpers";
+import type { HomeConfigSupabaseClient } from "@/lib/admin/route-helpers";
 import { GUIDE_ASSETS_BUCKET } from "@/lib/guides/defaults";
 import { validateGuideUploadMetadata } from "@/lib/guides/validation";
 
-interface SupabaseLikeError {
-  message?: string;
-  code?: string;
-  details?: string;
-  hint?: string;
-}
-
-type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
-type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
 type GuideAssetRole = "cover" | "inline";
-
-function supabaseErrorResponse(
-  error: SupabaseLikeError | null | undefined,
-  fallbackMessage: string,
-) {
-  return jsonError(error?.message ?? fallbackMessage, 403, {
-    code: error?.code,
-    details: error?.details,
-    hint: error?.hint,
-  });
-}
-
-async function requireAdmin(request: Request): Promise<
-  | {
-      ok: true;
-      supabase: HomeConfigSupabaseClient;
-    }
-  | {
-      ok: false;
-      response: Response;
-    }
-> {
-  const token = getBearerToken(request);
-
-  if (!token) {
-    return { ok: false, response: jsonError("Missing bearer token.", 401) };
-  }
-
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return {
-      ok: false,
-      response: jsonError(adminCheck.message, adminCheck.status),
-    };
-  }
-
-  return { ok: true, supabase: adminCheck.supabase };
-}
 
 function readStringField(formData: FormData, fieldName: string): string {
   const value = formData.get(fieldName);
@@ -107,7 +63,7 @@ async function removeUploadedAsset(
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -146,7 +102,7 @@ export async function POST(request: Request) {
     });
 
   if (uploadError) {
-    return supabaseErrorResponse(uploadError, "Unable to upload guide image.");
+    return adminSupabaseErrorResponse(uploadError, "Unable to upload guide image.");
   }
 
   const { data } = admin.supabase.storage
@@ -169,7 +125,7 @@ export async function POST(request: Request) {
   if (historyError) {
     await removeUploadedAsset(admin.supabase, path);
 
-    return supabaseErrorResponse(
+    return adminSupabaseErrorResponse(
       historyError,
       "Unable to record guide image upload history.",
     );

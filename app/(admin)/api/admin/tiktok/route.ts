@@ -1,4 +1,11 @@
-import { assertHomeConfigAdmin, getBearerToken, jsonError } from "@/lib/admin/home-config-auth";
+import {
+  adminSupabaseErrorResponse,
+  requireHomeConfigAdmin,
+} from "@/lib/admin/route-helpers";
+import type {
+  HomeConfigSupabaseClient,
+  SupabaseLikeError,
+} from "@/lib/admin/route-helpers";
 import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
 import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
 import type { SiteSettingsRow } from "@/lib/site-settings/types";
@@ -16,15 +23,6 @@ const TIKTOK_ACCOUNT_URL_NOT_STRING_ERROR = "ค่าฟิลด์ tiktokAcco
 const TIKTOK_VIDEO_URLS_NOT_STRING_ERROR = "ค่าฟิลด์ tiktokVideoUrls ต้องเป็นข้อความ";
 const TIKTOK_ACCOUNT_URL_MULTIPLE_VALUES_ERROR = "ฟิลด์ tiktokAccountUrl ต้องระบุได้เพียงหนึ่งค่า";
 const TIKTOK_VIDEO_URLS_MULTIPLE_VALUES_ERROR = "ฟิลด์ tiktokVideoUrls ต้องระบุได้เพียงหนึ่งค่า";
-
-interface SupabaseLikeError {
-  message?: string;
-  code?: string;
-  details?: string;
-  hint?: string;
-  status?: number;
-  statusCode?: number;
-}
 
 interface TikTokSettingsUpdatePayload {
   tiktok_account_url: string;
@@ -46,8 +44,6 @@ interface StringArrayFieldResult {
   errors: string[];
 }
 
-type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
-type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
 type AdminTikTokSettingsSource = "config" | "fallback" | "none";
 
 /**
@@ -88,79 +84,6 @@ function isNoRowsError(error: SupabaseLikeError | null | undefined): boolean {
     message.includes("contains 0 rows") ||
     message.includes("result contains 0 rows")
   );
-}
-
-/**
- * Builds a standardized JSON error response using a Supabase-style error or a fallback message.
- *
- * @param error - Optional Supabase-like error containing `message`, `code`, `details`, and `hint`
- * @param fallbackMessage - Message to use when `error.message` is not provided
- * @returns A JSON error response with the selected message, HTTP status 403, and `code`, `details`, and `hint` populated from the Supabase-like error when available
- */
-function supabaseErrorResponse(
-  error: SupabaseLikeError | null | undefined,
-  fallbackMessage: string,
-) {
-  return jsonError(error?.message ?? fallbackMessage, getSupabaseErrorStatus(error), {
-    code: error?.code,
-    details: error?.details,
-    hint: error?.hint,
-  });
-}
-
-function getSupabaseErrorStatus(error: SupabaseLikeError | null | undefined): number {
-  const explicitStatus = error?.status ?? error?.statusCode;
-
-  if (typeof explicitStatus === "number" && explicitStatus >= 400 && explicitStatus <= 599) {
-    return explicitStatus;
-  }
-
-  if (error?.code === "42501") {
-    return 403;
-  }
-
-  if (error?.code === "PGRST301") {
-    return 401;
-  }
-
-  if (isNoRowsError(error)) {
-    return 404;
-  }
-
-  return 500;
-}
-
-/**
- * Authenticate the incoming request and produce either an authorized Supabase client for admin operations or an HTTP error response.
- *
- * @returns An object with `ok: true` and `supabase` when authentication and admin check succeed, or `ok: false` and a `Response` containing the appropriate HTTP error when authentication or authorization fails.
- */
-async function requireAdmin(request: Request): Promise<
-  | {
-      ok: true;
-      supabase: HomeConfigSupabaseClient;
-    }
-  | {
-      ok: false;
-      response: Response;
-    }
-> {
-  const token = getBearerToken(request);
-
-  if (!token) {
-    return { ok: false, response: jsonError("Missing bearer token.", 401) };
-  }
-
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return {
-      ok: false,
-      response: jsonError(adminCheck.message, adminCheck.status),
-    };
-  }
-
-  return { ok: true, supabase: adminCheck.supabase };
 }
 
 /**
@@ -318,7 +241,7 @@ async function loadAdminTikTokSettings(supabase: HomeConfigSupabaseClient): Prom
  *  - `source`: `"config"` if settings were loaded from the `site_settings` row, `"fallback"` if a fallback row was used
  */
 export async function GET(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -327,7 +250,7 @@ export async function GET(request: Request) {
   const { data, error, source } = await loadAdminTikTokSettings(admin.supabase);
 
   if (error) {
-    return supabaseErrorResponse(error, "Unable to load TikTok settings.");
+    return adminSupabaseErrorResponse(error, "Unable to load TikTok settings.");
   }
 
   return Response.json({
@@ -343,10 +266,10 @@ export async function GET(request: Request) {
  * - Success: `{ settings: <tiktok-settings> }` with the saved TikTok settings.
  * - Validation error: status `400` and `{ errors: string[] }` for malformed input.
  * - Authentication/authorization failure: the JSON error response produced by the auth helper.
- * - Supabase failure: a JSON error response (status `403`) describing the persistence error.
+ * - Supabase failure: a JSON error response describing the persistence error.
  */
 export async function PUT(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -398,7 +321,7 @@ export async function PUT(request: Request) {
   const { data, error } = saveResult;
 
   if (error) {
-    return supabaseErrorResponse(error, "Unable to save TikTok settings.");
+    return adminSupabaseErrorResponse(error, "Unable to save TikTok settings.");
   }
 
   revalidateSiteSettingsCache();

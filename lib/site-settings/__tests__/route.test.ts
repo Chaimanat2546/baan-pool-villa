@@ -965,7 +965,7 @@ describe("admin site settings route", () => {
     );
     const response = await PUT(putRequest(formData));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       error: "Storage rejected upload",
       code: "storage_error",
@@ -1127,7 +1127,7 @@ describe("admin site settings route", () => {
     );
     const response = await PUT(putRequest(formData));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       error: "Save failed",
       code: "23514",

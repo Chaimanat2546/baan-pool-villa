@@ -352,7 +352,7 @@ describe("admin detail layout route", () => {
     );
     const response = await PUT(putRequest({ layout: DEFAULT_DETAIL_LAYOUT }));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       error: "Save failed",
       code: "23514",
@@ -607,7 +607,7 @@ describe("admin detail layout route", () => {
     );
     const response = await PUT(putRequest({ layout: DEFAULT_DETAIL_LAYOUT }));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       error: "Insert failed",
       code: "23502",

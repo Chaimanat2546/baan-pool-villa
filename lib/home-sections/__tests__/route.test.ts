@@ -4,7 +4,7 @@ import { revalidateHomeSectionsCache } from "@/lib/cache-revalidation";
 import {
   assertHomeConfigAdmin,
   getBearerToken,
-} from "../../../app/(admin)/api/admin/home-sections/auth";
+} from "@/lib/admin/home-config-auth";
 
 vi.mock("server-only", () => ({}));
 
@@ -12,7 +12,7 @@ vi.mock("@/lib/cache-revalidation", () => ({
   revalidateHomeSectionsCache: vi.fn(),
 }));
 
-vi.mock("../../../app/(admin)/api/admin/home-sections/auth", () => ({
+vi.mock("@/lib/admin/home-config-auth", () => ({
   assertHomeConfigAdmin: vi.fn(),
   getBearerToken: vi.fn(),
   jsonError: vi.fn((message: string, status: number) =>

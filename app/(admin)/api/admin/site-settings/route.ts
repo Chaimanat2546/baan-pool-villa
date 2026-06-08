@@ -1,4 +1,11 @@
-import { assertHomeConfigAdmin, getBearerToken, jsonError } from "@/lib/admin/home-config-auth";
+import {
+  adminSupabaseErrorResponse,
+  requireHomeConfigAdmin,
+} from "@/lib/admin/route-helpers";
+import type {
+  HomeConfigSupabaseClient,
+  SupabaseLikeError,
+} from "@/lib/admin/route-helpers";
 import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
 import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
 import type {
@@ -28,13 +35,6 @@ const ASSET_UPLOAD_FIELDS: { assetType: SiteAssetType; fieldName: string }[] = [
   { assetType: "hero", fieldName: "hero" },
 ];
 
-interface SupabaseLikeError {
-  message?: string;
-  code?: string;
-  details?: string;
-  hint?: string;
-}
-
 interface UploadedAsset {
   assetType: SiteAssetType;
   path: string;
@@ -53,9 +53,6 @@ interface SiteAssetUploadRow {
   is_current: unknown;
   created_at: unknown;
 }
-
-type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
-type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
 
 /**
  * Determines whether a Supabase-style error likely indicates a missing column or schema cache issue.
@@ -141,27 +138,6 @@ async function loadAdminSiteSettings(
 }
 
 /**
- * Builds a standardized JSON error response for Supabase-related failures.
- *
- * @param error - Supabase-like error whose `message`, `code`, `details`, and `hint` will be included when present
- * @param fallbackMessage - Message used when `error.message` is missing
- * @param warning - Optional warning text to include in the response metadata
- * @returns The JSON error response object with HTTP status 403 and metadata containing `code`, `details`, `hint`, and optional `warning`
- */
-function supabaseErrorResponse(
-  error: SupabaseLikeError | null | undefined,
-  fallbackMessage: string,
-  warning?: string,
-) {
-  return jsonError(error?.message ?? fallbackMessage, 403, {
-    code: error?.code,
-    details: error?.details,
-    hint: error?.hint,
-    warning,
-  });
-}
-
-/**
  * Produce a SiteSettingsRow by merging saved values into an existing row, with saved values taking precedence.
  *
  * @param existingRow - The current persisted settings row, or `null` if none exists
@@ -176,41 +152,6 @@ function buildSavedSettingsRow(
     ...(existingRow ?? {}),
     ...savePayload,
   } as SiteSettingsRow;
-}
-
-/**
- * Verifies the request is from an authorized admin and provides a Supabase client for admin operations.
- *
- * If the request lacks a bearer token or the token does not authorize an admin, returns a JSON error Response with an appropriate HTTP status. If authorized, returns an object containing a Supabase client scoped for admin actions.
- *
- * @returns `{ ok: true, supabase }` when authorization succeeds; `{ ok: false, response }` where `response` is a JSON error Response (e.g., 401 for missing token or the status/message from the admin check) otherwise.
- */
-async function requireAdmin(request: Request): Promise<
-  | {
-      ok: true;
-      supabase: HomeConfigSupabaseClient;
-    }
-  | {
-      ok: false;
-      response: Response;
-    }
-> {
-  const token = getBearerToken(request);
-
-  if (!token) {
-    return { ok: false, response: jsonError("Missing bearer token.", 401) };
-  }
-
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return {
-      ok: false,
-      response: jsonError(adminCheck.message, adminCheck.status),
-    };
-  }
-
-  return { ok: true, supabase: adminCheck.supabase };
 }
 
 function readStringField(formData: FormData, fieldName: string): string {
@@ -568,7 +509,7 @@ async function cleanupRetainedAssets(
  * @returns A Response whose body is JSON `{ settings: <normalized site settings or null> }` on success, or a JSON error response on failure.
  */
 export async function GET(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -577,7 +518,7 @@ export async function GET(request: Request) {
   const { data, error } = await loadAdminSiteSettings(admin.supabase);
 
   if (error) {
-    return supabaseErrorResponse(error, "Unable to load site settings.");
+    return adminSupabaseErrorResponse(error, "Unable to load site settings.");
   }
 
   return Response.json({
@@ -591,7 +532,7 @@ export async function GET(request: Request) {
  * @returns On success, an object with `settings` containing the saved site settings and `warnings` as an array of cleanup warnings (may be empty). On failure, an error response describing authorization, validation, upload, or persistence failures.
  */
 export async function PUT(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -655,7 +596,7 @@ export async function PUT(request: Request) {
   );
 
   if (loadError) {
-    return supabaseErrorResponse(loadError, "Unable to load site settings.");
+    return adminSupabaseErrorResponse(loadError, "Unable to load site settings.");
   }
 
   const currentSettings = normalizeSiteSettingsRow(
@@ -669,10 +610,10 @@ export async function PUT(request: Request) {
     if (result.error || !result.asset) {
       const cleanupWarnings = await removeUploadedAssets(admin.supabase, uploadedAssets);
 
-      return supabaseErrorResponse(
+      return adminSupabaseErrorResponse(
         result.error,
         `Unable to upload ${upload.assetType} image.`,
-        cleanupWarnings.join("; ") || undefined,
+        { warning: cleanupWarnings.join("; ") || undefined },
       );
     }
 
@@ -689,10 +630,10 @@ export async function PUT(request: Request) {
       ...(await removeUploadedAssets(admin.supabase, uploadedAssets)),
     ];
 
-    return supabaseErrorResponse(
+    return adminSupabaseErrorResponse(
       historyResult.error,
       "Unable to record site asset upload history.",
-      cleanupWarnings.join("; ") || undefined,
+      { warning: cleanupWarnings.join("; ") || undefined },
     );
   }
 
@@ -731,10 +672,10 @@ export async function PUT(request: Request) {
       ...(await removeUploadedAssets(admin.supabase, uploadedAssets)),
     ];
 
-    return supabaseErrorResponse(
+    return adminSupabaseErrorResponse(
       saveError,
       "Unable to save site settings.",
-      cleanupWarnings.join("; ") || undefined,
+      { warning: cleanupWarnings.join("; ") || undefined },
     );
   }
 
@@ -744,7 +685,7 @@ export async function PUT(request: Request) {
   );
 
   if (historyUpdateError) {
-    return supabaseErrorResponse(
+    return adminSupabaseErrorResponse(
       historyUpdateError,
       "Unable to mark previous site asset uploads inactive.",
     );
