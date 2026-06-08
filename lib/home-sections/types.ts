@@ -6,6 +6,7 @@ export type HomeSectionFallbackMode = "none" | "fill_from_all" | "fill_near_sea"
 
 export type HomeSectionItemDraft = {
   houseId: string;
+  isActive: boolean;
 };
 
 export type HomeSectionDraft = {
@@ -26,6 +27,7 @@ export type HomeSectionDraft = {
 export type HomeSectionSaveItem = {
   houseId: string;
   position: number;
+  isActive: boolean;
 };
 
 export type HomeSectionSavePayload = {

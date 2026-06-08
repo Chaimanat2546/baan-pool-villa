@@ -1,5 +1,6 @@
 import { CACHE_HEADERS } from "@/lib/cache-policy";
 import { fetchVillaDetail } from "@/lib/villas/server";
+import { publicApiErrorResponse } from "@/lib/api/errors";
 
 export async function GET(
   _request: Request,
@@ -20,11 +21,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    return Response.json(
-      {
-        error: error instanceof Error ? error.message : "Unable to load villa",
-      },
-      { status: 502 },
-    );
+    return publicApiErrorResponse("Unable to load villa", error);
   }
 }

@@ -4,6 +4,7 @@ import {
   isAllowedVillaImageUrl,
   normalizeDownloadImageUrl,
 } from "@/lib/villas/image-download";
+import { publicApiErrorResponse } from "@/lib/api/errors";
 import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
 import { fetchVillaDetail } from "@/lib/villas/server";
 
@@ -94,8 +95,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Unable to download villa image", error);
-
-    return Response.json({ error: "Unable to download image" }, { status: 502 });
+    return publicApiErrorResponse("Unable to download image", error);
   }
 }

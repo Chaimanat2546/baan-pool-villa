@@ -3,7 +3,6 @@ import type { VillaListing } from "@/lib/villas/types";
 
 export type AdminSectionItemDraft = HomeSectionDraft["items"][number] & {
   position?: number;
-  isActive?: boolean;
 };
 
 export type AdminSectionDraft = Omit<HomeSectionDraft, "items"> & {

@@ -302,7 +302,7 @@ function parseSectionsPayload(payload: unknown): ParsedSectionsPayload {
           if (!isRecord(item)) {
             errors.push(`${itemLabel} must be an object.`);
 
-            return { houseId: "" };
+            return { houseId: "", isActive: true };
           }
 
           validateOptionalPrimitiveFields(
@@ -317,6 +317,7 @@ function parseSectionsPayload(payload: unknown): ParsedSectionsPayload {
 
           return {
             houseId: readString(item, "houseId", itemLabel, errors),
+            isActive: typeof item.isActive === "boolean" ? item.isActive : true,
           };
         })
       : [];
@@ -370,7 +371,7 @@ function toRpcPayload(sections: HomeSectionSavePayload[]): RpcHomeSectionPayload
     items: section.items.map((item) => ({
       house_id: item.houseId,
       position: item.position,
-      is_active: true,
+      is_active: item.isActive,
     })),
   }));
 }

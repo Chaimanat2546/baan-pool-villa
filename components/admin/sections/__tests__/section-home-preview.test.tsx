@@ -21,7 +21,7 @@ const baseSection: AdminSectionDraft = {
   draftId: "draft-featured",
   fallbackMode: "fill_from_all",
   isActive: true,
-  items: [{ houseId: "105" }],
+  items: [{ houseId: "105", isActive: true }],
   limitCount: 6,
   mode: "manual",
   sliceOffset: 0,
