@@ -71,12 +71,8 @@ export async function POST(request: Request) {
   );
   const villas = await fetchHouseListings();
   const villasById = new Map(villas.map((villa) => [villa.id, villa]));
-  const valid = requestedIds.flatMap((houseId) => {
-    const villa = villasById.get(houseId);
-
-    return villa ? [villa] : [];
-  });
+  const validIds = requestedIds.filter((houseId) => villasById.has(houseId));
   const missingIds = requestedIds.filter((houseId) => !villasById.has(houseId));
 
-  return Response.json({ valid, missingIds, invalidIds });
+  return Response.json({ validIds, missingIds, invalidIds });
 }

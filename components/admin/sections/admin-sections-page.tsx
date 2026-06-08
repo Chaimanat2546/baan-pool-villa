@@ -244,7 +244,7 @@ function isAbortSignalAborted(signal: AbortSignal | undefined): boolean {
 /**
  * Admin interface for managing home-page sections.
  *
- * Provides a full-featured page that loads section drafts, lets administrators add, edit, reorder, delete, and preview sections (including manual house-ID preview/validation), and save changes back to the server.
+ * Provides a full-featured page that loads section drafts, lets administrators add, edit, reorder, delete, validate manual house IDs, and review a prototype-only homepage preview before saving changes back to the server.
  *
  * @returns The React element rendering the admin home-sections management page.
  */
@@ -310,7 +310,7 @@ export function AdminSectionsPage() {
       : null;
   const duplicateManualIds = activeManualStatus?.duplicateIds.length ?? 0;
   const invalidManualIds = activeManualStatus?.invalidIds.length ?? 0;
-  const isPreviewVerified =
+  const hasValidatedManualIds =
     activeSection?.mode === "manual" && activePreview !== null;
 
   const redirectToLogin = useCallback(() => {
@@ -1131,7 +1131,7 @@ export function AdminSectionsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-primary)]">
-                        Preview
+                        Prototype
                       </p>
                       <h3 className="mt-2 text-lg font-semibold text-[var(--site-text)]">
                         สรุปก่อนบันทึก
@@ -1184,9 +1184,9 @@ export function AdminSectionsPage() {
                           </dd>
                         </div>
                         <div className="flex items-start justify-between gap-4">
-                          <dt className="text-[var(--site-muted)]">สถานะพรีวิว</dt>
+                          <dt className="text-[var(--site-muted)]">สถานะเลขบ้าน</dt>
                           <dd className="text-right font-semibold text-[var(--site-text)]">
-                            {isPreviewVerified ? "เช็กบ้านแล้ว" : "รอเช็กข้อมูล"}
+                            {hasValidatedManualIds ? "ตรวจเลขบ้านแล้ว" : "รอตรวจเลขบ้าน"}
                           </dd>
                         </div>
                       </>
