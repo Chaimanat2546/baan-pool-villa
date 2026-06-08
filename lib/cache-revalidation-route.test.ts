@@ -24,10 +24,20 @@ const assertHomeConfigAdminMock = vi.mocked(assertHomeConfigAdmin);
 const getBearerTokenMock = vi.mocked(getBearerToken);
 const revalidateExternalVillaCacheMock = vi.mocked(revalidateExternalVillaCache);
 
-function postRequest() {
+function postRequest({
+  confirmed = false,
+  scope,
+}: {
+  confirmed?: boolean;
+  scope?: string;
+} = {}) {
   return new Request("https://example.com/api/admin/external-data/refresh", {
     headers: {
       authorization: "Bearer token",
+      ...(confirmed
+        ? { "x-admin-refresh-confirmation": "external-villa-cache" }
+        : {}),
+      ...(scope ? { "x-admin-refresh-scope": scope } : {}),
     },
     method: "POST",
   });
@@ -57,16 +67,83 @@ describe("admin external data refresh route", () => {
     expect(revalidateExternalVillaCacheMock).not.toHaveBeenCalled();
   });
 
-  it("revalidates external villa cache for authenticated admins", async () => {
+  it("revalidates only external villa tags by default for authenticated admins", async () => {
+    const { POST } = await import(
+      "../app/(admin)/api/admin/external-data/refresh/route"
+    );
+    const response = await POST(postRequest({ confirmed: true }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      refreshed: true,
+      scope: "tags-only",
+      retryAfterSeconds: 60,
+      message: "External villa data cache refresh requested.",
+    });
+    expect(revalidateExternalVillaCacheMock).toHaveBeenCalledWith("tags-only");
+  });
+
+  it("revalidates public villa paths only when full public scope is requested", async () => {
+    const { POST } = await import(
+      "../app/(admin)/api/admin/external-data/refresh/route"
+    );
+    const response = await POST(
+      postRequest({ confirmed: true, scope: "full-public" }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      refreshed: true,
+      scope: "full-public",
+      retryAfterSeconds: 60,
+      message: "External villa data cache refresh requested.",
+    });
+    expect(revalidateExternalVillaCacheMock).toHaveBeenCalledWith(
+      "full-public",
+    );
+  });
+
+  it("rejects unknown external villa refresh scopes", async () => {
+    const { POST } = await import(
+      "../app/(admin)/api/admin/external-data/refresh/route"
+    );
+    const response = await POST(
+      postRequest({ confirmed: true, scope: "everything" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Unsupported external villa cache refresh scope.",
+    });
+    expect(revalidateExternalVillaCacheMock).not.toHaveBeenCalled();
+  });
+
+  it("requires explicit confirmation before revalidating external villa cache", async () => {
     const { POST } = await import(
       "../app/(admin)/api/admin/external-data/refresh/route"
     );
     const response = await POST(postRequest());
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      refreshed: true,
-      message: "External villa data cache refresh requested.",
+      error: "External villa cache refresh requires confirmation.",
+    });
+    expect(revalidateExternalVillaCacheMock).not.toHaveBeenCalled();
+  });
+
+  it("rate limits repeated confirmed refresh requests", async () => {
+    const { POST } = await import(
+      "../app/(admin)/api/admin/external-data/refresh/route"
+    );
+
+    const firstResponse = await POST(postRequest({ confirmed: true }));
+    const secondResponse = await POST(postRequest({ confirmed: true }));
+
+    expect(firstResponse.status).toBe(200);
+    expect(secondResponse.status).toBe(429);
+    await expect(secondResponse.json()).resolves.toEqual({
+      error: "External villa cache refresh was requested recently.",
+      retryAfterSeconds: 60,
     });
     expect(revalidateExternalVillaCacheMock).toHaveBeenCalledTimes(1);
   });

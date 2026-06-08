@@ -146,13 +146,13 @@ async function fetchVillaImagesFromSupabase(
 
 export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   const villaId = parseVillaId(id);
-  const tag = CACHE_TAGS.villaImages(id);
+  const tag = CACHE_TAGS.villaImage(id);
   const getCachedVillaImages = unstable_cache(
     () => fetchVillaImagesFromSupabase(id, villaId),
     [tag],
     {
       revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
-      tags: [tag],
+      tags: [CACHE_TAGS.villaImages, tag],
     },
   );
 

@@ -29,7 +29,7 @@ describe("getYouTubeEmbedUrl", () => {
       "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
     );
     expect(
-      getYouTubeEmbedUrl("à¸”à¸¹à¸„à¸¥à¸´à¸› https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+      getYouTubeEmbedUrl("ดูคลิป https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
     ).toBe("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ");
     expect(
       getYouTubeEmbedUrl("https://www.youtube.com/shorts/dQw4w9WgXcQ."),

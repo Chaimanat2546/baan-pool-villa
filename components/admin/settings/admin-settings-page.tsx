@@ -28,11 +28,17 @@ type AdminExternalDataRefreshResponse =
   | {
       message?: string;
       refreshed?: boolean;
+      retryAfterSeconds?: number;
+      scope?: ExternalDataRefreshScope;
     }
   | {
       error?: string;
       errors?: string[];
+      retryAfterSeconds?: number;
+      scope?: ExternalDataRefreshScope;
     };
+
+type ExternalDataRefreshScope = "tags-only" | "full-public";
 
 /**
  * Admin page UI for viewing and editing site appearance and contact settings.
@@ -50,6 +56,12 @@ export function AdminSettingsPage() {
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshingExternalData, setIsRefreshingExternalData] = useState(false);
+  const [externalRefreshPendingScope, setExternalRefreshPendingScope] =
+    useState<ExternalDataRefreshScope | null>(null);
+  const [externalRefreshCooldownScope, setExternalRefreshCooldownScope] =
+    useState<ExternalDataRefreshScope | null>(null);
+  const [externalRefreshCooldownSeconds, setExternalRefreshCooldownSeconds] =
+    useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
@@ -161,6 +173,24 @@ export function AdminSettingsPage() {
     };
   }, [getAccessToken, loadSettings]);
 
+  useEffect(() => {
+    if (externalRefreshCooldownSeconds <= 0) {
+      return;
+    }
+
+    const cooldownTimer = window.setTimeout(() => {
+      setExternalRefreshCooldownSeconds((current) => {
+        const nextSeconds = current - 1;
+
+        return nextSeconds > 0 ? nextSeconds : 0;
+      });
+    }, 1_000);
+
+    return () => {
+      window.clearTimeout(cooldownTimer);
+    };
+  }, [externalRefreshCooldownSeconds]);
+
   function updateDraft(changes: Partial<AdminSettingsDraft>) {
     setNotice(null);
     setErrors([]);
@@ -168,6 +198,47 @@ export function AdminSettingsPage() {
     setDraft((currentDraft) =>
       currentDraft ? { ...currentDraft, ...changes } : currentDraft,
     );
+  }
+
+  const isExternalRefreshCoolingDown = externalRefreshCooldownSeconds > 0;
+
+  function getScopeLabel(scope: ExternalDataRefreshScope | null): string {
+    if (scope === "full-public") {
+      return "อัปเดตหน้าเว็บไซต์ทั้งหมด";
+    }
+
+    if (scope === "tags-only") {
+      return "อัปเดตเฉพาะหน้าหมวดหมู่ที่ใช้ข้อมูลเดียวกัน";
+    }
+
+    return "อัปเดตตามที่เลือก";
+  }
+
+  function parseRetryAfterSeconds(
+    payload: AdminExternalDataRefreshResponse | null,
+  ): number | null {
+    const retryAfterSeconds =
+      payload &&
+      typeof payload.retryAfterSeconds === "number" &&
+      Number.isInteger(payload.retryAfterSeconds)
+        ? payload.retryAfterSeconds
+        : null;
+
+    return retryAfterSeconds !== null && retryAfterSeconds > 0
+      ? retryAfterSeconds
+      : null;
+  }
+
+  function parseRefreshScope(
+    payload: AdminExternalDataRefreshResponse | null,
+  ): ExternalDataRefreshScope | null {
+    const value = payload ? "scope" in payload ? payload.scope : null : null;
+
+    if (value === "tags-only" || value === "full-public") {
+      return value;
+    }
+
+    return null;
   }
 
   async function handleSave() {
@@ -223,10 +294,8 @@ export function AdminSettingsPage() {
       setSettings(payload.settings);
       setDraft(nextDraft);
       setSavedSnapshot(makeSettingsSnapshot(nextDraft));
-      await loadSettings(token, false);
       setWarnings(extractWarnings(payload));
       setNotice("บันทึกการตั้งค่าสำเร็จ");
-      router.refresh();
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error
@@ -238,7 +307,23 @@ export function AdminSettingsPage() {
     }
   }
 
-  async function handleRefreshExternalData() {
+  async function handleRefreshExternalData(scope: ExternalDataRefreshScope) {
+    if (isExternalRefreshCoolingDown || isRefreshingExternalData) {
+      return;
+    }
+
+    if (externalRefreshPendingScope !== scope) {
+      setExternalRefreshPendingScope(scope);
+      setErrors([]);
+      setWarnings([]);
+      setNotice(
+        scope === "full-public"
+          ? "ขอให้ตรวจสอบก่อนส่งคำขออัปเดตข้อมูลสำหรับ public ทั้งหมด"
+          : "ขอให้ตรวจสอบก่อนส่งคำขออัปเดตข้อมูลเฉพาะหน้าหมวดหมู่",
+      );
+      return;
+    }
+
     const token = await getAccessToken();
 
     if (!token) {
@@ -254,12 +339,20 @@ export function AdminSettingsPage() {
       const response = await fetch("/api/admin/external-data/refresh", {
         headers: {
           Authorization: `Bearer ${token}`,
+          "x-admin-refresh-confirmation": "external-villa-cache",
+          "x-admin-refresh-scope": scope,
         },
         method: "POST",
       });
       const payload = (await readJsonPayload(
         response,
       )) as AdminExternalDataRefreshResponse | null;
+
+      const responseScope = parseRefreshScope(payload);
+      const responseRetryAfterSeconds = parseRetryAfterSeconds(payload);
+
+      setExternalRefreshCooldownScope(responseScope);
+      setExternalRefreshCooldownSeconds(responseRetryAfterSeconds ?? 0);
 
       if (
         shouldRedirectToLogin(
@@ -272,17 +365,23 @@ export function AdminSettingsPage() {
       }
 
       if (!response.ok) {
-        setErrors(extractErrors(payload, "ไม่สามารถรีเฟรชข้อมูลบ้านพักได้"));
+        setExternalRefreshPendingScope(null);
+        setErrors(extractErrors(payload, "ไม่สามารถอัปเดตข้อมูลได้"));
         return;
       }
 
-      setNotice("ส่งคำขอรีเฟรชข้อมูลบ้านพักแล้ว");
-      router.refresh();
+      setExternalRefreshPendingScope(null);
+      setNotice(
+        `อัปเดตข้อมูล${
+          responseScope ? ` (${getScopeLabel(responseScope)})` : ""
+        } สำเร็จแล้ว`,
+      );
     } catch (caughtError) {
+      setExternalRefreshPendingScope(null);
       setErrors([
         caughtError instanceof Error
           ? caughtError.message
-          : "ไม่สามารถรีเฟรชข้อมูลบ้านพักได้",
+          : "ไม่สามารถอัปเดตข้อมูลได้",
       ]);
     } finally {
       setIsRefreshingExternalData(false);
@@ -324,9 +423,13 @@ export function AdminSettingsPage() {
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isRefreshingExternalData || isSaving}
+              disabled={
+                isRefreshingExternalData ||
+                isSaving ||
+                isExternalRefreshCoolingDown
+              }
               onClick={() => {
-                void handleRefreshExternalData();
+                void handleRefreshExternalData("tags-only");
               }}
               type="button"
             >
@@ -336,7 +439,39 @@ export function AdminSettingsPage() {
               />
               {isRefreshingExternalData
                 ? "กำลังรีเฟรชข้อมูล..."
-                : "รีเฟรชข้อมูลบ้านพัก"}
+                : isExternalRefreshCoolingDown
+                  ? `รออีก ${externalRefreshCooldownSeconds} วินาที (${getScopeLabel(
+                    externalRefreshCooldownScope,
+                  )})`
+                  : externalRefreshPendingScope === "tags-only"
+                    ? "ยืนยันรีเฟรชข้อมูล"
+                    : "รีเฟรชข้อมูลบ้านพัก"}
+            </button>
+            <button
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={
+                isRefreshingExternalData ||
+                isSaving ||
+                isExternalRefreshCoolingDown
+              }
+              onClick={() => {
+                void handleRefreshExternalData("full-public");
+              }}
+              type="button"
+            >
+              <RefreshCw
+                aria-hidden="true"
+                className={`size-4 ${isRefreshingExternalData ? "animate-spin" : ""}`}
+              />
+              {isRefreshingExternalData
+                ? "กำลังรีเฟรชหน้าเว็บ..."
+                : isExternalRefreshCoolingDown
+                  ? `รออีก ${externalRefreshCooldownSeconds} วินาที (${getScopeLabel(
+                    externalRefreshCooldownScope,
+                  )})`
+                  : externalRefreshPendingScope === "full-public"
+                    ? "ยืนยันรีเฟรชหน้าเว็บ"
+                    : "รีเฟรชหน้าเว็บด้วย"}
             </button>
             <Link
               className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"

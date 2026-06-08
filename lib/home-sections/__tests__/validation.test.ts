@@ -20,8 +20,8 @@ const validDraft = (overrides: Partial<HomeSectionDraft> = {}): HomeSectionDraft
   ctaLabel: "",
   ctaHref: "",
   items: [
-    { houseId: "DV-66" },
-    { houseId: "25" },
+    { houseId: "DV-66", isActive: true },
+    { houseId: "25", isActive: true },
   ],
   ...overrides,
 });
@@ -109,7 +109,10 @@ describe("validateHomeSectionDrafts", () => {
     expect(
       validateHomeSectionDrafts([
         validDraft({
-          items: [{ houseId: "DV-66" }, { houseId: "dv66" }],
+          items: [
+            { houseId: "DV-66", isActive: true },
+            { houseId: "dv66", isActive: true },
+          ],
         }),
       ]),
     ).toContain("ชุดที่ 1 มีเลขบ้าน 66 ซ้ำ");
@@ -135,7 +138,7 @@ describe("validateHomeSectionDrafts", () => {
         validDraft({ slug: "Featured Villas" }),
         validDraft({
           slug: "manual-invalid-id",
-          items: [{ houseId: "66.5" }],
+          items: [{ houseId: "66.5", isActive: true }],
         }),
       ]),
     ).toEqual(
@@ -169,7 +172,10 @@ describe("normalizeHomeSectionDraftsForSave", () => {
           ctaEnabled: false,
           ctaLabel: "See villas",
           ctaHref: "/search",
-          items: [{ houseId: "DV-66" }, { houseId: "25" }],
+          items: [
+            { houseId: "DV-66", isActive: true },
+            { houseId: "25", isActive: true },
+          ],
         }),
       ]),
     ).toEqual([
@@ -186,8 +192,39 @@ describe("normalizeHomeSectionDraftsForSave", () => {
         ctaLabel: null,
         ctaHref: null,
         items: [
-          { houseId: "66", position: 0 },
-          { houseId: "25", position: 1 },
+          { houseId: "66", isActive: true, position: 0 },
+          { houseId: "25", isActive: true, position: 1 },
+        ],
+      },
+    ]);
+  });
+
+  it("preserves manual item active state", () => {
+    expect(
+      normalizeHomeSectionDraftsForSave([
+        validDraft({
+          items: [
+            { houseId: "DV-66", isActive: false },
+            { houseId: "25", isActive: true },
+          ],
+        }),
+      ]),
+    ).toEqual([
+      {
+        slug: "near-sea-villas",
+        title: "Near sea villas",
+        description: "Great homes close to the beach.",
+        mode: "manual",
+        fallbackMode: "fill_from_all",
+        sliceOffset: 0,
+        isActive: true,
+        limitCount: 6,
+        display_order: 0,
+        ctaLabel: null,
+        ctaHref: null,
+        items: [
+          { houseId: "66", isActive: false, position: 0 },
+          { houseId: "25", isActive: true, position: 1 },
         ],
       },
     ]);

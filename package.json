@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "node --use-system-ca ./node_modules/next/dist/bin/next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -40,6 +40,7 @@
     "esbuild": "^0.27.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "jsdom": "^24.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.7",

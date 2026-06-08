@@ -142,6 +142,22 @@ export function normalizeSiteSettingsRow(
         DEFAULT_SITE_SETTINGS.seo.sameAsUrls,
       ),
     },
+    pageSeo: {
+      guides: normalizeSectionSeoSettings(
+        row.guides_seo_title,
+        row.guides_seo_description,
+        row.guides_seo_og_image_url,
+        row.guides_seo_og_image_alt,
+        DEFAULT_SITE_SETTINGS.pageSeo.guides,
+      ),
+      search: normalizeSectionSeoSettings(
+        row.search_seo_title,
+        row.search_seo_description,
+        row.search_seo_og_image_url,
+        row.search_seo_og_image_alt,
+        DEFAULT_SITE_SETTINGS.pageSeo.search,
+      ),
+    },
     tiktok: {
       accountUrl: tiktokAccountUrl,
       videos: normalizeTikTokVideosFromRow(row.tiktok_video_urls),
@@ -187,6 +203,14 @@ export function normalizeSiteSettingsDraft(
     seoSameAsUrls: draft.seoSameAsUrls
       .map((url) => url.trim())
       .filter((url) => url.length > 0),
+    searchSeoTitle: draft.searchSeoTitle?.trim() ?? "",
+    searchSeoDescription: draft.searchSeoDescription?.trim() ?? "",
+    searchSeoOgImageUrl: draft.searchSeoOgImageUrl?.trim() ?? "",
+    searchSeoOgImageAlt: draft.searchSeoOgImageAlt?.trim() ?? "",
+    guidesSeoTitle: draft.guidesSeoTitle?.trim() ?? "",
+    guidesSeoDescription: draft.guidesSeoDescription?.trim() ?? "",
+    guidesSeoOgImageUrl: draft.guidesSeoOgImageUrl?.trim() ?? "",
+    guidesSeoOgImageAlt: draft.guidesSeoOgImageAlt?.trim() ?? "",
     tiktokAccountUrl: draft.tiktokAccountUrl.trim(),
     tiktokVideoUrls: draft.tiktokVideoUrls
       .map((url) => url.trim())
@@ -328,6 +352,25 @@ export function validateSiteSettingsDraft(
       errors.push(`ลิงก์โซเชียลของร้านรายการที่ ${index + 1} ต้องเป็น URL แบบ http หรือ https`);
     }
   });
+
+  errors.push(
+    ...validateSectionSeoFields({
+      description: draft.searchSeoDescription ?? "",
+      imageAlt: draft.searchSeoOgImageAlt ?? "",
+      imageUrl: draft.searchSeoOgImageUrl ?? "",
+      label: "หน้าค้นหา (/search)",
+      title: draft.searchSeoTitle ?? "",
+    }),
+  );
+  errors.push(
+    ...validateSectionSeoFields({
+      description: draft.guidesSeoDescription ?? "",
+      imageAlt: draft.guidesSeoOgImageAlt ?? "",
+      imageUrl: draft.guidesSeoOgImageUrl ?? "",
+      label: "หน้าบทความ (/guides)",
+      title: draft.guidesSeoTitle ?? "",
+    }),
+  );
 
   if (draft.bankAccountName.trim().length === 0) {
     errors.push("ต้องใส่ชื่อบัญชีธนาคาร");
@@ -495,6 +538,66 @@ function normalizePublicImage(
     url: trimmedUrl,
     alt,
   };
+}
+
+function normalizeSectionSeoSettings(
+  title: string | null | undefined,
+  description: string | null | undefined,
+  imageUrl: string | null | undefined,
+  imageAlt: string | null | undefined,
+  fallback: SiteSettings["pageSeo"]["search"],
+) {
+  return {
+    title: normalizeRequiredText(title, fallback.title),
+    description: normalizeRequiredText(description, fallback.description),
+    ogImage: normalizePublicImage(
+      imageUrl,
+      normalizeRequiredText(imageAlt, fallback.ogImage.alt),
+      fallback.ogImage,
+    ),
+  };
+}
+
+interface SectionSeoValidationInput {
+  description: string;
+  imageAlt: string;
+  imageUrl: string;
+  label: string;
+  title: string;
+}
+
+function validateSectionSeoFields({
+  description,
+  imageAlt,
+  imageUrl,
+  label,
+  title,
+}: SectionSeoValidationInput): string[] {
+  const errors: string[] = [];
+
+  if (title.trim().length === 0) {
+    errors.push(`ต้องใส่ชื่อหน้า SEO ของ${label}`);
+  } else if (title.length > SEO_TITLE_MAX_LENGTH) {
+    errors.push(`ชื่อหน้า SEO ของ${label}ต้องไม่เกิน 80 ตัวอักษร`);
+  }
+
+  if (description.trim().length === 0) {
+    errors.push(`ต้องใส่คำอธิบาย SEO ของ${label}`);
+  } else if (description.length > SEO_DESCRIPTION_MAX_LENGTH) {
+    errors.push(`คำอธิบาย SEO ของ${label}ต้องไม่เกิน 180 ตัวอักษร`);
+  }
+
+  if (!isPublicImageUrl(imageUrl)) {
+    errors.push(`รูปแชร์ลิงก์ของ${label}ต้องเป็น URL แบบ http, https หรือ path ภายในเว็บที่ขึ้นต้นด้วย /`);
+  }
+
+  if (imageAlt.trim().length === 0) {
+    errors.push(`ต้องใส่คำอธิบายรูปแชร์ลิงก์ของ${label}`);
+  } else if (imageAlt.length > SEO_IMAGE_ALT_MAX_LENGTH) {
+    errors.push(`คำอธิบายรูปแชร์ลิงก์ของ${label}ต้องไม่เกิน 160 ตัวอักษร`);
+  }
+
+  return errors;
 }
 
 /**

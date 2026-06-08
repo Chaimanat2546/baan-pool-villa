@@ -28,6 +28,7 @@ const originalEnv = process.env;
 const unstableCacheMock = vi.mocked(unstable_cache);
 
 function setSupabaseEnv() {
+  process.env.IMAGE_PROXY_BASE_URL = "https://images.example.com/";
   process.env.SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_PUBLISHABLE_KEY = "publishable-key";
 }
@@ -159,10 +160,10 @@ describe("fetchVillaImages", () => {
 
     expect(unstableCacheMock).toHaveBeenCalledWith(
       expect.any(Function),
-      [CACHE_TAGS.villaImages("9")],
+      [CACHE_TAGS.villaImage("9")],
       {
         revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
-        tags: [CACHE_TAGS.villaImages("9")],
+        tags: [CACHE_TAGS.villaImages, CACHE_TAGS.villaImage("9")],
       },
     );
   });
@@ -195,8 +196,7 @@ describe("fetchVillaImages", () => {
     await expect(fetchVillaImages("9")).resolves.toEqual([
       {
         id: 7,
-        imageUrl:
-          "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws/pool.jpg",
+        imageUrl: "https://images.example.com/pool.jpg",
         imageName: "pool.jpg",
         caption: "Pool view",
         isCover: true,
@@ -204,8 +204,7 @@ describe("fetchVillaImages", () => {
       },
       {
         id: 8,
-        imageUrl:
-          "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws/missing.jpg",
+        imageUrl: "https://images.example.com/missing.jpg",
         imageName: "missing.jpg",
         caption: null,
         isCover: false,

@@ -1,7 +1,6 @@
+import { requireHomeConfigAdmin } from "@/lib/admin/route-helpers";
 import { normalizeHouseId } from "@/lib/home-sections/validation";
 import { fetchHouseListings } from "@/lib/villas/server";
-
-import { assertHomeConfigAdmin, getBearerToken, jsonError } from "../auth";
 
 function parseHouseIdsPayload(payload: unknown): unknown[] {
   if (
@@ -28,16 +27,10 @@ function formatInvalidHouseId(houseId: unknown): string {
 }
 
 export async function POST(request: Request) {
-  const token = getBearerToken(request);
+  const admin = await requireHomeConfigAdmin(request);
 
-  if (!token) {
-    return jsonError("Missing bearer token.", 401);
-  }
-
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return jsonError(adminCheck.message, adminCheck.status);
+  if (!admin.ok) {
+    return admin.response;
   }
 
   let payload: unknown;
@@ -78,12 +71,8 @@ export async function POST(request: Request) {
   );
   const villas = await fetchHouseListings();
   const villasById = new Map(villas.map((villa) => [villa.id, villa]));
-  const valid = requestedIds.flatMap((houseId) => {
-    const villa = villasById.get(houseId);
-
-    return villa ? [villa] : [];
-  });
+  const validIds = requestedIds.filter((houseId) => villasById.has(houseId));
   const missingIds = requestedIds.filter((houseId) => !villasById.has(houseId));
 
-  return Response.json({ valid, missingIds, invalidIds });
+  return Response.json({ validIds, missingIds, invalidIds });
 }

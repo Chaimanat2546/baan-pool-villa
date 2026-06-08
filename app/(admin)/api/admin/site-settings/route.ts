@@ -1,4 +1,11 @@
-import { assertHomeConfigAdmin, getBearerToken, jsonError } from "@/lib/admin/home-config-auth";
+import {
+  adminSupabaseErrorResponse,
+  requireHomeConfigAdmin,
+} from "@/lib/admin/route-helpers";
+import type {
+  HomeConfigSupabaseClient,
+  SupabaseLikeError,
+} from "@/lib/admin/route-helpers";
 import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
 import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
 import type {
@@ -16,22 +23,19 @@ import {
 } from "@/lib/site-settings/validation";
 
 const SITE_SETTINGS_SELECT =
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_og_image_url,guides_seo_og_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
+const SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
+const SITE_SETTINGS_GENERAL_SELECT =
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls";
 const SITE_ASSET_UPLOADS_SELECT =
   "id,asset_type,storage_bucket,storage_path,is_current,created_at";
 const ASSET_UPLOAD_FIELDS: { assetType: SiteAssetType; fieldName: string }[] = [
   { assetType: "logo", fieldName: "logo" },
   { assetType: "hero", fieldName: "hero" },
 ];
-
-interface SupabaseLikeError {
-  message?: string;
-  code?: string;
-  details?: string;
-  hint?: string;
-}
 
 interface UploadedAsset {
   assetType: SiteAssetType;
@@ -51,9 +55,6 @@ interface SiteAssetUploadRow {
   is_current: unknown;
   created_at: unknown;
 }
-
-type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
-type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
 
 /**
  * Determines whether a Supabase-style error likely indicates a missing column or schema cache issue.
@@ -76,9 +77,9 @@ function isMissingColumnError(error: SupabaseLikeError | null | undefined): bool
 }
 
 /**
- * Load the admin-visible site settings row, falling back to a reduced column set if the database schema is missing recently added columns.
+ * Load the admin-visible site settings row, falling back to reduced column sets if the database schema is missing recently added columns.
  *
- * Attempts to select the full `SITE_SETTINGS_SELECT` projection by the fixed site settings ID; if that query fails with an error that appears to indicate a missing column or schema cache issue, retries using `SITE_SETTINGS_SELECT_WITHOUT_TIKTOK`.
+ * Attempts to select the full `SITE_SETTINGS_SELECT` projection by the fixed site settings ID; if that query fails with an error that appears to indicate a missing column or schema cache issue, retries with projections that omit optional feature columns.
  *
  * @returns An object with `data` set to the found site settings row or `null` when not found, and `error` set to a Supabase-like error object when retrieval failed or `null` on success.
  */
@@ -105,6 +106,23 @@ async function loadAdminSiteSettings(
     return { data: null, error: primary.error };
   }
 
+  const fallbackWithoutPageSeo = await supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (!fallbackWithoutPageSeo.error) {
+    return {
+      data: (fallbackWithoutPageSeo.data as SiteSettingsRow | null) ?? null,
+      error: null,
+    };
+  }
+
+  if (!isMissingColumnError(fallbackWithoutPageSeo.error)) {
+    return { data: null, error: fallbackWithoutPageSeo.error };
+  }
+
   const fallback = await supabase
     .from("site_settings")
     .select(SITE_SETTINGS_SELECT_WITHOUT_TIKTOK)
@@ -118,56 +136,41 @@ async function loadAdminSiteSettings(
     };
   }
 
-  return { data: null, error: fallback.error };
-}
-
-/**
- * Create a standardized JSON error response for Supabase-related failures.
- *
- * @param error - Supabase-like error whose `message`, `code`, `details`, and `hint` will be included when present
- * @param fallbackMessage - Message to use if `error.message` is missing
- * @param warning - Optional additional warning text to include in the response metadata
- * @returns The JSON error response with HTTP status 403 and metadata `{ code, details, hint, warning }`
- */
-function supabaseErrorResponse(
-  error: SupabaseLikeError | null | undefined,
-  fallbackMessage: string,
-  warning?: string,
-) {
-  return jsonError(error?.message ?? fallbackMessage, 403, {
-    code: error?.code,
-    details: error?.details,
-    hint: error?.hint,
-    warning,
-  });
-}
-
-async function requireAdmin(request: Request): Promise<
-  | {
-      ok: true;
-      supabase: HomeConfigSupabaseClient;
-    }
-  | {
-      ok: false;
-      response: Response;
-    }
-> {
-  const token = getBearerToken(request);
-
-  if (!token) {
-    return { ok: false, response: jsonError("Missing bearer token.", 401) };
+  if (!isMissingColumnError(fallback.error)) {
+    return { data: null, error: fallback.error };
   }
 
-  const adminCheck = await assertHomeConfigAdmin(token);
+  const general = await supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_GENERAL_SELECT)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
 
-  if (!adminCheck.ok) {
+  if (!general.error) {
     return {
-      ok: false,
-      response: jsonError(adminCheck.message, adminCheck.status),
+      data: (general.data as SiteSettingsRow | null) ?? null,
+      error: null,
     };
   }
 
-  return { ok: true, supabase: adminCheck.supabase };
+  return { data: null, error: general.error };
+}
+
+/**
+ * Produce a SiteSettingsRow by merging saved values into an existing row, with saved values taking precedence.
+ *
+ * @param existingRow - The current persisted settings row, or `null` if none exists
+ * @param savePayload - Partial settings values to apply on top of `existingRow`
+ * @returns A `SiteSettingsRow` representing the merged result
+ */
+function buildSavedSettingsRow(
+  existingRow: SiteSettingsRow | null,
+  savePayload: Record<string, unknown>,
+): SiteSettingsRow {
+  return {
+    ...(existingRow ?? {}),
+    ...savePayload,
+  } as SiteSettingsRow;
 }
 
 function readStringField(formData: FormData, fieldName: string): string {
@@ -176,35 +179,59 @@ function readStringField(formData: FormData, fieldName: string): string {
   return typeof value === "string" ? value : "";
 }
 
-function readPhoneContactsField(formData: FormData): SitePhoneContact[] {
+type PhoneContactsFieldResult =
+  | {
+      ok: true;
+      value: SitePhoneContact[];
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+function readPhoneContactsField(formData: FormData): PhoneContactsFieldResult {
   const rawValue = readStringField(formData, "phoneContacts");
 
   if (!rawValue) {
-    return [];
+    return { ok: true, value: [] };
   }
+
+  const invalidPhoneContactsError = "ข้อมูลเบอร์โทรติดต่อไม่ถูกต้อง";
 
   try {
     const parsedValue = JSON.parse(rawValue);
 
     if (!Array.isArray(parsedValue)) {
-      return [];
+      return { ok: false, error: invalidPhoneContactsError };
     }
 
-    return parsedValue.map((item) => {
+    const phoneContacts: SitePhoneContact[] = [];
+
+    for (const item of parsedValue) {
       if (!item || typeof item !== "object") {
-        return { name: "", phone: "", time: "" };
+        return { ok: false, error: invalidPhoneContactsError };
       }
 
       const contact = item as Partial<Record<keyof SitePhoneContact, unknown>>;
 
-      return {
-        name: typeof contact.name === "string" ? contact.name : "",
-        phone: typeof contact.phone === "string" ? contact.phone : "",
-        time: typeof contact.time === "string" ? contact.time : "",
-      };
-    });
+      if (
+        typeof contact.name !== "string" ||
+        typeof contact.phone !== "string" ||
+        typeof contact.time !== "string"
+      ) {
+        return { ok: false, error: invalidPhoneContactsError };
+      }
+
+      phoneContacts.push({
+        name: contact.name,
+        phone: contact.phone,
+        time: contact.time,
+      });
+    }
+
+    return { ok: true, value: phoneContacts };
   } catch {
-    return [];
+    return { ok: false, error: invalidPhoneContactsError };
   }
 }
 
@@ -501,7 +528,7 @@ async function cleanupRetainedAssets(
  * @returns A Response whose body is JSON `{ settings: <normalized site settings or null> }` on success, or a JSON error response on failure.
  */
 export async function GET(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -510,7 +537,7 @@ export async function GET(request: Request) {
   const { data, error } = await loadAdminSiteSettings(admin.supabase);
 
   if (error) {
-    return supabaseErrorResponse(error, "Unable to load site settings.");
+    return adminSupabaseErrorResponse(error, "Unable to load site settings.");
   }
 
   return Response.json({
@@ -519,12 +546,12 @@ export async function GET(request: Request) {
 }
 
 /**
- * Handles an admin-authenticated multipart PUT request to validate and persist site settings, optionally upload logo/hero images, record upload history, clean up retained assets, and revalidate the site settings cache.
+ * Handle an admin-authenticated multipart PUT request to validate and persist site settings, optionally upload logo and hero images, record upload history, clean up retained assets, and revalidate the site settings cache.
  *
- * @returns On success, a JSON object with `settings` containing the saved site settings and `warnings` as an array of cleanup warnings (may be empty). On failure, a JSON error response describing the authorization, validation, upload, or persistence error.
+ * @returns On success, an object with `settings` containing the saved site settings and `warnings` as an array of cleanup warnings (may be empty). On failure, an error response describing authorization, validation, upload, or persistence failures.
  */
 export async function PUT(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -538,6 +565,12 @@ export async function PUT(request: Request) {
     return Response.json({ errors: ["Request body must be multipart/form-data."] }, { status: 400 });
   }
 
+  const phoneContactsResult = readPhoneContactsField(formData);
+
+  if (!phoneContactsResult.ok) {
+    return Response.json({ errors: [phoneContactsResult.error] }, { status: 400 });
+  }
+
   const draft = normalizeSiteSettingsDraft({
     siteName: readStringField(formData, "siteName"),
     primaryColor: readStringField(formData, "primaryColor"),
@@ -546,7 +579,7 @@ export async function PUT(request: Request) {
     bankAccountName: readStringField(formData, "bankAccountName"),
     bankName: readStringField(formData, "bankName"),
     bankAccountNumber: readStringField(formData, "bankAccountNumber"),
-    phoneContacts: readPhoneContactsField(formData),
+    phoneContacts: phoneContactsResult.value,
     messengerUrl: readStringField(formData, "messengerUrl"),
     lineId: readStringField(formData, "lineId"),
     lineUrl: readStringField(formData, "lineUrl"),
@@ -556,6 +589,14 @@ export async function PUT(request: Request) {
     seoOgImageAlt: readStringField(formData, "seoOgImageAlt"),
     seoBusinessName: readStringField(formData, "seoBusinessName"),
     seoSameAsUrls: readStringArrayField(formData, "seoSameAsUrls"),
+    searchSeoTitle: readStringField(formData, "searchSeoTitle"),
+    searchSeoDescription: readStringField(formData, "searchSeoDescription"),
+    searchSeoOgImageUrl: readStringField(formData, "searchSeoOgImageUrl"),
+    searchSeoOgImageAlt: readStringField(formData, "searchSeoOgImageAlt"),
+    guidesSeoTitle: readStringField(formData, "guidesSeoTitle"),
+    guidesSeoDescription: readStringField(formData, "guidesSeoDescription"),
+    guidesSeoOgImageUrl: readStringField(formData, "guidesSeoOgImageUrl"),
+    guidesSeoOgImageAlt: readStringField(formData, "guidesSeoOgImageAlt"),
     tiktokAccountUrl: "",
     tiktokVideoUrls: [],
   });
@@ -582,7 +623,7 @@ export async function PUT(request: Request) {
   );
 
   if (loadError) {
-    return supabaseErrorResponse(loadError, "Unable to load site settings.");
+    return adminSupabaseErrorResponse(loadError, "Unable to load site settings.");
   }
 
   const currentSettings = normalizeSiteSettingsRow(
@@ -596,10 +637,10 @@ export async function PUT(request: Request) {
     if (result.error || !result.asset) {
       const cleanupWarnings = await removeUploadedAssets(admin.supabase, uploadedAssets);
 
-      return supabaseErrorResponse(
+      return adminSupabaseErrorResponse(
         result.error,
         `Unable to upload ${upload.assetType} image.`,
-        cleanupWarnings.join("; ") || undefined,
+        { warning: cleanupWarnings.join("; ") || undefined },
       );
     }
 
@@ -616,10 +657,10 @@ export async function PUT(request: Request) {
       ...(await removeUploadedAssets(admin.supabase, uploadedAssets)),
     ];
 
-    return supabaseErrorResponse(
+    return adminSupabaseErrorResponse(
       historyResult.error,
       "Unable to record site asset upload history.",
-      cleanupWarnings.join("; ") || undefined,
+      { warning: cleanupWarnings.join("; ") || undefined },
     );
   }
 
@@ -646,13 +687,19 @@ export async function PUT(request: Request) {
     seo_og_image_alt: draft.seoOgImageAlt,
     seo_business_name: draft.seoBusinessName,
     seo_same_as_urls: draft.seoSameAsUrls,
+    search_seo_title: draft.searchSeoTitle,
+    search_seo_description: draft.searchSeoDescription,
+    search_seo_og_image_url: draft.searchSeoOgImageUrl,
+    search_seo_og_image_alt: draft.searchSeoOgImageAlt,
+    guides_seo_title: draft.guidesSeoTitle,
+    guides_seo_description: draft.guidesSeoDescription,
+    guides_seo_og_image_url: draft.guidesSeoOgImageUrl,
+    guides_seo_og_image_alt: draft.guidesSeoOgImageAlt,
   };
 
-  const { data, error: saveError } = await admin.supabase
+  const { error: saveError } = await admin.supabase
     .from("site_settings")
-    .upsert(savePayload, { onConflict: "id" })
-    .select(SITE_SETTINGS_SELECT)
-    .single();
+    .upsert(savePayload, { onConflict: "id" });
 
   if (saveError) {
     const cleanupWarnings = [
@@ -660,10 +707,10 @@ export async function PUT(request: Request) {
       ...(await removeUploadedAssets(admin.supabase, uploadedAssets)),
     ];
 
-    return supabaseErrorResponse(
+    return adminSupabaseErrorResponse(
       saveError,
       "Unable to save site settings.",
-      cleanupWarnings.join("; ") || undefined,
+      { warning: cleanupWarnings.join("; ") || undefined },
     );
   }
 
@@ -673,7 +720,7 @@ export async function PUT(request: Request) {
   );
 
   if (historyUpdateError) {
-    return supabaseErrorResponse(
+    return adminSupabaseErrorResponse(
       historyUpdateError,
       "Unable to mark previous site asset uploads inactive.",
     );
@@ -684,11 +731,22 @@ export async function PUT(request: Request) {
       ? await cleanupRetainedAssets(admin.supabase)
       : []),
   ];
+  const { data: savedRow, error: reloadError } = await loadAdminSiteSettings(
+    admin.supabase,
+  );
+  const responseRow = reloadError
+    ? buildSavedSettingsRow((existingRow as SiteSettingsRow | null) ?? null, savePayload)
+    : ((savedRow as SiteSettingsRow | null) ??
+      buildSavedSettingsRow((existingRow as SiteSettingsRow | null) ?? null, savePayload));
+
+  if (reloadError) {
+    warnings.push(reloadError.message ?? "Unable to reload saved site settings.");
+  }
 
   revalidateSiteSettingsCache();
 
   return Response.json({
-    settings: normalizeSiteSettingsRow(data as SiteSettingsRow),
+    settings: normalizeSiteSettingsRow(responseRow),
     warnings,
   });
 }

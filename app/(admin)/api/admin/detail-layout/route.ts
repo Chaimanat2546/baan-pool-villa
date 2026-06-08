@@ -1,4 +1,7 @@
-import { assertHomeConfigAdmin, getBearerToken, jsonError } from "@/lib/admin/home-config-auth";
+import {
+  adminSupabaseErrorResponse,
+  requireHomeConfigAdmin,
+} from "@/lib/admin/route-helpers";
 import { revalidateDetailLayoutCache } from "@/lib/cache-revalidation";
 import {
   DEFAULT_SITE_SETTINGS,
@@ -12,27 +15,6 @@ import {
 import type { AnyDetailLayoutConfig } from "@/lib/detail-layout/types";
 
 const DETAIL_LAYOUT_SELECT = "id,detail_layout";
-
-interface SupabaseLikeError {
-  message?: string;
-  code?: string;
-  details?: string;
-  hint?: string;
-}
-
-type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
-type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
-
-function supabaseErrorResponse(
-  error: SupabaseLikeError | null | undefined,
-  fallbackMessage: string,
-) {
-  return jsonError(error?.message ?? fallbackMessage, 403, {
-    code: error?.code,
-    details: error?.details,
-    hint: error?.hint,
-  });
-}
 
 function buildDefaultSettingsInsertPayload(detailLayout: AnyDetailLayoutConfig) {
   return {
@@ -62,36 +44,8 @@ function buildDefaultSettingsInsertPayload(detailLayout: AnyDetailLayoutConfig) 
   };
 }
 
-async function requireAdmin(request: Request): Promise<
-  | {
-      ok: true;
-      supabase: HomeConfigSupabaseClient;
-    }
-  | {
-      ok: false;
-      response: Response;
-    }
-> {
-  const token = getBearerToken(request);
-
-  if (!token) {
-    return { ok: false, response: jsonError("Missing bearer token.", 401) };
-  }
-
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return {
-      ok: false,
-      response: jsonError(adminCheck.message, adminCheck.status),
-    };
-  }
-
-  return { ok: true, supabase: adminCheck.supabase };
-}
-
 export async function GET(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -104,7 +58,7 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (error) {
-    return supabaseErrorResponse(error, "Unable to load detail layout.");
+    return adminSupabaseErrorResponse(error, "Unable to load detail layout.");
   }
 
   const row = (data as SiteSettingsRow | null) ?? null;
@@ -115,7 +69,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -147,7 +101,7 @@ export async function PUT(request: Request) {
     .maybeSingle();
 
   if (error) {
-    return supabaseErrorResponse(error, "Unable to save detail layout.");
+    return adminSupabaseErrorResponse(error, "Unable to save detail layout.");
   }
 
   if (!data) {
@@ -158,7 +112,7 @@ export async function PUT(request: Request) {
       .single();
 
     if (insertError) {
-      return supabaseErrorResponse(insertError, "Unable to create detail layout settings.");
+      return adminSupabaseErrorResponse(insertError, "Unable to create detail layout settings.");
     }
 
     revalidateDetailLayoutCache();

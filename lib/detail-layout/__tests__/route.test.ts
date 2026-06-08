@@ -14,7 +14,7 @@ import {
   DEFAULT_DETAIL_LAYOUT,
   DEFAULT_DETAIL_LAYOUT_V2,
 } from "../defaults";
-import type { DetailLayoutConfig, DetailLayoutV2Config } from "../types";
+import type { DetailLayoutConfig } from "../types";
 import { validateDetailLayout } from "../validation";
 
 vi.mock("server-only", () => ({}));
@@ -133,7 +133,7 @@ function customLayout(): DetailLayoutConfig {
   };
 }
 
-function customLayoutV2(): DetailLayoutV2Config {
+function customLayoutV2() {
   return {
     ...DEFAULT_DETAIL_LAYOUT_V2,
     mainSplit: {
@@ -352,7 +352,7 @@ describe("admin detail layout route", () => {
     );
     const response = await PUT(putRequest({ layout: DEFAULT_DETAIL_LAYOUT }));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       error: "Save failed",
       code: "23514",
@@ -607,7 +607,7 @@ describe("admin detail layout route", () => {
     );
     const response = await PUT(putRequest({ layout: DEFAULT_DETAIL_LAYOUT }));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       error: "Insert failed",
       code: "23502",

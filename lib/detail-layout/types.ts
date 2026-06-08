@@ -27,7 +27,7 @@ export type DetailLayoutRatio =
 
 export type DetailLayoutOuterRatio = "70/30" | "30/70";
 
-export type DetailLayoutWideRatio = "50/50" | "60/40" | "40/60";
+export type DetailLayoutWideRatio = "50/50";
 
 export type DetailLayoutWideColumns = 1 | 2;
 

@@ -11,6 +11,8 @@ import { loadTikTokClientOEmbed, type TikTokClientOEmbed } from "./tiktok-client
 
 interface TikTokLazyCardProps {
   index: number;
+  isPlaying: boolean;
+  onPlay: (videoId: string) => void;
   video: SiteTikTokVideoSettings | TikTokVideoPreview;
 }
 
@@ -50,7 +52,10 @@ function hasThumbnail(
  * @param video - Video data containing `videoId` used to construct the player `src`
  * @returns The configured `<iframe>` element that embeds the TikTok player with autoplay and fullscreen enabled
  */
-function TikTokPlayer({ index, video }: TikTokLazyCardProps) {
+function TikTokPlayer({
+  index,
+  video,
+}: Pick<TikTokLazyCardProps, "index" | "video">) {
   return (
     <iframe
       allow="autoplay; fullscreen"
@@ -69,8 +74,12 @@ function TikTokPlayer({ index, video }: TikTokLazyCardProps) {
  * @param video - Video metadata or preview object; if it contains a non-empty `thumbnailUrl`, a poster image is shown, otherwise a gradient poster is used. Title and author fall back to sensible defaults when missing.
  * @returns The card element that toggles between a poster view and an embedded TikTok iframe when activated.
  */
-export function TikTokLazyCard({ index, video }: TikTokLazyCardProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
+export function TikTokLazyCard({
+  index,
+  isPlaying,
+  onPlay,
+  video,
+}: TikTokLazyCardProps) {
   const [clientPreview, setClientPreview] = useState<TikTokClientOEmbed | null>(
     null,
   );
@@ -119,7 +128,7 @@ export function TikTokLazyCard({ index, video }: TikTokLazyCardProps) {
             className="group relative grid h-full w-full place-items-center overflow-hidden text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2"
             data-tiktok-poster
             onClick={() => {
-              setIsPlaying(true);
+              onPlay(video.videoId);
             }}
           >
             {thumbnailUrl ? (

@@ -1,9 +1,7 @@
 import type { HomeSectionDraft } from "@/lib/home-sections/types";
-import type { VillaListing } from "@/lib/villas/types";
 
 export type AdminSectionItemDraft = HomeSectionDraft["items"][number] & {
   position?: number;
-  isActive?: boolean;
 };
 
 export type AdminSectionDraft = Omit<HomeSectionDraft, "items"> & {
@@ -25,7 +23,7 @@ export interface AdminHomeSectionsSaveResponse {
 }
 
 export interface AdminManualPreviewResponse {
-  valid: VillaListing[];
+  validIds: string[];
   missingIds: string[];
   invalidIds: string[];
   error?: string;

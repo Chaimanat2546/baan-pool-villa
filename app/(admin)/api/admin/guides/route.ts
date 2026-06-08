@@ -7,69 +7,21 @@ import {
   validateGuideDraft,
 } from "@/lib/guides/validation";
 import {
-  assertHomeConfigAdmin,
-  getBearerToken,
-  jsonError,
-} from "@/lib/admin/home-config-auth";
+  adminSupabaseErrorResponse,
+  requireHomeConfigAdmin,
+} from "@/lib/admin/route-helpers";
+import type { HomeConfigSupabaseClient } from "@/lib/admin/route-helpers";
 import { revalidateGuideCache } from "@/lib/cache-revalidation";
 
 const GUIDE_POST_SELECT =
   "id,slug,title,excerpt,cover_image_path,cover_image_url,cover_image_alt,content_blocks,tags,recommended_house_ids,status,is_pinned,published_at,created_at,updated_at";
-
-interface SupabaseLikeError {
-  message?: string;
-  code?: string;
-  details?: string;
-  hint?: string;
-}
 
 interface GuideSlugRow {
   id: unknown;
   slug: unknown;
 }
 
-type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
-type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
 type AdminGuideDraft = GuideDraft & { id?: string };
-
-function supabaseErrorResponse(
-  error: SupabaseLikeError | null | undefined,
-  fallbackMessage: string,
-) {
-  return jsonError(error?.message ?? fallbackMessage, 403, {
-    code: error?.code,
-    details: error?.details,
-    hint: error?.hint,
-  });
-}
-
-async function requireAdmin(request: Request): Promise<
-  | {
-      ok: true;
-      supabase: HomeConfigSupabaseClient;
-    }
-  | {
-      ok: false;
-      response: Response;
-    }
-> {
-  const token = getBearerToken(request);
-
-  if (!token) {
-    return { ok: false, response: jsonError("Missing bearer token.", 401) };
-  }
-
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return {
-      ok: false,
-      response: jsonError(adminCheck.message, adminCheck.status),
-    };
-  }
-
-  return { ok: true, supabase: adminCheck.supabase };
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -193,7 +145,7 @@ async function loadSlugRows(supabase: HomeConfigSupabaseClient) {
 }
 
 export async function GET(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -206,7 +158,7 @@ export async function GET(request: Request) {
     .order("updated_at", { ascending: false });
 
   if (error || !Array.isArray(data)) {
-    return supabaseErrorResponse(error, "Unable to load guide posts.");
+    return adminSupabaseErrorResponse(error, "Unable to load guide posts.");
   }
 
   return Response.json({
@@ -215,7 +167,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -246,7 +198,7 @@ export async function PUT(request: Request) {
   const slugResult = await loadSlugRows(admin.supabase);
 
   if (slugResult.error) {
-    return supabaseErrorResponse(slugResult.error, "Unable to load guide slugs.");
+    return adminSupabaseErrorResponse(slugResult.error, "Unable to load guide slugs.");
   }
 
   const currentSlug =
@@ -278,7 +230,7 @@ export async function PUT(request: Request) {
   const { data, error } = await saveQuery;
 
   if (error || !data) {
-    return supabaseErrorResponse(error, "Unable to save guide post.");
+    return adminSupabaseErrorResponse(error, "Unable to save guide post.");
   }
 
   if (currentSlug && currentSlug !== saveRow.slug) {
@@ -293,7 +245,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const admin = await requireAdmin(request);
+  const admin = await requireHomeConfigAdmin(request);
 
   if (!admin.ok) {
     return admin.response;
@@ -312,7 +264,7 @@ export async function DELETE(request: Request) {
     .eq("id", payload.id);
 
   if (error) {
-    return supabaseErrorResponse(error, "Unable to delete guide post.");
+    return adminSupabaseErrorResponse(error, "Unable to delete guide post.");
   }
 
   revalidateGuideCache(slug);

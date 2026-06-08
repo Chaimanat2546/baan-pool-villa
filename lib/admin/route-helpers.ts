@@ -1,0 +1,103 @@
+import "server-only";
+
+import {
+  assertHomeConfigAdmin,
+  getBearerToken,
+  jsonError,
+} from "@/lib/admin/home-config-auth";
+
+type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
+export type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
+
+export interface SupabaseLikeError {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+  status?: number | string;
+  statusCode?: number | string;
+}
+
+export type AdminRouteAuthResult =
+  | {
+      ok: true;
+      supabase: HomeConfigSupabaseClient;
+    }
+  | {
+      ok: false;
+      response: Response;
+    };
+
+export async function requireHomeConfigAdmin(
+  request: Request,
+): Promise<AdminRouteAuthResult> {
+  const token = getBearerToken(request);
+
+  if (!token) {
+    return { ok: false, response: jsonError("Missing bearer token.", 401) };
+  }
+
+  const adminCheck = await assertHomeConfigAdmin(token);
+
+  if (!adminCheck.ok) {
+    return {
+      ok: false,
+      response: jsonError(adminCheck.message, adminCheck.status),
+    };
+  }
+
+  return { ok: true, supabase: adminCheck.supabase };
+}
+
+function isNoRowsError(error: SupabaseLikeError | null | undefined): boolean {
+  if (!error) {
+    return false;
+  }
+
+  const message = (error.message ?? "").toLowerCase();
+
+  return (
+    error.code === "PGRST116" ||
+    message.includes("contains 0 rows") ||
+    message.includes("result contains 0 rows")
+  );
+}
+
+export function getSupabaseErrorStatus(
+  error: SupabaseLikeError | null | undefined,
+): number {
+  const explicitStatus = error?.status ?? error?.statusCode;
+  const status =
+    typeof explicitStatus === "string" ? Number(explicitStatus) : explicitStatus;
+
+  if (typeof status === "number" && Number.isInteger(status) && status >= 400 && status <= 599) {
+    return status;
+  }
+
+  if (error?.code === "42501") {
+    return 403;
+  }
+
+  if (error?.code === "PGRST301") {
+    return 401;
+  }
+
+  if (isNoRowsError(error)) {
+    return 404;
+  }
+
+  return 500;
+}
+
+export function adminSupabaseErrorResponse(
+  error: SupabaseLikeError | null | undefined,
+  fallbackMessage: string,
+  extra?: Record<string, string | null | undefined>,
+) {
+  return jsonError(error?.message ?? fallbackMessage, getSupabaseErrorStatus(error), {
+    code: error?.code,
+    details: error?.details,
+    hint: error?.hint,
+    ...extra,
+  });
+}

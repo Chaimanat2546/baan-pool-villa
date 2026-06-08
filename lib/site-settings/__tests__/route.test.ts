@@ -67,6 +67,14 @@ const dbRow = {
     " https://www.facebook.com/baanpoolvillas ",
     " https://line.me/R/ti/p/@baanpoolvilla ",
   ],
+  search_seo_title: " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
+  search_seo_description: " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
+  search_seo_og_image_url: " /images/search-cover.jpg ",
+  search_seo_og_image_alt: " Search cover ",
+  guides_seo_title: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
+  guides_seo_description: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
+  guides_seo_og_image_url: " /images/guides-cover.jpg ",
+  guides_seo_og_image_alt: " Guides cover ",
   tiktok_account_url: " https://www.tiktok.com/@baanpoolvilla ",
   tiktok_video_urls: [
     "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001?lang=th-TH",
@@ -78,6 +86,14 @@ const dbRowWithoutTiktokColumns = {
   tiktok_account_url: undefined,
   tiktok_video_urls: undefined,
 };
+const missingTiktokColumnError = {
+  message: "expected TikTok settings column is unavailable in the current schema",
+  code: "42703",
+};
+const missingDetailLayoutColumnError = {
+  message: "expected detail layout column is unavailable in the current schema",
+  code: "42703",
+};
 
 function siteSettingsSelectQuery(result: { data: unknown; error: unknown }) {
   const maybeSingle = vi.fn().mockResolvedValue(result);
@@ -88,11 +104,9 @@ function siteSettingsSelectQuery(result: { data: unknown; error: unknown }) {
 }
 
 function siteSettingsUpsertQuery(result: { data: unknown; error: unknown }) {
-  const single = vi.fn().mockResolvedValue(result);
-  const select = vi.fn().mockReturnValue({ single });
-  const upsert = vi.fn().mockReturnValue({ select });
+  const upsert = vi.fn().mockResolvedValue(result);
 
-  return { select, single, upsert };
+  return { upsert };
 }
 
 function uploadHistoryInsertQuery(result: { data: unknown; error: unknown }) {
@@ -207,6 +221,38 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
         " https://line.me/R/ti/p/@baanpoolvilla ",
       ]),
   );
+  formData.set(
+    "searchSeoTitle",
+    overrides.searchSeoTitle ?? " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
+  );
+  formData.set(
+    "searchSeoDescription",
+    overrides.searchSeoDescription ?? " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
+  );
+  formData.set(
+    "searchSeoOgImageUrl",
+    overrides.searchSeoOgImageUrl ?? " /images/search-cover.jpg ",
+  );
+  formData.set(
+    "searchSeoOgImageAlt",
+    overrides.searchSeoOgImageAlt ?? " Search cover ",
+  );
+  formData.set(
+    "guidesSeoTitle",
+    overrides.guidesSeoTitle ?? " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
+  );
+  formData.set(
+    "guidesSeoDescription",
+    overrides.guidesSeoDescription ?? " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
+  );
+  formData.set(
+    "guidesSeoOgImageUrl",
+    overrides.guidesSeoOgImageUrl ?? " /images/guides-cover.jpg ",
+  );
+  formData.set(
+    "guidesSeoOgImageAlt",
+    overrides.guidesSeoOgImageAlt ?? " Guides cover ",
+  );
   if (overrides.tiktokAccountUrl !== undefined) {
     formData.set("tiktokAccountUrl", overrides.tiktokAccountUrl);
   }
@@ -254,7 +300,7 @@ describe("admin site settings route", () => {
     );
     const response = await GET(authenticatedRequest());
 
-    await expect(response.json()).resolves.toEqual({
+    await expect(response.json()).resolves.toMatchObject({
       settings: {
         siteName: "Baan Pool Villa",
         primaryColor: "#064e3b",
@@ -330,20 +376,20 @@ describe("admin site settings route", () => {
   });
 
   it("falls back to a non-TikTok schema for GET when TikTok columns are missing", async () => {
-    const missingColumnError = {
-      message: "column site_settings.tiktok_account_url does not exist",
-      code: "42703",
-    };
     const primaryQuery = siteSettingsSelectQuery({
       data: null,
-      error: missingColumnError,
+      error: missingTiktokColumnError,
+    });
+    const withoutPageSeoQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
     });
     const fallbackQuery = siteSettingsSelectQuery({
       data: dbRowWithoutTiktokColumns,
       error: null,
     });
     const from = fromQueue({
-      site_settings: [primaryQuery, fallbackQuery],
+      site_settings: [primaryQuery, withoutPageSeoQuery, fallbackQuery],
     });
 
     authSupabase({ from });
@@ -372,6 +418,9 @@ describe("admin site settings route", () => {
     expect(primaryQuery.select).toHaveBeenCalledWith(
       expect.stringContaining("tiktok_account_url"),
     );
+    expect(withoutPageSeoQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_account_url"),
+    );
     expect(fallbackQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_account_url"),
     );
@@ -383,25 +432,25 @@ describe("admin site settings route", () => {
     );
   });
 
-  it("surfaces the fallback query error when non-TikTok schema fallback also fails", async () => {
-    const primaryError = {
-      message: "column site_settings.tiktok_account_url does not exist",
-      code: "42703",
-    };
-    const fallbackError = {
-      message: "column site_settings.detail_layout does not exist",
-      code: "42703",
-    };
+  it("falls back to a general schema for GET when feature columns are missing", async () => {
     const primaryQuery = siteSettingsSelectQuery({
       data: null,
-      error: primaryError,
+      error: missingTiktokColumnError,
+    });
+    const withoutPageSeoQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
     });
     const fallbackQuery = siteSettingsSelectQuery({
       data: null,
-      error: fallbackError,
+      error: missingDetailLayoutColumnError,
+    });
+    const generalQuery = siteSettingsSelectQuery({
+      data: dbRowWithoutTiktokColumns,
+      error: null,
     });
     const from = fromQueue({
-      site_settings: [primaryQuery, fallbackQuery],
+      site_settings: [primaryQuery, withoutPageSeoQuery, fallbackQuery, generalQuery],
     });
 
     authSupabase({ from });
@@ -411,11 +460,26 @@ describe("admin site settings route", () => {
     );
     const response = await GET(authenticatedRequest());
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      error: fallbackError.message,
-      code: fallbackError.code,
+      settings: {
+        siteName: "Baan Pool Villa",
+        detailLayout: DEFAULT_DETAIL_LAYOUT,
+        tiktok: {
+          accountUrl: "",
+          videos: [],
+        },
+      },
     });
+    expect(generalQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("detail_layout"),
+    );
+    expect(generalQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_account_url"),
+    );
+    expect(generalQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_video_urls"),
+    );
   });
 
   it("rejects missing auth before reading settings", async () => {
@@ -462,9 +526,59 @@ describe("admin site settings route", () => {
     expect(body.errors).toContain("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");
   });
 
+  it("rejects malformed phoneContacts payloads before reading site settings", async () => {
+    const from = vi.fn();
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await PUT(
+      putRequest(
+        settingsForm({
+          phoneContacts: "{not-json}",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      errors: ["ข้อมูลเบอร์โทรติดต่อไม่ถูกต้อง"],
+    });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("rejects phoneContacts payloads that are not contact arrays", async () => {
+    const from = vi.fn();
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await PUT(
+      putRequest(
+        settingsForm({
+          phoneContacts: JSON.stringify({ name: "ทีมงาน" }),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      errors: ["ข้อมูลเบอร์โทรติดต่อไม่ถูกต้อง"],
+    });
+    expect(from).not.toHaveBeenCalled();
+  });
+
   it("preserves existing image fields when PUT has no files", async () => {
     const loadQuery = siteSettingsSelectQuery({ data: dbRow, error: null });
     const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
       data: {
         ...dbRow,
         site_name: "Updated Villas",
@@ -482,7 +596,7 @@ describe("admin site settings route", () => {
       error: null,
     });
     const from = fromQueue({
-      site_settings: [loadQuery, saveQuery],
+      site_settings: [loadQuery, saveQuery, reloadQuery],
     });
 
     authSupabase({ from });
@@ -583,6 +697,10 @@ describe("admin site settings route", () => {
   it("does not persist TikTok form fields in the site-settings upsert payload", async () => {
     const loadQuery = siteSettingsSelectQuery({ data: dbRow, error: null });
     const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
       data: {
         ...dbRow,
         site_name: "Updated Villas",
@@ -593,7 +711,7 @@ describe("admin site settings route", () => {
       error: null,
     });
     const from = fromQueue({
-      site_settings: [loadQuery, saveQuery],
+      site_settings: [loadQuery, saveQuery, reloadQuery],
     });
 
     authSupabase({ from });
@@ -642,14 +760,14 @@ describe("admin site settings route", () => {
     expect(payload).not.toHaveProperty("tiktok_video_urls");
   });
 
-  it("falls back before save on PUT when TikTok columns are missing and surfaces save failure", async () => {
-    const missingColumnError = {
-      message: "column site_settings.tiktok_account_url does not exist",
-      code: "42703",
-    };
+  it("falls back after write-only save on PUT when TikTok columns are missing", async () => {
     const loadQuery = siteSettingsSelectQuery({
       data: null,
-      error: missingColumnError,
+      error: missingTiktokColumnError,
+    });
+    const withoutPageSeoLoadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
     });
     const fallbackLoadQuery = siteSettingsSelectQuery({
       data: dbRowWithoutTiktokColumns,
@@ -657,10 +775,36 @@ describe("admin site settings route", () => {
     });
     const saveQuery = siteSettingsUpsertQuery({
       data: null,
-      error: missingColumnError,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
+    const withoutPageSeoReloadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
+    const fallbackReloadQuery = siteSettingsSelectQuery({
+      data: {
+        ...dbRowWithoutTiktokColumns,
+        site_name: "Updated Villas",
+        primary_color: "#123abc",
+        accent_color: "#fedcba",
+        hero_image_alt: "Updated hero",
+      },
+      error: null,
     });
     const from = fromQueue({
-      site_settings: [loadQuery, fallbackLoadQuery, saveQuery],
+      site_settings: [
+        loadQuery,
+        withoutPageSeoLoadQuery,
+        fallbackLoadQuery,
+        saveQuery,
+        reloadQuery,
+        withoutPageSeoReloadQuery,
+        fallbackReloadQuery,
+      ],
     });
 
     authSupabase({ from });
@@ -671,13 +815,27 @@ describe("admin site settings route", () => {
     const response = await PUT(putRequest(settingsForm()));
     const body = await response.json();
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(200);
     expect(body).toMatchObject({
-      error: "column site_settings.tiktok_account_url does not exist",
-      code: "42703",
+      settings: {
+        siteName: "Updated Villas",
+        primaryColor: "#123abc",
+        accentColor: "#fedcba",
+        heroImage: {
+          alt: "Updated hero",
+        },
+        tiktok: {
+          accountUrl: "",
+          videos: [],
+        },
+      },
+      warnings: [],
     });
     expect(fallbackLoadQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_video_urls"),
+    );
+    expect(withoutPageSeoLoadQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_video_urls"),
     );
     expect(saveQuery.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -693,6 +851,16 @@ describe("admin site settings route", () => {
       }),
       { onConflict: "id" },
     );
+    expect(fallbackReloadQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_video_urls"),
+    );
+    expect(fallbackReloadQuery.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("tiktok_account_url"),
+    );
+    expect(withoutPageSeoReloadQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_video_urls"),
+    );
+    expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("uploads an image, records history, saves settings, and cleans eligible old rows", async () => {
@@ -702,6 +870,10 @@ describe("admin site settings route", () => {
       error: null,
     });
     const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
       data: {
         ...dbRow,
         logo_image_path: "logo/2026/05/upload.webp",
@@ -763,7 +935,7 @@ describe("admin site settings route", () => {
         historySelectQuery,
         historyCleanupDeleteQuery,
       ],
-      site_settings: [loadQuery, saveQuery],
+      site_settings: [loadQuery, saveQuery, reloadQuery],
     });
     const upload = vi.fn().mockResolvedValue({ error: null });
     const getPublicUrl = vi.fn().mockReturnValue({
@@ -852,7 +1024,7 @@ describe("admin site settings route", () => {
     );
     const response = await PUT(putRequest(formData));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       error: "Storage rejected upload",
       code: "storage_error",
@@ -918,6 +1090,10 @@ describe("admin site settings route", () => {
       error: null,
     });
     const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
       data: {
         ...dbRow,
         logo_image_path: "logo/2026/05/upload.webp",
@@ -934,7 +1110,7 @@ describe("admin site settings route", () => {
     const historyUpdateQuery = uploadHistoryUpdateQuery({ error: updateError });
     const from = fromQueue({
       site_asset_uploads: [historyInsertQuery, historyUpdateQuery],
-      site_settings: [loadQuery, saveQuery],
+      site_settings: [loadQuery, saveQuery, reloadQuery],
     });
     const upload = vi.fn().mockResolvedValue({ error: null });
     const getPublicUrl = vi.fn().mockReturnValue({
@@ -1010,7 +1186,7 @@ describe("admin site settings route", () => {
     );
     const response = await PUT(putRequest(formData));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       error: "Save failed",
       code: "23514",

@@ -115,6 +115,14 @@ describe("getSiteSettings", () => {
           " https://www.facebook.com/baanpoolvillas ",
           " https://line.me/R/ti/p/@baanpoolvilla ",
         ],
+        search_seo_title: " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
+        search_seo_description: " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
+        search_seo_og_image_url: " /images/search-cover.jpg ",
+        search_seo_og_image_alt: " Search cover ",
+        guides_seo_title: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
+        guides_seo_description: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
+        guides_seo_og_image_url: " /images/guides-cover.jpg ",
+        guides_seo_og_image_alt: " Guides cover ",
         detail_layout: DEFAULT_DETAIL_LAYOUT,
         tiktok_account_url: " https://www.tiktok.com/@baanpoolvilla ",
         tiktok_video_urls: [
@@ -125,7 +133,8 @@ describe("getSiteSettings", () => {
       error: null,
     });
 
-    await expect(getSiteSettings()).resolves.toEqual({
+    await expect(getSiteSettings()).resolves.toMatchObject({
+      degraded: false,
       settings: {
         siteName: "Baan Pool Villa",
         primaryColor: "#123456",
@@ -171,6 +180,26 @@ describe("getSiteSettings", () => {
             "https://line.me/R/ti/p/@baanpoolvilla",
           ],
         },
+        pageSeo: {
+          search: {
+            title: "ค้นหาบ้านพักพูลวิลล่าพัทยา",
+            description: "ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา",
+            ogImage: {
+              path: "/images/search-cover.jpg",
+              url: "/images/search-cover.jpg",
+              alt: "Search cover",
+            },
+          },
+          guides: {
+            title: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา",
+            description: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก",
+            ogImage: {
+              path: "/images/guides-cover.jpg",
+              url: "/images/guides-cover.jpg",
+              alt: "Guides cover",
+            },
+          },
+        },
         tiktok: {
           accountUrl: "https://www.tiktok.com/@baanpoolvilla",
           videos: [
@@ -202,6 +231,7 @@ describe("getSiteSettings", () => {
     mockSiteSettingsQuery({ data: null, error: null });
 
     await expect(getSiteSettings()).resolves.toEqual({
+      degraded: true,
       settings: DEFAULT_SITE_SETTINGS,
       source: "fallback",
     });

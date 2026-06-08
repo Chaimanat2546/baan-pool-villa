@@ -8,6 +8,8 @@ import type { SiteSettingsLoadResult, SiteSettingsRow } from "./types";
 import { normalizeSiteSettingsRow } from "./validation";
 
 const SITE_SETTINGS_SELECT =
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_og_image_url,guides_seo_og_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
+const SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
@@ -26,6 +28,20 @@ const getCachedSiteSettings = unstable_cache(
       .maybeSingle();
 
     if (error) {
+      const { data: withoutPageSeoData, error: withoutPageSeoError } = await supabase
+        .from("site_settings")
+        .select(SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO)
+        .eq("id", SITE_SETTINGS_ID)
+        .maybeSingle();
+
+      if (!withoutPageSeoError && withoutPageSeoData) {
+        return {
+          degraded: true,
+          settings: normalizeSiteSettingsRow(withoutPageSeoData as SiteSettingsRow),
+          source: "config",
+        };
+      }
+
       const { data: withoutTikTokData, error: withoutTikTokError } = await supabase
         .from("site_settings")
         .select(SITE_SETTINGS_SELECT_WITHOUT_TIKTOK)
@@ -34,6 +50,7 @@ const getCachedSiteSettings = unstable_cache(
 
       if (!withoutTikTokError && withoutTikTokData) {
         return {
+          degraded: true,
           settings: normalizeSiteSettingsRow(withoutTikTokData as SiteSettingsRow),
           source: "config",
         };
@@ -47,6 +64,7 @@ const getCachedSiteSettings = unstable_cache(
 
       if (!contactError && contactData) {
         return {
+          degraded: true,
           settings: normalizeSiteSettingsRow(contactData as SiteSettingsRow),
           source: "config",
         };
@@ -63,6 +81,7 @@ const getCachedSiteSettings = unstable_cache(
       }
 
       return {
+        degraded: false,
         settings: normalizeSiteSettingsRow(legacyData as SiteSettingsRow),
         source: "config",
       };
@@ -73,6 +92,7 @@ const getCachedSiteSettings = unstable_cache(
     }
 
     return {
+      degraded: false,
       settings: normalizeSiteSettingsRow(data as SiteSettingsRow),
       source: "config",
     };
@@ -88,6 +108,10 @@ export async function getSiteSettings(): Promise<SiteSettingsLoadResult> {
   try {
     return await getCachedSiteSettings();
   } catch {
-    return { settings: DEFAULT_SITE_SETTINGS, source: "fallback" };
+    return {
+      degraded: true,
+      settings: DEFAULT_SITE_SETTINGS,
+      source: "fallback",
+    };
   }
 }

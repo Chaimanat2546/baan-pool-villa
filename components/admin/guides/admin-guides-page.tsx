@@ -590,6 +590,7 @@ function BlockEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [2] },
+        link: false,
       }),
       TaskList,
       TaskItem.configure({
@@ -840,6 +841,7 @@ function GuideStatusPanel({
               alt={guide.coverImage.alt}
               className="aspect-[16/10] w-full object-cover"
               height={600}
+              loading="eager"
               src={guide.coverImage.url}
               unoptimized
               width={960}
@@ -1241,7 +1243,6 @@ export function AdminGuidesPage() {
       });
       setActiveDraftId(savedGuide.id ?? activeGuide.draftId);
       setNotice("บันทึกบทความแล้ว");
-      router.refresh();
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error ? caughtError.message : "บันทึกบทความไม่ได้",
@@ -1310,7 +1311,7 @@ export function AdminGuidesPage() {
       return safeGuides;
     });
     } catch {
-      setErrors(extractErrors(null, "à¸¥à¸šà¸šà¸—à¸„à¸§à¸²à¸¡à¹„à¸¡à¹ˆà¹„à¸”à¹‰"));
+      setErrors(extractErrors(null, "ลบบทความไม่ได้"));
       return;
     }
     setNotice("ลบบทความแล้ว");

@@ -84,7 +84,10 @@ function toHomeSectionDraft(section: AdminSectionDraft): HomeSectionDraft {
     ctaEnabled: section.ctaEnabled,
     ctaLabel: section.ctaEnabled ? "ดูเพิ่มเติม" : section.ctaLabel,
     ctaHref: section.ctaEnabled ? "/search" : section.ctaHref,
-    items: section.items.map((item) => ({ houseId: item.houseId })),
+    items: section.items.map((item) => ({
+      houseId: item.houseId,
+      isActive: item.isActive ?? true,
+    })),
   };
 }
 
@@ -101,13 +104,18 @@ function normalizeDisplayOrder(sections: AdminSectionDraft[]): AdminSectionDraft
 
 function mapResponseSections(
   payload: AdminHomeSectionsResponse,
+  existingSections: AdminSectionDraft[] = [],
 ): AdminSectionDraft[] {
+  const existingDraftIdsBySlug = new Map(
+    existingSections.map((section) => [section.slug, section.draftId]),
+  );
+
   return normalizeDisplayOrder(
     payload.sections
       .map((section) => ({
         ...section,
         fallbackMode: normalizeAdminFallbackMode(section.fallbackMode),
-        draftId: makeDraftId(),
+        draftId: existingDraftIdsBySlug.get(section.slug) ?? makeDraftId(),
         items: section.items.map((item, itemIndex) => ({
           houseId: item.houseId,
           position: item.position ?? itemIndex,
@@ -151,7 +159,7 @@ function parseManualIds(value: string) {
     .split(/[\s,;]+/)
     .map((houseId) => houseId.trim())
     .filter(Boolean)
-    .map((houseId) => ({ houseId }));
+    .map((houseId) => ({ houseId, isActive: true }));
 }
 
 function extractErrors(payload: unknown, fallback: string): string[] {
@@ -241,7 +249,7 @@ function isAbortSignalAborted(signal: AbortSignal | undefined): boolean {
 /**
  * Admin interface for managing home-page sections.
  *
- * Provides a full-featured page that loads section drafts, lets administrators add, edit, reorder, delete, and preview sections (including manual house-ID preview/validation), and save changes back to the server.
+ * Provides a full-featured page that loads section drafts, lets administrators add, edit, reorder, delete, validate manual house IDs, and review a prototype-only homepage preview before saving changes back to the server.
  *
  * @returns The React element rendering the admin home-sections management page.
  */
@@ -252,7 +260,7 @@ export function AdminSectionsPage() {
   const [draggedDraftId, setDraggedDraftId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [, setIsPreviewing] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [manualIdTexts, setManualIdTexts] = useState<Record<string, string>>({});
@@ -307,7 +315,7 @@ export function AdminSectionsPage() {
       : null;
   const duplicateManualIds = activeManualStatus?.duplicateIds.length ?? 0;
   const invalidManualIds = activeManualStatus?.invalidIds.length ?? 0;
-  const isPreviewVerified =
+  const hasValidatedManualIds =
     activeSection?.mode === "manual" && activePreview !== null;
 
   const redirectToLogin = useCallback(() => {
@@ -326,7 +334,11 @@ export function AdminSectionsPage() {
   }, [redirectToLogin]);
 
   const loadSections = useCallback(
-    async (token: string, showLoading: boolean) => {
+    async (
+      token: string,
+      showLoading: boolean,
+      activeSectionDraftId: string | null,
+    ) => {
       if (showLoading) {
         setIsLoading(true);
       }
@@ -353,11 +365,14 @@ export function AdminSectionsPage() {
         }
 
         const mappedSections = mapResponseSections(payload);
+        const nextActiveDraftId =
+          mappedSections.find((section) => section.draftId === activeSectionDraftId)
+            ?.draftId ?? mappedSections[0]?.draftId ?? null;
 
         setSections(mappedSections);
         setSavedSnapshot(makeSectionsSnapshot(mappedSections));
         setManualIdTexts({});
-        setActiveDraftId(mappedSections[0]?.draftId ?? null);
+        setActiveDraftId(nextActiveDraftId);
         setPreview(null);
         setPreviewDraftId(null);
         setPendingDeleteDraftId(null);
@@ -387,7 +402,7 @@ export function AdminSectionsPage() {
           return;
         }
 
-        await loadSections(token, true);
+        await loadSections(token, true, null);
       } catch (caughtError) {
         if (!isMounted) {
           return;
@@ -609,31 +624,19 @@ export function AdminSectionsPage() {
     [fetchManualPreview, getAccessToken],
   );
 
-  useEffect(() => {
-    if (!activeManualDraftId) {
+  async function handlePreviewActiveManualIds() {
+    if (!activeManualDraftId || !activeManualHouseIdsKey) {
+      setPreview(null);
+      setPreviewDraftId(null);
       return;
     }
 
-    if (!activeManualHouseIdsKey) {
-      return;
-    }
-
-    const houseIds = activeManualHouseIdsKey.split("\n");
-    const controller = new AbortController();
-    const previewTimer = window.setTimeout(() => {
-      void previewManualIds({
-        draftId: activeManualDraftId,
-        houseIds,
-        showErrors: false,
-        signal: controller.signal,
-      });
-    }, 650);
-
-    return () => {
-      window.clearTimeout(previewTimer);
-      controller.abort();
-    };
-  }, [activeManualDraftId, activeManualHouseIdsKey, previewManualIds]);
+    await previewManualIds({
+      draftId: activeManualDraftId,
+      houseIds: activeManualHouseIdsKey.split("\n"),
+      showErrors: true,
+    });
+  }
 
   async function validateManualSectionsBeforeSave(token: string) {
     const manualSections = sections
@@ -769,8 +772,20 @@ export function AdminSectionsPage() {
       }
 
       setNotice("บันทึกการจัดหน้าแรกแล้ว");
-      await loadSections(token, false);
-      router.refresh();
+      const mappedSections = mapResponseSections(
+        payload as AdminHomeSectionsResponse,
+        sections,
+      );
+      setSections(mappedSections);
+      setSavedSnapshot(makeSectionsSnapshot(mappedSections));
+      setManualIdTexts({});
+      setActiveDraftId(
+        mappedSections.find((section) => section.draftId === activeDraftId)
+          ?.draftId ?? mappedSections[0]?.draftId ?? null,
+      );
+      setPreview(null);
+      setPreviewDraftId(null);
+      setPendingDeleteDraftId(null);
     } catch (caughtError) {
       setErrors([
         caughtError instanceof Error
@@ -1099,23 +1114,48 @@ export function AdminSectionsPage() {
                     }
                   >
                     {activeSection.mode === "manual" ? (
-                      <ManualIdsEditor
-                        manualIdText={
-                          manualIdTexts[activeSection.draftId] ??
-                          activeSection.items
-                            .map((item) => item.houseId)
-                            .join(",")
-                        }
-                        onChange={(nextManualIdText) => {
-                          setManualIdTexts((currentTexts) => ({
-                            ...currentTexts,
-                            [activeSection.draftId]: nextManualIdText,
-                          }));
-                          updateSection(activeSection.draftId, {
-                            items: parseManualIds(nextManualIdText),
-                          });
-                        }}
-                      />
+                      <div className="grid gap-3">
+                        <ManualIdsEditor
+                          manualIdText={
+                            manualIdTexts[activeSection.draftId] ??
+                            activeSection.items
+                              .map((item) => item.houseId)
+                              .join(",")
+                          }
+                          onChange={(nextManualIdText) => {
+                            setManualIdTexts((currentTexts) => ({
+                              ...currentTexts,
+                              [activeSection.draftId]: nextManualIdText,
+                            }));
+                            updateSection(activeSection.draftId, {
+                              items: parseManualIds(nextManualIdText),
+                            });
+                          }}
+                        />
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={
+                              isPreviewing || activeSection.items.length === 0
+                            }
+                            onClick={() => {
+                              void handlePreviewActiveManualIds();
+                            }}
+                            type="button"
+                          >
+                            <CheckCircle2
+                              aria-hidden="true"
+                              className={`size-4 ${isPreviewing ? "animate-pulse" : ""}`}
+                            />
+                            {isPreviewing
+                              ? "กำลังเช็กเลขบ้าน..."
+                              : "เช็กเลขบ้าน"}
+                          </button>
+                          <p className="text-xs leading-5 text-[var(--site-muted)]">
+                            ระบบจะตรวจซ้ำให้อีกครั้งตอนกดบันทึก
+                          </p>
+                        </div>
+                      </div>
                     ) : (
                       <AutoModeSummary mode={activeSection.mode} />
                     )}
@@ -1128,7 +1168,7 @@ export function AdminSectionsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-primary)]">
-                        Preview
+                        Prototype
                       </p>
                       <h3 className="mt-2 text-lg font-semibold text-[var(--site-text)]">
                         สรุปก่อนบันทึก
@@ -1181,9 +1221,9 @@ export function AdminSectionsPage() {
                           </dd>
                         </div>
                         <div className="flex items-start justify-between gap-4">
-                          <dt className="text-[var(--site-muted)]">สถานะพรีวิว</dt>
+                          <dt className="text-[var(--site-muted)]">สถานะเลขบ้าน</dt>
                           <dd className="text-right font-semibold text-[var(--site-text)]">
-                            {isPreviewVerified ? "เช็กบ้านแล้ว" : "รอเช็กข้อมูล"}
+                            {hasValidatedManualIds ? "ตรวจเลขบ้านแล้ว" : "รอตรวจเลขบ้าน"}
                           </dd>
                         </div>
                       </>

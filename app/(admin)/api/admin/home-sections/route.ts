@@ -9,8 +9,12 @@ import {
   normalizeHomeSectionDraftsForSave,
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
+import {
+  adminSupabaseErrorResponse,
+  requireHomeConfigAdmin,
+} from "@/lib/admin/route-helpers";
 
-import { assertHomeConfigAdmin, getBearerToken, jsonError } from "./auth";
+import { jsonError } from "./auth";
 
 interface HomeSectionItemRow {
   house_id: unknown;
@@ -302,7 +306,7 @@ function parseSectionsPayload(payload: unknown): ParsedSectionsPayload {
           if (!isRecord(item)) {
             errors.push(`${itemLabel} must be an object.`);
 
-            return { houseId: "" };
+            return { houseId: "", isActive: true };
           }
 
           validateOptionalPrimitiveFields(
@@ -317,6 +321,7 @@ function parseSectionsPayload(payload: unknown): ParsedSectionsPayload {
 
           return {
             houseId: readString(item, "houseId", itemLabel, errors),
+            isActive: typeof item.isActive === "boolean" ? item.isActive : true,
           };
         })
       : [];
@@ -370,25 +375,19 @@ function toRpcPayload(sections: HomeSectionSavePayload[]): RpcHomeSectionPayload
     items: section.items.map((item) => ({
       house_id: item.houseId,
       position: item.position,
-      is_active: true,
+      is_active: item.isActive,
     })),
   }));
 }
 
 export async function GET(request: Request) {
-  const token = getBearerToken(request);
+  const admin = await requireHomeConfigAdmin(request);
 
-  if (!token) {
-    return jsonError("Missing bearer token.", 401);
+  if (!admin.ok) {
+    return admin.response;
   }
 
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return jsonError(adminCheck.message, adminCheck.status);
-  }
-
-  const supabase = adminCheck.supabase;
+  const supabase = admin.supabase;
 
   const { data, error } = await supabase
     .from("home_sections")
@@ -402,32 +401,29 @@ export async function GET(request: Request) {
     });
 
   if (error || !Array.isArray(data)) {
-    return jsonError(error?.message ?? "Unable to load home sections.", 403);
+    return adminSupabaseErrorResponse(error, "Unable to load home sections.");
   }
 
   try {
     return Response.json({
       sections: (data as HomeSectionRow[]).map(mapHomeSectionRow),
     });
-  } catch {
-    return jsonError("Invalid home section data.", 403);
+  } catch (error) {
+    return jsonError("Invalid home section data.", 500, {
+      details:
+        error instanceof Error ? error.message : "Unable to map home section row.",
+    });
   }
 }
 
 export async function PUT(request: Request) {
-  const token = getBearerToken(request);
+  const admin = await requireHomeConfigAdmin(request);
 
-  if (!token) {
-    return jsonError("Missing bearer token.", 401);
+  if (!admin.ok) {
+    return admin.response;
   }
 
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return jsonError(adminCheck.message, adminCheck.status);
-  }
-
-  const supabase = adminCheck.supabase;
+  const supabase = admin.supabase;
 
   let payload: unknown;
 
@@ -457,11 +453,7 @@ export async function PUT(request: Request) {
   });
 
   if (error) {
-    return jsonError(error.message, 403, {
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    });
+    return adminSupabaseErrorResponse(error, "Unable to save home sections.");
   }
 
   revalidateHomeSectionsCache();

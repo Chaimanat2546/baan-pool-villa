@@ -98,6 +98,28 @@ describe("HomePage", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("surfaces degraded homepage sources as non-visible data attributes", () => {
+    const markup = renderToStaticMarkup(
+      <HomePage
+        initialHomeSections={[homeSection]}
+        filterSummary={filterSummary}
+        destinationVillas={destinationVillas}
+        settings={DEFAULT_SITE_SETTINGS}
+        degradedSources={{
+          guidePosts: false,
+          homeSections: true,
+          siteSettings: true,
+          villaCatalog: false,
+        }}
+      />,
+    );
+
+    expect(markup).toContain('data-home-degraded="true"');
+    expect(markup).toContain(
+      'data-home-degraded-sources="siteSettings,homeSections"',
+    );
+  });
+
   it("uses compact destinationVillas payload for destination cards", () => {
     const compactDestinationVillas = [
       { coverImage: "https://example.com/destination-1.jpg" },

@@ -3,6 +3,7 @@
 import { AlertCircle, RotateCcw, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { SearchPageInitialMeta } from "@/components/villas/search/page-data";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { AMENITY_OPTIONS } from "@/lib/villas/amenities";
 import {
@@ -21,13 +22,6 @@ import type { VillaFilters, VillaListing } from "@/lib/villas/types";
 import { VillaGrid } from "../listing/villa-grid";
 import { MobileFilterDrawer } from "./mobile-filter-drawer";
 import { SearchBar } from "./search-bar";
-
-export interface SearchPageInitialMeta {
-  catalogComplete: boolean;
-  maxPrice: number;
-  resultCount: number;
-  zones: Array<{ value: string; label: string }>;
-}
 
 interface SearchPageProps {
   initialLoadError?: string | null;

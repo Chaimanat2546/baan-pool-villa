@@ -4,7 +4,7 @@ import { revalidateHomeSectionsCache } from "@/lib/cache-revalidation";
 import {
   assertHomeConfigAdmin,
   getBearerToken,
-} from "../../../app/(admin)/api/admin/home-sections/auth";
+} from "@/lib/admin/home-config-auth";
 
 vi.mock("server-only", () => ({}));
 
@@ -12,7 +12,7 @@ vi.mock("@/lib/cache-revalidation", () => ({
   revalidateHomeSectionsCache: vi.fn(),
 }));
 
-vi.mock("../../../app/(admin)/api/admin/home-sections/auth", () => ({
+vi.mock("@/lib/admin/home-config-auth", () => ({
   assertHomeConfigAdmin: vi.fn(),
   getBearerToken: vi.fn(),
   jsonError: vi.fn((message: string, status: number) =>
@@ -67,7 +67,7 @@ describe("admin home sections route", () => {
             ctaEnabled: false,
             ctaLabel: "",
             ctaHref: "",
-            items: [{ houseId: "901" }],
+            items: [{ houseId: "901", isActive: true }],
           },
         ],
       }),
@@ -100,5 +100,51 @@ describe("admin home sections route", () => {
       ],
     });
     expect(revalidateHomeSectionsCacheMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes disabled item state to the home section RPC payload", async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase: { rpc },
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/home-sections/route"
+    );
+    const response = await PUT(
+      putRequest({
+        sections: [
+          {
+            slug: "featured",
+            title: "Featured villas",
+            description: "Recommended villas",
+            mode: "manual",
+            limitCount: 1,
+            fallbackMode: "none",
+            sliceOffset: 0,
+            isActive: true,
+            ctaEnabled: false,
+            ctaLabel: "",
+            ctaHref: "",
+            items: [{ houseId: "901", isActive: false }],
+          },
+        ],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(rpc).toHaveBeenCalledWith("save_home_section_snapshot", {
+      snapshot: [
+        expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              house_id: "901",
+              is_active: false,
+            }),
+          ],
+        }),
+      ],
+    });
   });
 });

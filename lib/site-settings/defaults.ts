@@ -2,12 +2,17 @@ import {
   defaultDescription,
   defaultOgImage,
   defaultTitle,
+  guidesDescription,
+  guidesTitle,
+  searchDescription,
+  searchTitle,
   siteName,
 } from "../seo";
 import { DEFAULT_DETAIL_LAYOUT } from "../detail-layout/defaults";
 import type {
   SiteBankSettings,
   SiteContactSettings,
+  SitePageSeoSettings,
   SiteSeoSettings,
   SiteSettings,
   SiteTikTokSettings,
@@ -62,6 +67,27 @@ export const DEFAULT_SITE_SEO_SETTINGS: SiteSeoSettings = {
   ],
 };
 
+export const DEFAULT_SITE_PAGE_SEO_SETTINGS: SitePageSeoSettings = {
+  guides: {
+    title: guidesTitle,
+    description: guidesDescription,
+    ogImage: {
+      path: defaultOgImage,
+      url: defaultOgImage,
+      alt: "Pool Villa บ้านพูลวิลล่า พัทยา",
+    },
+  },
+  search: {
+    title: searchTitle,
+    description: searchDescription,
+    ogImage: {
+      path: defaultOgImage,
+      url: defaultOgImage,
+      alt: "Pool Villa บ้านพูลวิลล่า พัทยา",
+    },
+  },
+};
+
 export const DEFAULT_SITE_TIKTOK_SETTINGS: SiteTikTokSettings = {
   accountUrl: "",
   videos: [],
@@ -84,6 +110,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   bank: DEFAULT_SITE_BANK_SETTINGS,
   contact: DEFAULT_SITE_CONTACT_SETTINGS,
   seo: DEFAULT_SITE_SEO_SETTINGS,
+  pageSeo: DEFAULT_SITE_PAGE_SEO_SETTINGS,
   tiktok: DEFAULT_SITE_TIKTOK_SETTINGS,
   detailLayout: DEFAULT_DETAIL_LAYOUT,
 };

@@ -175,6 +175,7 @@ export function normalizeHomeSectionDraftsForSave(
     ctaHref: section.ctaEnabled ? section.ctaHref.trim() : null,
     items: section.items.map((item, itemIndex) => ({
       houseId: normalizeHouseId(item.houseId) ?? item.houseId.trim(),
+      isActive: item.isActive ?? true,
       position: itemIndex,
     })),
   }));

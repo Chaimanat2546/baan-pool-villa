@@ -23,7 +23,6 @@ import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
 import { findFact, findSection, getVillaTitle } from "./helpers";
-import { MockBadge } from "./shared";
 
 export function VillaIntro({
 
@@ -178,7 +177,7 @@ export function AboutSection({
 
       `${getVillaTitle(listing.id)} เหมาะสำหรับครอบครัวและกลุ่มเพื่อนที่ต้องการพื้นที่พักผ่อนส่วนตัว`,
 
-      "ข้อมูลคำบรรยายหลักยังไม่มีจาก API จึง mock ไว้ที่ FE ตรงสิ่งนี้",
+      "อัปเดตข้อมูลบ้านพักเพิ่มเติมตามข้อมูลล่าสุดอยู่ระหว่างการซิงค์ กรุณากลับมาเช็กอีกครั้งภายในสัปดาห์นี้"
 
     ];
 
@@ -189,8 +188,6 @@ export function AboutSection({
       <div className="flex items-center gap-2">
 
         <h2 className="text-2xl font-black text-[var(--site-text)]">เกี่ยวกับบ้านพัก</h2>
-
-        {!moreDetail ? <MockBadge /> : null}
 
       </div>
 
@@ -573,7 +570,12 @@ export function PolicySection({
 
           </p>
 
-          {!checkIn || !checkOut ? <MockBadge /> : null}
+          {(!checkIn || !checkOut) ? (
+            <p className="rounded-xl bg-[var(--site-primary-soft)] p-3">
+              เวลาเช็คอิน/เช็คเอาต์อาจมีการปรับตามวันพิเศษ
+              กรุณาสอบถามทีมงานเพื่อยืนยันเวลาที่แน่นอน
+            </p>
+          ) : null}
 
           <p className="rounded-xl bg-[var(--site-primary-soft)] p-3">
 
@@ -597,13 +599,12 @@ export function PolicySection({
 
           ))}
 
-          {!rules ? <MockBadge /> : null}
 
         </PolicyCard>
 
         <PolicyCard icon={Car} title="ที่จอดรถและค่าใช้จ่าย">
 
-          {(parking?.lines ?? ["รายละเอียดที่จอดรถยังไม่มีใน API"]).map((line, index) => (
+          {(parking?.lines ?? ["ข้อมูลจุดจอดรถและพื้นที่รับ–ส่งรถสามารถสอบถามทีมงานเพื่อยืนยันก่อนเดินทาง"]).map((line, index) => (
 
             <p key={`${index}-${line}`}>{line}</p>
 
@@ -661,11 +662,9 @@ export function PolicySection({
 
           ) : (
 
-            <p>{hasPet ? "อนุญาตให้นำสัตว์เลี้ยงเข้าพักได้" : "ยังไม่มีข้อมูลสัตว์เลี้ยงจาก API"}</p>
+            <p>{hasPet ? "อนุญาตให้นำสัตว์เลี้ยงเข้าพักได้" : "นโยบายสัตว์เลี้ยงอาจมีข้อจำกัด กรุณาสอบถามทีมงานก่อนยืนยันการจอง"}</p>
 
           )}
-
-          {!petPolicy ? <MockBadge /> : null}
 
         </PolicyCard>
 

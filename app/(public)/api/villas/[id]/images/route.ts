@@ -1,4 +1,5 @@
 import { CACHE_HEADERS } from "@/lib/cache-policy";
+import { publicApiErrorResponse } from "@/lib/api/errors";
 import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
 
 export async function GET(
@@ -23,13 +24,6 @@ export async function GET(
       return Response.json({ error: "Invalid villa id" }, { status: 400 });
     }
 
-    console.error("Unable to load villa images", error);
-
-    return Response.json(
-      {
-        error: "Unable to load villa images",
-      },
-      { status: 502 },
-    );
+    return publicApiErrorResponse("Unable to load villa images", error);
   }
 }
