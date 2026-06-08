@@ -114,10 +114,6 @@ export default async function Page() {
   ]);
   const { settings } = settingsResult;
 
-  if (settingsResult.degraded) {
-    console.error("Homepage rendered with fallback site settings");
-  }
-
   const jsonLd = buildHomeJsonLd(settings);
 
   return (
