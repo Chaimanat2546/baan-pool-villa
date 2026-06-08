@@ -306,6 +306,12 @@
 
         <section id="admin-route-handlers">
           <h3>Admin Route Handlers</h3>
+          <p>
+            Shared admin bearer-token checks and Supabase-style error responses
+            live in <code>lib/admin/route-helpers.ts</code>. Keep route handlers
+            focused on request parsing, validation, persistence, and cache
+            invalidation.
+          </p>
           <table>
             <thead>
               <tr>
@@ -488,8 +494,8 @@
             </tr>
             <tr>
               <td><code>lib/admin</code></td>
-              <td>Admin authentication/config helpers.</td>
-              <td>Admin API route tests around auth behavior.</td>
+              <td>Admin authentication/config helpers and shared admin route auth/error response utilities.</td>
+              <td><code>lib/admin/__tests__</code> plus targeted admin API route tests around auth and Supabase error behavior.</td>
             </tr>
           </tbody>
         </table>
@@ -743,6 +749,11 @@
               <td>Admin browser auth helpers or shared admin access-token reads</td>
               <td><code>npm.cmd test -- components/admin</code></td>
               <td>Run lint, build, and production smoke for admin redirects.</td>
+            </tr>
+            <tr>
+              <td>Admin API auth or shared Supabase error response behavior</td>
+              <td><code>npm.cmd test -- lib/admin/__tests__</code> plus the touched admin route test files</td>
+              <td>Verify missing-token/admin-denied responses do not call persistence helpers and Supabase errors preserve <code>message</code>, <code>code</code>, <code>details</code>, and <code>hint</code>.</td>
             </tr>
             <tr>
               <td>Public/admin visual UI, loading states, layout, or responsiveness</td>

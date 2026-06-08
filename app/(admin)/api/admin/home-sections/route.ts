@@ -9,8 +9,12 @@ import {
   normalizeHomeSectionDraftsForSave,
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
+import {
+  adminSupabaseErrorResponse,
+  requireHomeConfigAdmin,
+} from "@/lib/admin/route-helpers";
 
-import { assertHomeConfigAdmin, getBearerToken, jsonError } from "./auth";
+import { jsonError } from "./auth";
 
 interface HomeSectionItemRow {
   house_id: unknown;
@@ -377,19 +381,13 @@ function toRpcPayload(sections: HomeSectionSavePayload[]): RpcHomeSectionPayload
 }
 
 export async function GET(request: Request) {
-  const token = getBearerToken(request);
+  const admin = await requireHomeConfigAdmin(request);
 
-  if (!token) {
-    return jsonError("Missing bearer token.", 401);
+  if (!admin.ok) {
+    return admin.response;
   }
 
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return jsonError(adminCheck.message, adminCheck.status);
-  }
-
-  const supabase = adminCheck.supabase;
+  const supabase = admin.supabase;
 
   const { data, error } = await supabase
     .from("home_sections")
@@ -403,7 +401,7 @@ export async function GET(request: Request) {
     });
 
   if (error || !Array.isArray(data)) {
-    return jsonError(error?.message ?? "Unable to load home sections.", 403);
+    return adminSupabaseErrorResponse(error, "Unable to load home sections.");
   }
 
   try {
@@ -416,19 +414,13 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const token = getBearerToken(request);
+  const admin = await requireHomeConfigAdmin(request);
 
-  if (!token) {
-    return jsonError("Missing bearer token.", 401);
+  if (!admin.ok) {
+    return admin.response;
   }
 
-  const adminCheck = await assertHomeConfigAdmin(token);
-
-  if (!adminCheck.ok) {
-    return jsonError(adminCheck.message, adminCheck.status);
-  }
-
-  const supabase = adminCheck.supabase;
+  const supabase = admin.supabase;
 
   let payload: unknown;
 
@@ -458,11 +450,7 @@ export async function PUT(request: Request) {
   });
 
   if (error) {
-    return jsonError(error.message, 403, {
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    });
+    return adminSupabaseErrorResponse(error, "Unable to save home sections.");
   }
 
   revalidateHomeSectionsCache();
