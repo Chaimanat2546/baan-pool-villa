@@ -20,7 +20,8 @@ export const CACHE_TAGS = {
   tiktokOEmbed: "tiktok-oembed",
   villaDetail: (id: string) => `villa-detail:${id}`,
   villaDetails: "villa-details",
-  villaImages: (id: string) => `villa-images:${id}`,
+  villaImage: (id: string) => `villa-images:${id}`,
+  villaImages: "villa-images",
   villaListings: "villa-listings",
 } as const;
 

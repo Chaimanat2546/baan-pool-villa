@@ -31,7 +31,8 @@ describe("cache policy", () => {
     expect(CACHE_TAGS.villaListings).toBe("villa-listings");
     expect(CACHE_TAGS.villaDetails).toBe("villa-details");
     expect(CACHE_TAGS.villaDetail("42")).toBe("villa-detail:42");
-    expect(CACHE_TAGS.villaImages("42")).toBe("villa-images:42");
+    expect(CACHE_TAGS.villaImages).toBe("villa-images");
+    expect(CACHE_TAGS.villaImage("42")).toBe("villa-images:42");
     expect(CACHE_TAGS.siteSettings).toBe("site-settings");
     expect(CACHE_TAGS.tiktokOEmbed).toBe("tiktok-oembed");
     expect(CACHE_TAGS.homeSections).toBe("home-sections");

@@ -37,7 +37,11 @@ export function revalidateDetailLayoutCache() {
 }
 
 export function revalidateExternalVillaCache() {
-  revalidateTags([CACHE_TAGS.villaListings, CACHE_TAGS.villaDetails]);
+  revalidateTags([
+    CACHE_TAGS.villaListings,
+    CACHE_TAGS.villaDetails,
+    CACHE_TAGS.villaImages,
+  ]);
   revalidatePaths(["/", "/search", "/sitemap.xml"]);
   revalidatePath("/villas/[id]", "page");
 }

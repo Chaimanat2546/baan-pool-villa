@@ -353,7 +353,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/external-data/refresh/route.ts</code></td>
                 <td><code>/api/admin/external-data/refresh</code></td>
-                <td>Authenticated cache refresh for external villa listings and detail data.</td>
+                <td>Authenticated cache refresh for external villa listings, detail data, and shared villa image tags.</td>
               </tr>
             </tbody>
           </table>
@@ -473,7 +473,7 @@
             </tr>
             <tr>
               <td><code>lib/cache-revalidation.ts</code></td>
-              <td>Shared revalidation helpers. Supabase CMS helpers for settings, home sections, guides, TikTok, and detail layout are tag-only by default; external villa refresh remains the separate helper that can invalidate public paths.</td>
+              <td>Shared revalidation helpers. Supabase CMS helpers for settings, home sections, guides, TikTok, and detail layout are tag-only by default; external villa refresh remains the separate helper that can invalidate public paths plus the shared villa image tag.</td>
               <td><code>lib/cache-revalidation.test.ts</code></td>
             </tr>
             <tr>
@@ -522,7 +522,7 @@
             <tr>
               <td>Villa images</td>
               <td>Supabase image rows matched by <code>images.property_id</code> to villa id.</td>
-              <td><code>lib/villas/images.ts</code>, image host builder, image cache tag.</td>
+              <td><code>lib/villas/images.ts</code>, image host builder, shared villa-images tag, and per-villa image cache tag.</td>
               <td>Detail gallery and public villa images API.</td>
             </tr>
             <tr>

@@ -159,10 +159,10 @@ describe("fetchVillaImages", () => {
 
     expect(unstableCacheMock).toHaveBeenCalledWith(
       expect.any(Function),
-      [CACHE_TAGS.villaImages("9")],
+      [CACHE_TAGS.villaImage("9")],
       {
         revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
-        tags: [CACHE_TAGS.villaImages("9")],
+        tags: [CACHE_TAGS.villaImages, CACHE_TAGS.villaImage("9")],
       },
     );
   });
