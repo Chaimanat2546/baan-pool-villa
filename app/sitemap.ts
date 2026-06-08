@@ -23,9 +23,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const [listings, guides] = await Promise.all([
+  const [listings, guidesResult] = await Promise.all([
     fetchHouseListings(),
-    getPublishedGuides(),
+    getPublishedGuides().catch((error: unknown) => {
+      console.error("Unable to load guide routes for sitemap", error);
+
+      return [];
+    }),
   ]);
 
   const villaRoutes: MetadataRoute.Sitemap = listings.map((listing) => ({
@@ -35,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: absoluteUrl(`/villas/${listing.id}`),
   }));
 
-  const guideRoutes: MetadataRoute.Sitemap = guides.map((guide) => ({
+  const guideRoutes: MetadataRoute.Sitemap = guidesResult.map((guide) => ({
     changeFrequency: "weekly" as const,
     images: guide.coverImage?.url ? [guide.coverImage.url] : undefined,
     lastModified: guide.updatedAt ? new Date(guide.updatedAt) : undefined,
