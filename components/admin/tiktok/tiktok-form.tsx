@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { DragEvent, FormEvent, useState } from "react";
 
+import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import {
   HOMEPAGE_TIKTOK_PREVIEW_LIMIT,
   createTikTokRowId,
@@ -350,6 +351,7 @@ export function TikTokForm({
   onChange,
   onSave,
 }: TikTokFormProps) {
+  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const [draggingVideoIndex, setDraggingVideoIndex] = useState<number | null>(null);
   const [activePreviewVideoUrl, setActivePreviewVideoUrl] = useState<string | null>(null);
   const rows = makePreviewVideoRows(draft.videoUrls, draft.videoRowIds);
@@ -442,7 +444,11 @@ export function TikTokForm({
   return (
     <form
       aria-busy={isSaving}
-      className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]"
+      className={`grid min-w-0 gap-6 ${
+        isDesktopNavCollapsed
+          ? "xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]"
+          : "xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]"
+      }`}
       data-unsaved={hasUnsavedChanges ? "true" : "false"}
       onSubmit={handleSubmit}
     >
