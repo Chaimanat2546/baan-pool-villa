@@ -1,9 +1,15 @@
 "use client";
 
-import { LogOut, Menu, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -15,26 +21,119 @@ interface AdminShellProps {
   settings: SiteSettings;
 }
 
-function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
+const ADMIN_SIDEBAR_STORAGE_KEY = "admin-sidebar-collapsed";
+const ADMIN_SIDEBAR_EVENT = "admin-sidebar-preference-change";
+
+function getCompactSiteMark(siteName: string) {
+  const words = siteName
+    .split(/\s+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+
+  if (words.length === 0) {
+    return "ADM";
+  }
+
+  const compact = words
+    .slice(0, 3)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+
+  return compact || siteName.slice(0, 3).toUpperCase();
+}
+
+function subscribeToAdminSidebarPreference(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => undefined;
+  }
+
+  const handleStorage = (event: StorageEvent) => {
+    if (
+      event.key !== null &&
+      event.key !== ADMIN_SIDEBAR_STORAGE_KEY
+    ) {
+      return;
+    }
+
+    onStoreChange();
+  };
+
+  const handlePreferenceChange = () => {
+    onStoreChange();
+  };
+
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(ADMIN_SIDEBAR_EVENT, handlePreferenceChange);
+
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(ADMIN_SIDEBAR_EVENT, handlePreferenceChange);
+  };
+}
+
+function getAdminSidebarPreferenceSnapshot() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    return window.localStorage.getItem(ADMIN_SIDEBAR_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function setAdminSidebarPreference(nextValue: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      ADMIN_SIDEBAR_STORAGE_KEY,
+      String(nextValue),
+    );
+  } catch {
+    // Keep the shell usable even if storage access is blocked.
+  }
+
+  window.dispatchEvent(new Event(ADMIN_SIDEBAR_EVENT));
+}
+
+function AdminNavigation({
+  collapsed = false,
+  onNavigate,
+}: {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="เมนูหลังบ้าน" className="grid gap-1.5">
-      {ADMIN_NAV_ITEMS.map((item) => {
+    <nav
+      aria-label="เมนูหลังบ้าน"
+      className="grid gap-1.5"
+      data-admin-nav-layout={collapsed ? "collapsed" : "expanded"}
+    >
+      {ADMIN_NAV_ITEMS.filter((item) => !item.disabled).map((item) => {
         const Icon = item.icon;
-        const isActive = !item.disabled && pathname.startsWith(item.href);
-        const className = `group flex min-h-14 items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
+        const isActive = pathname.startsWith(item.href);
+        const className = `group rounded-lg border transition ${
+          collapsed
+            ? "flex min-h-24 flex-col items-center justify-center gap-2 px-2 py-3 text-center"
+            : "flex min-h-14 items-center gap-3 px-3 py-2.5 text-left"
+        } ${
           isActive
             ? "border-[var(--site-primary)] bg-[var(--site-primary)] text-[var(--site-on-primary)]"
-            : item.disabled
-              ? "cursor-not-allowed border-transparent text-[var(--site-muted)]"
-              : "border-transparent text-[var(--site-text)] hover:border-[var(--site-border)] hover:bg-[var(--site-surface)]"
+            : "border-transparent text-[var(--site-text)] hover:border-[var(--site-border)] hover:bg-[var(--site-surface)]"
         }`;
 
         const content = (
           <>
             <span
-              className={`inline-flex size-9 shrink-0 items-center justify-center rounded-lg ${
+              className={`inline-flex shrink-0 items-center justify-center rounded-lg ${
+                collapsed ? "size-10" : "size-9"
+              } ${
                 isActive
                   ? "bg-white/14 text-[var(--site-on-primary)]"
                   : "bg-[var(--site-surface)] text-[var(--site-primary)]"
@@ -42,38 +141,30 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
             >
               <Icon aria-hidden="true" className="size-4.5" />
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                {item.label}
-                {item.disabled ? (
-                  <span className="rounded-full bg-[var(--site-primary-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--site-muted)]">
-                    เร็ว ๆ นี้
-                  </span>
-                ) : null}
-              </span>
+            <span className={`min-w-0 ${collapsed ? "w-full" : "flex-1"}`}>
               <span
-                className={`mt-0.5 block text-xs leading-4 ${
-                  isActive ? "text-[var(--site-on-primary)]/74" : "text-[var(--site-muted)]"
+                className={`text-sm font-semibold ${
+                  collapsed
+                    ? "block text-center leading-4 text-pretty"
+                    : "flex items-center gap-2"
                 }`}
               >
-                {item.description}
+                {item.label}
               </span>
+              {collapsed ? null : (
+                <span
+                  className={`mt-0.5 block text-xs leading-4 ${
+                    isActive
+                      ? "text-[var(--site-on-primary)]/74"
+                      : "text-[var(--site-muted)]"
+                  }`}
+                >
+                  {item.description}
+                </span>
+              )}
             </span>
           </>
         );
-
-        if (item.disabled) {
-          return (
-            <div
-              aria-disabled="true"
-              className={className}
-              key={item.href}
-              role="link"
-            >
-              {content}
-            </div>
-          );
-        }
 
         return (
           <Link
@@ -94,8 +185,14 @@ function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
 export function AdminShell({ children, settings }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const isDesktopNavCollapsed = useSyncExternalStore(
+    subscribeToAdminSidebarPreference,
+    getAdminSidebarPreferenceSnapshot,
+    () => false,
+  );
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const activeItem = getActiveAdminNavItem(pathname);
+  const compactSiteMark = getCompactSiteMark(settings.siteName);
   const isLoginPage = pathname === "/admin/login";
 
   async function handleLogout() {
@@ -113,31 +210,90 @@ export function AdminShell({ children, settings }: AdminShellProps) {
   }
 
   return (
-    <div className="min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)] lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-dvh border-r border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4 lg:flex lg:flex-col">
-        <div className="rounded-lg bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--site-on-primary)]/75">
-            หลังบ้าน
-          </p>
-          <p className="mt-1 text-xl font-semibold tracking-normal">
-            {settings.siteName}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-[var(--site-on-primary)]/72">
-            จัดการข้อมูลที่แสดงบนเว็บไซต์
-          </p>
+    <div
+      className={`min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)] lg:grid ${
+        isDesktopNavCollapsed
+          ? "lg:grid-cols-[132px_minmax(0,1fr)]"
+          : "lg:grid-cols-[280px_minmax(0,1fr)]"
+      }`}
+    >
+      <aside
+        className="sticky top-0 hidden h-dvh border-r border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4 lg:flex lg:flex-col"
+        data-admin-sidebar-state={isDesktopNavCollapsed ? "collapsed" : "expanded"}
+      >
+        <div
+          className={`rounded-lg bg-[var(--site-primary)] text-[var(--site-on-primary)] ${
+            isDesktopNavCollapsed ? "px-3 py-3" : "px-4 py-4"
+          }`}
+        >
+          <div
+            className={`flex ${
+              isDesktopNavCollapsed
+                ? "items-center justify-between gap-2"
+                : "items-start justify-between gap-3"
+            }`}
+          >
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--site-on-primary)]/75">
+                หลังบ้าน
+              </p>
+              {isDesktopNavCollapsed ? (
+                <p className="mt-1 text-lg font-semibold tracking-[0.08em]">
+                  {compactSiteMark}
+                </p>
+              ) : (
+                <>
+                  <p className="mt-1 text-xl font-semibold tracking-normal">
+                    {settings.siteName}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--site-on-primary)]/72">
+                    จัดการข้อมูลที่แสดงบนเว็บไซต์
+                  </p>
+                </>
+              )}
+            </div>
+            <button
+              aria-label={
+                isDesktopNavCollapsed
+                  ? "ขยายแถบเมนูหลังบ้าน"
+                  : "ย่อแถบเมนูหลังบ้าน"
+              }
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/12 text-[var(--site-on-primary)] transition hover:bg-white/18"
+              onClick={() => {
+                setAdminSidebarPreference(!isDesktopNavCollapsed);
+              }}
+              type="button"
+            >
+              {isDesktopNavCollapsed ? (
+                <ChevronRight aria-hidden="true" className="size-4.5" />
+              ) : (
+                <ChevronLeft aria-hidden="true" className="size-4.5" />
+              )}
+            </button>
+          </div>
         </div>
 
-        <div className="mt-4 flex-1 overflow-y-auto pr-1">
-          <AdminNavigation />
+        <div
+          className={`mt-4 flex-1 overflow-y-auto ${
+            isDesktopNavCollapsed ? "" : "pr-1"
+          }`}
+        >
+          <AdminNavigation collapsed={isDesktopNavCollapsed} />
         </div>
 
         <button
-          className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+          className={`mt-4 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] ${
+            isDesktopNavCollapsed
+              ? "inline-flex min-h-20 flex-col items-center justify-center gap-2 px-2 py-3 text-center"
+              : "inline-flex h-11 items-center justify-center gap-2 px-4"
+          }`}
           onClick={handleLogout}
           type="button"
         >
           <LogOut aria-hidden="true" className="size-4" />
-          ออกจากระบบ
+          <span className={isDesktopNavCollapsed ? "leading-4" : ""}>
+            ออกจากระบบ
+          </span>
         </button>
       </aside>
 

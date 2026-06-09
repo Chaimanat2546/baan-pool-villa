@@ -670,9 +670,9 @@ export function AdminDetailLayoutPage() {
 
   return (
     <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
-      <div className="sticky top-0 z-30 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6">
+      <div className="sticky top-[73px] z-20 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:top-0 lg:z-30 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6">
         <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div className="min-w-0">
+          <div className="hidden min-w-0 lg:block">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
               Detail Layout
             </p>
@@ -708,7 +708,7 @@ export function AdminDetailLayoutPage() {
 
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <button
-              className={ADMIN_SECONDARY_BUTTON_CLASS}
+              className={`hidden lg:inline-flex ${ADMIN_SECONDARY_BUTTON_CLASS}`}
               disabled={isLoading || isSaving}
               onClick={handleReset}
               type="button"
@@ -744,7 +744,7 @@ export function AdminDetailLayoutPage() {
         </header>
 
         {overviewStats.length > 0 ? (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 hidden gap-3 sm:grid-cols-2 xl:grid xl:grid-cols-4">
             {overviewStats.map((stat) => (
               <div
                 key={stat.label}
