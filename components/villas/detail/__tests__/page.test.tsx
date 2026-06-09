@@ -258,6 +258,52 @@ describe("VillaDetailPage deferred gallery loader", () => {
     await page.unmount();
   });
 
+  it("clears the active lightbox selection when the villa id changes", async () => {
+    const villaTen: VillaListing = {
+      ...listing,
+      coverImage: "https://images.example.com/cover-10.jpg",
+      id: "10",
+    };
+    const imageForTen = {
+      ...apiImage,
+      id: 10,
+      imageUrl: "https://images.example.com/villa-10-pool.jpg",
+    };
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/api/villas/10/images")) {
+        return Promise.resolve(makeJsonResponse({ images: [imageForTen] }));
+      }
+
+      return Promise.resolve(makeJsonResponse({ images: [apiImage] }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const page = renderPage();
+
+    await page.render(makePage("9", listing));
+    await flushReact();
+
+    const galleryButton = Array.from(
+      page.container.querySelectorAll<HTMLButtonElement>("[data-gallery-item]"),
+    ).find((button) => button.dataset.galleryItem === apiImage.imageUrl);
+    expect(galleryButton).not.toBeUndefined();
+
+    await act(async () => {
+      galleryButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushReact();
+
+    expect(page.container.querySelector("[data-lightbox-active]")).not.toBeNull();
+
+    await page.render(makePage("10", villaTen));
+    await flushReact();
+
+    expect(page.container.querySelector("[data-lightbox-active]")).toBeNull();
+
+    await page.unmount();
+  });
+
   it("does not let an old villa image request overwrite a newer villa id", async () => {
     const villaTen: VillaListing = {
       ...listing,
