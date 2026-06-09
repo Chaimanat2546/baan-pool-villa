@@ -74,6 +74,12 @@ export function VillaDetailPage({
 
   const content = buildVillaDetailContent(payload.detail);
 
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      setActiveGalleryItem(null);
+    });
+  }, [id]);
+
   const replaceGalleryLoadState = useCallback((nextState: GalleryLoadState) => {
     galleryLoadStateRef.current = nextState;
     setGalleryLoadState(nextState);
