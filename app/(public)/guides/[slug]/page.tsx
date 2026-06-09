@@ -6,6 +6,7 @@ import { serializeJsonLd } from "@/lib/json-ld";
 import {
   absoluteUrl,
   buildBreadcrumbJsonLd,
+  buildGuideArticleMetadata,
   buildSiteSettingsPageMetadata,
 } from "@/lib/seo";
 import {
@@ -41,14 +42,7 @@ export async function generateMetadata({
     });
   }
 
-  return buildSiteSettingsPageMetadata({
-    canonicalPath: `/guides/${guide.slug}`,
-    description: guide.excerpt,
-    image: guide.coverImage?.url,
-    imageAlt: guide.coverImage?.alt,
-    settings,
-    title: guide.title,
-  });
+  return buildGuideArticleMetadata({ guide, settings });
 }
 
 /**

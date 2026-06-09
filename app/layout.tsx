@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
 
-import {
-  buildPageMetadata,
-  defaultDescription,
-  defaultTitle,
-  getSiteUrl,
-  siteName,
-} from "@/lib/seo";
+import { buildGlobalMetadata } from "@/lib/seo";
 
 import "./globals.css";
 
@@ -22,23 +16,7 @@ const prompt = Prompt({
 // Render routes per request while preserving explicit tagged data caches.
 export const revalidate = 0;
 
-export const metadata: Metadata = {
-  ...buildPageMetadata({
-    canonicalPath: "/",
-    description: defaultDescription,
-    title: defaultTitle,
-  }),
-  applicationName: siteName,
-  metadataBase: getSiteUrl(),
-  robots: {
-    follow: true,
-    index: true,
-  },
-  title: {
-    default: defaultTitle,
-    template: `%s | ${siteName}`,
-  },
-};
+export const metadata: Metadata = buildGlobalMetadata();
 
 /**
  * Root layout component that provides the document <html> and <body> wrapper with global styles and font variable.

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
 
@@ -117,6 +118,42 @@ export function HomePage({
         onChange={setFilters}
         onSearch={handleHeroSearch}
       />
+
+      <section className="px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--site-accent)]">
+              Baan Pool Villa Pattaya
+            </p>
+            <h1 className="mt-2 text-3xl font-black leading-tight text-[var(--site-text)] sm:text-4xl">
+              บ้านพักพูลวิลล่าพัทยาสำหรับครอบครัว กลุ่มเพื่อน และทริปปาร์ตี้
+            </h1>
+            <p className="mt-3 text-sm leading-7 text-[var(--site-muted)] sm:text-base">
+              เลือกบ้านพักจากทำเล จำนวนผู้เข้าพัก ห้องนอน ราคา และบ้านใกล้ทะเล
+              พร้อมดูบทความช่วยวางแผนก่อนจอง
+            </p>
+          </div>
+          <nav
+            aria-label="ลิงก์หลักสำหรับค้นหาบ้านพัก"
+            className="flex flex-wrap gap-2 text-sm font-bold"
+          >
+            <Link
+              className="rounded-full bg-[var(--site-primary)] px-4 py-2 text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
+              href="/search"
+              prefetch={false}
+            >
+              ค้นหาบ้านพัก
+            </Link>
+            <Link
+              className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-2 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+              href="/guides"
+              prefetch={false}
+            >
+              อ่านคู่มือเลือกพูลวิลล่า
+            </Link>
+          </nav>
+        </div>
+      </section>
 
       <div>
         {railSections.length > 0 ? (

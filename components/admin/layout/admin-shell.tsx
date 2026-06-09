@@ -63,7 +63,7 @@ function AdminNavigation({
         const isActive = pathname.startsWith(item.href);
         const className = `group rounded-lg border transition ${
           collapsed
-            ? "flex min-h-24 flex-col items-center justify-center gap-2 px-2 py-3 text-center"
+            ? "flex min-h-16 flex-col items-center justify-center gap-1.5 px-1 py-2 text-center"
             : "flex min-h-14 items-center gap-3 px-3 py-2.5 text-left"
         } ${
           isActive
@@ -75,7 +75,7 @@ function AdminNavigation({
           <>
             <span
               className={`inline-flex shrink-0 items-center justify-center rounded-lg ${
-                collapsed ? "size-10" : "size-9"
+                collapsed ? "size-8" : "size-9"
               } ${
                 isActive
                   ? "bg-white/14 text-[var(--site-on-primary)]"
@@ -88,7 +88,7 @@ function AdminNavigation({
               <span
                 className={`text-sm font-semibold ${
                   collapsed
-                    ? "block text-center leading-4 text-pretty"
+                    ? "block text-center text-[11px] leading-3 text-pretty"
                     : "flex items-center gap-2"
                 }`}
               >
@@ -116,6 +116,7 @@ function AdminNavigation({
             key={item.href}
             onClick={onNavigate}
             prefetch={false}
+            title={collapsed ? item.label : undefined}
           >
             {content}
           </Link>
@@ -152,32 +153,36 @@ export function AdminShell({ children, settings }: AdminShellProps) {
     <div
       className={`min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)] lg:grid ${
         isDesktopNavCollapsed
-          ? "lg:grid-cols-[132px_minmax(0,1fr)]"
+          ? "lg:grid-cols-[84px_minmax(0,1fr)]"
           : "lg:grid-cols-[280px_minmax(0,1fr)]"
       }`}
     >
       <aside
-        className="sticky top-0 hidden h-dvh border-r border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-4 lg:flex lg:flex-col"
+        className={`sticky top-0 hidden h-dvh border-r border-[var(--site-border)] bg-[var(--site-surface)] py-4 lg:flex lg:flex-col ${
+          isDesktopNavCollapsed ? "px-2" : "px-4"
+        }`}
         data-admin-sidebar-state={isDesktopNavCollapsed ? "collapsed" : "expanded"}
       >
         <div
           className={`rounded-lg bg-[var(--site-primary)] text-[var(--site-on-primary)] ${
-            isDesktopNavCollapsed ? "px-3 py-3" : "px-4 py-4"
+            isDesktopNavCollapsed ? "px-2 py-2.5" : "px-4 py-4"
           }`}
         >
           <div
             className={`flex ${
               isDesktopNavCollapsed
-                ? "items-center justify-between gap-2"
+                ? "flex-col items-center gap-2"
                 : "items-start justify-between gap-3"
             }`}
           >
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--site-on-primary)]/75">
-                หลังบ้าน
-              </p>
+            <div className={`min-w-0 ${isDesktopNavCollapsed ? "text-center" : ""}`}>
+              {isDesktopNavCollapsed ? null : (
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--site-on-primary)]/75">
+                  หลังบ้าน
+                </p>
+              )}
               {isDesktopNavCollapsed ? (
-                <p className="mt-1 text-lg font-semibold tracking-[0.08em]">
+                <p className="mt-1 text-base font-semibold tracking-[0.08em]">
                   {compactSiteMark}
                 </p>
               ) : (
@@ -197,7 +202,9 @@ export function AdminShell({ children, settings }: AdminShellProps) {
                   ? "ขยายแถบเมนูหลังบ้าน"
                   : "ย่อแถบเมนูหลังบ้าน"
               }
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/12 text-[var(--site-on-primary)] transition hover:bg-white/18"
+              className={`inline-flex shrink-0 items-center justify-center rounded-lg bg-white/12 text-[var(--site-on-primary)] transition hover:bg-white/18 ${
+                isDesktopNavCollapsed ? "size-8" : "size-9"
+              }`}
               onClick={() => {
                 setAdminSidebarPreference(!isDesktopNavCollapsed);
               }}
@@ -223,7 +230,7 @@ export function AdminShell({ children, settings }: AdminShellProps) {
         <button
           className={`mt-4 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] ${
             isDesktopNavCollapsed
-              ? "inline-flex min-h-20 flex-col items-center justify-center gap-2 px-2 py-3 text-center"
+              ? "inline-flex min-h-16 flex-col items-center justify-center gap-1.5 px-1 py-2 text-center text-[11px] leading-3"
               : "inline-flex h-11 items-center justify-center gap-2 px-4"
           }`}
           onClick={handleLogout}

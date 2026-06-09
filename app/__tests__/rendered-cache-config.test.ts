@@ -54,10 +54,15 @@ describe("rendered page cache route config", () => {
     });
   });
 
-  it("generates sitemap.xml on demand while leaving data helper caches in place", () => {
+  it("caches sitemap.xml at the route level while leaving data helper caches in place", () => {
     const sitemap = readProjectFile("app/sitemap.ts");
+    const nextConfig = readProjectFile("next.config.ts");
 
-    expect(sitemap).toMatch(/export\s+const\s+revalidate\s*=\s*0\s*;/);
-    expect(sitemap).not.toMatch(/export\s+const\s+revalidate\s*=\s*43200\s*;/);
+    expect(sitemap).toMatch(/export\s+const\s+revalidate\s*=\s*43200\s*;/);
+    expect(sitemap).not.toMatch(/export\s+const\s+revalidate\s*=\s*0\s*;/);
+    expect(nextConfig).toContain('source: "/sitemap.xml"');
+    expect(nextConfig).toContain(
+      "public, max-age=3600, s-maxage=43200, stale-while-revalidate=43200",
+    );
   });
 });
