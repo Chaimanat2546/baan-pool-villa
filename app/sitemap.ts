@@ -4,8 +4,8 @@ import { getPublishedGuides } from "@/lib/guides/server";
 import { absoluteUrl } from "@/lib/seo";
 import { fetchHouseListings } from "@/lib/villas/server";
 
-// Next.js requires route segment config values to be statically analyzable literals.
-export const revalidate = 43200;
+// Keep the sitemap response uncached; underlying data helpers still use tagged caches.
+export const revalidate = 0;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [

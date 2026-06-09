@@ -19,6 +19,9 @@ const prompt = Prompt({
   weight: ["400", "700"],
 });
 
+// Render routes per request while preserving explicit tagged data caches.
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   ...buildPageMetadata({
     canonicalPath: "/",

@@ -18,22 +18,8 @@ import type { GuidePost } from "@/lib/guides/types";
 import { fetchHouseListings } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
 
-export const revalidate = 43200;
-
 interface GuidePageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  let guides: GuidePost[] = [];
-
-  try {
-    guides = await getPublishedGuides();
-  } catch (error) {
-    console.error("Unable to prebuild guide detail pages", error);
-  }
-
-  return guides.map((guide) => ({ slug: guide.slug }));
 }
 
 export async function generateMetadata({
