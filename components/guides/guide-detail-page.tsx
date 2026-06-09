@@ -476,13 +476,12 @@ export function GuideDetailPage({
               aria-label="ลิงก์ต่อจากบทความ"
               className="mt-5 flex flex-wrap gap-2 text-sm font-bold"
             >
-              <Link
+              <a
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
                 href="/search"
-                prefetch={false}
               >
                 ค้นหาบ้านพักพูลวิลล่า
-              </Link>
+              </a>
               <Link
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
                 href="/guides"

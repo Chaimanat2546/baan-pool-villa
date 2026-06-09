@@ -8,6 +8,17 @@ vi.mock("@/lib/villas/server", () => ({
   fetchHouseListings: vi.fn(),
 }));
 
+vi.mock("@/components/villas/search/page", () => ({
+  SearchPage: (props: unknown) => ({
+    props,
+    type: "SearchPage",
+  }),
+}));
+
+vi.mock("@/lib/site-settings/server", () => ({
+  getSiteSettings: vi.fn(),
+}));
+
 const fetchHouseListingsMock = vi.mocked(fetchHouseListings);
 
 const villas: VillaListing[] = [
@@ -44,14 +55,14 @@ describe("getSearchPageData", () => {
     vi.clearAllMocks();
   });
 
-  it("returns partial first-page metadata when listings load successfully", async () => {
+  it("returns landing first-page metadata when listings load successfully", async () => {
     fetchHouseListingsMock.mockResolvedValue(villas);
 
-    const result = await getSearchPageData({ sort: "price_desc" });
+    const result = await getSearchPageData({});
 
     expect(result).toEqual({
       error: null,
-      villas: [villas[1], villas[0]],
+      villas,
       meta: {
         catalogComplete: false,
         maxPrice: 18000,
@@ -62,6 +73,19 @@ describe("getSearchPageData", () => {
         ],
       },
     });
+  });
+
+  it("does not server-filter or server-sort query variations", async () => {
+    fetchHouseListingsMock.mockResolvedValue(villas);
+
+    const result = await getSearchPageData({
+      id: "902",
+      sort: "price_desc",
+      zone: "pattaya",
+    });
+
+    expect(result.villas).toEqual(villas);
+    expect(result.meta.resultCount).toBe(2);
   });
 
   it("keeps the catalog marked incomplete when the initial server load fails", async () => {
@@ -77,5 +101,24 @@ describe("getSearchPageData", () => {
       zones: [],
     });
     expect(result.error).toBeTruthy();
+  });
+});
+
+describe("SearchPage route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("does not pass query params into server search data loading", async () => {
+    fetchHouseListingsMock.mockResolvedValue(villas);
+
+    const { default: SearchPageRoute } = await import("./page");
+    const rendered = await SearchPageRoute({
+      searchParams: Promise.resolve({ id: "902", sort: "price_desc" }),
+    });
+
+    const searchPageElement = rendered.props.children;
+
+    expect(searchPageElement.props.initialSearchParams).toBeUndefined();
   });
 });

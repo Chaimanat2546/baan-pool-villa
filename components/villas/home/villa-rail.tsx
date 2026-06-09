@@ -1,5 +1,4 @@
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -66,13 +65,12 @@ export function VillaRail({
       </ScrollRail>
       {ctaConfig ? (
         <div className="mt-8 text-center">
-          <Link
+          <a
             href={ctaConfig.href}
-            prefetch={false}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--site-primary)] px-5 py-3 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_30px_rgba(6,77,61,0.22)] transition hover:bg-[var(--site-primary-hover)]"
           >
             {ctaConfig.label} <ArrowRight className="h-4 w-4" />
-          </Link>
+          </a>
         </div>
       ) : null}
     </section>

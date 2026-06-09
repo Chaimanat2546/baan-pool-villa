@@ -2,6 +2,7 @@
 
 import { AlertCircle, RotateCcw, Search } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { SearchPageInitialMeta } from "@/components/villas/search/page-data";
@@ -32,6 +33,16 @@ interface SearchPageProps {
 }
 
 const PAGE_SIZE = 12;
+const CATALOG_HYDRATION_SEARCH_PARAMS = [
+  "amenities",
+  "bedrooms",
+  "guests",
+  "id",
+  "maxPrice",
+  "nearSea",
+  "sort",
+  "zone",
+];
 
 const SORT_OPTIONS: { label: string; value: VillaSortKey }[] = [
   { label: "แนะนำ", value: "recommended" },
@@ -69,6 +80,10 @@ function getSearchConditionLabels(
   ];
 }
 
+function hasCatalogHydrationSearchParams(searchParams: URLSearchParams): boolean {
+  return CATALOG_HYDRATION_SEARCH_PARAMS.some((key) => searchParams.has(key));
+}
+
 interface SearchCatalogApiResponse {
   error?: string;
   items?: VillaListing[];
@@ -86,6 +101,9 @@ export function SearchPage({
   initialVillas = [],
   initialMeta,
 }: SearchPageProps) {
+  const browserSearchParams = useSearchParams();
+  const resolvedInitialSearchParams =
+    initialSearchParams ?? browserSearchParams.toString();
   const resolvedMeta = useMemo(() => {
     const fallbackZones = getUniqueZones(initialVillas);
     const fallbackMaxPrice = Math.max(getMaxVillaPrice(initialVillas), 1000);
@@ -98,8 +116,12 @@ export function SearchPage({
   }, [initialMeta, initialVillas]);
 
   const searchParams = useMemo(
-    () => new URLSearchParams(initialSearchParams),
-    [initialSearchParams],
+    () => new URLSearchParams(resolvedInitialSearchParams),
+    [resolvedInitialSearchParams],
+  );
+  const shouldHydrateCatalogForDeepLink = useMemo(
+    () => hasCatalogHydrationSearchParams(searchParams),
+    [searchParams],
   );
   const [villas, setVillas] = useState<VillaListing[]>(() => initialVillas);
   const pendingVillaIdQuery = useRef<string | null>(null);
@@ -224,6 +246,12 @@ export function SearchPage({
       setVisibleCount(PAGE_SIZE);
     }
   }, [isCatalogComplete]);
+
+  useEffect(() => {
+    if (!isCatalogComplete && shouldHydrateCatalogForDeepLink) {
+      void hydrateCatalog();
+    }
+  }, [hydrateCatalog, isCatalogComplete, shouldHydrateCatalogForDeepLink]);
 
   function handleSearch() {
     if (!isCatalogComplete) {

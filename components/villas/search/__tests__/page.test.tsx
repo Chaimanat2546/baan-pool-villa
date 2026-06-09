@@ -1,3 +1,7 @@
+/* @vitest-environment jsdom */
+
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -115,5 +119,47 @@ describe("SearchPage", () => {
         zones: [{ value: "jomtien", label: "Jomtien" }],
       }),
     ).toBe(false);
+  });
+
+  it("hydrates the full catalog automatically for deep-link query params", async () => {
+    const fullCatalog = [
+      villa,
+      {
+        ...villa,
+        id: "702",
+        price: 20000,
+      },
+    ];
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: async () => ({ items: fullCatalog }),
+      ok: true,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialSearchParams="id=702"
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/houses");
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 });
