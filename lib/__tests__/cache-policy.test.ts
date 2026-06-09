@@ -42,6 +42,7 @@ describe("cache policy", () => {
   it("defines shared route-level revalidate seconds for homepage and search", () => {
     expect(CACHE_REVALIDATE_SECONDS.homePage).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.searchPage).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.sitemap).toBe(TWELVE_HOURS_SECONDS);
   });
 
   it("centralizes public route cache-control headers", () => {

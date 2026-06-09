@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { CACHE_REVALIDATE_SECONDS } from "@/lib/cache-policy";
 import sitemap from "./sitemap";
+import * as sitemapModule from "./sitemap";
 import { getPublishedGuides } from "@/lib/guides/server";
 import { fetchHouseListings } from "@/lib/villas/server";
 
@@ -22,6 +24,13 @@ const getPublishedGuidesMock = vi.mocked(getPublishedGuides);
 describe("sitemap", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("exports a twelve-hour ISR window for sitemap.xml", () => {
+    expect(sitemapModule).toHaveProperty(
+      "revalidate",
+      CACHE_REVALIDATE_SECONDS.sitemap,
+    );
   });
 
   it("includes dynamic villa and guide routes when both data sources load", async () => {
