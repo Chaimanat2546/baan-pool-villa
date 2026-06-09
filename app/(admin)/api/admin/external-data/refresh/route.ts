@@ -1,26 +1,21 @@
 import { requireHomeConfigAdmin } from "@/lib/admin/route-helpers";
-import {
-  type ExternalVillaCacheRefreshScope,
-  revalidateExternalVillaCache,
-} from "@/lib/cache-revalidation";
+import { revalidateExternalVillaCache } from "@/lib/cache-revalidation";
 
 const REFRESH_CONFIRMATION_HEADER = "x-admin-refresh-confirmation";
 const REFRESH_CONFIRMATION_VALUE = "external-villa-cache";
 const REFRESH_SCOPE_HEADER = "x-admin-refresh-scope";
-const DEFAULT_REFRESH_SCOPE: ExternalVillaCacheRefreshScope = "tags-only";
+const DEFAULT_REFRESH_SCOPE = "tags-only";
 const REFRESH_COOLDOWN_MS = 60_000;
 const REFRESH_COOLDOWN_SECONDS = Math.ceil(REFRESH_COOLDOWN_MS / 1000);
 
 let lastRefreshRequestedAt = 0;
 
-function readRefreshScope(
-  request: Request,
-): ExternalVillaCacheRefreshScope | null {
+function readRefreshScope(request: Request): typeof DEFAULT_REFRESH_SCOPE | null {
   const requestedScope =
     request.headers.get(REFRESH_SCOPE_HEADER) ?? DEFAULT_REFRESH_SCOPE;
 
-  if (requestedScope === "tags-only" || requestedScope === "full-public") {
-    return requestedScope;
+  if (requestedScope === DEFAULT_REFRESH_SCOPE) {
+    return DEFAULT_REFRESH_SCOPE;
   }
 
   return null;
@@ -66,7 +61,7 @@ export async function POST(request: Request) {
   }
 
   lastRefreshRequestedAt = now;
-  revalidateExternalVillaCache(scope);
+  revalidateExternalVillaCache();
 
   return Response.json({
     refreshed: true,

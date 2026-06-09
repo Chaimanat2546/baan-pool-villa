@@ -39,10 +39,10 @@ describe("cache policy", () => {
     expect(getVillaDetailPath("42")).toBe("/villas/42");
   });
 
-  it("defines shared route-level revalidate seconds for homepage and search", () => {
-    expect(CACHE_REVALIDATE_SECONDS.homePage).toBe(TWELVE_HOURS_SECONDS);
-    expect(CACHE_REVALIDATE_SECONDS.searchPage).toBe(TWELVE_HOURS_SECONDS);
-    expect(CACHE_REVALIDATE_SECONDS.sitemap).toBe(TWELVE_HOURS_SECONDS);
+  it("does not keep route-level rendered response TTLs in the data cache policy", () => {
+    expect("homePage" in CACHE_REVALIDATE_SECONDS).toBe(false);
+    expect("searchPage" in CACHE_REVALIDATE_SECONDS).toBe(false);
+    expect("sitemap" in CACHE_REVALIDATE_SECONDS).toBe(false);
   });
 
   it("centralizes public route cache-control headers", () => {

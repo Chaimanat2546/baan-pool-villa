@@ -110,20 +110,11 @@ describe("AdminSettingsPage", () => {
     await page.unmount();
   });
 
-  it("sends full-public scope only from the full public refresh action", async () => {
+  it("renders only one external data refresh action", async () => {
     const fetchMock = makeFetchMock([
       {
         body: { settings: DEFAULT_SITE_SETTINGS },
         url: "/api/admin/site-settings",
-      },
-      {
-        body: {
-          message: "refresh complete",
-          refreshed: true,
-          scope: "full-public",
-        },
-        method: "POST",
-        url: "/api/admin/external-data/refresh",
       },
     ]);
     vi.stubGlobal("fetch", fetchMock);
@@ -132,36 +123,17 @@ describe("AdminSettingsPage", () => {
     const headerButtons = Array.from(
       page.container.querySelectorAll("#settingsPageHeader button"),
     );
-    const fullPublicButton = headerButtons[1] ?? null;
+    const refreshButton = headerButtons[0] ?? null;
+    const saveButton = headerButtons[1] ?? null;
 
-    expect(fullPublicButton).not.toBeNull();
-
-    await click(fullPublicButton as HTMLButtonElement);
-
-    expect(
-      fetchMock.mock.calls.filter(([url]) => {
-        return url === "/api/admin/external-data/refresh";
-      }),
-    ).toHaveLength(0);
-
-    await click(fullPublicButton as HTMLButtonElement);
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/admin/external-data/refresh",
-      expect.objectContaining({
-        headers: {
-          Authorization: "Bearer admin-token",
-          "x-admin-refresh-confirmation": "external-villa-cache",
-          "x-admin-refresh-scope": "full-public",
-        },
-        method: "POST",
-      }),
-    );
+    expect(headerButtons).toHaveLength(2);
+    expect(refreshButton).not.toBeNull();
+    expect(saveButton).not.toBeNull();
 
     await page.unmount();
   });
 
-  it("keeps external refresh header actions visible below large screens", async () => {
+  it("keeps the external refresh header action visible below large screens", async () => {
     const fetchMock = makeFetchMock([
       {
         body: { settings: DEFAULT_SITE_SETTINGS },
@@ -175,12 +147,12 @@ describe("AdminSettingsPage", () => {
       page.container.querySelectorAll("#settingsPageHeader button"),
     );
     const tagsOnlyButton = headerButtons[0] ?? null;
-    const fullPublicButton = headerButtons[1] ?? null;
+    const saveButton = headerButtons[1] ?? null;
 
+    expect(headerButtons).toHaveLength(2);
     expect(tagsOnlyButton).not.toBeNull();
-    expect(fullPublicButton).not.toBeNull();
+    expect(saveButton).not.toBeNull();
     expect(tagsOnlyButton?.className).not.toContain("hidden");
-    expect(fullPublicButton?.className).not.toContain("hidden");
 
     await page.unmount();
   });
@@ -217,7 +189,7 @@ describe("AdminSettingsPage", () => {
     const headerButtons = Array.from(
       page.container.querySelectorAll("#settingsPageHeader button"),
     );
-    const saveButton = headerButtons[2] ?? null;
+    const saveButton = headerButtons[1] ?? null;
 
     expect(saveButton).not.toBeNull();
 
