@@ -1,8 +1,6 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
-import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
-import { fetchVillaImages } from "./images";
+import { CACHE_REVALIDATE_SECONDS } from "@/lib/cache-policy";
 import { normalizeHouses } from "./normalize";
 import type { RawHouse, VillaDetailPayload, VillaImage, VillaListing } from "./types";
 
@@ -23,7 +21,6 @@ async function fetchHouseListingsFromApi(): Promise<VillaListing[]> {
   const response = await fetch(HOUSE_LIST_URL, {
     next: {
       revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
-      tags: [CACHE_TAGS.villaListings],
     },
   });
 
@@ -35,17 +32,8 @@ async function fetchHouseListingsFromApi(): Promise<VillaListing[]> {
   return normalizeHouses(Array.isArray(data) ? data : []);
 }
 
-const fetchCachedHouseListings = unstable_cache(
-  fetchHouseListingsFromApi,
-  [CACHE_TAGS.villaListings],
-  {
-    revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
-    tags: [CACHE_TAGS.villaListings],
-  },
-);
-
 export async function fetchHouseListings(): Promise<VillaListing[]> {
-  return fetchCachedHouseListings();
+  return fetchHouseListingsFromApi();
 }
 
 export async function getListingById(id: string): Promise<VillaListing | null> {
@@ -85,7 +73,6 @@ export async function fetchVillaDetail(
       },
       next: {
         revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
-        tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail(id)],
       },
     });
 
@@ -131,19 +118,9 @@ export async function fetchVillaPageData(
     .filter((listing) => listing.id !== payload.listing.id)
     .slice(0, 12);
 
-  try {
-    return {
-      payload,
-      images: await fetchVillaImages(id),
-      recommendedVillas,
-    };
-  } catch (error) {
-    console.error("Unable to load villa gallery images", error);
-
-    return {
-      payload,
-      images: [],
-      recommendedVillas,
-    };
-  }
+  return {
+    payload,
+    images: [],
+    recommendedVillas,
+  };
 }

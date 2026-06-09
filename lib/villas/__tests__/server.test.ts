@@ -1,13 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { unstable_cache } from "next/cache";
+import { CACHE_REVALIDATE_SECONDS } from "@/lib/cache-policy";
 import type { RawHouse } from "../types";
 import { fetchHouseListings, fetchVillaDetail, fetchVillaPageData } from "../server";
+
+const { fetchVillaImagesMock } = vi.hoisted(() => ({
+  fetchVillaImagesMock: vi.fn(),
+}));
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("next/cache", () => ({
   unstable_cache: vi.fn((fn: unknown) => fn),
+}));
+
+vi.mock("../images", () => ({
+  fetchVillaImages: fetchVillaImagesMock,
 }));
 
 const unstableCacheMock = vi.mocked(unstable_cache);
@@ -43,20 +51,14 @@ function jsonResponse(data: unknown, init?: ResponseInit) {
 }
 
 afterEach(() => {
+  fetchVillaImagesMock.mockReset();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
 describe("fetchHouseListings", () => {
-  it("wraps the normalized villa catalog in a tagged Next cache", () => {
-    expect(unstableCacheMock).toHaveBeenCalledWith(
-      expect.any(Function),
-      [CACHE_TAGS.villaListings],
-      {
-        revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
-        tags: [CACHE_TAGS.villaListings],
-      },
-    );
+  it("does not wrap the villa catalog read in a tagged Next cache", () => {
+    expect(unstableCacheMock).not.toHaveBeenCalled();
   });
 
   it("normalizes raw list API rows from the external API", async () => {
@@ -86,7 +88,6 @@ describe("fetchHouseListings", () => {
       {
         next: {
           revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
-          tags: [CACHE_TAGS.villaListings],
         },
       },
     );
@@ -116,7 +117,7 @@ describe("fetchVillaDetail", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("caches successful detail API requests by villa id", async () => {
+  it("loads detail API data with ISR-compatible revalidation and no cache tags", async () => {
     const listing = (await import("../normalize")).normalizeHouses([rawHouse])[0];
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ house_id: "9" }));
     vi.stubGlobal("fetch", fetchMock);
@@ -137,14 +138,14 @@ describe("fetchVillaDetail", () => {
       },
       next: {
         revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
-        tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail("9")],
       },
     });
+    expect(init).not.toHaveProperty("cache", "no-store");
   });
 });
 
 describe("fetchVillaPageData", () => {
-  it("returns server-fetched detail payload with an empty image fallback when gallery loading fails", async () => {
+  it("returns server-fetched detail payload without loading gallery images during SSR", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([rawHouse]));
     vi.stubGlobal("fetch", fetchMock);
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "");
@@ -159,5 +160,6 @@ describe("fetchVillaPageData", () => {
       images: [],
       recommendedVillas: [],
     });
+    expect(fetchVillaImagesMock).not.toHaveBeenCalled();
   });
 });

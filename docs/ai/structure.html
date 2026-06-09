@@ -168,7 +168,7 @@
               <tr>
                 <td><code>app/(public)/villas/[id]/page.tsx</code></td>
                 <td><code>/villas/:id</code></td>
-                <td><code>components/villas/detail/page</code>, detail API data, Supabase image rows, SEO/JSON-LD helpers. The route uses 12-hour on-demand ISR with empty <code>generateStaticParams</code> so villa detail pages are generated on first request without prebuilding every villa; it renders VacationRental plus breadcrumb JSON-LD, and admin and shared revalidation helpers can still invalidate touched detail pages.</td>
+                <td><code>components/villas/detail/page</code>, detail API data, listing cover image fallback, SEO/JSON-LD helpers. The route uses on-demand rendering with empty <code>generateStaticParams</code> so villa detail pages are generated on first request without prebuilding every villa; to stay under Cloudflare Worker subrequest limits, the server render does not load Supabase gallery rows, full gallery reads stay behind the villa images API, and villa catalog/detail upstream fetches must not use tagged <code>unstable_cache</code> or tagged fetch-cache entries inside the route render.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/villas/[id]/loading.tsx</code></td>
@@ -529,7 +529,7 @@
               <td>Villa images</td>
               <td>Supabase image rows matched by <code>images.property_id</code> to villa id.</td>
               <td><code>lib/villas/images.ts</code>, image host builder, shared villa-images tag, and per-villa image cache tag.</td>
-              <td>Detail gallery and public villa images API.</td>
+              <td>Public villa images API and deferred detail gallery reads; the initial villa detail server render should not query all Supabase gallery rows.</td>
             </tr>
               <tr>
                 <td>Home sections</td>
@@ -713,7 +713,7 @@
             <tr>
               <td>Villa filtering, normalization, detail, images, or external fetches</td>
               <td><code>npm.cmd test -- lib/villas</code></td>
-              <td>Run lint and build before completion.</td>
+              <td>Run lint and build before completion. For villa detail route subrequest work, verify SSR does not call Supabase gallery reads and upstream listing/detail fetches do not add nested tagged fetch-cache entries.</td>
             </tr>
             <tr>
               <td>Home section config, server reads, route handlers, or admin section UI</td>
