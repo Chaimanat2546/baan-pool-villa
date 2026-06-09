@@ -25,8 +25,8 @@ describe("sitemap", () => {
     vi.clearAllMocks();
   });
 
-  it("exports no route response cache window for sitemap.xml", () => {
-    expect(sitemapModule).toHaveProperty("revalidate", 0);
+  it("exports a route response cache window for sitemap.xml", () => {
+    expect(sitemapModule).toHaveProperty("revalidate", 43200);
   });
 
   it("includes dynamic villa and guide routes when both data sources load", async () => {

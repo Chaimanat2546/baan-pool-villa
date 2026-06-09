@@ -134,7 +134,6 @@ export function VillaDetailPage({
 
     try {
       const loadedImages = await promise;
-
       updateGalleryLoadState((currentState) =>
         currentState.villaId === requestId
           ? {

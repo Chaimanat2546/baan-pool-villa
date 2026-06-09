@@ -1,6 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: "/sitemap.xml",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, s-maxage=43200, stale-while-revalidate=43200",
+          },
+        ],
+      },
+    ];
+  },
   images: {
     deviceSizes: [390, 640, 750, 828, 1080, 1200, 1440, 1920],
     formats: ["image/avif", "image/webp"],

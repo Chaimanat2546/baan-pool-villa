@@ -4,8 +4,8 @@ import { getPublishedGuides } from "@/lib/guides/server";
 import { absoluteUrl } from "@/lib/seo";
 import { fetchHouseListings } from "@/lib/villas/server";
 
-// Keep the sitemap response uncached; underlying data helpers still use tagged caches.
-export const revalidate = 0;
+// Cache crawler reads at the route level; underlying data helpers still use tagged caches.
+export const revalidate = 43200;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
