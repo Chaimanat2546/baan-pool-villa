@@ -27,6 +27,7 @@ import {
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import { AdminSectionsSkeleton } from "@/components/admin/loading/admin-sections-skeleton";
 
 import type {
@@ -254,6 +255,7 @@ function isAbortSignalAborted(signal: AbortSignal | undefined): boolean {
  * @returns The React element rendering the admin home-sections management page.
  */
 export function AdminSectionsPage() {
+  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();
   const [sections, setSections] = useState<AdminSectionDraft[]>([]);
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
@@ -898,7 +900,13 @@ export function AdminSectionsPage() {
       {isLoading ? (
         <AdminSectionsSkeleton />
       ) : (
-        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]">
+        <div
+          className={`grid min-h-0 gap-4 ${
+            isDesktopNavCollapsed
+              ? "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_400px]"
+              : "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]"
+          }`}
+        >
           <aside className="grid content-start gap-3 xl:sticky xl:top-24 xl:self-start">
             <div className="px-1">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">

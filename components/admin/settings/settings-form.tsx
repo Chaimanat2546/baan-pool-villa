@@ -13,6 +13,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 import { AssetUploadField } from "./asset-upload-field";
@@ -286,6 +287,7 @@ export function SettingsForm({
   onSave,
   settings,
 }: SettingsFormProps) {
+  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const themeStyle = buildDraftThemeStyle(draft) as CSSProperties;
   const heroPreviewUrl = getPreviewImageUrl(
     settings.heroImage.url,
@@ -333,7 +335,11 @@ export function SettingsForm({
   return (
     <form
       aria-busy={isSaving}
-      className="grid min-w-0 gap-6 xl:grid-cols-[220px_minmax(0,1fr)_360px]"
+      className={`grid min-w-0 gap-6 ${
+        isDesktopNavCollapsed
+          ? "xl:grid-cols-[220px_minmax(0,1fr)_400px]"
+          : "xl:grid-cols-[220px_minmax(0,1fr)_360px]"
+      }`}
       data-unsaved={hasUnsavedChanges ? "true" : "false"}
       onSubmit={handleSubmit}
     >

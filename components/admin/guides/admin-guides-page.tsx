@@ -39,6 +39,7 @@ import {
 
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminGuidesSkeleton } from "@/components/admin/loading/admin-guides-skeleton";
+import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import type { GuideDraft, GuideImage, GuidePost, GuideStatus } from "@/lib/guides/types";
 import {
   createSlugFromTitle,
@@ -578,11 +579,13 @@ function TipTapFormatToolbar({
 function BlockEditor({
   blocks,
   documentHeader,
+  isDesktopNavCollapsed,
   onChange,
   onUploadImage,
 }: {
   blocks: EditableBlock[];
   documentHeader: ReactNode;
+  isDesktopNavCollapsed: boolean;
   onChange: (blocks: EditableBlock[]) => void;
   onUploadImage: (file: File) => Promise<GuideImage | null>;
 }) {
@@ -675,7 +678,9 @@ function BlockEditor({
       ) : null}
 
       <div
-        className="guide-tiptap-editor relative mx-auto grid w-full min-w-0 max-w-3xl px-5 py-8 sm:px-8 lg:px-10"
+        className={`guide-tiptap-editor relative grid w-full min-w-0 px-5 py-8 sm:px-8 lg:px-10 ${
+          isDesktopNavCollapsed ? "max-w-none" : "mx-auto max-w-3xl"
+        }`}
       >
         <div className="mb-7 grid gap-4">
           {documentHeader}
@@ -983,6 +988,7 @@ function GuideStatusPanel({
  * @returns The Admin Guides management page as a React element.
  */
 export function AdminGuidesPage() {
+  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();
   const [guides, setGuides] = useState<AdminGuideDraft[]>([]);
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
@@ -1412,7 +1418,13 @@ export function AdminGuidesPage() {
       {isLoading ? (
         <AdminGuidesSkeleton />
       ) : (
-        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_380px]">
+        <div
+          className={`grid min-w-0 gap-6 ${
+            isDesktopNavCollapsed
+              ? "xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_420px]"
+              : "xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_380px]"
+          }`}
+        >
           <div className="min-w-0 xl:sticky xl:top-36 xl:self-start">
             <GuideList
               activeDraftId={activeGuide?.draftId ?? null}
@@ -1463,6 +1475,7 @@ export function AdminGuidesPage() {
                       </div>
                     </div>
                   }
+                  isDesktopNavCollapsed={isDesktopNavCollapsed}
                   onChange={(contentBlocks) => {
                     updateActiveGuide({ contentBlocks });
                   }}

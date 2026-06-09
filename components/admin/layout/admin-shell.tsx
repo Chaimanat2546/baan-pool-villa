@@ -9,20 +9,21 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 import { ADMIN_NAV_ITEMS, getActiveAdminNavItem } from "./admin-nav";
+import {
+  setAdminSidebarPreference,
+  useAdminSidebarCollapsed,
+} from "./admin-sidebar-preference";
 
 interface AdminShellProps {
   children: React.ReactNode;
   settings: SiteSettings;
 }
-
-const ADMIN_SIDEBAR_STORAGE_KEY = "admin-sidebar-collapsed";
-const ADMIN_SIDEBAR_EVENT = "admin-sidebar-preference-change";
 
 function getCompactSiteMark(siteName: string) {
   const words = siteName
@@ -40,64 +41,6 @@ function getCompactSiteMark(siteName: string) {
     .join("");
 
   return compact || siteName.slice(0, 3).toUpperCase();
-}
-
-function subscribeToAdminSidebarPreference(onStoreChange: () => void) {
-  if (typeof window === "undefined") {
-    return () => undefined;
-  }
-
-  const handleStorage = (event: StorageEvent) => {
-    if (
-      event.key !== null &&
-      event.key !== ADMIN_SIDEBAR_STORAGE_KEY
-    ) {
-      return;
-    }
-
-    onStoreChange();
-  };
-
-  const handlePreferenceChange = () => {
-    onStoreChange();
-  };
-
-  window.addEventListener("storage", handleStorage);
-  window.addEventListener(ADMIN_SIDEBAR_EVENT, handlePreferenceChange);
-
-  return () => {
-    window.removeEventListener("storage", handleStorage);
-    window.removeEventListener(ADMIN_SIDEBAR_EVENT, handlePreferenceChange);
-  };
-}
-
-function getAdminSidebarPreferenceSnapshot() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  try {
-    return window.localStorage.getItem(ADMIN_SIDEBAR_STORAGE_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function setAdminSidebarPreference(nextValue: boolean) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(
-      ADMIN_SIDEBAR_STORAGE_KEY,
-      String(nextValue),
-    );
-  } catch {
-    // Keep the shell usable even if storage access is blocked.
-  }
-
-  window.dispatchEvent(new Event(ADMIN_SIDEBAR_EVENT));
 }
 
 function AdminNavigation({
@@ -185,11 +128,7 @@ function AdminNavigation({
 export function AdminShell({ children, settings }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const isDesktopNavCollapsed = useSyncExternalStore(
-    subscribeToAdminSidebarPreference,
-    getAdminSidebarPreferenceSnapshot,
-    () => false,
-  );
+  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const activeItem = getActiveAdminNavItem(pathname);
   const compactSiteMark = getCompactSiteMark(settings.siteName);
@@ -332,7 +271,11 @@ export function AdminShell({ children, settings }: AdminShellProps) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1480px] px-4 py-4 sm:px-6 lg:px-8">
+        <main
+          className={`w-full px-4 py-4 sm:px-6 lg:px-8 ${
+            isDesktopNavCollapsed ? "" : "mx-auto max-w-[1480px]"
+          }`}
+        >
           {children}
         </main>
       </div>

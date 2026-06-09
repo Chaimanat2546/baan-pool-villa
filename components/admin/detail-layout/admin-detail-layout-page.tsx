@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
 import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import { AdminDetailLayoutSkeleton } from "@/components/admin/loading/admin-detail-layout-skeleton";
 
 import { BlockLibrary } from "./block-library";
@@ -296,6 +297,7 @@ function moveWideBlock(
  * @returns The rendered JSX element for the admin detail layout editor.
  */
 export function AdminDetailLayoutPage() {
+  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();
   const [layout, setLayout] = useState<DetailLayoutV2Draft | null>(null);
   const [activeSelection, setActiveSelection] =
@@ -786,7 +788,13 @@ export function AdminDetailLayoutPage() {
       {isLoading || !layout ? (
         <AdminDetailLayoutSkeleton />
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]">
+        <div
+          className={`grid gap-6 ${
+            isDesktopNavCollapsed
+              ? "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_400px]"
+              : "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]"
+          }`}
+        >
           <aside className="grid content-start gap-4 xl:sticky xl:top-36 xl:self-start">
             <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
               <div className="border-b border-[var(--site-border)] pb-3">
@@ -829,7 +837,7 @@ export function AdminDetailLayoutPage() {
                 </div>
               </div>
               <div className="px-3 py-4 sm:px-5 sm:py-6">
-                <div className="mx-auto max-w-5xl">
+                <div className={isDesktopNavCollapsed ? "" : "mx-auto max-w-5xl"}>
                   <LayoutCanvas
                     activeSelection={normalizedActiveSelection}
                     layout={layout}
