@@ -422,7 +422,7 @@ export function AdminSettingsPage() {
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <button
-              className="hidden h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
               disabled={
                 isRefreshingExternalData ||
                 isSaving ||
@@ -448,7 +448,7 @@ export function AdminSettingsPage() {
                     : "รีเฟรชข้อมูลบ้านพัก"}
             </button>
             <button
-              className="hidden h-12 items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={
                 isRefreshingExternalData ||
                 isSaving ||

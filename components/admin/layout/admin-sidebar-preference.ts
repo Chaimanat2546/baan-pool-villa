@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 
 const ADMIN_SIDEBAR_STORAGE_KEY = "admin-sidebar-collapsed";
 const ADMIN_SIDEBAR_EVENT = "admin-sidebar-preference-change";
+let adminSidebarInMemoryFallback: string | null = null;
 
 function subscribeToAdminSidebarPreference(onStoreChange: () => void) {
   if (typeof window === "undefined") {
@@ -42,7 +43,7 @@ function getAdminSidebarPreferenceSnapshot() {
   try {
     return window.localStorage.getItem(ADMIN_SIDEBAR_STORAGE_KEY) === "true";
   } catch {
-    return false;
+    return adminSidebarInMemoryFallback === "true";
   }
 }
 
@@ -57,6 +58,7 @@ export function setAdminSidebarPreference(nextValue: boolean) {
       String(nextValue),
     );
   } catch {
+    adminSidebarInMemoryFallback = String(nextValue);
     // Keep the shell usable even if storage access is blocked.
   }
 
