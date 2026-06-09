@@ -1370,7 +1370,7 @@ export function AdminGuidesPage() {
               </a>
             ) : null}
             <button
-              className="hidden h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-text)] shadow-sm transition hover:bg-[var(--site-primary-soft)] lg:inline-flex"
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-text)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
               onClick={addGuide}
               type="button"
             >
