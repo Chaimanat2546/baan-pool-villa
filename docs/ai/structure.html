@@ -148,7 +148,7 @@
               <tr>
                 <td><code>app/(public)/search/page.tsx</code></td>
                 <td><code>/search</code></td>
-                <td><code>components/villas/search/page</code>, villa listing/filter helpers, first-page search result metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO.</td>
+                <td><code>components/villas/search/page</code>, villa listing helpers, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is intentionally not performed by the server route; the client reads the current URL, hydrates the full catalog through <code>/api/houses</code> when a deep link has search criteria, and filters/sorts in the browser to reduce Cloudflare Worker CPU and RSC request cost.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/search/loading.tsx</code></td>

@@ -93,13 +93,12 @@ export function GuideListPage({ guides }: GuideListPageProps) {
               aria-label="ลิงก์ค้นหาบ้านพักจากหน้าบทความ"
               className="mt-4 flex flex-wrap gap-2 text-sm font-bold"
             >
-              <Link
+              <a
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
                 href="/search"
-                prefetch={false}
               >
                 ค้นหาบ้านพักทั้งหมด
-              </Link>
+              </a>
               <Link
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
                 href="/"
