@@ -103,7 +103,7 @@
               <tr>
                 <td><code>app/sitemap.ts</code></td>
                 <td><code>/sitemap.xml</code></td>
-                <td>Public sitemap using villa, guide CMS, and site URL helpers. Dynamic villa source failures should fail the sitemap route; guide CMS failures can return a partial sitemap with static and villa routes so CI/build environments without guide CMS env do not fail. <code>lastModified</code> should only be emitted where upstream data has a trustworthy timestamp.</td>
+                <td>Public sitemap using villa, guide CMS, and site URL helpers with 12-hour route-level ISR. Dynamic villa source failures should fail the sitemap route; guide CMS failures can return a partial sitemap with static and villa routes so CI/build environments without guide CMS env do not fail. <code>lastModified</code> should only be emitted where upstream data has a trustworthy timestamp.</td>
               </tr>
               <tr>
                 <td><code>app/robots.ts</code></td>
@@ -469,7 +469,7 @@
             </tr>
             <tr>
               <td><code>lib/cache-policy.ts</code></td>
-              <td>Cache durations, cache tags, and public Cache-Control headers. Public villa, guide, home-section, site-settings, image, and embed reads use a 12-hour TTL; Supabase CMS admin saves invalidate affected data tags only by default.</td>
+              <td>Cache durations, cache tags, and public Cache-Control headers. Public villa, guide, home-section, site-settings, sitemap, image, and embed reads use a 12-hour TTL; Supabase CMS admin saves invalidate affected data tags only by default.</td>
               <td><code>lib/__tests__/cache-policy.test.ts</code></td>
             </tr>
             <tr>
