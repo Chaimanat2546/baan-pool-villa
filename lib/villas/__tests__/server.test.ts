@@ -10,6 +10,14 @@ vi.mock("next/cache", () => ({
   unstable_cache: vi.fn((fn: unknown) => fn),
 }));
 
+const { fetchVillaImagesMock } = vi.hoisted(() => ({
+  fetchVillaImagesMock: vi.fn(),
+}));
+
+vi.mock("../images", () => ({
+  fetchVillaImages: fetchVillaImagesMock,
+}));
+
 const unstableCacheMock = vi.mocked(unstable_cache);
 
 const rawHouse: RawHouse = {
@@ -43,6 +51,7 @@ function jsonResponse(data: unknown, init?: ResponseInit) {
 }
 
 afterEach(() => {
+  fetchVillaImagesMock.mockReset();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -144,20 +153,33 @@ describe("fetchVillaDetail", () => {
 });
 
 describe("fetchVillaPageData", () => {
-  it("returns server-fetched detail payload with an empty image fallback when gallery loading fails", async () => {
+  it("returns server-fetched detail payload without loading gallery images during SSR", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([rawHouse]));
     vi.stubGlobal("fetch", fetchMock);
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "");
     vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "");
+    fetchVillaImagesMock.mockResolvedValue([
+      {
+        caption: null,
+        id: 1,
+        imageName: "pool.jpg",
+        imageUrl: "https://images.example.com/pool.jpg",
+        isCover: false,
+        zone: "outside",
+      },
+    ]);
 
-    await expect(fetchVillaPageData("9")).resolves.toMatchObject({
+    const data = await fetchVillaPageData("9");
+
+    expect(data).toMatchObject({
       payload: {
         listing: { id: "9" },
         detail: null,
         detailStatus: "missing_token",
       },
-      images: [],
       recommendedVillas: [],
     });
+    expect(data).not.toHaveProperty("images");
+    expect(fetchVillaImagesMock).not.toHaveBeenCalled();
   });
 });
