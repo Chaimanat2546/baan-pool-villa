@@ -161,6 +161,30 @@ describe("AdminSettingsPage", () => {
     await page.unmount();
   });
 
+  it("keeps external refresh header actions visible below large screens", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { settings: DEFAULT_SITE_SETTINGS },
+        url: "/api/admin/site-settings",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminSettingsPage />);
+    const headerButtons = Array.from(
+      page.container.querySelectorAll("#settingsPageHeader button"),
+    );
+    const tagsOnlyButton = headerButtons[0] ?? null;
+    const fullPublicButton = headerButtons[1] ?? null;
+
+    expect(tagsOnlyButton).not.toBeNull();
+    expect(fullPublicButton).not.toBeNull();
+    expect(tagsOnlyButton?.className).not.toContain("hidden");
+    expect(fullPublicButton?.className).not.toContain("hidden");
+
+    await page.unmount();
+  });
+
   it("reuses the save response instead of reloading settings after save", async () => {
     const savedSettings = {
       ...DEFAULT_SITE_SETTINGS,

@@ -27,6 +27,7 @@ import {
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import { AdminSectionsSkeleton } from "@/components/admin/loading/admin-sections-skeleton";
 
 import type {
@@ -254,6 +255,7 @@ function isAbortSignalAborted(signal: AbortSignal | undefined): boolean {
  * @returns The React element rendering the admin home-sections management page.
  */
 export function AdminSectionsPage() {
+  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();
   const [sections, setSections] = useState<AdminSectionDraft[]>([]);
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
@@ -800,11 +802,11 @@ export function AdminSectionsPage() {
   return (
     <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
       <div
-        className="sticky top-0 z-30 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6"
+        className="sticky top-[73px] z-20 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:top-0 lg:z-30 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6"
         id="adminSectionsPageHeader"
       >
         <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div className="min-w-0">
+          <div className="hidden min-w-0 lg:block">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
               หน้าแรก
             </p>
@@ -898,7 +900,13 @@ export function AdminSectionsPage() {
       {isLoading ? (
         <AdminSectionsSkeleton />
       ) : (
-        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]">
+        <div
+          className={`grid min-h-0 gap-4 ${
+            isDesktopNavCollapsed
+              ? "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_400px]"
+              : "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]"
+          }`}
+        >
           <aside className="grid content-start gap-3 xl:sticky xl:top-24 xl:self-start">
             <div className="px-1">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">

@@ -183,6 +183,27 @@ describe("AdminSectionsPage", () => {
     await page.unmount();
   });
 
+  it("keeps the add section header action visible below large screens", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { sections: [savedSection] },
+        url: "/api/admin/home-sections",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminSectionsPage />);
+    const headerButtons = page.container.querySelectorAll(
+      "#adminSectionsPageHeader button",
+    );
+    const addSectionButton = headerButtons[0] ?? null;
+
+    expect(addSectionButton).not.toBeNull();
+    expect(addSectionButton?.className).not.toContain("hidden");
+
+    await page.unmount();
+  });
+
   it("does not auto-preview manual house IDs while editing", async () => {
     vi.useFakeTimers();
     const fetchMock = makeFetchMock([

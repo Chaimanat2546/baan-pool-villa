@@ -51,6 +51,7 @@ describe("AdminShell", () => {
     mocks.pathname = "/admin/settings";
     mocks.replace.mockReset();
     mocks.signOut.mockReset();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -70,6 +71,69 @@ describe("AdminShell", () => {
     expect(navLinks.every((link) => link.getAttribute("data-prefetch") === "false")).toBe(
       true,
     );
+
+    await page.unmount();
+  });
+
+  it("loads the collapsed desktop sidebar preference from localStorage", async () => {
+    window.localStorage.setItem("admin-sidebar-collapsed", "true");
+
+    const page = await mountAdminPage(
+      <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+        <div>settings</div>
+      </AdminShell>,
+    );
+
+    expect(
+      page.container.querySelector('[data-admin-sidebar-state="collapsed"]'),
+    ).not.toBeNull();
+    expect(
+      page.container.querySelector('[data-admin-nav-layout="collapsed"]'),
+    ).not.toBeNull();
+
+    await page.unmount();
+  });
+
+  it("persists the desktop sidebar preference when toggled", async () => {
+    const page = await mountAdminPage(
+      <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+        <div>settings</div>
+      </AdminShell>,
+    );
+
+    const toggle = page.container.querySelector(
+      'button[aria-label="ย่อแถบเมนูหลังบ้าน"]',
+    );
+
+    expect(toggle).not.toBeNull();
+    toggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(window.localStorage.getItem("admin-sidebar-collapsed")).toBe("true");
+    expect(
+      page.container.querySelector('[data-admin-sidebar-state="collapsed"]'),
+    ).not.toBeNull();
+
+    await page.unmount();
+  });
+
+  it("renders only enabled admin navigation items", async () => {
+    const page = await mountAdminPage(
+      <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+        <div>settings</div>
+      </AdminShell>,
+    );
+
+    const navLinks = Array.from(page.container.querySelectorAll("nav a"));
+    const linkTargets = navLinks.map((link) => link.getAttribute("data-href"));
+    const disabledItems = page.container.querySelectorAll('nav [aria-disabled="true"]');
+
+    expect(linkTargets).toContain("/admin/tiktok");
+    expect(linkTargets).not.toContain("/admin/villas");
+    expect(linkTargets).not.toContain("/admin/images");
+    expect(linkTargets).not.toContain("/admin/users");
+    expect(disabledItems).toHaveLength(0);
 
     await page.unmount();
   });

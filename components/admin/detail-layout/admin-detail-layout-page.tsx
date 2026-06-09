@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
 import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import { AdminDetailLayoutSkeleton } from "@/components/admin/loading/admin-detail-layout-skeleton";
 
 import { BlockLibrary } from "./block-library";
@@ -296,6 +297,7 @@ function moveWideBlock(
  * @returns The rendered JSX element for the admin detail layout editor.
  */
 export function AdminDetailLayoutPage() {
+  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();
   const [layout, setLayout] = useState<DetailLayoutV2Draft | null>(null);
   const [activeSelection, setActiveSelection] =
@@ -670,9 +672,9 @@ export function AdminDetailLayoutPage() {
 
   return (
     <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
-      <div className="sticky top-0 z-30 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6">
+      <div className="sticky top-[73px] z-20 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:top-0 lg:z-30 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6">
         <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div className="min-w-0">
+          <div className="hidden min-w-0 lg:block">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
               Detail Layout
             </p>
@@ -708,7 +710,7 @@ export function AdminDetailLayoutPage() {
 
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <button
-              className={ADMIN_SECONDARY_BUTTON_CLASS}
+              className={`hidden lg:inline-flex ${ADMIN_SECONDARY_BUTTON_CLASS}`}
               disabled={isLoading || isSaving}
               onClick={handleReset}
               type="button"
@@ -744,7 +746,7 @@ export function AdminDetailLayoutPage() {
         </header>
 
         {overviewStats.length > 0 ? (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 hidden gap-3 sm:grid-cols-2 xl:grid xl:grid-cols-4">
             {overviewStats.map((stat) => (
               <div
                 key={stat.label}
@@ -786,7 +788,13 @@ export function AdminDetailLayoutPage() {
       {isLoading || !layout ? (
         <AdminDetailLayoutSkeleton />
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]">
+        <div
+          className={`grid gap-6 ${
+            isDesktopNavCollapsed
+              ? "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_400px]"
+              : "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]"
+          }`}
+        >
           <aside className="grid content-start gap-4 xl:sticky xl:top-36 xl:self-start">
             <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
               <div className="border-b border-[var(--site-border)] pb-3">
@@ -829,7 +837,7 @@ export function AdminDetailLayoutPage() {
                 </div>
               </div>
               <div className="px-3 py-4 sm:px-5 sm:py-6">
-                <div className="mx-auto max-w-5xl">
+                <div className={isDesktopNavCollapsed ? "" : "mx-auto max-w-5xl"}>
                   <LayoutCanvas
                     activeSelection={normalizedActiveSelection}
                     layout={layout}
