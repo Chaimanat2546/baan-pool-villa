@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, RotateCcw, Search } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { SearchPageInitialMeta } from "@/components/villas/search/page-data";
@@ -305,6 +306,29 @@ export function SearchPage({
             <h1 className="mt-2 max-w-3xl text-3xl font-black leading-tight text-[var(--site-text)] sm:text-4xl">
               ค้นหาพูลวิลล่าที่ตรงใจในพัทยา
             </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
+              รวมบ้านพักพูลวิลล่าพัทยาสำหรับครอบครัว กลุ่มเพื่อน และทริปปาร์ตี้
+              พร้อมตัวกรองทำเล จำนวนคน ห้องนอน ราคา และรหัสบ้าน
+            </p>
+            <nav
+              aria-label="ลิงก์ที่เกี่ยวข้องกับการค้นหาบ้านพัก"
+              className="mt-4 flex flex-wrap gap-2 text-sm font-bold"
+            >
+              <Link
+                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+                href="/"
+                prefetch={false}
+              >
+                หน้าแรก
+              </Link>
+              <Link
+                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+                href="/guides"
+                prefetch={false}
+              >
+                อ่านคู่มือเลือกบ้านพัก
+              </Link>
+            </nav>
           </div>
           <p className="max-w-sm text-sm leading-6 text-[var(--site-muted)]">
             เลือกทำเล จำนวนผู้เข้าพัก ห้องนอน สิ่งอำนวยความสะดวก และงบประมาณที่ต้องการ

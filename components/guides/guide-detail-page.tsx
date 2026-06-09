@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ArticlesSection } from "@/components/villas/home/articles-section";
@@ -471,6 +472,25 @@ export function GuideDetailPage({
             <p className="mt-4 text-lg leading-8 text-[var(--site-muted)]">
               {guide.excerpt}
             </p>
+            <nav
+              aria-label="ลิงก์ต่อจากบทความ"
+              className="mt-5 flex flex-wrap gap-2 text-sm font-bold"
+            >
+              <Link
+                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+                href="/search"
+                prefetch={false}
+              >
+                ค้นหาบ้านพักพูลวิลล่า
+              </Link>
+              <Link
+                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+                href="/guides"
+                prefetch={false}
+              >
+                อ่านบทความอื่น
+              </Link>
+            </nav>
           </div>
 
           {coverImageUrl ? (

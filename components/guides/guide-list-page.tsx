@@ -43,7 +43,7 @@ function GuideCard({
           </div>
         )}
       </div>
-      <div className="grid gap-3 p-4">
+      <article className="grid gap-3 p-4">
         <div className="flex flex-wrap gap-2">
           {guide.isPinned ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--site-primary)] px-2.5 py-1 text-xs font-semibold text-[var(--site-on-primary)]">
@@ -69,7 +69,7 @@ function GuideCard({
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-primary)]">
           อ่านบทความ <ArrowRight aria-hidden="true" className="size-4" />
         </span>
-      </div>
+      </article>
     </Link>
   );
 }
@@ -89,6 +89,25 @@ export function GuideListPage({ guides }: GuideListPageProps) {
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--site-muted)] sm:text-base sm:leading-7">
               รวมวิธีเลือกบ้านพักพูลวิลล่า เตรียมทริป และดูบ้านที่เหมาะกับกลุ่มของคุณ
             </p>
+            <nav
+              aria-label="ลิงก์ค้นหาบ้านพักจากหน้าบทความ"
+              className="mt-4 flex flex-wrap gap-2 text-sm font-bold"
+            >
+              <Link
+                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+                href="/search"
+                prefetch={false}
+              >
+                ค้นหาบ้านพักทั้งหมด
+              </Link>
+              <Link
+                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+                href="/"
+                prefetch={false}
+              >
+                กลับหน้าแรก
+              </Link>
+            </nav>
           </div>
         </header>
 
