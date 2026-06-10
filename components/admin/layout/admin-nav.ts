@@ -4,6 +4,7 @@ import {
   Images,
   LayoutTemplate,
   Newspaper,
+  ScrollText,
   Settings,
   Users,
   Video,
@@ -48,6 +49,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Newspaper,
     label: "บทความ",
     pageTitle: "จัดการบทความ",
+  },
+  {
+    description: "แก้ไขเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว",
+    href: "/admin/legal",
+    icon: ScrollText,
+    label: "หน้ากฎหมาย",
+    pageTitle: "จัดการหน้ากฎหมาย",
   },
   {
     description: "รูปภาพบ้านพักและแกลเลอรี",

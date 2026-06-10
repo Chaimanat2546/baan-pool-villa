@@ -21,6 +21,7 @@ describe("cache policy", () => {
     expect(CACHE_REVALIDATE_SECONDS.villaImages).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.guides).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.tiktokOEmbed).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.legalPages).toBe(TWELVE_HOURS_SECONDS);
   });
 
   it("builds stable cache tags and public paths", () => {
@@ -36,6 +37,8 @@ describe("cache policy", () => {
     expect(CACHE_TAGS.siteSettings).toBe("site-settings");
     expect(CACHE_TAGS.tiktokOEmbed).toBe("tiktok-oembed");
     expect(CACHE_TAGS.homeSections).toBe("home-sections");
+    expect(CACHE_TAGS.legalPages).toBe("legal-pages");
+    expect(CACHE_TAGS.legalPage("terms")).toBe("legal-page:terms");
     expect(getVillaDetailPath("42")).toBe("/villas/42");
   });
 

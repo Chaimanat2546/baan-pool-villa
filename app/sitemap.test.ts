@@ -3,10 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import sitemap from "./sitemap";
 import * as sitemapModule from "./sitemap";
 import { getPublishedGuides } from "@/lib/guides/server";
+import { getPublishedLegalPages } from "@/lib/legal-pages/server";
 import { fetchHouseListings } from "@/lib/villas/server";
 
 vi.mock("@/lib/guides/server", () => ({
   getPublishedGuides: vi.fn(),
+}));
+
+vi.mock("@/lib/legal-pages/server", () => ({
+  getPublishedLegalPages: vi.fn(),
 }));
 
 vi.mock("@/lib/seo", () => ({
@@ -19,17 +24,19 @@ vi.mock("@/lib/villas/server", () => ({
 
 const fetchHouseListingsMock = vi.mocked(fetchHouseListings);
 const getPublishedGuidesMock = vi.mocked(getPublishedGuides);
+const getPublishedLegalPagesMock = vi.mocked(getPublishedLegalPages);
 
 describe("sitemap", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getPublishedLegalPagesMock.mockResolvedValue([]);
   });
 
   it("exports a route response cache window for sitemap.xml", () => {
     expect(sitemapModule).toHaveProperty("revalidate", 43200);
   });
 
-  it("includes dynamic villa and guide routes when both data sources load", async () => {
+  it("includes dynamic villa, guide, and legal routes when data sources load", async () => {
     fetchHouseListingsMock.mockResolvedValue([
       {
         amenities: [],
@@ -66,12 +73,26 @@ describe("sitemap", () => {
         updatedAt: "2026-06-02T00:00:00.000Z",
       },
     ]);
+    getPublishedLegalPagesMock.mockResolvedValue([
+      {
+        contentBlocks: [],
+        createdAt: "2026-06-01T00:00:00.000Z",
+        id: "legal-terms",
+        publishedAt: "2026-06-01T00:00:00.000Z",
+        seoDescription: "Terms SEO",
+        slug: "terms",
+        status: "published",
+        title: "Terms and Conditions",
+        updatedAt: "2026-06-03T00:00:00.000Z",
+      },
+    ]);
 
     const routes = await sitemap();
     const villaRoute = routes.find((route) => route.url === "https://example.com/villas/101");
     const guideRoute = routes.find(
       (route) => route.url === "https://example.com/guides/family-guide",
     );
+    const legalRoute = routes.find((route) => route.url === "https://example.com/terms");
 
     expect(villaRoute).toMatchObject({
       images: ["https://example.com/villa.jpg"],
@@ -82,6 +103,12 @@ describe("sitemap", () => {
       images: ["https://example.com/guide.jpg"],
       lastModified: new Date("2026-06-02T00:00:00.000Z"),
       url: "https://example.com/guides/family-guide",
+    });
+    expect(legalRoute).toMatchObject({
+      changeFrequency: "monthly",
+      lastModified: new Date("2026-06-03T00:00:00.000Z"),
+      priority: 0.45,
+      url: "https://example.com/terms",
     });
   });
 
@@ -156,5 +183,23 @@ describe("sitemap", () => {
     expect(routes.some((route) => route.url.startsWith("https://example.com/guides/"))).toBe(
       false,
     );
+  });
+
+  it("returns a partial sitemap when legal page routes cannot load", async () => {
+    fetchHouseListingsMock.mockResolvedValue([]);
+    getPublishedGuidesMock.mockResolvedValue([]);
+    getPublishedLegalPagesMock.mockRejectedValue(new Error("legal CMS offline"));
+
+    const routes = await sitemap();
+
+    expect(routes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ url: "https://example.com/" }),
+        expect.objectContaining({ url: "https://example.com/search" }),
+        expect.objectContaining({ url: "https://example.com/guides" }),
+      ]),
+    );
+    expect(routes.some((route) => route.url === "https://example.com/terms")).toBe(false);
+    expect(routes.some((route) => route.url === "https://example.com/privacy")).toBe(false);
   });
 });
