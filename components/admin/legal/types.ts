@@ -1,4 +1,4 @@
-﻿import type { LegalPage, LegalPageSlug, LegalPageStatus } from "@/lib/legal-pages/types";
+import type { LegalPage, LegalPageSlug, LegalPageStatus } from "@/lib/legal-pages/types";
 
 export interface AdminLegalDraft {
   id: string;

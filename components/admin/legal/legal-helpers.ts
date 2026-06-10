@@ -17,8 +17,6 @@ const AUTH_FAILURE_MESSAGES = new Set([
   "Signed-in user is not listed as an active home config admin.",
 ]);
 
-const LEGAL_PREVIEW_LINES_PATTERN = /\n{2,}/;
-
 interface ErrorPayloadParts {
   code?: unknown;
   details?: unknown;
@@ -85,6 +83,111 @@ function getBlockText(block: LegalContentNode): string {
 
 function normalizeLine(value: string): string {
   return value.trim();
+}
+
+function normalizeLegalLineEndings(value: string): string {
+  let normalized = "";
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+
+    if (character === "\r") {
+      normalized += "\n";
+
+      if (value[index + 1] === "\n") {
+        index += 1;
+      }
+
+      continue;
+    }
+
+    normalized += character;
+  }
+
+  return normalized;
+}
+
+function splitLegalTextSections(value: string): string[] {
+  const sections: string[] = [];
+  let sectionStart = 0;
+  let newlineRun = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    if (value[index] !== "\n") {
+      newlineRun = 0;
+      continue;
+    }
+
+    newlineRun += 1;
+
+    if (newlineRun < 2) {
+      continue;
+    }
+
+    const sectionEnd = index - newlineRun + 1;
+    const section = value.slice(sectionStart, sectionEnd);
+
+    if (normalizeLine(section).length > 0) {
+      sections.push(section);
+    }
+
+    sectionStart = index + 1;
+  }
+
+  const finalSection = value.slice(sectionStart);
+
+  if (normalizeLine(finalSection).length > 0) {
+    sections.push(finalSection);
+  }
+
+  return sections;
+}
+
+function readNumberedListText(value: string): string | null {
+  let digitEnd = 0;
+
+  while (digitEnd < value.length) {
+    const codePoint = value.charCodeAt(digitEnd);
+
+    if (codePoint < 48 || codePoint > 57) {
+      break;
+    }
+
+    digitEnd += 1;
+  }
+
+  if (digitEnd === 0 || value[digitEnd] !== ".") {
+    return null;
+  }
+
+  const separatorIndex = digitEnd + 1;
+  const separator = value[separatorIndex];
+
+  if (separator !== " " && separator !== "\t") {
+    return null;
+  }
+
+  const parsedNumber = Number.parseInt(value.slice(0, digitEnd), 10);
+
+  if (!Number.isFinite(parsedNumber)) {
+    return null;
+  }
+
+  let textStart = separatorIndex;
+
+  while (textStart < value.length) {
+    const character = value[textStart];
+
+    if (character !== " " && character !== "\t") {
+      break;
+    }
+
+    textStart += 1;
+  }
+
+  const text = value.slice(textStart);
+
+  return text.length > 0 ? text : null;
 }
 
 function toTextBlock(
@@ -199,13 +302,13 @@ export function blocksToText(blocks: unknown): string {
 }
 
 export function textToBlocks(value: string): AdminLegalTextBlock[] {
-  const normalizedText = value.replace(/\r\n/g, "\n");
+  const normalizedText = normalizeLegalLineEndings(value);
 
   if (normalizeLine(normalizedText).length === 0) {
     return [];
   }
 
-  const sections = normalizedText.split(LEGAL_PREVIEW_LINES_PATTERN);
+  const sections = splitLegalTextSections(normalizedText);
   const outputBlocks: AdminLegalTextBlock[] = [];
 
   for (const section of sections) {
@@ -231,9 +334,9 @@ export function textToBlocks(value: string): AdminLegalTextBlock[] {
         continue;
       }
 
-      const numberedMatch = /^\d+\.\s+(.*)$/.exec(trimmedLine);
-      if (numberedMatch) {
-        outputBlocks.push(toTextBlock("numberedListItem", numberedMatch[1]));
+      const numberedText = readNumberedListText(trimmedLine);
+      if (numberedText !== null) {
+        outputBlocks.push(toTextBlock("numberedListItem", numberedText));
         continue;
       }
 
