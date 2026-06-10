@@ -5,6 +5,10 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const navigationMock = vi.hoisted(() => ({
+  searchParams: new URLSearchParams(),
+}));
+
 vi.mock("next/image", () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (
     <span aria-label={alt} data-src={src} />
@@ -12,7 +16,7 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => navigationMock.searchParams,
 }));
 
 import type { VillaListing } from "../../../../lib/villas/types";
@@ -34,6 +38,7 @@ const villa: VillaListing = {
 
 describe("SearchPage", () => {
   afterEach(() => {
+    navigationMock.searchParams = new URLSearchParams();
     vi.unstubAllGlobals();
   });
 
@@ -60,6 +65,23 @@ describe("SearchPage", () => {
         initialSearchParams="id=701"
         initialVillas={[villa, otherVilla]}
       />,
+    );
+
+    expect(markup).toContain("701");
+    expect(markup).toContain("701");
+    expect(markup).not.toContain("702");
+  });
+
+  it("applies browser search params when initialSearchParams is omitted", () => {
+    navigationMock.searchParams = new URLSearchParams("id=701");
+    const otherVilla: VillaListing = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
+
+    const markup = renderToStaticMarkup(
+      <SearchPage initialVillas={[villa, otherVilla]} />,
     );
 
     expect(markup).toContain("701");

@@ -16,9 +16,9 @@ export function SectionHeader({
       {eyebrow ? (
         <p className="text-xs font-black uppercase text-[var(--site-accent)]">{eyebrow}</p>
       ) : null}
-      <h2 className="mt-2 text-3xl font-black leading-tight text-[var(--site-text)] md:text-4xl">
+      <h1 className="mt-2 text-3xl font-black leading-tight text-[var(--site-text)] md:text-4xl">
         {title}
-      </h2>
+      </h1>
       <p className="mt-3 text-sm leading-6 text-[var(--site-muted)] md:text-base">{description}</p>
     </div>
   );
