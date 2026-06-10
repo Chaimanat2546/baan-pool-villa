@@ -84,9 +84,9 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                 </div>
               </div>
               <div className="p-6">
-                <h3 className="line-clamp-2 text-xl font-semibold leading-7 text-[var(--site-text)]">
+                <h2 className="line-clamp-2 text-xl font-semibold leading-7 text-[var(--site-text)]">
                   {guide.title}
-                </h3>
+                </h2>
                 <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--site-muted)]">
                   {guide.excerpt}
                 </p>
