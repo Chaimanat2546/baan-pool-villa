@@ -87,9 +87,9 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
       data-home-tiktok
     >
       <div className="text-center">
-        <h2 className="text-3xl font-black text-[var(--site-text)] md:text-4xl">
+        <h1 className="text-3xl font-black text-[var(--site-text)] md:text-4xl">
           TikTok
-        </h2>
+        </h1>
       </div>
 
       <ScrollRail
