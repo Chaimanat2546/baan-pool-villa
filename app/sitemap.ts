@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { getPublishedGuides } from "@/lib/guides/server";
+import { getPublishedLegalPages } from "@/lib/legal-pages/server";
 import { absoluteUrl } from "@/lib/seo";
 import { fetchHouseListings } from "@/lib/villas/server";
 
@@ -26,10 +27,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const [listings, guidesResult] = await Promise.all([
+  const [listings, guidesResult, legalPagesResult] = await Promise.all([
     fetchHouseListings(),
     getPublishedGuides().catch((error: unknown) => {
       console.error("Unable to load guide routes for sitemap", error);
+
+      return [];
+    }),
+    getPublishedLegalPages().catch((error: unknown) => {
+      console.error("Unable to load legal page routes for sitemap", error);
 
       return [];
     }),
@@ -50,5 +56,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: absoluteUrl(`/guides/${guide.slug}`),
   }));
 
-  return [...staticRoutes, ...villaRoutes, ...guideRoutes];
+  const legalRoutes: MetadataRoute.Sitemap = legalPagesResult.map((page) => ({
+    changeFrequency: "monthly" as const,
+    lastModified: page.updatedAt ? new Date(page.updatedAt) : undefined,
+    priority: 0.45,
+    url: absoluteUrl(`/${page.slug}`),
+  }));
+
+  return [...staticRoutes, ...villaRoutes, ...guideRoutes, ...legalRoutes];
 }

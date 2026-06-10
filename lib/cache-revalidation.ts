@@ -26,6 +26,13 @@ export function revalidateGuideCache(slug?: string | null) {
   ]);
 }
 
+export function revalidateLegalPageCache(slug?: string | null) {
+  revalidateTags([
+    CACHE_TAGS.legalPages,
+    ...(slug ? [CACHE_TAGS.legalPage(slug)] : []),
+  ]);
+}
+
 export function revalidateDetailLayoutCache() {
   revalidateTags([CACHE_TAGS.siteSettings]);
 }

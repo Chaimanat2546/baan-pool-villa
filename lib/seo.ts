@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import type { GuidePost } from "@/lib/guides/types";
+import type { LegalPage } from "@/lib/legal-pages/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -230,6 +231,21 @@ export function buildGuideArticleMetadata({
     publishedTime: guide.publishedAt ?? guide.createdAt,
     settings,
     title: guide.title,
+  });
+}
+
+export function buildLegalPageMetadata({
+  page,
+  settings,
+}: {
+  page: LegalPage;
+  settings: SiteSettings;
+}): Metadata {
+  return buildSiteSettingsPageMetadata({
+    canonicalPath: `/${page.slug}`,
+    description: page.seoDescription || settings.seo.description,
+    settings,
+    title: page.title,
   });
 }
 

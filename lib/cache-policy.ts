@@ -2,6 +2,7 @@ const TWELVE_HOURS_SECONDS = 12 * 60 * 60;
 
 export const CACHE_REVALIDATE_SECONDS = {
   guides: TWELVE_HOURS_SECONDS,
+  legalPages: TWELVE_HOURS_SECONDS,
   homeSections: TWELVE_HOURS_SECONDS,
   siteSettings: TWELVE_HOURS_SECONDS,
   tiktokOEmbed: TWELVE_HOURS_SECONDS,
@@ -13,6 +14,8 @@ export const CACHE_REVALIDATE_SECONDS = {
 export const CACHE_TAGS = {
   guide: (slug: string) => `guide:${slug}`,
   guides: "guides",
+  legalPage: (slug: string) => `legal-page:${slug}`,
+  legalPages: "legal-pages",
   homeSections: "home-sections",
   siteSettings: "site-settings",
   tiktokOEmbed: "tiktok-oembed",
