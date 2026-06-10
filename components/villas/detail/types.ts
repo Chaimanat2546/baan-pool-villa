@@ -1,13 +1,13 @@
 import type {
+  RecommendedVillaSection,
   VillaDetailPayload,
-  VillaListing,
 } from "@/lib/villas/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 export interface VillaDetailPageProps {
   id: string;
   payload: VillaDetailPayload;
-  recommendedVillas: VillaListing[];
+  recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
 }
 

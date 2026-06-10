@@ -168,7 +168,7 @@
               <tr>
                 <td><code>app/(public)/villas/[id]/page.tsx</code></td>
                 <td><code>/villas/:id</code></td>
-                <td><code>components/villas/detail/page</code>, listing/detail API data, SEO/JSON-LD helpers, and a client gallery loader backed by <code>/api/villas/:id/images</code>. Villa detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from villa listing/detail tags, SSR should not preload Supabase gallery rows, initial client mount loads the full image set once to fill the visible gallery grid, and the route renders VacationRental plus breadcrumb JSON-LD.</td>
+                <td><code>components/villas/detail/page</code>, listing/detail API data, first resolved home-section recommendations, SEO/JSON-LD helpers, and a client gallery loader backed by <code>/api/villas/:id/images</code>. Villa detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from villa listing/detail and home-section tags, SSR should not preload Supabase gallery rows, initial client mount loads the full image set once to fill the visible gallery grid, and the route renders VacationRental plus breadcrumb JSON-LD.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/villas/[id]/loading.tsx</code></td>
@@ -517,7 +517,7 @@
               <td>Villa listings</td>
               <td><code>https://www.devillegroups.com/api/json/getHouse_deville.json</code></td>
               <td><code>lib/villas/server.ts</code>, <code>lib/villas/normalize.ts</code>, listing cache tag; the normalized catalog result is cached with the same villa listings TTL/tag so routes do not re-parse the full external catalog on warm reads.</td>
-              <td>Home rails, search results, recommendations, sitemap, public houses API.</td>
+              <td>Home rails, search results, first home-section detail recommendations, guide recommendations, sitemap, public houses API.</td>
             </tr>
             <tr>
               <td>Villa detail</td>
@@ -535,7 +535,7 @@
                 <td>Home sections</td>
                 <td>Supabase home-section CMS project.</td>
                 <td><code>lib/home-sections/server.ts</code>, validation/resolve helpers, home sections cache tag. Results include <code>source</code>, <code>degraded</code>, and an optional fallback reason so callers can distinguish intentional empty-config fallback from config-load failure fallback.</td>
-                <td>Home page and admin sections editor.</td>
+                <td>Home page, villa detail recommendations from the first resolved section, and admin sections editor.</td>
               </tr>
               <tr>
                 <td>Site settings</td>

@@ -94,7 +94,7 @@ export default async function Page({ params }: VillaPageProps) {
       <VillaDetailPage
         id={id}
         payload={data.payload}
-        recommendedVillas={data.recommendedVillas}
+        recommendedSection={data.recommendedSection}
         settings={siteSettingsResult.settings}
       />
     </>

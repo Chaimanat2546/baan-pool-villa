@@ -68,3 +68,13 @@ export type VillaDetailPayload = {
   detail: unknown;
   detailStatus: "available" | "missing_token" | "unavailable";
 };
+
+export type RecommendedVillaSection = {
+  cta?: {
+    href: string;
+    label: string;
+  };
+  description: string;
+  title: string;
+  villas: VillaListing[];
+};
