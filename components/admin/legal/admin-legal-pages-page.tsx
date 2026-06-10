@@ -20,7 +20,6 @@ import {
   pageLabel,
   readJsonPayload,
   shouldRedirectToLogin,
-  textToBlocks,
 } from "./legal-helpers";
 import type {
   AdminLegalDraft,
@@ -444,11 +443,11 @@ export function AdminLegalPagesPage() {
           <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
             <h2 className="text-lg font-semibold text-[var(--site-text)]">เนื้อหา</h2>
             <p className="mt-1 text-sm text-[var(--site-muted)]">
-              ระบุเนื้อหาแบบข้อความธรรมดา โดยใช้ prefix:
-              <span className="ml-1 whitespace-nowrap"># heading</span>,
-              <span className="ml-1 whitespace-nowrap">&gt; quote</span>,
-              <span className="ml-1 whitespace-nowrap">- bullet</span>,
-              <span className="ml-1 whitespace-nowrap">1. numbered</span>
+              พิมพ์ข้อความได้ตามปกติ ถ้าต้องการจัดรูปแบบให้ขึ้นต้นบรรทัดด้วย:
+              <span className="ml-1 whitespace-nowrap"># หัวข้อ</span>,
+              <span className="ml-1 whitespace-nowrap">&gt; คำพูดเน้น</span>,
+              <span className="ml-1 whitespace-nowrap">- รายการ</span>,
+              <span className="ml-1 whitespace-nowrap">1. รายการแบบลำดับ</span>
             </p>
             <label className="mt-4 block text-sm font-medium text-[var(--site-text)]">
               เนื้อหา
@@ -519,21 +518,9 @@ export function AdminLegalPagesPage() {
             <h2 className="text-base font-semibold text-[var(--site-text)]">สถานะหน้า</h2>
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex items-start justify-between gap-3">
-                <dt className="text-[var(--site-muted)]">Slug</dt>
-                <dd className="truncate font-semibold text-[var(--site-text)]">
-                  {selectedDraft.slug}
-                </dd>
-              </div>
-              <div className="flex items-start justify-between gap-3">
                 <dt className="text-[var(--site-muted)]">อัปเดตล่าสุด</dt>
                 <dd className="font-semibold text-[var(--site-text)]">
                   {legalDateLabel(selectedDraft.updatedAt)}
-                </dd>
-              </div>
-              <div className="flex items-start justify-between gap-3">
-                <dt className="text-[var(--site-muted)]">จำนวนบล็อก</dt>
-                <dd className="font-semibold text-[var(--site-text)]">
-                  {textToBlocks(selectedDraft.contentText).length.toLocaleString("th-TH")}
                 </dd>
               </div>
               <div className="flex items-start justify-between gap-3">

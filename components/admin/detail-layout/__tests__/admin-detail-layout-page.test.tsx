@@ -88,6 +88,28 @@ describe("AdminDetailLayoutPage", () => {
     await page.unmount();
   });
 
+  it("places the settings and preview panel under the canvas before the three-column breakpoint", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { layout: savedLayout },
+        url: "/api/admin/detail-layout",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    const sidePanel = page.container.querySelector(
+      '[data-detail-layout-side-panel="true"]',
+    );
+
+    expect(sidePanel?.className).toContain("xl:col-start-2");
+    expect(sidePanel?.className).toContain("xl:row-start-2");
+    expect(sidePanel?.className).toContain("2xl:col-start-3");
+    expect(sidePanel?.className).toContain("2xl:row-start-1");
+
+    await page.unmount();
+  });
+
   it("saves a locally reset layout without refetching the page data", async () => {
     const fetchMock = makeFetchMock([
       {

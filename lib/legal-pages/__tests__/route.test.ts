@@ -98,11 +98,16 @@ function authSupabase(supabase: unknown) {
   } as Awaited<ReturnType<typeof requireHomeConfigAdmin>>);
 }
 
-function authFailure(status = 401, error = "Missing bearer token.") {
+function authFailure(
+  status = 401,
+  error = "Missing bearer token.",
+  supabase: unknown = { from: vi.fn() },
+) {
   requireHomeConfigAdminMock.mockResolvedValue({
     ok: false,
     response: Response.json({ error }, { status }),
-  });
+    supabase,
+  } as unknown as Awaited<ReturnType<typeof requireHomeConfigAdmin>>);
 }
 
 describe("admin legal-pages route", () => {
@@ -451,7 +456,7 @@ describe("admin legal-pages route", () => {
 
   it("does not query legal pages on GET auth failure", async () => {
     const from = vi.fn();
-    authFailure(401, "Missing bearer token.");
+    authFailure(401, "Missing bearer token.", { from });
 
     const { GET } = await import(
       "../../../app/(admin)/api/admin/legal-pages/route"
@@ -466,7 +471,7 @@ describe("admin legal-pages route", () => {
 
   it("does not persist legal page data on PUT auth failure", async () => {
     const from = vi.fn();
-    authFailure(401, "Missing bearer token.");
+    authFailure(401, "Missing bearer token.", { from });
 
     const { PUT } = await import(
       "../../../app/(admin)/api/admin/legal-pages/route"

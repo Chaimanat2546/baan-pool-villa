@@ -51,13 +51,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     pageTitle: "จัดการบทความ",
   },
   {
-    description: "แก้ไขเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว",
-    href: "/admin/legal",
-    icon: ScrollText,
-    label: "หน้ากฎหมาย",
-    pageTitle: "จัดการหน้ากฎหมาย",
-  },
-  {
     description: "รูปภาพบ้านพักและแกลเลอรี",
     disabled: true,
     href: "/admin/images",
@@ -79,6 +72,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Video,
     label: "TikTok",
     pageTitle: "TikTok",
+  },
+  {
+    description: "แก้ไขเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว",
+    href: "/admin/legal",
+    icon: ScrollText,
+    label: "หน้ากฎหมาย",
+    pageTitle: "จัดการหน้ากฎหมาย",
   },
   {
     description: "ข้อมูลเว็บและค่าทั่วไป",
