@@ -74,6 +74,31 @@ describe("admin home sections route", () => {
     );
 
     expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      sections: [
+        {
+          slug: "featured",
+          title: "Featured villas",
+          description: "Recommended villas",
+          mode: "manual",
+          fallbackMode: "none",
+          sliceOffset: 0,
+          isActive: true,
+          limitCount: 1,
+          displayOrder: 0,
+          ctaEnabled: false,
+          ctaLabel: "",
+          ctaHref: "",
+          items: [
+            {
+              houseId: "901",
+              position: 0,
+              isActive: true,
+            },
+          ],
+        },
+      ],
+    });
     expect(rpc).toHaveBeenCalledWith("save_home_section_snapshot", {
       snapshot: [
         {

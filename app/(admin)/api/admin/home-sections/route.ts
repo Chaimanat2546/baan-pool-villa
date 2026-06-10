@@ -380,6 +380,30 @@ function toRpcPayload(sections: HomeSectionSavePayload[]): RpcHomeSectionPayload
   }));
 }
 
+function mapSavedHomeSectionPayload(
+  section: RpcHomeSectionPayload,
+): AdminHomeSectionDraft {
+  return {
+    slug: section.slug,
+    title: section.title,
+    description: section.description,
+    displayOrder: section.display_order,
+    isActive: section.is_active,
+    mode: section.mode,
+    limitCount: section.limit_count,
+    ctaEnabled: section.cta_enabled,
+    ctaLabel: section.cta_label ?? "",
+    ctaHref: section.cta_href ?? "",
+    fallbackMode: section.fallback_mode,
+    sliceOffset: section.slice_offset,
+    items: section.items.map((item) => ({
+      houseId: item.house_id,
+      position: item.position,
+      isActive: item.is_active,
+    })),
+  };
+}
+
 export async function GET(request: Request) {
   const admin = await requireHomeConfigAdmin(request);
 
@@ -458,5 +482,7 @@ export async function PUT(request: Request) {
 
   revalidateHomeSectionsCache();
 
-  return Response.json({ sections: rpcPayload });
+  return Response.json({
+    sections: rpcPayload.map(mapSavedHomeSectionPayload),
+  });
 }
