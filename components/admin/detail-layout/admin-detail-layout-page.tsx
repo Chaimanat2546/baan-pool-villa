@@ -323,19 +323,6 @@ export function AdminDetailLayoutPage() {
 
     return makeDetailLayoutV2Snapshot(layout) !== savedSnapshot;
   }, [layout, savedSnapshot]);
-  const layoutSummary = useMemo(() => {
-    if (!layout) {
-      return null;
-    }
-
-    return {
-      disabledRows:
-        layout.mainSplit.wideRows.filter((row) => !row.enabled).length +
-        layout.mainSplit.narrowRows.filter((row) => !row.enabled).length,
-      narrowRows: layout.mainSplit.narrowRows.length,
-      wideRows: layout.mainSplit.wideRows.length,
-    };
-  }, [layout]);
   const usedBlockTypes = useMemo(() => {
     if (!layout) {
       return [];
@@ -355,37 +342,6 @@ export function AdminDetailLayoutPage() {
       ),
     );
   }, [layout]);
-  const overviewStats = useMemo(() => {
-    if (!layoutSummary) {
-      return [];
-    }
-
-    return [
-      {
-        label: "ฝั่ง 70",
-        tone: "text-[var(--site-text)]",
-        value: `${layoutSummary.wideRows} แถว`,
-      },
-      {
-        label: "ฝั่ง 30",
-        tone: "text-[var(--site-text)]",
-        value: `${layoutSummary.narrowRows} แถว`,
-      },
-      {
-        label: "ปิดไว้",
-        tone:
-          layoutSummary.disabledRows > 0
-            ? "text-amber-700"
-            : "text-[var(--site-text)]",
-        value: `${layoutSummary.disabledRows} แถว`,
-      },
-      {
-        label: "บล็อกที่ใช้",
-        tone: "text-[var(--site-text)]",
-        value: `${usedBlockTypes.length} แบบ`,
-      },
-    ];
-  }, [layoutSummary, usedBlockTypes.length]);
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -745,21 +701,6 @@ export function AdminDetailLayoutPage() {
           </div>
         </header>
 
-        {overviewStats.length > 0 ? (
-          <div className="mt-5 hidden gap-3 sm:grid-cols-2 xl:grid xl:grid-cols-4">
-            {overviewStats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-3 shadow-sm"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
-                  {stat.label}
-                </p>
-                <p className={`mt-2 text-lg font-semibold ${stat.tone}`}>{stat.value}</p>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </div>
 
       {errors.length > 0 ? (

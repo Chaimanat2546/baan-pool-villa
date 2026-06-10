@@ -63,6 +63,7 @@ describe("AdminDetailLayoutPage", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    const pageText = page.container.textContent ?? "";
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/admin/detail-layout",
@@ -70,6 +71,8 @@ describe("AdminDetailLayoutPage", () => {
         headers: { Authorization: "Bearer admin-token" },
       }),
     );
+    expect(pageText).not.toContain("ปิดไว้");
+    expect(pageText).not.toContain("บล็อกที่ใช้");
 
     const resetButton = page.container.querySelector(
       "header button",
