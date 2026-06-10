@@ -85,10 +85,18 @@ const getCachedPublishedLegalPages = unstable_cache(
   },
 );
 
-export async function getLegalPageBySlug(
-  slug: LegalPageSlug,
-): Promise<LegalPage> {
-  const getCachedLegalPage = unstable_cache(
+type CachedLegalPageLoader = () => Promise<LegalPage>;
+
+const cachedLegalPageLoaders = new Map<LegalPageSlug, CachedLegalPageLoader>();
+
+function getCachedLegalPageLoader(slug: LegalPageSlug): CachedLegalPageLoader {
+  const existingLoader = cachedLegalPageLoaders.get(slug);
+
+  if (existingLoader) {
+    return existingLoader;
+  }
+
+  const loader = unstable_cache(
     () => fetchPublishedLegalPage(slug),
     [CACHE_TAGS.legalPage(slug)],
     {
@@ -97,8 +105,15 @@ export async function getLegalPageBySlug(
     },
   );
 
+  cachedLegalPageLoaders.set(slug, loader);
+  return loader;
+}
+
+export async function getLegalPageBySlug(
+  slug: LegalPageSlug,
+): Promise<LegalPage> {
   try {
-    return await getCachedLegalPage();
+    return await getCachedLegalPageLoader(slug)();
   } catch {
     return LEGAL_PAGE_DEFAULTS[slug];
   }

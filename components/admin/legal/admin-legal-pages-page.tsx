@@ -8,8 +8,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LegalPage } from "@/components/legal/legal-page";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminLegalSkeleton } from "@/components/admin/loading/admin-legal-skeleton";
-import type { LegalPageSlug } from "@/lib/legal-pages/types";
-import { LEGAL_PAGE_SLUGS, type LegalPage as LegalPageModel } from "@/lib/legal-pages/types";
+import {
+  getLegalPagePath,
+  LEGAL_PAGE_SLUGS,
+  type LegalPage as LegalPageModel,
+  type LegalPageSlug,
+} from "@/lib/legal-pages/types";
 import {
   buildPagePreview,
   extractLegalErrors,
@@ -26,11 +30,6 @@ import type {
   AdminLegalResponse,
   LegalApiErrorPayload,
 } from "./types";
-
-const PUBLIC_PAGE_BY_SLUG: Record<LegalPageSlug, string> = {
-  terms: "/terms",
-  privacy: "/privacy",
-} as const;
 
 type SavedLegalSnapshots = Record<LegalPageSlug, string>;
 
@@ -313,7 +312,7 @@ export function AdminLegalPagesPage() {
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <Link
               className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
-              href={PUBLIC_PAGE_BY_SLUG[selectedDraft.slug]}
+              href={getLegalPagePath(selectedDraft.slug)}
               rel="noopener noreferrer"
               target="_blank"
             >

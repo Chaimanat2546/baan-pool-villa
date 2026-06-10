@@ -1,13 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
+import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 const menuItems = [
   { href: "/", label: "หน้าแรก" },
   { href: "/search", label: "ค้นหาบ้านพัก" },
   { href: "/guides", label: "บทความ" },
-  { href: "/terms", label: "เงื่อนไขการใช้งาน" },
-  { href: "/privacy", label: "นโยบายความเป็นส่วนตัว" },
+  { href: LEGAL_PAGE_PATHS.terms, label: "เงื่อนไขการใช้งาน" },
+  { href: LEGAL_PAGE_PATHS.privacy, label: "นโยบายความเป็นส่วนตัว" },
   { href: "/#recommendations", label: "รีวิว" },
 ];
 
