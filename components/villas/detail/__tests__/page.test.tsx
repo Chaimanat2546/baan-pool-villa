@@ -130,7 +130,7 @@ function makePage(id = listing.id, activeListing = listing) {
     <VillaDetailPage
       id={id}
       payload={makePayload(activeListing)}
-      recommendedVillas={[]}
+      recommendedSection={null}
       settings={DEFAULT_SITE_SETTINGS}
     />
   );

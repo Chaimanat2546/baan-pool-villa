@@ -13,7 +13,10 @@ import type {
 } from "../../../../lib/detail-layout/types";
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import type { VillaDetailContent } from "../../../../lib/villas/detail";
-import type { VillaListing } from "../../../../lib/villas/types";
+import type {
+  RecommendedVillaSection,
+  VillaListing,
+} from "../../../../lib/villas/types";
 import { DetailLayoutRenderer } from "../detail-layout-renderer";
 import type { GalleryCategory } from "../types";
 
@@ -40,6 +43,13 @@ const recommendedVilla: VillaListing = {
   bedrooms: 5,
   bathrooms: 6,
   people: 14,
+};
+
+const recommendedSection: RecommendedVillaSection = {
+  cta: { href: "/search?featured=1", label: "See featured villas" },
+  description: "First homepage section",
+  title: "Homepage featured",
+  villas: [recommendedVilla],
 };
 
 const content: VillaDetailContent = {
@@ -169,7 +179,7 @@ function render(
       galleryCategories={galleryCategories}
       layout={layout}
       listing={activeListing}
-      recommendedVillas={[recommendedVilla]}
+      recommendedSection={recommendedSection}
       settings={{ ...DEFAULT_SITE_SETTINGS, detailLayout: layout }}
     />,
   );
@@ -184,7 +194,14 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).toContain("จองผ่าน LINE");
     expect(markup).toContain("รายละเอียดห้องนอน");
     expect(markup).toContain("สระว่ายน้ำ");
-    expect(markup).toContain("บ้านพักแนะนำ");
+    expect(markup).toContain("Homepage featured");
+  });
+
+  it("renders recommended villa section title as h2 and villa names as h3", () => {
+    const markup = render(DEFAULT_DETAIL_LAYOUT);
+
+    expect(markup).toContain("Homepage featured</h2>");
+    expect(markup).toContain("77</h3>");
   });
 
   it("hides the review video block when there are no videos", () => {

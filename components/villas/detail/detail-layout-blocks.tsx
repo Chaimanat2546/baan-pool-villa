@@ -15,7 +15,7 @@ import type {
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
-import type { VillaListing } from "@/lib/villas/types";
+import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import { BookingSidebar } from "./booking-sidebar";
 import { AmenitiesSection, VideoReviewSection } from "./content-sections";
 import { findFact, findSection } from "./helpers";
@@ -27,7 +27,7 @@ interface DetailLayoutBlockContext {
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
   listing: VillaListing;
-  recommendedVillas: VillaListing[];
+  recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
 }
 
@@ -352,13 +352,13 @@ function renderBookingContact({
 }
 
 function renderRecommendedVillas({
-  recommendedVillas,
+  recommendedSection,
 }: DetailLayoutBlockContext) {
-  if (recommendedVillas.length === 0) {
+  if (!recommendedSection || recommendedSection.villas.length === 0) {
     return null;
   }
 
-  return <RecommendedVillas villas={recommendedVillas} />;
+  return <RecommendedVillas section={recommendedSection} />;
 }
 
 const blockRenderers = {

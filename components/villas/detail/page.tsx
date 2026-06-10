@@ -41,7 +41,7 @@ function getInitialGalleryLoadState(villaId: string): GalleryLoadState {
 export function VillaDetailPage({
   id,
   payload,
-  recommendedVillas,
+  recommendedSection,
   settings,
 }: VillaDetailPageProps) {
   const [galleryLoadState, setGalleryLoadState] = useState<GalleryLoadState>(
@@ -334,7 +334,7 @@ export function VillaDetailPage({
 
         listing={listing}
 
-        recommendedVillas={recommendedVillas}
+        recommendedSection={recommendedSection}
 
         settings={settings}
 

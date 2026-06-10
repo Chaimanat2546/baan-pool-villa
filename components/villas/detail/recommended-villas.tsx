@@ -1,18 +1,24 @@
-import type { VillaListing } from "@/lib/villas/types";
+import type { RecommendedVillaSection } from "@/lib/villas/types";
 import { VillaRail } from "../home/villa-rail";
 
-export function RecommendedVillas({ villas }: { villas: VillaListing[] }) {
-  if (villas.length === 0) {
+export function RecommendedVillas({
+  section,
+}: {
+  section: RecommendedVillaSection;
+}) {
+  if (section.villas.length === 0) {
     return null;
   }
 
   return (
     <VillaRail
-      cta
+      cardTitleHeadingLevel="h3"
+      cta={section.cta}
+      description={section.description}
       id="recommendations"
-      title="บ้านพักแนะนำ"
-      description="พูลวิลล่าคัดพิเศษ เหมาะสำหรับครอบครัว กลุ่มเพื่อน และทริปพักผ่อนส่วนตัว"
-      villas={villas}
+      title={section.title}
+      titleHeadingLevel="h2"
+      villas={section.villas}
     />
   );
 }

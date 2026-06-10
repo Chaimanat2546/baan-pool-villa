@@ -14,6 +14,14 @@ const { fetchVillaImagesMock } = vi.hoisted(() => ({
   fetchVillaImagesMock: vi.fn(),
 }));
 
+const { getResolvedHomeSectionsMock } = vi.hoisted(() => ({
+  getResolvedHomeSectionsMock: vi.fn(),
+}));
+
+vi.mock("@/lib/home-sections/server", () => ({
+  getResolvedHomeSections: getResolvedHomeSectionsMock,
+}));
+
 vi.mock("../images", () => ({
   fetchVillaImages: fetchVillaImagesMock,
 }));
@@ -52,6 +60,7 @@ function jsonResponse(data: unknown, init?: ResponseInit) {
 
 afterEach(() => {
   fetchVillaImagesMock.mockReset();
+  getResolvedHomeSectionsMock.mockReset();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -158,6 +167,11 @@ describe("fetchVillaPageData", () => {
     vi.stubGlobal("fetch", fetchMock);
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "");
     vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "");
+    getResolvedHomeSectionsMock.mockResolvedValue({
+      degraded: false,
+      sections: [],
+      source: "config",
+    });
     fetchVillaImagesMock.mockResolvedValue([
       {
         caption: null,
@@ -177,9 +191,56 @@ describe("fetchVillaPageData", () => {
         detail: null,
         detailStatus: "missing_token",
       },
-      recommendedVillas: [],
+      recommendedSection: null,
     });
     expect(data).not.toHaveProperty("images");
     expect(fetchVillaImagesMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the first resolved home section for villa recommendations", async () => {
+    const secondRawHouse = {
+      ...rawHouse,
+      h_id: "10",
+      img_name: "villa-10.jpg",
+    };
+    const thirdRawHouse = {
+      ...rawHouse,
+      h_id: "11",
+      img_name: "villa-11.jpg",
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse([rawHouse, secondRawHouse, thirdRawHouse]));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "");
+    getResolvedHomeSectionsMock.mockImplementation(async (listings) => ({
+      degraded: false,
+      sections: [
+        {
+          cta: { href: "/search?featured=1", label: "See featured" },
+          description: "First homepage section",
+          slug: "featured",
+          title: "Homepage featured",
+          villas: [listings[2], listings[1]],
+        },
+      ],
+      source: "config",
+    }));
+
+    const data = await fetchVillaPageData("9");
+
+    expect(getResolvedHomeSectionsMock).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "9" }),
+        expect.objectContaining({ id: "10" }),
+        expect.objectContaining({ id: "11" }),
+      ]),
+    );
+    expect(data?.recommendedSection).toMatchObject({
+      cta: { href: "/search?featured=1", label: "See featured" },
+      description: "First homepage section",
+      title: "Homepage featured",
+      villas: [{ id: "11" }, { id: "10" }],
+    });
   });
 });
