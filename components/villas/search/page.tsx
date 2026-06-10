@@ -97,7 +97,7 @@ export function getInitialCatalogComplete(
 
 export function SearchPage({
   initialLoadError = null,
-  initialSearchParams = "",
+  initialSearchParams,
   initialVillas = [],
   initialMeta,
 }: SearchPageProps) {

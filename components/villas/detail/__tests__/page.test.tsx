@@ -159,8 +159,14 @@ async function clickFirstGalleryItem(container: HTMLElement) {
     "[data-gallery-item]",
   ) as HTMLButtonElement | null;
 
+  if (!galleryButton) {
+    throw new Error(
+      'clickFirstGalleryItem expected a "[data-gallery-item]" button to be present.',
+    );
+  }
+
   await act(async () => {
-    galleryButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    galleryButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   await flushReact();
 }
@@ -253,24 +259,12 @@ describe("VillaDetailPage deferred gallery loader", () => {
     await flushReact();
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    const galleryButton = page.container.querySelector(
-      "[data-gallery-item]",
-    ) as HTMLButtonElement | null;
-    await act(async () => {
-      galleryButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await flushReact();
+    await clickFirstGalleryItem(page.container);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(page.container.querySelector("[data-lightbox-active]")).not.toBeNull();
 
-    const loadedGalleryButton = page.container.querySelector(
-      "[data-gallery-item]",
-    ) as HTMLButtonElement | null;
-    await act(async () => {
-      loadedGalleryButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await flushReact();
+    await clickFirstGalleryItem(page.container);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -350,7 +344,6 @@ describe("VillaDetailPage deferred gallery loader", () => {
 
     await page.render(makePage("9", listing));
     await flushReact();
-    await clickFirstGalleryItem(page.container);
 
     await page.render(makePage("10", villaTen));
     await flushReact();
