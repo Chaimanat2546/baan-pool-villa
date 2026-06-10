@@ -12,7 +12,7 @@ import type {
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
-import type { VillaListing } from "@/lib/villas/types";
+import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import type { ReactNode } from "react";
 import { renderDetailLayoutBlock } from "./detail-layout-blocks";
 import type { GalleryCategory } from "./types";
@@ -22,7 +22,7 @@ export interface DetailLayoutRendererProps {
   galleryCategories: GalleryCategory[];
   layout: AnyDetailLayoutConfig;
   listing: VillaListing;
-  recommendedVillas: VillaListing[];
+  recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
 }
 
@@ -47,7 +47,7 @@ interface DetailLayoutRenderContext {
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
   listing: VillaListing;
-  recommendedVillas: VillaListing[];
+  recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
 }
 
@@ -538,14 +538,14 @@ export function DetailLayoutRenderer({
   galleryCategories,
   layout,
   listing,
-  recommendedVillas,
+  recommendedSection,
   settings,
 }: DetailLayoutRendererProps) {
   const context = {
     content,
     galleryCategories,
     listing,
-    recommendedVillas,
+    recommendedSection,
     settings,
   };
   const renderedRows =

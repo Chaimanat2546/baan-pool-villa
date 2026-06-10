@@ -2,8 +2,14 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { getResolvedHomeSections } from "@/lib/home-sections/server";
 import { normalizeHouses } from "./normalize";
-import type { RawHouse, VillaDetailPayload, VillaListing } from "./types";
+import type {
+  RawHouse,
+  RecommendedVillaSection,
+  VillaDetailPayload,
+  VillaListing,
+} from "./types";
 
 const HOUSE_LIST_URL = "https://www.devillegroups.com/api/json/getHouse_deville.json";
 const DETAIL_URL = "https://deville-central.com/api/getAccommodation.php";
@@ -112,8 +118,25 @@ export async function fetchVillaDetail(
 
 export type VillaPageData = {
   payload: VillaDetailPayload;
-  recommendedVillas: VillaListing[];
+  recommendedSection: RecommendedVillaSection | null;
 };
+
+function toRecommendedVillaSection(
+  sections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"],
+): RecommendedVillaSection | null {
+  const firstSection = sections.find((section) => section.villas.length > 0);
+
+  if (!firstSection) {
+    return null;
+  }
+
+  return {
+    ...(firstSection.cta ? { cta: firstSection.cta } : {}),
+    description: firstSection.description,
+    title: firstSection.title,
+    villas: firstSection.villas,
+  };
+}
 
 export async function fetchVillaPageData(
   id: string,
@@ -125,12 +148,10 @@ export async function fetchVillaPageData(
     return null;
   }
 
-  const recommendedVillas = listings
-    .filter((listing) => listing.id !== payload.listing.id)
-    .slice(0, 12);
+  const homeSections = await getResolvedHomeSections(listings);
 
   return {
     payload,
-    recommendedVillas,
+    recommendedSection: toRecommendedVillaSection(homeSections.sections),
   };
 }

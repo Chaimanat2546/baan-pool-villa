@@ -5,6 +5,7 @@ import type { VillaListing } from "@/lib/villas/types";
 
 interface VillaCardProps {
   villa: VillaListing;
+  titleHeadingLevel?: "h2" | "h3";
   preload?: boolean;
 }
 
@@ -16,8 +17,13 @@ function formatPrice(price: number): string {
   return price.toLocaleString("th-TH");
 }
 
-export function VillaCard({ villa, preload = false }: VillaCardProps) {
+export function VillaCard({
+  villa,
+  titleHeadingLevel = "h2",
+  preload = false,
+}: VillaCardProps) {
   const visibleAmenities = villa.amenities.slice(0, 3);
+  const TitleTag = titleHeadingLevel;
 
   return (
     <a
@@ -44,9 +50,9 @@ export function VillaCard({ villa, preload = false }: VillaCardProps) {
 
       <div className="p-3">
         <div className="flex min-w-0 items-start justify-between gap-3 pb-2">
-          <h2 className="min-w-0 truncate text-lg font-semibold leading-7 text-[var(--site-text)]">
+          <TitleTag className="min-w-0 truncate text-lg font-semibold leading-7 text-[var(--site-text)]">
             {getVillaTitle(villa)}
-          </h2>
+          </TitleTag>
           <span className="flex shrink-0 items-center gap-1 pt-1 text-sm leading-5 text-[var(--site-muted)]">
             <MapPin className="h-4 w-4" />
             <span className="max-w-[96px] truncate">{villa.zoneLabel}</span>

@@ -12,10 +12,12 @@ interface VillaRailCtaConfig {
 }
 
 interface VillaRailProps {
+  cardTitleHeadingLevel?: "h2" | "h3";
   cta?: boolean | VillaRailCtaConfig;
   description: string;
   id?: string;
   title: string;
+  titleHeadingLevel?: "h1" | "h2";
   villas: VillaListing[];
 }
 
@@ -54,10 +56,12 @@ function getVillaRailCtaConfig(
 }
 
 export function VillaRail({
+  cardTitleHeadingLevel = "h2",
   cta,
   description,
   id,
   title,
+  titleHeadingLevel = "h1",
   villas,
 }: VillaRailProps) {
   const ctaConfig = getVillaRailCtaConfig(cta);
@@ -68,14 +72,18 @@ export function VillaRail({
       id={id}
       className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14"
     >
-      <SectionHeader title={title} description={description} />
+      <SectionHeader
+        title={title}
+        titleHeadingLevel={titleHeadingLevel}
+        description={description}
+      />
       <ScrollRail
         label={title}
         className="-mx-4 mt-4 gap-5 px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8"
       >
         {villas.slice(0, 12).map((villa) => (
           <div key={villa.id} className="w-[290px] shrink-0 snap-start">
-            <VillaCard villa={villa} />
+            <VillaCard villa={villa} titleHeadingLevel={cardTitleHeadingLevel} />
           </div>
         ))}
       </ScrollRail>
