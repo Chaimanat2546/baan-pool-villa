@@ -7,6 +7,7 @@ import {
   revalidateGuideCache,
   revalidateHomeSectionsCache,
   revalidateSiteSettingsCache,
+  revalidateLegalPageCache,
 } from "./cache-revalidation";
 import { revalidateTag } from "next/cache";
 
@@ -48,6 +49,22 @@ describe("cache revalidation", () => {
     expect(revalidateTagMock).toHaveBeenCalledWith(
       CACHE_TAGS.guide("family-pool-villa"),
       { expire: 0 },
+    );
+  });
+
+  it("expires only CMS legal page tags", () => {
+    revalidateLegalPageCache("privacy");
+
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.legalPages, {
+      expire: 0,
+    });
+    expect(revalidateTagMock).toHaveBeenCalledWith(
+      CACHE_TAGS.legalPage("privacy"),
+      { expire: 0 },
+    );
+    expect(revalidateTagMock).not.toHaveBeenCalledWith(
+      CACHE_TAGS.siteSettings,
+      expect.anything(),
     );
   });
 

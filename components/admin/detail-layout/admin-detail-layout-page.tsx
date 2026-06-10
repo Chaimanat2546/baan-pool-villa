@@ -957,7 +957,10 @@ export function AdminDetailLayoutPage() {
             </section>
           </main>
 
-          <aside className="grid content-start gap-4 2xl:sticky 2xl:top-36 2xl:self-start">
+          <aside
+            className="grid content-start gap-4 xl:col-start-2 xl:row-start-2 2xl:sticky 2xl:col-start-3 2xl:row-start-1 2xl:top-36 2xl:self-start"
+            data-detail-layout-side-panel="true"
+          >
             <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
               <div className="border-b border-[var(--site-border)] px-4 py-4">
                 <h2 className="text-base font-semibold text-[var(--site-text)]">

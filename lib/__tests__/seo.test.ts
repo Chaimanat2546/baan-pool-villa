@@ -6,6 +6,7 @@ import {
   buildGuideArticleMetadata,
   buildHomeJsonLd,
   buildPageMetadata,
+  buildLegalPageMetadata,
   buildSiteSettingsPageMetadata,
   buildVillaDetailMetadata,
   getVillaDescription,
@@ -15,6 +16,7 @@ import {
 import { DEFAULT_SITE_SETTINGS } from "../site-settings/defaults";
 import type { SiteSettings } from "../site-settings/types";
 import type { GuidePost } from "../guides/types";
+import type { LegalPage } from "../legal-pages/types";
 import type { VillaListing } from "../villas/types";
 
 const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -125,6 +127,20 @@ const sampleGuide: GuidePost = {
   tags: ["พูลวิลล่าพัทยา"],
   title: "เลือกพูลวิลล่าพัทยาให้เหมาะกับทริป",
   updatedAt: "2026-01-08T00:00:00.000Z",
+};
+
+const sampleLegalPage: LegalPage = {
+  contentBlocks: [
+    { type: "heading", content: [{ text: "Terms of Service" }] },
+  ],
+  createdAt: "2026-01-01T00:00:00.000Z",
+  id: "legal-terms-1",
+  publishedAt: "2026-01-01T00:00:00.000Z",
+  seoDescription: "Terms of service and policy information.",
+  slug: "terms",
+  status: "published",
+  title: "Terms and Conditions",
+  updatedAt: "2026-01-02T00:00:00.000Z",
 };
 
 afterEach(() => {
@@ -414,6 +430,29 @@ describe("SEO helpers", () => {
         description: "วิธีเลือกพูลวิลล่าพัทยาสำหรับครอบครัวและกลุ่มเพื่อน",
         images: ["https://example.com/guides/family-cover.jpg"],
         title: "เลือกพูลวิลล่าพัทยาให้เหมาะกับทริป",
+      },
+    });
+  });
+
+  it("builds metadata for legal pages", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    const metadata = buildLegalPageMetadata({
+      page: sampleLegalPage,
+      settings: cmsSettings(),
+    });
+
+    expect(metadata).toMatchObject({
+      title: "Terms and Conditions",
+      description: "Terms of service and policy information.",
+      alternates: {
+        canonical: "https://example.com/terms",
+      },
+      openGraph: {
+        title: "Terms and Conditions",
+        description: "Terms of service and policy information.",
+        type: "website",
+        url: "https://example.com/terms",
       },
     });
   });
