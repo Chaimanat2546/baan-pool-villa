@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
 
 import type { GuidePost } from "@/lib/guides/types";
@@ -71,7 +70,6 @@ export function HomePage({
 }: HomePageProps) {
   const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? 0;
   const zones = filterSummary?.zones ?? [];
-  const router = useRouter();
   const [guides] = useState<GuidePost[]>(() => initialGuides);
   const [homeSections] = useState<ResolvedHomeSection[]>(
     () => initialHomeSections,
@@ -91,7 +89,7 @@ export function HomePage({
     );
     const query = params.toString();
 
-    router.push(query ? `/search?${query}` : "/search");
+    window.open(query ? `/search?${query}` : "/search", "_self");
   }
 
   const degradedSourceNames = [

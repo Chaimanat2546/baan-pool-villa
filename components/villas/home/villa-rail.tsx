@@ -1,5 +1,4 @@
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -25,6 +24,21 @@ const DEFAULT_CTA_CONFIG: VillaRailCtaConfig = {
   label: "\u0e14\u0e39\u0e1a\u0e49\u0e32\u0e19\u0e1e\u0e31\u0e01\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14",
 };
 
+function sanitizeCtaHref(href: string): string {
+  if (href.startsWith("/") && !href.startsWith("//")) {
+    return href;
+  }
+
+  try {
+    const url = new URL(href);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : DEFAULT_CTA_CONFIG.href;
+  } catch {
+    return DEFAULT_CTA_CONFIG.href;
+  }
+}
+
 function getVillaRailCtaConfig(
   cta: VillaRailProps["cta"],
 ): VillaRailCtaConfig | null {
@@ -47,6 +61,7 @@ export function VillaRail({
   villas,
 }: VillaRailProps) {
   const ctaConfig = getVillaRailCtaConfig(cta);
+  const ctaHref = ctaConfig ? sanitizeCtaHref(ctaConfig.href) : null;
 
   return (
     <section
@@ -66,13 +81,12 @@ export function VillaRail({
       </ScrollRail>
       {ctaConfig ? (
         <div className="mt-8 text-center">
-          <Link
-            href={ctaConfig.href}
-            prefetch={false}
+          <a
+            href={ctaHref ?? DEFAULT_CTA_CONFIG.href}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--site-primary)] px-5 py-3 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_30px_rgba(6,77,61,0.22)] transition hover:bg-[var(--site-primary-hover)]"
           >
             {ctaConfig.label} <ArrowRight className="h-4 w-4" />
-          </Link>
+          </a>
         </div>
       ) : null}
     </section>

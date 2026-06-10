@@ -38,7 +38,7 @@ type AdminExternalDataRefreshResponse =
       scope?: ExternalDataRefreshScope;
     };
 
-type ExternalDataRefreshScope = "tags-only" | "full-public";
+type ExternalDataRefreshScope = "tags-only";
 
 /**
  * Admin page UI for viewing and editing site appearance and contact settings.
@@ -203,10 +203,6 @@ export function AdminSettingsPage() {
   const isExternalRefreshCoolingDown = externalRefreshCooldownSeconds > 0;
 
   function getScopeLabel(scope: ExternalDataRefreshScope | null): string {
-    if (scope === "full-public") {
-      return "อัปเดตหน้าเว็บไซต์ทั้งหมด";
-    }
-
     if (scope === "tags-only") {
       return "อัปเดตเฉพาะหน้าหมวดหมู่ที่ใช้ข้อมูลเดียวกัน";
     }
@@ -234,7 +230,7 @@ export function AdminSettingsPage() {
   ): ExternalDataRefreshScope | null {
     const value = payload ? "scope" in payload ? payload.scope : null : null;
 
-    if (value === "tags-only" || value === "full-public") {
+    if (value === "tags-only") {
       return value;
     }
 
@@ -317,9 +313,7 @@ export function AdminSettingsPage() {
       setErrors([]);
       setWarnings([]);
       setNotice(
-        scope === "full-public"
-          ? "ขอให้ตรวจสอบก่อนส่งคำขออัปเดตข้อมูลสำหรับ public ทั้งหมด"
-          : "ขอให้ตรวจสอบก่อนส่งคำขออัปเดตข้อมูลเฉพาะหน้าหมวดหมู่",
+        "ขอให้ตรวจสอบก่อนส่งคำขออัปเดตข้อมูลเฉพาะหน้าหมวดหมู่",
       );
       return;
     }
@@ -446,32 +440,6 @@ export function AdminSettingsPage() {
                   : externalRefreshPendingScope === "tags-only"
                     ? "ยืนยันรีเฟรชข้อมูล"
                     : "รีเฟรชข้อมูลบ้านพัก"}
-            </button>
-            <button
-              className="inline-flex h-12 items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={
-                isRefreshingExternalData ||
-                isSaving ||
-                isExternalRefreshCoolingDown
-              }
-              onClick={() => {
-                void handleRefreshExternalData("full-public");
-              }}
-              type="button"
-            >
-              <RefreshCw
-                aria-hidden="true"
-                className={`size-4 ${isRefreshingExternalData ? "animate-spin" : ""}`}
-              />
-              {isRefreshingExternalData
-                ? "กำลังรีเฟรชหน้าเว็บ..."
-                : isExternalRefreshCoolingDown
-                  ? `รออีก ${externalRefreshCooldownSeconds} วินาที (${getScopeLabel(
-                    externalRefreshCooldownScope,
-                  )})`
-                  : externalRefreshPendingScope === "full-public"
-                    ? "ยืนยันรีเฟรชหน้าเว็บ"
-                    : "รีเฟรชหน้าเว็บด้วย"}
             </button>
             <Link
               className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"

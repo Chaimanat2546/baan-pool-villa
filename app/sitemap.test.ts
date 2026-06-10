@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CACHE_REVALIDATE_SECONDS } from "@/lib/cache-policy";
 import sitemap from "./sitemap";
 import * as sitemapModule from "./sitemap";
 import { getPublishedGuides } from "@/lib/guides/server";
@@ -26,11 +25,8 @@ describe("sitemap", () => {
     vi.clearAllMocks();
   });
 
-  it("exports a twelve-hour ISR window for sitemap.xml", () => {
-    expect(sitemapModule).toHaveProperty(
-      "revalidate",
-      CACHE_REVALIDATE_SECONDS.sitemap,
-    );
+  it("exports a route response cache window for sitemap.xml", () => {
+    expect(sitemapModule).toHaveProperty("revalidate", 43200);
   });
 
   it("includes dynamic villa and guide routes when both data sources load", async () => {

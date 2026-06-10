@@ -1,5 +1,13 @@
+/* @vitest-environment jsdom */
+
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+const navigationMock = vi.hoisted(() => ({
+  searchParams: new URLSearchParams(),
+}));
 
 vi.mock("next/image", () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (
@@ -8,7 +16,7 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => navigationMock.searchParams,
 }));
 
 import type { VillaListing } from "../../../../lib/villas/types";
@@ -30,6 +38,7 @@ const villa: VillaListing = {
 
 describe("SearchPage", () => {
   afterEach(() => {
+    navigationMock.searchParams = new URLSearchParams();
     vi.unstubAllGlobals();
   });
 
@@ -56,6 +65,23 @@ describe("SearchPage", () => {
         initialSearchParams="id=701"
         initialVillas={[villa, otherVilla]}
       />,
+    );
+
+    expect(markup).toContain("701");
+    expect(markup).toContain("701");
+    expect(markup).not.toContain("702");
+  });
+
+  it("applies browser search params when initialSearchParams is omitted", () => {
+    navigationMock.searchParams = new URLSearchParams("id=701");
+    const otherVilla: VillaListing = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
+
+    const markup = renderToStaticMarkup(
+      <SearchPage initialVillas={[villa, otherVilla]} />,
     );
 
     expect(markup).toContain("701");
@@ -115,5 +141,47 @@ describe("SearchPage", () => {
         zones: [{ value: "jomtien", label: "Jomtien" }],
       }),
     ).toBe(false);
+  });
+
+  it("hydrates the full catalog automatically for deep-link query params", async () => {
+    const fullCatalog = [
+      villa,
+      {
+        ...villa,
+        id: "702",
+        price: 20000,
+      },
+    ];
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: async () => ({ items: fullCatalog }),
+      ok: true,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialSearchParams="id=702"
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/houses");
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 });

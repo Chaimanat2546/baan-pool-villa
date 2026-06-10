@@ -86,7 +86,8 @@ describe("homepage request budget", () => {
     );
 
     expect(markup).not.toContain('data-preload="true"');
-    expect(markup).toContain('data-prefetch="false" href="/search"');
+    expect(markup).toContain('href="/search"');
+    expect(markup).not.toContain('data-prefetch="false" href="/search"');
   });
 
   it("does not priority-preload article rail images or prefetch guide routes", () => {

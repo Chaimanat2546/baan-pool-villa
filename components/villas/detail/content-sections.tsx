@@ -18,11 +18,16 @@ import {
   Utensils,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import {
+  getVillaSearchIntentSummary,
+  getVillaTitle as getSeoVillaTitle,
+} from "@/lib/seo";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
-import { findFact, findSection, getVillaTitle } from "./helpers";
+import { findFact, findSection } from "./helpers";
 
 export function VillaIntro({
 
@@ -50,7 +55,7 @@ export function VillaIntro({
 
       <h1 className="mt-3 text-[28px] font-black leading-tight text-[var(--site-text)] sm:text-4xl">
 
-        {getVillaTitle(listing.id)}
+        {getSeoVillaTitle(listing)}
 
       </h1>
 
@@ -59,6 +64,29 @@ export function VillaIntro({
         เริ่มต้น {formatVillaPrice(listing.price)} / คืน
 
       </p>
+
+      <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--site-muted)]">
+        {getVillaSearchIntentSummary(listing)}
+      </p>
+
+      <nav
+        aria-label="ลิงก์ค้นหาบ้านพักที่เกี่ยวข้อง"
+        className="mt-4 flex flex-wrap gap-2 text-sm font-bold"
+      >
+        <a
+          className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+          href="/search"
+        >
+          ค้นหาบ้านพักเพิ่มเติม
+        </a>
+        <Link
+          className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+          href="/guides"
+          prefetch={false}
+        >
+          อ่านคู่มือก่อนจอง
+        </Link>
+      </nav>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-[var(--site-muted)]">
 
@@ -175,7 +203,7 @@ export function AboutSection({
 
     [
 
-      `${getVillaTitle(listing.id)} เหมาะสำหรับครอบครัวและกลุ่มเพื่อนที่ต้องการพื้นที่พักผ่อนส่วนตัว`,
+      `${getSeoVillaTitle(listing)} เหมาะสำหรับครอบครัวและกลุ่มเพื่อนที่ต้องการพื้นที่พักผ่อนส่วนตัว`,
 
       "อัปเดตข้อมูลบ้านพักเพิ่มเติมตามข้อมูลล่าสุดอยู่ระหว่างการซิงค์ กรุณากลับมาเช็กอีกครั้งภายในสัปดาห์นี้"
 

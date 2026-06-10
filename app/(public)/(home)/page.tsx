@@ -13,8 +13,6 @@ import { getMaxVillaPrice, getUniqueZones } from "@/lib/villas/filters";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { fetchHouseListings } from "@/lib/villas/server";
 
-export const revalidate = 43200;
-
 type FilterSummary = {
   maxAvailablePrice: number;
   zones: Array<{ value: string; label: string }>;

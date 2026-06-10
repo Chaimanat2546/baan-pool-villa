@@ -7,7 +7,8 @@ import {
   absoluteUrl,
   buildBreadcrumbJsonLd,
   buildSiteSettingsPageMetadata,
-  getVillaDescription,
+  buildVillaDetailMetadata,
+  getVillaSearchIntentSummary,
   getVillaTitle,
 } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
@@ -15,12 +16,6 @@ import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
 interface VillaPageProps {
   params: Promise<{ id: string }>;
-}
-
-export const revalidate = 43200;
-
-export async function generateStaticParams() {
-  return [];
 }
 
 export async function generateMetadata({
@@ -42,13 +37,7 @@ export async function generateMetadata({
     });
   }
 
-  return buildSiteSettingsPageMetadata({
-    canonicalPath: `/villas/${listing.id}`,
-    description: getVillaDescription(listing),
-    image: listing.coverImage,
-    settings,
-    title: getVillaTitle(listing),
-  });
+  return buildVillaDetailMetadata({ settings, villa: listing });
 }
 
 export default async function Page({ params }: VillaPageProps) {
@@ -73,7 +62,7 @@ export default async function Page({ params }: VillaPageProps) {
       "@context": "https://schema.org",
       "@type": "VacationRental",
       name: getVillaTitle(listing),
-      description: getVillaDescription(listing),
+      description: getVillaSearchIntentSummary(listing),
       image: listing.coverImage ? [listing.coverImage] : undefined,
       url: absoluteUrl(`/villas/${listing.id}`),
       address: {

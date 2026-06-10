@@ -154,12 +154,48 @@ function deferred<T>() {
   return { promise, reject, resolve };
 }
 
+async function clickFirstGalleryItem(container: HTMLElement) {
+  const galleryButton = container.querySelector(
+    "[data-gallery-item]",
+  ) as HTMLButtonElement | null;
+
+  if (!galleryButton) {
+    throw new Error(
+      'clickFirstGalleryItem expected a "[data-gallery-item]" button to be present.',
+    );
+  }
+
+  await act(async () => {
+    galleryButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+  await flushReact();
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   document.body.innerHTML = "";
 });
 
 describe("VillaDetailPage deferred gallery loader", () => {
+  it("requests gallery images on mount so the visible gallery fills in", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(makeJsonResponse({ images: [apiImage] }));
+    vi.stubGlobal("fetch", fetchMock);
+    const page = renderPage();
+
+    await page.render(makePage());
+    await flushReact();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(page.container.querySelector("[data-gallery-item]")).not.toBeNull();
+    expect(
+      page.container.querySelector("[data-detail-gallery-urls]")?.getAttribute(
+        "data-detail-gallery-urls",
+      ),
+    ).toContain(apiImage.imageUrl);
+
+    await page.unmount();
+  });
+
   it("retries gallery loading after a transient API failure", async () => {
     const fetchMock = vi
       .fn()
@@ -196,7 +232,7 @@ describe("VillaDetailPage deferred gallery loader", () => {
     await page.unmount();
   });
 
-  it("shows a skeleton in the gallery area while gallery images are loading", async () => {
+  it("shows a skeleton in the gallery area while gallery images are loading after interaction", async () => {
     const pendingResponse = deferred<Response>();
     const fetchMock = vi.fn(() => pendingResponse.promise);
     vi.stubGlobal("fetch", fetchMock);
@@ -214,27 +250,6 @@ describe("VillaDetailPage deferred gallery loader", () => {
     await page.unmount();
   });
 
-  it("keeps gallery controls hidden while the mount prefetch is still in flight", async () => {
-    const pendingResponse = deferred<Response>();
-    const fetchMock = vi.fn(() => pendingResponse.promise);
-    vi.stubGlobal("fetch", fetchMock);
-    const page = renderPage();
-
-    await page.render(makePage());
-    await flushReact();
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(page.container.querySelector("[data-gallery-item]")).toBeNull();
-
-    pendingResponse.resolve(makeJsonResponse({ images: [apiImage] }));
-    await flushReact();
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(page.container.querySelector("[data-gallery-item]")).not.toBeNull();
-
-    await page.unmount();
-  });
-
   it("reuses loaded gallery images instead of issuing another request", async () => {
     const fetchMock = vi.fn().mockResolvedValue(makeJsonResponse({ images: [apiImage] }));
     vi.stubGlobal("fetch", fetchMock);
@@ -244,16 +259,14 @@ describe("VillaDetailPage deferred gallery loader", () => {
     await flushReact();
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    const galleryButton = page.container.querySelector(
-      "[data-gallery-item]",
-    ) as HTMLButtonElement | null;
-    await act(async () => {
-      galleryButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await flushReact();
+    await clickFirstGalleryItem(page.container);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(page.container.querySelector("[data-lightbox-active]")).not.toBeNull();
+
+    await clickFirstGalleryItem(page.container);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
     await page.unmount();
   });
@@ -284,15 +297,7 @@ describe("VillaDetailPage deferred gallery loader", () => {
     await page.render(makePage("9", listing));
     await flushReact();
 
-    const galleryButton = Array.from(
-      page.container.querySelectorAll<HTMLButtonElement>("[data-gallery-item]"),
-    ).find((button) => button.dataset.galleryItem === apiImage.imageUrl);
-    expect(galleryButton).not.toBeUndefined();
-
-    await act(async () => {
-      galleryButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await flushReact();
+    await clickFirstGalleryItem(page.container);
 
     expect(page.container.querySelector("[data-lightbox-active]")).not.toBeNull();
 
@@ -339,8 +344,10 @@ describe("VillaDetailPage deferred gallery loader", () => {
 
     await page.render(makePage("9", listing));
     await flushReact();
+
     await page.render(makePage("10", villaTen));
     await flushReact();
+    await clickFirstGalleryItem(page.container);
 
     pendingNine.resolve(makeJsonResponse({ images: [imageForNine] }));
     await flushReact();

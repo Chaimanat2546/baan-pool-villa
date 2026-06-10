@@ -14,7 +14,7 @@
         for where things live.
       </p>
       <p>
-        Last reviewed: 2026-06-08. Next.js App Router route groups such as
+        Last reviewed: 2026-06-09. Next.js App Router route groups such as
         <code>(home)</code>, <code>(public)</code>, and <code>(admin)</code> do
         not appear in the public URL.
       </p>
@@ -65,7 +65,7 @@
             <tr>
               <td><code>next.config.ts</code></td>
               <td>Next.js build/runtime configuration</td>
-              <td>Image config keeps allowed remote hosts documented and disables the Next image optimizer globally so public images do not consume <code>/_next/image</code> transformations on Cloudflare Free.</td>
+              <td>Image config keeps allowed remote hosts documented, disables the Next image optimizer globally so public images do not consume <code>/_next/image</code> transformations on Cloudflare Free, and applies the sitemap response cache header.</td>
             </tr>
             <tr>
               <td><code>tests/</code></td>
@@ -98,12 +98,12 @@
               <tr>
                 <td><code>app/layout.tsx</code></td>
                 <td>All routes</td>
-                <td>Root HTML/body shell, global metadata base, global CSS/font wiring.</td>
+                <td>Root HTML/body shell, global metadata base, global CSS/font wiring, and <code>revalidate = 0</code> so rendered App Router pages are produced on demand while explicit data caches remain tagged and time-based.</td>
               </tr>
               <tr>
                 <td><code>app/sitemap.ts</code></td>
                 <td><code>/sitemap.xml</code></td>
-                <td>Public sitemap using villa, guide CMS, and site URL helpers with 12-hour route-level ISR. Dynamic villa source failures should fail the sitemap route; guide CMS failures can return a partial sitemap with static and villa routes so CI/build environments without guide CMS env do not fail. <code>lastModified</code> should only be emitted where upstream data has a trustworthy timestamp.</td>
+                <td>Public sitemap using villa, guide CMS, and site URL helpers. The sitemap response keeps a 12-hour route cache with <code>revalidate = 43200</code> and a sitemap-specific <code>Cache-Control</code> header from <code>next.config.ts</code>; underlying villa and guide reads keep their tagged data caches. Dynamic villa source failures should fail the sitemap route; guide CMS failures can return a partial sitemap with static and villa routes so CI/build environments without guide CMS env do not fail. <code>lastModified</code> should only be emitted where upstream data has a trustworthy timestamp.</td>
               </tr>
               <tr>
                 <td><code>app/robots.ts</code></td>
@@ -133,12 +133,12 @@
               <tr>
                 <td><code>app/(public)/layout.tsx</code></td>
                 <td>Public shell</td>
-                <td><code>components/layout</code>, resolved site settings, theme variables, contact config. The shell should stay on default route caching behavior and must not force <code>force-dynamic</code> unless a request-time API is added.</td>
+                <td><code>components/layout</code>, resolved site settings, theme variables, contact config. The shell inherits root on-demand rendering and must not force <code>force-dynamic</code> because that would turn explicit data caches into no-store fetches.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/(home)/page.tsx</code></td>
                 <td><code>/</code></td>
-                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; route-level revalidation is 12 hours, while public shell settings come from tagged cached reads. The homepage uses the CMS SEO title as an absolute title so the root metadata template does not duplicate the site name, and it passes non-visible degraded source data when guides, villa catalog, home sections, or site settings fall back or fail independently.</td>
+                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, villa catalog, home-section, and site-settings reads come from tagged data caches. The homepage uses the CMS SEO title as an absolute title so the root metadata template does not duplicate the site name, and it passes non-visible degraded source data when guides, villa catalog, home sections, or site settings fall back or fail independently.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/(home)/loading.tsx</code></td>
@@ -148,7 +148,7 @@
               <tr>
                 <td><code>app/(public)/search/page.tsx</code></td>
                 <td><code>/search</code></td>
-                <td><code>components/villas/search/page</code>, villa listing/filter helpers, first-page search result metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO.</td>
+                <td><code>components/villas/search/page</code>, villa listing helpers, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is intentionally not performed by the server route; the client reads the current URL, hydrates the full catalog through <code>/api/houses</code> when a deep link has search criteria, and filters/sorts in the browser to reduce Cloudflare Worker CPU and RSC request cost.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/search/loading.tsx</code></td>
@@ -158,17 +158,17 @@
               <tr>
                 <td><code>app/(public)/guides/page.tsx</code></td>
                 <td><code>/guides</code></td>
-                <td><code>components/guides/guide-list-page</code>, guide CMS server reads, SEO helpers, site-settings-backed share defaults, and 12-hour route-level revalidation. The route resolves metadata through the <code>guides</code> section SEO template before falling back to global SEO, and it renders an empty guide list instead of failing prerender when the guide CMS is unavailable during build.</td>
+                <td><code>components/guides/guide-list-page</code>, guide CMS server reads, SEO helpers, and site-settings-backed share defaults. The rendered page is on demand while guide and settings reads use tagged data caches; it resolves metadata through the <code>guides</code> section SEO template before falling back to global SEO, and it renders an empty guide list instead of failing when the guide CMS is unavailable.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/guides/[slug]/page.tsx</code></td>
                 <td><code>/guides/:slug</code></td>
-                <td><code>components/guides/guide-detail-page</code>, guide CMS server reads, villa listing recommendations, SEO/JSON-LD helpers, and lite YouTube posters that defer third-party player iframes until play. Published guide slugs are generated by <code>generateStaticParams</code>, which returns an empty list when the guide CMS is unavailable during build so runtime dynamic params can still generate on demand; the detail route uses 12-hour ISR, renders Article plus breadcrumb JSON-LD, and admin saves invalidate guide CMS data tags only by default.</td>
+                <td><code>components/guides/guide-detail-page</code>, guide CMS server reads, villa listing recommendations, SEO/JSON-LD helpers, and lite YouTube posters that defer third-party player iframes until play. Guide detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from guide/villa tags, the route renders Article plus breadcrumb JSON-LD, and admin saves invalidate guide CMS data tags only.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/villas/[id]/page.tsx</code></td>
                 <td><code>/villas/:id</code></td>
-                <td><code>components/villas/detail/page</code>, listing/detail API data, SEO/JSON-LD helpers, and a client-side gallery loader backed by <code>/api/villas/:id/images</code>. The route uses 12-hour on-demand ISR with empty <code>generateStaticParams</code> so villa detail pages are generated on first request without prebuilding every villa; SSR should not preload Supabase gallery rows, it renders VacationRental plus breadcrumb JSON-LD, and admin and shared revalidation helpers can still invalidate touched detail pages.</td>
+                <td><code>components/villas/detail/page</code>, listing/detail API data, SEO/JSON-LD helpers, and a client gallery loader backed by <code>/api/villas/:id/images</code>. Villa detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from villa listing/detail tags, SSR should not preload Supabase gallery rows, initial client mount loads the full image set once to fill the visible gallery grid, and the route renders VacationRental plus breadcrumb JSON-LD.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/villas/[id]/loading.tsx</code></td>
@@ -359,7 +359,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/external-data/refresh/route.ts</code></td>
                 <td><code>/api/admin/external-data/refresh</code></td>
-                <td>Authenticated cache refresh for external villa listings, detail data, and shared villa image tags. The default scope is <code>tags-only</code>; <code>full-public</code> additionally marks public villa paths for on-demand regeneration.</td>
+                <td>Authenticated tag-only cache refresh for external villa listings, detail data, and shared villa image tags. The route accepts the default <code>tags-only</code> scope and rejects path-regeneration scopes such as <code>full-public</code> because rendered page cache is disabled.</td>
               </tr>
             </tbody>
           </table>
@@ -469,7 +469,7 @@
             </tr>
             <tr>
               <td><code>lib/cache-policy.ts</code></td>
-              <td>Cache durations, cache tags, and public Cache-Control headers. Public villa, guide, home-section, site-settings, sitemap, image, and embed reads use a 12-hour TTL; Supabase CMS admin saves invalidate affected data tags only by default.</td>
+              <td>Data cache durations, cache tags, and public API Cache-Control headers. Public villa, guide, home-section, site-settings, image, and embed reads use a 12-hour TTL; rendered pages do not keep route-level TTL constants, while <code>sitemap.xml</code> intentionally keeps a 12-hour route cache and response cache header to reduce crawler Worker requests.</td>
               <td><code>lib/__tests__/cache-policy.test.ts</code></td>
             </tr>
             <tr>
@@ -479,7 +479,7 @@
             </tr>
             <tr>
               <td><code>lib/cache-revalidation.ts</code></td>
-              <td>Shared revalidation helpers. Supabase CMS helpers for settings, home sections, guides, TikTok, and detail layout are tag-only by default; external villa refresh is scoped as <code>tags-only</code> by default and <code>full-public</code> when public paths should also be marked for on-demand regeneration.</td>
+              <td>Shared tag revalidation helpers. Supabase CMS helpers for settings, home sections, guides, TikTok, and detail layout are tag-only; external villa refresh also expires only data tags and does not call <code>revalidatePath</code>.</td>
               <td><code>lib/cache-revalidation.test.ts</code></td>
             </tr>
             <tr>
@@ -529,7 +529,7 @@
               <td>Villa images</td>
               <td>Supabase image rows matched by <code>images.property_id</code> to villa id.</td>
               <td><code>lib/villas/images.ts</code>, image host builder, shared villa-images tag, and per-villa image cache tag.</td>
-              <td>Public villa images API and the villa detail client gallery loader; detail SSR keeps gallery rows outside the critical path.</td>
+              <td>Public villa images API and the villa detail client gallery loader; detail SSR keeps gallery rows outside the critical path, then initial client mount loads the full image set once so the visible gallery and lightbox categories have complete data.</td>
             </tr>
               <tr>
                 <td>Home sections</td>

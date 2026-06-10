@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import type { GuidePost } from "@/lib/guides/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -14,6 +15,9 @@ export const guidesTitle = "บทความแนะนำบ้านพั�
 export const guidesDescription =
   "บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก และการเตรียมตัวก่อนเที่ยว";
 export const defaultOgImage = "/images/BPV-66_Cover-Web.jpg";
+const defaultOgImageAlt = "บ้านพักพูลวิลล่าพัทยาพร้อมสระว่ายน้ำส่วนตัว";
+const openGraphImageWidth = 1200;
+const openGraphImageHeight = 630;
 
 interface BreadcrumbItem {
   name: string;
@@ -61,7 +65,12 @@ function absoluteHttpUrl(value: string | null | undefined, fallback: string): st
 }
 
 export function getVillaTitle(villa: VillaListing): string {
-  return `พูลวิลล่า ${villa.id} พัทยา`;
+  const zoneLabel = villa.zoneLabel.trim();
+  const titleLocation = zoneLabel.includes("พัทยา")
+    ? zoneLabel
+    : `${zoneLabel} พัทยา`;
+
+  return `พูลวิลล่า ${villa.id} ${titleLocation}`;
 }
 
 export function getVillaDescription(villa: VillaListing): string {
@@ -71,9 +80,19 @@ export function getVillaDescription(villa: VillaListing): string {
     `${getVillaTitle(villa)} บ้านพักพูลวิลล่าสระส่วนตัว รองรับ ${villa.people.toLocaleString("th-TH")} คน`,
     `${villa.bedrooms.toLocaleString("th-TH")} ห้องนอน`,
     `${villa.bathrooms.toLocaleString("th-TH")} ห้องน้ำ`,
-    `ทำเล ${villa.zoneLabel}`,
+    `ใกล้ทะเล ${villa.distanceToSea}`,
     `เริ่มต้น ${price} บาท/คืน`,
   ].join(" | ");
+}
+
+export function getVillaSearchIntentSummary(villa: VillaListing): string {
+  return [
+    `${getVillaTitle(villa)} เหมาะสำหรับกลุ่มที่ต้องการบ้านพักพัทยาพร้อมสระส่วนตัว`,
+    `รองรับ ${villa.people.toLocaleString("th-TH")} คน`,
+    `${villa.bedrooms.toLocaleString("th-TH")} ห้องนอน`,
+    `ทำเล ${villa.zoneLabel}`,
+    `ราคาเริ่มต้น ${villa.price.toLocaleString("th-TH")} บาทต่อคืน`,
+  ].join(" ");
 }
 
 export function buildPageMetadata({
@@ -82,6 +101,8 @@ export function buildPageMetadata({
   description = defaultDescription,
   image = defaultOgImage,
   imageAlt,
+  openGraphType = "website",
+  publishedTime,
   siteName: metadataSiteName = siteName,
   title,
 }: {
@@ -90,12 +111,14 @@ export function buildPageMetadata({
   description?: string;
   image?: string | null;
   imageAlt?: string;
+  openGraphType?: "article" | "website";
+  publishedTime?: string | null;
   siteName?: string;
   title: string;
 }): Metadata {
   const canonicalUrl = absoluteUrl(canonicalPath);
   const imageUrl = absoluteHttpUrl(image, defaultOgImage);
-  const openGraphImageAlt = imageAlt?.trim() || title;
+  const openGraphImageAlt = imageAlt?.trim() || defaultOgImageAlt;
 
   return {
     title: absoluteTitle ? { absolute: title } : title,
@@ -109,12 +132,15 @@ export function buildPageMetadata({
       url: canonicalUrl,
       siteName: metadataSiteName,
       locale: "th_TH",
-      type: "website",
+      type: openGraphType,
+      ...(openGraphType === "article" && publishedTime
+        ? { publishedTime }
+        : {}),
       images: [
         {
           url: imageUrl,
-          width: 1200,
-          height: 630,
+          width: openGraphImageWidth,
+          height: openGraphImageHeight,
           alt: openGraphImageAlt,
         },
       ],
@@ -128,12 +154,35 @@ export function buildPageMetadata({
   };
 }
 
+export function buildGlobalMetadata(): Metadata {
+  return {
+    ...buildPageMetadata({
+      canonicalPath: "/",
+      description: defaultDescription,
+      imageAlt: defaultOgImageAlt,
+      title: defaultTitle,
+    }),
+    applicationName: siteName,
+    metadataBase: getSiteUrl(),
+    robots: {
+      follow: true,
+      index: true,
+    },
+    title: {
+      default: defaultTitle,
+      template: `%s | ${siteName}`,
+    },
+  };
+}
+
 export function buildSiteSettingsPageMetadata({
   absoluteTitle = false,
   canonicalPath,
   description,
   image,
   imageAlt,
+  openGraphType,
+  publishedTime,
   section,
   settings,
   title,
@@ -143,6 +192,8 @@ export function buildSiteSettingsPageMetadata({
   description?: string;
   image?: string | null;
   imageAlt?: string;
+  openGraphType?: "article" | "website";
+  publishedTime?: string | null;
   section?: keyof SiteSettings["pageSeo"];
   settings: SiteSettings;
   title?: string;
@@ -156,8 +207,46 @@ export function buildSiteSettingsPageMetadata({
     description: description ?? sectionSeo?.description ?? settings.seo.description,
     image: image ?? sectionSeo?.ogImage.url ?? settings.seo.ogImage.url,
     imageAlt: imageAlt ?? sectionSeo?.ogImage.alt ?? settings.seo.ogImage.alt,
+    openGraphType,
+    publishedTime,
     siteName: settings.seo.businessName,
     title: resolvedTitle,
+  });
+}
+
+export function buildGuideArticleMetadata({
+  guide,
+  settings,
+}: {
+  guide: GuidePost;
+  settings: SiteSettings;
+}): Metadata {
+  return buildSiteSettingsPageMetadata({
+    canonicalPath: `/guides/${guide.slug}`,
+    description: guide.excerpt,
+    image: guide.coverImage?.url,
+    imageAlt: guide.coverImage?.alt ?? guide.title,
+    openGraphType: "article",
+    publishedTime: guide.publishedAt ?? guide.createdAt,
+    settings,
+    title: guide.title,
+  });
+}
+
+export function buildVillaDetailMetadata({
+  settings,
+  villa,
+}: {
+  settings: SiteSettings;
+  villa: VillaListing;
+}): Metadata {
+  return buildSiteSettingsPageMetadata({
+    canonicalPath: `/villas/${villa.id}`,
+    description: getVillaDescription(villa),
+    image: villa.coverImage,
+    imageAlt: getVillaTitle(villa),
+    settings,
+    title: getVillaTitle(villa),
   });
 }
 

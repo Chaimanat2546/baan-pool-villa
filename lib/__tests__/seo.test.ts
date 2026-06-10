@@ -2,12 +2,20 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   buildBreadcrumbJsonLd,
+  buildGlobalMetadata,
+  buildGuideArticleMetadata,
   buildHomeJsonLd,
   buildPageMetadata,
   buildSiteSettingsPageMetadata,
+  buildVillaDetailMetadata,
+  getVillaDescription,
+  getVillaSearchIntentSummary,
+  getVillaTitle,
 } from "../seo";
 import { DEFAULT_SITE_SETTINGS } from "../site-settings/defaults";
 import type { SiteSettings } from "../site-settings/types";
+import type { GuidePost } from "../guides/types";
+import type { VillaListing } from "../villas/types";
 
 const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
@@ -82,6 +90,43 @@ function cmsSettings(): SiteSettings {
   };
 }
 
+const sampleVilla: VillaListing = {
+  amenities: [
+    { key: "wifi", label: "Wi-Fi" },
+    { key: "grill", label: "เตาปิ้งย่าง" },
+  ],
+  bathrooms: 4,
+  bedrooms: 5,
+  coverImage: "https://devillegroups.com/imgs/profile_imgs_large/901.jpg",
+  distanceToSea: "500m",
+  id: "901",
+  people: 12,
+  poolType: "private",
+  price: 12000,
+  zone: "jomtien",
+  zoneLabel: "Jomtien",
+};
+
+const sampleGuide: GuidePost = {
+  contentBlocks: [],
+  coverImage: {
+    alt: "Family choosing Pattaya pool villa",
+    path: "/guides/family-cover.jpg",
+    url: "/guides/family-cover.jpg",
+  },
+  createdAt: "2026-01-01T00:00:00.000Z",
+  excerpt: "วิธีเลือกพูลวิลล่าพัทยาสำหรับครอบครัวและกลุ่มเพื่อน",
+  id: "guide-1",
+  isPinned: true,
+  publishedAt: "2026-01-05T00:00:00.000Z",
+  recommendedHouseIds: ["901"],
+  slug: "choose-pattaya-pool-villa",
+  status: "published",
+  tags: ["พูลวิลล่าพัทยา"],
+  title: "เลือกพูลวิลล่าพัทยาให้เหมาะกับทริป",
+  updatedAt: "2026-01-08T00:00:00.000Z",
+};
+
 afterEach(() => {
   if (originalSiteUrl === undefined) {
     delete process.env.NEXT_PUBLIC_SITE_URL;
@@ -92,6 +137,51 @@ afterEach(() => {
 });
 
 describe("SEO helpers", () => {
+  it("builds the global public metadata baseline", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    const metadata = buildGlobalMetadata();
+
+    expect(metadata).toMatchObject({
+      applicationName: "Pool Villas Pattaya",
+      alternates: {
+        canonical: "https://example.com/",
+      },
+      description: expect.any(String),
+      metadataBase: new URL("https://example.com"),
+      openGraph: {
+        description: expect.any(String),
+        images: [
+          {
+            alt: "บ้านพักพูลวิลล่าพัทยาพร้อมสระว่ายน้ำส่วนตัว",
+            height: 630,
+            url: "https://example.com/images/BPV-66_Cover-Web.jpg",
+            width: 1200,
+          },
+        ],
+        locale: "th_TH",
+        siteName: "Pool Villas Pattaya",
+        title: expect.any(String),
+        type: "website",
+        url: "https://example.com/",
+      },
+      robots: {
+        follow: true,
+        index: true,
+      },
+      title: {
+        default: expect.any(String),
+        template: "%s | Pool Villas Pattaya",
+      },
+      twitter: {
+        card: "summary_large_image",
+        description: expect.any(String),
+        images: ["https://example.com/images/BPV-66_Cover-Web.jpg"],
+        title: expect.any(String),
+      },
+    });
+  });
+
   it("builds page metadata from CMS SEO settings", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
 
@@ -268,13 +358,107 @@ describe("SEO helpers", () => {
     expect(metadata).toMatchObject({
       title: "Search SEO Title",
       description: "Search SEO Description",
+      alternates: {
+        canonical: "https://example.com/search",
+      },
       openGraph: {
+        description: "Search SEO Description",
+        title: "Search SEO Title",
+        type: "website",
+        url: "https://example.com/search",
         images: [
           {
             url: "https://example.com/images/search-cover.jpg",
             alt: "Search cover",
           },
         ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        description: "Search SEO Description",
+        images: ["https://example.com/images/search-cover.jpg"],
+        title: "Search SEO Title",
+      },
+    });
+  });
+
+  it("builds consistent article metadata for guide detail pages", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    const metadata = buildGuideArticleMetadata({
+      guide: sampleGuide,
+      settings: cmsSettings(),
+    });
+
+    expect(metadata).toMatchObject({
+      title: "เลือกพูลวิลล่าพัทยาให้เหมาะกับทริป",
+      description: "วิธีเลือกพูลวิลล่าพัทยาสำหรับครอบครัวและกลุ่มเพื่อน",
+      alternates: {
+        canonical: "https://example.com/guides/choose-pattaya-pool-villa",
+      },
+      openGraph: {
+        description: "วิธีเลือกพูลวิลล่าพัทยาสำหรับครอบครัวและกลุ่มเพื่อน",
+        images: [
+          {
+            alt: "Family choosing Pattaya pool villa",
+            url: "https://example.com/guides/family-cover.jpg",
+          },
+        ],
+        publishedTime: "2026-01-05T00:00:00.000Z",
+        title: "เลือกพูลวิลล่าพัทยาให้เหมาะกับทริป",
+        type: "article",
+        url: "https://example.com/guides/choose-pattaya-pool-villa",
+      },
+      twitter: {
+        card: "summary_large_image",
+        description: "วิธีเลือกพูลวิลล่าพัทยาสำหรับครอบครัวและกลุ่มเพื่อน",
+        images: ["https://example.com/guides/family-cover.jpg"],
+        title: "เลือกพูลวิลล่าพัทยาให้เหมาะกับทริป",
+      },
+    });
+  });
+
+  it("builds long-tail villa metadata from listing data", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    const metadata = buildVillaDetailMetadata({
+      settings: cmsSettings(),
+      villa: sampleVilla,
+    });
+
+    expect(getVillaTitle(sampleVilla)).toBe("พูลวิลล่า 901 Jomtien พัทยา");
+    expect(getVillaDescription(sampleVilla)).toContain("รองรับ 12 คน");
+    expect(getVillaDescription(sampleVilla)).toContain("5 ห้องนอน");
+    expect(getVillaDescription(sampleVilla)).toContain("ใกล้ทะเล 500m");
+    expect(getVillaSearchIntentSummary(sampleVilla)).toContain(
+      "ราคาเริ่มต้น 12,000 บาทต่อคืน",
+    );
+    expect(metadata).toMatchObject({
+      title: "พูลวิลล่า 901 Jomtien พัทยา",
+      description:
+        "พูลวิลล่า 901 Jomtien พัทยา บ้านพักพูลวิลล่าสระส่วนตัว รองรับ 12 คน | 5 ห้องนอน | 4 ห้องน้ำ | ใกล้ทะเล 500m | เริ่มต้น 12,000 บาท/คืน",
+      alternates: {
+        canonical: "https://example.com/villas/901",
+      },
+      openGraph: {
+        description:
+          "พูลวิลล่า 901 Jomtien พัทยา บ้านพักพูลวิลล่าสระส่วนตัว รองรับ 12 คน | 5 ห้องนอน | 4 ห้องน้ำ | ใกล้ทะเล 500m | เริ่มต้น 12,000 บาท/คืน",
+        images: [
+          {
+            alt: "พูลวิลล่า 901 Jomtien พัทยา",
+            url: "https://devillegroups.com/imgs/profile_imgs_large/901.jpg",
+          },
+        ],
+        title: "พูลวิลล่า 901 Jomtien พัทยา",
+        type: "website",
+        url: "https://example.com/villas/901",
+      },
+      twitter: {
+        card: "summary_large_image",
+        description:
+          "พูลวิลล่า 901 Jomtien พัทยา บ้านพักพูลวิลล่าสระส่วนตัว รองรับ 12 คน | 5 ห้องนอน | 4 ห้องน้ำ | ใกล้ทะเล 500m | เริ่มต้น 12,000 บาท/คืน",
+        images: ["https://devillegroups.com/imgs/profile_imgs_large/901.jpg"],
+        title: "พูลวิลล่า 901 Jomtien พัทยา",
       },
     });
   });

@@ -4,13 +4,10 @@ export const CACHE_REVALIDATE_SECONDS = {
   guides: TWELVE_HOURS_SECONDS,
   homeSections: TWELVE_HOURS_SECONDS,
   siteSettings: TWELVE_HOURS_SECONDS,
-  sitemap: TWELVE_HOURS_SECONDS,
   tiktokOEmbed: TWELVE_HOURS_SECONDS,
   villaDetail: TWELVE_HOURS_SECONDS,
   villaImages: TWELVE_HOURS_SECONDS,
   villaListings: TWELVE_HOURS_SECONDS,
-  homePage: TWELVE_HOURS_SECONDS,
-  searchPage: TWELVE_HOURS_SECONDS,
 } as const;
 
 export const CACHE_TAGS = {

@@ -80,10 +80,10 @@ describe("admin external data refresh route", () => {
       retryAfterSeconds: 60,
       message: "External villa data cache refresh requested.",
     });
-    expect(revalidateExternalVillaCacheMock).toHaveBeenCalledWith("tags-only");
+    expect(revalidateExternalVillaCacheMock).toHaveBeenCalledWith();
   });
 
-  it("revalidates public villa paths only when full public scope is requested", async () => {
+  it("rejects full-public refresh because rendered page cache is disabled", async () => {
     const { POST } = await import(
       "../app/(admin)/api/admin/external-data/refresh/route"
     );
@@ -91,16 +91,11 @@ describe("admin external data refresh route", () => {
       postRequest({ confirmed: true, scope: "full-public" }),
     );
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      refreshed: true,
-      scope: "full-public",
-      retryAfterSeconds: 60,
-      message: "External villa data cache refresh requested.",
+      error: "Unsupported external villa cache refresh scope.",
     });
-    expect(revalidateExternalVillaCacheMock).toHaveBeenCalledWith(
-      "full-public",
-    );
+    expect(revalidateExternalVillaCacheMock).not.toHaveBeenCalled();
   });
 
   it("rejects unknown external villa refresh scopes", async () => {

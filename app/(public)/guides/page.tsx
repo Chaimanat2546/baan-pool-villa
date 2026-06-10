@@ -6,8 +6,6 @@ import type { GuidePost } from "@/lib/guides/types";
 import { buildSiteSettingsPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
 
-export const revalidate = 43200;
-
 export async function generateMetadata(): Promise<Metadata> {
   const { settings } = await getSiteSettings();
 

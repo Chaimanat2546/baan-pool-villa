@@ -1,5 +1,13 @@
+/* @vitest-environment jsdom */
+
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+const routerPushMock = vi.hoisted(() => vi.fn());
+
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 vi.mock("next/image", () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (
@@ -9,7 +17,7 @@ vi.mock("next/image", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: vi.fn(),
+    push: routerPushMock,
   }),
 }));
 
@@ -73,6 +81,7 @@ function makeGuide(index: number): GuidePost {
 
 describe("HomePage", () => {
   afterEach(() => {
+    routerPushMock.mockClear();
     vi.unstubAllGlobals();
   });
 
@@ -403,5 +412,45 @@ describe("HomePage", () => {
 
     expect(markup).not.toContain("data-home-tiktok");
     expect(markup).not.toContain("Follow us on TikTok");
+  });
+
+  it("does not use Next router navigation for hero search", async () => {
+    const openMock = vi.fn();
+    vi.stubGlobal("open", openMock);
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <HomePage
+          initialHomeSections={[homeSection]}
+          filterSummary={filterSummary}
+          destinationVillas={destinationVillas}
+          settings={DEFAULT_SITE_SETTINGS}
+        />,
+      );
+    });
+
+    const searchButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("ค้นหา"),
+    );
+
+    expect(searchButton).toBeTruthy();
+
+    await act(async () => {
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(routerPushMock).not.toHaveBeenCalled();
+    expect(openMock).toHaveBeenCalledWith(
+      "/search?guests=2&bedrooms=1&maxPrice=12000",
+      "_self",
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 });
