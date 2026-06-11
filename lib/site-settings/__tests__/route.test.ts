@@ -757,8 +757,9 @@ describe("admin site settings route", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
-      errors: ["Admin request origin is not allowed."],
+      error: "Admin request origin is not allowed.",
     });
+    expect(getBearerTokenMock).not.toHaveBeenCalled();
     expect(from).not.toHaveBeenCalled();
   });
 

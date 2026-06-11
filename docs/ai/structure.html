@@ -327,10 +327,11 @@
         <section id="admin-route-handlers">
           <h3>Admin Route Handlers</h3>
           <p>
-            Shared admin bearer-token checks and Supabase-style error responses
-            live in <code>lib/admin/route-helpers.ts</code>. Keep route handlers
-            focused on request parsing, validation, persistence, and cache
-            invalidation.
+            Shared admin bearer-token checks, mutation origin checks, and
+            Supabase-style error responses live in
+            <code>lib/admin/route-helpers.ts</code> and
+            <code>lib/admin/request-origin.ts</code>. Keep route handlers focused
+            on request parsing, validation, persistence, and cache invalidation.
           </p>
           <table>
             <thead>
@@ -354,7 +355,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
-                <td>Admin auth with same-origin mutation guard, validate site settings (excluding TikTok fields), handle asset uploads, persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
+                <td>Admin auth through the shared bearer-token and mutation-origin guard, validate site settings (excluding TikTok fields), handle asset uploads, persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
@@ -529,8 +530,8 @@
             </tr>
             <tr>
               <td><code>lib/admin</code></td>
-              <td>Admin authentication/config helpers and shared admin route auth/error response utilities. Successful admin bearer checks use a short in-memory TTL cache keyed by a token hash; failed checks are not cached.</td>
-              <td><code>lib/admin/__tests__</code> plus targeted admin API route tests around auth and Supabase error behavior.</td>
+              <td>Admin authentication/config helpers, mutation request origin checks, and shared admin route auth/error response utilities. Successful admin bearer checks use a short in-memory TTL cache keyed by a token hash; failed checks are not cached. Admin <code>POST</code>, <code>PUT</code>, and <code>DELETE</code> requests allow missing <code>Origin</code>, the configured <code>NEXT_PUBLIC_SITE_URL</code> origin, the request host, and localhost origins in development.</td>
+              <td><code>lib/admin/__tests__</code> plus targeted admin API route tests around auth, mutation origin checks, and Supabase error behavior.</td>
             </tr>
           </tbody>
         </table>
@@ -797,9 +798,9 @@
               <td>Run lint, build, and production smoke for admin redirects.</td>
             </tr>
             <tr>
-              <td>Admin API auth or shared Supabase error response behavior</td>
+              <td>Admin API auth, mutation origin guard, or shared Supabase error response behavior</td>
               <td><code>npm.cmd test -- lib/admin/__tests__</code> plus the touched admin route test files</td>
-              <td>Verify missing-token/admin-denied responses do not call persistence helpers and Supabase errors preserve <code>message</code>, <code>code</code>, <code>details</code>, and <code>hint</code>.</td>
+              <td>Verify missing-token/admin-denied/cross-origin responses do not call persistence helpers and Supabase errors preserve <code>message</code>, <code>code</code>, <code>details</code>, and <code>hint</code>.</td>
             </tr>
             <tr>
               <td>Public/admin visual UI, loading states, layout, or responsiveness</td>
