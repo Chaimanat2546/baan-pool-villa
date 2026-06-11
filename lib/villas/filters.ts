@@ -9,6 +9,10 @@ export type VillaSortKey =
   | "bedrooms_desc";
 
 const MIN_SEARCH_PRICE = 1000;
+const MIN_GUESTS = 1;
+const MAX_GUESTS = 100;
+const MIN_BEDROOMS = 1;
+const MAX_BEDROOMS = 50;
 
 export function getDefaultFilters(maxPrice: number): VillaFilters {
   return {
@@ -25,12 +29,17 @@ const AMENITY_KEYS = new Set<AmenityKey>(
   AMENITY_OPTIONS.map((amenity) => amenity.key),
 );
 
-function normalizeMinimumCount(value: number, fallback: number): number {
+function normalizeBoundedCount(
+  value: number,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+): number {
   if (!Number.isFinite(value)) {
     return fallback;
   }
 
-  return Math.max(1, Math.ceil(value));
+  return Math.min(maximum, Math.max(minimum, Math.ceil(value)));
 }
 
 type FiltersToSearchParamsOptions = {
@@ -73,8 +82,13 @@ export function normalizeFiltersForSearch(
 
   return {
     ...filters,
-    guests: normalizeMinimumCount(filters.guests, 1),
-    bedrooms: normalizeMinimumCount(filters.bedrooms, 1),
+    guests: normalizeBoundedCount(filters.guests, 1, MIN_GUESTS, MAX_GUESTS),
+    bedrooms: normalizeBoundedCount(
+      filters.bedrooms,
+      1,
+      MIN_BEDROOMS,
+      MAX_BEDROOMS,
+    ),
     maxPrice: Math.min(
       Math.max(MIN_SEARCH_PRICE, filters.maxPrice),
       normalizedMaxPrice,
@@ -109,8 +123,18 @@ export function filtersFromSearchParams(
 
   return {
     zone: searchParams.get("zone") || defaults.zone,
-    guests: normalizeMinimumCount(guests, defaults.guests),
-    bedrooms: normalizeMinimumCount(bedrooms, defaults.bedrooms),
+    guests: normalizeBoundedCount(
+      guests,
+      defaults.guests,
+      MIN_GUESTS,
+      MAX_GUESTS,
+    ),
+    bedrooms: normalizeBoundedCount(
+      bedrooms,
+      defaults.bedrooms,
+      MIN_BEDROOMS,
+      MAX_BEDROOMS,
+    ),
     amenities,
     maxPrice: Number.isFinite(requestedMaxPrice)
       ? Math.min(Math.max(MIN_SEARCH_PRICE, requestedMaxPrice), normalizedMaxPrice)

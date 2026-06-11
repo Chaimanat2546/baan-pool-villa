@@ -2,7 +2,7 @@
 
 import { ImageUp } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface AssetUploadFieldProps {
   currentAlt: string;
@@ -13,6 +13,7 @@ interface AssetUploadFieldProps {
   label: string;
   onFileChange: (file: File | null) => void;
   selectedFile: File | null;
+  validateFile?: (file: File) => string[];
 }
 
 export function AssetUploadField({
@@ -24,7 +25,9 @@ export function AssetUploadField({
   label,
   onFileChange,
   selectedFile,
+  validateFile,
 }: AssetUploadFieldProps) {
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
   const selectedPreviewUrl = useMemo(() => {
     return selectedFile ? URL.createObjectURL(selectedFile) : null;
   }, [selectedFile]);
@@ -65,10 +68,41 @@ export function AssetUploadField({
         className="sr-only"
         id={id}
         onChange={(event) => {
-          onFileChange(event.target.files?.[0] ?? null);
+          const file = event.target.files?.[0] ?? null;
+
+          if (!file) {
+            setFileErrors([]);
+            onFileChange(null);
+            return;
+          }
+
+          const validationErrors = validateFile?.(file) ?? [];
+
+          if (validationErrors.length > 0) {
+            setFileErrors(validationErrors);
+            onFileChange(null);
+            event.currentTarget.value = "";
+            return;
+          }
+
+          setFileErrors([]);
+          onFileChange(file);
         }}
         type="file"
       />
+
+      {fileErrors.length > 0 ? (
+        <div
+          className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          role="alert"
+        >
+          <ul className="grid gap-1">
+            {fileErrors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <figure className="overflow-hidden rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)]">

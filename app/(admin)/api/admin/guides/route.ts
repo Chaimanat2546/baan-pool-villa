@@ -90,11 +90,26 @@ function readGuidePayload(payload: unknown):
   };
 }
 
-async function readJsonPayload(request: Request): Promise<unknown> {
+async function readJsonPayload(request: Request): Promise<
+  | {
+      ok: true;
+      payload: unknown;
+    }
+  | {
+      ok: false;
+      response: Response;
+    }
+> {
   try {
-    return await request.json();
+    return { ok: true, payload: await request.json() };
   } catch {
-    return {};
+    return {
+      ok: false,
+      response: Response.json(
+        { errors: ["Request body must be JSON."] },
+        { status: 400 },
+      ),
+    };
   }
 }
 
@@ -173,7 +188,13 @@ export async function PUT(request: Request) {
     return admin.response;
   }
 
-  const parsedPayload = readGuidePayload(await readJsonPayload(request));
+  const jsonPayload = await readJsonPayload(request);
+
+  if (!jsonPayload.ok) {
+    return jsonPayload.response;
+  }
+
+  const parsedPayload = readGuidePayload(jsonPayload.payload);
 
   if (parsedPayload.errors.length > 0 || !parsedPayload.guide) {
     return Response.json({ errors: parsedPayload.errors }, { status: 400 });
@@ -251,7 +272,13 @@ export async function DELETE(request: Request) {
     return admin.response;
   }
 
-  const payload = await readJsonPayload(request);
+  const jsonPayload = await readJsonPayload(request);
+
+  if (!jsonPayload.ok) {
+    return jsonPayload.response;
+  }
+
+  const payload = jsonPayload.payload;
 
   if (!isRecord(payload) || typeof payload.id !== "string") {
     return Response.json({ errors: ["Body must contain a guide id."] }, { status: 400 });

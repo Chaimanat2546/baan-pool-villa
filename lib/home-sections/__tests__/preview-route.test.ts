@@ -27,6 +27,17 @@ function postRequest(body: unknown) {
   });
 }
 
+function invalidJsonPostRequest() {
+  return new Request("https://example.com/api/admin/home-sections/preview", {
+    body: "{",
+    headers: {
+      authorization: "Bearer token",
+      "content-type": "application/json",
+    },
+    method: "POST",
+  });
+}
+
 describe("admin home sections preview route", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -75,5 +86,18 @@ describe("admin home sections preview route", () => {
     expect(serializedPayload).not.toContain("people");
     expect(serializedPayload).not.toContain("bedrooms");
     expect(serializedPayload).not.toContain("devillegroups.com");
+  });
+
+  it("rejects invalid JSON before loading villa listings", async () => {
+    const { POST } = await import(
+      "../../../app/(admin)/api/admin/home-sections/preview/route"
+    );
+    const response = await POST(invalidJsonPostRequest());
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["Request body must be JSON."],
+    });
+    expect(fetchHouseListingsMock).not.toHaveBeenCalled();
   });
 });

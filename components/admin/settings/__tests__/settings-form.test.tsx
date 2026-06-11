@@ -1,5 +1,14 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+
+import {
+  flushEffects,
+  mountAdminPage,
+} from "@/components/admin/__tests__/admin-page-dom-test-utils";
 
 vi.mock("next/image", () => ({
   default: ({
@@ -116,5 +125,81 @@ describe("SettingsForm", () => {
     expect(html).toContain(
       `aria-label="${DEFAULT_SITE_SETTINGS.heroImage.alt}" data-fill="true" data-height=""`,
     );
+  });
+
+  it("rejects unsupported logo files immediately", async () => {
+    const onChange = vi.fn();
+    const page = await mountAdminPage(
+      <SettingsForm
+        draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+        hasUnsavedChanges={false}
+        isSaving={false}
+        onChange={onChange}
+        onSave={vi.fn()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    const input = page.container.querySelector(
+      "#logoFile",
+    ) as HTMLInputElement | null;
+
+    expect(input).not.toBeNull();
+
+    Object.defineProperty(input, "files", {
+      configurable: true,
+      value: [new File(["logo"], "logo.gif", { type: "image/gif" })],
+    });
+
+    act(() => {
+      input?.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await flushEffects();
+
+    expect(onChange).toHaveBeenCalledWith({ logoFile: null });
+    expect(page.container.textContent).toContain(
+      "ไฟล์โลโก้ต้องเป็น JPG, PNG หรือ WebP",
+    );
+
+    await page.unmount();
+  });
+
+  it("rejects oversized hero files immediately", async () => {
+    const onChange = vi.fn();
+    const page = await mountAdminPage(
+      <SettingsForm
+        draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+        hasUnsavedChanges={false}
+        isSaving={false}
+        onChange={onChange}
+        onSave={vi.fn()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    const input = page.container.querySelector(
+      "#heroFile",
+    ) as HTMLInputElement | null;
+
+    expect(input).not.toBeNull();
+
+    Object.defineProperty(input, "files", {
+      configurable: true,
+      value: [
+        new File(["x".repeat(7 * 1024 * 1024)], "hero.webp", {
+          type: "image/webp",
+        }),
+      ],
+    });
+
+    act(() => {
+      input?.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await flushEffects();
+
+    expect(onChange).toHaveBeenCalledWith({ heroFile: null });
+    expect(page.container.textContent).toContain(
+      "ไฟล์Heroต้องมีขนาดไม่เกิน 6MB",
+    );
+
+    await page.unmount();
   });
 });

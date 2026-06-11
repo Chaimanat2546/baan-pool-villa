@@ -341,6 +341,44 @@ describe("validateSiteSettingsDraft", () => {
     expect(validateSiteSettingsDraft(validDraft)).toEqual([]);
   });
 
+  it("accepts Thai phone numbers with optional display separators", () => {
+    expect(
+      validateSiteSettingsDraft({
+        ...validDraft,
+        phoneContacts: [
+          {
+            name: "คุณเกม",
+            phone: "061-748-5213",
+            time: "ช่วง 07.00-15.00",
+          },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it("rejects phone numbers that do not match the Thai mobile format", () => {
+    expect(
+      validateSiteSettingsDraft({
+        ...validDraft,
+        phoneContacts: [
+          {
+            name: "คุณเกม",
+            phone: "12345",
+            time: "ช่วง 07.00-15.00",
+          },
+          {
+            name: "คุณบี",
+            phone: "+66617485213",
+            time: "ช่วง 07.00-15.00",
+          },
+        ],
+      }),
+    ).toEqual([
+      "เบอร์โทรผู้ติดต่อคนที่ 1 ต้องเป็นเบอร์ไทย 10 หลัก เช่น 0xxxxxxxxx",
+      "เบอร์โทรผู้ติดต่อคนที่ 2 ต้องเป็นเบอร์ไทย 10 หลัก เช่น 0xxxxxxxxx",
+    ]);
+  });
+
   it("rejects invalid global and section SEO settings", () => {
     expect(
       validateSiteSettingsDraft({

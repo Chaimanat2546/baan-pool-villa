@@ -4,7 +4,22 @@ import { LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
+import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
+
+function getThaiLoginErrorMessage(message: string | undefined): string {
+  if (!message) {
+    return "เข้าสู่ระบบไม่สำเร็จ";
+  }
+
+  const normalizedMessage = message.trim().toLowerCase();
+
+  if (normalizedMessage === "invalid login credentials") {
+    return "อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบแล้วลองอีกครั้ง";
+  }
+
+  return translateAdminErrorMessage(message);
+}
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -36,7 +51,7 @@ export function AdminLoginForm() {
       });
 
       if (loginError) {
-        setError(loginError.message || "เข้าสู่ระบบไม่สำเร็จ");
+        setError(getThaiLoginErrorMessage(loginError.message));
         return;
       }
 
@@ -44,7 +59,7 @@ export function AdminLoginForm() {
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
-          ? caughtError.message
+          ? getThaiLoginErrorMessage(caughtError.message)
           : "ไม่สามารถเปิดหน้าเข้าสู่ระบบได้",
       );
     } finally {
@@ -76,6 +91,7 @@ export function AdminLoginForm() {
             className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15 disabled:bg-[var(--site-surface-soft)]"
             disabled={isSubmitting}
             inputMode="email"
+            maxLength={254}
             name="email"
             onChange={(event) => {
               setEmail(event.target.value);
@@ -94,6 +110,7 @@ export function AdminLoginForm() {
             autoComplete="current-password"
             className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15 disabled:bg-[var(--site-surface-soft)]"
             disabled={isSubmitting}
+            maxLength={128}
             name="password"
             onChange={(event) => {
               setPassword(event.target.value);

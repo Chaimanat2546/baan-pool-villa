@@ -35,6 +35,17 @@ function putRequest(body: unknown) {
   });
 }
 
+function invalidJsonPutRequest() {
+  return new Request("https://example.com/api/admin/home-sections", {
+    body: "{",
+    headers: {
+      authorization: "Bearer token",
+      "content-type": "application/json",
+    },
+    method: "PUT",
+  });
+}
+
 describe("admin home sections route", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -171,5 +182,25 @@ describe("admin home sections route", () => {
         }),
       ],
     });
+  });
+
+  it("rejects invalid JSON before saving or revalidating", async () => {
+    const rpc = vi.fn();
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase: { rpc },
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/home-sections/route"
+    );
+    const response = await PUT(invalidJsonPutRequest());
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["Request body must be JSON."],
+    });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(revalidateHomeSectionsCacheMock).not.toHaveBeenCalled();
   });
 });

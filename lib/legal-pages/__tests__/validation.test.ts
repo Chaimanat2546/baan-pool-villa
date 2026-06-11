@@ -42,8 +42,8 @@ describe("legal page validation", () => {
       }),
     ).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("title"),
-        expect.stringContaining("at least one"),
+        expect.stringContaining("ชื่อหน้ากฎหมาย"),
+        expect.stringContaining("อย่างน้อย 1 บล็อก"),
       ]),
     );
   });
@@ -119,8 +119,8 @@ describe("normalizeLegalPageDraftForSave", () => {
 
     expect(validateLegalPageDraft(normalized)).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("slug is invalid"),
-        expect.stringContaining("status is invalid"),
+        expect.stringContaining("Slug ของหน้ากฎหมายไม่ถูกต้อง"),
+        expect.stringContaining("สถานะหน้ากฎหมายไม่ถูกต้อง"),
       ]),
     );
   });
@@ -169,7 +169,7 @@ describe("validateLegalPageDraft", () => {
       }),
     );
 
-    expect(errors).toContainEqual(expect.stringContaining("unsupported type"));
+    expect(errors).toContainEqual(expect.stringContaining("ชนิดที่ไม่รองรับ"));
   });
 
   it("validates maximum legal page title length", () => {
@@ -181,7 +181,7 @@ describe("validateLegalPageDraft", () => {
       ),
     ).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("at most 120"),
+        expect.stringContaining("ไม่เกิน 120"),
       ]),
     );
   });
@@ -195,7 +195,7 @@ describe("validateLegalPageDraft", () => {
       ),
     ).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("at most 220"),
+        expect.stringContaining("ไม่เกิน 220"),
       ]),
     );
   });
@@ -208,7 +208,9 @@ describe("validateLegalPageDraft", () => {
         status: "draft",
       } as unknown as LegalPageDraft),
     ).toEqual(
-      expect.arrayContaining([expect.stringContaining("slug is invalid")]),
+      expect.arrayContaining([
+        expect.stringContaining("Slug ของหน้ากฎหมายไม่ถูกต้อง"),
+      ]),
     );
     expect(
       validateLegalPageDraft({
@@ -217,7 +219,9 @@ describe("validateLegalPageDraft", () => {
         status: "archived",
       } as unknown as LegalPageDraft),
     ).toEqual(
-      expect.arrayContaining([expect.stringContaining("status is invalid")]),
+      expect.arrayContaining([
+        expect.stringContaining("สถานะหน้ากฎหมายไม่ถูกต้อง"),
+      ]),
     );
   });
 
@@ -231,7 +235,7 @@ describe("validateLegalPageDraft", () => {
       ),
     ).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("at least one text block"),
+        expect.stringContaining("บล็อกข้อความที่มีเนื้อหา"),
       ]),
     );
     expect(
@@ -243,7 +247,7 @@ describe("validateLegalPageDraft", () => {
       ),
     ).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("content block"),
+        expect.stringContaining("เนื้อหาอย่างน้อย 1 บล็อก"),
       ]),
     );
   });

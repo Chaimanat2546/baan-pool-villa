@@ -75,6 +75,22 @@ describe("normalizeFiltersForSearch", () => {
       guests: 3,
     });
   });
+
+  it("caps guest and bedroom counts to supported search ranges", () => {
+    expect(
+      normalizeFiltersForSearch(
+        {
+          ...getDefaultFilters(61900),
+          bedrooms: 80,
+          guests: 150,
+        },
+        61900,
+      ),
+    ).toMatchObject({
+      bedrooms: 50,
+      guests: 100,
+    });
+  });
 });
 
 describe("filtersFromSearchParams", () => {
@@ -120,6 +136,19 @@ describe("filtersFromSearchParams", () => {
     ).toMatchObject({
       bedrooms: 1,
       guests: 3,
+    });
+  });
+
+  it("caps guest, bedroom, and price search params to supported ranges", () => {
+    expect(
+      filtersFromSearchParams(
+        new URLSearchParams("guests=999&bedrooms=999&maxPrice=999999"),
+        61900,
+      ),
+    ).toMatchObject({
+      bedrooms: 50,
+      guests: 100,
+      maxPrice: 61900,
     });
   });
 });

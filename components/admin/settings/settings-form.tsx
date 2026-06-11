@@ -15,6 +15,7 @@ import {
 
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import { validateUploadMetadata } from "@/lib/site-settings/validation";
 
 import { AssetUploadField } from "./asset-upload-field";
 import { buildDraftThemeStyle, isHexColor } from "./settings-helpers";
@@ -40,6 +41,7 @@ interface ColorControlProps {
 interface TextControlProps {
   description?: string;
   id: string;
+  inputMode?: "decimal" | "email" | "numeric" | "search" | "tel" | "text" | "url";
   label: string;
   maxLength?: number;
   multiline?: boolean;
@@ -166,6 +168,7 @@ function ColorControl({
 function TextControl({
   description,
   id,
+  inputMode,
   label,
   maxLength,
   multiline = false,
@@ -186,6 +189,7 @@ function TextControl({
         <textarea
           className="mt-2 min-h-24 w-full resize-y rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-sm font-medium text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
           id={id}
+          inputMode={inputMode}
           maxLength={maxLength}
           onChange={(event) => {
             onChange(event.target.value);
@@ -198,6 +202,7 @@ function TextControl({
         <input
           className="mt-2 h-11 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm font-medium text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
           id={id}
+          inputMode={inputMode}
           maxLength={maxLength}
           onChange={(event) => {
             onChange(event.target.value);
@@ -416,6 +421,9 @@ export function SettingsForm({
               onChange({ logoFile });
             }}
             selectedFile={draft.logoFile}
+            validateFile={(file) => {
+              return validateUploadMetadata("logo", file.type, file.size);
+            }}
           />
         </SectionCard>
 
@@ -499,6 +507,9 @@ export function SettingsForm({
               onChange({ heroFile });
             }}
             selectedFile={draft.heroFile}
+            validateFile={(file) => {
+              return validateUploadMetadata("hero", file.type, file.size);
+            }}
           />
         </SectionCard>
 
@@ -762,6 +773,7 @@ export function SettingsForm({
                   />
                   <TextControl
                     id={`phoneContactPhone-${index}`}
+                    inputMode="tel"
                     label={`เบอร์โทร ${index + 1}`}
                     onChange={(phone) => {
                       updatePhoneContact(index, { phone });

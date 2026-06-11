@@ -59,21 +59,21 @@ export function validateLegalPageDraft(draft: LegalPageDraft): string[] {
   const normalizedSeoDescription = normalizedDraft.seoDescription;
 
   if (!isLegalPageSlug(draft.slug)) {
-    errors.push("Legal page slug is invalid.");
+    errors.push("Slug ของหน้ากฎหมายไม่ถูกต้อง");
   }
 
   if (normalizedTitle.length === 0) {
-    errors.push("Legal page title is required.");
+    errors.push("ต้องใส่ชื่อหน้ากฎหมาย");
   } else if (normalizedTitle.length > LEGAL_PAGE_TITLE_MAX_LENGTH) {
-    errors.push("Legal page title must be at most 120 characters.");
+    errors.push("ชื่อหน้ากฎหมายต้องไม่เกิน 120 ตัวอักษร");
   }
 
   if (normalizedSeoDescription.length > LEGAL_PAGE_SEO_DESCRIPTION_MAX_LENGTH) {
-    errors.push("SEO description must be at most 220 characters.");
+    errors.push("คำอธิบาย SEO ต้องไม่เกิน 220 ตัวอักษร");
   }
 
   if (!isLegalPageStatus(draft.status)) {
-    errors.push("Legal page status is invalid.");
+    errors.push("สถานะหน้ากฎหมายไม่ถูกต้อง");
   }
 
   const contentErrors = validateLegalPageContentBlocks(
@@ -92,7 +92,7 @@ function validateLegalPageContentBlocks(
 ): string[] {
   if (!Array.isArray(contentBlocks)) {
     if (status === "published") {
-      return ["Published legal pages must include at least one content block."];
+      return ["หน้ากฎหมายที่เผยแพร่ต้องมีเนื้อหาอย่างน้อย 1 บล็อก"];
     }
 
     return [];
@@ -100,7 +100,7 @@ function validateLegalPageContentBlocks(
 
   if (contentBlocks.length === 0) {
     if (status === "published") {
-      return ["Published legal pages must include at least one content block."];
+      return ["หน้ากฎหมายที่เผยแพร่ต้องมีเนื้อหาอย่างน้อย 1 บล็อก"];
     }
 
     return [];
@@ -111,12 +111,12 @@ function validateLegalPageContentBlocks(
 
   contentBlocks.forEach((block, index) => {
     if (!isRecord(block) || typeof block.type !== "string") {
-      errors.push(`Content block ${index + 1} is invalid.`);
+      errors.push(`บล็อกเนื้อหาลำดับที่ ${index + 1} ไม่ถูกต้อง`);
       return;
     }
 
     if (!LEGAL_PAGE_ALLOWED_BLOCK_TYPES.has(block.type)) {
-      errors.push(`Content block ${index + 1} has unsupported type.`);
+      errors.push(`บล็อกเนื้อหาลำดับที่ ${index + 1} เป็นชนิดที่ไม่รองรับ`);
       return;
     }
 
@@ -127,7 +127,7 @@ function validateLegalPageContentBlocks(
 
   if (status === "published" && !hasPublishableContent) {
     errors.push(
-      "Published legal pages require at least one text block with non-empty content.",
+      "หน้ากฎหมายที่เผยแพร่ต้องมีบล็อกข้อความที่มีเนื้อหาอย่างน้อย 1 บล็อก",
     );
   }
 
