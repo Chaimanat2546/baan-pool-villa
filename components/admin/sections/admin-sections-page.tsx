@@ -26,6 +26,11 @@ import {
   moveHomeSectionDraft,
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
+import {
+  formatAdminErrorMessage,
+  getAdminErrorMessage,
+  translateAdminErrorMessages,
+} from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import { AdminSectionsSkeleton } from "@/components/admin/loading/admin-sections-skeleton";
@@ -182,7 +187,7 @@ function extractErrors(payload: unknown, fallback: string): string[] {
     );
 
     if (errors.length > 0) {
-      return errors;
+      return translateAdminErrorMessages(errors);
     }
   }
 
@@ -191,13 +196,9 @@ function extractErrors(payload: unknown, fallback: string): string[] {
       typeof errorPayload.code === "string" ? errorPayload.code : null,
       typeof errorPayload.details === "string" ? errorPayload.details : null,
       typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter(Boolean);
+    ].filter((part): part is string => typeof part === "string" && part.length > 0);
 
-    return [
-      detailParts.length > 0
-        ? `${errorPayload.error} (${detailParts.join(" / ")})`
-        : errorPayload.error,
-    ];
+    return [formatAdminErrorMessage(errorPayload.error, detailParts)];
   }
 
   return [fallback];
@@ -380,9 +381,7 @@ export function AdminSectionsPage() {
         setPendingDeleteDraftId(null);
       } catch (caughtError) {
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "ไม่สามารถโหลดการจัดหน้าแรกได้",
+          getAdminErrorMessage(caughtError, "ไม่สามารถโหลดการจัดหน้าแรกได้"),
         ]);
       } finally {
         if (showLoading) {
@@ -411,9 +410,7 @@ export function AdminSectionsPage() {
         }
 
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "ไม่สามารถเริ่มต้นหน้าจัดหน้าแรกได้",
+          getAdminErrorMessage(caughtError, "ไม่สามารถเริ่มต้นหน้าจัดหน้าแรกได้"),
         ]);
         setIsLoading(false);
       }
@@ -613,9 +610,7 @@ export function AdminSectionsPage() {
         }
 
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "เช็กเลขบ้านไม่ได้",
+          getAdminErrorMessage(caughtError, "เช็กเลขบ้านไม่ได้"),
         ]);
       } finally {
         if (!isAbortSignalAborted(signal)) {
@@ -790,9 +785,7 @@ export function AdminSectionsPage() {
       setPendingDeleteDraftId(null);
     } catch (caughtError) {
       setErrors([
-        caughtError instanceof Error
-          ? caughtError.message
-          : "ไม่สามารถบันทึกการจัดหน้าแรกได้",
+        getAdminErrorMessage(caughtError, "ไม่สามารถบันทึกการจัดหน้าแรกได้"),
       ]);
     } finally {
       setIsSaving(false);

@@ -37,6 +37,11 @@ import {
   useState,
 } from "react";
 
+import {
+  formatAdminErrorMessage,
+  getAdminErrorMessage,
+  translateAdminErrorMessages,
+} from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminGuidesSkeleton } from "@/components/admin/loading/admin-guides-skeleton";
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
@@ -44,6 +49,7 @@ import type { GuideDraft, GuideImage, GuidePost, GuideStatus } from "@/lib/guide
 import {
   createSlugFromTitle,
   validateGuideDraft,
+  validateGuideUploadMetadata,
 } from "@/lib/guides/validation";
 import {
   formatCommaSeparatedInput,
@@ -152,7 +158,7 @@ function extractErrors(payload: unknown, fallback: string): string[] {
     );
 
     if (errors.length > 0) {
-      return errors;
+      return translateAdminErrorMessages(errors);
     }
   }
 
@@ -161,13 +167,9 @@ function extractErrors(payload: unknown, fallback: string): string[] {
       typeof errorPayload.code === "string" ? errorPayload.code : null,
       typeof errorPayload.details === "string" ? errorPayload.details : null,
       typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter(Boolean);
+    ].filter((part): part is string => typeof part === "string" && part.length > 0);
 
-    return [
-      detailParts.length > 0
-        ? `${errorPayload.error} (${detailParts.join(" / ")})`
-        : errorPayload.error,
-    ];
+    return [formatAdminErrorMessage(errorPayload.error, detailParts)];
   }
 
   return [fallback];
@@ -1063,7 +1065,7 @@ export function AdminGuidesPage() {
         setSavedSnapshot(makeSnapshot(initialGuides));
       } catch (caughtError) {
         setErrors([
-          caughtError instanceof Error ? caughtError.message : "โหลดบทความไม่ได้",
+          getAdminErrorMessage(caughtError, "โหลดบทความไม่ได้"),
         ]);
       } finally {
         if (showLoading) {
@@ -1120,6 +1122,14 @@ export function AdminGuidesPage() {
   }
 
   async function uploadGuideImage(file: File, role: "cover" | "inline") {
+    const validationErrors = validateGuideUploadMetadata(file.type, file.size);
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      setNotice(null);
+      return null;
+    }
+
     const token = await getAccessToken();
 
     if (!token) {
@@ -1251,7 +1261,7 @@ export function AdminGuidesPage() {
       setNotice("บันทึกบทความแล้ว");
     } catch (caughtError) {
       setErrors([
-        caughtError instanceof Error ? caughtError.message : "บันทึกบทความไม่ได้",
+        getAdminErrorMessage(caughtError, "บันทึกบทความไม่ได้"),
       ]);
     } finally {
       setIsSaving(false);

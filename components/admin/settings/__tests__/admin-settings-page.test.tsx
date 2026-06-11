@@ -209,4 +209,43 @@ describe("AdminSettingsPage", () => {
 
     await page.unmount();
   });
+
+  it("blocks invalid settings before sending a save request", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { settings: DEFAULT_SITE_SETTINGS },
+        url: "/api/admin/site-settings",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminSettingsPage />);
+    await flushEffects();
+    const siteNameInput = page.container.querySelector(
+      "#siteName",
+    ) as HTMLInputElement | null;
+
+    expect(siteNameInput).not.toBeNull();
+
+    await changeInput(siteNameInput as HTMLInputElement, " ");
+
+    const headerButtons = Array.from(
+      page.container.querySelectorAll("#settingsPageHeader button"),
+    );
+    const saveButton = headerButtons[1] ?? null;
+
+    expect(saveButton).not.toBeNull();
+
+    await click(saveButton as HTMLButtonElement);
+    await flushEffects();
+
+    expect(
+      fetchMock.mock.calls.filter(([url, init]) => {
+        return url === "/api/admin/site-settings" && init?.method === "PUT";
+      }),
+    ).toHaveLength(0);
+    expect(page.container.textContent).toContain("ต้องใส่ชื่อเว็บ");
+
+    await page.unmount();
+  });
 });

@@ -13,6 +13,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
 import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
+import {
+  formatAdminErrorMessage,
+  getAdminErrorMessage,
+  translateAdminErrorMessages,
+} from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import { AdminDetailLayoutSkeleton } from "@/components/admin/loading/admin-detail-layout-skeleton";
@@ -74,7 +79,7 @@ function extractErrors(payload: unknown, fallback: string): string[] {
     );
 
     if (errors.length > 0) {
-      return errors;
+      return translateAdminErrorMessages(errors);
     }
   }
 
@@ -83,13 +88,9 @@ function extractErrors(payload: unknown, fallback: string): string[] {
       typeof errorPayload.code === "string" ? errorPayload.code : null,
       typeof errorPayload.details === "string" ? errorPayload.details : null,
       typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter(Boolean);
+    ].filter((part): part is string => typeof part === "string" && part.length > 0);
 
-    return [
-      detailParts.length > 0
-        ? `${errorPayload.error} (${detailParts.join(" / ")})`
-        : errorPayload.error,
-    ];
+    return [formatAdminErrorMessage(errorPayload.error, detailParts)];
   }
 
   return [fallback];
@@ -395,9 +396,7 @@ export function AdminDetailLayoutPage() {
         return true;
       } catch (caughtError) {
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "โหลด layout หน้า Details ไม่ได้",
+          getAdminErrorMessage(caughtError, "โหลด layout หน้า Details ไม่ได้"),
         ]);
         return false;
       } finally {
@@ -427,9 +426,7 @@ export function AdminDetailLayoutPage() {
         }
 
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "เริ่มหน้าจัด layout หน้า Details ไม่ได้",
+          getAdminErrorMessage(caughtError, "เริ่มหน้าจัด layout หน้า Details ไม่ได้"),
         ]);
         setIsLoading(false);
       }
@@ -617,9 +614,7 @@ export function AdminDetailLayoutPage() {
       setNotice("บันทึก layout หน้า Details แล้ว");
     } catch (caughtError) {
       setErrors([
-        caughtError instanceof Error
-          ? caughtError.message
-          : "บันทึก layout หน้า Details ไม่ได้",
+        getAdminErrorMessage(caughtError, "บันทึก layout หน้า Details ไม่ได้"),
       ]);
     } finally {
       setIsSaving(false);

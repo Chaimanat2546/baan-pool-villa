@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act } from "react";
 
 import {
   click,
@@ -251,6 +252,44 @@ describe("AdminGuidesPage", () => {
 
     expect(coverImage).not.toBeNull();
     expect(coverImage?.dataset.loading).toBe("eager");
+
+    await page.unmount();
+  });
+
+  it("rejects unsupported cover images before upload", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { guides: [guidePost] },
+        url: "/api/admin/guides",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage />);
+    const coverInput = page.container.querySelector(
+      "input[type='file']",
+    ) as HTMLInputElement | null;
+
+    expect(coverInput).not.toBeNull();
+
+    Object.defineProperty(coverInput, "files", {
+      configurable: true,
+      value: [new File(["cover"], "cover.gif", { type: "image/gif" })],
+    });
+
+    act(() => {
+      coverInput?.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await flushEffects();
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => {
+        return url === "/api/admin/guides/assets";
+      }),
+    ).toHaveLength(0);
+    expect(page.container.textContent).toContain(
+      "รูปบทความต้องเป็น JPG, PNG หรือ WebP",
+    );
 
     await page.unmount();
   });

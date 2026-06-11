@@ -1,6 +1,11 @@
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
+import {
+  formatAdminErrorMessage,
+  translateAdminErrorMessage,
+  translateAdminErrorMessages,
+} from "@/components/admin/admin-error-messages";
 import type {
   AdminSettingsDraft,
   AdminSiteSettingsResponse,
@@ -155,7 +160,7 @@ export function extractErrors(
     );
 
     if (errors.length > 0) {
-      return errors;
+      return translateAdminErrorMessages(errors);
     }
   }
 
@@ -164,17 +169,17 @@ export function extractErrors(
       typeof errorPayload.code === "string" ? errorPayload.code : null,
       typeof errorPayload.details === "string" ? errorPayload.details : null,
       typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter(Boolean);
+    ].filter((part): part is string => typeof part === "string" && part.length > 0);
     const warningPart =
       typeof errorPayload.warning === "string" && errorPayload.warning
         ? `คำเตือน: ${errorPayload.warning}`
         : null;
 
     return [
-      detailParts.length > 0
-        ? `${errorPayload.error} (${detailParts.join(" / ")})`
-        : errorPayload.error,
-      ...(warningPart ? [warningPart] : []),
+      formatAdminErrorMessage(errorPayload.error, detailParts),
+      ...(warningPart && typeof errorPayload.warning === "string"
+        ? [`คำเตือน: ${translateAdminErrorMessage(errorPayload.warning)}`]
+        : []),
     ];
   }
 
@@ -198,10 +203,10 @@ export function extractWarnings(payload: AdminSiteSettingsResponse): string[] {
     : [];
 
   if (typeof payload.warning === "string" && payload.warning) {
-    return [...warnings, payload.warning];
+    return [...warnings, payload.warning].map(translateAdminErrorMessage);
   }
 
-  return warnings;
+  return warnings.map(translateAdminErrorMessage);
 }
 
 export function shouldRedirectToLogin(

@@ -1,5 +1,10 @@
 import type { SiteTikTokSettings } from "@/lib/site-settings/types";
 
+import {
+  formatAdminErrorMessage,
+  translateAdminErrorMessage,
+  translateAdminErrorMessages,
+} from "@/components/admin/admin-error-messages";
 import type { AdminTikTokDraft, AdminTikTokResponse } from "./types";
 
 interface ErrorPayloadParts {
@@ -140,7 +145,7 @@ export function extractTikTokErrors(
     );
 
     if (errors.length > 0) {
-      return errors;
+      return translateAdminErrorMessages(errors);
     }
   }
 
@@ -149,13 +154,9 @@ export function extractTikTokErrors(
       typeof typedPayload.code === "string" ? typedPayload.code : null,
       typeof typedPayload.details === "string" ? typedPayload.details : null,
       typeof typedPayload.hint === "string" ? typedPayload.hint : null,
-    ].filter(Boolean);
+    ].filter((part): part is string => typeof part === "string" && part.length > 0);
 
-    return [
-      detailParts.length > 0
-        ? `${typedPayload.error} (${detailParts.join(" / ")})`
-        : typedPayload.error,
-    ];
+    return [formatAdminErrorMessage(typedPayload.error, detailParts)];
   }
 
   return [fallback];
@@ -223,10 +224,10 @@ export function extractTikTokWarnings(payload: unknown): string[] {
     : [];
 
   if (typeof typedPayload.warning === "string" && typedPayload.warning.length > 0) {
-    return [...warnings, typedPayload.warning];
+    return [...warnings, typedPayload.warning].map(translateAdminErrorMessage);
   }
 
-  return warnings;
+  return warnings.map(translateAdminErrorMessage);
 }
 
 /**

@@ -4,6 +4,10 @@ import {
   type LegalPage,
   type LegalPageSlug,
 } from "@/lib/legal-pages/types";
+import {
+  formatAdminErrorMessage,
+  translateAdminErrorMessages,
+} from "@/components/admin/admin-error-messages";
 
 import type {
   AdminLegalDraft,
@@ -239,7 +243,7 @@ export function extractLegalErrors(
     );
 
     if (errors.length > 0) {
-      return errors;
+      return translateAdminErrorMessages(errors);
     }
   }
 
@@ -248,13 +252,9 @@ export function extractLegalErrors(
       typeof errorPayload.code === "string" ? errorPayload.code : null,
       typeof errorPayload.details === "string" ? errorPayload.details : null,
       typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter(Boolean);
+    ].filter((part): part is string => typeof part === "string" && part.length > 0);
 
-    return [
-      detailParts.length > 0
-        ? `${errorPayload.error} (${detailParts.join(" / ")})`
-        : errorPayload.error,
-    ];
+    return [formatAdminErrorMessage(errorPayload.error, detailParts)];
   }
 
   return [fallback];

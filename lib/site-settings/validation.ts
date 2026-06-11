@@ -27,6 +27,7 @@ const TIKTOK_VIDEO_ID_PATTERN = /^\d{8,30}$/;
 const TIKTOK_PROFILE_PATH_PATTERN = /^\/@[^/]+\/?$/;
 const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
 const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
+const THAI_PHONE_PATTERN = /^0\d{9}$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
 
 /**
@@ -397,6 +398,8 @@ export function validateSiteSettingsDraft(
 
     if (contact.phone.trim().length === 0) {
       errors.push(`ต้องใส่เบอร์โทรผู้ติดต่อคนที่ ${contactNumber}`);
+    } else if (!isThaiPhoneNumber(contact.phone)) {
+      errors.push(`เบอร์โทรผู้ติดต่อคนที่ ${contactNumber} ต้องเป็นเบอร์ไทย 10 หลัก เช่น 0xxxxxxxxx`);
     }
 
     if (contact.time.trim().length === 0) {
@@ -808,6 +811,14 @@ function normalizeSameAsUrls(value: unknown, fallback: string[]): string[] {
     .filter((item) => item.length > 0 && isHttpUrl(item));
 
   return urls.length > 0 ? [...new Set(urls)] : fallback;
+}
+
+function normalizeThaiPhoneDigits(value: string): string {
+  return value.replaceAll(" ", "").replaceAll("-", "");
+}
+
+function isThaiPhoneNumber(value: string): boolean {
+  return THAI_PHONE_PATTERN.test(normalizeThaiPhoneDigits(value));
 }
 
 function normalizeUrl(value: string | null | undefined, fallback: string): string {

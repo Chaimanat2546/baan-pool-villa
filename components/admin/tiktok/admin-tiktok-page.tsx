@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { getAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminTikTokSkeleton } from "@/components/admin/loading/admin-tiktok-skeleton";
 import {
@@ -100,9 +101,7 @@ export function AdminTikTokPage() {
         setSavedSnapshot(makeTikTokSnapshot(nextDraft));
       } catch (caughtError) {
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "ไม่สามารถโหลดการตั้งค่า TikTok ได้",
+          getAdminErrorMessage(caughtError, "ไม่สามารถโหลดการตั้งค่า TikTok ได้"),
         ]);
       } finally {
         if (showLoading) {
@@ -188,9 +187,7 @@ export function AdminTikTokPage() {
       setNotice("บันทึกการตั้งค่า TikTok สำเร็จ");
     } catch (caughtError) {
       setErrors([
-        caughtError instanceof Error
-          ? caughtError.message
-          : "ไม่สามารถบันทึกการตั้งค่า TikTok ได้",
+        getAdminErrorMessage(caughtError, "ไม่สามารถบันทึกการตั้งค่า TikTok ได้"),
       ]);
     } finally {
       setIsSaving(false);
