@@ -22,6 +22,9 @@ const SEO_DESCRIPTION_MAX_LENGTH = 180;
 const SEO_IMAGE_ALT_MAX_LENGTH = 160;
 const SEO_BUSINESS_NAME_MAX_LENGTH = 100;
 const SEO_SAME_AS_URLS_MAX_COUNT = 6;
+const SEO_KEYWORDS_MAX_COUNT = 30;
+const SEO_KEYWORD_MIN_LENGTH = 2;
+const SEO_KEYWORD_MAX_LENGTH = 60;
 const TIKTOK_HOSTS = new Set(["tiktok.com", "www.tiktok.com", "m.tiktok.com"]);
 const TIKTOK_VIDEO_ID_PATTERN = /^\d{8,30}$/;
 const TIKTOK_PROFILE_PATH_PATTERN = /^\/@[^/]+\/?$/;
@@ -126,6 +129,11 @@ export function normalizeSiteSettingsRow(
         row.seo_description,
         DEFAULT_SITE_SETTINGS.seo.description,
       ),
+      keywords: normalizeKeywords(
+        row.seo_keywords,
+        DEFAULT_SITE_SETTINGS.seo.keywords,
+        { allowEmpty: false },
+      ),
       ogImage: normalizePublicImage(
         row.seo_og_image_url,
         normalizeRequiredText(
@@ -147,6 +155,7 @@ export function normalizeSiteSettingsRow(
       guides: normalizeSectionSeoSettings(
         row.guides_seo_title,
         row.guides_seo_description,
+        row.guides_seo_keywords,
         row.guides_seo_og_image_url,
         row.guides_seo_og_image_alt,
         DEFAULT_SITE_SETTINGS.pageSeo.guides,
@@ -154,10 +163,18 @@ export function normalizeSiteSettingsRow(
       search: normalizeSectionSeoSettings(
         row.search_seo_title,
         row.search_seo_description,
+        row.search_seo_keywords,
         row.search_seo_og_image_url,
         row.search_seo_og_image_alt,
         DEFAULT_SITE_SETTINGS.pageSeo.search,
       ),
+      villaDetail: {
+        keywords: normalizeKeywords(
+          row.villa_detail_seo_keywords,
+          DEFAULT_SITE_SETTINGS.pageSeo.villaDetail.keywords,
+          { allowEmpty: true },
+        ),
+      },
     },
     tiktok: {
       accountUrl: tiktokAccountUrl,
@@ -171,8 +188,8 @@ export function normalizeSiteSettingsRow(
  * Trim and normalize all textual fields of a SiteSettingsDraft and remove empty URL entries.
  *
  * Produces a new draft object where string fields are trimmed (colors are lowercased),
- * each phone contact's `name`, `phone`, and `time` are trimmed, and `seoSameAsUrls` and
- * `tiktokVideoUrls` have empty strings removed.
+ * each phone contact's `name`, `phone`, and `time` are trimmed, and URL/keyword arrays
+ * have empty strings removed.
  *
  * @param draft - The input SiteSettingsDraft to normalize
  * @returns A new SiteSettingsDraft with trimmed values, lowercase color codes, and filtered URL arrays
@@ -198,6 +215,7 @@ export function normalizeSiteSettingsDraft(
     lineUrl: draft.lineUrl.trim(),
     seoTitle: draft.seoTitle.trim(),
     seoDescription: draft.seoDescription.trim(),
+    seoKeywords: normalizeKeywordList(draft.seoKeywords),
     seoOgImageUrl: draft.seoOgImageUrl.trim(),
     seoOgImageAlt: draft.seoOgImageAlt.trim(),
     seoBusinessName: draft.seoBusinessName.trim(),
@@ -206,12 +224,15 @@ export function normalizeSiteSettingsDraft(
       .filter((url) => url.length > 0),
     searchSeoTitle: draft.searchSeoTitle?.trim() ?? "",
     searchSeoDescription: draft.searchSeoDescription?.trim() ?? "",
+    searchSeoKeywords: normalizeKeywordList(draft.searchSeoKeywords ?? []),
     searchSeoOgImageUrl: draft.searchSeoOgImageUrl?.trim() ?? "",
     searchSeoOgImageAlt: draft.searchSeoOgImageAlt?.trim() ?? "",
     guidesSeoTitle: draft.guidesSeoTitle?.trim() ?? "",
     guidesSeoDescription: draft.guidesSeoDescription?.trim() ?? "",
+    guidesSeoKeywords: normalizeKeywordList(draft.guidesSeoKeywords ?? []),
     guidesSeoOgImageUrl: draft.guidesSeoOgImageUrl?.trim() ?? "",
     guidesSeoOgImageAlt: draft.guidesSeoOgImageAlt?.trim() ?? "",
+    villaDetailSeoKeywords: normalizeKeywordList(draft.villaDetailSeoKeywords ?? []),
     tiktokAccountUrl: draft.tiktokAccountUrl.trim(),
     tiktokVideoUrls: draft.tiktokVideoUrls
       .map((url) => url.trim())
@@ -328,6 +349,14 @@ export function validateSiteSettingsDraft(
     errors.push("คำอธิบายเว็บที่แสดงบน Google ต้องไม่เกิน 180 ตัวอักษร");
   }
 
+  errors.push(
+    ...validateKeywordList({
+      keywords: draft.seoKeywords,
+      label: "หน้าแรก / ค่าเริ่มต้น",
+      requireOne: true,
+    }),
+  );
+
   if (!isPublicImageUrl(draft.seoOgImageUrl)) {
     errors.push("รูปตัวอย่างตอนแชร์ลิงก์ต้องเป็น URL แบบ http, https หรือ path ภายในเว็บที่ขึ้นต้นด้วย /");
   }
@@ -359,6 +388,7 @@ export function validateSiteSettingsDraft(
       description: draft.searchSeoDescription ?? "",
       imageAlt: draft.searchSeoOgImageAlt ?? "",
       imageUrl: draft.searchSeoOgImageUrl ?? "",
+      keywords: draft.searchSeoKeywords ?? [],
       label: "หน้าค้นหา (/search)",
       title: draft.searchSeoTitle ?? "",
     }),
@@ -368,8 +398,16 @@ export function validateSiteSettingsDraft(
       description: draft.guidesSeoDescription ?? "",
       imageAlt: draft.guidesSeoOgImageAlt ?? "",
       imageUrl: draft.guidesSeoOgImageUrl ?? "",
+      keywords: draft.guidesSeoKeywords ?? [],
       label: "หน้าบทความ (/guides)",
       title: draft.guidesSeoTitle ?? "",
+    }),
+  );
+  errors.push(
+    ...validateKeywordList({
+      keywords: draft.villaDetailSeoKeywords ?? [],
+      label: "หน้ารายละเอียดบ้าน",
+      requireOne: false,
     }),
   );
 
@@ -546,6 +584,7 @@ function normalizePublicImage(
 function normalizeSectionSeoSettings(
   title: string | null | undefined,
   description: string | null | undefined,
+  keywords: unknown,
   imageUrl: string | null | undefined,
   imageAlt: string | null | undefined,
   fallback: SiteSettings["pageSeo"]["search"],
@@ -553,6 +592,7 @@ function normalizeSectionSeoSettings(
   return {
     title: normalizeRequiredText(title, fallback.title),
     description: normalizeRequiredText(description, fallback.description),
+    keywords: normalizeKeywords(keywords, fallback.keywords, { allowEmpty: true }),
     ogImage: normalizePublicImage(
       imageUrl,
       normalizeRequiredText(imageAlt, fallback.ogImage.alt),
@@ -565,6 +605,7 @@ interface SectionSeoValidationInput {
   description: string;
   imageAlt: string;
   imageUrl: string;
+  keywords: string[];
   label: string;
   title: string;
 }
@@ -573,6 +614,7 @@ function validateSectionSeoFields({
   description,
   imageAlt,
   imageUrl,
+  keywords,
   label,
   title,
 }: SectionSeoValidationInput): string[] {
@@ -600,7 +642,98 @@ function validateSectionSeoFields({
     errors.push(`คำอธิบายรูปแชร์ลิงก์ของ${label}ต้องไม่เกิน 160 ตัวอักษร`);
   }
 
+  errors.push(
+    ...validateKeywordList({
+      keywords,
+      label,
+      requireOne: false,
+    }),
+  );
+
   return errors;
+}
+
+function normalizeKeywords(
+  value: unknown,
+  fallback: string[],
+  { allowEmpty }: { allowEmpty: boolean },
+): string[] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+
+  const keywords = normalizeKeywordList(
+    value.filter((item): item is string => typeof item === "string"),
+  );
+
+  return keywords.length > 0 || allowEmpty ? keywords : fallback;
+}
+
+function normalizeKeywordList(keywords: string[]): string[] {
+  return [
+    ...new Set(
+      keywords
+        .map((keyword) => keyword.trim())
+        .filter((keyword) => keyword.length > 0),
+    ),
+  ];
+}
+
+function validateKeywordList({
+  keywords,
+  label,
+  requireOne,
+}: {
+  keywords: string[];
+  label: string;
+  requireOne: boolean;
+}): string[] {
+  const errors: string[] = [];
+
+  if (requireOne && keywords.length === 0) {
+    errors.push(`ต้องใส่คำค้น SEO ของ${label}อย่างน้อย 1 รายการ`);
+  }
+
+  if (keywords.length > SEO_KEYWORDS_MAX_COUNT) {
+    errors.push(`คำค้น SEO ของ${label}ต้องไม่เกิน ${SEO_KEYWORDS_MAX_COUNT} รายการ`);
+  }
+
+  keywords.forEach((keyword, index) => {
+    const keywordNumber = index + 1;
+
+    if (keyword.length < SEO_KEYWORD_MIN_LENGTH) {
+      errors.push(`คำค้น SEO ของ${label}รายการที่ ${keywordNumber} ต้องมีอย่างน้อย 2 ตัวอักษร`);
+    } else if (keyword.length > SEO_KEYWORD_MAX_LENGTH) {
+      errors.push(`คำค้น SEO ของ${label}รายการที่ ${keywordNumber} ต้องไม่เกิน 60 ตัวอักษร`);
+    }
+
+    if (hasUnsafeKeywordCharacters(keyword)) {
+      errors.push(`คำค้น SEO ของ${label}รายการที่ ${keywordNumber} ห้ามมีเครื่องหมาย <, > หรืออักขระควบคุม`);
+    }
+  });
+
+  return errors;
+}
+
+function hasUnsafeKeywordCharacters(value: string): boolean {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+
+    if (character === "<" || character === ">") {
+      return true;
+    }
+
+    if (
+      codePoint !== undefined &&
+      ((codePoint >= 0 && codePoint <= 8) ||
+        (codePoint >= 14 && codePoint <= 31) ||
+        codePoint === 127)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

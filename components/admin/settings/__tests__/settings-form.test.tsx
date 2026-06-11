@@ -89,6 +89,52 @@ describe("SettingsForm", () => {
     expect(html).toContain("ดูบ้านพัก");
   });
 
+  it("renders per-page SEO keyword editors", () => {
+    const html = renderSettingsForm();
+
+    expect(html).toContain('id="seoKeywords"');
+    expect(html).toContain('id="searchSeoKeywords"');
+    expect(html).toContain('id="guidesSeoKeywords"');
+    expect(html).toContain('id="villaDetailSeoKeywords"');
+  });
+
+  it("parses comma-separated multi-value SEO fields", async () => {
+    const onChange = vi.fn();
+    const page = await mountAdminPage(
+      <SettingsForm
+        draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+        hasUnsavedChanges={false}
+        isSaving={false}
+        onChange={onChange}
+        onSave={vi.fn()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    const textarea = page.container.querySelector(
+      "#seoKeywords",
+    ) as HTMLTextAreaElement | null;
+
+    expect(textarea).not.toBeNull();
+
+    act(() => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value",
+      )?.set;
+
+      valueSetter?.call(textarea, "alpha,beta\n gamma ");
+      textarea?.dispatchEvent(new Event("input", { bubbles: true }));
+      textarea?.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await flushEffects();
+
+    expect(onChange).toHaveBeenCalledWith({
+      seoKeywords: ["alpha", "beta", "gamma"],
+    });
+
+    await page.unmount();
+  });
+
   it("does not render TikTok controls in general settings form", () => {
     const html = renderSettingsForm({
       ...DEFAULT_SITE_SETTINGS,

@@ -23,6 +23,8 @@ import {
 } from "@/lib/site-settings/validation";
 
 const SITE_SETTINGS_SELECT =
+  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords,detail_layout,tiktok_account_url,tiktok_video_urls";
+const SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_og_image_url,guides_seo_og_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout,tiktok_account_url,tiktok_video_urls";
@@ -106,6 +108,23 @@ async function loadAdminSiteSettings(
     return { data: null, error: primary.error };
   }
 
+  const fallbackWithoutKeywords = await supabase
+    .from("site_settings")
+    .select(SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS)
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (!fallbackWithoutKeywords.error) {
+    return {
+      data: (fallbackWithoutKeywords.data as SiteSettingsRow | null) ?? null,
+      error: null,
+    };
+  }
+
+  if (!isMissingColumnError(fallbackWithoutKeywords.error)) {
+    return { data: null, error: fallbackWithoutKeywords.error };
+  }
+
   const fallbackWithoutPageSeo = await supabase
     .from("site_settings")
     .select(SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO)
@@ -171,6 +190,20 @@ function buildSavedSettingsRow(
     ...(existingRow ?? {}),
     ...savePayload,
   } as SiteSettingsRow;
+}
+
+function isAllowedAdminMutationOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+
+  if (!origin) {
+    return true;
+  }
+
+  try {
+    return new URL(origin).origin === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
 }
 
 function readStringField(formData: FormData, fieldName: string): string {
@@ -251,13 +284,18 @@ function readStringArrayField(formData: FormData, fieldName: string): string[] {
 
     return parsedValue.map((item) => (typeof item === "string" ? item : ""));
   } catch {
-    return rawValue
-      .replaceAll("\r\n", "\n")
-      .replaceAll("\r", "\n")
-      .split("\n")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
+    return splitDelimitedString(rawValue);
   }
+}
+
+function splitDelimitedString(value: string): string[] {
+  return value
+    .replaceAll("\r\n", "\n")
+    .replaceAll("\r", "\n")
+    .replaceAll("\n", ",")
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 }
 
 function getOptionalUpload(formData: FormData, fieldName: string): File | null {
@@ -557,6 +595,13 @@ export async function PUT(request: Request) {
     return admin.response;
   }
 
+  if (!isAllowedAdminMutationOrigin(request)) {
+    return Response.json(
+      { errors: ["Admin request origin is not allowed."] },
+      { status: 403 },
+    );
+  }
+
   let formData: FormData;
 
   try {
@@ -585,18 +630,22 @@ export async function PUT(request: Request) {
     lineUrl: readStringField(formData, "lineUrl"),
     seoTitle: readStringField(formData, "seoTitle"),
     seoDescription: readStringField(formData, "seoDescription"),
+    seoKeywords: readStringArrayField(formData, "seoKeywords"),
     seoOgImageUrl: readStringField(formData, "seoOgImageUrl"),
     seoOgImageAlt: readStringField(formData, "seoOgImageAlt"),
     seoBusinessName: readStringField(formData, "seoBusinessName"),
     seoSameAsUrls: readStringArrayField(formData, "seoSameAsUrls"),
     searchSeoTitle: readStringField(formData, "searchSeoTitle"),
     searchSeoDescription: readStringField(formData, "searchSeoDescription"),
+    searchSeoKeywords: readStringArrayField(formData, "searchSeoKeywords"),
     searchSeoOgImageUrl: readStringField(formData, "searchSeoOgImageUrl"),
     searchSeoOgImageAlt: readStringField(formData, "searchSeoOgImageAlt"),
     guidesSeoTitle: readStringField(formData, "guidesSeoTitle"),
     guidesSeoDescription: readStringField(formData, "guidesSeoDescription"),
+    guidesSeoKeywords: readStringArrayField(formData, "guidesSeoKeywords"),
     guidesSeoOgImageUrl: readStringField(formData, "guidesSeoOgImageUrl"),
     guidesSeoOgImageAlt: readStringField(formData, "guidesSeoOgImageAlt"),
+    villaDetailSeoKeywords: readStringArrayField(formData, "villaDetailSeoKeywords"),
     tiktokAccountUrl: "",
     tiktokVideoUrls: [],
   });
@@ -683,18 +732,22 @@ export async function PUT(request: Request) {
     line_url: draft.lineUrl,
     seo_title: draft.seoTitle,
     seo_description: draft.seoDescription,
+    seo_keywords: draft.seoKeywords,
     seo_og_image_url: draft.seoOgImageUrl,
     seo_og_image_alt: draft.seoOgImageAlt,
     seo_business_name: draft.seoBusinessName,
     seo_same_as_urls: draft.seoSameAsUrls,
     search_seo_title: draft.searchSeoTitle,
     search_seo_description: draft.searchSeoDescription,
+    search_seo_keywords: draft.searchSeoKeywords,
     search_seo_og_image_url: draft.searchSeoOgImageUrl,
     search_seo_og_image_alt: draft.searchSeoOgImageAlt,
     guides_seo_title: draft.guidesSeoTitle,
     guides_seo_description: draft.guidesSeoDescription,
+    guides_seo_keywords: draft.guidesSeoKeywords,
     guides_seo_og_image_url: draft.guidesSeoOgImageUrl,
     guides_seo_og_image_alt: draft.guidesSeoOgImageAlt,
+    villa_detail_seo_keywords: draft.villaDetailSeoKeywords,
   };
 
   const { error: saveError } = await admin.supabase

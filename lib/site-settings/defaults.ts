@@ -1,12 +1,16 @@
 import {
   defaultDescription,
+  defaultKeywords,
   defaultOgImage,
   defaultTitle,
+  guidesKeywords,
   guidesDescription,
   guidesTitle,
+  searchKeywords,
   searchDescription,
   searchTitle,
   siteName,
+  villaDetailBaseKeywords,
 } from "../seo";
 import { DEFAULT_DETAIL_LAYOUT } from "../detail-layout/defaults";
 import type {
@@ -55,6 +59,7 @@ export const DEFAULT_SITE_CONTACT_SETTINGS: SiteContactSettings = {
 export const DEFAULT_SITE_SEO_SETTINGS: SiteSeoSettings = {
   title: defaultTitle,
   description: defaultDescription,
+  keywords: defaultKeywords,
   ogImage: {
     path: defaultOgImage,
     url: defaultOgImage,
@@ -71,6 +76,7 @@ export const DEFAULT_SITE_PAGE_SEO_SETTINGS: SitePageSeoSettings = {
   guides: {
     title: guidesTitle,
     description: guidesDescription,
+    keywords: guidesKeywords,
     ogImage: {
       path: defaultOgImage,
       url: defaultOgImage,
@@ -80,11 +86,15 @@ export const DEFAULT_SITE_PAGE_SEO_SETTINGS: SitePageSeoSettings = {
   search: {
     title: searchTitle,
     description: searchDescription,
+    keywords: searchKeywords,
     ogImage: {
       path: defaultOgImage,
       url: defaultOgImage,
       alt: "Pool Villa บ้านพูลวิลล่า พัทยา",
     },
+  },
+  villaDetail: {
+    keywords: villaDetailBaseKeywords,
   },
 };
 

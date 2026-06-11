@@ -354,7 +354,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
-                <td>Validate site settings (excluding TikTok fields), handle asset uploads, persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates for <code>/search</code> and <code>/guides</code>.</td>
+                <td>Admin auth with same-origin mutation guard, validate site settings (excluding TikTok fields), handle asset uploads, persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
@@ -519,7 +519,7 @@
             </tr>
             <tr>
               <td><code>lib/seo.ts</code> and <code>lib/json-ld.ts</code></td>
-              <td>Metadata, canonical URL support, site-settings-backed public metadata defaults, legal page metadata, absolute-title handling, breadcrumb/home JSON-LD builders, and safe JSON-LD serialization.</td>
+              <td>Metadata, canonical URL support, site-settings-backed public metadata defaults, admin-managed meta keywords, villa-detail keyword derivation from listing data, legal page metadata, absolute-title handling, breadcrumb/home JSON-LD builders, and safe JSON-LD serialization.</td>
               <td><code>lib/__tests__/seo.test.ts</code>, <code>lib/__tests__/json-ld.test.ts</code></td>
             </tr>
             <tr>
@@ -575,7 +575,7 @@
               <tr>
                 <td>Site settings</td>
                 <td>Supabase settings table with defaults fallback.</td>
-                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; global and section SEO templates are normalized here, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
+                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; global and section SEO templates plus page-specific keyword arrays are normalized here, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
                 <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
               </tr>
             <tr>

@@ -44,6 +44,11 @@ const validRow = {
   seo_title: " Baan Pool Villa Pattaya | Private Pool Villas ",
   seo_description:
     " Book private pool villas in Pattaya for families, friends, and party trips. ",
+  seo_keywords: [
+    " พูลวิลล่าพัทยา ",
+    " บ้านพักพูลวิลล่า ",
+    " พูลวิลล่าพัทยา ",
+  ],
   seo_og_image_url: " /images/seo-cover.jpg ",
   seo_og_image_alt: " Pool villa with private swimming pool ",
   seo_business_name: " Baan Pool Villa Pattaya ",
@@ -53,12 +58,15 @@ const validRow = {
   ],
   search_seo_title: " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
   search_seo_description: " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
+  search_seo_keywords: [" ค้นหาพูลวิลล่าพัทยา "],
   search_seo_og_image_url: " /images/search-cover.jpg ",
   search_seo_og_image_alt: " Search cover ",
   guides_seo_title: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
   guides_seo_description: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
+  guides_seo_keywords: [" บทความพูลวิลล่าพัทยา "],
   guides_seo_og_image_url: " /images/guides-cover.jpg ",
   guides_seo_og_image_alt: " Guides cover ",
+  villa_detail_seo_keywords: [" รายละเอียดพูลวิลล่าพัทยา "],
   tiktok_account_url: " https://www.tiktok.com/@baanpoolvilla ",
   tiktok_video_urls: [
     "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
@@ -99,11 +107,15 @@ const validDraft: SiteSettingsDraft = {
   seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
   seoDescription:
     "Book private pool villas in Pattaya for families, friends, and party trips.",
+  seoKeywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
   seoOgImageUrl: "/images/seo-cover.jpg",
   seoOgImageAlt: "Pool villa with private swimming pool",
   seoBusinessName: "Baan Pool Villa Pattaya",
   seoSameAsUrls: ["https://www.facebook.com/baanpoolvillas"],
   ...validSectionSeoDraftFields,
+  searchSeoKeywords: ["ค้นหาพูลวิลล่าพัทยา"],
+  guidesSeoKeywords: ["บทความพูลวิลล่าพัทยา"],
+  villaDetailSeoKeywords: ["รายละเอียดพูลวิลล่าพัทยา"],
   tiktokAccountUrl: "https://www.tiktok.com/@baanpoolvilla",
   tiktokVideoUrls: [
     "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
@@ -151,6 +163,7 @@ describe("normalizeSiteSettingsRow", () => {
         title: "Baan Pool Villa Pattaya | Private Pool Villas",
         description:
           "Book private pool villas in Pattaya for families, friends, and party trips.",
+        keywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
         ogImage: {
           path: "/images/seo-cover.jpg",
           url: "/images/seo-cover.jpg",
@@ -166,6 +179,7 @@ describe("normalizeSiteSettingsRow", () => {
         search: {
           title: "ค้นหาบ้านพักพูลวิลล่าพัทยา",
           description: "ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา",
+          keywords: ["ค้นหาพูลวิลล่าพัทยา"],
           ogImage: {
             path: "/images/search-cover.jpg",
             url: "/images/search-cover.jpg",
@@ -175,11 +189,15 @@ describe("normalizeSiteSettingsRow", () => {
         guides: {
           title: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา",
           description: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก",
+          keywords: ["บทความพูลวิลล่าพัทยา"],
           ogImage: {
             path: "/images/guides-cover.jpg",
             url: "/images/guides-cover.jpg",
             alt: "Guides cover",
           },
+        },
+        villaDetail: {
+          keywords: ["รายละเอียดพูลวิลล่าพัทยา"],
         },
       },
       tiktok: {
@@ -230,18 +248,22 @@ describe("normalizeSiteSettingsRow", () => {
         line_url: "ftp://example.com/line",
         seo_title: "",
         seo_description: "",
+        seo_keywords: "not-jsonb-array",
         seo_og_image_url: "javascript:alert(1)",
         seo_og_image_alt: "",
         seo_business_name: "",
         seo_same_as_urls: ["javascript:alert(1)"],
         search_seo_title: "",
         search_seo_description: "",
+        search_seo_keywords: "not-jsonb-array",
         search_seo_og_image_url: "javascript:alert(1)",
         search_seo_og_image_alt: "",
         guides_seo_title: "",
         guides_seo_description: "",
+        guides_seo_keywords: "not-jsonb-array",
         guides_seo_og_image_url: "javascript:alert(1)",
         guides_seo_og_image_alt: "",
+        villa_detail_seo_keywords: "not-jsonb-array",
         detail_layout: {
           version: 1,
           lockedTop: ["intro", "gallery"],
@@ -276,6 +298,7 @@ describe("normalizeSiteSettingsDraft", () => {
         lineUrl: " https://line.me/R/ti/p/@baanpoolvilla ",
         seoTitle: " Baan Pool Villa Pattaya | Private Pool Villas ",
         seoDescription: " Book private pool villas in Pattaya. ",
+        seoKeywords: [" พูลวิลล่าพัทยา ", "", " บ้านพักพูลวิลล่า ", "พูลวิลล่าพัทยา"],
         seoOgImageUrl: " /images/seo-cover.jpg ",
         seoOgImageAlt: " Pool villa with private swimming pool ",
         seoBusinessName: " Baan Pool Villa Pattaya ",
@@ -285,12 +308,15 @@ describe("normalizeSiteSettingsDraft", () => {
         ],
         searchSeoTitle: " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
         searchSeoDescription: " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
+        searchSeoKeywords: [" ค้นหาพูลวิลล่าพัทยา ", ""],
         searchSeoOgImageUrl: " /images/search-cover.jpg ",
         searchSeoOgImageAlt: " Search cover ",
         guidesSeoTitle: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
         guidesSeoDescription: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
+        guidesSeoKeywords: [" บทความพูลวิลล่าพัทยา ", ""],
         guidesSeoOgImageUrl: " /images/guides-cover.jpg ",
         guidesSeoOgImageAlt: " Guides cover ",
+        villaDetailSeoKeywords: [" รายละเอียดพูลวิลล่าพัทยา ", ""],
         tiktokAccountUrl: " https://www.tiktok.com/@baanpoolvilla ",
         tiktokVideoUrls: [
           " https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH ",
@@ -319,6 +345,7 @@ describe("normalizeSiteSettingsDraft", () => {
       lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
       seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
       seoDescription: "Book private pool villas in Pattaya.",
+      seoKeywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
       seoOgImageUrl: "/images/seo-cover.jpg",
       seoOgImageAlt: "Pool villa with private swimming pool",
       seoBusinessName: "Baan Pool Villa Pattaya",
@@ -327,6 +354,9 @@ describe("normalizeSiteSettingsDraft", () => {
         "https://line.me/R/ti/p/@baanpoolvilla",
       ],
       ...validSectionSeoDraftFields,
+      searchSeoKeywords: ["ค้นหาพูลวิลล่าพัทยา"],
+      guidesSeoKeywords: ["บทความพูลวิลล่าพัทยา"],
+      villaDetailSeoKeywords: ["รายละเอียดพูลวิลล่าพัทยา"],
       tiktokAccountUrl: "https://www.tiktok.com/@baanpoolvilla",
       tiktokVideoUrls: [
         "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
@@ -414,6 +444,24 @@ describe("validateSiteSettingsDraft", () => {
       "ต้องใส่คำอธิบาย SEO ของหน้าบทความ (/guides)",
       "รูปแชร์ลิงก์ของหน้าบทความ (/guides)ต้องเป็น URL แบบ http, https หรือ path ภายในเว็บที่ขึ้นต้นด้วย /",
       "ต้องใส่คำอธิบายรูปแชร์ลิงก์ของหน้าบทความ (/guides)",
+    ]);
+  });
+
+  it("rejects unsafe and oversized SEO keyword lists", () => {
+    expect(
+      validateSiteSettingsDraft({
+        ...validDraft,
+        seoKeywords: [],
+        searchSeoKeywords: ["x", "พูลวิลล่า<script>"],
+        guidesSeoKeywords: Array.from({ length: 31 }, (_, index) => `บทความ ${index + 1}`),
+        villaDetailSeoKeywords: ["ก".repeat(61)],
+      }),
+    ).toEqual([
+      "ต้องใส่คำค้น SEO ของหน้าแรก / ค่าเริ่มต้นอย่างน้อย 1 รายการ",
+      "คำค้น SEO ของหน้าค้นหา (/search)รายการที่ 1 ต้องมีอย่างน้อย 2 ตัวอักษร",
+      "คำค้น SEO ของหน้าค้นหา (/search)รายการที่ 2 ห้ามมีเครื่องหมาย <, > หรืออักขระควบคุม",
+      "คำค้น SEO ของหน้าบทความ (/guides)ต้องไม่เกิน 30 รายการ",
+      "คำค้น SEO ของหน้ารายละเอียดบ้านรายการที่ 1 ต้องไม่เกิน 60 ตัวอักษร",
     ]);
   });
 

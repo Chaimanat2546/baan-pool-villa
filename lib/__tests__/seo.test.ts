@@ -10,6 +10,7 @@ import {
   buildSiteSettingsPageMetadata,
   buildVillaDetailMetadata,
   getVillaDescription,
+  getVillaKeywords,
   getVillaSearchIntentSummary,
   getVillaTitle,
 } from "../seo";
@@ -56,6 +57,7 @@ function cmsSettings(): SiteSettings {
     seo: {
       title: "Baan Pool Villa Pattaya | Private Pool Villas",
       description: "Book private pool villas in Pattaya.",
+      keywords: ["global pool villa", "pattaya private villa"],
       ogImage: {
         path: "/images/seo-cover.jpg",
         url: "/images/seo-cover.jpg",
@@ -71,6 +73,7 @@ function cmsSettings(): SiteSettings {
       search: {
         title: "Search SEO Title",
         description: "Search SEO Description",
+        keywords: ["search pool villa", "filter villa by guests"],
         ogImage: {
           path: "/images/search-cover.jpg",
           url: "/images/search-cover.jpg",
@@ -80,11 +83,15 @@ function cmsSettings(): SiteSettings {
       guides: {
         title: "Guides SEO Title",
         description: "Guides SEO Description",
+        keywords: ["pool villa guide", "pattaya trip planning"],
         ogImage: {
           path: "/images/guides-cover.jpg",
           url: "/images/guides-cover.jpg",
           alt: "Guides cover",
         },
+      },
+      villaDetail: {
+        keywords: ["villa detail base", "book private villa"],
       },
     },
     detailLayout: DEFAULT_SITE_SETTINGS.detailLayout,
@@ -207,6 +214,7 @@ describe("SEO helpers", () => {
       description: settings.seo.description,
       image: settings.seo.ogImage.url,
       imageAlt: settings.seo.ogImage.alt,
+      keywords: settings.seo.keywords,
       siteName: settings.seo.businessName,
       title: settings.seo.title,
     });
@@ -227,6 +235,10 @@ describe("SEO helpers", () => {
         ],
       },
     });
+    expect(metadata.keywords).toEqual([
+      "global pool villa",
+      "pattaya private villa",
+    ]);
   });
 
   it("can build an absolute page title without inheriting the root template", () => {
@@ -330,6 +342,10 @@ describe("SEO helpers", () => {
         images: ["https://example.com/images/seo-cover.jpg"],
       },
     });
+    expect(metadata.keywords).toEqual([
+      "global pool villa",
+      "pattaya private villa",
+    ]);
   });
 
   it("lets route-level SEO values override CMS defaults when needed", () => {
@@ -340,6 +356,7 @@ describe("SEO helpers", () => {
       description: "Villa-specific description",
       image: "https://example.com/villa-66.jpg",
       imageAlt: "Villa 66 cover",
+      keywords: ["route keyword", "global pool villa"],
       settings: cmsSettings(),
       title: "พูลวิลล่า 66 พัทยา",
     });
@@ -360,6 +377,7 @@ describe("SEO helpers", () => {
         images: ["https://example.com/villa-66.jpg"],
       },
     });
+    expect(metadata.keywords).toEqual(["route keyword", "global pool villa"]);
   });
 
   it("uses section SEO templates when a public page requests them", () => {
@@ -396,6 +414,10 @@ describe("SEO helpers", () => {
         title: "Search SEO Title",
       },
     });
+    expect(metadata.keywords).toEqual([
+      "search pool villa",
+      "filter villa by guests",
+    ]);
   });
 
   it("builds consistent article metadata for guide detail pages", () => {
@@ -500,5 +522,12 @@ describe("SEO helpers", () => {
         title: "พูลวิลล่า 901 Jomtien พัทยา",
       },
     });
+    expect(metadata.keywords).toEqual(
+      expect.arrayContaining([
+        "villa detail base",
+        "book private villa",
+        ...getVillaKeywords(sampleVilla),
+      ]),
+    );
   });
 });
