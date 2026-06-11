@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  PUBLIC_RATE_LIMIT_POLICIES,
+  resetPublicRateLimitForTests,
+} from "@/lib/api/rate-limit";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { unstable_cache } from "next/cache";
 import {
@@ -45,7 +49,9 @@ function mockImagesQuery(response: unknown) {
 
   query.select.mockReturnValue(query);
   query.eq.mockReturnValue(query);
-  query.order.mockReturnValueOnce(query).mockResolvedValueOnce(response);
+  query.order.mockImplementation((column: string) =>
+    column === "id" ? Promise.resolve(response) : query,
+  );
   createClientMock.mockReturnValue(supabase);
 
   return { query, supabase };
@@ -53,6 +59,7 @@ function mockImagesQuery(response: unknown) {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  resetPublicRateLimitForTests();
   createClientMock.mockReset();
   unstableCacheMock.mockClear();
   process.env = { ...originalEnv };
@@ -272,6 +279,36 @@ describe("fetchVillaImages", () => {
 });
 
 describe("GET /api/villas/[id]/images", () => {
+  it("rate limits repeated image requests before querying Supabase", async () => {
+    mockImagesQuery({ data: [], error: null });
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/images/route"
+    );
+    const request = new Request("https://example.com/api/villas/9/images", {
+      headers: { "CF-Connecting-IP": "203.0.113.81" },
+    });
+    const context = { params: Promise.resolve({ id: "9" }) };
+
+    for (
+      let index = 0;
+      index < PUBLIC_RATE_LIMIT_POLICIES.publicDetail.limit;
+      index += 1
+    ) {
+      const response = await GET(request, context);
+      expect(response.status).not.toBe(429);
+    }
+
+    createClientMock.mockClear();
+    const blocked = await GET(request, context);
+
+    expect(blocked.status).toBe(429);
+    await expect(blocked.json()).resolves.toEqual({
+      error: "Too many requests.",
+      retryAfterSeconds: 60,
+    });
+    expect(createClientMock).not.toHaveBeenCalled();
+  });
+
   it("returns 400 for invalid ids without querying Supabase", async () => {
     const { GET } = await import("../../../app/(public)/api/villas/[id]/images/route");
 

@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  PUBLIC_RATE_LIMIT_POLICIES,
+  resetPublicRateLimitForTests,
+} from "@/lib/api/rate-limit";
 import type { VillaDetailPayload, VillaImage } from "@/lib/villas/types";
 import {
   buildImageDownloadFilename,
@@ -47,6 +51,7 @@ const detailPayload = {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  resetPublicRateLimitForTests();
   fetchVillaImagesMock.mockReset();
   fetchVillaDetailMock.mockReset();
 });
@@ -98,6 +103,52 @@ describe("download image validation helpers", () => {
 });
 
 describe("GET /api/villas/[id]/images/download", () => {
+  it("rate limits repeated downloads before loading image data or fetching upstream", async () => {
+    fetchVillaImagesMock.mockResolvedValue(imageRows);
+    fetchVillaDetailMock.mockResolvedValue(null);
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        new Response("photo bytes", {
+          headers: { "Content-Type": "image/jpeg" },
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/images/download/route"
+    );
+    const request = new Request(
+      "https://example.com/api/villas/9/images/download?url=https%3A%2F%2Fimages.example.com%2Fpool.jpg",
+      { headers: { "CF-Connecting-IP": "203.0.113.90" } },
+    );
+    const context = { params: Promise.resolve({ id: "9" }) };
+
+    for (
+      let index = 0;
+      index < PUBLIC_RATE_LIMIT_POLICIES.publicDownload.limit;
+      index += 1
+    ) {
+      const response = await GET(request, context);
+      expect(response.status).not.toBe(429);
+    }
+
+    fetchVillaImagesMock.mockClear();
+    fetchVillaDetailMock.mockClear();
+    fetchMock.mockClear();
+    const blocked = await GET(request, context);
+
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("Retry-After")).toBe("60");
+    expect(blocked.headers.get("Cache-Control")).toBe("no-store");
+    await expect(blocked.json()).resolves.toEqual({
+      error: "Too many requests.",
+      retryAfterSeconds: 60,
+    });
+    expect(fetchVillaImagesMock).not.toHaveBeenCalled();
+    expect(fetchVillaDetailMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("returns 400 for invalid villa ids before loading image data", async () => {
     const { GET } = await import(
       "../../../app/(public)/api/villas/[id]/images/download/route"

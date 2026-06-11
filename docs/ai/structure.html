@@ -509,6 +509,11 @@
               <td><code>lib/__tests__/cache-policy.test.ts</code></td>
             </tr>
             <tr>
+              <td><code>lib/api</code></td>
+              <td>Shared public API helpers, including sanitized public error responses and route-handler rate limiting for public API endpoints. Public route handlers should call the rate limiter before expensive external API, Supabase, or upstream image download work.</td>
+              <td><code>lib/api/__tests__</code> plus touched public route tests such as <code>lib/villas/__tests__/public-routes.test.ts</code>, <code>lib/villas/__tests__/images.test.ts</code>, <code>lib/villas/__tests__/image-download.test.ts</code>, and <code>lib/home-sections/__tests__/public-route-rate-limit.test.ts</code>.</td>
+            </tr>
+            <tr>
               <td><code>worker.js</code></td>
               <td>Cloudflare Worker wrapper around OpenNext output. The Next image optimizer is disabled globally in <code>next.config.ts</code>; any remaining <code>/_next/image</code> header handling here is fallback behavior, not the normal public image path.</td>
               <td>Run <code>lib/__tests__/next-config.test.ts</code> and production network checks that public pages do not request <code>/_next/image</code>.</td>
@@ -791,6 +796,11 @@
               <td>Cache policy or revalidation behavior</td>
               <td><code>npm.cmd test -- lib/__tests__/cache-policy.test.ts lib/cache-revalidation.test.ts</code></td>
               <td>Run lint and build before completion.</td>
+            </tr>
+            <tr>
+              <td>Public API rate limiting or shared public API helpers</td>
+              <td><code>npm.cmd test -- lib/api lib/villas/__tests__/public-routes.test.ts lib/villas/__tests__/images.test.ts lib/villas/__tests__/image-download.test.ts lib/home-sections/__tests__/public-route-rate-limit.test.ts</code></td>
+              <td>Run lint and build before completion. Confirm blocked requests return <code>429</code> before external API, Supabase, or upstream image download helpers are called.</td>
             </tr>
             <tr>
               <td>Admin browser auth helpers or shared admin access-token reads</td>
