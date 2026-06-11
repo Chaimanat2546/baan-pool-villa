@@ -2,10 +2,45 @@
 
 import { LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
+
+const TURNSTILE_SCRIPT_ID = "admin-login-turnstile-script";
+const TURNSTILE_SCRIPT_SRC =
+  "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const TURNSTILE_MISSING_CHALLENGE_MESSAGE =
+  "กรุณายืนยันตัวตนก่อนเข้าสู่ระบบ";
+const TURNSTILE_FAILED_MESSAGE = "ยืนยันตัวตนไม่สำเร็จ กรุณาลองอีกครั้ง";
+const TURNSTILE_CONFIG_MESSAGE = "ระบบยืนยันตัวตนยังไม่พร้อมใช้งาน";
+
+type TurnstileWidgetId = string;
+
+interface TurnstileRenderOptions {
+  "error-callback": (errorCode?: string) => boolean;
+  "expired-callback": () => void;
+  action?: string;
+  callback: (token: string) => void;
+  size?: "compact" | "flexible" | "normal";
+  sitekey: string;
+  theme?: "auto" | "dark" | "light";
+}
+
+interface TurnstileApi {
+  remove: (widgetId: TurnstileWidgetId) => void;
+  render: (
+    container: HTMLElement,
+    options: TurnstileRenderOptions,
+  ) => TurnstileWidgetId;
+  reset: (widgetId?: TurnstileWidgetId) => void;
+}
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
 
 function getThaiLoginErrorMessage(message: string | undefined): string {
   if (!message) {
@@ -21,14 +56,153 @@ function getThaiLoginErrorMessage(message: string | undefined): string {
   return translateAdminErrorMessage(message);
 }
 
+function getTurnstileSiteKey(): string {
+  return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
+}
+
+function isDevelopmentTurnstileBypass(): boolean {
+  return process.env.NODE_ENV === "development";
+}
+
+function getTurnstileLoginErrorMessage(status: number | undefined): string {
+  return status === 503 ? TURNSTILE_CONFIG_MESSAGE : TURNSTILE_FAILED_MESSAGE;
+}
+
 export function AdminLoginForm() {
   const router = useRouter();
+  const turnstileSiteKey = getTurnstileSiteKey();
+  const isTurnstileEnabled =
+    turnstileSiteKey.length > 0 && !isDevelopmentTurnstileBypass();
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const errorId = "admin-login-error";
   const hasError = error !== null;
+
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken("");
+
+    const widgetId = turnstileWidgetIdRef.current;
+
+    if (widgetId && window.turnstile) {
+      window.turnstile.reset(widgetId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isTurnstileEnabled) {
+      return undefined;
+    }
+
+    let isMounted = true;
+    let script: HTMLScriptElement | null = null;
+
+    const renderTurnstile = () => {
+      if (
+        !isMounted ||
+        turnstileWidgetIdRef.current ||
+        !turnstileContainerRef.current ||
+        !window.turnstile
+      ) {
+        return;
+      }
+
+      turnstileWidgetIdRef.current = window.turnstile.render(
+        turnstileContainerRef.current,
+        {
+          "error-callback": () => {
+            setTurnstileToken("");
+            setError(TURNSTILE_FAILED_MESSAGE);
+            return true;
+          },
+          "expired-callback": () => {
+            setTurnstileToken("");
+          },
+          action: "admin_login",
+          callback: (token: string) => {
+            setTurnstileToken(token);
+            setError(null);
+          },
+          size: "flexible",
+          sitekey: turnstileSiteKey,
+          theme: "auto",
+        },
+      );
+    };
+
+    const handleScriptError = () => {
+      setTurnstileToken("");
+      setError(TURNSTILE_FAILED_MESSAGE);
+    };
+
+    if (window.turnstile) {
+      renderTurnstile();
+    } else {
+      script = document.getElementById(
+        TURNSTILE_SCRIPT_ID,
+      ) as HTMLScriptElement | null;
+
+      if (!script) {
+        script = document.createElement("script");
+        script.async = true;
+        script.defer = true;
+        script.id = TURNSTILE_SCRIPT_ID;
+        script.src = TURNSTILE_SCRIPT_SRC;
+        document.head.append(script);
+      }
+
+      script.addEventListener("load", renderTurnstile);
+      script.addEventListener("error", handleScriptError);
+    }
+
+    return () => {
+      isMounted = false;
+
+      if (script) {
+        script.removeEventListener("load", renderTurnstile);
+        script.removeEventListener("error", handleScriptError);
+      }
+
+      const widgetId = turnstileWidgetIdRef.current;
+
+      if (widgetId && window.turnstile) {
+        window.turnstile.remove(widgetId);
+      }
+
+      turnstileWidgetIdRef.current = null;
+    };
+  }, [isTurnstileEnabled, turnstileSiteKey]);
+
+  async function verifyTurnstileBeforeLogin(): Promise<boolean> {
+    if (isTurnstileEnabled && !turnstileToken) {
+      setError(TURNSTILE_MISSING_CHALLENGE_MESSAGE);
+      return false;
+    }
+
+    try {
+      const response = await fetch("/api/admin/login/turnstile", {
+        body: JSON.stringify({ token: turnstileToken }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        setError(getTurnstileLoginErrorMessage(response.status));
+        resetTurnstile();
+        return false;
+      }
+
+      return true;
+    } catch {
+      setError(TURNSTILE_FAILED_MESSAGE);
+      resetTurnstile();
+      return false;
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,6 +218,12 @@ export function AdminLoginForm() {
     setIsSubmitting(true);
 
     try {
+      const isTurnstileVerified = await verifyTurnstileBeforeLogin();
+
+      if (!isTurnstileVerified) {
+        return;
+      }
+
       const supabase = createBrowserHomeConfigClient();
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
@@ -52,11 +232,13 @@ export function AdminLoginForm() {
 
       if (loginError) {
         setError(getThaiLoginErrorMessage(loginError.message));
+        resetTurnstile();
         return;
       }
 
       router.replace("/admin/sections");
     } catch (caughtError) {
+      resetTurnstile();
       setError(
         caughtError instanceof Error
           ? getThaiLoginErrorMessage(caughtError.message)
@@ -121,6 +303,15 @@ export function AdminLoginForm() {
           />
         </label>
       </div>
+
+      {isTurnstileEnabled ? (
+        <div className="mt-4 space-y-2">
+          <div className="min-h-[65px]" ref={turnstileContainerRef} />
+          <p className="text-xs leading-5 text-[var(--site-muted)]">
+            ยืนยันว่าเป็นผู้ใช้งานจริงก่อนเข้าสู่ระบบ
+          </p>
+        </div>
+      ) : null}
 
       {error ? (
         <p

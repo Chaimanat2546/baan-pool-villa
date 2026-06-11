@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
+import { DEFAULT_SITE_SETTINGS } from "../../../lib/site-settings/defaults";
 import { ContactSection } from "../contact-section";
 
 describe("ContactSection", () => {

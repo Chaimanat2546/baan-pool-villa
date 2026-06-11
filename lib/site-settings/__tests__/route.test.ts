@@ -289,7 +289,7 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
 function putRequest(formData: FormData, headers: HeadersInit = {}) {
   return new Request("https://example.com/api/admin/site-settings", {
     body: formData,
-    headers: { authorization: "Bearer token", ...headers },
+    headers: { authorization: "Bearer token", origin: "https://example.com", ...headers },
     method: "PUT",
   });
 }
@@ -757,8 +757,9 @@ describe("admin site settings route", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
-      errors: ["Admin request origin is not allowed."],
+      error: "Admin request origin is not allowed.",
     });
+    expect(getBearerTokenMock).not.toHaveBeenCalled();
     expect(from).not.toHaveBeenCalled();
   });
 

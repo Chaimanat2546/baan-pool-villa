@@ -192,20 +192,6 @@ function buildSavedSettingsRow(
   } as SiteSettingsRow;
 }
 
-function isAllowedAdminMutationOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-
-  if (!origin) {
-    return true;
-  }
-
-  try {
-    return new URL(origin).origin === new URL(request.url).origin;
-  } catch {
-    return false;
-  }
-}
-
 function readStringField(formData: FormData, fieldName: string): string {
   const value = formData.get(fieldName);
 
@@ -593,13 +579,6 @@ export async function PUT(request: Request) {
 
   if (!admin.ok) {
     return admin.response;
-  }
-
-  if (!isAllowedAdminMutationOrigin(request)) {
-    return Response.json(
-      { errors: ["Admin request origin is not allowed."] },
-      { status: 403 },
-    );
   }
 
   let formData: FormData;

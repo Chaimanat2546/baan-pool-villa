@@ -5,6 +5,7 @@ import {
   getBearerToken,
   jsonError,
 } from "@/lib/admin/home-config-auth";
+import { isAllowedAdminRequestOrigin } from "@/lib/admin/request-origin";
 
 type AdminCheck = Awaited<ReturnType<typeof assertHomeConfigAdmin>>;
 export type HomeConfigSupabaseClient = Extract<AdminCheck, { ok: true }>["supabase"];
@@ -31,6 +32,13 @@ export type AdminRouteAuthResult =
 export async function requireHomeConfigAdmin(
   request: Request,
 ): Promise<AdminRouteAuthResult> {
+  if (!isAllowedAdminRequestOrigin(request)) {
+    return {
+      ok: false,
+      response: jsonError("Admin request origin is not allowed.", 403),
+    };
+  }
+
   const token = getBearerToken(request);
 
   if (!token) {

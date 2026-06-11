@@ -66,9 +66,10 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
   let recommendedVillas: VillaListing[] = [];
   let relatedGuides: GuidePost[] = [];
 
-  const [villasResult, guidesResult] = await Promise.allSettled([
+  const [villasResult, guidesResult, siteSettingsResult] = await Promise.allSettled([
     fetchHouseListings(),
     getPublishedGuides(),
+    getSiteSettings(),
   ]);
 
   if (villasResult.status === "fulfilled") {
@@ -116,6 +117,11 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
         guide={guide}
         recommendedVillas={recommendedVillas}
         relatedGuides={relatedGuides}
+        settings={
+          siteSettingsResult.status === "fulfilled"
+            ? siteSettingsResult.value.settings
+            : undefined
+        }
       />
     </>
   );

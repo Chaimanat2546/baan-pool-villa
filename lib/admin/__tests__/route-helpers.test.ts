@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   assertHomeConfigAdmin,
@@ -27,17 +27,45 @@ vi.mock("@/lib/admin/home-config-auth", () => ({
 const assertHomeConfigAdminMock = vi.mocked(assertHomeConfigAdmin);
 const getBearerTokenMock = vi.mocked(getBearerToken);
 const jsonErrorMock = vi.mocked(jsonError);
+const originalNodeEnv = process.env.NODE_ENV;
+const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
-function request() {
-  return new Request("https://example.com/api/admin/test", {
-    headers: { authorization: "Bearer token" },
+function restoreEnvValue(
+  name: "NODE_ENV" | "NEXT_PUBLIC_SITE_URL",
+  value: string | undefined,
+) {
+  if (value === undefined) {
+    delete process.env[name];
+    return;
+  }
+
+  process.env[name] = value;
+}
+
+function request(options?: { method?: string; origin?: string; url?: string }) {
+  const headers = new Headers({ authorization: "Bearer token" });
+
+  if (options?.origin) {
+    headers.set("origin", options.origin);
+  }
+
+  return new Request(options?.url ?? "https://example.com/api/admin/test", {
+    method: options?.method ?? "GET",
+    headers,
   });
 }
 
 describe("admin route helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    restoreEnvValue("NODE_ENV", originalNodeEnv);
+    restoreEnvValue("NEXT_PUBLIC_SITE_URL", originalSiteUrl);
     getBearerTokenMock.mockReturnValue("token");
+  });
+
+  afterEach(() => {
+    restoreEnvValue("NODE_ENV", originalNodeEnv);
+    restoreEnvValue("NEXT_PUBLIC_SITE_URL", originalSiteUrl);
   });
 
   it("returns a 401 response without calling Supabase auth when bearer token is missing", async () => {
@@ -83,6 +111,134 @@ describe("admin route helpers", () => {
     } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(request());
+
+    expect(result).toEqual({ ok: true, supabase });
+    expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");
+  });
+
+  it("rejects admin mutation requests without an origin header before bearer auth", async () => {
+    const result = await requireHomeConfigAdmin(request({ method: "PUT" }));
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.response.status).toBe(403);
+      await expect(result.response.json()).resolves.toEqual({
+        error: "Admin request origin is not allowed.",
+      });
+    }
+    expect(getBearerTokenMock).not.toHaveBeenCalled();
+    expect(assertHomeConfigAdminMock).not.toHaveBeenCalled();
+  });
+
+  it("allows admin mutation requests from the configured site origin", async () => {
+    const supabase = { from: vi.fn() };
+    process.env.NEXT_PUBLIC_SITE_URL = "https://baan.example";
+
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase,
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const result = await requireHomeConfigAdmin(
+      request({
+        method: "POST",
+        origin: "https://baan.example",
+        url: "https://internal.example/api/admin/test",
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, supabase });
+    expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");
+  });
+
+  it("allows admin mutation requests from the request host", async () => {
+    const supabase = { from: vi.fn() };
+
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase,
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const result = await requireHomeConfigAdmin(
+      request({
+        method: "PUT",
+        origin: "https://admin.example:8443",
+        url: "https://admin.example:8443/api/admin/test",
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, supabase });
+    expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");
+  });
+
+  it("rejects admin mutation requests from the request host over a different scheme", async () => {
+    const result = await requireHomeConfigAdmin(
+      request({
+        method: "PUT",
+        origin: "http://admin.example:8443",
+        url: "https://admin.example:8443/api/admin/test",
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.response.status).toBe(403);
+      await expect(result.response.json()).resolves.toEqual({
+        error: "Admin request origin is not allowed.",
+      });
+    }
+    expect(getBearerTokenMock).not.toHaveBeenCalled();
+    expect(assertHomeConfigAdminMock).not.toHaveBeenCalled();
+  });
+
+  it("allows localhost admin mutation requests in development", async () => {
+    const supabase = { from: vi.fn() };
+    process.env.NODE_ENV = "development";
+
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase,
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const result = await requireHomeConfigAdmin(
+      request({
+        method: "POST",
+        origin: "http://localhost:3000",
+        url: "https://preview.example/api/admin/test",
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, supabase });
+    expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");
+  });
+
+  it("rejects cross-origin admin mutation requests before bearer auth", async () => {
+    const result = await requireHomeConfigAdmin(
+      request({ method: "DELETE", origin: "https://attacker.example" }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.response.status).toBe(403);
+      await expect(result.response.json()).resolves.toEqual({
+        error: "Admin request origin is not allowed.",
+      });
+    }
+    expect(getBearerTokenMock).not.toHaveBeenCalled();
+    expect(assertHomeConfigAdminMock).not.toHaveBeenCalled();
+  });
+
+  it("does not block admin GET requests from a different origin", async () => {
+    const supabase = { from: vi.fn() };
+
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase,
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const result = await requireHomeConfigAdmin(
+      request({ method: "GET", origin: "https://attacker.example" }),
+    );
 
     expect(result).toEqual({ ok: true, supabase });
     expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");

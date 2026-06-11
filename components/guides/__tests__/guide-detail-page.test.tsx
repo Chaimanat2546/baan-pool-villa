@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { GuidePost } from "@/lib/guides/types";
+import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 import { GuideDetailPage, getYouTubeEmbedUrl } from "../guide-detail-page";
 
@@ -113,5 +114,22 @@ describe("getYouTubeEmbedUrl", () => {
     expect(markup).not.toContain("<iframe");
     expect(markup).not.toContain("youtube.com/embed");
     expect(markup).not.toContain("youtube-nocookie.com/embed");
+  });
+
+  it("renders the contact section before related articles when settings are provided", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([])}
+        recommendedVillas={[]}
+        relatedGuides={[{ ...makeGuide([]), id: "guide-2", slug: "guide-2" }]}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+
+    expect(markup).toContain('<section id="contact"');
+    expect(markup).toContain("data-home-guides");
+    expect(markup.indexOf('<section id="contact"')).toBeLessThan(
+      markup.indexOf("data-home-guides"),
+    );
   });
 });

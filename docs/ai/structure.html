@@ -14,7 +14,7 @@
         for where things live.
       </p>
       <p>
-        Last reviewed: 2026-06-09. Next.js App Router route groups such as
+        Last reviewed: 2026-06-11. Next.js App Router route groups such as
         <code>(home)</code>, <code>(public)</code>, and <code>(admin)</code> do
         not appear in the public URL.
       </p>
@@ -327,10 +327,12 @@
         <section id="admin-route-handlers">
           <h3>Admin Route Handlers</h3>
           <p>
-            Shared admin bearer-token checks and Supabase-style error responses
-            live in <code>lib/admin/route-helpers.ts</code>. Keep route handlers
-            focused on request parsing, validation, persistence, and cache
-            invalidation.
+            Shared admin bearer-token checks, mutation origin checks,
+            Turnstile login challenge verification, and Supabase-style error responses live in
+            <code>lib/admin/route-helpers.ts</code> and
+            <code>lib/admin/request-origin.ts</code>, with Turnstile Siteverify
+            owned by <code>lib/admin/turnstile.ts</code>. Keep route handlers focused
+            on request parsing, validation, persistence, and cache invalidation.
           </p>
           <table>
             <thead>
@@ -341,6 +343,11 @@
               </tr>
             </thead>
             <tbody>
+              <tr>
+                <td><code>app/(admin)/api/admin/login/turnstile/route.ts</code></td>
+                <td><code>/api/admin/login/turnstile</code></td>
+                <td>Verify the admin login Turnstile token before the browser Supabase password login flow proceeds. Production fails closed when Turnstile keys are missing; development bypasses Turnstile verification with a server warning so local admin login remains usable. The login widget uses the <code>admin_login</code> action with automatic theme and flexible sizing.</td>
+              </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/home-sections/route.ts</code></td>
                 <td><code>/api/admin/home-sections</code></td>
@@ -354,7 +361,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
-                <td>Admin auth with same-origin mutation guard, validate site settings (excluding TikTok fields), handle asset uploads, persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
+                <td>Admin auth through the shared bearer-token and mutation-origin guard, validate site settings (excluding TikTok fields), handle asset uploads, persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
@@ -404,7 +411,7 @@
           <tbody>
             <tr>
               <td><code>components/villas/home</code></td>
-              <td>Home page sections, CMS-driven home assembly, hero/contact/articles/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), villa rails, home skeletons, and minimal homepage client payloads.</td>
+              <td>Home page sections, CMS-driven home assembly, hero/articles/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), villa rails, home skeletons, and minimal homepage client payloads.</td>
               <td>Use <code>VillaRail</code>, home shared helpers, and section header patterns before creating new section UI. The homepage server may use the full villa catalog to resolve sections, but the client receives only <code>filterSummary</code>, <code>destinationVillas</code>, and resolved home sections rather than the full catalog.</td>
             </tr>
             <tr>
@@ -429,8 +436,8 @@
             </tr>
             <tr>
               <td><code>components/layout</code></td>
-              <td>Public header, footer, mobile bottom contact actions, contact icons, theme provider.</td>
-              <td>Contact actions should be backed by <code>lib/site-contact.ts</code>.</td>
+              <td>Public header, footer, shared public contact section, mobile bottom contact actions, contact icons, theme provider.</td>
+              <td>Contact actions and the shared contact section should be backed by <code>lib/site-contact.ts</code> and site settings.</td>
             </tr>
             <tr>
               <td><code>components/guides</code></td>
@@ -508,6 +515,11 @@
               <td><code>lib/__tests__/cache-policy.test.ts</code></td>
             </tr>
             <tr>
+              <td><code>lib/api</code></td>
+              <td>Shared public API helpers, including sanitized public error responses and route-handler rate limiting for public API endpoints. Public route handlers should call the rate limiter before expensive external API, Supabase, or upstream image download work.</td>
+              <td><code>lib/api/__tests__</code> plus touched public route tests such as <code>lib/villas/__tests__/public-routes.test.ts</code>, <code>lib/villas/__tests__/images.test.ts</code>, <code>lib/villas/__tests__/image-download.test.ts</code>, and <code>lib/home-sections/__tests__/public-route-rate-limit.test.ts</code>.</td>
+            </tr>
+            <tr>
               <td><code>worker.js</code></td>
               <td>Cloudflare Worker wrapper around OpenNext output. The Next image optimizer is disabled globally in <code>next.config.ts</code>; any remaining <code>/_next/image</code> header handling here is fallback behavior, not the normal public image path.</td>
               <td>Run <code>lib/__tests__/next-config.test.ts</code> and production network checks that public pages do not request <code>/_next/image</code>.</td>
@@ -529,8 +541,8 @@
             </tr>
             <tr>
               <td><code>lib/admin</code></td>
-              <td>Admin authentication/config helpers and shared admin route auth/error response utilities. Successful admin bearer checks use a short in-memory TTL cache keyed by a token hash; failed checks are not cached.</td>
-              <td><code>lib/admin/__tests__</code> plus targeted admin API route tests around auth and Supabase error behavior.</td>
+              <td>Admin authentication/config helpers, mutation request origin checks, Turnstile login challenge verification, and shared admin route auth/error response utilities. Successful admin bearer checks use a short in-memory TTL cache keyed by a token hash; failed checks are not cached. Admin <code>POST</code>, <code>PUT</code>, and <code>DELETE</code> requests allow missing <code>Origin</code>, the configured <code>NEXT_PUBLIC_SITE_URL</code> origin, the request host, and localhost origins in development. Turnstile login verification uses <code>NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in the browser and keeps <code>TURNSTILE_SECRET_KEY</code> server-only.</td>
+              <td><code>lib/admin/__tests__</code> plus targeted admin API route tests around auth, mutation origin checks, Turnstile verification, and Supabase error behavior.</td>
             </tr>
           </tbody>
         </table>
@@ -792,14 +804,24 @@
               <td>Run lint and build before completion.</td>
             </tr>
             <tr>
+              <td>Public API rate limiting or shared public API helpers</td>
+              <td><code>npm.cmd test -- lib/api lib/villas/__tests__/public-routes.test.ts lib/villas/__tests__/images.test.ts lib/villas/__tests__/image-download.test.ts lib/home-sections/__tests__/public-route-rate-limit.test.ts</code></td>
+              <td>Run lint and build before completion. Confirm blocked requests return <code>429</code> before external API, Supabase, or upstream image download helpers are called.</td>
+            </tr>
+            <tr>
               <td>Admin browser auth helpers or shared admin access-token reads</td>
               <td><code>npm.cmd test -- components/admin</code></td>
               <td>Run lint, build, and production smoke for admin redirects.</td>
             </tr>
             <tr>
-              <td>Admin API auth or shared Supabase error response behavior</td>
+              <td>Admin login Turnstile challenge flow</td>
+              <td><code>npm.cmd test -- lib/admin components/admin/login</code></td>
+              <td>Verify production missing-key responses fail closed, development bypasses with a warning, raw Cloudflare errors are not shown to users, and Supabase login is only called after Turnstile verification succeeds outside development.</td>
+            </tr>
+            <tr>
+              <td>Admin API auth, mutation origin guard, or shared Supabase error response behavior</td>
               <td><code>npm.cmd test -- lib/admin/__tests__</code> plus the touched admin route test files</td>
-              <td>Verify missing-token/admin-denied responses do not call persistence helpers and Supabase errors preserve <code>message</code>, <code>code</code>, <code>details</code>, and <code>hint</code>.</td>
+              <td>Verify missing-token/admin-denied/cross-origin responses do not call persistence helpers and Supabase errors preserve <code>message</code>, <code>code</code>, <code>details</code>, and <code>hint</code>.</td>
             </tr>
             <tr>
               <td>Public/admin visual UI, loading states, layout, or responsiveness</td>

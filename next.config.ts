@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const isDevelopment = process.env.NODE_ENV === "development";
+const CLOUDFLARE_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+
+const scriptSources = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(isDevelopment ? ["'unsafe-eval'"] : []),
+  CLOUDFLARE_TURNSTILE_ORIGIN,
+];
 
 const securityHeaders = [
   {
@@ -13,9 +21,9 @@ const securityHeaders = [
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https:`,
+      `script-src ${scriptSources.join(" ")}`,
       `connect-src 'self' https:${isDevelopment ? " ws: wss:" : ""}`,
-      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com",
+      `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
       "form-action 'self'",
       "upgrade-insecure-requests",
     ].join("; "),
@@ -31,6 +39,10 @@ const securityHeaders = [
   {
     key: "Referrer-Policy",
     value: "strict-origin-when-cross-origin",
+  },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
   },
 ];
 
