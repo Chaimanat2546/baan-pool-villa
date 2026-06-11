@@ -28,6 +28,31 @@ function normalizeAssetRole(value: string): GuideAssetRole {
   return value === "cover" ? "cover" : "inline";
 }
 
+function parseAssetRole(value: string):
+  | {
+      role: GuideAssetRole;
+      errors: [];
+    }
+  | {
+      role: null;
+      errors: string[];
+    } {
+  const trimmedValue = value.trim();
+
+  if (trimmedValue.length === 0) {
+    return { role: "inline", errors: [] };
+  }
+
+  if (trimmedValue === "cover" || trimmedValue === "inline") {
+    return { role: normalizeAssetRole(trimmedValue), errors: [] };
+  }
+
+  return {
+    role: null,
+    errors: ["Guide image role must be cover or inline."],
+  };
+}
+
 function getUploadExtension(mimeType: string): string | null {
   switch (mimeType) {
     case "image/jpeg":
@@ -84,12 +109,15 @@ export async function POST(request: Request) {
   }
 
   const errors = validateGuideUploadMetadata(file.type, file.size);
+  const assetRoleResult = parseAssetRole(readStringField(formData, "role"));
 
-  if (errors.length > 0) {
+  errors.push(...assetRoleResult.errors);
+
+  if (errors.length > 0 || !assetRoleResult.role) {
     return Response.json({ errors }, { status: 400 });
   }
 
-  const assetRole = normalizeAssetRole(readStringField(formData, "role"));
+  const assetRole = assetRoleResult.role;
   const guideId = readStringField(formData, "guideId").trim() || null;
   const alt = readStringField(formData, "alt").trim();
   const path = buildStoragePath(file.type);

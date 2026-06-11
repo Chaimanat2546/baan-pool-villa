@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   try {
     payload = await request.json();
   } catch {
-    payload = {};
+    return Response.json({ errors: ["Request body must be JSON."] }, { status: 400 });
   }
 
   const { requestedIds, invalidIds } = parseHouseIdsPayload(payload).reduce<{
