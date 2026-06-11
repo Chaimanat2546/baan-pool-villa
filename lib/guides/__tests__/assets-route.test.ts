@@ -27,7 +27,7 @@ const jsonErrorMock = vi.mocked(jsonError);
 function uploadRequest(formData: FormData) {
   return new Request("https://example.com/api/admin/guides/assets", {
     body: formData,
-    headers: { authorization: "Bearer token" },
+    headers: { authorization: "Bearer token", origin: "https://example.com" },
     method: "POST",
   });
 }

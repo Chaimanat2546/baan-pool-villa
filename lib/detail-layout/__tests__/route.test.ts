@@ -92,6 +92,7 @@ function putRequest(body: unknown) {
     body: JSON.stringify(body),
     headers: {
       authorization: "Bearer token",
+      origin: "https://example.com",
       "content-type": "application/json",
     },
     method: "PUT",
@@ -323,6 +324,7 @@ describe("admin detail layout route", () => {
         body: "{",
         headers: {
           authorization: "Bearer token",
+          origin: "https://example.com",
           "content-type": "application/json",
         },
         method: "PUT",

@@ -115,7 +115,7 @@ function tiktokSettingsForm(overrides: { tiktokAccountUrl?: string; tiktokVideoU
 function putRequest(formData: FormData) {
   return new Request("https://example.com/api/admin/tiktok", {
     body: formData,
-    headers: { authorization: "Bearer token" },
+    headers: { authorization: "Bearer token", origin: "https://example.com" },
     method: "PUT",
   });
 }
@@ -552,7 +552,7 @@ describe("admin tikTok route", () => {
 
     const request = new Request("https://example.com/api/admin/tiktok", {
       method: "PUT",
-      headers: { authorization: "Bearer token" },
+      headers: { authorization: "Bearer token", origin: "https://example.com" },
       body: "{}",
     });
 

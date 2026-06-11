@@ -42,24 +42,8 @@ function readTrimmedHeader(headers: Headers, headerName: string): string | null 
   return value ? value : null;
 }
 
-function readForwardedClient(headers: Headers): string | null {
-  const value = readTrimmedHeader(headers, "X-Forwarded-For");
-
-  if (!value) {
-    return null;
-  }
-
-  const firstValue = value.split(",", 1)[0]?.trim();
-
-  return firstValue ? firstValue : null;
-}
-
 export function getPublicRateLimitClientKey(request: Request): string {
-  return (
-    readTrimmedHeader(request.headers, "CF-Connecting-IP") ??
-    readForwardedClient(request.headers) ??
-    "unknown"
-  );
+  return readTrimmedHeader(request.headers, "CF-Connecting-IP") ?? "unknown";
 }
 
 function getBucketKey(policy: PublicRateLimitPolicy, clientKey: string): string {

@@ -20,8 +20,11 @@ const mocks = vi.hoisted(() => ({
 type TurnstileRenderOptions = {
   "error-callback": (errorCode?: string) => boolean;
   "expired-callback": () => void;
+  action?: string;
   callback: (token: string) => void;
+  size?: string;
   sitekey: string;
+  theme?: string;
 };
 
 vi.mock("next/navigation", () => ({
@@ -195,6 +198,25 @@ describe("AdminLoginForm", () => {
       password: "correct-password",
     });
     expect(mocks.replace).toHaveBeenCalledWith("/admin/sections");
+
+    await page.unmount();
+  });
+
+  it("renders Turnstile with the admin login widget configuration", async () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    const { getRenderOptions } = installTurnstileMock();
+
+    const page = await mountAdminPage(<AdminLoginForm />);
+
+    expect(getRenderOptions()).toMatchObject({
+      action: "admin_login",
+      size: "flexible",
+      sitekey: "site-key",
+      theme: "auto",
+    });
+    expect(page.container.textContent).toContain(
+      "ยืนยันว่าเป็นผู้ใช้งานจริงก่อนเข้าสู่ระบบ",
+    );
 
     await page.unmount();
   });

@@ -34,6 +34,7 @@ function postRequest({
   return new Request("https://example.com/api/admin/external-data/refresh", {
     headers: {
       authorization: "Bearer token",
+      origin: "https://example.com",
       ...(confirmed
         ? { "x-admin-refresh-confirmation": "external-villa-cache" }
         : {}),

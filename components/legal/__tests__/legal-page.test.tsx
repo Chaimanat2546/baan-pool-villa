@@ -197,6 +197,8 @@ describe("LegalPage renderer", () => {
       <LegalPageRenderer page={page} settings={DEFAULT_SITE_SETTINGS} />,
     );
 
+    expect(markup).toContain('data-legal-page-content="true"');
+    expect(markup).toContain('id="contact"');
     expect(markup.indexOf('data-legal-page-content="true"')).toBeLessThan(
       markup.indexOf('id="contact"'),
     );

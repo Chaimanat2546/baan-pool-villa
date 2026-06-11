@@ -20,8 +20,11 @@ type TurnstileWidgetId = string;
 interface TurnstileRenderOptions {
   "error-callback": (errorCode?: string) => boolean;
   "expired-callback": () => void;
+  action?: string;
   callback: (token: string) => void;
+  size?: "compact" | "flexible" | "normal";
   sitekey: string;
+  theme?: "auto" | "dark" | "light";
 }
 
 interface TurnstileApi {
@@ -119,11 +122,14 @@ export function AdminLoginForm() {
           "expired-callback": () => {
             setTurnstileToken("");
           },
+          action: "admin_login",
           callback: (token: string) => {
             setTurnstileToken(token);
             setError(null);
           },
+          size: "flexible",
           sitekey: turnstileSiteKey,
+          theme: "auto",
         },
       );
     };
@@ -299,7 +305,12 @@ export function AdminLoginForm() {
       </div>
 
       {isTurnstileEnabled ? (
-        <div className="mt-4 min-h-[65px]" ref={turnstileContainerRef} />
+        <div className="mt-4 space-y-2">
+          <div className="min-h-[65px]" ref={turnstileContainerRef} />
+          <p className="text-xs leading-5 text-[var(--site-muted)]">
+            ยืนยันว่าเป็นผู้ใช้งานจริงก่อนเข้าสู่ระบบ
+          </p>
+        </div>
       ) : null}
 
       {error ? (

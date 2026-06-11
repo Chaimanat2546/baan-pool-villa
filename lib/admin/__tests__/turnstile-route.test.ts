@@ -21,9 +21,7 @@ function routeRequest(options?: {
 }) {
   const headers = new Headers({ "Content-Type": "application/json" });
 
-  if (options?.origin) {
-    headers.set("origin", options.origin);
-  }
+  headers.set("origin", options?.origin ?? "https://baan.example");
 
   return new Request(
     options?.url ?? "https://baan.example/api/admin/login/turnstile",

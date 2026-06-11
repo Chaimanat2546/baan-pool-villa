@@ -29,6 +29,7 @@ function putRequest(body: unknown) {
     body: JSON.stringify(body),
     headers: {
       authorization: "Bearer token",
+      origin: "https://example.com",
       "content-type": "application/json",
     },
     method: "PUT",
@@ -40,6 +41,7 @@ function invalidJsonPutRequest() {
     body: "{",
     headers: {
       authorization: "Bearer token",
+      origin: "https://example.com",
       "content-type": "application/json",
     },
     method: "PUT",

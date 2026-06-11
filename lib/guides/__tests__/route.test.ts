@@ -78,6 +78,7 @@ function jsonRequest(method: string, body?: unknown) {
     body: body === undefined ? undefined : JSON.stringify(body),
     headers: {
       authorization: "Bearer token",
+      origin: "https://example.com",
       "content-type": "application/json",
     },
     method,
@@ -89,6 +90,7 @@ function invalidJsonRequest(method: string) {
     body: "{",
     headers: {
       authorization: "Bearer token",
+      origin: "https://example.com",
       "content-type": "application/json",
     },
     method,

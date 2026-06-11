@@ -109,7 +109,11 @@ describe("Turnstile admin login verification", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       TURNSTILE_SITEVERIFY_URL,
-      expect.objectContaining({ cache: "no-store", method: "POST" }),
+      expect.objectContaining({
+        cache: "no-store",
+        method: "POST",
+        signal: expect.any(AbortSignal),
+      }),
     );
     const body = fetchMock.mock.calls[0]?.[1]?.body as FormData;
     expect(body.get("secret")).toBe("secret-key");
@@ -134,6 +138,24 @@ describe("Turnstile admin login verification", () => {
       ok: false,
       status: 403,
     });
+    await expect(
+      verifyTurnstileToken({ request: request(), token: "token" }),
+    ).resolves.toEqual({
+      message: "Turnstile verification is unavailable.",
+      ok: false,
+      status: 502,
+    });
+  });
+
+  it("returns unavailable when Siteverify times out", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    process.env.TURNSTILE_SECRET_KEY = "secret-key";
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValue(new DOMException("The operation was aborted.", "AbortError"));
+    vi.stubGlobal("fetch", fetchMock);
+
     await expect(
       verifyTurnstileToken({ request: request(), token: "token" }),
     ).resolves.toEqual({
