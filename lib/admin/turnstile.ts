@@ -8,7 +8,7 @@ const TURNSTILE_MISSING_TOKEN_MESSAGE = "Missing Turnstile token.";
 const TURNSTILE_FAILED_MESSAGE = "Turnstile verification failed.";
 const TURNSTILE_UNAVAILABLE_MESSAGE = "Turnstile verification is unavailable.";
 const TURNSTILE_DEVELOPMENT_BYPASS_WARNING =
-  "Turnstile verification is bypassed in development because keys are missing.";
+  "Turnstile verification is bypassed in development.";
 
 let hasWarnedAboutDevelopmentBypass = false;
 
@@ -73,7 +73,7 @@ export function getTurnstileConfig(): TurnstileConfig {
     isConfigured,
     isDevelopment,
     secretKey,
-    shouldBypass: isDevelopment && !isConfigured,
+    shouldBypass: isDevelopment,
     siteKey,
   };
 }

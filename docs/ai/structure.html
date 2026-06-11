@@ -346,7 +346,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/login/turnstile/route.ts</code></td>
                 <td><code>/api/admin/login/turnstile</code></td>
-                <td>Verify the admin login Turnstile token before the browser Supabase password login flow proceeds. Production fails closed when Turnstile keys are missing; development bypasses missing-key verification with a server warning.</td>
+                <td>Verify the admin login Turnstile token before the browser Supabase password login flow proceeds. Production fails closed when Turnstile keys are missing; development bypasses Turnstile verification with a server warning so local admin login remains usable.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/home-sections/route.ts</code></td>
@@ -816,7 +816,7 @@
             <tr>
               <td>Admin login Turnstile challenge flow</td>
               <td><code>npm.cmd test -- lib/admin components/admin/login</code></td>
-              <td>Verify production missing-key responses fail closed, development missing-key responses bypass with a warning, raw Cloudflare errors are not shown to users, and Supabase login is only called after Turnstile verification succeeds.</td>
+              <td>Verify production missing-key responses fail closed, development bypasses with a warning, raw Cloudflare errors are not shown to users, and Supabase login is only called after Turnstile verification succeeds outside development.</td>
             </tr>
             <tr>
               <td>Admin API auth, mutation origin guard, or shared Supabase error response behavior</td>

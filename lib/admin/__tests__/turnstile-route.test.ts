@@ -119,10 +119,10 @@ describe("admin login Turnstile route", () => {
     });
   });
 
-  it("returns a bypassed response in development when keys are missing", async () => {
+  it("returns a bypassed response in development even when keys are configured", async () => {
     process.env.NODE_ENV = "development";
-    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-    delete process.env.TURNSTILE_SECRET_KEY;
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    process.env.TURNSTILE_SECRET_KEY = "secret-key";
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const POST = await importPostRoute();
 

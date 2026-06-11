@@ -18,7 +18,7 @@ const TURNSTILE_CONFIG_MESSAGE = "ระบบยืนยันตัวตน�
 type TurnstileWidgetId = string;
 
 interface TurnstileRenderOptions {
-  "error-callback": () => void;
+  "error-callback": (errorCode?: string) => boolean;
   "expired-callback": () => void;
   callback: (token: string) => void;
   sitekey: string;
@@ -57,6 +57,10 @@ function getTurnstileSiteKey(): string {
   return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
 }
 
+function isDevelopmentTurnstileBypass(): boolean {
+  return process.env.NODE_ENV === "development";
+}
+
 function getTurnstileLoginErrorMessage(status: number | undefined): string {
   return status === 503 ? TURNSTILE_CONFIG_MESSAGE : TURNSTILE_FAILED_MESSAGE;
 }
@@ -64,7 +68,8 @@ function getTurnstileLoginErrorMessage(status: number | undefined): string {
 export function AdminLoginForm() {
   const router = useRouter();
   const turnstileSiteKey = getTurnstileSiteKey();
-  const isTurnstileEnabled = turnstileSiteKey.length > 0;
+  const isTurnstileEnabled =
+    turnstileSiteKey.length > 0 && !isDevelopmentTurnstileBypass();
   const turnstileContainerRef = useRef<HTMLDivElement>(null);
   const turnstileWidgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const [email, setEmail] = useState("");
@@ -109,6 +114,7 @@ export function AdminLoginForm() {
           "error-callback": () => {
             setTurnstileToken("");
             setError(TURNSTILE_FAILED_MESSAGE);
+            return true;
           },
           "expired-callback": () => {
             setTurnstileToken("");

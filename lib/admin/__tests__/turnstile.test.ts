@@ -60,10 +60,10 @@ describe("Turnstile admin login verification", () => {
     });
   });
 
-  it("bypasses in development without complete keys and warns once", async () => {
+  it("bypasses in development even when keys are configured and warns once", async () => {
     process.env.NODE_ENV = "development";
-    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-    delete process.env.TURNSTILE_SECRET_KEY;
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    process.env.TURNSTILE_SECRET_KEY = "secret-key";
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
     const first = await verifyTurnstileToken({ request: request(), token: "" });
@@ -73,7 +73,7 @@ describe("Turnstile admin login verification", () => {
     expect(second).toEqual({ bypassed: true, ok: true });
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(
-      "Turnstile verification is bypassed in development because keys are missing.",
+      "Turnstile verification is bypassed in development.",
     );
   });
 

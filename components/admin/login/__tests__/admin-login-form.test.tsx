@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 type TurnstileRenderOptions = {
-  "error-callback": () => void;
+  "error-callback": (errorCode?: string) => boolean;
   "expired-callback": () => void;
   callback: (token: string) => void;
   sitekey: string;
@@ -40,8 +40,11 @@ vi.mock("@/lib/home-sections/supabase", () => ({
 
 import { AdminLoginForm } from "../admin-login-form";
 
+const originalNodeEnv = process.env.NODE_ENV;
+
 describe("AdminLoginForm", () => {
   beforeEach(() => {
+    process.env.NODE_ENV = originalNodeEnv;
     mocks.replace.mockReset();
     mocks.signInWithPassword.mockReset();
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
@@ -56,6 +59,7 @@ describe("AdminLoginForm", () => {
   });
 
   afterEach(() => {
+    process.env.NODE_ENV = originalNodeEnv;
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
@@ -233,6 +237,69 @@ describe("AdminLoginForm", () => {
     expect(page.container.textContent).not.toContain("invalid-input-response");
     expect(turnstile.reset).toHaveBeenCalledWith("widget-id");
     expect(mocks.signInWithPassword).not.toHaveBeenCalled();
+
+    await page.unmount();
+  });
+
+  it("uses the development server bypass without rendering a Turnstile widget", async () => {
+    process.env.NODE_ENV = "development";
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    const fetchMock = vi.fn().mockResolvedValue(
+      makeJsonResponse({
+        body: { bypassed: true, verified: true },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    mocks.signInWithPassword.mockResolvedValue({ error: null });
+    const { turnstile } = installTurnstileMock();
+
+    const page = await mountAdminPage(<AdminLoginForm />);
+    const emailInput = page.container.querySelector(
+      "input[name='email']",
+    ) as HTMLInputElement;
+    const passwordInput = page.container.querySelector(
+      "input[name='password']",
+    ) as HTMLInputElement;
+    const submitButton = page.container.querySelector(
+      "button[type='submit']",
+    ) as HTMLButtonElement;
+
+    await changeInput(emailInput, "admin@example.com");
+    await changeInput(passwordInput, "correct-password");
+    await click(submitButton);
+    await flushEffects();
+
+    expect(turnstile.render).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/login/turnstile",
+      expect.objectContaining({
+        body: JSON.stringify({ token: "" }),
+        method: "POST",
+      }),
+    );
+    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      password: "correct-password",
+    });
+
+    await page.unmount();
+  });
+
+  it("handles Turnstile widget errors so Cloudflare does not throw an extra console error", async () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    const { getRenderOptions } = installTurnstileMock();
+
+    const page = await mountAdminPage(<AdminLoginForm />);
+
+    let handled = false;
+    await act(async () => {
+      handled = getRenderOptions()["error-callback"]("300030");
+    });
+
+    expect(handled).toBe(true);
+    expect(page.container.textContent).toContain(
+      "ยืนยันตัวตนไม่สำเร็จ กรุณาลองอีกครั้ง",
+    );
 
     await page.unmount();
   });
