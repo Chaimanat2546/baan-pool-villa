@@ -101,7 +101,9 @@ function makeSectionsSnapshot(sections: AdminSectionDraft[]): string {
   return JSON.stringify(sections.map(toHomeSectionDraft));
 }
 
-function normalizeDisplayOrder(sections: AdminSectionDraft[]): AdminSectionDraft[] {
+function normalizeDisplayOrder(
+  sections: AdminSectionDraft[],
+): AdminSectionDraft[] {
   return sections.map((section, sectionIndex) => ({
     ...section,
     displayOrder: sectionIndex,
@@ -132,7 +134,9 @@ function mapResponseSections(
   );
 }
 
-function makeNewSection(existingSections: AdminSectionDraft[]): AdminSectionDraft {
+function makeNewSection(
+  existingSections: AdminSectionDraft[],
+): AdminSectionDraft {
   const usedSlugs = new Set(existingSections.map((section) => section.slug));
   let sectionNumber = existingSections.length + 1;
   let slug = `new-section-${sectionNumber}`;
@@ -196,7 +200,9 @@ function extractErrors(payload: unknown, fallback: string): string[] {
       typeof errorPayload.code === "string" ? errorPayload.code : null,
       typeof errorPayload.details === "string" ? errorPayload.details : null,
       typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter((part): part is string => typeof part === "string" && part.length > 0);
+    ].filter(
+      (part): part is string => typeof part === "string" && part.length > 0,
+    );
 
     return [formatAdminErrorMessage(errorPayload.error, detailParts)];
   }
@@ -266,7 +272,9 @@ export function AdminSectionsPage() {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
-  const [manualIdTexts, setManualIdTexts] = useState<Record<string, string>>({});
+  const [manualIdTexts, setManualIdTexts] = useState<Record<string, string>>(
+    {},
+  );
   const [pendingDeleteDraftId, setPendingDeleteDraftId] = useState<
     string | null
   >(null);
@@ -313,9 +321,7 @@ export function AdminSectionsPage() {
     ? (MODE_LABELS.get(activeSection.mode) ?? activeSection.mode)
     : null;
   const activeManualStatus =
-    activeSection?.mode === "manual"
-      ? getManualIdStatus(activeSection)
-      : null;
+    activeSection?.mode === "manual" ? getManualIdStatus(activeSection) : null;
   const duplicateManualIds = activeManualStatus?.duplicateIds.length ?? 0;
   const invalidManualIds = activeManualStatus?.invalidIds.length ?? 0;
   const hasValidatedManualIds =
@@ -369,8 +375,11 @@ export function AdminSectionsPage() {
 
         const mappedSections = mapResponseSections(payload);
         const nextActiveDraftId =
-          mappedSections.find((section) => section.draftId === activeSectionDraftId)
-            ?.draftId ?? mappedSections[0]?.draftId ?? null;
+          mappedSections.find(
+            (section) => section.draftId === activeSectionDraftId,
+          )?.draftId ??
+          mappedSections[0]?.draftId ??
+          null;
 
         setSections(mappedSections);
         setSavedSnapshot(makeSectionsSnapshot(mappedSections));
@@ -410,7 +419,10 @@ export function AdminSectionsPage() {
         }
 
         setErrors([
-          getAdminErrorMessage(caughtError, "ไม่สามารถเริ่มต้นหน้าจัดหน้าแรกได้"),
+          getAdminErrorMessage(
+            caughtError,
+            "ไม่สามารถเริ่มต้นหน้าจัดหน้าแรกได้",
+          ),
         ]);
         setIsLoading(false);
       }
@@ -552,9 +564,7 @@ export function AdminSectionsPage() {
       }
 
       if (!response.ok) {
-        throw new Error(
-          extractErrors(payload, "เช็กเลขบ้านไม่ได้").join("\n"),
-        );
+        throw new Error(extractErrors(payload, "เช็กเลขบ้านไม่ได้").join("\n"));
       }
 
       return payload as AdminManualPreviewResponse;
@@ -609,9 +619,7 @@ export function AdminSectionsPage() {
           return;
         }
 
-        setErrors([
-          getAdminErrorMessage(caughtError, "เช็กเลขบ้านไม่ได้"),
-        ]);
+        setErrors([getAdminErrorMessage(caughtError, "เช็กเลขบ้านไม่ได้")]);
       } finally {
         if (!isAbortSignalAborted(signal)) {
           setIsPreviewing(false);
@@ -778,7 +786,9 @@ export function AdminSectionsPage() {
       setManualIdTexts({});
       setActiveDraftId(
         mappedSections.find((section) => section.draftId === activeDraftId)
-          ?.draftId ?? mappedSections[0]?.draftId ?? null,
+          ?.draftId ??
+          mappedSections[0]?.draftId ??
+          null,
       );
       setPreview(null);
       setPreviewDraftId(null);
@@ -807,15 +817,10 @@ export function AdminSectionsPage() {
               จัดชุดบ้านพักหน้าแรก
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
-              จัดลำดับแต่ละชุด กำหนดวิธีคัดบ้าน และเช็กภาพรวมก่อนบันทึกให้หน้าแรกแสดงผลตามที่ต้องการ
+              จัดลำดับแต่ละชุด กำหนดวิธีคัดบ้าน
+              และเช็กภาพรวมก่อนบันทึกให้หน้าแรกแสดงผลตามที่ต้องการ
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-              <span className="rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-text)] ring-1 ring-[var(--site-border)]">
-                ทั้งหมด {sections.length} ชุด
-              </span>
-              <span className="rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-text)] ring-1 ring-[var(--site-border)]">
-                เปิดใช้งาน {activeSectionsCount} ชุด
-              </span>
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
                   hasUnsavedChanges
@@ -827,6 +832,12 @@ export function AdminSectionsPage() {
                 {hasUnsavedChanges
                   ? "มีรายการที่ยังไม่บันทึก"
                   : "บันทึกล่าสุดแล้ว"}
+              </span>
+              <span className="rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-text)] ring-1 ring-[var(--site-border)]">
+                ทั้งหมด {sections.length} ชุด
+              </span>
+              <span className="rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-text)] ring-1 ring-[var(--site-border)]">
+                เปิดใช้งาน {activeSectionsCount} ชุด
               </span>
             </div>
           </div>
@@ -847,7 +858,7 @@ export function AdminSectionsPage() {
               target="_blank"
             >
               <Eye aria-hidden="true" className="size-4" />
-              ดูหน้าแรก
+              ดูหน้าเว็บจริง
             </Link>
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
@@ -861,7 +872,7 @@ export function AdminSectionsPage() {
                 aria-hidden="true"
                 className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
               />
-              {isSaving ? "กำลังตรวจและบันทึก..." : "บันทึกหน้าแรก"}
+              {isSaving ? "กำลังตรวจและบันทึก..." : "บันทึก"}
             </button>
           </div>
         </header>
@@ -940,14 +951,16 @@ export function AdminSectionsPage() {
                           {activeModeLabel}
                         </span>
                         <span className="rounded-full bg-[var(--site-surface)] px-2.5 py-1 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
-                          {activeSection.limitCount.toLocaleString("th-TH")} หลัง
+                          {activeSection.limitCount.toLocaleString("th-TH")}{" "}
+                          หลัง
                         </span>
                       </div>
                       <h2 className="mt-3 text-2xl font-semibold text-[var(--site-text)]">
                         {activeSection.title || "ยังไม่ได้ตั้งชื่อชุด"}
                       </h2>
                       <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
-                        ปรับข้อความ วิธีคัดบ้าน และสถานะการแสดงผลของชุดนี้ก่อนบันทึกขึ้นหน้าแรก
+                        ปรับข้อความ วิธีคัดบ้าน
+                        และสถานะการแสดงผลของชุดนี้ก่อนบันทึกขึ้นหน้าแรก
                       </p>
                       {deleteNeedsConfirmation ? (
                         <p className="mt-3 text-sm font-semibold text-red-700">
@@ -1021,7 +1034,9 @@ export function AdminSectionsPage() {
                         สถานะ
                       </p>
                       <p className="mt-2 text-lg font-semibold text-[var(--site-text)]">
-                        {activeSection.isActive ? "พร้อมแสดงผล" : "ปิดการแสดงผล"}
+                        {activeSection.isActive
+                          ? "พร้อมแสดงผล"
+                          : "ปิดการแสดงผล"}
                       </p>
                       <p className="mt-1 text-sm text-[var(--site-muted)]">
                         {activeSection.isActive
@@ -1045,7 +1060,9 @@ export function AdminSectionsPage() {
                         ปุ่มลิงก์
                       </p>
                       <p className="mt-2 text-lg font-semibold text-[var(--site-text)]">
-                        {activeSection.ctaEnabled ? "เปิดใช้งาน" : "ไม่แสดงปุ่ม"}
+                        {activeSection.ctaEnabled
+                          ? "เปิดใช้งาน"
+                          : "ไม่แสดงปุ่ม"}
                       </p>
                       <p className="mt-1 text-sm text-[var(--site-muted)]">
                         {activeSection.ctaEnabled
@@ -1195,13 +1212,17 @@ export function AdminSectionsPage() {
                       </dd>
                     </div>
                     <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                      <dt className="text-[var(--site-muted)]">จำนวนที่ตั้งไว้</dt>
+                      <dt className="text-[var(--site-muted)]">
+                        จำนวนที่ตั้งไว้
+                      </dt>
                       <dd className="text-right font-semibold text-[var(--site-text)]">
                         {activeSection.limitCount.toLocaleString("th-TH")} หลัง
                       </dd>
                     </div>
                     <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                      <dt className="text-[var(--site-muted)]">การเติมรายการ</dt>
+                      <dt className="text-[var(--site-muted)]">
+                        การเติมรายการ
+                      </dt>
                       <dd className="max-w-[14rem] text-right font-semibold text-[var(--site-text)]">
                         {getFallbackModeLabel(activeSection.fallbackMode)}
                       </dd>
@@ -1209,28 +1230,39 @@ export function AdminSectionsPage() {
                     {activeSection.mode === "manual" ? (
                       <>
                         <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                          <dt className="text-[var(--site-muted)]">เลขบ้านที่กรอก</dt>
+                          <dt className="text-[var(--site-muted)]">
+                            เลขบ้านที่กรอก
+                          </dt>
                           <dd className="text-right font-semibold text-[var(--site-text)]">
-                            {activeSection.items.length.toLocaleString("th-TH")} รายการ
+                            {activeSection.items.length.toLocaleString("th-TH")}{" "}
+                            รายการ
                           </dd>
                         </div>
                         <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                          <dt className="text-[var(--site-muted)]">เลขซ้ำ / ไม่ถูกต้อง</dt>
+                          <dt className="text-[var(--site-muted)]">
+                            เลขซ้ำ / ไม่ถูกต้อง
+                          </dt>
                           <dd className="text-right font-semibold text-[var(--site-text)]">
                             {duplicateManualIds.toLocaleString("th-TH")} /{" "}
                             {invalidManualIds.toLocaleString("th-TH")}
                           </dd>
                         </div>
                         <div className="flex items-start justify-between gap-4">
-                          <dt className="text-[var(--site-muted)]">สถานะเลขบ้าน</dt>
+                          <dt className="text-[var(--site-muted)]">
+                            สถานะเลขบ้าน
+                          </dt>
                           <dd className="text-right font-semibold text-[var(--site-text)]">
-                            {hasValidatedManualIds ? "ตรวจเลขบ้านแล้ว" : "รอตรวจเลขบ้าน"}
+                            {hasValidatedManualIds
+                              ? "ตรวจเลขบ้านแล้ว"
+                              : "รอตรวจเลขบ้าน"}
                           </dd>
                         </div>
                       </>
                     ) : (
                       <div className="flex items-start justify-between gap-4">
-                        <dt className="text-[var(--site-muted)]">เลื่อนรายการเริ่มที่</dt>
+                        <dt className="text-[var(--site-muted)]">
+                          เลื่อนรายการเริ่มที่
+                        </dt>
                         <dd className="text-right font-semibold text-[var(--site-text)]">
                           {activeSection.sliceOffset.toLocaleString("th-TH")}
                         </dd>
@@ -1255,7 +1287,8 @@ export function AdminSectionsPage() {
                   ยังไม่มีชุดบ้านพัก
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">
-                  เริ่มจากเพิ่มชุดบ้านพักชุดแรก แล้วค่อยกำหนดข้อความ รูปแบบคัดบ้าน และพรีวิวก่อนบันทึก
+                  เริ่มจากเพิ่มชุดบ้านพักชุดแรก แล้วค่อยกำหนดข้อความ
+                  รูปแบบคัดบ้าน และพรีวิวก่อนบันทึก
                 </p>
                 <button
                   className="mt-5 inline-flex h-11 items-center gap-2 rounded-md bg-[var(--site-primary)] px-5 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)]"

@@ -50,6 +50,7 @@ describe("settings helpers", () => {
       seo: {
         title: "Baan Pool Villa Pattaya | Private Pool Villas",
         description: "Book private pool villas in Pattaya.",
+        keywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
         ogImage: {
           path: "/images/seo-cover.jpg",
           url: "/images/seo-cover.jpg",
@@ -79,9 +80,21 @@ describe("settings helpers", () => {
       lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
       seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
       seoDescription: "Book private pool villas in Pattaya.",
+      seoKeywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
       seoOgImageUrl: "/images/seo-cover.jpg",
       seoOgImageAlt: "Pool villa with private swimming pool",
       seoBusinessName: "Baan Pool Villa Pattaya",
+      searchSeoTitle: DEFAULT_SITE_SETTINGS.pageSeo.search.title,
+      searchSeoDescription: DEFAULT_SITE_SETTINGS.pageSeo.search.description,
+      searchSeoKeywords: DEFAULT_SITE_SETTINGS.pageSeo.search.keywords,
+      searchSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.url,
+      searchSeoOgImageAlt: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.alt,
+      guidesSeoTitle: DEFAULT_SITE_SETTINGS.pageSeo.guides.title,
+      guidesSeoDescription: DEFAULT_SITE_SETTINGS.pageSeo.guides.description,
+      guidesSeoKeywords: DEFAULT_SITE_SETTINGS.pageSeo.guides.keywords,
+      guidesSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.url,
+      guidesSeoOgImageAlt: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.alt,
+      villaDetailSeoKeywords: DEFAULT_SITE_SETTINGS.pageSeo.villaDetail.keywords,
       seoSameAsUrls: [
         "https://www.facebook.com/baanpoolvillas",
         "https://line.me/R/ti/p/@baanpoolvilla",
@@ -112,6 +125,7 @@ describe("settings helpers", () => {
       lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
       seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
       seoDescription: "Book private pool villas in Pattaya.",
+      seoKeywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
       seoOgImageUrl: "/images/seo-cover.jpg",
       seoOgImageAlt: "Pool villa with private swimming pool",
       seoBusinessName: "Baan Pool Villa Pattaya",
@@ -119,6 +133,17 @@ describe("settings helpers", () => {
         "https://www.facebook.com/baanpoolvillas",
         "https://line.me/R/ti/p/@baanpoolvilla",
       ],
+      searchSeoTitle: DEFAULT_SITE_SETTINGS.pageSeo.search.title,
+      searchSeoDescription: DEFAULT_SITE_SETTINGS.pageSeo.search.description,
+      searchSeoKeywords: DEFAULT_SITE_SETTINGS.pageSeo.search.keywords,
+      searchSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.url,
+      searchSeoOgImageAlt: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.alt,
+      guidesSeoTitle: DEFAULT_SITE_SETTINGS.pageSeo.guides.title,
+      guidesSeoDescription: DEFAULT_SITE_SETTINGS.pageSeo.guides.description,
+      guidesSeoKeywords: DEFAULT_SITE_SETTINGS.pageSeo.guides.keywords,
+      guidesSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.url,
+      guidesSeoOgImageAlt: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.alt,
+      villaDetailSeoKeywords: DEFAULT_SITE_SETTINGS.pageSeo.villaDetail.keywords,
     });
 
     expect(formData.get("bankAccountName")).toBe("คุณ อาภัสรา จินดาวา");
@@ -137,7 +162,20 @@ describe("settings helpers", () => {
     expect(formData.get("seoDescription")).toBe(
       "Book private pool villas in Pattaya.",
     );
+    expect(JSON.parse(String(formData.get("seoKeywords")))).toEqual([
+      "พูลวิลล่าพัทยา",
+      "บ้านพักพูลวิลล่า",
+    ]);
     expect(formData.get("seoOgImageUrl")).toBe("/images/seo-cover.jpg");
+    expect(JSON.parse(String(formData.get("searchSeoKeywords")))).toEqual(
+      DEFAULT_SITE_SETTINGS.pageSeo.search.keywords,
+    );
+    expect(JSON.parse(String(formData.get("guidesSeoKeywords")))).toEqual(
+      DEFAULT_SITE_SETTINGS.pageSeo.guides.keywords,
+    );
+    expect(JSON.parse(String(formData.get("villaDetailSeoKeywords")))).toEqual(
+      DEFAULT_SITE_SETTINGS.pageSeo.villaDetail.keywords,
+    );
     expect(formData.get("seoOgImageAlt")).toBe(
       "Pool villa with private swimming pool",
     );
@@ -178,9 +216,21 @@ describe("settings helpers", () => {
       lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
       seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
       seoDescription: "Book private pool villas in Pattaya.",
+      seoKeywords: ["พูลวิลล่าพัทยา"],
       seoOgImageUrl: "/images/seo-cover.jpg",
       seoOgImageAlt: "Pool villa with private swimming pool",
       seoBusinessName: "Baan Pool Villa Pattaya",
+      searchSeoTitle: DEFAULT_SITE_SETTINGS.pageSeo.search.title,
+      searchSeoDescription: DEFAULT_SITE_SETTINGS.pageSeo.search.description,
+      searchSeoKeywords: DEFAULT_SITE_SETTINGS.pageSeo.search.keywords,
+      searchSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.url,
+      searchSeoOgImageAlt: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.alt,
+      guidesSeoTitle: DEFAULT_SITE_SETTINGS.pageSeo.guides.title,
+      guidesSeoDescription: DEFAULT_SITE_SETTINGS.pageSeo.guides.description,
+      guidesSeoKeywords: DEFAULT_SITE_SETTINGS.pageSeo.guides.keywords,
+      guidesSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.url,
+      guidesSeoOgImageAlt: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.alt,
+      villaDetailSeoKeywords: DEFAULT_SITE_SETTINGS.pageSeo.villaDetail.keywords,
       seoSameAsUrls: [
         "https://www.facebook.com/baanpoolvillas",
         "https://line.me/R/ti/p/@baanpoolvilla",

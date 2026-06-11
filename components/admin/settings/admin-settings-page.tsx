@@ -465,7 +465,7 @@ export function AdminSettingsPage() {
                 aria-hidden="true"
                 className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
               />
-              {isSaving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
+              {isSaving ? "กำลังบันทึก..." : "บันทึก"}
             </button>
           </div>
         </header>

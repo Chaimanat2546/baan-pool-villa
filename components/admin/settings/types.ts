@@ -16,18 +16,22 @@ export interface AdminSettingsDraft {
   lineUrl: string;
   seoTitle: string;
   seoDescription: string;
+  seoKeywords: string[];
   seoOgImageUrl: string;
   seoOgImageAlt: string;
   seoBusinessName: string;
   seoSameAsUrls: string[];
   searchSeoTitle: string;
   searchSeoDescription: string;
+  searchSeoKeywords: string[];
   searchSeoOgImageUrl: string;
   searchSeoOgImageAlt: string;
   guidesSeoTitle: string;
   guidesSeoDescription: string;
+  guidesSeoKeywords: string[];
   guidesSeoOgImageUrl: string;
   guidesSeoOgImageAlt: string;
+  villaDetailSeoKeywords: string[];
 }
 
 export interface AdminSiteSettingsResponse {

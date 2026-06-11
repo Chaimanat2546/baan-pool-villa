@@ -9,12 +9,43 @@ export const siteName = "Pool Villas Pattaya";
 export const defaultTitle = "Pool Villas Pattaya | บ้านพักพูลวิลล่าพัทยา";
 export const defaultDescription =
   "รวมบ้านพักพูลวิลล่าพัทยา บ้านพักสระส่วนตัวสำหรับครอบครัว กลุ่มเพื่อน และทริปปาร์ตี้ เลือกทำเล จำนวนคน ห้องนอน ราคา และดูบ้านพักใกล้ทะเลได้ง่าย";
+export const defaultKeywords = [
+  "บ้านพักพูลวิลล่า",
+  "พูลวิลล่าพัทยา",
+  "บ้านพูลวิลล่าพัทยา",
+  "บ้านพักพูลวิลล่าพัทยา",
+  "บ้านพักสระส่วนตัว",
+  "พูลวิลล่าใกล้ทะเล",
+  "บ้านพักพัทยา",
+  "พูลวิลล่าจอมเทียน",
+  "พูลวิลล่าบางแสน",
+  "พูลวิลล่าหัวหิน",
+];
 export const searchTitle = "ค้นหาบ้านพักพูลวิลล่าพัทยา";
 export const searchDescription =
   "ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเล จำนวนผู้เข้าพัก ห้องนอน ราคา สิ่งอำนวยความสะดวก รหัสบ้าน และการเรียงลำดับที่ต้องการ";
+export const searchKeywords = [
+  "ค้นหาพูลวิลล่าพัทยา",
+  "ค้นหาบ้านพักพูลวิลล่า",
+  "บ้านพักพูลวิลล่าตามราคา",
+  "พูลวิลล่าตามจำนวนคน",
+  "พูลวิลล่าตามทำเล",
+];
 export const guidesTitle = "บทความแนะนำบ้านพักพูลวิลล่าพัทยา";
 export const guidesDescription =
   "บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก และการเตรียมตัวก่อนเที่ยว";
+export const guidesKeywords = [
+  "บทความพูลวิลล่าพัทยา",
+  "คู่มือเลือกพูลวิลล่า",
+  "แนะนำบ้านพักพูลวิลล่า",
+  "เที่ยวพัทยาพักพูลวิลล่า",
+];
+export const villaDetailBaseKeywords = [
+  "รายละเอียดพูลวิลล่าพัทยา",
+  "จองพูลวิลล่าพัทยา",
+  "บ้านพักพูลวิลล่ารายหลัง",
+  "พูลวิลล่าสระส่วนตัว",
+];
 export const defaultOgImage = "/images/BPV-66_Cover-Web.jpg";
 const defaultOgImageAlt = "บ้านพักพูลวิลล่าพัทยาพร้อมสระว่ายน้ำส่วนตัว";
 const openGraphImageWidth = 1200;
@@ -74,6 +105,10 @@ export function getVillaTitle(villa: VillaListing): string {
   return `พูลวิลล่า ${villa.id} ${titleLocation}`;
 }
 
+function uniqueKeywords(keywords: string[]): string[] {
+  return [...new Set(keywords.map((keyword) => keyword.trim()).filter(Boolean))];
+}
+
 export function getVillaDescription(villa: VillaListing): string {
   const price = villa.price.toLocaleString("th-TH");
 
@@ -96,12 +131,31 @@ export function getVillaSearchIntentSummary(villa: VillaListing): string {
   ].join(" ");
 }
 
+export function getVillaKeywords(villa: VillaListing): string[] {
+  const zoneLabel = villa.zoneLabel.trim();
+  const titleLocation = zoneLabel.includes("พัทยา")
+    ? zoneLabel
+    : `${zoneLabel} พัทยา`;
+
+  return uniqueKeywords([
+    `พูลวิลล่า ${villa.id}`,
+    `บ้านพัก ${villa.id}`,
+    `พูลวิลล่า ${zoneLabel}`,
+    `บ้านพัก ${titleLocation}`,
+    `พูลวิลล่า ${villa.people.toLocaleString("th-TH")} คน`,
+    `พูลวิลล่า ${villa.bedrooms.toLocaleString("th-TH")} ห้องนอน`,
+    `พูลวิลล่าใกล้ทะเล ${villa.distanceToSea}`,
+    ...villa.amenities.map((amenity) => `พูลวิลล่า${amenity.label}`),
+  ]);
+}
+
 export function buildPageMetadata({
   absoluteTitle = false,
   canonicalPath,
   description = defaultDescription,
   image = defaultOgImage,
   imageAlt,
+  keywords = defaultKeywords,
   openGraphType = "website",
   publishedTime,
   siteName: metadataSiteName = siteName,
@@ -112,6 +166,7 @@ export function buildPageMetadata({
   description?: string;
   image?: string | null;
   imageAlt?: string;
+  keywords?: string[];
   openGraphType?: "article" | "website";
   publishedTime?: string | null;
   siteName?: string;
@@ -124,6 +179,7 @@ export function buildPageMetadata({
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
+    keywords: uniqueKeywords(keywords),
     alternates: {
       canonical: canonicalUrl,
     },
@@ -182,6 +238,7 @@ export function buildSiteSettingsPageMetadata({
   description,
   image,
   imageAlt,
+  keywords,
   openGraphType,
   publishedTime,
   section,
@@ -193,14 +250,19 @@ export function buildSiteSettingsPageMetadata({
   description?: string;
   image?: string | null;
   imageAlt?: string;
+  keywords?: string[];
   openGraphType?: "article" | "website";
   publishedTime?: string | null;
-  section?: keyof SiteSettings["pageSeo"];
+  section?: Exclude<keyof SiteSettings["pageSeo"], "villaDetail">;
   settings: SiteSettings;
   title?: string;
 }): Metadata {
   const sectionSeo = section ? settings.pageSeo[section] : null;
   const resolvedTitle = title ?? sectionSeo?.title ?? settings.seo.title;
+  const resolvedKeywords = keywords ??
+    (sectionSeo && "keywords" in sectionSeo && sectionSeo.keywords.length > 0
+      ? sectionSeo.keywords
+      : settings.seo.keywords);
 
   return buildPageMetadata({
     absoluteTitle,
@@ -208,6 +270,7 @@ export function buildSiteSettingsPageMetadata({
     description: description ?? sectionSeo?.description ?? settings.seo.description,
     image: image ?? sectionSeo?.ogImage.url ?? settings.seo.ogImage.url,
     imageAlt: imageAlt ?? sectionSeo?.ogImage.alt ?? settings.seo.ogImage.alt,
+    keywords: resolvedKeywords,
     openGraphType,
     publishedTime,
     siteName: settings.seo.businessName,
@@ -261,6 +324,12 @@ export function buildVillaDetailMetadata({
     description: getVillaDescription(villa),
     image: villa.coverImage,
     imageAlt: getVillaTitle(villa),
+    keywords: uniqueKeywords([
+      ...(settings.pageSeo.villaDetail.keywords.length > 0
+        ? settings.pageSeo.villaDetail.keywords
+        : settings.seo.keywords),
+      ...getVillaKeywords(villa),
+    ]),
     settings,
     title: getVillaTitle(villa),
   });

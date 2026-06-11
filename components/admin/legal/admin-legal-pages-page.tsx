@@ -323,7 +323,7 @@ export function AdminLegalPagesPage() {
               target="_blank"
             >
               <ExternalLink aria-hidden="true" className="size-4" />
-              หน้าเว็บ
+              ดูหน้าเว็บจริง
             </Link>
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"

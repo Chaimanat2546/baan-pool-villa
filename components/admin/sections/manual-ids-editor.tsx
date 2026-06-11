@@ -39,9 +39,6 @@ export function ManualIdsEditor({
           placeholder="105,101,111"
           value={manualIdText}
         />
-        <p className="text-xs leading-5 text-[var(--site-muted)]">
-          กดเช็กเลขบ้านเมื่ออยากตรวจรายการ และระบบจะตรวจซ้ำอีกครั้งตอนกดบันทึก
-        </p>
       </div>
     </div>
   );

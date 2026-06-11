@@ -60,6 +60,7 @@ const dbRow = {
   line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
   seo_title: " Baan Pool Villa Pattaya | Private Pool Villas ",
   seo_description: " Book private pool villas in Pattaya. ",
+  seo_keywords: [" พูลวิลล่าพัทยา ", " บ้านพักพูลวิลล่า "],
   seo_og_image_url: " /images/seo-cover.jpg ",
   seo_og_image_alt: " Pool villa with private swimming pool ",
   seo_business_name: " Baan Pool Villa Pattaya ",
@@ -69,12 +70,15 @@ const dbRow = {
   ],
   search_seo_title: " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
   search_seo_description: " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
+  search_seo_keywords: [" ค้นหาพูลวิลล่าพัทยา "],
   search_seo_og_image_url: " /images/search-cover.jpg ",
   search_seo_og_image_alt: " Search cover ",
   guides_seo_title: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
   guides_seo_description: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
+  guides_seo_keywords: [" บทความพูลวิลล่าพัทยา "],
   guides_seo_og_image_url: " /images/guides-cover.jpg ",
   guides_seo_og_image_alt: " Guides cover ",
+  villa_detail_seo_keywords: [" รายละเอียดพูลวิลล่าพัทยา "],
   tiktok_account_url: " https://www.tiktok.com/@baanpoolvilla ",
   tiktok_video_urls: [
     "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001?lang=th-TH",
@@ -204,6 +208,11 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
     "seoDescription",
     overrides.seoDescription ?? " Book private pool villas in Pattaya. ",
   );
+  formData.set(
+    "seoKeywords",
+    overrides.seoKeywords ??
+      JSON.stringify([" พูลวิลล่าพัทยา ", " บ้านพักพูลวิลล่า "]),
+  );
   formData.set("seoOgImageUrl", overrides.seoOgImageUrl ?? " /images/seo-cover.jpg ");
   formData.set(
     "seoOgImageAlt",
@@ -230,6 +239,10 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
     overrides.searchSeoDescription ?? " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
   );
   formData.set(
+    "searchSeoKeywords",
+    overrides.searchSeoKeywords ?? JSON.stringify([" ค้นหาพูลวิลล่าพัทยา "]),
+  );
+  formData.set(
     "searchSeoOgImageUrl",
     overrides.searchSeoOgImageUrl ?? " /images/search-cover.jpg ",
   );
@@ -246,12 +259,21 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
     overrides.guidesSeoDescription ?? " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
   );
   formData.set(
+    "guidesSeoKeywords",
+    overrides.guidesSeoKeywords ?? JSON.stringify([" บทความพูลวิลล่าพัทยา "]),
+  );
+  formData.set(
     "guidesSeoOgImageUrl",
     overrides.guidesSeoOgImageUrl ?? " /images/guides-cover.jpg ",
   );
   formData.set(
     "guidesSeoOgImageAlt",
     overrides.guidesSeoOgImageAlt ?? " Guides cover ",
+  );
+  formData.set(
+    "villaDetailSeoKeywords",
+    overrides.villaDetailSeoKeywords ??
+      JSON.stringify([" รายละเอียดพูลวิลล่าพัทยา "]),
   );
   if (overrides.tiktokAccountUrl !== undefined) {
     formData.set("tiktokAccountUrl", overrides.tiktokAccountUrl);
@@ -264,10 +286,10 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
   return formData;
 }
 
-function putRequest(formData: FormData) {
+function putRequest(formData: FormData, headers: HeadersInit = {}) {
   return new Request("https://example.com/api/admin/site-settings", {
     body: formData,
-    headers: { authorization: "Bearer token" },
+    headers: { authorization: "Bearer token", ...headers },
     method: "PUT",
   });
 }
@@ -380,6 +402,10 @@ describe("admin site settings route", () => {
       data: null,
       error: missingTiktokColumnError,
     });
+    const withoutKeywordsQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
     const withoutPageSeoQuery = siteSettingsSelectQuery({
       data: null,
       error: missingTiktokColumnError,
@@ -389,7 +415,7 @@ describe("admin site settings route", () => {
       error: null,
     });
     const from = fromQueue({
-      site_settings: [primaryQuery, withoutPageSeoQuery, fallbackQuery],
+      site_settings: [primaryQuery, withoutKeywordsQuery, withoutPageSeoQuery, fallbackQuery],
     });
 
     authSupabase({ from });
@@ -421,6 +447,9 @@ describe("admin site settings route", () => {
     expect(withoutPageSeoQuery.select).toHaveBeenCalledWith(
       expect.stringContaining("tiktok_account_url"),
     );
+    expect(withoutKeywordsQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("search_seo_title"),
+    );
     expect(fallbackQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_account_url"),
     );
@@ -437,6 +466,10 @@ describe("admin site settings route", () => {
       data: null,
       error: missingTiktokColumnError,
     });
+    const withoutKeywordsQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
     const withoutPageSeoQuery = siteSettingsSelectQuery({
       data: null,
       error: missingTiktokColumnError,
@@ -450,7 +483,13 @@ describe("admin site settings route", () => {
       error: null,
     });
     const from = fromQueue({
-      site_settings: [primaryQuery, withoutPageSeoQuery, fallbackQuery, generalQuery],
+      site_settings: [
+        primaryQuery,
+        withoutKeywordsQuery,
+        withoutPageSeoQuery,
+        fallbackQuery,
+        generalQuery,
+      ],
     });
 
     authSupabase({ from });
@@ -604,7 +643,13 @@ describe("admin site settings route", () => {
     const { PUT } = await import(
       "../../../app/(admin)/api/admin/site-settings/route"
     );
-    const response = await PUT(putRequest(settingsForm()));
+    const response = await PUT(
+      putRequest(
+        settingsForm({
+          seoKeywords: " Pool Villa, Pattaya Villa\nPrivate Pool ",
+        }),
+      ),
+    );
 
     expect(saveQuery.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -632,6 +677,7 @@ describe("admin site settings route", () => {
         line_url: "https://line.me/R/ti/p/@baanpoolvilla",
         seo_title: "Baan Pool Villa Pattaya | Private Pool Villas",
         seo_description: "Book private pool villas in Pattaya.",
+        seo_keywords: ["Pool Villa", "Pattaya Villa", "Private Pool"],
         seo_og_image_url: "/images/seo-cover.jpg",
         seo_og_image_alt: "Pool villa with private swimming pool",
         seo_business_name: "Baan Pool Villa Pattaya",
@@ -639,6 +685,9 @@ describe("admin site settings route", () => {
           "https://www.facebook.com/baanpoolvillas",
           "https://line.me/R/ti/p/@baanpoolvilla",
         ],
+        search_seo_keywords: ["ค้นหาพูลวิลล่าพัทยา"],
+        guides_seo_keywords: ["บทความพูลวิลล่าพัทยา"],
+        villa_detail_seo_keywords: ["รายละเอียดพูลวิลล่าพัทยา"],
       }),
       { onConflict: "id" },
     );
@@ -692,6 +741,25 @@ describe("admin site settings route", () => {
     });
     expect(jsonErrorMock).not.toHaveBeenCalled();
     expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects cross-origin admin PUT requests before reading settings", async () => {
+    const from = vi.fn();
+
+    authSupabase({ from });
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await PUT(
+      putRequest(settingsForm(), { origin: "https://attacker.example" }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["Admin request origin is not allowed."],
+    });
+    expect(from).not.toHaveBeenCalled();
   });
 
   it("does not persist TikTok form fields in the site-settings upsert payload", async () => {
@@ -765,6 +833,10 @@ describe("admin site settings route", () => {
       data: null,
       error: missingTiktokColumnError,
     });
+    const withoutKeywordsLoadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
     const withoutPageSeoLoadQuery = siteSettingsSelectQuery({
       data: null,
       error: missingTiktokColumnError,
@@ -778,6 +850,10 @@ describe("admin site settings route", () => {
       error: null,
     });
     const reloadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
+    const withoutKeywordsReloadQuery = siteSettingsSelectQuery({
       data: null,
       error: missingTiktokColumnError,
     });
@@ -798,10 +874,12 @@ describe("admin site settings route", () => {
     const from = fromQueue({
       site_settings: [
         loadQuery,
+        withoutKeywordsLoadQuery,
         withoutPageSeoLoadQuery,
         fallbackLoadQuery,
         saveQuery,
         reloadQuery,
+        withoutKeywordsReloadQuery,
         withoutPageSeoReloadQuery,
         fallbackReloadQuery,
       ],
@@ -834,6 +912,9 @@ describe("admin site settings route", () => {
     expect(fallbackLoadQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_video_urls"),
     );
+    expect(withoutKeywordsLoadQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_video_urls"),
+    );
     expect(withoutPageSeoLoadQuery.select).toHaveBeenCalledWith(
       expect.stringContaining("tiktok_video_urls"),
     );
@@ -848,6 +929,10 @@ describe("admin site settings route", () => {
         hero_image_path: "hero/2026/05/hero.webp",
         hero_image_url: "https://example.com/hero.webp",
         hero_image_alt: "Updated hero",
+        seo_keywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
+        search_seo_keywords: ["ค้นหาพูลวิลล่าพัทยา"],
+        guides_seo_keywords: ["บทความพูลวิลล่าพัทยา"],
+        villa_detail_seo_keywords: ["รายละเอียดพูลวิลล่าพัทยา"],
       }),
       { onConflict: "id" },
     );
@@ -856,6 +941,9 @@ describe("admin site settings route", () => {
     );
     expect(fallbackReloadQuery.select).toHaveBeenCalledWith(
       expect.not.stringContaining("tiktok_account_url"),
+    );
+    expect(withoutKeywordsReloadQuery.select).toHaveBeenCalledWith(
+      expect.stringContaining("tiktok_video_urls"),
     );
     expect(withoutPageSeoReloadQuery.select).toHaveBeenCalledWith(
       expect.stringContaining("tiktok_video_urls"),

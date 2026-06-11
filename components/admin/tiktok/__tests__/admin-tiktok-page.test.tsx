@@ -115,7 +115,7 @@ describe("AdminTikTokPage", () => {
 
     const saveButton = Array.from(page.container.querySelectorAll("button")).find(
       (button) => {
-        return button.textContent?.includes("บันทึกการตั้งค่า TikTok");
+        return button.textContent?.includes("บันทึก");
       },
     );
 
