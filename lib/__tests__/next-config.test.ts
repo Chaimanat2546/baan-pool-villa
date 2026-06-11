@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import nextConfig from "../../next.config";
 
+function getCspDirective(csp: string | undefined, name: string): string {
+  return (
+    csp
+      ?.split("; ")
+      .find((directive) => directive.startsWith(`${name} `)) ?? ""
+  );
+}
+
 describe("Next image config", () => {
   it("serves images directly without using the Next image optimizer", () => {
     expect(nextConfig.images?.unoptimized).toBe(true);
@@ -35,9 +43,11 @@ describe("Next image config", () => {
       ?.find((entry) => entry.source === "/:path*")
       ?.headers.find((header) => header.key === "Content-Security-Policy")
       ?.value;
+    const scriptSrc = getCspDirective(csp, "script-src");
 
-    expect(csp).toContain("script-src");
-    expect(csp).toContain("https://challenges.cloudflare.com");
+    expect(scriptSrc).toContain("'self'");
+    expect(scriptSrc).toContain("https://challenges.cloudflare.com");
+    expect(scriptSrc.split(" ")).not.toContain("https:");
     expect(csp).toContain(
       "frame-src 'self' https://challenges.cloudflare.com",
     );

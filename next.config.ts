@@ -3,6 +3,13 @@ import type { NextConfig } from "next";
 const isDevelopment = process.env.NODE_ENV === "development";
 const CLOUDFLARE_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 
+const scriptSources = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(isDevelopment ? ["'unsafe-eval'"] : []),
+  CLOUDFLARE_TURNSTILE_ORIGIN,
+];
+
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
@@ -14,7 +21,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https: ${CLOUDFLARE_TURNSTILE_ORIGIN}`,
+      `script-src ${scriptSources.join(" ")}`,
       `connect-src 'self' https:${isDevelopment ? " ws: wss:" : ""}`,
       `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
       "form-action 'self'",
