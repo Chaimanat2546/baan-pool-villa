@@ -108,6 +108,7 @@ describe("getSiteSettings", () => {
         line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
         seo_title: " Baan Pool Villa Pattaya | Private Pool Villas ",
         seo_description: " Book private pool villas in Pattaya. ",
+        seo_keywords: [" พูลวิลล่าพัทยา ", " บ้านพักพูลวิลล่า "],
         seo_og_image_url: " /images/seo-cover.jpg ",
         seo_og_image_alt: " Pool villa with private swimming pool ",
         seo_business_name: " Baan Pool Villa Pattaya ",
@@ -117,12 +118,15 @@ describe("getSiteSettings", () => {
         ],
         search_seo_title: " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
         search_seo_description: " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
+        search_seo_keywords: [" ค้นหาพูลวิลล่าพัทยา "],
         search_seo_og_image_url: " /images/search-cover.jpg ",
         search_seo_og_image_alt: " Search cover ",
         guides_seo_title: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
         guides_seo_description: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
+        guides_seo_keywords: [" บทความพูลวิลล่าพัทยา "],
         guides_seo_og_image_url: " /images/guides-cover.jpg ",
         guides_seo_og_image_alt: " Guides cover ",
+        villa_detail_seo_keywords: [" รายละเอียดพูลวิลล่าพัทยา "],
         detail_layout: DEFAULT_DETAIL_LAYOUT,
         tiktok_account_url: " https://www.tiktok.com/@baanpoolvilla ",
         tiktok_video_urls: [
@@ -169,6 +173,7 @@ describe("getSiteSettings", () => {
         seo: {
           title: "Baan Pool Villa Pattaya | Private Pool Villas",
           description: "Book private pool villas in Pattaya.",
+          keywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
           ogImage: {
             path: "/images/seo-cover.jpg",
             url: "/images/seo-cover.jpg",
@@ -184,6 +189,7 @@ describe("getSiteSettings", () => {
           search: {
             title: "ค้นหาบ้านพักพูลวิลล่าพัทยา",
             description: "ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา",
+            keywords: ["ค้นหาพูลวิลล่าพัทยา"],
             ogImage: {
               path: "/images/search-cover.jpg",
               url: "/images/search-cover.jpg",
@@ -193,11 +199,15 @@ describe("getSiteSettings", () => {
           guides: {
             title: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา",
             description: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก",
+            keywords: ["บทความพูลวิลล่าพัทยา"],
             ogImage: {
               path: "/images/guides-cover.jpg",
               url: "/images/guides-cover.jpg",
               alt: "Guides cover",
             },
+          },
+          villaDetail: {
+            keywords: ["รายละเอียดพูลวิลล่าพัทยา"],
           },
         },
         tiktok: {

@@ -15,6 +15,7 @@ import {
 
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import { validateUploadMetadata } from "@/lib/site-settings/validation";
 
 import { AssetUploadField } from "./asset-upload-field";
 import { buildDraftThemeStyle, isHexColor } from "./settings-helpers";
@@ -40,6 +41,14 @@ interface ColorControlProps {
 interface TextControlProps {
   description?: string;
   id: string;
+  inputMode?:
+    | "decimal"
+    | "email"
+    | "numeric"
+    | "search"
+    | "tel"
+    | "text"
+    | "url";
   label: string;
   maxLength?: number;
   multiline?: boolean;
@@ -116,11 +125,16 @@ function ColorControl({
   return (
     <div className="grid gap-2">
       <div className="space-y-1">
-        <label className="text-sm font-semibold text-[var(--site-text)]" htmlFor={id}>
+        <label
+          className="text-sm font-semibold text-[var(--site-text)]"
+          htmlFor={id}
+        >
           {label}
         </label>
         {description ? (
-          <p className="text-xs leading-5 text-[var(--site-muted)]">{description}</p>
+          <p className="text-xs leading-5 text-[var(--site-muted)]">
+            {description}
+          </p>
         ) : null}
       </div>
       <div className="grid grid-cols-[52px_1fr] gap-3">
@@ -166,6 +180,7 @@ function ColorControl({
 function TextControl({
   description,
   id,
+  inputMode,
   label,
   maxLength,
   multiline = false,
@@ -175,7 +190,10 @@ function TextControl({
   value,
 }: TextControlProps) {
   return (
-    <label className="block text-sm font-semibold text-[var(--site-text)]" htmlFor={id}>
+    <label
+      className="block text-sm font-semibold text-[var(--site-text)]"
+      htmlFor={id}
+    >
       <span>{label}</span>
       {description ? (
         <span className="mt-1 block text-xs font-medium leading-5 text-[var(--site-muted)]">
@@ -186,6 +204,7 @@ function TextControl({
         <textarea
           className="mt-2 min-h-24 w-full resize-y rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-sm font-medium text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
           id={id}
+          inputMode={inputMode}
           maxLength={maxLength}
           onChange={(event) => {
             onChange(event.target.value);
@@ -198,6 +217,7 @@ function TextControl({
         <input
           className="mt-2 h-11 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm font-medium text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
           id={id}
+          inputMode={inputMode}
           maxLength={maxLength}
           onChange={(event) => {
             onChange(event.target.value);
@@ -269,7 +289,7 @@ function getPreviewImageUrl(value: string, fallback: string): string {
 }
 
 function cssImageUrl(value: string): string {
-  return `url("${value.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"")}")`;
+  return `url("${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}")`;
 }
 
 /**
@@ -304,6 +324,11 @@ export function SettingsForm({
       contact.time.trim().length > 0
     );
   }).length;
+  const keywordCount =
+    draft.seoKeywords.length +
+    draft.searchSeoKeywords.length +
+    draft.guidesSeoKeywords.length +
+    draft.villaDetailSeoKeywords.length;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -323,13 +348,22 @@ export function SettingsForm({
 
   function updateSameAsUrls(value: string) {
     onChange({
-      seoSameAsUrls: value
-        .replaceAll("\r\n", "\n")
-        .replaceAll("\r", "\n")
-        .split("\n")
-        .map((url) => url.trim())
-        .filter((url) => url.length > 0),
+      seoSameAsUrls: parseDelimitedValues(value),
     });
+  }
+
+  function parseDelimitedValues(value: string): string[] {
+    return value
+      .replaceAll("\r\n", "\n")
+      .replaceAll("\r", "\n")
+      .replaceAll("\n", ",")
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+
+  function formatDelimitedValues(values: string[]): string {
+    return values.join(",");
   }
 
   return (
@@ -388,7 +422,9 @@ export function SettingsForm({
               />
             </div>
             <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
-              <p className="text-sm font-semibold text-[var(--site-text)]">สรุปแบรนด์</p>
+              <p className="text-sm font-semibold text-[var(--site-text)]">
+                สรุปแบรนด์
+              </p>
               <dl className="mt-3 grid gap-3 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <dt className="text-[var(--site-muted)]">ชื่อที่ใช้งาน</dt>
@@ -416,6 +452,9 @@ export function SettingsForm({
               onChange({ logoFile });
             }}
             selectedFile={draft.logoFile}
+            validateFile={(file) => {
+              return validateUploadMetadata("logo", file.type, file.size);
+            }}
           />
         </SectionCard>
 
@@ -492,13 +531,16 @@ export function SettingsForm({
             currentAlt={settings.heroImage.alt}
             currentLabel="รูปหน้าแรกปัจจุบัน"
             currentUrl={settings.heroImage.url}
-            description="ใช้ภาพเดียวกันสำหรับ desktop และ mobile"
+            description="ไฟล์ PNG / JPG / WebP สำหรับรูปหลักหน้าแรก แนะนำขนาด 1200x800px ขึ้นไป"
             id="heroFile"
             label="รูปหน้าแรก"
             onFileChange={(heroFile) => {
               onChange({ heroFile });
             }}
             selectedFile={draft.heroFile}
+            validateFile={(file) => {
+              return validateUploadMetadata("hero", file.type, file.size);
+            }}
           />
         </SectionCard>
 
@@ -510,7 +552,7 @@ export function SettingsForm({
         >
           <div className="grid gap-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4 lg:grid-cols-2">
             <TextControl
-              description="ชื่อที่แสดงในผลการค้นหาหรือแถบชื่อหน้า"
+              description="ชื่อที่แสดงในผลการค้นหา"
               id="seoTitle"
               label="ชื่อหน้าบน Google"
               maxLength={80}
@@ -531,11 +573,22 @@ export function SettingsForm({
               placeholder="Pool Villas Pattaya"
               value={draft.seoBusinessName}
             />
+          </div>
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-[var(--site-text)]">
+                SEO หน้าแรก
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                ตั้งค่าคำอธิบาย และรูปแชร์ลิงก์สำหรับหน้าแรก
+              </p>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
             <TextControl
-              description="คำอธิบายสั้นสำหรับผลการค้นหาและการแชร์ลิงก์"
               id="seoDescription"
               label="คำอธิบายเว็บไซต์"
               maxLength={180}
+              rows={5}
               multiline
               onChange={(seoDescription) => {
                 onChange({ seoDescription });
@@ -544,26 +597,35 @@ export function SettingsForm({
               value={draft.seoDescription}
             />
             <TextControl
-              description="ใส่ 1 ลิงก์ต่อ 1 บรรทัด เช่น Facebook หรือช่องทางโซเชียลหลัก"
-              id="seoSameAsUrls"
-              label="ลิงก์โซเชียลของร้าน"
+              id="seoKeywords"
+              label="Keywords SEO"
               multiline
-              onChange={updateSameAsUrls}
-              placeholder="https://www.facebook.com/baanpoolvillas"
-              value={draft.seoSameAsUrls.join("\n")}
+              onChange={(value) => {
+                onChange({ seoKeywords: parseDelimitedValues(value) });
+              }}
+              placeholder="บ้านพักพูลวิลล่า,พูลวิลล่าพัทยา,บ้านพักสระส่วนตัว"
+              rows={5}
+              value={formatDelimitedValues(draft.seoKeywords)}
             />
             <TextControl
-              description="ใส่ URL รูปที่ใช้ตอนแชร์ลิงก์ หากเว้นไว้จะใช้รูปหลักของเว็บไซต์"
+              id="seoSameAsUrls"
+              label="ลิงก์โซเชียลของเว็บไซต์"
+              multiline
+              rows={5}
+              onChange={updateSameAsUrls}
+              placeholder="https://www.facebook.com/baanpoolvillas,https://line.me/R/ti/p/@baanpoolvilla"
+              value={formatDelimitedValues(draft.seoSameAsUrls)}
+            />
+            <TextControl
               id="seoOgImageUrl"
-              label="รูปตอนแชร์ลิงก์"
+              label="ลิงก์รูปตอนแชร์ลิงก์"
               onChange={(seoOgImageUrl) => {
                 onChange({ seoOgImageUrl });
               }}
-              placeholder="/images/BPV-66_Cover-Web.jpg"
+              placeholder="https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg"
               value={draft.seoOgImageUrl}
             />
             <TextControl
-              description="คำอธิบายรูปที่ใช้ในตัวอย่างการแชร์"
               id="seoOgImageAlt"
               label="คำอธิบายรูปแชร์ลิงก์"
               maxLength={160}
@@ -574,10 +636,11 @@ export function SettingsForm({
               value={draft.seoOgImageAlt}
             />
           </div>
+          </div>
           <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
             <div className="mb-4">
               <h3 className="text-base font-semibold text-[var(--site-text)]">
-                SEO หน้าค้นหา (/search)
+                SEO หน้าค้นหา
               </h3>
               <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
                 ตั้งค่าชื่อหน้า คำอธิบาย และรูปแชร์ลิงก์สำหรับหน้าค้นหาโดยเฉพาะ
@@ -586,7 +649,7 @@ export function SettingsForm({
             <div className="grid gap-4 lg:grid-cols-2">
               <TextControl
                 id="searchSeoTitle"
-                label="ชื่อหน้า /search"
+                label="ชื่อหน้า"
                 maxLength={80}
                 onChange={(searchSeoTitle) => {
                   onChange({ searchSeoTitle });
@@ -596,16 +659,16 @@ export function SettingsForm({
               />
               <TextControl
                 id="searchSeoOgImageUrl"
-                label="รูปแชร์ /search"
+                label="ลิงก์รูปแชร์"
                 onChange={(searchSeoOgImageUrl) => {
                   onChange({ searchSeoOgImageUrl });
                 }}
-                placeholder="/images/BPV-66_Cover-Web.jpg"
+                placeholder="https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg"
                 value={draft.searchSeoOgImageUrl}
               />
               <TextControl
                 id="searchSeoDescription"
-                label="คำอธิบาย /search"
+                label="คำอธิบาย"
                 maxLength={180}
                 multiline
                 onChange={(searchSeoDescription) => {
@@ -615,8 +678,19 @@ export function SettingsForm({
                 value={draft.searchSeoDescription}
               />
               <TextControl
+                id="searchSeoKeywords"
+                label="คำค้น"
+                multiline
+                onChange={(value) => {
+                  onChange({ searchSeoKeywords: parseDelimitedValues(value) });
+                }}
+                placeholder="ค้นหาพูลวิลล่าพัทยา,พูลวิลล่าตามจำนวนคน"
+                rows={4}
+                value={formatDelimitedValues(draft.searchSeoKeywords)}
+              />
+              <TextControl
                 id="searchSeoOgImageAlt"
-                label="คำอธิบายรูป /search"
+                label="คำอธิบายรูป"
                 maxLength={160}
                 onChange={(searchSeoOgImageAlt) => {
                   onChange({ searchSeoOgImageAlt });
@@ -629,7 +703,7 @@ export function SettingsForm({
           <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
             <div className="mb-4">
               <h3 className="text-base font-semibold text-[var(--site-text)]">
-                SEO หน้าบทความ (/guides)
+                SEO หน้าบทความ
               </h3>
               <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
                 ตั้งค่าชื่อหน้า คำอธิบาย และรูปแชร์ลิงก์สำหรับหน้ารวมบทความ
@@ -638,7 +712,7 @@ export function SettingsForm({
             <div className="grid gap-4 lg:grid-cols-2">
               <TextControl
                 id="guidesSeoTitle"
-                label="ชื่อหน้า /guides"
+                label="ชื่อหน้า"
                 maxLength={80}
                 onChange={(guidesSeoTitle) => {
                   onChange({ guidesSeoTitle });
@@ -648,16 +722,16 @@ export function SettingsForm({
               />
               <TextControl
                 id="guidesSeoOgImageUrl"
-                label="รูปแชร์ /guides"
+                label="ลิงก์รูปแชร์"
                 onChange={(guidesSeoOgImageUrl) => {
                   onChange({ guidesSeoOgImageUrl });
                 }}
-                placeholder="/images/BPV-66_Cover-Web.jpg"
+                placeholder="https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg"
                 value={draft.guidesSeoOgImageUrl}
               />
               <TextControl
                 id="guidesSeoDescription"
-                label="คำอธิบาย /guides"
+                label="คำอธิบาย"
                 maxLength={180}
                 multiline
                 onChange={(guidesSeoDescription) => {
@@ -667,8 +741,19 @@ export function SettingsForm({
                 value={draft.guidesSeoDescription}
               />
               <TextControl
+                id="guidesSeoKeywords"
+                label="คำค้น"
+                multiline
+                onChange={(value) => {
+                  onChange({ guidesSeoKeywords: parseDelimitedValues(value) });
+                }}
+                placeholder="บทความพูลวิลล่าพัทยา,คู่มือเลือกพูลวิลล่า"
+                rows={4}
+                value={formatDelimitedValues(draft.guidesSeoKeywords)}
+              />
+              <TextControl
                 id="guidesSeoOgImageAlt"
-                label="คำอธิบายรูป /guides"
+                label="คำอธิบายรูป"
                 maxLength={160}
                 onChange={(guidesSeoOgImageAlt) => {
                   onChange({ guidesSeoOgImageAlt });
@@ -677,6 +762,26 @@ export function SettingsForm({
                 value={draft.guidesSeoOgImageAlt}
               />
             </div>
+          </div>
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-[var(--site-text)]">
+                SEO หน้ารายละเอียดบ้าน
+              </h3>
+            </div>
+            <TextControl
+              id="villaDetailSeoKeywords"
+              label="Keywords SEO"
+              multiline
+              onChange={(value) => {
+                onChange({
+                  villaDetailSeoKeywords: parseDelimitedValues(value),
+                });
+              }}
+              placeholder="รายละเอียดพูลวิลล่าพัทยา,จองพูลวิลล่าพัทยา"
+              rows={4}
+              value={formatDelimitedValues(draft.villaDetailSeoKeywords)}
+            />
           </div>
         </SectionCard>
 
@@ -741,7 +846,8 @@ export function SettingsForm({
                   ผู้ติดต่อทางโทรศัพท์
                 </h3>
                 <p className="text-sm text-[var(--site-muted)]">
-                  แสดงทั้งหมด {phoneContactCount || 0} รายการที่มีข้อมูลบนหน้าเว็บ
+                  แสดงทั้งหมด {phoneContactCount || 0}{" "}
+                  รายการที่มีข้อมูลบนหน้าเว็บ
                 </p>
               </div>
             </div>
@@ -762,6 +868,7 @@ export function SettingsForm({
                   />
                   <TextControl
                     id={`phoneContactPhone-${index}`}
+                    inputMode="tel"
                     label={`เบอร์โทร ${index + 1}`}
                     onChange={(phone) => {
                       updatePhoneContact(index, { phone });
@@ -843,7 +950,9 @@ export function SettingsForm({
 
           <div className="mt-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
             <p className="text-sm font-semibold text-[var(--site-text)]">
-              {hasUnsavedChanges ? "มีรายการรอบันทึก" : "ข้อมูลล่าสุดพร้อมใช้งาน"}
+              {hasUnsavedChanges
+                ? "มีรายการรอบันทึก"
+                : "ข้อมูลล่าสุดพร้อมใช้งาน"}
             </p>
             <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
               {hasUnsavedChanges
@@ -869,6 +978,12 @@ export function SettingsForm({
               <dt className="text-[var(--site-muted)]">ลิงก์โซเชียล</dt>
               <dd className="text-right font-semibold text-[var(--site-text)]">
                 {draft.seoSameAsUrls.length} รายการ
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-3 rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2">
+              <dt className="text-[var(--site-muted)]">Keywords SEO</dt>
+              <dd className="text-right font-semibold text-[var(--site-text)]">
+                {keywordCount} รายการ
               </dd>
             </div>
             <div className="flex items-start justify-between gap-3 rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2">

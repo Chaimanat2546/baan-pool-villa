@@ -375,8 +375,8 @@ describe("admin legal-pages route", () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({
       errors: expect.arrayContaining([
-        expect.stringContaining("Legal page slug is invalid."),
-        expect.stringContaining("Legal page status is invalid."),
+        expect.stringContaining("Slug ของหน้ากฎหมายไม่ถูกต้อง"),
+        expect.stringContaining("สถานะหน้ากฎหมายไม่ถูกต้อง"),
       ]),
     });
     expect(revalidateLegalPageCacheMock).not.toHaveBeenCalled();

@@ -34,9 +34,14 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
-function numberFromInput(value: string, minimum: number): number {
+const MAX_GUESTS = 100;
+const MAX_BEDROOMS = 50;
+
+function numberFromInput(value: string, minimum: number, maximum: number): number {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? Math.max(minimum, parsed) : minimum;
+  return Number.isFinite(parsed)
+    ? Math.min(maximum, Math.max(minimum, Math.ceil(parsed)))
+    : minimum;
 }
 
 export function SearchBar({
@@ -189,9 +194,12 @@ export function SearchBar({
               type="text"
               inputMode="numeric"
               min={1}
+              max={MAX_GUESTS}
               value={filters.guests}
               onChange={(event) => {
-                updateFilters({ guests: numberFromInput(event.target.value, 1) });
+                updateFilters({
+                  guests: numberFromInput(event.target.value, 1, MAX_GUESTS),
+                });
               }}
               className="w-full min-w-0 bg-transparent text-lg leading-7 text-[var(--site-text)] outline-none"
               aria-label="จำนวนผู้เข้าพัก"
@@ -207,9 +215,12 @@ export function SearchBar({
               type="text"
               inputMode="numeric"
               min={1}
+              max={MAX_BEDROOMS}
               value={filters.bedrooms}
               onChange={(event) => {
-                updateFilters({ bedrooms: numberFromInput(event.target.value, 1) });
+                updateFilters({
+                  bedrooms: numberFromInput(event.target.value, 1, MAX_BEDROOMS),
+                });
               }}
               className="w-full min-w-0 bg-transparent text-lg leading-7 text-[var(--site-text)] outline-none"
               aria-label="จำนวนห้องนอน"
@@ -290,7 +301,9 @@ export function SearchBar({
               step={500}
               value={Math.min(Math.max(filters.maxPrice, 1000), maxPrice)}
               onChange={(event) => {
-                updateFilters({ maxPrice: numberFromInput(event.target.value, 1000) });
+                updateFilters({
+                  maxPrice: numberFromInput(event.target.value, 1000, maxPrice),
+                });
               }}
               className="h-2 w-full accent-[var(--site-primary)]"
               aria-label="ราคาสูงสุด"

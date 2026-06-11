@@ -1,6 +1,11 @@
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
+import {
+  formatAdminErrorMessage,
+  translateAdminErrorMessage,
+  translateAdminErrorMessages,
+} from "@/components/admin/admin-error-messages";
 import type {
   AdminSettingsDraft,
   AdminSiteSettingsResponse,
@@ -51,17 +56,21 @@ export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
     primaryColor: settings.primaryColor,
     seoBusinessName: settings.seo.businessName,
     seoDescription: settings.seo.description,
+    seoKeywords: [...settings.seo.keywords],
     seoOgImageAlt: settings.seo.ogImage.alt,
     seoOgImageUrl: settings.seo.ogImage.url,
     seoSameAsUrls: [...settings.seo.sameAsUrls],
     searchSeoTitle: settings.pageSeo.search.title,
     searchSeoDescription: settings.pageSeo.search.description,
+    searchSeoKeywords: [...settings.pageSeo.search.keywords],
     searchSeoOgImageUrl: settings.pageSeo.search.ogImage.url,
     searchSeoOgImageAlt: settings.pageSeo.search.ogImage.alt,
     guidesSeoTitle: settings.pageSeo.guides.title,
     guidesSeoDescription: settings.pageSeo.guides.description,
+    guidesSeoKeywords: [...settings.pageSeo.guides.keywords],
     guidesSeoOgImageUrl: settings.pageSeo.guides.ogImage.url,
     guidesSeoOgImageAlt: settings.pageSeo.guides.ogImage.alt,
+    villaDetailSeoKeywords: [...settings.pageSeo.villaDetail.keywords],
     seoTitle: settings.seo.title,
     siteName: settings.siteName,
   };
@@ -83,17 +92,21 @@ export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
     primaryColor: draft.primaryColor,
     seoBusinessName: draft.seoBusinessName,
     seoDescription: draft.seoDescription,
+    seoKeywords: draft.seoKeywords,
     seoOgImageAlt: draft.seoOgImageAlt,
     seoOgImageUrl: draft.seoOgImageUrl,
     seoSameAsUrls: draft.seoSameAsUrls,
     searchSeoTitle: draft.searchSeoTitle,
     searchSeoDescription: draft.searchSeoDescription,
+    searchSeoKeywords: draft.searchSeoKeywords,
     searchSeoOgImageUrl: draft.searchSeoOgImageUrl,
     searchSeoOgImageAlt: draft.searchSeoOgImageAlt,
     guidesSeoTitle: draft.guidesSeoTitle,
     guidesSeoDescription: draft.guidesSeoDescription,
+    guidesSeoKeywords: draft.guidesSeoKeywords,
     guidesSeoOgImageUrl: draft.guidesSeoOgImageUrl,
     guidesSeoOgImageAlt: draft.guidesSeoOgImageAlt,
+    villaDetailSeoKeywords: draft.villaDetailSeoKeywords,
     seoTitle: draft.seoTitle,
     siteName: draft.siteName,
   });
@@ -115,18 +128,22 @@ export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
   formData.set("lineUrl", draft.lineUrl);
   formData.set("seoTitle", draft.seoTitle);
   formData.set("seoDescription", draft.seoDescription);
+  formData.set("seoKeywords", JSON.stringify(draft.seoKeywords));
   formData.set("seoOgImageUrl", draft.seoOgImageUrl);
   formData.set("seoOgImageAlt", draft.seoOgImageAlt);
   formData.set("seoBusinessName", draft.seoBusinessName);
   formData.set("seoSameAsUrls", JSON.stringify(draft.seoSameAsUrls));
   formData.set("searchSeoTitle", draft.searchSeoTitle);
   formData.set("searchSeoDescription", draft.searchSeoDescription);
+  formData.set("searchSeoKeywords", JSON.stringify(draft.searchSeoKeywords));
   formData.set("searchSeoOgImageUrl", draft.searchSeoOgImageUrl);
   formData.set("searchSeoOgImageAlt", draft.searchSeoOgImageAlt);
   formData.set("guidesSeoTitle", draft.guidesSeoTitle);
   formData.set("guidesSeoDescription", draft.guidesSeoDescription);
+  formData.set("guidesSeoKeywords", JSON.stringify(draft.guidesSeoKeywords));
   formData.set("guidesSeoOgImageUrl", draft.guidesSeoOgImageUrl);
   formData.set("guidesSeoOgImageAlt", draft.guidesSeoOgImageAlt);
+  formData.set("villaDetailSeoKeywords", JSON.stringify(draft.villaDetailSeoKeywords));
 
   if (draft.logoFile) {
     formData.set("logo", draft.logoFile);
@@ -155,7 +172,7 @@ export function extractErrors(
     );
 
     if (errors.length > 0) {
-      return errors;
+      return translateAdminErrorMessages(errors);
     }
   }
 
@@ -164,17 +181,17 @@ export function extractErrors(
       typeof errorPayload.code === "string" ? errorPayload.code : null,
       typeof errorPayload.details === "string" ? errorPayload.details : null,
       typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter(Boolean);
+    ].filter((part): part is string => typeof part === "string" && part.length > 0);
     const warningPart =
       typeof errorPayload.warning === "string" && errorPayload.warning
         ? `คำเตือน: ${errorPayload.warning}`
         : null;
 
     return [
-      detailParts.length > 0
-        ? `${errorPayload.error} (${detailParts.join(" / ")})`
-        : errorPayload.error,
-      ...(warningPart ? [warningPart] : []),
+      formatAdminErrorMessage(errorPayload.error, detailParts),
+      ...(warningPart && typeof errorPayload.warning === "string"
+        ? [`คำเตือน: ${translateAdminErrorMessage(errorPayload.warning)}`]
+        : []),
     ];
   }
 
@@ -198,10 +215,10 @@ export function extractWarnings(payload: AdminSiteSettingsResponse): string[] {
     : [];
 
   if (typeof payload.warning === "string" && payload.warning) {
-    return [...warnings, payload.warning];
+    return [...warnings, payload.warning].map(translateAdminErrorMessage);
   }
 
-  return warnings;
+  return warnings.map(translateAdminErrorMessage);
 }
 
 export function shouldRedirectToLogin(

@@ -37,13 +37,24 @@ import {
   useState,
 } from "react";
 
+import {
+  formatAdminErrorMessage,
+  getAdminErrorMessage,
+  translateAdminErrorMessages,
+} from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminGuidesSkeleton } from "@/components/admin/loading/admin-guides-skeleton";
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
-import type { GuideDraft, GuideImage, GuidePost, GuideStatus } from "@/lib/guides/types";
+import type {
+  GuideDraft,
+  GuideImage,
+  GuidePost,
+  GuideStatus,
+} from "@/lib/guides/types";
 import {
   createSlugFromTitle,
   validateGuideDraft,
+  validateGuideUploadMetadata,
 } from "@/lib/guides/validation";
 import {
   formatCommaSeparatedInput,
@@ -78,7 +89,10 @@ interface AdminGuideResponse {
   guide: GuidePost;
 }
 
-const BLOCK_TYPE_ICONS: Record<(typeof EDITOR_BLOCK_TYPES)[number], typeof FileText> = {
+const BLOCK_TYPE_ICONS: Record<
+  (typeof EDITOR_BLOCK_TYPES)[number],
+  typeof FileText
+> = {
   paragraph: FileText,
   heading: Heading2,
   bulletListItem: List,
@@ -152,7 +166,7 @@ function extractErrors(payload: unknown, fallback: string): string[] {
     );
 
     if (errors.length > 0) {
-      return errors;
+      return translateAdminErrorMessages(errors);
     }
   }
 
@@ -161,13 +175,11 @@ function extractErrors(payload: unknown, fallback: string): string[] {
       typeof errorPayload.code === "string" ? errorPayload.code : null,
       typeof errorPayload.details === "string" ? errorPayload.details : null,
       typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter(Boolean);
+    ].filter(
+      (part): part is string => typeof part === "string" && part.length > 0,
+    );
 
-    return [
-      detailParts.length > 0
-        ? `${errorPayload.error} (${detailParts.join(" / ")})`
-        : errorPayload.error,
-    ];
+    return [formatAdminErrorMessage(errorPayload.error, detailParts)];
   }
 
   return [fallback];
@@ -207,7 +219,9 @@ function GuideList({
       <div className="border-b border-[var(--site-border)] px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-bold text-[var(--site-text)]">รายการบทความ</p>
+            <p className="text-sm font-bold text-[var(--site-text)]">
+              รายการบทความ
+            </p>
             <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
               เลือกบทความเพื่อแก้ไขหรือดูสถานะการเผยแพร่
             </p>
@@ -260,9 +274,7 @@ function GuideList({
                 <span className="truncate">
                   {guide.recommendedHouseIds.length} บ้านพักแนะนำ
                 </span>
-                <span className="shrink-0">
-                  {guide.tags.length} แท็ก
-                </span>
+                <span className="shrink-0">{guide.tags.length} แท็ก</span>
               </span>
             </button>
           );
@@ -466,7 +478,12 @@ function applyEditorLink(editor: Editor) {
     return;
   }
 
-  editor.chain().focus().extendMarkRange("link").setLink({ href: normalizedHref }).run();
+  editor
+    .chain()
+    .focus()
+    .extendMarkRange("link")
+    .setLink({ href: normalizedHref })
+    .run();
 }
 
 /**
@@ -559,7 +576,9 @@ function TipTapFormatToolbar({
           <Unlink aria-hidden="true" className="size-4" />
         </button>
       ) : null}
-      {trailingAction ? <div className="ml-auto shrink-0">{trailingAction}</div> : null}
+      {trailingAction ? (
+        <div className="ml-auto shrink-0">{trailingAction}</div>
+      ) : null}
     </div>
   );
 }
@@ -628,7 +647,9 @@ function BlockEditor({
     immediatelyRender: false,
     shouldRerenderOnTransaction: true,
     onUpdate({ editor: nextEditor }) {
-      onChange(tipTapDocumentToGuideBlocks(nextEditor.getJSON() as TipTapDocument));
+      onChange(
+        tipTapDocumentToGuideBlocks(nextEditor.getJSON() as TipTapDocument),
+      );
     },
   });
 
@@ -682,9 +703,7 @@ function BlockEditor({
           isDesktopNavCollapsed ? "max-w-none" : "mx-auto max-w-3xl"
         }`}
       >
-        <div className="mb-7 grid gap-4">
-          {documentHeader}
-        </div>
+        <div className="mb-7 grid gap-4">{documentHeader}</div>
 
         {editor ? (
           <>
@@ -757,7 +776,9 @@ function GuideStatusPanel({
             <FileText aria-hidden="true" className="size-5" />
           </span>
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-[var(--site-text)]">สถานะบทความ</h2>
+            <h2 className="text-base font-bold text-[var(--site-text)]">
+              สถานะบทความ
+            </h2>
             <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
               จัดการการเผยแพร่ เส้นทางลิงก์ และตำแหน่งแสดงผลของบทความนี้
             </p>
@@ -766,7 +787,9 @@ function GuideStatusPanel({
 
         <div className="mt-4 grid gap-3">
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <span className={`inline-flex items-center rounded-full px-3 py-1.5 ring-1 ${statusTone}`}>
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1.5 ring-1 ${statusTone}`}
+            >
               {getStatusLabel(guide.status)}
             </span>
             <span
@@ -777,7 +800,9 @@ function GuideStatusPanel({
               }`}
             >
               <CheckCircle2 aria-hidden="true" className="size-3.5" />
-              {hasUnsavedChanges ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก" : "บันทึกล่าสุดแล้ว"}
+              {hasUnsavedChanges
+                ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก"
+                : "บันทึกล่าสุดแล้ว"}
             </span>
           </div>
 
@@ -944,7 +969,9 @@ function GuideStatusPanel({
           <span className="inline-flex size-8 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
             <Eye aria-hidden="true" className="size-4" />
           </span>
-          <h2 className="text-base font-bold text-[var(--site-text)]">ตัวอย่างการ์ดบทความ</h2>
+          <h2 className="text-base font-bold text-[var(--site-text)]">
+            ตัวอย่างการ์ดบทความ
+          </h2>
         </div>
         <div className="mt-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
           <p className="text-xs font-semibold text-[var(--site-primary)]">
@@ -968,8 +995,11 @@ function GuideStatusPanel({
         onClick={onSave}
         type="button"
       >
-        <Save aria-hidden="true" className={`size-4 ${isSaving ? "animate-pulse" : ""}`} />
-        {isSaving ? "กำลังบันทึก..." : "บันทึกบทความ"}
+        <Save
+          aria-hidden="true"
+          className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
+        />
+        {isSaving ? "กำลังบันทึก..." : "บันทึก"}
       </button>
     </aside>
   );
@@ -1052,9 +1082,9 @@ export function AdminGuidesPage() {
           return;
         }
 
-        const mappedGuides = ((payload as AdminGuidesResponse).guides ?? []).map(
-          toAdminGuide,
-        );
+        const mappedGuides = (
+          (payload as AdminGuidesResponse).guides ?? []
+        ).map(toAdminGuide);
         const initialGuides =
           mappedGuides.length > 0 ? mappedGuides : [makeNewGuide([])];
 
@@ -1062,9 +1092,7 @@ export function AdminGuidesPage() {
         setActiveDraftId(initialGuides[0]?.draftId ?? null);
         setSavedSnapshot(makeSnapshot(initialGuides));
       } catch (caughtError) {
-        setErrors([
-          caughtError instanceof Error ? caughtError.message : "โหลดบทความไม่ได้",
-        ]);
+        setErrors([getAdminErrorMessage(caughtError, "โหลดบทความไม่ได้")]);
       } finally {
         if (showLoading) {
           setIsLoading(false);
@@ -1103,7 +1131,9 @@ export function AdminGuidesPage() {
     setNotice(null);
     setGuides((currentGuides) =>
       currentGuides.map((guide) =>
-        guide.draftId === activeGuide.draftId ? { ...guide, ...changes } : guide,
+        guide.draftId === activeGuide.draftId
+          ? { ...guide, ...changes }
+          : guide,
       ),
     );
   }
@@ -1120,6 +1150,14 @@ export function AdminGuidesPage() {
   }
 
   async function uploadGuideImage(file: File, role: "cover" | "inline") {
+    const validationErrors = validateGuideUploadMetadata(file.type, file.size);
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      setNotice(null);
+      return null;
+    }
+
     const token = await getAccessToken();
 
     if (!token) {
@@ -1250,9 +1288,7 @@ export function AdminGuidesPage() {
       setActiveDraftId(savedGuide.id ?? activeGuide.draftId);
       setNotice("บันทึกบทความแล้ว");
     } catch (caughtError) {
-      setErrors([
-        caughtError instanceof Error ? caughtError.message : "บันทึกบทความไม่ได้",
-      ]);
+      setErrors([getAdminErrorMessage(caughtError, "บันทึกบทความไม่ได้")]);
     } finally {
       setIsSaving(false);
     }
@@ -1268,7 +1304,8 @@ export function AdminGuidesPage() {
         const nextGuides = currentGuides.filter(
           (guide) => guide.draftId !== activeGuide.draftId,
         );
-        const safeGuides = nextGuides.length > 0 ? nextGuides : [makeNewGuide([])];
+        const safeGuides =
+          nextGuides.length > 0 ? nextGuides : [makeNewGuide([])];
 
         setActiveDraftId(safeGuides[0]?.draftId ?? null);
         return safeGuides;
@@ -1279,43 +1316,44 @@ export function AdminGuidesPage() {
     try {
       const token = await getAccessToken();
 
-    if (!token) {
-      return;
-    }
+      if (!token) {
+        return;
+      }
 
-    const response = await fetch("/api/admin/guides", {
-      body: JSON.stringify({
-        id: activeGuide.id,
-        slug: activeGuide.slug,
-      }),
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      method: "DELETE",
-    });
-    const payload = await readJsonPayload(response);
+      const response = await fetch("/api/admin/guides", {
+        body: JSON.stringify({
+          id: activeGuide.id,
+          slug: activeGuide.slug,
+        }),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        method: "DELETE",
+      });
+      const payload = await readJsonPayload(response);
 
-    if (response.status === 401) {
-      redirectToLogin();
-      return;
-    }
+      if (response.status === 401) {
+        redirectToLogin();
+        return;
+      }
 
-    if (!response.ok) {
-      setErrors(extractErrors(payload, "ลบบทความไม่ได้"));
-      return;
-    }
+      if (!response.ok) {
+        setErrors(extractErrors(payload, "ลบบทความไม่ได้"));
+        return;
+      }
 
-    setGuides((currentGuides) => {
-      const nextGuides = currentGuides.filter(
-        (guide) => guide.draftId !== activeGuide.draftId,
-      );
-      const safeGuides = nextGuides.length > 0 ? nextGuides : [makeNewGuide([])];
+      setGuides((currentGuides) => {
+        const nextGuides = currentGuides.filter(
+          (guide) => guide.draftId !== activeGuide.draftId,
+        );
+        const safeGuides =
+          nextGuides.length > 0 ? nextGuides : [makeNewGuide([])];
 
-      setActiveDraftId(safeGuides[0]?.draftId ?? null);
-      setSavedSnapshot(makeSnapshot(safeGuides));
-      return safeGuides;
-    });
+        setActiveDraftId(safeGuides[0]?.draftId ?? null);
+        setSavedSnapshot(makeSnapshot(safeGuides));
+        return safeGuides;
+      });
     } catch {
       setErrors(extractErrors(null, "ลบบทความไม่ได้"));
       return;
@@ -1338,7 +1376,8 @@ export function AdminGuidesPage() {
               จัดการบทความไกด์
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
-              จัดการบทความสำหรับหน้าไกด์ พร้อมพรีวิวสถานะ รูปปก และบ้านพักแนะนำในมุมมองเดียว
+              จัดการบทความสำหรับหน้าไกด์ พร้อมพรีวิวสถานะ รูปปก
+              และบ้านพักแนะนำในมุมมองเดียว
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
               <span
@@ -1349,7 +1388,9 @@ export function AdminGuidesPage() {
                 }`}
               >
                 <CheckCircle2 aria-hidden="true" className="size-3.5" />
-                {hasUnsavedChanges ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก" : "บันทึกล่าสุดแล้ว"}
+                {hasUnsavedChanges
+                  ? "มีการเปลี่ยนแปลงที่ยังไม่บันทึก"
+                  : "บันทึกล่าสุดแล้ว"}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--site-primary-soft)] px-3 py-1.5 text-[var(--site-primary)] ring-1 ring-[var(--site-primary)]/10">
                 <LayoutPanelLeft aria-hidden="true" className="size-3.5" />
@@ -1358,17 +1399,6 @@ export function AdminGuidesPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
-            {activePreviewHref ? (
-              <a
-                className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
-                href={activePreviewHref}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <Eye aria-hidden="true" className="size-4" />
-                ดูบทความ
-              </a>
-            ) : null}
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-text)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
               onClick={addGuide}
@@ -1377,16 +1407,37 @@ export function AdminGuidesPage() {
               <Plus aria-hidden="true" className="size-4" />
               เพิ่มบทความ
             </button>
+            {activePreviewHref ? (
+              <a
+                className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+                href={activePreviewHref}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <Eye aria-hidden="true" className="size-4" />
+                ดูหน้าเว็บจริง
+              </a>
+            ) : null}
+
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
-              disabled={!activeGuide || isSaving || isLoading || isUploading || !hasUnsavedChanges}
+              disabled={
+                !activeGuide ||
+                isSaving ||
+                isLoading ||
+                isUploading ||
+                !hasUnsavedChanges
+              }
               onClick={() => {
                 void handleSave();
               }}
               type="button"
             >
-              <Save aria-hidden="true" className={`size-4 ${isSaving ? "animate-pulse" : ""}`} />
-              {isSaving ? "กำลังบันทึก..." : "บันทึกบทความ"}
+              <Save
+                aria-hidden="true"
+                className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
+              />
+              {isSaving ? "กำลังบันทึก..." : "บันทึก"}
             </button>
           </div>
         </header>
@@ -1442,7 +1493,9 @@ export function AdminGuidesPage() {
                   documentHeader={
                     <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-4 shadow-sm">
                       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                        <span className={`inline-flex items-center rounded-full px-3 py-1.5 ring-1 ${activeGuide.status === "published" ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-amber-50 text-amber-800 ring-amber-200"}`}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-3 py-1.5 ring-1 ${activeGuide.status === "published" ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-amber-50 text-amber-800 ring-amber-200"}`}
+                        >
                           {getStatusLabel(activeGuide.status)}
                         </span>
                         {activeGuide.isPinned ? (

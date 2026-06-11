@@ -84,6 +84,17 @@ function jsonRequest(method: string, body?: unknown) {
   });
 }
 
+function invalidJsonRequest(method: string) {
+  return new Request("https://example.com/api/admin/guides", {
+    body: "{",
+    headers: {
+      authorization: "Bearer token",
+      "content-type": "application/json",
+    },
+    method,
+  });
+}
+
 function guideListQuery(result: { data: unknown; error: unknown }) {
   const select = vi.fn().mockResolvedValue(result);
 
@@ -233,6 +244,21 @@ describe("admin guides route", () => {
     expect(body.errors).toContain("บทความที่เผยแพร่ต้องมีรูปปก");
   });
 
+  it("rejects invalid JSON on PUT before loading slugs or saving", async () => {
+    const from = vi.fn();
+    authSupabase({ from });
+
+    const { PUT } = await import("../../../app/(admin)/api/admin/guides/route");
+    const response = await PUT(invalidJsonRequest("PUT"));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["Request body must be JSON."],
+    });
+    expect(from).not.toHaveBeenCalled();
+    expect(revalidateGuideCacheMock).not.toHaveBeenCalled();
+  });
+
   it("deletes a guide by id and revalidates its slug", async () => {
     const deleteQuery = guideDeleteQuery({ error: null });
     const from = fromQueue({ guide_posts: [deleteQuery] });
@@ -250,5 +276,20 @@ describe("admin guides route", () => {
     expect(response.status).toBe(200);
     expect(deleteQuery.eq).toHaveBeenCalledWith("id", "guide-1");
     expect(revalidateGuideCacheMock).toHaveBeenCalledWith("pool-villa-pattaya");
+  });
+
+  it("rejects invalid JSON on DELETE before deleting", async () => {
+    const from = vi.fn();
+    authSupabase({ from });
+
+    const { DELETE } = await import("../../../app/(admin)/api/admin/guides/route");
+    const response = await DELETE(invalidJsonRequest("DELETE"));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["Request body must be JSON."],
+    });
+    expect(from).not.toHaveBeenCalled();
+    expect(revalidateGuideCacheMock).not.toHaveBeenCalled();
   });
 });

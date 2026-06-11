@@ -39,14 +39,16 @@ export interface SiteContactSettings {
 export interface SiteSeoSettings {
   title: string;
   description: string;
+  keywords: string[];
   ogImage: SiteImageSettings;
   businessName: string;
   sameAsUrls: string[];
 }
 
 export interface SitePageSeoSettings {
-  guides: Pick<SiteSeoSettings, "description" | "ogImage" | "title">;
-  search: Pick<SiteSeoSettings, "description" | "ogImage" | "title">;
+  guides: Pick<SiteSeoSettings, "description" | "keywords" | "ogImage" | "title">;
+  search: Pick<SiteSeoSettings, "description" | "keywords" | "ogImage" | "title">;
+  villaDetail: Pick<SiteSeoSettings, "keywords">;
 }
 
 export interface SiteTikTokVideoSettings {
@@ -98,18 +100,22 @@ export interface SiteSettingsRow {
   line_url?: string | null;
   seo_title?: string | null;
   seo_description?: string | null;
+  seo_keywords?: unknown;
   seo_og_image_url?: string | null;
   seo_og_image_alt?: string | null;
   seo_business_name?: string | null;
   seo_same_as_urls?: unknown;
   search_seo_title?: string | null;
   search_seo_description?: string | null;
+  search_seo_keywords?: unknown;
   search_seo_og_image_url?: string | null;
   search_seo_og_image_alt?: string | null;
   guides_seo_title?: string | null;
   guides_seo_description?: string | null;
+  guides_seo_keywords?: unknown;
   guides_seo_og_image_url?: string | null;
   guides_seo_og_image_alt?: string | null;
+  villa_detail_seo_keywords?: unknown;
   tiktok_account_url?: string | null;
   tiktok_video_urls?: unknown;
   detail_layout?: unknown;
@@ -129,18 +135,22 @@ export interface SiteSettingsDraft {
   lineUrl: string;
   seoTitle: string;
   seoDescription: string;
+  seoKeywords: string[];
   seoOgImageUrl: string;
   seoOgImageAlt: string;
   seoBusinessName: string;
   seoSameAsUrls: string[];
   searchSeoTitle: string;
   searchSeoDescription: string;
+  searchSeoKeywords: string[];
   searchSeoOgImageUrl: string;
   searchSeoOgImageAlt: string;
   guidesSeoTitle: string;
   guidesSeoDescription: string;
+  guidesSeoKeywords: string[];
   guidesSeoOgImageUrl: string;
   guidesSeoOgImageAlt: string;
+  villaDetailSeoKeywords: string[];
   tiktokAccountUrl: string;
   tiktokVideoUrls: string[];
 }

@@ -283,6 +283,44 @@ describe("AdminLegalPagesPage", () => {
     await page.unmount();
   });
 
+  it("blocks invalid legal page drafts before sending a save request", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: legalListResponse(),
+        url: "/api/admin/legal-pages",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminLegalPagesPage />);
+    const contentInput = page.container.querySelector(
+      "#legalContent",
+    ) as HTMLTextAreaElement;
+
+    changeTextField(contentInput, "");
+    await flushEffects();
+
+    const saveButton = page.container.querySelector(
+      "#legalPagesHeader button",
+    ) as HTMLButtonElement | null;
+
+    expect(saveButton).not.toBeNull();
+
+    await click(saveButton as HTMLButtonElement);
+    await flushEffects();
+
+    expect(
+      fetchMock.mock.calls.filter(([url, init]) => {
+        return url === "/api/admin/legal-pages" && init?.method === "PUT";
+      }),
+    ).toHaveLength(0);
+    expect(page.container.textContent).toContain(
+      "หน้ากฎหมายที่เผยแพร่ต้องมีเนื้อหาอย่างน้อย 1 บล็อก",
+    );
+
+    await page.unmount();
+  });
+
   it("locks editing and page switching while a save request is pending", async () => {
     let resolveSave: (response: Response) => void = () => {};
     const saveResponse = new Promise<Response>((resolve) => {
@@ -456,7 +494,7 @@ describe("AdminLegalPagesPage", () => {
     const page = await mountAdminPage(<AdminLegalPagesPage />);
     await flushEffects();
 
-    expect(page.container.textContent).toContain("Access denied.");
+    expect(page.container.textContent).toContain("ไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
     expect(page.container.textContent).toContain("42501");
     expect(mocks.replace).not.toHaveBeenCalled();
 

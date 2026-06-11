@@ -142,6 +142,26 @@ describe("admin guide asset route", () => {
     expect(upload).not.toHaveBeenCalled();
   });
 
+  it("rejects unsupported asset roles before uploading", async () => {
+    const formData = validFormData();
+    formData.set("role", "thumbnail");
+    const upload = vi.fn();
+    const storageFrom = vi.fn().mockReturnValue({ upload });
+
+    authSupabase({ from: vi.fn(), storage: { from: storageFrom } });
+
+    const { POST } = await import(
+      "../../../app/(admin)/api/admin/guides/assets/route"
+    );
+    const response = await POST(uploadRequest(formData));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["Guide image role must be cover or inline."],
+    });
+    expect(upload).not.toHaveBeenCalled();
+  });
+
   it("removes an uploaded object when history insert fails", async () => {
     const historyError = {
       message: "History insert failed",

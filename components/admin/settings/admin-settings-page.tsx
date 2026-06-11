@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Eye, RefreshCw, Save } from "lucide-react";
 
+import { getAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminSettingsSkeleton } from "@/components/admin/loading/admin-settings-skeleton";
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -19,6 +20,7 @@ import {
   shouldRedirectToLogin,
 } from "./settings-helpers";
 import { SettingsForm } from "./settings-form";
+import { validateAdminSettingsDraftForClient } from "./settings-validation";
 import type {
   AdminSettingsDraft,
   AdminSiteSettingsResponse,
@@ -127,9 +129,7 @@ export function AdminSettingsPage() {
         setSavedSnapshot(makeSettingsSnapshot(nextDraft));
       } catch (caughtError) {
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "ไม่สามารถโหลดข้อมูลการตั้งค่าได้",
+          getAdminErrorMessage(caughtError, "ไม่สามารถโหลดข้อมูลการตั้งค่าได้"),
         ]);
       } finally {
         if (showLoading) {
@@ -158,9 +158,7 @@ export function AdminSettingsPage() {
         }
 
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "ไม่สามารถเริ่มต้นหน้า Settings ได้",
+          getAdminErrorMessage(caughtError, "ไม่สามารถเริ่มต้นหน้า Settings ได้"),
         ]);
         setIsLoading(false);
       }
@@ -253,6 +251,15 @@ export function AdminSettingsPage() {
       return;
     }
 
+    const validationErrors = validateAdminSettingsDraftForClient(draft);
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      setNotice(null);
+      setWarnings([]);
+      return;
+    }
+
     setIsSaving(true);
     setErrors([]);
     setNotice(null);
@@ -294,9 +301,7 @@ export function AdminSettingsPage() {
       setNotice("บันทึกการตั้งค่าสำเร็จ");
     } catch (caughtError) {
       setErrors([
-        caughtError instanceof Error
-          ? caughtError.message
-          : "ไม่สามารถบันทึกการตั้งค่าได้",
+        getAdminErrorMessage(caughtError, "ไม่สามารถบันทึกการตั้งค่าได้"),
       ]);
     } finally {
       setIsSaving(false);
@@ -373,9 +378,7 @@ export function AdminSettingsPage() {
     } catch (caughtError) {
       setExternalRefreshPendingScope(null);
       setErrors([
-        caughtError instanceof Error
-          ? caughtError.message
-          : "ไม่สามารถอัปเดตข้อมูลได้",
+        getAdminErrorMessage(caughtError, "ไม่สามารถอัปเดตข้อมูลได้"),
       ]);
     } finally {
       setIsRefreshingExternalData(false);
@@ -462,7 +465,7 @@ export function AdminSettingsPage() {
                 aria-hidden="true"
                 className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
               />
-              {isSaving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
+              {isSaving ? "กำลังบันทึก..." : "บันทึก"}
             </button>
           </div>
         </header>

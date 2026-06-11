@@ -28,7 +28,7 @@ export interface AdminLegalSavePayload {
     slug: LegalPageSlug;
     title: string;
     seoDescription: string;
-    contentBlocks: unknown;
+    contentBlocks: unknown[];
     status: LegalPageStatus;
     publishedAt: string | null;
   };

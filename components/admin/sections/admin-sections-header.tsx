@@ -45,7 +45,7 @@ export function AdminSectionsHeader({
             }`}
           >
             <CheckCircle2 aria-hidden="true" className="size-3.5" />
-            {hasUnsavedChanges ? "มีรายการยังไม่บันทึก" : "บันทึกแล้ว"}
+            {hasUnsavedChanges ? "มีรายการยังไม่บันทึก" : "บันทึก"}
           </span>
         </div>
       </div>
@@ -66,7 +66,7 @@ export function AdminSectionsHeader({
           target="_blank"
         >
           <Eye aria-hidden="true" className="size-4" />
-          พรีวิวหน้าจริง
+          ดูหน้าเว็บจริง
         </Link>
         <button
           className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80"
@@ -78,8 +78,8 @@ export function AdminSectionsHeader({
           {isSaving
             ? "กำลังตรวจและบันทึก..."
             : hasUnsavedChanges
-              ? "บันทึกหน้าแรก"
-              : "บันทึกแล้ว"}
+              ? "บันทึก"
+              : "บันทึก"}
         </button>
       </div>
     </header>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, ExternalLink, ScrollText, Save } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { getAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { LegalPage } from "@/components/legal/legal-page";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminLegalSkeleton } from "@/components/admin/loading/admin-legal-skeleton";
@@ -14,6 +15,7 @@ import {
   type LegalPage as LegalPageModel,
   type LegalPageSlug,
 } from "@/lib/legal-pages/types";
+import { validateLegalPageDraft } from "@/lib/legal-pages/validation";
 import {
   buildPagePreview,
   extractLegalErrors,
@@ -152,9 +154,7 @@ export function AdminLegalPagesPage() {
         );
       } catch (caughtError) {
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "ไม่สามารถโหลดหน้ากฎหมายได้ในขณะนี้",
+          getAdminErrorMessage(caughtError, "ไม่สามารถโหลดหน้ากฎหมายได้ในขณะนี้"),
         ]);
       } finally {
         setIsLoading(false);
@@ -210,13 +210,21 @@ export function AdminLegalPagesPage() {
     setErrors([]);
 
     try {
+      const savePayload = makeSavePayload(selectedDraft);
+      const validationErrors = validateLegalPageDraft(savePayload.legalPage);
+
+      if (validationErrors.length > 0) {
+        setErrors(validationErrors);
+        return;
+      }
+
       const token = await getAccessToken();
       if (!token) {
         return;
       }
 
       const response = await fetch("/api/admin/legal-pages", {
-        body: JSON.stringify(makeSavePayload(selectedDraft)),
+        body: JSON.stringify(savePayload),
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -260,9 +268,7 @@ export function AdminLegalPagesPage() {
       setNotice("บันทึกหน้ากฎหมายเรียบร้อยแล้ว");
     } catch (caughtError) {
       setErrors([
-        caughtError instanceof Error
-          ? caughtError.message
-          : "ไม่สามารถบันทึกหน้ากฎหมายได้ในขณะนี้",
+        getAdminErrorMessage(caughtError, "ไม่สามารถบันทึกหน้ากฎหมายได้ในขณะนี้"),
       ]);
     } finally {
       isSaveInFlightRef.current = false;
@@ -317,7 +323,7 @@ export function AdminLegalPagesPage() {
               target="_blank"
             >
               <ExternalLink aria-hidden="true" className="size-4" />
-              หน้าเว็บ
+              ดูหน้าเว็บจริง
             </Link>
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"

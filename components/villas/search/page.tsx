@@ -33,6 +33,23 @@ interface SearchPageProps {
 }
 
 const PAGE_SIZE = 12;
+
+function getSearchErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "ไม่สามารถโหลดข้อมูลบ้านพักได้ กรุณาลองใหม่อีกครั้ง";
+  }
+
+  const message = error.message.trim().toLowerCase();
+
+  if (
+    message.startsWith("unable to load houses") ||
+    message === "invalid house list payload"
+  ) {
+    return "ไม่สามารถโหลดข้อมูลบ้านพักได้ กรุณาลองใหม่อีกครั้ง";
+  }
+
+  return error.message;
+}
 const CATALOG_HYDRATION_SEARCH_PARAMS = [
   "amenities",
   "bedrooms",
@@ -129,7 +146,9 @@ export function SearchPage({
     getInitialCatalogComplete(initialMeta),
   );
   const [isCatalogHydrating, setIsCatalogHydrating] = useState(false);
-  const [error, setError] = useState<string | null>(initialLoadError);
+  const [error, setError] = useState<string | null>(
+    initialLoadError ? getSearchErrorMessage(new Error(initialLoadError)) : null,
+  );
   const [filters, setFilters] = useState<VillaFilters>(() =>
     filtersFromSearchParams(searchParams, resolvedMeta.maxPrice),
   );
@@ -216,11 +235,7 @@ export function SearchPage({
         setError(null);
         return true;
       } catch (hydrateError) {
-        setError(
-          hydrateError instanceof Error
-            ? hydrateError.message
-            : "Unable to load houses",
-        );
+        setError(getSearchErrorMessage(hydrateError));
 
         return false;
       } finally {

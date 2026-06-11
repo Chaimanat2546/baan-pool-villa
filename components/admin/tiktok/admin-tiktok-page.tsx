@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { getAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminTikTokSkeleton } from "@/components/admin/loading/admin-tiktok-skeleton";
 import {
@@ -100,9 +101,7 @@ export function AdminTikTokPage() {
         setSavedSnapshot(makeTikTokSnapshot(nextDraft));
       } catch (caughtError) {
         setErrors([
-          caughtError instanceof Error
-            ? caughtError.message
-            : "ไม่สามารถโหลดการตั้งค่า TikTok ได้",
+          getAdminErrorMessage(caughtError, "ไม่สามารถโหลดการตั้งค่า TikTok ได้"),
         ]);
       } finally {
         if (showLoading) {
@@ -188,9 +187,7 @@ export function AdminTikTokPage() {
       setNotice("บันทึกการตั้งค่า TikTok สำเร็จ");
     } catch (caughtError) {
       setErrors([
-        caughtError instanceof Error
-          ? caughtError.message
-          : "ไม่สามารถบันทึกการตั้งค่า TikTok ได้",
+        getAdminErrorMessage(caughtError, "ไม่สามารถบันทึกการตั้งค่า TikTok ได้"),
       ]);
     } finally {
       setIsSaving(false);
@@ -237,7 +234,7 @@ export function AdminTikTokPage() {
               target="_blank"
             >
               <Eye aria-hidden="true" className="size-4" />
-              ดูหน้าแรก
+              ดูหน้าเว็บจริง
             </Link>
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
@@ -248,7 +245,7 @@ export function AdminTikTokPage() {
               type="button"
             >
               <Save aria-hidden="true" className={`size-4 ${isSaving ? "animate-pulse" : ""}`} />
-              {isSaving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า TikTok"}
+              {isSaving ? "กำลังบันทึก..." : "บันทึก"}
             </button>
           </div>
         </header>
