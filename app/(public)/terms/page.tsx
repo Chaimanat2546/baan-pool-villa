@@ -18,6 +18,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TermsRoute() {
-  const page = await getLegalPageBySlug("terms");
-  return <LegalPage page={page} />;
+  const [page, siteSettingsResult] = await Promise.all([
+    getLegalPageBySlug("terms"),
+    getSiteSettings(),
+  ]);
+
+  return <LegalPage page={page} settings={siteSettingsResult.settings} />;
 }

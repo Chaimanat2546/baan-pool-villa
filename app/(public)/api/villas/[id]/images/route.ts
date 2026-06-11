@@ -1,11 +1,18 @@
 import { CACHE_HEADERS } from "@/lib/cache-policy";
 import { publicApiErrorResponse } from "@/lib/api/errors";
+import { limitPublicApiRequest } from "@/lib/api/rate-limit";
 import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const rateLimitResponse = limitPublicApiRequest(request, "publicDetail");
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const { id } = await context.params;
 
   try {

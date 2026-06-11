@@ -2,10 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { ContactSection } from "@/components/layout/contact-section";
 import { ArticlesSection } from "@/components/villas/home/articles-section";
 import { ScrollRail } from "@/components/villas/home/scroll-rail";
 import { VillaCard } from "@/components/villas/listing/villa-card";
 import type { GuidePost } from "@/lib/guides/types";
+import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 import { YouTubeLiteEmbed } from "./youtube-lite-embed";
 
@@ -13,6 +15,7 @@ interface GuideDetailPageProps {
   guide: GuidePost;
   recommendedVillas: VillaListing[];
   relatedGuides: GuidePost[];
+  settings?: SiteSettings;
 }
 
 interface GuideBlock {
@@ -448,6 +451,7 @@ export function GuideDetailPage({
   guide,
   recommendedVillas,
   relatedGuides,
+  settings,
 }: GuideDetailPageProps) {
   const coverImageUrl = guide.coverImage?.url;
 
@@ -514,6 +518,7 @@ export function GuideDetailPage({
           <RecommendedVillaSidebar villas={recommendedVillas} />
         </div>
       </article>
+      {settings ? <ContactSection settings={settings} /> : null}
       <ArticlesSection guides={relatedGuides} />
     </main>
   );

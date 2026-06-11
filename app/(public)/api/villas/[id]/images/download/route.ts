@@ -5,6 +5,7 @@ import {
   normalizeDownloadImageUrl,
 } from "@/lib/villas/image-download";
 import { publicApiErrorResponse } from "@/lib/api/errors";
+import { limitPublicApiRequest } from "@/lib/api/rate-limit";
 import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
 import { fetchVillaDetail } from "@/lib/villas/server";
 
@@ -27,6 +28,12 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const rateLimitResponse = limitPublicApiRequest(request, "publicDownload");
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const { id } = await context.params;
 
   try {
