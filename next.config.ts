@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const isDevelopment = process.env.NODE_ENV === "development";
+const CLOUDFLARE_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 
 const securityHeaders = [
   {
@@ -13,9 +14,9 @@ const securityHeaders = [
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https:`,
+      `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https: ${CLOUDFLARE_TURNSTILE_ORIGIN}`,
       `connect-src 'self' https:${isDevelopment ? " ws: wss:" : ""}`,
-      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com",
+      `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
       "form-action 'self'",
       "upgrade-insecure-requests",
     ].join("; "),

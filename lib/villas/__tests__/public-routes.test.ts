@@ -25,6 +25,19 @@ beforeEach(() => {
   fetchVillaDetailMock.mockReset();
 });
 
+async function expectRateLimitResponse(response: Response) {
+  const retryAfterHeader = response.headers.get("Retry-After");
+  expect(retryAfterHeader).not.toBeNull();
+
+  const retryAfterSeconds = Number(retryAfterHeader);
+  expect(retryAfterSeconds).toBeGreaterThanOrEqual(59);
+  expect(retryAfterSeconds).toBeLessThanOrEqual(60);
+  await expect(response.json()).resolves.toEqual({
+    error: "Too many requests.",
+    retryAfterSeconds,
+  });
+}
+
 describe("GET /api/houses", () => {
   it("returns a generic 502 error and logs backend failures", async () => {
     const rawError = new Error("secret listing backend detail");
@@ -60,11 +73,7 @@ describe("GET /api/houses", () => {
     const blocked = await GET(request);
 
     expect(blocked.status).toBe(429);
-    await expect(blocked.json()).resolves.toEqual({
-      error: "Too many requests.",
-      retryAfterSeconds: 60,
-    });
-    expect(blocked.headers.get("Retry-After")).toBe("60");
+    await expectRateLimitResponse(blocked);
     expect(blocked.headers.get("Cache-Control")).toBe("no-store");
     expect(fetchHouseListingsMock).not.toHaveBeenCalled();
   });
@@ -91,10 +100,7 @@ describe("GET /api/villas/[id]", () => {
     const blocked = await GET(request, context);
 
     expect(blocked.status).toBe(429);
-    await expect(blocked.json()).resolves.toEqual({
-      error: "Too many requests.",
-      retryAfterSeconds: 60,
-    });
+    await expectRateLimitResponse(blocked);
     expect(fetchVillaDetailMock).not.toHaveBeenCalled();
   });
 

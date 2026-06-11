@@ -43,7 +43,7 @@ export function isAllowedAdminRequestOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
 
   if (!origin) {
-    return true;
+    return false;
   }
 
   const originUrl = parseUrl(origin);
@@ -56,7 +56,7 @@ export function isAllowedAdminRequestOrigin(request: Request): boolean {
   const siteOrigin = getConfiguredSiteOrigin();
 
   return (
-    originUrl.host === requestUrl.host ||
+    originUrl.origin === requestUrl.origin ||
     originUrl.origin === siteOrigin ||
     (process.env.NODE_ENV === "development" && isLocalhostOrigin(originUrl))
   );

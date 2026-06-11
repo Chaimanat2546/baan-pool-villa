@@ -41,14 +41,14 @@ describe("public API rate limit helper", () => {
     expect(getPublicRateLimitClientKey(request)).toBe("203.0.113.10");
   });
 
-  it("falls back to the first forwarded IP and then unknown", () => {
+  it("ignores forwarded IP and falls back to unknown", () => {
     expect(
       getPublicRateLimitClientKey(
         requestWithHeaders({
           "X-Forwarded-For": "198.51.100.20, 198.51.100.21",
         }),
       ),
-    ).toBe("198.51.100.20");
+    ).toBe("unknown");
     expect(getPublicRateLimitClientKey(requestWithHeaders())).toBe("unknown");
   });
 

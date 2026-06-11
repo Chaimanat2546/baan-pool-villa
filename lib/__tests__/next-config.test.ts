@@ -28,4 +28,18 @@ describe("Next image config", () => {
       ]),
     );
   });
+
+  it("allows Cloudflare Turnstile scripts and frames through the global CSP", async () => {
+    const headers = await nextConfig.headers?.();
+    const csp = headers
+      ?.find((entry) => entry.source === "/:path*")
+      ?.headers.find((header) => header.key === "Content-Security-Policy")
+      ?.value;
+
+    expect(csp).toContain("script-src");
+    expect(csp).toContain("https://challenges.cloudflare.com");
+    expect(csp).toContain(
+      "frame-src 'self' https://challenges.cloudflare.com",
+    );
+  });
 });

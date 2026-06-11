@@ -3,6 +3,7 @@ import "server-only";
 export const TURNSTILE_SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
+const TURNSTILE_SITEVERIFY_TIMEOUT_MS = 3500;
 const TURNSTILE_MISSING_CONFIG_MESSAGE = "Turnstile is not configured.";
 const TURNSTILE_MISSING_TOKEN_MESSAGE = "Missing Turnstile token.";
 const TURNSTILE_FAILED_MESSAGE = "Turnstile verification failed.";
@@ -135,6 +136,7 @@ export async function verifyTurnstileToken({
       body,
       cache: "no-store",
       method: "POST",
+      signal: AbortSignal.timeout(TURNSTILE_SITEVERIFY_TIMEOUT_MS),
     });
 
     if (!response.ok) {
