@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 
+import { ContactSection } from "@/components/layout/contact-section";
 import type { GuidePost } from "@/lib/guides/types";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -13,7 +14,6 @@ import {
 import type { VillaFilters } from "@/lib/villas/types";
 
 import { ArticlesSection } from "./articles-section";
-import { ContactSection } from "./contact-section";
 import { DestinationsSection } from "./destinations-section";
 import { FaqSection } from "./faq-section";
 import { HeroSection } from "./hero-section";

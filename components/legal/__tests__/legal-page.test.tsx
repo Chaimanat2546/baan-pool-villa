@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { LegalPage } from "@/lib/legal-pages/types";
+import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 import { LegalPage as LegalPageRenderer } from "../legal-page";
 
@@ -183,5 +184,21 @@ describe("LegalPage renderer", () => {
 
     expect(markup).toContain('class="grid gap-5 break-words"');
     expect(markup).toContain('class="break-words whitespace-pre-wrap text-lg leading-8"');
+  });
+
+  it("renders the contact section below the legal content when settings are provided", () => {
+    const page = createLegalPage({
+      contentBlocks: [
+        { type: "paragraph", content: [{ type: "text", text: "Legal body." }] },
+      ],
+    });
+
+    const markup = renderToStaticMarkup(
+      <LegalPageRenderer page={page} settings={DEFAULT_SITE_SETTINGS} />,
+    );
+
+    expect(markup.indexOf('data-legal-page-content="true"')).toBeLessThan(
+      markup.indexOf('id="contact"'),
+    );
   });
 });

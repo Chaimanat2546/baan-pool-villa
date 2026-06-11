@@ -18,6 +18,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PrivacyRoute() {
-  const page = await getLegalPageBySlug("privacy");
-  return <LegalPage page={page} />;
+  const [page, siteSettingsResult] = await Promise.all([
+    getLegalPageBySlug("privacy"),
+    getSiteSettings(),
+  ]);
+
+  return <LegalPage page={page} settings={siteSettingsResult.settings} />;
 }

@@ -411,7 +411,7 @@
           <tbody>
             <tr>
               <td><code>components/villas/home</code></td>
-              <td>Home page sections, CMS-driven home assembly, hero/contact/articles/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), villa rails, home skeletons, and minimal homepage client payloads.</td>
+              <td>Home page sections, CMS-driven home assembly, hero/articles/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), villa rails, home skeletons, and minimal homepage client payloads.</td>
               <td>Use <code>VillaRail</code>, home shared helpers, and section header patterns before creating new section UI. The homepage server may use the full villa catalog to resolve sections, but the client receives only <code>filterSummary</code>, <code>destinationVillas</code>, and resolved home sections rather than the full catalog.</td>
             </tr>
             <tr>
@@ -436,8 +436,8 @@
             </tr>
             <tr>
               <td><code>components/layout</code></td>
-              <td>Public header, footer, mobile bottom contact actions, contact icons, theme provider.</td>
-              <td>Contact actions should be backed by <code>lib/site-contact.ts</code>.</td>
+              <td>Public header, footer, shared public contact section, mobile bottom contact actions, contact icons, theme provider.</td>
+              <td>Contact actions and the shared contact section should be backed by <code>lib/site-contact.ts</code> and site settings.</td>
             </tr>
             <tr>
               <td><code>components/guides</code></td>

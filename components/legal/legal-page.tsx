@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
+import { ContactSection } from "@/components/layout/contact-section";
 import type { LegalPage } from "@/lib/legal-pages/types";
+import type { SiteSettings } from "@/lib/site-settings/types";
 
 interface LegalTextMark {
   attrs?: {
@@ -21,6 +23,7 @@ interface LegalBlock {
 
 interface LegalPageProps {
   page: LegalPage;
+  settings?: SiteSettings;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -281,7 +284,7 @@ function formatUpdatedDate(dateValue: string | null): string | null {
  * @param page - Legal page payload from server
  * @returns The legal page article with safe links and list grouping
  */
-export function LegalPage({ page }: LegalPageProps) {
+export function LegalPage({ page, settings }: LegalPageProps) {
   const updatedText = formatUpdatedDate(page.updatedAt ?? "");
 
   return (
@@ -301,6 +304,7 @@ export function LegalPage({ page }: LegalPageProps) {
           {renderBlocks(page.contentBlocks as unknown[])}
         </section>
       </article>
+      {settings ? <ContactSection settings={settings} /> : null}
     </main>
   );
 }
