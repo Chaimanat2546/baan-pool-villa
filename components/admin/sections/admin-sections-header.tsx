@@ -45,7 +45,7 @@ export function AdminSectionsHeader({
             }`}
           >
             <CheckCircle2 aria-hidden="true" className="size-3.5" />
-            {hasUnsavedChanges ? "มีรายการยังไม่บันทึก" : "บันทึกแล้ว"}
+            {hasUnsavedChanges ? "มีรายการยังไม่บันทึก" : "บันทึก"}
           </span>
         </div>
       </div>
@@ -78,8 +78,8 @@ export function AdminSectionsHeader({
           {isSaving
             ? "กำลังตรวจและบันทึก..."
             : hasUnsavedChanges
-              ? "บันทึกหน้าแรก"
-              : "บันทึกแล้ว"}
+              ? "บันทึก"
+              : "บันทึก"}
         </button>
       </div>
     </header>

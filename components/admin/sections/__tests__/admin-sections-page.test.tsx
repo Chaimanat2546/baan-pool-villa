@@ -95,7 +95,7 @@ describe("AdminSectionsPage", () => {
 
     const saveButton = Array.from(page.container.querySelectorAll("button")).find(
       (button) => {
-        return button.textContent?.includes("บันทึกหน้าแรก");
+        return button.textContent?.includes("บันทึก");
       },
     );
 

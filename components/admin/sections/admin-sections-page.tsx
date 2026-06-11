@@ -872,7 +872,7 @@ export function AdminSectionsPage() {
                 aria-hidden="true"
                 className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
               />
-              {isSaving ? "กำลังตรวจและบันทึก..." : "บันทึกหน้าแรก"}
+              {isSaving ? "กำลังตรวจและบันทึก..." : "บันทึก"}
             </button>
           </div>
         </header>

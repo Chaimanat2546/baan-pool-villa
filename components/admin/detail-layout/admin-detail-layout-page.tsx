@@ -691,7 +691,7 @@ export function AdminDetailLayoutPage() {
                 ? "กำลังบันทึก..."
                 : hasUnsavedChanges
                   ? "บันทึก layout"
-                  : "บันทึกแล้ว"}
+                  : "บันทึก"}
             </button>
           </div>
         </header>

@@ -181,7 +181,7 @@ describe("AdminGuidesPage", () => {
 
     const saveButton = Array.from(page.container.querySelectorAll("button")).find(
       (button) => {
-        return button.textContent?.includes("บันทึกบทความ");
+        return button.textContent?.includes("บันทึก");
       },
     );
 

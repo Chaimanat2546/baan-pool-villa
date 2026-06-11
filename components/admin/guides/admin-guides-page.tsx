@@ -999,7 +999,7 @@ function GuideStatusPanel({
           aria-hidden="true"
           className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
         />
-        {isSaving ? "กำลังบันทึก..." : "บันทึกบทความ"}
+        {isSaving ? "กำลังบันทึก..." : "บันทึก"}
       </button>
     </aside>
   );
@@ -1437,7 +1437,7 @@ export function AdminGuidesPage() {
                 aria-hidden="true"
                 className={`size-4 ${isSaving ? "animate-pulse" : ""}`}
               />
-              {isSaving ? "กำลังบันทึก..." : "บันทึกบทความ"}
+              {isSaving ? "กำลังบันทึก..." : "บันทึก"}
             </button>
           </div>
         </header>

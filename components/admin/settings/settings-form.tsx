@@ -311,7 +311,7 @@ export function SettingsForm({
   const themeStyle = buildDraftThemeStyle(draft) as CSSProperties;
   const heroPreviewUrl = getPreviewImageUrl(
     settings.heroImage.url,
-    "https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg",
+    "/images/BPV-66_Cover-Web.jpg",
   );
   const sharePreviewImageUrl = getPreviewImageUrl(
     draft.seoOgImageUrl,
