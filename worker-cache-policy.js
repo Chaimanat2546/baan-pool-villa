@@ -136,6 +136,25 @@ export function createHtmlEdgeCacheKey(request, versionToken = "") {
   return new Request(url.toString(), { method: "GET" });
 }
 
+export function createHtmlEdgeVersionToken({
+  cmsVersionToken = "",
+  deploymentVersionToken = "",
+} = {}) {
+  const normalizedDeploymentVersionToken = String(deploymentVersionToken).trim();
+  const normalizedCmsVersionToken = String(cmsVersionToken).trim();
+  const parts = [];
+
+  if (normalizedDeploymentVersionToken) {
+    parts.push(`deploy:${normalizedDeploymentVersionToken}`);
+  }
+
+  if (normalizedCmsVersionToken) {
+    parts.push(normalizedCmsVersionToken);
+  }
+
+  return parts.join("|");
+}
+
 function isVillaImageProxyPath(pathname) {
   const prefix = "/api/villas/";
   const suffix = "/images/proxy";

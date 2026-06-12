@@ -8,6 +8,7 @@ import {
   JSON_EDGE_CACHE_CONTROL,
   JSON_EDGE_CACHE_HEADER,
   createHtmlEdgeCacheKey,
+  createHtmlEdgeVersionToken,
   createImageEdgeCacheKey,
   createJsonEdgeCacheKey,
   getHtmlEdgeCacheDecision,
@@ -112,6 +113,27 @@ describe("worker HTML edge cache policy", () => {
     expect(url.pathname).toBe("/guides/family-trip");
     expect(url.searchParams.get("__bpv_html_v")).toBe("guides:2026");
     expect(url.hash).toBe("");
+  });
+
+  it("adds the Worker deployment version to the HTML cache version token", () => {
+    expect(
+      createHtmlEdgeVersionToken({
+        cmsVersionToken: "guides:2026",
+        deploymentVersionToken: "worker-version-1",
+      }),
+    ).toBe("deploy:worker-version-1|guides:2026");
+    expect(
+      createHtmlEdgeVersionToken({
+        cmsVersionToken: "",
+        deploymentVersionToken: "worker-version-1",
+      }),
+    ).toBe("deploy:worker-version-1");
+    expect(
+      createHtmlEdgeVersionToken({
+        cmsVersionToken: "guides:2026",
+        deploymentVersionToken: "",
+      }),
+    ).toBe("guides:2026");
   });
 
   it("stores only successful HTML responses without Set-Cookie", () => {

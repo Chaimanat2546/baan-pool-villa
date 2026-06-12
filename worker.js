@@ -5,6 +5,7 @@ import openNextWorker, {
 } from "./.open-next/worker.js";
 import {
   createHtmlEdgeCacheKey,
+  createHtmlEdgeVersionToken,
   createJsonEdgeCacheKey,
   getHtmlEdgeCacheDecision,
   getImageEdgeCacheDecision,
@@ -51,6 +52,14 @@ async function fetchOpenNext(request, env, ctx) {
   return response;
 }
 
+function getWorkerDeploymentVersionToken(env) {
+  const metadata = env?.CF_VERSION_METADATA;
+  const id = typeof metadata?.id === "string" ? metadata.id.trim() : "";
+  const tag = typeof metadata?.tag === "string" ? metadata.tag.trim() : "";
+
+  return id || tag;
+}
+
 async function fetchWithHtmlEdgeCache(request, env, ctx) {
   const decision = getHtmlEdgeCacheDecision(request);
 
@@ -63,10 +72,14 @@ async function fetchWithHtmlEdgeCache(request, env, ctx) {
   }
 
   const cache = caches.default;
-  const versionToken = await getHtmlEdgeCacheVersionToken(
+  const cmsVersionToken = await getHtmlEdgeCacheVersionToken(
     env,
     decision.versionGroups,
   );
+  const versionToken = createHtmlEdgeVersionToken({
+    cmsVersionToken,
+    deploymentVersionToken: getWorkerDeploymentVersionToken(env),
+  });
   const cacheKey = createHtmlEdgeCacheKey(request, versionToken);
   const cachedResponse = await cache.match(cacheKey);
 
