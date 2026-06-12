@@ -115,7 +115,7 @@ export async function PUT(request: Request) {
       return adminSupabaseErrorResponse(insertError, "Unable to create detail layout settings.");
     }
 
-    revalidateDetailLayoutCache();
+    await revalidateDetailLayoutCache();
 
     return Response.json({
       layout: normalizeAnyDetailLayout((insertedData as SiteSettingsRow).detail_layout),
@@ -124,7 +124,7 @@ export async function PUT(request: Request) {
 
   const row = data as SiteSettingsRow;
 
-  revalidateDetailLayoutCache();
+  await revalidateDetailLayoutCache();
 
   return Response.json({
     layout: normalizeAnyDetailLayout(row.detail_layout),

@@ -4,10 +4,19 @@ import openNextWorker, {
   DOShardedTagCache,
 } from "./.open-next/worker.js";
 import {
+  createHtmlEdgeCacheKey,
+  createJsonEdgeCacheKey,
   getHtmlEdgeCacheDecision,
+  getImageEdgeCacheDecision,
+  getJsonEdgeCacheDecision,
   toHtmlEdgeCacheResponse,
+  toImageEdgeCacheResponse,
+  toJsonEdgeCacheResponse,
   withHtmlEdgeCacheHeader,
+  withImageEdgeCacheHeader,
+  withJsonEdgeCacheHeader,
 } from "./worker-cache-policy.js";
+import { getHtmlEdgeCacheVersionToken } from "./worker-html-cache-version.js";
 
 const IMAGE_CACHE_CONTROL =
   "public, max-age=2592000, s-maxage=2592000, stale-while-revalidate=86400";
@@ -54,7 +63,12 @@ async function fetchWithHtmlEdgeCache(request, env, ctx) {
   }
 
   const cache = caches.default;
-  const cachedResponse = await cache.match(decision.cacheKey);
+  const versionToken = await getHtmlEdgeCacheVersionToken(
+    env,
+    decision.versionGroups,
+  );
+  const cacheKey = createHtmlEdgeCacheKey(request, versionToken);
+  const cachedResponse = await cache.match(cacheKey);
 
   if (cachedResponse) {
     return withHtmlEdgeCacheHeader(cachedResponse, "HIT");
@@ -68,17 +82,90 @@ async function fetchWithHtmlEdgeCache(request, env, ctx) {
   }
 
   ctx.waitUntil(
-    cache.put(decision.cacheKey, cacheResponse.clone()).catch(() => undefined),
+    cache.put(cacheKey, cacheResponse.clone()).catch(() => undefined),
   );
 
   return withHtmlEdgeCacheHeader(cacheResponse, "MISS");
+}
+
+async function fetchWithImageEdgeCache(request, env, ctx) {
+  const decision = getImageEdgeCacheDecision(request);
+
+  if (!decision.candidate) {
+    return fetchWithJsonEdgeCache(request, env, ctx);
+  }
+
+  if (!decision.cacheable) {
+    const response = await fetchOpenNext(request, env, ctx);
+
+    return withImageEdgeCacheHeader(response, "BYPASS");
+  }
+
+  const cache = caches.default;
+  const cachedResponse = await cache.match(decision.cacheKey);
+
+  if (cachedResponse) {
+    return withImageEdgeCacheHeader(cachedResponse, "HIT");
+  }
+
+  const response = await fetchOpenNext(request, env, ctx);
+  const cacheResponse = toImageEdgeCacheResponse(response);
+
+  if (!cacheResponse) {
+    return withImageEdgeCacheHeader(response, "BYPASS");
+  }
+
+  ctx.waitUntil(
+    cache.put(decision.cacheKey, cacheResponse.clone()).catch(() => undefined),
+  );
+
+  return withImageEdgeCacheHeader(cacheResponse, "MISS");
+}
+
+async function fetchWithJsonEdgeCache(request, env, ctx) {
+  const decision = getJsonEdgeCacheDecision(request);
+
+  if (!decision.candidate) {
+    return fetchWithHtmlEdgeCache(request, env, ctx);
+  }
+
+  if (!decision.cacheable) {
+    const response = await fetchOpenNext(request, env, ctx);
+
+    return withJsonEdgeCacheHeader(response, "BYPASS");
+  }
+
+  const cache = caches.default;
+  const versionToken = await getHtmlEdgeCacheVersionToken(
+    env,
+    decision.versionGroups,
+  );
+  const cacheKey = createJsonEdgeCacheKey(request, versionToken);
+  const cachedResponse = await cache.match(cacheKey);
+
+  if (cachedResponse) {
+    return withJsonEdgeCacheHeader(cachedResponse, "HIT");
+  }
+
+  const response = await fetchOpenNext(request, env, ctx);
+  const cacheResponse = toJsonEdgeCacheResponse(response);
+
+  if (!cacheResponse) {
+    return withJsonEdgeCacheHeader(response, "BYPASS");
+  }
+
+  ctx.waitUntil(
+    cache.put(cacheKey, cacheResponse.clone()).catch(() => undefined),
+  );
+
+  return withJsonEdgeCacheHeader(cacheResponse, "MISS");
 }
 
 export { BucketCachePurge, DOQueueHandler, DOShardedTagCache };
 
 const worker = {
   async fetch(request, env, ctx) {
-    return fetchWithHtmlEdgeCache(request, env, ctx);
+    return fetchWithImageEdgeCache(request, env, ctx);
   },
 };
 

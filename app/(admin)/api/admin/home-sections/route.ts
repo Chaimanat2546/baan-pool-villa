@@ -480,7 +480,7 @@ export async function PUT(request: Request) {
     return adminSupabaseErrorResponse(error, "Unable to save home sections.");
   }
 
-  revalidateHomeSectionsCache();
+  await revalidateHomeSectionsCache();
 
   return Response.json({
     sections: rpcPayload.map(mapSavedHomeSectionPayload),

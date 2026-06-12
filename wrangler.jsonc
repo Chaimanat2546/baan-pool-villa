@@ -18,7 +18,8 @@
 	"services": [
 		{
 			"binding": "WORKER_SELF_REFERENCE",
-			"service": "baan-pool-villa"
+			"service": "baan-pool-villa",
+			"environment": "production"
 		}
 	],
 	"r2_buckets": [
