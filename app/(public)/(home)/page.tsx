@@ -51,7 +51,7 @@ async function getHomePageData(): Promise<{
         homeSections: false,
         villaCatalog: true,
       },
-      guides,
+      guides: selectHomeGuides(guides),
       homeSections: [],
       filterSummary: {
         maxAvailablePrice: 0,

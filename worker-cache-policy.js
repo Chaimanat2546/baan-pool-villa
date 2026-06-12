@@ -121,6 +121,8 @@ function getHtmlCacheVersionGroups(pathname) {
       HTML_CACHE_VERSION_GROUPS.siteSettings,
       HTML_CACHE_VERSION_GROUPS.homeSections,
       HTML_CACHE_VERSION_GROUPS.detailLayout,
+      HTML_CACHE_VERSION_GROUPS.villaDetails,
+      HTML_CACHE_VERSION_GROUPS.villaImages,
     ];
   }
 

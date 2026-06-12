@@ -16,6 +16,10 @@ async function flushEffects() {
 }
 
 describe("AdminFeedback", () => {
+  const originalScrollIntoView = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    "scrollIntoView",
+  );
   let scrollIntoView: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -27,6 +31,17 @@ describe("AdminFeedback", () => {
   });
 
   afterEach(() => {
+    if (originalScrollIntoView) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        "scrollIntoView",
+        originalScrollIntoView,
+      );
+    } else {
+      delete (HTMLElement.prototype as { scrollIntoView?: unknown })
+        .scrollIntoView;
+    }
+
     vi.restoreAllMocks();
   });
 

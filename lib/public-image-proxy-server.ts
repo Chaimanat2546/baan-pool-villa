@@ -63,9 +63,15 @@ function getAllowedImageRedirectUrl(
     return null;
   }
 
-  const redirectUrl = normalizePublicImageProxyUrl(
-    new URL(location, originalTargetUrl).toString(),
-  );
+  let redirectUrl: string | null;
+
+  try {
+    redirectUrl = normalizePublicImageProxyUrl(
+      new URL(location, originalTargetUrl).toString(),
+    );
+  } catch {
+    return null;
+  }
 
   if (!redirectUrl || !isSamePublicImageResource(originalTargetUrl, redirectUrl)) {
     return null;

@@ -76,8 +76,10 @@ describe("guide detail request budget", () => {
       <GuideListPage guides={[{ ...guide, coverImage: { alt: "Guide cover", path: "/guide.jpg", url: "/guide.jpg" } }]} />,
     );
 
-    expect(markup).toContain('href="/guides/guide-1"');
-    expect(markup).not.toContain('data-prefetch="false" href="/guides/guide-1"');
+    const guideAnchor = markup.match(/<a\b[^>]*href="\/guides\/guide-1"[^>]*>/);
+
+    expect(guideAnchor?.[0]).toContain('href="/guides/guide-1"');
+    expect(guideAnchor?.[0]).not.toContain("data-prefetch=");
   });
 
   it("renders guide cover images through the public guide image proxy", () => {

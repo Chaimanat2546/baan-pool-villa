@@ -170,8 +170,7 @@ describe("Gallery", () => {
       />,
     );
 
-    expect(imageProps[0]?.src).not.toContain("/api/villas/89/images/proxy");
-    expect(imageProps[0]?.src).toMatch(/^data:image\//);
+    expect(imageProps).toHaveLength(0);
   });
 
   it("reserves side tile slots when only the cover image is available", () => {

@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   try {
     const listings = await fetchHouseListings();
     const isAllowedCoverImage = listings.some(
-      (listing) => listing.coverImage === targetUrl,
+      (listing) => normalizePublicImageProxyUrl(listing.coverImage) === targetUrl,
     );
 
     if (!isAllowedCoverImage) {

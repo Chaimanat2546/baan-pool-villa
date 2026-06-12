@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VillaListing } from "@/lib/villas/types";
 
 vi.mock("server-only", () => ({}));
@@ -28,6 +28,10 @@ const listing: VillaListing = {
 beforeEach(() => {
   vi.restoreAllMocks();
   fetchHouseListingsMock.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("GET /api/houses/images/proxy", () => {
@@ -100,5 +104,34 @@ describe("GET /api/houses/images/proxy", () => {
     expect(response.headers.get("Last-Modified")).toBe(
       "Fri, 12 Jun 2026 00:00:00 GMT",
     );
+  });
+
+  it("normalizes listing cover URLs before comparing them to the request URL", async () => {
+    fetchHouseListingsMock.mockResolvedValue([
+      {
+        ...listing,
+        coverImage: "https://DEVILLEGROUPS.com:443/imgs/profile_imgs_large/501.jpg",
+      },
+    ]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("cover bytes", {
+          headers: { "Content-Type": "image/jpeg" },
+        }),
+      ),
+    );
+    const { GET } = await import(
+      "../../../app/(public)/api/houses/images/proxy/route"
+    );
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F501.jpg",
+      ),
+    );
+
+    await expect(response.text()).resolves.toBe("cover bytes");
+    expect(response.status).toBe(200);
   });
 });

@@ -20,6 +20,17 @@ interface HeroSectionProps {
   zones: ZoneOption[];
 };
 
+function isSafeLocalImagePath(value: string | null): value is string {
+  const trimmedValue = value?.trim();
+
+  return Boolean(
+    trimmedValue &&
+      trimmedValue.startsWith("/") &&
+      !trimmedValue.startsWith("//") &&
+      !trimmedValue.startsWith("/\\"),
+  );
+}
+
 export function HeroSection({
   filters,
   heroImage,
@@ -28,20 +39,29 @@ export function HeroSection({
   onSearch,
   zones,
 }: HeroSectionProps) {
-  const heroImageSrc = buildSiteAssetProxyUrl(heroImage.url) ?? heroImage.url;
+  const heroImageSrc =
+    buildSiteAssetProxyUrl(heroImage.url) ??
+    (isSafeLocalImagePath(heroImage.url) ? heroImage.url : null);
 
   return (
     <section className="relative lg:pb-20">
-      <Image
-        src={heroImageSrc}
-        alt={heroImage.alt}
-        width={1565}
-        height={1043}
-        preload
-        sizes="100vw"
-        unoptimized
-        className="h-auto w-full"
-      />
+      {heroImageSrc ? (
+        <Image
+          src={heroImageSrc}
+          alt={heroImage.alt}
+          width={1565}
+          height={1043}
+          preload
+          sizes="100vw"
+          unoptimized
+          className="h-auto w-full"
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          className="aspect-[1565/1043] w-full bg-[var(--site-surface-tint)]"
+        />
+      )}
       <div
         className="relative z-10 -mt-8 px-4 sm:px-6 lg:hidden"
         data-home-mobile-search="true"

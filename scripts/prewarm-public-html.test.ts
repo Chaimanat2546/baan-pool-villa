@@ -17,7 +17,7 @@ function textResponse(body: string, init: ResponseInit = {}) {
 }
 
 describe("public HTML prewarm", () => {
-  it("prefers configured environment URLs over the hard-coded fallback", () => {
+  it("requires a configured base URL", () => {
     expect(
       resolvePrewarmBaseUrl({
         BPV_PREWARM_BASE_URL: "https://www.baanpoolvilla.example",
@@ -28,7 +28,12 @@ describe("public HTML prewarm", () => {
         NEXT_PUBLIC_SITE_URL: "https://public.example",
       }),
     ).toBe("https://public.example");
-    expect(resolvePrewarmBaseUrl({})).toBe(BASE_URL);
+    expect(resolvePrewarmBaseUrl({}, "https://cli.example")).toBe(
+      "https://cli.example",
+    );
+    expect(() => {
+      resolvePrewarmBaseUrl({});
+    }).toThrow("Missing prewarm base URL");
   });
 
   it("extracts sitemap loc values without trusting comments or escaped markup", () => {

@@ -70,6 +70,18 @@ describe("download image validation helpers", () => {
     expect(normalizeDownloadImageUrl("not a url")).toBeNull();
   });
 
+  it("rejects private network image URLs", () => {
+    expect(normalizeDownloadImageUrl("https://localhost/pool.jpg")).toBeNull();
+    expect(normalizeDownloadImageUrl("https://127.0.0.1/pool.jpg")).toBeNull();
+    expect(normalizeDownloadImageUrl("https://10.0.0.1/pool.jpg")).toBeNull();
+    expect(normalizeDownloadImageUrl("https://172.16.0.1/pool.jpg")).toBeNull();
+    expect(normalizeDownloadImageUrl("https://192.168.1.1/pool.jpg")).toBeNull();
+    expect(normalizeDownloadImageUrl("https://169.254.169.254/pool.jpg")).toBeNull();
+    expect(normalizeDownloadImageUrl("https://[::1]/pool.jpg")).toBeNull();
+    expect(normalizeDownloadImageUrl("https://[fc00::1]/pool.jpg")).toBeNull();
+    expect(normalizeDownloadImageUrl("https://[fe80::1]/pool.jpg")).toBeNull();
+  });
+
   it("allows exact villa image URLs and the listing cover only", () => {
     expect(
       isAllowedVillaImageUrl("https://images.example.com/pool.jpg", imageRows, detailPayload),
@@ -84,6 +96,21 @@ describe("download image validation helpers", () => {
     expect(
       isAllowedVillaImageUrl("https://images.example.com/other-villa.jpg", imageRows, detailPayload),
     ).toBe(false);
+  });
+
+  it("normalizes stored villa image URLs before allowlist comparison", () => {
+    expect(
+      isAllowedVillaImageUrl(
+        "https://images.example.com/pool.jpg",
+        [
+          {
+            ...imageRows[0],
+            imageUrl: "https://IMAGES.example.com:443/pool.jpg",
+          },
+        ],
+        null,
+      ),
+    ).toBe(true);
   });
 
   it("builds safe attachment filenames from villa and image metadata", () => {

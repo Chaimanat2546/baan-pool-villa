@@ -13,13 +13,7 @@ function getGuideImage(guide: GuidePost) {
   return buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
 }
 
-function GuideCard({
-  guide,
-  priority = false,
-}: {
-  guide: GuidePost;
-  priority?: boolean;
-}) {
+function GuideCard({ guide }: { guide: GuidePost }) {
   const imageUrl = getGuideImage(guide);
 
   return (
@@ -33,7 +27,6 @@ function GuideCard({
             alt={guide.coverImage?.alt ?? guide.title}
             className="object-cover transition duration-500 group-hover:scale-105"
             fill
-            priority={priority}
             sizes="(max-width: 768px) 100vw, 33vw"
             src={imageUrl}
             unoptimized
@@ -128,8 +121,8 @@ export function GuideListPage({ guides }: GuideListPageProps) {
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {guides.map((guide, index) => (
-                <GuideCard guide={guide} key={guide.id} priority={index === 0} />
+              {guides.map((guide) => (
+                <GuideCard guide={guide} key={guide.id} />
               ))}
             </div>
           )}

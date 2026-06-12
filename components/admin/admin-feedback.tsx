@@ -23,12 +23,12 @@ function makeFeedbackKey({
     return `errors:${errors.join("\n")}`;
   }
 
-  if (notice) {
-    return `notice:${notice}`;
-  }
-
   if (warnings.length > 0) {
     return `warnings:${warnings.join("\n")}`;
+  }
+
+  if (notice) {
+    return `notice:${notice}`;
   }
 
   return "";
@@ -83,21 +83,10 @@ export function AdminFeedback({
 
   return (
     <>
-      {notice ? (
-        <p
-          className="scroll-mt-52 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 lg:scroll-mt-48"
-          ref={feedbackRef}
-          role="status"
-          tabIndex={-1}
-        >
-          {notice}
-        </p>
-      ) : null}
-
       {warnings.length > 0 ? (
         <div
           className="scroll-mt-52 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:scroll-mt-48"
-          ref={notice ? null : feedbackRef}
+          ref={feedbackRef}
           role="status"
           tabIndex={-1}
         >
@@ -108,6 +97,17 @@ export function AdminFeedback({
             ))}
           </ul>
         </div>
+      ) : null}
+
+      {notice ? (
+        <p
+          className="scroll-mt-52 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 lg:scroll-mt-48"
+          ref={warnings.length > 0 ? null : feedbackRef}
+          role="status"
+          tabIndex={-1}
+        >
+          {notice}
+        </p>
       ) : null}
     </>
   );

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GuidePost } from "@/lib/guides/types";
 
 vi.mock("server-only", () => ({}));
@@ -41,6 +41,10 @@ const guide: GuidePost = {
 beforeEach(() => {
   vi.restoreAllMocks();
   getPublishedGuidesMock.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("GET /api/guides/images/proxy", () => {
@@ -94,6 +98,37 @@ describe("GET /api/guides/images/proxy", () => {
       "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
     );
     expect(response.headers.get("Content-Type")).toBe("image/webp");
+  });
+
+  it("normalizes guide image URLs before comparing them to the request URL", async () => {
+    getPublishedGuidesMock.mockResolvedValue([
+      {
+        ...guide,
+        coverImage: {
+          alt: "Guide cover",
+          path: "guide-cover.jpg",
+          url: "https://ASSETS.example.com:443/guide-cover.jpg",
+        },
+      },
+    ]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("guide bytes", {
+          headers: { "Content-Type": "image/webp" },
+        }),
+      ),
+    );
+    const { GET } = await import("../../../app/(public)/api/guides/images/proxy/route");
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fguide-cover.jpg",
+      ),
+    );
+
+    await expect(response.text()).resolves.toBe("guide bytes");
+    expect(response.status).toBe(200);
   });
 
   it("proxies a published guide inline image", async () => {

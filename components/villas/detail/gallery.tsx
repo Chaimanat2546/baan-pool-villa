@@ -5,9 +5,6 @@ import type { VillaListing } from "@/lib/villas/types";
 import { getGalleryItemDescription, getVillaTitle } from "./helpers";
 import type { GalleryCategory, GalleryItem } from "./types";
 
-const GALLERY_IMAGE_PLACEHOLDER_SRC =
-  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-
 /**
  * Build a download URL for a gallery image under the villas images download API.
  *
@@ -31,11 +28,11 @@ function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string 
   return `/api/villas/${encodeURIComponent(listingId)}/images/download?${params.toString()}`;
 }
 
-function buildGalleryDisplaySrc(listingId: string, item: GalleryItem): string {
+function buildGalleryDisplaySrc(listingId: string, item: GalleryItem): string | null {
   const targetUrl = normalizeGalleryDisplayImageUrl(item.url);
 
   if (!targetUrl) {
-    return GALLERY_IMAGE_PLACEHOLDER_SRC;
+    return null;
   }
 
   const params = new URLSearchParams({
@@ -118,7 +115,7 @@ function GalleryImage({
   loading?: "eager" | "lazy";
 
 }) {
-  const displaySrc = item.url ? buildGalleryDisplaySrc(listingId, item) : "";
+  const displaySrc = item.url ? buildGalleryDisplaySrc(listingId, item) : null;
 
   return (
 
@@ -133,7 +130,7 @@ function GalleryImage({
       }}
     >
 
-      {item.url ? (
+      {displaySrc ? (
 
         <>
 
@@ -218,6 +215,7 @@ function GalleryViewAllTile({
   totalImageCount: number;
 
 }) {
+  const displaySrc = item.url ? buildGalleryDisplaySrc(listingId, item) : null;
 
   return (
 
@@ -231,11 +229,11 @@ function GalleryViewAllTile({
       }}
     >
 
-      {item.url ? (
+      {displaySrc ? (
 
         <Image
 
-          src={buildGalleryDisplaySrc(listingId, item)}
+          src={displaySrc}
 
           alt=""
 
@@ -646,7 +644,9 @@ export function GalleryLightbox({
 
   const nextItem = activeItems[(activeIndex + 1) % activeItems.length];
   const activeImageDownloadHref = buildGalleryDownloadHref(listing.id, activeItem);
-  const isActiveImageLoading = loadedImageKey !== activeItem.key;
+  const activeImageDisplaySrc = buildGalleryDisplaySrc(listing.id, activeItem);
+  const isActiveImageLoading =
+    Boolean(activeImageDisplaySrc) && loadedImageKey !== activeItem.key;
   const handleImageTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     touchStartXRef.current = event.touches[0]?.clientX ?? null;
   };
@@ -763,11 +763,12 @@ export function GalleryLightbox({
             onTouchStart={handleImageTouchStart}
             onTouchEnd={handleImageTouchEnd}
           >
+            {activeImageDisplaySrc ? (
             <Image
 
               key={activeItem.key}
 
-              src={buildGalleryDisplaySrc(listing.id, activeItem)}
+              src={activeImageDisplaySrc}
 
               alt={`${getVillaTitle(listing.id)} ${activeItem.zoneLabel}`}
 
@@ -792,6 +793,11 @@ export function GalleryLightbox({
                 onImageError(activeItem.url);
               }}
             />
+            ) : (
+              <div className="grid h-full place-items-center text-[var(--site-on-primary)] opacity-70">
+                <ImageOff className="h-12 w-12" />
+              </div>
+            )}
 
             {isActiveImageLoading ? (
               <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-black/20 backdrop-blur-[1px]">
@@ -934,9 +940,10 @@ export function GalleryLightbox({
                   }}
                 >
 
+                  {buildGalleryDisplaySrc(listing.id, item) ? (
                   <Image
 
-                    src={buildGalleryDisplaySrc(listing.id, item)}
+                    src={buildGalleryDisplaySrc(listing.id, item) ?? ""}
 
                     alt={item.caption ?? item.zoneLabel}
 
@@ -954,6 +961,11 @@ export function GalleryLightbox({
                       onImageError(item.url);
                     }}
                   />
+                  ) : (
+                    <div className="grid h-full place-items-center text-[var(--site-on-primary)] opacity-60">
+                      <ImageOff className="h-6 w-6" />
+                    </div>
+                  )}
 
                 </button>
 

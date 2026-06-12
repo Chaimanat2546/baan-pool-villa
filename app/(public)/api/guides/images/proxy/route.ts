@@ -30,12 +30,12 @@ function getGuideBlockImageUrl(block: unknown): string | null {
 
 function isAllowedGuideImageUrl(targetUrl: string, guides: GuidePost[]) {
   return guides.some((guide) => {
-    if (guide.coverImage?.url === targetUrl) {
+    if (normalizePublicImageProxyUrl(guide.coverImage?.url ?? null) === targetUrl) {
       return true;
     }
 
     return guide.contentBlocks.some(
-      (block) => getGuideBlockImageUrl(block) === targetUrl,
+      (block) => normalizePublicImageProxyUrl(getGuideBlockImageUrl(block)) === targetUrl,
     );
   });
 }

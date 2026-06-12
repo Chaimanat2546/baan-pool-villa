@@ -38,7 +38,10 @@ export async function GET(
 
   try {
     const images = await fetchVillaImages(id);
-    const matchedImage = images.find((image) => image.imageUrl === targetUrl) ?? null;
+    const matchedImage =
+      images.find(
+        (image) => normalizePublicImageProxyUrl(image.imageUrl) === targetUrl,
+      ) ?? null;
     const detailPayload = matchedImage ? null : await fetchVillaDetail(id);
 
     if (!isAllowedVillaImageUrl(targetUrl, images, detailPayload)) {

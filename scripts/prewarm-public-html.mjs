@@ -1,8 +1,5 @@
-#!/usr/bin/env node
-
 import { fileURLToPath } from "node:url";
 
-const DEFAULT_BASE_URL = "https://baan-pool-villa.nutthawutprayoonklay.workers.dev";
 const DEFAULT_MAX_DYNAMIC_ROUTES = 60;
 const DEFAULT_CONCURRENCY = 2;
 const DEFAULT_VERIFY_DELAY_MS = 750;
@@ -44,14 +41,20 @@ function decodeXmlText(value) {
     .replaceAll("&apos;", "'");
 }
 
-export function resolvePrewarmBaseUrl(env = process.env) {
+export function resolvePrewarmBaseUrl(env = process.env, explicitUrl) {
   const configuredUrl =
-    env.BPV_PREWARM_BASE_URL || env.NEXT_PUBLIC_SITE_URL || DEFAULT_BASE_URL;
+    explicitUrl || env.BPV_PREWARM_BASE_URL || env.NEXT_PUBLIC_SITE_URL;
+
+  if (!configuredUrl) {
+    throw new Error(
+      "Missing prewarm base URL. Set BPV_PREWARM_BASE_URL, NEXT_PUBLIC_SITE_URL, or pass --url=https://example.com.",
+    );
+  }
 
   try {
     return normalizeBaseUrl(configuredUrl);
   } catch {
-    return normalizeBaseUrl(DEFAULT_BASE_URL);
+    throw new Error("Invalid prewarm base URL.");
   }
 }
 
@@ -424,7 +427,7 @@ function parseInteger(value, fallback) {
 
 function parseArgs(argv) {
   const options = {
-    baseUrl: resolvePrewarmBaseUrl(),
+    baseUrl: undefined,
     concurrency: DEFAULT_CONCURRENCY,
     fetchTimeoutMs: DEFAULT_FETCH_TIMEOUT_MS,
     maxDynamicRoutes: DEFAULT_MAX_DYNAMIC_ROUTES,
@@ -458,6 +461,8 @@ function parseArgs(argv) {
       throw new Error(`Unknown option: ${arg}`);
     }
   }
+
+  options.baseUrl = resolvePrewarmBaseUrl(process.env, options.baseUrl);
 
   return options;
 }

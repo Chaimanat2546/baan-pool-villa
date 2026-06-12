@@ -102,4 +102,20 @@ describe("fetchPublicImageProxyResponse", () => {
     ).resolves.toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("rejects malformed redirect locations without throwing", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        headers: {
+          Location: "https://[",
+        },
+        status: 302,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchPublicImageProxyResponse("https://assets.example.com/image.jpg"),
+    ).resolves.toBeNull();
+  });
 });

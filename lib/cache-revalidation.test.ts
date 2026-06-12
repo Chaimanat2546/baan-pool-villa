@@ -111,7 +111,16 @@ describe("cache revalidation", () => {
   });
 
   it("expires only shared external villa tags by default", async () => {
-    await revalidateExternalVillaCache();
+    let resolveBump: (() => void) | null = null;
+    const bumpPromise = new Promise<void>((resolve) => {
+      resolveBump = resolve;
+    });
+    bumpHtmlEdgeCacheVersionsMock.mockReturnValueOnce(bumpPromise);
+
+    let completed = false;
+    const revalidationPromise = revalidateExternalVillaCache().then(() => {
+      completed = true;
+    });
 
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaListings, {
       expire: 0,
@@ -127,5 +136,11 @@ describe("cache revalidation", () => {
       HTML_CACHE_VERSION_GROUPS.villaDetails,
       HTML_CACHE_VERSION_GROUPS.villaImages,
     ]);
+    expect(completed).toBe(false);
+
+    resolveBump?.();
+    await revalidationPromise;
+
+    expect(completed).toBe(true);
   });
 });

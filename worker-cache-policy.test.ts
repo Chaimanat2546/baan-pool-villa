@@ -98,7 +98,13 @@ describe("worker HTML edge cache policy", () => {
       versionGroups: ["site-settings", "legal-pages"],
     });
     expect(getHtmlEdgeCacheDecision(request("/villas/9"))).toMatchObject({
-      versionGroups: ["site-settings", "home-sections", "detail-layout"],
+      versionGroups: [
+        "site-settings",
+        "home-sections",
+        "detail-layout",
+        "villa-details",
+        "villa-images",
+      ],
     });
   });
 

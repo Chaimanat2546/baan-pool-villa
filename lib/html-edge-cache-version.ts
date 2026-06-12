@@ -35,9 +35,7 @@ export async function writeHtmlEdgeCacheVersionGroupsForContext({
   groups: string[];
   version?: string;
 }): Promise<void> {
-  const writePromise = writeHtmlEdgeCacheVersions(env, groups, version).catch(
-    () => undefined,
-  );
+  const writePromise = writeHtmlEdgeCacheVersions(env, groups, version);
 
   if (ctx?.waitUntil) {
     ctx.waitUntil(writePromise);
