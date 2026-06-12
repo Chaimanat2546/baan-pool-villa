@@ -7,6 +7,7 @@ import {
   IMAGE_EDGE_CACHE_HEADER,
   JSON_EDGE_CACHE_CONTROL,
   JSON_EDGE_CACHE_HEADER,
+  STATIC_ASSET_CACHE_CONTROL,
   createHtmlEdgeCacheKey,
   createHtmlEdgeVersionToken,
   createImageEdgeCacheKey,
@@ -14,6 +15,7 @@ import {
   getHtmlEdgeCacheDecision,
   getImageEdgeCacheDecision,
   getJsonEdgeCacheDecision,
+  isNextStaticAssetPath,
   isPublicHtmlCachePath,
   toHtmlEdgeCacheResponse,
   toImageEdgeCacheResponse,
@@ -21,6 +23,7 @@ import {
   withHtmlEdgeCacheHeader,
   withImageEdgeCacheHeader,
   withJsonEdgeCacheHeader,
+  withStaticAssetCacheHeaders,
 } from "./worker-cache-policy.js";
 
 function request(path: string, init: RequestInit = {}) {
@@ -31,6 +34,10 @@ function request(path: string, init: RequestInit = {}) {
 }
 
 describe("worker HTML edge cache policy", () => {
+  it("keeps public HTML edge cache shared for one hour", () => {
+    expect(HTML_EDGE_CACHE_CONTROL).toBe("public, max-age=0, s-maxage=3600");
+  });
+
   it("allows only the first conservative public HTML page batch", () => {
     expect(isPublicHtmlCachePath("/")).toBe(true);
     expect(isPublicHtmlCachePath("/search")).toBe(true);
@@ -182,6 +189,30 @@ describe("worker HTML edge cache policy", () => {
 
     expect(response.status).toBe(203);
     expect(response.headers.get(HTML_EDGE_CACHE_HEADER)).toBe("MISS");
+  });
+});
+
+describe("worker static asset cache policy", () => {
+  it("matches only hashed Next static assets", () => {
+    expect(isNextStaticAssetPath("/_next/static/chunks/app.js")).toBe(true);
+    expect(isNextStaticAssetPath("/_next/static/css/app.css")).toBe(true);
+
+    expect(isNextStaticAssetPath("/_next/image")).toBe(false);
+    expect(isNextStaticAssetPath("/api/houses")).toBe(false);
+  });
+
+  it("sets long browser cache headers only for successful static assets", () => {
+    const cached = withStaticAssetCacheHeaders(
+      new Response("asset", { status: 200 }),
+    );
+
+    expect(cached.headers.get("Cache-Control")).toBe(
+      STATIC_ASSET_CACHE_CONTROL,
+    );
+
+    const missing = new Response("not found", { status: 404 });
+
+    expect(withStaticAssetCacheHeaders(missing)).toBe(missing);
   });
 });
 
