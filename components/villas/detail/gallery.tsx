@@ -249,6 +249,16 @@ function GalleryViewAllTile({
 
 void GalleryViewAllTile;
 
+function GalleryReservedTile({ className }: { className: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`bg-[var(--site-surface-tint)] ${className}`}
+      data-gallery-reserved-slot="true"
+    />
+  );
+}
+
 
 
 /**
@@ -338,7 +348,9 @@ export function Gallery({
 
         />
 
-        ) : null}
+        ) : (
+          <GalleryReservedTile className="aspect-[4/3] rounded-2xl lg:aspect-auto lg:h-full lg:rounded-none" />
+        )}
 
         {third ? (
 
@@ -358,7 +370,9 @@ export function Gallery({
 
         />
 
-        ) : null}
+        ) : (
+          <GalleryReservedTile className="aspect-[4/3] rounded-2xl lg:aspect-auto lg:h-full lg:rounded-l-none lg:rounded-r-xl lg:rounded-bl-none" />
+        )}
 
         {fourth ? (
 
@@ -405,7 +419,9 @@ export function Gallery({
 
         </div>
 
-        ) : null}
+        ) : (
+          <GalleryReservedTile className="aspect-[4/3] rounded-2xl lg:col-span-2 lg:aspect-auto lg:h-full lg:rounded-br-xl lg:rounded-t-none" />
+        )}
 
       </div>
 
