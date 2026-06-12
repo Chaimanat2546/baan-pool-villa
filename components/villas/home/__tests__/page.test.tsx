@@ -167,8 +167,12 @@ describe("HomePage", () => {
     expect(destinationSectionStart).toBeGreaterThan(-1);
     expect(tiktokSectionStart).toBeGreaterThan(destinationSectionStart);
 
-    expect(destinationsMarkup).toContain("https://example.com/destination-1.jpg");
-    expect(destinationsMarkup).toContain("https://example.com/destination-2.jpg");
+    expect(destinationsMarkup).toContain(
+      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-1.jpg",
+    );
+    expect(destinationsMarkup).toContain(
+      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-2.jpg",
+    );
   });
 
   it("renders TikTok section from settings without server preview props and keeps guide placement after it", () => {

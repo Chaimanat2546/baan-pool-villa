@@ -2,6 +2,7 @@ import { ArrowRight, Pin } from "lucide-react";
 import Image from "next/image";
 
 import type { GuidePost } from "@/lib/guides/types";
+import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
 
 import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
@@ -17,7 +18,7 @@ export function selectHomeGuides(guides: GuidePost[]): GuidePost[] {
 }
 
 function getGuideImage(guide: GuidePost) {
-  return guide.coverImage?.url ?? null;
+  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
 }
 
 export function ArticlesSection({ guides }: ArticlesSectionProps) {
@@ -58,6 +59,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                     fill
                     sizes="(max-width: 768px) 306px, 394px"
                     src={imageUrl}
+                    unoptimized
                   />
                 ) : (
                   <div className="grid h-full place-items-center text-sm font-semibold text-[var(--site-muted)]">
