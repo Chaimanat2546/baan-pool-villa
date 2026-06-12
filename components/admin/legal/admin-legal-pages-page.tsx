@@ -6,6 +6,7 @@ import { AlertCircle, ExternalLink, ScrollText, Save } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getAdminErrorMessage } from "@/components/admin/admin-error-messages";
+import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { LegalPage } from "@/components/legal/legal-page";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminLegalSkeleton } from "@/components/admin/loading/admin-legal-skeleton";
@@ -343,28 +344,11 @@ export function AdminLegalPagesPage() {
         </header>
       </div>
 
-      {errors.length > 0 ? (
-        <div
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-          role="alert"
-        >
-          <p className="font-semibold">เกิดข้อผิดพลาด:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            {errors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {notice ? (
-        <p
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
-          role="status"
-        >
-          {notice}
-        </p>
-      ) : null}
+      <AdminFeedback
+        errors={errors}
+        errorTitle="เกิดข้อผิดพลาด:"
+        notice={notice}
+      />
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[260px_minmax(0,1fr)_360px]">
         <aside className="grid content-start gap-3 xl:sticky xl:top-36">
