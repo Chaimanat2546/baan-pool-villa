@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 vi.mock("server-only", () => ({}));
@@ -14,6 +14,10 @@ vi.mock("@/lib/site-settings/server", () => ({
 beforeEach(() => {
   vi.restoreAllMocks();
   getSiteSettingsMock.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("GET /api/site-assets/proxy", () => {
@@ -82,5 +86,38 @@ describe("GET /api/site-assets/proxy", () => {
       "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
     );
     expect(response.headers.get("Content-Type")).toBe("image/webp");
+  });
+
+  it("matches active site asset URLs after canonical normalization", async () => {
+    getSiteSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: {
+        ...DEFAULT_SITE_SETTINGS,
+        heroImage: {
+          alt: "Hero",
+          path: "hero.jpg",
+          url: " https://ASSETS.example.com/hero.jpg ",
+        },
+      },
+      source: "config",
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("hero bytes", {
+          headers: { "Content-Type": "image/webp" },
+        }),
+      ),
+    );
+    const { GET } = await import("../../../app/(public)/api/site-assets/proxy/route");
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/site-assets/proxy?url=https%3A%2F%2Fassets.example.com%2Fhero.jpg",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe("hero bytes");
   });
 });

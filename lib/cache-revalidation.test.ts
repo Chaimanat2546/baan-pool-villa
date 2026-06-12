@@ -28,6 +28,9 @@ vi.mock("./html-edge-cache-version", () => ({
     homeSections: "home-sections",
     legalPages: "legal-pages",
     siteSettings: "site-settings",
+    villaDetails: "villa-details",
+    villaImages: "villa-images",
+    villaListings: "villa-listings",
   },
   bumpHtmlEdgeCacheVersions: vi.fn(),
 }));
@@ -119,6 +122,10 @@ describe("cache revalidation", () => {
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaImages, {
       expire: 0,
     });
-    expect(bumpHtmlEdgeCacheVersionsMock).not.toHaveBeenCalled();
+    expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
+      HTML_CACHE_VERSION_GROUPS.villaListings,
+      HTML_CACHE_VERSION_GROUPS.villaDetails,
+      HTML_CACHE_VERSION_GROUPS.villaImages,
+    ]);
   });
 });

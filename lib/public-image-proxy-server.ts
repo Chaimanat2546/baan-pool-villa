@@ -21,6 +21,7 @@ export async function fetchPublicImageProxyResponse(
   try {
     upstreamResponse = await fetch(targetUrl, {
       cache: "no-store",
+      redirect: "manual",
       signal: controller.signal,
     });
   } finally {
@@ -30,14 +31,23 @@ export async function fetchPublicImageProxyResponse(
   return toPublicImageProxyResponse(upstreamResponse);
 }
 
-function toPublicImageProxyResponse(upstreamResponse: Response): Response | null {
+async function cancelUpstreamResponseBody(upstreamResponse: Response) {
+  await upstreamResponse.body?.cancel().catch(() => undefined);
+}
+
+async function toPublicImageProxyResponse(
+  upstreamResponse: Response,
+): Promise<Response | null> {
   const contentType = upstreamResponse.headers.get("Content-Type") ?? "";
 
   if (
     !upstreamResponse.ok ||
+    (upstreamResponse.status >= 300 && upstreamResponse.status < 400) ||
     !upstreamResponse.body ||
     !contentType.trim().toLowerCase().startsWith("image/")
   ) {
+    await cancelUpstreamResponseBody(upstreamResponse);
+
     return null;
   }
 

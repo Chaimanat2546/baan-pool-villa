@@ -149,10 +149,14 @@ async function fetchWithJsonEdgeCache(request, env, ctx) {
   }
 
   const cache = caches.default;
-  const versionToken = await getHtmlEdgeCacheVersionToken(
+  const cmsVersionToken = await getHtmlEdgeCacheVersionToken(
     env,
     decision.versionGroups,
   );
+  const versionToken = createHtmlEdgeVersionToken({
+    cmsVersionToken,
+    deploymentVersionToken: getWorkerDeploymentVersionToken(env),
+  });
   const cacheKey = createJsonEdgeCacheKey(request, versionToken);
   const cachedResponse = await cache.match(cacheKey);
 

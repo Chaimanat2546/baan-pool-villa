@@ -504,7 +504,7 @@ export function GuideDetailPage({
                 alt={guide.coverImage?.alt ?? guide.title}
                 className="object-cover"
                 fill
-                priority
+                preload
                 sizes="(max-width: 1024px) 100vw, 1024px"
                 src={coverImageUrl}
                 unoptimized

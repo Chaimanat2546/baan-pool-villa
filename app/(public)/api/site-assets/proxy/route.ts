@@ -8,8 +8,10 @@ import { getSiteSettings } from "@/lib/site-settings/server";
 import type { SiteImageSettings, SiteSettings } from "@/lib/site-settings/types";
 
 function addImageUrl(urls: Set<string>, image: SiteImageSettings) {
-  if (image.url) {
-    urls.add(image.url);
+  const normalizedUrl = normalizePublicImageProxyUrl(image.url);
+
+  if (normalizedUrl) {
+    urls.add(normalizedUrl);
   }
 }
 

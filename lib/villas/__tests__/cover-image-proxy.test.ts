@@ -88,6 +88,7 @@ describe("GET /api/houses/images/proxy", () => {
       "https://devillegroups.com/imgs/profile_imgs_large/501.jpg",
       {
         cache: "no-store",
+        redirect: "manual",
         signal: expect.any(AbortSignal),
       },
     );

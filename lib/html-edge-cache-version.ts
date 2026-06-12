@@ -24,6 +24,28 @@ function createHtmlCacheVersionValue(): string {
   return `${Date.now()}-${randomId}`;
 }
 
+export async function writeHtmlEdgeCacheVersionGroupsForContext({
+  ctx,
+  env,
+  groups,
+  version = createHtmlCacheVersionValue(),
+}: {
+  ctx?: WaitUntilContext;
+  env: HtmlCacheVersionEnv;
+  groups: string[];
+  version?: string;
+}): Promise<void> {
+  const writePromise = writeHtmlEdgeCacheVersions(env, groups, version).catch(
+    () => undefined,
+  );
+
+  if (ctx?.waitUntil) {
+    ctx.waitUntil(writePromise);
+  }
+
+  await writePromise;
+}
+
 export async function bumpHtmlEdgeCacheVersions(groups: string[]): Promise<void> {
   if (groups.length === 0) {
     return;
@@ -34,17 +56,7 @@ export async function bumpHtmlEdgeCacheVersions(groups: string[]): Promise<void>
     const cloudflareContext = await getCloudflareContext({ async: true });
     const env = cloudflareContext.env as HtmlCacheVersionEnv;
     const ctx = cloudflareContext.ctx as WaitUntilContext | undefined;
-    const version = createHtmlCacheVersionValue();
-    const writePromise = writeHtmlEdgeCacheVersions(env, groups, version).catch(
-      () => undefined,
-    );
-
-    if (ctx?.waitUntil) {
-      ctx.waitUntil(writePromise);
-      return;
-    }
-
-    await writePromise;
+    await writeHtmlEdgeCacheVersionGroupsForContext({ ctx, env, groups });
   } catch {
     // HTML edge cache versioning is a freshness accelerator. Next data-cache
     // revalidation remains the source of truth when bindings are unavailable.

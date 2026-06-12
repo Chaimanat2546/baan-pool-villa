@@ -10,10 +10,10 @@ function buildPublicImageProxyUrl(proxyPath: string, sourceUrl: string | null) {
     const url = new URL(sourceUrl);
 
     if (url.protocol !== "https:" || url.username || url.password) {
-      return sourceUrl;
+      return null;
     }
   } catch {
-    return sourceUrl;
+    return null;
   }
 
   const params = new URLSearchParams();
