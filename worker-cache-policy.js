@@ -1,4 +1,4 @@
-const HTML_EDGE_CACHE_SECONDS = 300;
+const HTML_EDGE_CACHE_SECONDS = 60 * 60;
 const IMAGE_EDGE_CACHE_SECONDS = 24 * 60 * 60;
 const IMAGE_EDGE_STALE_SECONDS = 7 * 24 * 60 * 60;
 const JSON_EDGE_CACHE_SECONDS = 12 * 60 * 60;
@@ -11,6 +11,8 @@ export const IMAGE_EDGE_CACHE_HEADER = "x-bpv-image-cache";
 export const JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_HEADER = "x-bpv-json-cache";
 export const JSON_EDGE_CACHE_VERSION_PARAM = "__bpv_json_v";
+export const STATIC_ASSET_CACHE_CONTROL =
+  "public, max-age=31536000, immutable";
 
 export const HTML_CACHE_VERSION_GROUPS = {
   detailLayout: "detail-layout",
@@ -87,6 +89,10 @@ export function isPublicHtmlCachePath(pathname) {
     isGuideDetailPath(pathname) ||
     isVillaDetailPath(pathname)
   );
+}
+
+export function isNextStaticAssetPath(pathname) {
+  return pathname.startsWith("/_next/static/");
 }
 
 function getHtmlCacheVersionGroups(pathname) {
@@ -381,6 +387,21 @@ export function withImageEdgeCacheHeader(response, value) {
 export function withJsonEdgeCacheHeader(response, value) {
   const headers = new Headers(response.headers);
   headers.set(JSON_EDGE_CACHE_HEADER, value);
+
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
+}
+
+export function withStaticAssetCacheHeaders(response) {
+  if (!response.ok) {
+    return response;
+  }
+
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", STATIC_ASSET_CACHE_CONTROL);
 
   return new Response(response.body, {
     headers,

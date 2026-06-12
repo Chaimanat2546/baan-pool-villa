@@ -10,12 +10,14 @@ import {
   getHtmlEdgeCacheDecision,
   getImageEdgeCacheDecision,
   getJsonEdgeCacheDecision,
+  isNextStaticAssetPath,
   toHtmlEdgeCacheResponse,
   toImageEdgeCacheResponse,
   toJsonEdgeCacheResponse,
   withHtmlEdgeCacheHeader,
   withImageEdgeCacheHeader,
   withJsonEdgeCacheHeader,
+  withStaticAssetCacheHeaders,
 } from "./worker-cache-policy.js";
 import { getHtmlEdgeCacheVersionToken } from "./worker-html-cache-version.js";
 
@@ -44,6 +46,11 @@ function withImageCacheHeaders(response) {
 
 async function fetchOpenNext(request, env, ctx) {
   const response = await openNextWorker.fetch(request, env, ctx);
+  const { pathname } = new URL(request.url);
+
+  if (isNextStaticAssetPath(pathname)) {
+    return withStaticAssetCacheHeaders(response);
+  }
 
   if (isNextImageRequest(request)) {
     return withImageCacheHeaders(response);
