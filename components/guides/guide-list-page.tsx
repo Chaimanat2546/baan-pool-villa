@@ -3,13 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { GuidePost } from "@/lib/guides/types";
+import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
 
 interface GuideListPageProps {
   guides: GuidePost[];
 }
 
 function getGuideImage(guide: GuidePost) {
-  return guide.coverImage?.url ?? null;
+  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
 }
 
 function GuideCard({
@@ -35,6 +36,7 @@ function GuideCard({
             priority={priority}
             sizes="(max-width: 768px) 100vw, 33vw"
             src={imageUrl}
+            unoptimized
           />
         ) : (
           <div className="grid h-full place-items-center text-sm font-semibold text-[var(--site-muted)]">

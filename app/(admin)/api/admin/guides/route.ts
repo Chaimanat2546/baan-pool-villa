@@ -255,10 +255,10 @@ export async function PUT(request: Request) {
   }
 
   if (currentSlug && currentSlug !== saveRow.slug) {
-    revalidateGuideCache(currentSlug);
+    await revalidateGuideCache(currentSlug);
   }
 
-  revalidateGuideCache(saveRow.slug);
+  await revalidateGuideCache(saveRow.slug);
 
   return Response.json({
     guide: normalizeGuidePostRow(data as GuidePostRow),
@@ -294,7 +294,7 @@ export async function DELETE(request: Request) {
     return adminSupabaseErrorResponse(error, "Unable to delete guide post.");
   }
 
-  revalidateGuideCache(slug);
+  await revalidateGuideCache(slug);
 
   return Response.json({ ok: true });
 }

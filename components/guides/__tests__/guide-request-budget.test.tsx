@@ -80,6 +80,27 @@ describe("guide detail request budget", () => {
     expect(markup).not.toContain('data-prefetch="false" href="/guides/guide-1"');
   });
 
+  it("renders guide cover images through the public guide image proxy", () => {
+    const markup = renderToStaticMarkup(
+      <GuideListPage
+        guides={[
+          {
+            ...guide,
+            coverImage: {
+              alt: "Guide cover",
+              path: "guide.jpg",
+              url: "https://assets.example.com/guide.jpg",
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain(
+      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fguide.jpg"',
+    );
+  });
+
   it("does not preload recommended villa card images in duplicate sidebar layouts", () => {
     const markup = renderToStaticMarkup(
       <GuideDetailPage

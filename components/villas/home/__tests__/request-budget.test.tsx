@@ -106,7 +106,10 @@ describe("homepage request budget", () => {
     );
 
     const renderedVillaLinks = markup.match(/href="\/villas\//g) ?? [];
-    const renderedImages = markup.match(/data-src="https:\/\/devillegroups.com\/imgs\/profile_imgs_large\//g) ?? [];
+    const renderedImages =
+      markup.match(
+        /data-src="\/api\/houses\/images\/proxy\?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F/g,
+      ) ?? [];
 
     expect(renderedVillaLinks).toHaveLength(12);
     expect(renderedImages).toHaveLength(12);

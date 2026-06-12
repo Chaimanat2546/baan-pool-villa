@@ -1,10 +1,16 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { GuidePost } from "@/lib/guides/types";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 import { GuideDetailPage, getYouTubeEmbedUrl } from "../guide-detail-page";
+
+vi.mock("next/image", () => ({
+  default: ({ alt, src }: { alt: string; src: string }) => (
+    <span aria-label={alt} data-src={src} />
+  ),
+}));
 
 function makeGuide(contentBlocks: unknown[]): GuidePost {
   return {
@@ -110,7 +116,7 @@ describe("getYouTubeEmbedUrl", () => {
       />,
     );
 
-    expect(markup).toContain("i.ytimg.com%2Fvi%2FdQw4w9WgXcQ%2Fhqdefault.jpg");
+    expect(markup).toContain("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg");
     expect(markup).not.toContain("<iframe");
     expect(markup).not.toContain("youtube.com/embed");
     expect(markup).not.toContain("youtube-nocookie.com/embed");
@@ -130,6 +136,38 @@ describe("getYouTubeEmbedUrl", () => {
     expect(markup).toContain("data-home-guides");
     expect(markup.indexOf('<section id="contact"')).toBeLessThan(
       markup.indexOf("data-home-guides"),
+    );
+  });
+
+  it("renders cover and inline guide images through the public guide image proxy", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={{
+          ...makeGuide([
+            {
+              type: "image",
+              props: {
+                alt: "Inline",
+                url: "https://assets.example.com/inline.jpg",
+              },
+            },
+          ]),
+          coverImage: {
+            alt: "Cover",
+            path: "cover.jpg",
+            url: "https://assets.example.com/cover.jpg",
+          },
+        }}
+        recommendedVillas={[]}
+        relatedGuides={[]}
+      />,
+    );
+
+    expect(markup).toContain(
+      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fcover.jpg"',
+    );
+    expect(markup).toContain(
+      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Finline.jpg"',
     );
   });
 });

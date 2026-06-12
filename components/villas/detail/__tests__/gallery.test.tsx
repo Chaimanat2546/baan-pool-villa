@@ -107,4 +107,65 @@ describe("Gallery", () => {
       expect("priority" in props).toBe(false);
     });
   });
+
+  it("renders gallery tile images through the villa image display proxy", () => {
+    imageProps.length = 0;
+
+    const listing: VillaListing = {
+      id: "88",
+      zone: "jomtien",
+      zoneLabel: "Jomtien",
+      bedrooms: 2,
+      bathrooms: 2,
+      distanceToSea: "500m",
+      price: 8000,
+      people: 4,
+      coverImage: null,
+      amenities: [],
+      poolType: "private",
+    };
+
+    renderToStaticMarkup(
+      <Gallery
+        items={[makeGalleryItem("cover"), makeGalleryItem("outside")]}
+        listing={listing}
+        onImageClick={() => undefined}
+        onImageError={() => undefined}
+        totalImageCount={2}
+      />,
+    );
+
+    const imageUrl = new URL(imageProps[0]?.src ?? "", "https://example.com");
+
+    expect(imageUrl.pathname).toBe("/api/villas/88/images/proxy");
+    expect(imageUrl.searchParams.get("url")).toBe("https://cdn.test/cover.jpg");
+  });
+
+  it("reserves side tile slots when only the cover image is available", () => {
+    const listing: VillaListing = {
+      id: "99",
+      zone: "jomtien",
+      zoneLabel: "Jomtien",
+      bedrooms: 2,
+      bathrooms: 2,
+      distanceToSea: "500m",
+      price: 8000,
+      people: 4,
+      coverImage: null,
+      amenities: [],
+      poolType: "private",
+    };
+
+    const markup = renderToStaticMarkup(
+      <Gallery
+        items={[makeGalleryItem("cover")]}
+        listing={listing}
+        onImageClick={() => undefined}
+        onImageError={() => undefined}
+        totalImageCount={1}
+      />,
+    );
+
+    expect(markup.match(/data-gallery-reserved-slot="true"/g) ?? []).toHaveLength(3);
+  });
 });

@@ -178,7 +178,7 @@
               <tr>
                 <td><code>app/(public)/villas/[id]/page.tsx</code></td>
                 <td><code>/villas/:id</code></td>
-                <td><code>components/villas/detail/page</code>, listing/detail API data, first resolved home-section recommendations, SEO/JSON-LD helpers, and a client gallery loader backed by <code>/api/villas/:id/images</code>. Villa detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from villa listing/detail and home-section tags, SSR should not preload Supabase gallery rows, initial client mount loads the full image set once to fill the visible gallery grid, and the route renders VacationRental plus breadcrumb JSON-LD.</td>
+                <td><code>components/villas/detail/page</code>, listing/detail API data, first resolved home-section recommendations, SEO/JSON-LD helpers, and a client gallery loader backed by <code>/api/villas/:id/images</code>. Villa detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from villa listing/detail and home-section tags, SSR should not preload Supabase gallery rows, initial client mount loads the full image set once to fill the visible gallery grid, gallery display images render through <code>/api/villas/:id/images/proxy</code> after validation while downloads keep <code>/api/villas/:id/images/download</code>, and the route renders VacationRental plus breadcrumb JSON-LD.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/villas/[id]/loading.tsx</code></td>
@@ -208,22 +208,42 @@
               <tr>
                 <td><code>app/(public)/api/home-sections/route.ts</code></td>
                 <td><code>/api/home-sections</code></td>
-                <td><code>lib/home-sections</code>, public cache headers.</td>
+                <td><code>lib/home-sections</code>, public cache headers, and Worker JSON edge cache keyed by the <code>home-sections</code> version group.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/houses/route.ts</code></td>
                 <td><code>/api/houses</code></td>
-                <td><code>lib/villas/server.ts</code>, public cache headers.</td>
+                <td><code>lib/villas/server.ts</code>, public cache headers, and Worker JSON edge cache for the large public catalog response.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/api/houses/images/proxy/route.ts</code></td>
+                <td><code>/api/houses/images/proxy</code></td>
+                <td>Validated listing cover image proxy. It accepts only HTTPS image URLs that match current public villa listing cover images, fetches upstream with <code>no-store</code>, returns only <code>image/*</code> responses with public display cache headers, and is cached again by the Worker image edge cache.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/api/site-assets/proxy/route.ts</code></td>
+                <td><code>/api/site-assets/proxy</code></td>
+                <td>Validated site asset image proxy for active public site settings images such as hero, logo, and SEO share images. It uses the resolved site settings as the allowlist before fetching and is cached by the Worker image edge cache.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/api/guides/images/proxy/route.ts</code></td>
+                <td><code>/api/guides/images/proxy</code></td>
+                <td>Validated guide image proxy for published guide cover and inline image blocks. It uses published guide data as the allowlist before fetching and is cached by the Worker image edge cache.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/villas/[id]/route.ts</code></td>
                 <td><code>/api/villas/:id</code></td>
-                <td>Villa detail data helpers, public cache headers.</td>
+                <td>Villa detail data helpers, public cache headers, and Worker JSON edge cache.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/villas/[id]/images/route.ts</code></td>
                 <td><code>/api/villas/:id/images</code></td>
-                <td><code>lib/villas/images.ts</code>, public cache headers.</td>
+                <td><code>lib/villas/images.ts</code>, public cache headers, and Worker JSON edge cache.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/api/villas/[id]/images/proxy/route.ts</code></td>
+                <td><code>/api/villas/:id/images/proxy</code></td>
+                <td>Validated gallery display image proxy. It accepts only HTTPS image URLs that belong to the villa gallery rows or listing cover, fetches upstream with <code>no-store</code>, returns only <code>image/*</code> responses with public display cache headers, and is cached again by the Worker image edge cache.</td>
               </tr>
             </tbody>
           </table>
@@ -520,13 +540,13 @@
               <td><code>lib/api/__tests__</code> plus touched public route tests such as <code>lib/villas/__tests__/public-routes.test.ts</code>, <code>lib/villas/__tests__/images.test.ts</code>, <code>lib/villas/__tests__/image-download.test.ts</code>, and <code>lib/home-sections/__tests__/public-route-rate-limit.test.ts</code>.</td>
             </tr>
             <tr>
-              <td><code>worker.js</code> and <code>worker-cache-policy.js</code></td>
-              <td>Cloudflare Worker wrapper around OpenNext output. A conservative public HTML micro-cache uses Cloudflare Cache API for allowlisted cookie-free, query-free HTML requests only: <code>/</code>, <code>/search</code>, <code>/guides</code>, <code>/guides/:slug</code>, <code>/terms</code>, and <code>/privacy</code>. It bypasses admin, API, <code>/_next</code>, RSC/prefetch variant headers, cookies, query strings, non-HTML requests, and responses with <code>Set-Cookie</code>. The Next image optimizer is disabled globally in <code>next.config.ts</code>; any remaining <code>/_next/image</code> header handling here is fallback behavior, not the normal public image path.</td>
-              <td>Run <code>worker-cache-policy.test.ts</code>, <code>lib/__tests__/next-config.test.ts</code>, and production network checks that public pages do not request <code>/_next/image</code>. After Worker deploy, verify <code>x-bpv-html-cache</code> transitions from <code>MISS</code> to <code>HIT</code> for allowlisted pages and stays <code>BYPASS</code> for RSC, cookie, query, admin, and API requests.</td>
+              <td><code>worker.js</code>, <code>worker-cache-policy.js</code>, and <code>worker-html-cache-version.js</code></td>
+              <td>Cloudflare Worker wrapper around OpenNext output. A conservative public HTML micro-cache uses Cloudflare Cache API for allowlisted cookie-free, query-free HTML requests only: <code>/</code>, <code>/search</code>, <code>/guides</code>, <code>/guides/:slug</code>, <code>/terms</code>, <code>/privacy</code>, and <code>/villas/:id</code>. It bypasses admin, API, <code>/_next</code>, RSC/prefetch variant headers, cookies, query strings, non-HTML requests, and responses with <code>Set-Cookie</code>. Cache keys include the Cloudflare Worker <code>CF_VERSION_METADATA</code> deployment id plus CMS version groups such as <code>site-settings</code>, <code>home-sections</code>, <code>guides</code>, <code>legal-pages</code>, and <code>detail-layout</code>; the Worker reads CMS versions from a future <code>BPV_HTML_CACHE_VERSIONS</code> KV binding when present and falls back to <code>NEXT_INC_CACHE_R2_BUCKET</code> under the <code>html-cache-versions/</code> prefix. A separate image edge cache handles cookie-free display proxy GET requests for <code>/api/villas/:id/images/proxy?url=...</code>, <code>/api/houses/images/proxy?url=...</code>, <code>/api/site-assets/proxy?url=...</code>, and <code>/api/guides/images/proxy?url=...</code>, storing only successful <code>image/*</code> responses without <code>Set-Cookie</code>. A JSON edge cache handles cookie-free, query-free <code>/api/houses</code>, <code>/api/home-sections</code>, <code>/api/villas/:id</code>, and <code>/api/villas/:id/images</code> responses when they are successful <code>application/json</code>; <code>/api/home-sections</code> uses the <code>home-sections</code> version group. The Next image optimizer is disabled globally in <code>next.config.ts</code>; any remaining <code>/_next/image</code> header handling here is fallback behavior, not the normal public image path.</td>
+              <td>Run <code>worker-cache-policy.test.ts</code>, <code>worker-html-cache-version.test.ts</code>, <code>lib/cache-revalidation.test.ts</code>, <code>lib/villas/__tests__/image-proxy.test.ts</code>, <code>lib/villas/__tests__/cover-image-proxy.test.ts</code>, <code>lib/site-settings/__tests__/asset-proxy.test.ts</code>, <code>lib/guides/__tests__/image-proxy.test.ts</code>, <code>components/villas/detail/__tests__/gallery.test.tsx</code>, <code>components/villas/listing/__tests__/villa-card-navigation.test.tsx</code>, <code>components/villas/home/__tests__/hero-section.test.tsx</code>, <code>components/guides/__tests__/guide-request-budget.test.tsx</code>, <code>lib/__tests__/next-config.test.ts</code>, and production network checks that public pages do not request <code>/_next/image</code>. After Worker deploy, verify <code>x-bpv-html-cache</code> transitions from <code>MISS</code> to <code>HIT</code> for allowlisted pages and stays <code>BYPASS</code> for RSC, cookie, query, admin, and API requests; verify <code>x-bpv-image-cache</code> transitions from <code>MISS</code> to <code>HIT</code> for display proxy images; verify <code>x-bpv-json-cache</code> transitions from <code>MISS</code> to <code>HIT</code> for allowlisted public JSON APIs and stays <code>BYPASS</code> for cookie, query, or non-JSON variants.</td>
             </tr>
             <tr>
-              <td><code>lib/cache-revalidation.ts</code></td>
-              <td>Shared tag revalidation helpers. Supabase CMS helpers for settings, home sections, guides, legal pages, TikTok, and detail layout are tag-only; external villa refresh also expires only data tags and does not call <code>revalidatePath</code>.</td>
+              <td><code>lib/cache-revalidation.ts</code> and <code>lib/html-edge-cache-version.ts</code></td>
+              <td>Shared tag revalidation helpers. Supabase CMS helpers for settings, home sections, guides, legal pages, TikTok, and detail layout are tag-only for Next data cache, then bump the matching Cloudflare HTML cache version group through OpenNext Cloudflare bindings. External villa refresh still expires only data tags and does not bump HTML versions or call <code>revalidatePath</code>.</td>
               <td><code>lib/cache-revalidation.test.ts</code></td>
             </tr>
             <tr>
@@ -575,8 +595,8 @@
             <tr>
               <td>Villa images</td>
               <td>Supabase image rows matched by <code>images.property_id</code> to villa id.</td>
-              <td><code>lib/villas/images.ts</code>, image host builder, shared villa-images tag, and per-villa image cache tag.</td>
-              <td>Public villa images API and the villa detail client gallery loader; detail SSR keeps gallery rows outside the critical path, then initial client mount loads the full image set once so the visible gallery and lightbox categories have complete data.</td>
+              <td><code>lib/villas/images.ts</code>, image host builder, shared villa-images tag, per-villa image cache tag, and validated display/download proxy routes.</td>
+              <td>Public villa images API and the villa detail client gallery loader; detail SSR keeps gallery rows outside the critical path, then initial client mount loads the full image set once so the visible gallery and lightbox categories have complete data. Displayed gallery images, villa listing covers, destination covers, site hero assets, and guide images use same-origin display proxy routes for Worker edge caching; download links keep the attachment endpoint and remain <code>no-store</code>.</td>
             </tr>
               <tr>
                 <td>Home sections</td>
@@ -800,7 +820,7 @@
               </tr>
             <tr>
               <td>Cache policy or revalidation behavior</td>
-              <td><code>npm.cmd test -- lib/__tests__/cache-policy.test.ts lib/cache-revalidation.test.ts</code></td>
+              <td><code>npm.cmd test -- lib/__tests__/cache-policy.test.ts lib/cache-revalidation.test.ts worker-cache-policy.test.ts worker-html-cache-version.test.ts</code></td>
               <td>Run lint and build before completion.</td>
             </tr>
             <tr>

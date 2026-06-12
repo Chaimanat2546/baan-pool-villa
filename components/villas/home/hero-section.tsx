@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { buildSiteAssetProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteImageSettings } from "@/lib/site-settings/types";
 import type { VillaFilters } from "@/lib/villas/types";
 
@@ -27,15 +28,18 @@ export function HeroSection({
   onSearch,
   zones,
 }: HeroSectionProps) {
+  const heroImageSrc = buildSiteAssetProxyUrl(heroImage.url) ?? heroImage.url;
+
   return (
     <section className="relative lg:pb-20">
       <Image
-        src={heroImage.url}
+        src={heroImageSrc}
         alt={heroImage.alt}
         width={1565}
         height={1043}
         preload
         sizes="100vw"
+        unoptimized
         className="h-auto w-full"
       />
       <div
