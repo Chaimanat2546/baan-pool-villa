@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, Download, ImageIcon, ImageOff, X } from "luc
 import Image from "next/image";
 import { useEffect, useRef, useState, type TouchEvent } from "react";
 import type { VillaListing } from "@/lib/villas/types";
-import { getGalleryItemDescription, getVillaTitle, shouldBypassImageOptimizer } from "./helpers";
+import { getGalleryItemDescription, getVillaTitle } from "./helpers";
 import type { GalleryCategory, GalleryItem } from "./types";
 
 /**
@@ -26,6 +26,14 @@ function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string 
   }
 
   return `/api/villas/${encodeURIComponent(listingId)}/images/download?${params.toString()}`;
+}
+
+function buildGalleryDisplaySrc(listingId: string, item: GalleryItem): string {
+  const params = new URLSearchParams({
+    url: item.url,
+  });
+
+  return `/api/villas/${encodeURIComponent(listingId)}/images/proxy?${params.toString()}`;
 }
 
 /**
@@ -52,6 +60,8 @@ function GalleryImage({
 
   item,
 
+  listingId,
+
   onClick,
 
   onError,
@@ -68,6 +78,8 @@ function GalleryImage({
 
   item: GalleryItem;
 
+  listingId: string;
+
   onClick?: (item: GalleryItem) => void;
 
   onError: (url: string) => void;
@@ -77,6 +89,7 @@ function GalleryImage({
   loading?: "eager" | "lazy";
 
 }) {
+  const displaySrc = item.url ? buildGalleryDisplaySrc(listingId, item) : "";
 
   return (
 
@@ -97,7 +110,7 @@ function GalleryImage({
 
           <Image
 
-            src={item.url}
+            src={displaySrc}
 
             alt={alt}
 
@@ -107,7 +120,7 @@ function GalleryImage({
 
             fetchPriority={fetchPriority}
 
-            unoptimized={shouldBypassImageOptimizer(item.url)}
+            unoptimized
 
             sizes="(max-width: 1024px) 100vw, 50vw"
 
@@ -155,6 +168,8 @@ function GalleryViewAllTile({
 
   item,
 
+  listingId,
+
   onClick,
 
   onError,
@@ -164,6 +179,8 @@ function GalleryViewAllTile({
 }: {
 
   item: GalleryItem;
+
+  listingId: string;
 
   onClick: (item: GalleryItem) => void;
 
@@ -189,7 +206,7 @@ function GalleryViewAllTile({
 
         <Image
 
-          src={item.url}
+          src={buildGalleryDisplaySrc(listingId, item)}
 
           alt=""
 
@@ -197,7 +214,7 @@ function GalleryViewAllTile({
 
           loading="lazy"
 
-          unoptimized={shouldBypassImageOptimizer(item.url)}
+          unoptimized
 
           sizes="(max-width: 1024px) 33vw, 50vw"
 
@@ -289,6 +306,8 @@ export function Gallery({
 
         item={main}
 
+        listingId={listing.id}
+
         fetchPriority="high"
 
         loading="eager"
@@ -311,6 +330,8 @@ export function Gallery({
 
           item={second}
 
+          listingId={listing.id}
+
           onClick={onImageClick}
 
           onError={onImageError}
@@ -328,6 +349,8 @@ export function Gallery({
           className="aspect-[4/3] rounded-2xl lg:aspect-auto lg:h-full lg:rounded-l-none lg:rounded-r-xl lg:rounded-bl-none"
 
           item={third}
+
+          listingId={listing.id}
 
           onClick={onImageClick}
 
@@ -348,6 +371,8 @@ export function Gallery({
             className="aspect-[4/3] w-full lg:aspect-auto lg:h-full lg:rounded-none [&_img]:scale-110 [&_img]:brightness-75"
 
         item={fourth}
+
+        listingId={listing.id}
 
         onClick={onImageClick}
 
@@ -697,7 +722,7 @@ export function GalleryLightbox({
 
               key={activeItem.key}
 
-              src={activeItem.url}
+              src={buildGalleryDisplaySrc(listing.id, activeItem)}
 
               alt={`${getVillaTitle(listing.id)} ${activeItem.zoneLabel}`}
 
@@ -707,7 +732,7 @@ export function GalleryLightbox({
 
               fetchPriority="high"
 
-              unoptimized={shouldBypassImageOptimizer(activeItem.url)}
+              unoptimized
 
               sizes="(max-width: 1024px) 100vw, calc(100vw - 400px)"
 
@@ -866,13 +891,13 @@ export function GalleryLightbox({
 
                   <Image
 
-                    src={item.url}
+                    src={buildGalleryDisplaySrc(listing.id, item)}
 
                     alt={item.caption ?? item.zoneLabel}
 
                     fill
 
-                    unoptimized={shouldBypassImageOptimizer(item.url)}
+                    unoptimized
 
                     sizes="(max-width: 1024px) 120px, 150px"
 
