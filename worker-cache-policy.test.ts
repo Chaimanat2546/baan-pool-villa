@@ -242,15 +242,19 @@ describe("worker image edge cache policy", () => {
     ).toMatchObject({ cacheable: false, candidate: true, reason: "accept" });
   });
 
-  it("builds an image cache key that keeps the source URL query and drops hash", () => {
+  it("builds an image cache key that keeps only the source URL query and drops hash", () => {
     const cacheKey = createImageEdgeCacheKey(
-      request("/api/houses/images/proxy?url=https%3A%2F%2Fimages.example.com%2Fpool.jpg%3Fv%3D1#top"),
+      request(
+        "/api/houses/images/proxy?foo=1&url=https%3A%2F%2Fimages.example.com%2Fpool.jpg%3Fv%3D1&bar=2#top",
+      ),
     );
     const url = new URL(cacheKey.url);
 
     expect(cacheKey.method).toBe("GET");
     expect(url.pathname).toBe("/api/houses/images/proxy");
     expect(url.searchParams.get("url")).toBe("https://images.example.com/pool.jpg?v=1");
+    expect(url.searchParams.has("foo")).toBe(false);
+    expect(url.searchParams.has("bar")).toBe(false);
     expect(url.hash).toBe("");
   });
 
@@ -303,7 +307,7 @@ describe("worker JSON edge cache policy", () => {
       cacheable: true,
       candidate: true,
       reason: "json",
-      versionGroups: [],
+      versionGroups: ["villa-listings"],
     });
     expect(getJsonEdgeCacheDecision(request("/api/home-sections"))).toMatchObject({
       cacheable: true,
@@ -315,13 +319,13 @@ describe("worker JSON edge cache policy", () => {
       cacheable: true,
       candidate: true,
       reason: "json",
-      versionGroups: [],
+      versionGroups: ["villa-details"],
     });
     expect(getJsonEdgeCacheDecision(request("/api/villas/9/images"))).toMatchObject({
       cacheable: true,
       candidate: true,
       reason: "json",
-      versionGroups: [],
+      versionGroups: ["villa-images"],
     });
 
     expect(getJsonEdgeCacheDecision(request("/api/admin/site-settings"))).toMatchObject({

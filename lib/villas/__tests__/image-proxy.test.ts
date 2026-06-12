@@ -125,6 +125,7 @@ describe("GET /api/villas/[id]/images/proxy", () => {
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith("https://images.example.com/pool.jpg", {
       cache: "no-store",
+      redirect: "manual",
       signal: expect.any(AbortSignal),
     });
     expect(response.headers.get("Cache-Control")).toBe(

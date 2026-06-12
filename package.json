@@ -11,6 +11,8 @@
     "test:e2e": "node tests/support/run-production-smoke.mjs",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy:cf": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy:cf:prewarm": "opennextjs-cloudflare build && opennextjs-cloudflare deploy && node scripts/prewarm-public-html.mjs",
+    "prewarm:cf": "node scripts/prewarm-public-html.mjs",
     "upload:cf": "opennextjs-cloudflare build && opennextjs-cloudflare upload"
   },
   "dependencies": {

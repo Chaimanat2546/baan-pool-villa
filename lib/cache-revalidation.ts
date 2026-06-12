@@ -46,10 +46,15 @@ export async function revalidateDetailLayoutCache() {
   await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.detailLayout]);
 }
 
-export function revalidateExternalVillaCache() {
+export async function revalidateExternalVillaCache() {
   revalidateTags([
     CACHE_TAGS.villaListings,
     CACHE_TAGS.villaDetails,
     CACHE_TAGS.villaImages,
+  ]);
+  await bumpHtmlEdgeCacheVersions([
+    HTML_CACHE_VERSION_GROUPS.villaListings,
+    HTML_CACHE_VERSION_GROUPS.villaDetails,
+    HTML_CACHE_VERSION_GROUPS.villaImages,
   ]);
 }

@@ -5,6 +5,9 @@ import type { VillaListing } from "@/lib/villas/types";
 import { getGalleryItemDescription, getVillaTitle } from "./helpers";
 import type { GalleryCategory, GalleryItem } from "./types";
 
+const GALLERY_IMAGE_PLACEHOLDER_SRC =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+
 /**
  * Build a download URL for a gallery image under the villas images download API.
  *
@@ -29,11 +32,37 @@ function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string 
 }
 
 function buildGalleryDisplaySrc(listingId: string, item: GalleryItem): string {
+  const targetUrl = normalizeGalleryDisplayImageUrl(item.url);
+
+  if (!targetUrl) {
+    return GALLERY_IMAGE_PLACEHOLDER_SRC;
+  }
+
   const params = new URLSearchParams({
-    url: item.url,
+    url: targetUrl,
   });
 
   return `/api/villas/${encodeURIComponent(listingId)}/images/proxy?${params.toString()}`;
+}
+
+function normalizeGalleryDisplayImageUrl(value: string): string | null {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmedValue);
+
+    if (url.protocol !== "https:" || url.username || url.password) {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 /**

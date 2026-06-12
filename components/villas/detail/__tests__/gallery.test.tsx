@@ -141,6 +141,39 @@ describe("Gallery", () => {
     expect(imageUrl.searchParams.get("url")).toBe("https://cdn.test/cover.jpg");
   });
 
+  it("does not invoke the villa image display proxy for unsafe image URLs", () => {
+    imageProps.length = 0;
+
+    const listing: VillaListing = {
+      id: "89",
+      zone: "jomtien",
+      zoneLabel: "Jomtien",
+      bedrooms: 2,
+      bathrooms: 2,
+      distanceToSea: "500m",
+      price: 8000,
+      people: 4,
+      coverImage: null,
+      amenities: [],
+      poolType: "private",
+    };
+    const unsafeItem = makeGalleryItem("cover");
+    unsafeItem.url = "http://cdn.test/cover.jpg";
+
+    renderToStaticMarkup(
+      <Gallery
+        items={[unsafeItem]}
+        listing={listing}
+        onImageClick={() => undefined}
+        onImageError={() => undefined}
+        totalImageCount={1}
+      />,
+    );
+
+    expect(imageProps[0]?.src).not.toContain("/api/villas/89/images/proxy");
+    expect(imageProps[0]?.src).toMatch(/^data:image\//);
+  });
+
   it("reserves side tile slots when only the cover image is available", () => {
     const listing: VillaListing = {
       id: "99",

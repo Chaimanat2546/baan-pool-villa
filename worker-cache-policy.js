@@ -18,6 +18,9 @@ export const HTML_CACHE_VERSION_GROUPS = {
   homeSections: "home-sections",
   legalPages: "legal-pages",
   siteSettings: "site-settings",
+  villaDetails: "villa-details",
+  villaImages: "villa-images",
+  villaListings: "villa-listings",
 };
 
 const PUBLIC_HTML_CACHE_PATHS = new Set([
@@ -201,8 +204,20 @@ function isVillaImagesApiPath(pathname) {
 }
 
 function getJsonCacheVersionGroups(pathname) {
+  if (pathname === "/api/houses") {
+    return [HTML_CACHE_VERSION_GROUPS.villaListings];
+  }
+
   if (pathname === "/api/home-sections") {
     return [HTML_CACHE_VERSION_GROUPS.homeSections];
+  }
+
+  if (isVillaDetailApiPath(pathname)) {
+    return [HTML_CACHE_VERSION_GROUPS.villaDetails];
+  }
+
+  if (isVillaImagesApiPath(pathname)) {
+    return [HTML_CACHE_VERSION_GROUPS.villaImages];
   }
 
   return [];
@@ -210,7 +225,13 @@ function getJsonCacheVersionGroups(pathname) {
 
 export function createImageEdgeCacheKey(request) {
   const url = new URL(request.url);
+  const sourceUrl = url.searchParams.get("url") ?? "";
   url.hash = "";
+  url.search = "";
+
+  if (sourceUrl) {
+    url.searchParams.set("url", sourceUrl);
+  }
 
   return new Request(url.toString(), { method: "GET" });
 }
