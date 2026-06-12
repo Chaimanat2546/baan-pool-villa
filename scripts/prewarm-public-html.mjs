@@ -6,6 +6,7 @@ const DEFAULT_BASE_URL = "https://baan-pool-villa.nutthawutprayoonklay.workers.d
 const DEFAULT_MAX_DYNAMIC_ROUTES = 60;
 const DEFAULT_CONCURRENCY = 2;
 const DEFAULT_VERIFY_DELAY_MS = 750;
+const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
 const HTML_CACHE_HEADER = "x-bpv-html-cache";
 const PREWARM_HEADERS = {
   Accept: "text/html,application/xhtml+xml",
@@ -41,6 +42,17 @@ function decodeXmlText(value) {
     .replaceAll("&gt;", ">")
     .replaceAll("&quot;", '"')
     .replaceAll("&apos;", "'");
+}
+
+export function resolvePrewarmBaseUrl(env = process.env) {
+  const configuredUrl =
+    env.BPV_PREWARM_BASE_URL || env.NEXT_PUBLIC_SITE_URL || DEFAULT_BASE_URL;
+
+  try {
+    return normalizeBaseUrl(configuredUrl);
+  } catch {
+    return normalizeBaseUrl(DEFAULT_BASE_URL);
+  }
 }
 
 export function parseSitemapLocations(xml) {
@@ -81,6 +93,33 @@ function normalizeBaseUrl(baseUrl) {
   url.pathname = "";
 
   return url.toString().replace(/\/$/, "");
+}
+
+async function fetchWithTimeout(
+  url,
+  init,
+  { fetchImpl, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS },
+) {
+  const controller = new AbortController();
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      reject(new Error(`Prewarm request timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([
+      fetchImpl(url, {
+        ...init,
+        signal: controller.signal,
+      }),
+      timeoutPromise,
+    ]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function normalizePath(value, baseUrl) {
@@ -133,7 +172,8 @@ function pushUniquePath(paths, pathname) {
 }
 
 export async function collectPrewarmPaths({
-  baseUrl = DEFAULT_BASE_URL,
+  baseUrl = resolvePrewarmBaseUrl(),
+  fetchTimeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
   fetchImpl = fetch,
   maxDynamicRoutes = DEFAULT_MAX_DYNAMIC_ROUTES,
   paths,
@@ -157,10 +197,20 @@ export async function collectPrewarmPaths({
     pushUniquePath(selectedPaths, path);
   });
 
-  const sitemapResponse = await fetchImpl(`${normalizedBaseUrl}/sitemap.xml`, {
-    headers: { Accept: "application/xml,text/xml,*/*" },
-    method: "GET",
-  });
+  let sitemapResponse;
+
+  try {
+    sitemapResponse = await fetchWithTimeout(
+      `${normalizedBaseUrl}/sitemap.xml`,
+      {
+        headers: { Accept: "application/xml,text/xml,*/*" },
+        method: "GET",
+      },
+      { fetchImpl, timeoutMs: fetchTimeoutMs },
+    );
+  } catch {
+    return selectedPaths;
+  }
 
   if (!sitemapResponse.ok) {
     return selectedPaths;
@@ -197,12 +247,16 @@ function getCacheHeader(response) {
   return response.headers.get(HTML_CACHE_HEADER)?.toUpperCase() ?? "";
 }
 
-async function requestHtml(url, fetchImpl) {
-  return fetchImpl(url, {
-    headers: PREWARM_HEADERS,
-    method: "GET",
-    redirect: "manual",
-  });
+async function requestHtml(url, fetchImpl, fetchTimeoutMs) {
+  return fetchWithTimeout(
+    url,
+    {
+      headers: PREWARM_HEADERS,
+      method: "GET",
+      redirect: "manual",
+    },
+    { fetchImpl, timeoutMs: fetchTimeoutMs },
+  );
 }
 
 function createEmptySummary(requested) {
@@ -224,10 +278,26 @@ function mergeSummary(target, source) {
   target.verifiedHit += source.verifiedHit;
 }
 
-async function prewarmPath({ baseUrl, fetchImpl, path, verify, wait }) {
+async function prewarmPath({
+  baseUrl,
+  fetchImpl,
+  fetchTimeoutMs,
+  path,
+  verify,
+  wait,
+}) {
   const summary = createEmptySummary(1);
   const url = `${baseUrl}${path}`;
-  const response = await requestHtml(url, fetchImpl);
+  let response;
+
+  try {
+    response = await requestHtml(url, fetchImpl, fetchTimeoutMs);
+  } catch {
+    summary.failed += 1;
+
+    return summary;
+  }
+
   const cacheHeader = getCacheHeader(response);
 
   if (!response.ok) {
@@ -249,7 +319,16 @@ async function prewarmPath({ baseUrl, fetchImpl, path, verify, wait }) {
 
     await wait();
 
-    const verificationResponse = await requestHtml(url, fetchImpl);
+    let verificationResponse;
+
+    try {
+      verificationResponse = await requestHtml(url, fetchImpl, fetchTimeoutMs);
+    } catch {
+      summary.failed += 1;
+
+      return summary;
+    }
+
     const verificationCacheHeader = getCacheHeader(verificationResponse);
 
     if (verificationResponse.ok && verificationCacheHeader === "HIT") {
@@ -298,9 +377,11 @@ async function runPool(items, concurrency, runner) {
 }
 
 export async function prewarmPublicHtml({
-  baseUrl = DEFAULT_BASE_URL,
+  baseUrl = resolvePrewarmBaseUrl(),
   concurrency = DEFAULT_CONCURRENCY,
+  fetchTimeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
   fetchImpl = fetch,
+  maxDynamicRoutes = DEFAULT_MAX_DYNAMIC_ROUTES,
   paths,
   verify = true,
   verifyDelayMs = DEFAULT_VERIFY_DELAY_MS,
@@ -310,12 +391,21 @@ export async function prewarmPublicHtml({
     }),
 } = {}) {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-  const summary = createEmptySummary(paths.length);
+  const normalizedPaths =
+    paths ??
+    (await collectPrewarmPaths({
+      baseUrl: normalizedBaseUrl,
+      fetchImpl,
+      fetchTimeoutMs,
+      maxDynamicRoutes,
+    }));
+  const summary = createEmptySummary(normalizedPaths.length);
 
-  await runPool(paths, Math.max(1, concurrency), async (path) => {
+  await runPool(normalizedPaths, Math.max(1, concurrency), async (path) => {
     const pathSummary = await prewarmPath({
       baseUrl: normalizedBaseUrl,
       fetchImpl,
+      fetchTimeoutMs,
       path,
       verify,
       wait,
@@ -334,8 +424,9 @@ function parseInteger(value, fallback) {
 
 function parseArgs(argv) {
   const options = {
-    baseUrl: DEFAULT_BASE_URL,
+    baseUrl: resolvePrewarmBaseUrl(),
     concurrency: DEFAULT_CONCURRENCY,
+    fetchTimeoutMs: DEFAULT_FETCH_TIMEOUT_MS,
     maxDynamicRoutes: DEFAULT_MAX_DYNAMIC_ROUTES,
     paths: [],
     verify: true,
@@ -353,6 +444,11 @@ function parseArgs(argv) {
       options.concurrency = parseInteger(
         arg.slice("--concurrency=".length),
         DEFAULT_CONCURRENCY,
+      );
+    } else if (arg.startsWith("--timeout-ms=")) {
+      options.fetchTimeoutMs = parseInteger(
+        arg.slice("--timeout-ms=".length),
+        DEFAULT_FETCH_TIMEOUT_MS,
       );
     } else if (arg.startsWith("--path=")) {
       options.paths.push(arg.slice("--path=".length));

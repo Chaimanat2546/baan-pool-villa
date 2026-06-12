@@ -4,6 +4,7 @@ import {
   collectPrewarmPaths,
   parseSitemapLocations,
   prewarmPublicHtml,
+  resolvePrewarmBaseUrl,
 } from "./prewarm-public-html.mjs";
 
 const BASE_URL = "https://baan-pool-villa.nutthawutprayoonklay.workers.dev";
@@ -16,6 +17,20 @@ function textResponse(body: string, init: ResponseInit = {}) {
 }
 
 describe("public HTML prewarm", () => {
+  it("prefers configured environment URLs over the hard-coded fallback", () => {
+    expect(
+      resolvePrewarmBaseUrl({
+        BPV_PREWARM_BASE_URL: "https://www.baanpoolvilla.example",
+      }),
+    ).toBe("https://www.baanpoolvilla.example");
+    expect(
+      resolvePrewarmBaseUrl({
+        NEXT_PUBLIC_SITE_URL: "https://public.example",
+      }),
+    ).toBe("https://public.example");
+    expect(resolvePrewarmBaseUrl({})).toBe(BASE_URL);
+  });
+
   it("extracts sitemap loc values without trusting comments or escaped markup", () => {
     expect(
       parseSitemapLocations(`
@@ -64,6 +79,22 @@ describe("public HTML prewarm", () => {
     ]);
   });
 
+  it("returns fixed public pages when sitemap loading times out", async () => {
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => {
+      init?.signal?.dispatchEvent(new Event("abort"));
+
+      return new Promise<Response>(() => undefined);
+    });
+
+    await expect(
+      collectPrewarmPaths({
+        baseUrl: BASE_URL,
+        fetchImpl,
+        fetchTimeoutMs: 1,
+      }),
+    ).resolves.toEqual(["/", "/search", "/guides", "/terms", "/privacy"]);
+  });
+
   it("warms MISS responses with a follow-up HIT verification request", async () => {
     const fetchImpl = vi
       .fn()
@@ -103,5 +134,58 @@ describe("public HTML prewarm", () => {
       },
       method: "GET",
     });
+  });
+
+  it("marks page fetch timeouts as failed instead of hanging", async () => {
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => {
+      init?.signal?.dispatchEvent(new Event("abort"));
+
+      return new Promise<Response>(() => undefined);
+    });
+
+    const summary = await prewarmPublicHtml({
+      baseUrl: BASE_URL,
+      fetchImpl,
+      fetchTimeoutMs: 1,
+      paths: ["/"],
+    });
+
+    expect(summary).toMatchObject({
+      failed: 1,
+      requested: 1,
+    });
+  });
+
+  it("collects paths when callers omit the paths argument", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        textResponse(`
+          <urlset>
+            <url><loc>${BASE_URL}/villas/9</loc></url>
+          </urlset>
+        `),
+      )
+      .mockResolvedValue(
+        textResponse("<html></html>", {
+          headers: { "x-bpv-html-cache": "HIT" },
+        }),
+      );
+
+    const summary = await prewarmPublicHtml({
+      baseUrl: BASE_URL,
+      fetchImpl,
+      maxDynamicRoutes: 1,
+    });
+
+    expect(summary.requested).toBe(6);
+    expect(summary.failed).toBe(0);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      `${BASE_URL}/sitemap.xml`,
+      expect.objectContaining({
+        method: "GET",
+        signal: expect.any(AbortSignal),
+      }),
+    );
   });
 });
