@@ -297,14 +297,14 @@ describe("buildFallbackHomeSections", () => {
         description:
           "พูลวิลล่าคัดพิเศษ เหมาะสำหรับครอบครัว กลุ่มเพื่อน และทริปพักผ่อนส่วนตัว",
         cta: { label: "ดูบ้านพักทั้งหมด", href: "/search" },
-        villas: fallbackVillas.slice(0, 12),
+        villas: fallbackVillas.slice(0, 8),
       },
       {
         slug: "popular",
         title: "พูลวิลล่าพัทยายอดฮิต",
         description:
           "บ้านพักยอดนิยมสำหรับทริปพัทยา ใกล้แหล่งท่องเที่ยว เดินทางสะดวก และเหมาะกับกลุ่มเพื่อน",
-        villas: fallbackVillas.slice(12, 24),
+        villas: fallbackVillas.slice(8, 16),
       },
       {
         slug: "near-sea",

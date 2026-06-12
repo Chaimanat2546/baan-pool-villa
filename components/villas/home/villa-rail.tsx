@@ -81,7 +81,7 @@ export function VillaRail({
         label={title}
         className="-mx-4 mt-4 gap-5 px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8"
       >
-        {villas.slice(0, 12).map((villa) => (
+        {villas.map((villa) => (
           <div key={villa.id} className="w-[290px] shrink-0 snap-start">
             <VillaCard villa={villa} titleHeadingLevel={cardTitleHeadingLevel} />
           </div>

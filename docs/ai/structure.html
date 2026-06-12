@@ -432,7 +432,7 @@
             <tr>
               <td><code>components/villas/listing</code></td>
               <td>Shared villa cards, price display, stats, amenities, grids, listing skeletons.</td>
-              <td>Home, search, and recommendations should reuse these shared listing components. Villa detail card links intentionally use normal document navigation to avoid RSC <code>/_rsc</code> worker requests on Cloudflare Free.</td>
+              <td>Home, search, and recommendations should reuse these shared listing components. Villa detail card links intentionally use normal document navigation to avoid extra RSC <code>/_rsc</code> Worker requests in high-traffic public flows.</td>
             </tr>
             <tr>
               <td><code>components/layout</code></td>
@@ -442,7 +442,7 @@
             <tr>
               <td><code>components/guides</code></td>
               <td>Public guide list/detail pages, guide content rendering, and guide-to-villa recommendation surfaces.</td>
-              <td>Keep public guide pages article-focused and reuse <code>components/villas/listing</code> for recommended villa cards.</td>
+              <td>Keep public guide pages article-focused, use normal document navigation for guide cards in high-traffic public rails/lists, and reuse <code>components/villas/listing</code> for recommended villa cards.</td>
             </tr>
             <tr>
               <td><code>components/legal</code></td>
@@ -520,9 +520,9 @@
               <td><code>lib/api/__tests__</code> plus touched public route tests such as <code>lib/villas/__tests__/public-routes.test.ts</code>, <code>lib/villas/__tests__/images.test.ts</code>, <code>lib/villas/__tests__/image-download.test.ts</code>, and <code>lib/home-sections/__tests__/public-route-rate-limit.test.ts</code>.</td>
             </tr>
             <tr>
-              <td><code>worker.js</code></td>
-              <td>Cloudflare Worker wrapper around OpenNext output. The Next image optimizer is disabled globally in <code>next.config.ts</code>; any remaining <code>/_next/image</code> header handling here is fallback behavior, not the normal public image path.</td>
-              <td>Run <code>lib/__tests__/next-config.test.ts</code> and production network checks that public pages do not request <code>/_next/image</code>.</td>
+              <td><code>worker.js</code> and <code>worker-cache-policy.js</code></td>
+              <td>Cloudflare Worker wrapper around OpenNext output. A conservative public HTML micro-cache uses Cloudflare Cache API for allowlisted cookie-free, query-free HTML requests only: <code>/</code>, <code>/search</code>, <code>/guides</code>, <code>/guides/:slug</code>, <code>/terms</code>, and <code>/privacy</code>. It bypasses admin, API, <code>/_next</code>, RSC/prefetch variant headers, cookies, query strings, non-HTML requests, and responses with <code>Set-Cookie</code>. The Next image optimizer is disabled globally in <code>next.config.ts</code>; any remaining <code>/_next/image</code> header handling here is fallback behavior, not the normal public image path.</td>
+              <td>Run <code>worker-cache-policy.test.ts</code>, <code>lib/__tests__/next-config.test.ts</code>, and production network checks that public pages do not request <code>/_next/image</code>. After Worker deploy, verify <code>x-bpv-html-cache</code> transitions from <code>MISS</code> to <code>HIT</code> for allowlisted pages and stays <code>BYPASS</code> for RSC, cookie, query, admin, and API requests.</td>
             </tr>
             <tr>
               <td><code>lib/cache-revalidation.ts</code></td>

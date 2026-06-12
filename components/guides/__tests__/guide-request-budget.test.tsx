@@ -6,6 +6,7 @@ import type { GuidePost } from "@/lib/guides/types";
 import type { VillaListing } from "@/lib/villas/types";
 
 import { GuideDetailPage } from "../guide-detail-page";
+import { GuideListPage } from "../guide-list-page";
 
 interface MockImageProps {
   alt: string;
@@ -70,6 +71,15 @@ const villa: VillaListing = {
 };
 
 describe("guide detail request budget", () => {
+  it("uses document navigation for guide list cards to avoid click-time RSC requests", () => {
+    const markup = renderToStaticMarkup(
+      <GuideListPage guides={[{ ...guide, coverImage: { alt: "Guide cover", path: "/guide.jpg", url: "/guide.jpg" } }]} />,
+    );
+
+    expect(markup).toContain('href="/guides/guide-1"');
+    expect(markup).not.toContain('data-prefetch="false" href="/guides/guide-1"');
+  });
+
   it("does not preload recommended villa card images in duplicate sidebar layouts", () => {
     const markup = renderToStaticMarkup(
       <GuideDetailPage
