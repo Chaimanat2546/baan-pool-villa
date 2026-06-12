@@ -432,7 +432,7 @@
             <tr>
               <td><code>components/villas/listing</code></td>
               <td>Shared villa cards, price display, stats, amenities, grids, listing skeletons.</td>
-              <td>Home, search, and recommendations should reuse these shared listing components. Villa detail card links intentionally use normal document navigation to avoid RSC <code>/_rsc</code> worker requests on Cloudflare Free.</td>
+              <td>Home, search, and recommendations should reuse these shared listing components. Villa detail card links intentionally use normal document navigation to avoid extra RSC <code>/_rsc</code> Worker requests in high-traffic public flows.</td>
             </tr>
             <tr>
               <td><code>components/layout</code></td>
@@ -442,7 +442,7 @@
             <tr>
               <td><code>components/guides</code></td>
               <td>Public guide list/detail pages, guide content rendering, and guide-to-villa recommendation surfaces.</td>
-              <td>Keep public guide pages article-focused and reuse <code>components/villas/listing</code> for recommended villa cards.</td>
+              <td>Keep public guide pages article-focused, use normal document navigation for guide cards in high-traffic public rails/lists, and reuse <code>components/villas/listing</code> for recommended villa cards.</td>
             </tr>
             <tr>
               <td><code>components/legal</code></td>

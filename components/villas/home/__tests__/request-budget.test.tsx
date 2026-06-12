@@ -90,10 +90,34 @@ describe("homepage request budget", () => {
     expect(markup).not.toContain('data-prefetch="false" href="/search"');
   });
 
-  it("does not priority-preload article rail images or prefetch guide routes", () => {
+  it("honors the villa count provided by admin-resolved home sections", () => {
+    const villas = Array.from({ length: 12 }, (_, index) => ({
+      ...villa,
+      coverImage: `https://devillegroups.com/imgs/profile_imgs_large/${index}.jpg`,
+      id: String(index),
+    }));
+    const markup = renderToStaticMarkup(
+      <VillaRail
+        cta
+        description="Recommended villas"
+        title="Recommended"
+        villas={villas}
+      />,
+    );
+
+    const renderedVillaLinks = markup.match(/href="\/villas\//g) ?? [];
+    const renderedImages = markup.match(/data-src="https:\/\/devillegroups.com\/imgs\/profile_imgs_large\//g) ?? [];
+
+    expect(renderedVillaLinks).toHaveLength(12);
+    expect(renderedImages).toHaveLength(12);
+    expect(markup).toContain('href="/villas/11"');
+  });
+
+  it("does not priority-preload article rail images and uses document navigation for guide routes", () => {
     const markup = renderToStaticMarkup(<ArticlesSection guides={[guide]} />);
 
     expect(markup).not.toContain('data-priority="true"');
-    expect(markup).toContain('data-prefetch="false" href="/guides/guide-1"');
+    expect(markup).toContain('href="/guides/guide-1"');
+    expect(markup).not.toContain('data-prefetch="false" href="/guides/guide-1"');
   });
 });

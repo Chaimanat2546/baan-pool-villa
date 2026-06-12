@@ -22,10 +22,9 @@ function GuideCard({
   const imageUrl = getGuideImage(guide);
 
   return (
-    <Link
+    <a
       className="group block overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-px shadow-[0_10px_15px_-3px_rgba(0,0,0,0.05),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_28px_-8px_rgba(15,47,53,0.18)]"
       href={`/guides/${guide.slug}`}
-      prefetch={false}
     >
       <div className="relative h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]">
         {imageUrl ? (
@@ -70,7 +69,7 @@ function GuideCard({
           อ่านบทความ <ArrowRight aria-hidden="true" className="size-4" />
         </span>
       </article>
-    </Link>
+    </a>
   );
 }
 
