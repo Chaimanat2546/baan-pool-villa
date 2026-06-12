@@ -1,6 +1,7 @@
 import { BedDouble, MapPin, Users } from "lucide-react";
 import Image from "next/image";
 
+import { buildVillaCoverImageProxyUrl } from "@/lib/public-image-proxy";
 import type { VillaListing } from "@/lib/villas/types";
 
 interface VillaCardProps {
@@ -24,6 +25,7 @@ export function VillaCard({
 }: VillaCardProps) {
   const visibleAmenities = villa.amenities.slice(0, 3);
   const TitleTag = titleHeadingLevel;
+  const coverImageSrc = buildVillaCoverImageProxyUrl(villa.coverImage);
 
   return (
     <a
@@ -31,14 +33,15 @@ export function VillaCard({
       className="group block overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-px shadow-[0_10px_15px_-3px_rgba(0,0,0,0.05),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_28px_-8px_rgba(15,47,53,0.18)]"
     >
       <div className="relative h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]">
-        {villa.coverImage ? (
+        {coverImageSrc ? (
           <Image
-            src={villa.coverImage}
+            src={coverImageSrc}
             alt={getVillaTitle(villa)}
             fill
             preload={preload}
             quality={60}
             sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
+            unoptimized
             className="object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (

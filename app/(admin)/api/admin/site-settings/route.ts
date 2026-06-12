@@ -775,7 +775,7 @@ export async function PUT(request: Request) {
     warnings.push(reloadError.message ?? "Unable to reload saved site settings.");
   }
 
-  revalidateSiteSettingsCache();
+  await revalidateSiteSettingsCache();
 
   return Response.json({
     settings: normalizeSiteSettingsRow(responseRow),

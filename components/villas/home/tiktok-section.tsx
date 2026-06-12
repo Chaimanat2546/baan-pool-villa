@@ -3,6 +3,7 @@
 import { SiTiktok } from "react-icons/si";
 import { useMemo, useState } from "react";
 
+import { selectHomeTikTokVideos } from "./client-payload";
 import type { SiteTikTokSettings } from "@/lib/site-settings/types";
 import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
 import { ScrollRail } from "./scroll-rail";
@@ -10,40 +11,6 @@ import { TikTokLazyCard } from "./tiktok-lazy-card";
 
 interface TikTokSectionProps {
   tiktok: SiteTikTokSettings | TikTokPreviewSettings;
-}
-
-const HOMEPAGE_TIKTOK_VIDEO_LIMIT = 6;
-type TikTokSectionVideo = SiteTikTokSettings["videos"][number] | TikTokPreviewSettings["videos"][number];
-
-/**
- * Selects up to six unique TikTok videos with trimmed `videoId`s from the provided settings.
- *
- * Iterates `tiktok.videos` in order and returns a list that preserves that order, omitting entries whose
- * `videoId` is empty after trimming or duplicates by `videoId`.
- *
- * @param tiktok - Settings object containing a `videos` array to select from
- * @returns An array of videos with `videoId` trimmed, preserving original order, containing at most `HOMEPAGE_TIKTOK_VIDEO_LIMIT` entries; entries with empty or duplicate `videoId`s are excluded
- */
-function getVisibleVideos(tiktok: TikTokSectionProps["tiktok"]) {
-  const seen = new Set<string>();
-  const visibleVideos: TikTokSectionVideo[] = [];
-
-  for (const video of tiktok.videos) {
-    const trimmedVideoId = video.videoId.trim();
-
-    if (!trimmedVideoId || seen.has(trimmedVideoId)) {
-      continue;
-    }
-
-    seen.add(trimmedVideoId);
-    visibleVideos.push({ ...video, videoId: trimmedVideoId });
-
-    if (visibleVideos.length === HOMEPAGE_TIKTOK_VIDEO_LIMIT) {
-      break;
-    }
-  }
-
-  return visibleVideos;
 }
 
 /**
@@ -55,7 +22,7 @@ function getVisibleVideos(tiktok: TikTokSectionProps["tiktok"]) {
  * @returns A section element containing the TikTok header, a scrollable list of TikTok cards, and an optional "Follow us on TikTok" link, or `null` when no videos are available.
  */
 export function TikTokSection({ tiktok }: TikTokSectionProps) {
-  const videos = useMemo(() => getVisibleVideos(tiktok), [tiktok]);
+  const videos = useMemo(() => selectHomeTikTokVideos(tiktok), [tiktok]);
   const accountUrl = useMemo(() => {
     const rawAccountUrl = tiktok.accountUrl.trim();
 

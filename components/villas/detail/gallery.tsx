@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, Download, ImageIcon, ImageOff, X } from "luc
 import Image from "next/image";
 import { useEffect, useRef, useState, type TouchEvent } from "react";
 import type { VillaListing } from "@/lib/villas/types";
-import { getGalleryItemDescription, getVillaTitle, shouldBypassImageOptimizer } from "./helpers";
+import { getGalleryItemDescription, getVillaTitle } from "./helpers";
 import type { GalleryCategory, GalleryItem } from "./types";
 
 /**
@@ -26,6 +26,40 @@ function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string 
   }
 
   return `/api/villas/${encodeURIComponent(listingId)}/images/download?${params.toString()}`;
+}
+
+function buildGalleryDisplaySrc(listingId: string, item: GalleryItem): string | null {
+  const targetUrl = normalizeGalleryDisplayImageUrl(item.url);
+
+  if (!targetUrl) {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    url: targetUrl,
+  });
+
+  return `/api/villas/${encodeURIComponent(listingId)}/images/proxy?${params.toString()}`;
+}
+
+function normalizeGalleryDisplayImageUrl(value: string): string | null {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmedValue);
+
+    if (url.protocol !== "https:" || url.username || url.password) {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -52,6 +86,8 @@ function GalleryImage({
 
   item,
 
+  listingId,
+
   onClick,
 
   onError,
@@ -68,6 +104,8 @@ function GalleryImage({
 
   item: GalleryItem;
 
+  listingId: string;
+
   onClick?: (item: GalleryItem) => void;
 
   onError: (url: string) => void;
@@ -77,6 +115,7 @@ function GalleryImage({
   loading?: "eager" | "lazy";
 
 }) {
+  const displaySrc = item.url ? buildGalleryDisplaySrc(listingId, item) : null;
 
   return (
 
@@ -91,13 +130,13 @@ function GalleryImage({
       }}
     >
 
-      {item.url ? (
+      {displaySrc ? (
 
         <>
 
           <Image
 
-            src={item.url}
+            src={displaySrc}
 
             alt={alt}
 
@@ -107,7 +146,7 @@ function GalleryImage({
 
             fetchPriority={fetchPriority}
 
-            unoptimized={shouldBypassImageOptimizer(item.url)}
+            unoptimized
 
             sizes="(max-width: 1024px) 100vw, 50vw"
 
@@ -155,6 +194,8 @@ function GalleryViewAllTile({
 
   item,
 
+  listingId,
+
   onClick,
 
   onError,
@@ -165,6 +206,8 @@ function GalleryViewAllTile({
 
   item: GalleryItem;
 
+  listingId: string;
+
   onClick: (item: GalleryItem) => void;
 
   onError: (url: string) => void;
@@ -172,6 +215,7 @@ function GalleryViewAllTile({
   totalImageCount: number;
 
 }) {
+  const displaySrc = item.url ? buildGalleryDisplaySrc(listingId, item) : null;
 
   return (
 
@@ -185,11 +229,11 @@ function GalleryViewAllTile({
       }}
     >
 
-      {item.url ? (
+      {displaySrc ? (
 
         <Image
 
-          src={item.url}
+          src={displaySrc}
 
           alt=""
 
@@ -197,7 +241,7 @@ function GalleryViewAllTile({
 
           loading="lazy"
 
-          unoptimized={shouldBypassImageOptimizer(item.url)}
+          unoptimized
 
           sizes="(max-width: 1024px) 33vw, 50vw"
 
@@ -231,6 +275,16 @@ function GalleryViewAllTile({
 }
 
 void GalleryViewAllTile;
+
+function GalleryReservedTile({ className }: { className: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`bg-[var(--site-surface-tint)] ${className}`}
+      data-gallery-reserved-slot="true"
+    />
+  );
+}
 
 
 
@@ -289,6 +343,8 @@ export function Gallery({
 
         item={main}
 
+        listingId={listing.id}
+
         fetchPriority="high"
 
         loading="eager"
@@ -311,13 +367,17 @@ export function Gallery({
 
           item={second}
 
+          listingId={listing.id}
+
           onClick={onImageClick}
 
           onError={onImageError}
 
         />
 
-        ) : null}
+        ) : (
+          <GalleryReservedTile className="aspect-[4/3] rounded-2xl lg:aspect-auto lg:h-full lg:rounded-none" />
+        )}
 
         {third ? (
 
@@ -329,13 +389,17 @@ export function Gallery({
 
           item={third}
 
+          listingId={listing.id}
+
           onClick={onImageClick}
 
           onError={onImageError}
 
         />
 
-        ) : null}
+        ) : (
+          <GalleryReservedTile className="aspect-[4/3] rounded-2xl lg:aspect-auto lg:h-full lg:rounded-l-none lg:rounded-r-xl lg:rounded-bl-none" />
+        )}
 
         {fourth ? (
 
@@ -348,6 +412,8 @@ export function Gallery({
             className="aspect-[4/3] w-full lg:aspect-auto lg:h-full lg:rounded-none [&_img]:scale-110 [&_img]:brightness-75"
 
         item={fourth}
+
+        listingId={listing.id}
 
         onClick={onImageClick}
 
@@ -380,7 +446,9 @@ export function Gallery({
 
         </div>
 
-        ) : null}
+        ) : (
+          <GalleryReservedTile className="aspect-[4/3] rounded-2xl lg:col-span-2 lg:aspect-auto lg:h-full lg:rounded-br-xl lg:rounded-t-none" />
+        )}
 
       </div>
 
@@ -576,7 +644,9 @@ export function GalleryLightbox({
 
   const nextItem = activeItems[(activeIndex + 1) % activeItems.length];
   const activeImageDownloadHref = buildGalleryDownloadHref(listing.id, activeItem);
-  const isActiveImageLoading = loadedImageKey !== activeItem.key;
+  const activeImageDisplaySrc = buildGalleryDisplaySrc(listing.id, activeItem);
+  const isActiveImageLoading =
+    Boolean(activeImageDisplaySrc) && loadedImageKey !== activeItem.key;
   const handleImageTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     touchStartXRef.current = event.touches[0]?.clientX ?? null;
   };
@@ -693,11 +763,12 @@ export function GalleryLightbox({
             onTouchStart={handleImageTouchStart}
             onTouchEnd={handleImageTouchEnd}
           >
+            {activeImageDisplaySrc ? (
             <Image
 
               key={activeItem.key}
 
-              src={activeItem.url}
+              src={activeImageDisplaySrc}
 
               alt={`${getVillaTitle(listing.id)} ${activeItem.zoneLabel}`}
 
@@ -707,7 +778,7 @@ export function GalleryLightbox({
 
               fetchPriority="high"
 
-              unoptimized={shouldBypassImageOptimizer(activeItem.url)}
+              unoptimized
 
               sizes="(max-width: 1024px) 100vw, calc(100vw - 400px)"
 
@@ -722,6 +793,11 @@ export function GalleryLightbox({
                 onImageError(activeItem.url);
               }}
             />
+            ) : (
+              <div className="grid h-full place-items-center text-[var(--site-on-primary)] opacity-70">
+                <ImageOff className="h-12 w-12" />
+              </div>
+            )}
 
             {isActiveImageLoading ? (
               <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-black/20 backdrop-blur-[1px]">
@@ -864,15 +940,16 @@ export function GalleryLightbox({
                   }}
                 >
 
+                  {buildGalleryDisplaySrc(listing.id, item) ? (
                   <Image
 
-                    src={item.url}
+                    src={buildGalleryDisplaySrc(listing.id, item) ?? ""}
 
                     alt={item.caption ?? item.zoneLabel}
 
                     fill
 
-                    unoptimized={shouldBypassImageOptimizer(item.url)}
+                    unoptimized
 
                     sizes="(max-width: 1024px) 120px, 150px"
 
@@ -884,6 +961,11 @@ export function GalleryLightbox({
                       onImageError(item.url);
                     }}
                   />
+                  ) : (
+                    <div className="grid h-full place-items-center text-[var(--site-on-primary)] opacity-60">
+                      <ImageOff className="h-6 w-6" />
+                    </div>
+                  )}
 
                 </button>
 

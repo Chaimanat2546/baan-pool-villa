@@ -3,9 +3,9 @@
 import { Fragment, useState } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
+import type { HomePageSettings } from "@/components/villas/home/client-payload";
 import type { GuidePost } from "@/lib/guides/types";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
-import type { SiteSettings } from "@/lib/site-settings/types";
 import {
   filtersToSearchParams,
   getDefaultFilters,
@@ -43,7 +43,7 @@ interface HomePageProps {
   initialHomeSections?: ResolvedHomeSection[];
   filterSummary?: FilterSummary;
   destinationVillas?: DestinationVilla[];
-  settings: SiteSettings;
+  settings: HomePageSettings;
 }
 
 /**

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { VillaDetailPayload, VillaImage } from "./types";
 
 const IMAGE_EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
@@ -19,23 +20,7 @@ const IMAGE_EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
  * @returns The normalized URL string if `value` is a valid `https` URL without credentials, `null` otherwise
  */
 export function normalizeDownloadImageUrl(value: string | null): string | null {
-  const trimmedValue = value?.trim();
-
-  if (!trimmedValue) {
-    return null;
-  }
-
-  try {
-    const url = new URL(trimmedValue);
-
-    if (url.protocol !== "https:" || url.username || url.password) {
-      return null;
-    }
-
-    return url.toString();
-  } catch {
-    return null;
-  }
+  return normalizePublicImageSourceUrl(value);
 }
 
 /**
@@ -51,11 +36,13 @@ export function isAllowedVillaImageUrl(
   images: VillaImage[],
   detailPayload: VillaDetailPayload | null,
 ): boolean {
-  if (images.some((image) => image.imageUrl === imageUrl)) {
+  if (
+    images.some((image) => normalizeDownloadImageUrl(image.imageUrl) === imageUrl)
+  ) {
     return true;
   }
 
-  return detailPayload?.listing.coverImage === imageUrl;
+  return normalizeDownloadImageUrl(detailPayload?.listing.coverImage ?? null) === imageUrl;
 }
 
 /**

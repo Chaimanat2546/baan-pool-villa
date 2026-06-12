@@ -43,6 +43,7 @@ import {
   translateAdminErrorMessages,
 } from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { AdminGuidesSkeleton } from "@/components/admin/loading/admin-guides-skeleton";
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import type {
@@ -1443,28 +1444,11 @@ export function AdminGuidesPage() {
         </header>
       </div>
 
-      {errors.length > 0 ? (
-        <div
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-          role="alert"
-        >
-          <p className="font-semibold">แก้รายการเหล่านี้ก่อนบันทึก:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            {errors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {notice ? (
-        <p
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
-          role="status"
-        >
-          {notice}
-        </p>
-      ) : null}
+      <AdminFeedback
+        errors={errors}
+        errorTitle="แก้รายการเหล่านี้ก่อนบันทึก:"
+        notice={notice}
+      />
 
       {isLoading ? (
         <AdminGuidesSkeleton />

@@ -4,6 +4,8 @@ import {
   HomePage,
   type HomePageDegradedSources,
 } from "@/components/villas/home/page";
+import { selectHomeGuides } from "@/components/villas/home/articles-section";
+import { toHomePageSettings } from "@/components/villas/home/client-payload";
 import { getPublishedGuides } from "@/lib/guides/server";
 import type { GuidePost } from "@/lib/guides/types";
 import { getResolvedHomeSections } from "@/lib/home-sections/server";
@@ -49,7 +51,7 @@ async function getHomePageData(): Promise<{
         homeSections: false,
         villaCatalog: true,
       },
-      guides,
+      guides: selectHomeGuides(guides),
       homeSections: [],
       filterSummary: {
         maxAvailablePrice: 0,
@@ -75,7 +77,7 @@ async function getHomePageData(): Promise<{
       homeSections: homeSectionsResult.degraded,
       villaCatalog: false,
     },
-    guides,
+    guides: selectHomeGuides(guides),
     homeSections: homeSectionsResult.sections,
     filterSummary: {
       maxAvailablePrice: getMaxVillaPrice(villas),
@@ -129,7 +131,7 @@ export default async function Page() {
           ...homePageData.degradedSources,
           siteSettings: settingsResult.degraded,
         }}
-        settings={settings}
+        settings={toHomePageSettings(settings)}
       />
     </>
   );

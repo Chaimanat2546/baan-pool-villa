@@ -7,6 +7,7 @@ import { ArticlesSection } from "@/components/villas/home/articles-section";
 import { ScrollRail } from "@/components/villas/home/scroll-rail";
 import { VillaCard } from "@/components/villas/listing/villa-card";
 import type { GuidePost } from "@/lib/guides/types";
+import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 import { YouTubeLiteEmbed } from "./youtube-lite-embed";
@@ -344,7 +345,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
               </p>
             );
           case "image": {
-            const imageUrl = getImageUrl(guideBlock);
+            const imageUrl = buildGuideImageProxyUrl(getImageUrl(guideBlock));
 
             if (!imageUrl) {
               return null;
@@ -359,6 +360,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
                     fill
                     sizes="(max-width: 768px) 100vw, 768px"
                     src={imageUrl}
+                    unoptimized
                   />
                 </div>
                 <figcaption className="text-sm text-[var(--site-muted)]">
@@ -453,7 +455,7 @@ export function GuideDetailPage({
   relatedGuides,
   settings,
 }: GuideDetailPageProps) {
-  const coverImageUrl = guide.coverImage?.url;
+  const coverImageUrl = buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
 
   return (
     <main className="bg-[var(--site-surface-soft)] text-[var(--site-text)]">
@@ -502,9 +504,10 @@ export function GuideDetailPage({
                 alt={guide.coverImage?.alt ?? guide.title}
                 className="object-cover"
                 fill
-                priority
+                preload
                 sizes="(max-width: 1024px) 100vw, 1024px"
                 src={coverImageUrl}
+                unoptimized
               />
             </div>
           ) : null}

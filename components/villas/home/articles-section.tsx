@@ -1,8 +1,8 @@
 import { ArrowRight, Pin } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 import type { GuidePost } from "@/lib/guides/types";
+import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
 
 import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
@@ -18,7 +18,7 @@ export function selectHomeGuides(guides: GuidePost[]): GuidePost[] {
 }
 
 function getGuideImage(guide: GuidePost) {
-  return guide.coverImage?.url ?? null;
+  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
 }
 
 export function ArticlesSection({ guides }: ArticlesSectionProps) {
@@ -46,11 +46,10 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
           const imageUrl = getGuideImage(guide);
 
           return (
-            <Link
+            <a
               className="group w-[306px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_34px_rgba(6,63,53,0.07)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_36px_rgba(15,47,53,0.14)] md:w-[394px]"
               href={`/guides/${guide.slug}`}
               key={guide.id}
-              prefetch={false}
             >
               <div className="relative aspect-[4/3] bg-[var(--site-surface-tint)]">
                 {imageUrl ? (
@@ -60,6 +59,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                     fill
                     sizes="(max-width: 768px) 306px, 394px"
                     src={imageUrl}
+                    unoptimized
                   />
                 ) : (
                   <div className="grid h-full place-items-center text-sm font-semibold text-[var(--site-muted)]">
@@ -94,7 +94,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                   อ่านบทความ <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </span>
               </div>
-            </Link>
+            </a>
           );
         })}
       </ScrollRail>

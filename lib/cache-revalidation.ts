@@ -2,6 +2,10 @@ import "server-only";
 
 import { revalidateTag } from "next/cache";
 import { CACHE_TAGS } from "./cache-policy";
+import {
+  HTML_CACHE_VERSION_GROUPS,
+  bumpHtmlEdgeCacheVersions,
+} from "./html-edge-cache-version";
 
 const IMMEDIATE_REVALIDATION = { expire: 0 } as const;
 
@@ -11,36 +15,46 @@ function revalidateTags(tags: string[]) {
   });
 }
 
-export function revalidateSiteSettingsCache() {
+export async function revalidateSiteSettingsCache() {
   revalidateTags([CACHE_TAGS.siteSettings]);
+  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.siteSettings]);
 }
 
-export function revalidateHomeSectionsCache() {
+export async function revalidateHomeSectionsCache() {
   revalidateTags([CACHE_TAGS.homeSections]);
+  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.homeSections]);
 }
 
-export function revalidateGuideCache(slug?: string | null) {
+export async function revalidateGuideCache(slug?: string | null) {
   revalidateTags([
     CACHE_TAGS.guides,
     ...(slug ? [CACHE_TAGS.guide(slug)] : []),
   ]);
+  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.guides]);
 }
 
-export function revalidateLegalPageCache(slug?: string | null) {
+export async function revalidateLegalPageCache(slug?: string | null) {
   revalidateTags([
     CACHE_TAGS.legalPages,
     ...(slug ? [CACHE_TAGS.legalPage(slug)] : []),
   ]);
+  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.legalPages]);
 }
 
-export function revalidateDetailLayoutCache() {
+export async function revalidateDetailLayoutCache() {
   revalidateTags([CACHE_TAGS.siteSettings]);
+  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.detailLayout]);
 }
 
-export function revalidateExternalVillaCache() {
+export async function revalidateExternalVillaCache() {
   revalidateTags([
     CACHE_TAGS.villaListings,
     CACHE_TAGS.villaDetails,
     CACHE_TAGS.villaImages,
+  ]);
+  await bumpHtmlEdgeCacheVersions([
+    HTML_CACHE_VERSION_GROUPS.villaListings,
+    HTML_CACHE_VERSION_GROUPS.villaDetails,
+    HTML_CACHE_VERSION_GROUPS.villaImages,
   ]);
 }

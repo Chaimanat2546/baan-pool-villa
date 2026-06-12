@@ -37,4 +37,34 @@ describe("HeroSection", () => {
 
     expect(markup).toContain('data-home-mobile-search="true"');
   });
+
+  it("renders the hero image through the public site asset proxy", () => {
+    const markup = renderToStaticMarkup(
+      <HeroSection
+        filters={{
+          amenities: [],
+          bedrooms: 4,
+          guests: 8,
+          maxPrice: 12000,
+          nearSea: false,
+          sort: "default",
+          villaId: "",
+          zone: "all",
+        }}
+        heroImage={{
+          alt: "Hero image",
+          path: "hero.jpg",
+          url: "https://assets.example.com/hero.jpg",
+        }}
+        maxAvailablePrice={12000}
+        onChange={() => {}}
+        onSearch={() => {}}
+        zones={[{ label: "Jomtien", value: "jomtien" }]}
+      />,
+    );
+
+    expect(markup).toContain(
+      'data-src="/api/site-assets/proxy?url=https%3A%2F%2Fassets.example.com%2Fhero.jpg"',
+    );
+  });
 });

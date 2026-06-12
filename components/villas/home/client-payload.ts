@@ -1,0 +1,50 @@
+import type { SiteSettings, SiteTikTokSettings } from "@/lib/site-settings/types";
+import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
+
+const HOMEPAGE_TIKTOK_VIDEO_LIMIT = 6;
+
+type TikTokSettings = SiteTikTokSettings | TikTokPreviewSettings;
+type TikTokSectionVideo =
+  | SiteTikTokSettings["videos"][number]
+  | TikTokPreviewSettings["videos"][number];
+
+export interface HomePageSettings {
+  bank: SiteSettings["bank"];
+  contact: SiteSettings["contact"];
+  heroImage: SiteSettings["heroImage"];
+  tiktok: SiteTikTokSettings;
+}
+
+export function selectHomeTikTokVideos(tiktok: TikTokSettings) {
+  const seen = new Set<string>();
+  const visibleVideos: TikTokSectionVideo[] = [];
+
+  for (const video of tiktok.videos) {
+    const trimmedVideoId = video.videoId.trim();
+
+    if (!trimmedVideoId || seen.has(trimmedVideoId)) {
+      continue;
+    }
+
+    seen.add(trimmedVideoId);
+    visibleVideos.push({ ...video, videoId: trimmedVideoId });
+
+    if (visibleVideos.length === HOMEPAGE_TIKTOK_VIDEO_LIMIT) {
+      break;
+    }
+  }
+
+  return visibleVideos;
+}
+
+export function toHomePageSettings(settings: SiteSettings): HomePageSettings {
+  return {
+    bank: settings.bank,
+    contact: settings.contact,
+    heroImage: settings.heroImage,
+    tiktok: {
+      accountUrl: settings.tiktok.accountUrl,
+      videos: selectHomeTikTokVideos(settings.tiktok),
+    },
+  };
+}

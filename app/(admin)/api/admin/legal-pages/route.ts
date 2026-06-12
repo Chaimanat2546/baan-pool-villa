@@ -177,7 +177,7 @@ export async function PUT(request: Request) {
   }
 
   const normalizedPage = normalizeLegalPageRow(data);
-  revalidateLegalPageCache(normalizedPage.slug);
+  await revalidateLegalPageCache(normalizedPage.slug);
 
   return Response.json({
     legalPage: normalizedPage,

@@ -2,6 +2,8 @@ import { isNearSeaVilla } from "../villas/filters";
 import type { VillaListing } from "../villas/types";
 import type { HomeSectionConfig, ResolvedHomeSection } from "./types";
 
+const FALLBACK_HOME_SECTION_LIMIT = 8;
+
 function getLimitCount(section: HomeSectionConfig): number {
   if (!Number.isFinite(section.limitCount)) {
     return 1;
@@ -155,21 +157,24 @@ export function buildFallbackHomeSections(
       description:
         "พูลวิลล่าคัดพิเศษ เหมาะสำหรับครอบครัว กลุ่มเพื่อน และทริปพักผ่อนส่วนตัว",
       cta: { label: "ดูบ้านพักทั้งหมด", href: "/search" },
-      villas: villas.slice(0, 12),
+      villas: villas.slice(0, FALLBACK_HOME_SECTION_LIMIT),
     },
     {
       slug: "popular",
       title: "พูลวิลล่าพัทยายอดฮิต",
       description:
         "บ้านพักยอดนิยมสำหรับทริปพัทยา ใกล้แหล่งท่องเที่ยว เดินทางสะดวก และเหมาะกับกลุ่มเพื่อน",
-      villas: villas.slice(12, 24),
+      villas: villas.slice(
+        FALLBACK_HOME_SECTION_LIMIT,
+        FALLBACK_HOME_SECTION_LIMIT * 2,
+      ),
     },
     {
       slug: "near-sea",
       title: "บ้านพักใกล้ทะเล",
       description:
         "เลือกพูลวิลล่าใกล้ชายหาด เดินทางง่าย เหมาะกับคนที่อยากพักผ่อนใกล้ทะเล",
-      villas: villas.filter(isNearSeaVilla).slice(0, 12),
+      villas: villas.filter(isNearSeaVilla).slice(0, FALLBACK_HOME_SECTION_LIMIT),
     },
   ];
 

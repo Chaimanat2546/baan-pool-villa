@@ -60,8 +60,8 @@ export async function POST(request: Request) {
     );
   }
 
+  await revalidateExternalVillaCache();
   lastRefreshRequestedAt = now;
-  revalidateExternalVillaCache();
 
   return Response.json({
     refreshed: true,

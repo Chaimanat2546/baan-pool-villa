@@ -3,29 +3,23 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { GuidePost } from "@/lib/guides/types";
+import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
 
 interface GuideListPageProps {
   guides: GuidePost[];
 }
 
 function getGuideImage(guide: GuidePost) {
-  return guide.coverImage?.url ?? null;
+  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
 }
 
-function GuideCard({
-  guide,
-  priority = false,
-}: {
-  guide: GuidePost;
-  priority?: boolean;
-}) {
+function GuideCard({ guide }: { guide: GuidePost }) {
   const imageUrl = getGuideImage(guide);
 
   return (
-    <Link
+    <a
       className="group block overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-px shadow-[0_10px_15px_-3px_rgba(0,0,0,0.05),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_28px_-8px_rgba(15,47,53,0.18)]"
       href={`/guides/${guide.slug}`}
-      prefetch={false}
     >
       <div className="relative h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]">
         {imageUrl ? (
@@ -33,9 +27,9 @@ function GuideCard({
             alt={guide.coverImage?.alt ?? guide.title}
             className="object-cover transition duration-500 group-hover:scale-105"
             fill
-            priority={priority}
             sizes="(max-width: 768px) 100vw, 33vw"
             src={imageUrl}
+            unoptimized
           />
         ) : (
           <div className="grid h-full place-items-center text-sm font-semibold text-[var(--site-muted)]">
@@ -70,7 +64,7 @@ function GuideCard({
           อ่านบทความ <ArrowRight aria-hidden="true" className="size-4" />
         </span>
       </article>
-    </Link>
+    </a>
   );
 }
 
@@ -127,8 +121,8 @@ export function GuideListPage({ guides }: GuideListPageProps) {
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {guides.map((guide, index) => (
-                <GuideCard guide={guide} key={guide.id} priority={index === 0} />
+              {guides.map((guide) => (
+                <GuideCard guide={guide} key={guide.id} />
               ))}
             </div>
           )}

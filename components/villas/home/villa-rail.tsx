@@ -25,6 +25,7 @@ const DEFAULT_CTA_CONFIG: VillaRailCtaConfig = {
   href: "/search",
   label: "\u0e14\u0e39\u0e1a\u0e49\u0e32\u0e19\u0e1e\u0e31\u0e01\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14",
 };
+const MAX_RENDERED_VILLA_RAIL_ITEMS = 12;
 
 function sanitizeCtaHref(href: string): string {
   if (href.startsWith("/") && !href.startsWith("//")) {
@@ -66,6 +67,7 @@ export function VillaRail({
 }: VillaRailProps) {
   const ctaConfig = getVillaRailCtaConfig(cta);
   const ctaHref = ctaConfig ? sanitizeCtaHref(ctaConfig.href) : null;
+  const renderedVillas = villas.slice(0, MAX_RENDERED_VILLA_RAIL_ITEMS);
 
   return (
     <section
@@ -81,7 +83,7 @@ export function VillaRail({
         label={title}
         className="-mx-4 mt-4 gap-5 px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8"
       >
-        {villas.slice(0, 12).map((villa) => (
+        {renderedVillas.map((villa) => (
           <div key={villa.id} className="w-[290px] shrink-0 snap-start">
             <VillaCard villa={villa} titleHeadingLevel={cardTitleHeadingLevel} />
           </div>

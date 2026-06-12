@@ -25,6 +25,7 @@ import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import type { GuidePost } from "../../../../lib/guides/types";
 import type { ResolvedHomeSection } from "../../../../lib/home-sections/types";
 import type { VillaListing } from "../../../../lib/villas/types";
+import { toHomePageSettings } from "../client-payload";
 import { HomePage } from "../page";
 
 const villa: VillaListing = {
@@ -107,6 +108,77 @@ describe("HomePage", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("keeps the homepage client settings payload limited to rendered fields", () => {
+    const settings = toHomePageSettings(DEFAULT_SITE_SETTINGS);
+
+    expect(Object.keys(settings).sort()).toEqual([
+      "bank",
+      "contact",
+      "heroImage",
+      "tiktok",
+    ]);
+    expect(settings.heroImage).toBe(DEFAULT_SITE_SETTINGS.heroImage);
+    expect(settings.tiktok).toEqual(DEFAULT_SITE_SETTINGS.tiktok);
+    expect(settings.contact).toBe(DEFAULT_SITE_SETTINGS.contact);
+    expect(settings.bank).toBe(DEFAULT_SITE_SETTINGS.bank);
+    expect(settings).not.toHaveProperty("seo");
+    expect(settings).not.toHaveProperty("detailLayout");
+    expect(settings).not.toHaveProperty("logoImage");
+    expect(settings).not.toHaveProperty("siteName");
+  });
+
+  it("limits the homepage settings TikTok payload to the rendered videos", () => {
+    const settings = toHomePageSettings({
+      ...DEFAULT_SITE_SETTINGS,
+      tiktok: {
+        accountUrl: "https://www.tiktok.com/@baanpoolvilla",
+        videos: [
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
+            videoId: "7370000000000000001",
+          },
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
+            videoId: " 7370000000000000001 ",
+          },
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000002",
+            videoId: "7370000000000000002",
+          },
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000003",
+            videoId: "7370000000000000003",
+          },
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000004",
+            videoId: "7370000000000000004",
+          },
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000005",
+            videoId: "7370000000000000005",
+          },
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000006",
+            videoId: "7370000000000000006",
+          },
+          {
+            url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000007",
+            videoId: "7370000000000000007",
+          },
+        ],
+      },
+    });
+
+    expect(settings.tiktok.videos.map((video) => video.videoId)).toEqual([
+      "7370000000000000001",
+      "7370000000000000002",
+      "7370000000000000003",
+      "7370000000000000004",
+      "7370000000000000005",
+      "7370000000000000006",
+    ]);
+  });
+
   it("surfaces degraded homepage sources as non-visible data attributes", () => {
     const markup = renderToStaticMarkup(
       <HomePage
@@ -167,8 +239,12 @@ describe("HomePage", () => {
     expect(destinationSectionStart).toBeGreaterThan(-1);
     expect(tiktokSectionStart).toBeGreaterThan(destinationSectionStart);
 
-    expect(destinationsMarkup).toContain("https://example.com/destination-1.jpg");
-    expect(destinationsMarkup).toContain("https://example.com/destination-2.jpg");
+    expect(destinationsMarkup).toContain(
+      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-1.jpg",
+    );
+    expect(destinationsMarkup).toContain(
+      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-2.jpg",
+    );
   });
 
   it("renders TikTok section from settings without server preview props and keeps guide placement after it", () => {

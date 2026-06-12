@@ -3,7 +3,7 @@ import { buildPhoneHref } from "@/lib/site-contact";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 interface ContactSectionProps {
-  settings: SiteSettings;
+  settings: Pick<SiteSettings, "bank" | "contact">;
 }
 
 export function ContactSection({ settings }: ContactSectionProps) {

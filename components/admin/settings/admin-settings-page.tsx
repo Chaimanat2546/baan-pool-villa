@@ -7,6 +7,7 @@ import { CheckCircle2, Eye, RefreshCw, Save } from "lucide-react";
 
 import { getAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { AdminSettingsSkeleton } from "@/components/admin/loading/admin-settings-skeleton";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
@@ -471,42 +472,13 @@ export function AdminSettingsPage() {
         </header>
       </div>
 
-      {errors.length > 0 ? (
-        <div
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-          role="alert"
-        >
-          <p className="font-semibold">กรุณาแก้ไขก่อนบันทึก:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            {errors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {notice ? (
-        <p
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
-          role="status"
-        >
-          {notice}
-        </p>
-      ) : null}
-
-      {warnings.length > 0 ? (
-        <div
-          className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-          role="status"
-        >
-          <p className="font-semibold">บันทึกแล้วพร้อมคำเตือน:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            {warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      <AdminFeedback
+        errors={errors}
+        errorTitle="กรุณาแก้ไขก่อนบันทึก:"
+        notice={notice}
+        warnings={warnings}
+        warningTitle="บันทึกแล้วพร้อมคำเตือน:"
+      />
 
       {isLoading ? (
         <AdminSettingsSkeleton />

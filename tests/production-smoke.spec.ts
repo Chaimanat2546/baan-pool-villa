@@ -13,6 +13,30 @@ async function expectHealthyPage(page: import("@playwright/test").Page) {
   await expectNoPublicSecretLeak(await page.content());
 }
 
+async function expectReferencedScriptsLoad(
+  page: import("@playwright/test").Page,
+) {
+  const scriptSources = await page.locator('script[src^="/_next/static/"]').evaluateAll(
+    (scripts) =>
+      scripts
+        .map((script) => script.getAttribute("src"))
+        .filter((src): src is string => Boolean(src)),
+  );
+  const uniqueScriptSources = Array.from(new Set(scriptSources)).slice(0, 12);
+
+  expect(uniqueScriptSources.length).toBeGreaterThan(0);
+
+  for (const scriptSource of uniqueScriptSources) {
+    const response = await page.request.get(scriptSource);
+    const contentType = response.headers()["content-type"] ?? "";
+
+    expect(response.ok(), `${scriptSource} should load`).toBe(true);
+    expect(contentType, `${scriptSource} should be JavaScript`).toMatch(
+      /javascript|ecmascript/i,
+    );
+  }
+}
+
 test("public home renders SEO metadata and stays within a production smoke budget", async ({
   page,
 }, testInfo) => {
@@ -20,6 +44,7 @@ test("public home renders SEO metadata and stays within a production smoke budge
 
   expect(response?.ok()).toBe(true);
   await expectHealthyPage(page);
+  await expectReferencedScriptsLoad(page);
   await expect.poll(() => page.title()).not.toBe("");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
@@ -89,7 +114,7 @@ test("search page renders, and a live villa detail page renders when listing dat
 test("admin routes keep unauthenticated users on login and expose theme vars", async ({
   page,
 }) => {
-  await page.goto("/admin/settings", { waitUntil: "networkidle" });
+  await page.goto("/admin/settings", { waitUntil: "domcontentloaded" });
 
   await expect(page).toHaveURL(/\/admin\/login$/);
   await expectHealthyPage(page);

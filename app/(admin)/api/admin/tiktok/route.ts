@@ -324,7 +324,7 @@ export async function PUT(request: Request) {
     return adminSupabaseErrorResponse(error, "Unable to save TikTok settings.");
   }
 
-  revalidateSiteSettingsCache();
+  await revalidateSiteSettingsCache();
 
   return Response.json({
     settings: normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null).tiktok,

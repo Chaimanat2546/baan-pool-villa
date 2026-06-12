@@ -6,6 +6,7 @@ import type { GuidePost } from "@/lib/guides/types";
 import type { VillaListing } from "@/lib/villas/types";
 
 import { GuideDetailPage } from "../guide-detail-page";
+import { GuideListPage } from "../guide-list-page";
 
 interface MockImageProps {
   alt: string;
@@ -70,6 +71,38 @@ const villa: VillaListing = {
 };
 
 describe("guide detail request budget", () => {
+  it("uses document navigation for guide list cards to avoid click-time RSC requests", () => {
+    const markup = renderToStaticMarkup(
+      <GuideListPage guides={[{ ...guide, coverImage: { alt: "Guide cover", path: "/guide.jpg", url: "/guide.jpg" } }]} />,
+    );
+
+    const guideAnchor = markup.match(/<a\b[^>]*href="\/guides\/guide-1"[^>]*>/);
+
+    expect(guideAnchor?.[0]).toContain('href="/guides/guide-1"');
+    expect(guideAnchor?.[0]).not.toContain("data-prefetch=");
+  });
+
+  it("renders guide cover images through the public guide image proxy", () => {
+    const markup = renderToStaticMarkup(
+      <GuideListPage
+        guides={[
+          {
+            ...guide,
+            coverImage: {
+              alt: "Guide cover",
+              path: "guide.jpg",
+              url: "https://assets.example.com/guide.jpg",
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain(
+      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fguide.jpg"',
+    );
+  });
+
   it("does not preload recommended villa card images in duplicate sidebar layouts", () => {
     const markup = renderToStaticMarkup(
       <GuideDetailPage
