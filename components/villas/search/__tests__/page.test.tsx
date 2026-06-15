@@ -36,6 +36,24 @@ const villa: VillaListing = {
   zoneLabel: "Jomtien",
 };
 
+function setSearchInputValue(input: HTMLInputElement, value: string) {
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  )?.set;
+
+  valueSetter?.call(input, value);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function findSearchSubmitButton(container: HTMLElement) {
+  return Array.from(container.querySelectorAll("button")).find((button) => {
+    const buttonText = button.textContent ?? "";
+
+    return buttonText.includes("ค้นหาบ้านพัก");
+  });
+}
+
 describe("SearchPage", () => {
   afterEach(() => {
     navigationMock.searchParams = new URLSearchParams();
@@ -143,17 +161,20 @@ describe("SearchPage", () => {
     ).toBe(false);
   });
 
-  it("hydrates the full catalog automatically for deep-link query params", async () => {
-    const fullCatalog = [
-      villa,
-      {
-        ...villa,
-        id: "702",
-        price: 20000,
-      },
-    ];
+  it("waits for the search button before loading a bounded search page", async () => {
+    const matchingVilla = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
     const fetchMock = vi.fn().mockResolvedValue({
-      json: async () => ({ items: fullCatalog }),
+      json: async () => ({
+        hasMore: false,
+        items: [matchingVilla],
+        page: 1,
+        pageSize: 12,
+        total: 1,
+      }),
       ok: true,
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -177,7 +198,91 @@ describe("SearchPage", () => {
       );
     });
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/houses");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const searchButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("ค้นหาบ้านพัก"),
+    );
+
+    expect(searchButton).not.toBeUndefined();
+
+    await act(async () => {
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=702&sort=recommended&page=1&limit=12",
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("keeps edited filter values as drafts until search is submitted", async () => {
+    const matchingVilla = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: async () => ({
+        hasMore: false,
+        items: [matchingVilla],
+        page: 1,
+        pageSize: 12,
+        total: 1,
+      }),
+      ok: true,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa, matchingVilla]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[type="search"]',
+    );
+
+    expect(searchInput).not.toBeNull();
+    expect(container.textContent).toContain("701");
+    expect(container.textContent).toContain("702");
+
+    await act(async () => {
+      setSearchInputValue(searchInput as HTMLInputElement, "702");
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("701");
+    expect(container.textContent).toContain("702");
+
+    const searchButton = findSearchSubmitButton(container);
+
+    expect(searchButton).not.toBeUndefined();
+
+    await act(async () => {
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=702&sort=recommended&page=1&limit=12",
+    );
 
     await act(async () => {
       root.unmount();
