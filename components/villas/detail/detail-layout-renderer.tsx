@@ -18,6 +18,7 @@ import { renderDetailLayoutBlock } from "./detail-layout-blocks";
 import type { GalleryCategory } from "./types";
 
 export interface DetailLayoutRendererProps {
+  bookingSidebarId?: string;
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
   layout: AnyDetailLayoutConfig;
@@ -44,6 +45,7 @@ type RenderedDetailLayoutWideRow = {
 };
 
 interface DetailLayoutRenderContext {
+  bookingSidebarId?: string;
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
   listing: VillaListing;
@@ -135,10 +137,13 @@ function renderNarrowRowBlock(
 }
 
 function renderBlockContainer(block: RenderedDetailLayoutBlock) {
+  const visibilityClass =
+    block.type === "booking_contact" ? "hidden lg:block" : "";
+
   return (
     <div
       key={block.key}
-      className="min-w-0 self-start"
+      className={`min-w-0 self-start ${visibilityClass}`.trim()}
       data-detail-layout-block={block.type}
     >
       {block.node}
@@ -534,6 +539,7 @@ function renderV2Layout(
 }
 
 export function DetailLayoutRenderer({
+  bookingSidebarId,
   content,
   galleryCategories,
   layout,
@@ -542,6 +548,7 @@ export function DetailLayoutRenderer({
   settings,
 }: DetailLayoutRendererProps) {
   const context = {
+    bookingSidebarId,
     content,
     galleryCategories,
     listing,

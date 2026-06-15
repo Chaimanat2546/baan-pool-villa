@@ -271,6 +271,14 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).toContain("items-start");
   });
 
+  it("hides configurable booking contact on mobile so the page-level mobile card can lead", () => {
+    const markup = render(DEFAULT_DETAIL_LAYOUT);
+
+    expect(markup).toContain(
+      'class="min-w-0 self-start hidden lg:block" data-detail-layout-block="booking_contact"',
+    );
+  });
+
   it("renders long amenity lists as compact expandable previews", () => {
     const amenities = Array.from({ length: 16 }, (_, index) => ({
       key: `amenity-${index + 1}`,

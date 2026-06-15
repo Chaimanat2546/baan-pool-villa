@@ -2,8 +2,13 @@
 
 import { ImageOff } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  AnyDetailLayoutConfig,
+  DetailLayoutBlock,
+} from "@/lib/detail-layout/types";
 import { buildVillaDetailContent } from "@/lib/villas/detail";
 import type { VillaImage } from "@/lib/villas/types";
+import { BookingSidebar } from "./booking-sidebar";
 import { Breadcrumbs } from "./breadcrumbs";
 import { VillaIntro } from "./content-sections";
 import { DetailLayoutRenderer } from "./detail-layout-renderer";
@@ -47,6 +52,28 @@ function getInitialGalleryLoadState(villaId: string): GalleryLoadState {
   };
 }
 
+function hasEnabledBookingContactBlock(block: DetailLayoutBlock): boolean {
+  return block.enabled && block.type === "booking_contact";
+}
+
+function hasEnabledBookingContact(layout: AnyDetailLayoutConfig): boolean {
+  if (layout.version === 2) {
+    return (
+      layout.mainSplit.wideRows.some((row) =>
+        row.enabled && row.blocks.some(hasEnabledBookingContactBlock),
+      ) ||
+      layout.mainSplit.narrowRows.some(
+        (row) => row.enabled && hasEnabledBookingContactBlock(row.block),
+      ) ||
+      layout.lockedBottom.some(hasEnabledBookingContactBlock)
+    );
+  }
+
+  return layout.rows.some(
+    (row) => row.enabled && row.blocks.some(hasEnabledBookingContactBlock),
+  );
+}
+
 export function VillaDetailPage({
   id,
   payload,
@@ -82,6 +109,7 @@ export function VillaDetailPage({
   const { listing } = payload;
 
   const content = buildVillaDetailContent(payload.detail);
+  const showMobileBookingContact = hasEnabledBookingContact(settings.detailLayout);
 
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -359,6 +387,17 @@ export function VillaDetailPage({
 
         <VillaIntro content={content} listing={listing} />
 
+        {showMobileBookingContact ? (
+          <div className="mt-4 lg:hidden" data-mobile-booking-contact="true">
+            <BookingSidebar
+              content={content}
+              id="contact"
+              listing={listing}
+              settings={settings}
+            />
+          </div>
+        ) : null}
+
       </div>
 
       <DetailLayoutRenderer
@@ -370,6 +409,10 @@ export function VillaDetailPage({
         layout={settings.detailLayout}
 
         listing={listing}
+
+        bookingSidebarId={
+          showMobileBookingContact ? "desktop-contact" : "contact"
+        }
 
         recommendedSection={recommendedSection}
 
