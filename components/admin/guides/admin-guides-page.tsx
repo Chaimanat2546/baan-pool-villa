@@ -811,7 +811,7 @@ function TipTapFormatToolbar({
       className={
         variant === "bubble"
           ? "grid max-w-[calc(100vw-2rem)] grid-flow-col grid-rows-2 place-content-start gap-1 overflow-x-auto rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-2 shadow-lg sm:flex sm:flex-nowrap sm:items-center sm:rounded-full sm:px-2 sm:py-1"
-          : "sticky top-0 z-30 grid grid-flow-col grid-rows-2 place-content-start gap-2 overflow-x-auto border-b border-[var(--site-border)] bg-[var(--site-surface)]/95 px-4 py-3 backdrop-blur sm:flex sm:flex-nowrap sm:items-center"
+          : "sticky top-0 grid grid-flow-col grid-rows-2 place-content-start gap-2 overflow-x-auto border-b border-[var(--site-border)] bg-[var(--site-surface)]/95 px-4 py-3 backdrop-blur sm:flex sm:flex-nowrap sm:items-center"
       }
       data-guide-toolbar={variant}
     >
