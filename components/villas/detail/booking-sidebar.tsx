@@ -9,10 +9,12 @@ import { findFact } from "./helpers";
 
 export function BookingSidebar({
   content,
+  id = "contact",
   listing,
   settings,
 }: {
   content: VillaDetailContent;
+  id?: string;
   listing: VillaListing;
   settings: SiteSettings;
 }) {
@@ -35,7 +37,7 @@ export function BookingSidebar({
   const phoneContacts = settings.contact.phoneContacts.map(withPhoneHref);
 
   return (
-    <aside id="contact" className="lg:self-start">
+    <aside id={id} className="lg:self-start">
       <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[var(--site-card-shadow)]">
         <div className="flex items-center justify-between">
           <button

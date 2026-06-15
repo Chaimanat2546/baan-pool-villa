@@ -24,6 +24,7 @@ import { RecommendedVillas } from "./recommended-villas";
 import type { GalleryCategory } from "./types";
 
 interface DetailLayoutBlockContext {
+  bookingSidebarId?: string;
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
   listing: VillaListing;
@@ -311,12 +312,18 @@ function renderReviewVideos({ content }: DetailLayoutBlockContext) {
 }
 
 function renderBookingContact({
+  bookingSidebarId,
   content,
   listing,
   settings,
 }: DetailLayoutBlockContext) {
   return (
-    <BookingSidebar content={content} listing={listing} settings={settings} />
+    <BookingSidebar
+      content={content}
+      id={bookingSidebarId}
+      listing={listing}
+      settings={settings}
+    />
   );
 }
 
