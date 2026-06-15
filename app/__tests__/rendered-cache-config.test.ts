@@ -58,7 +58,12 @@ describe("rendered page cache route config", () => {
     const sitemap = readProjectFile("app/sitemap.ts");
     const nextConfig = readProjectFile("next.config.ts");
 
-    expect(sitemap).toMatch(/export\s+const\s+revalidate\s*=\s*86400\s*;/);
+    expect(sitemap).toContain(
+      'import type { SitemapRevalidateSeconds } from "@/lib/cache-policy";',
+    );
+    expect(sitemap).toMatch(
+      /export\s+const\s+revalidate\s*:\s*SitemapRevalidateSeconds\s*=\s*86400\s*;/,
+    );
     expect(sitemap).not.toMatch(/export\s+const\s+revalidate\s*=\s*0\s*;/);
     expect(nextConfig).toContain('source: "/sitemap.xml"');
     expect(nextConfig).toContain(

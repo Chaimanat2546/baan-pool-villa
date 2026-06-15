@@ -17,6 +17,7 @@ import {
 import type { GalleryItem, VillaDetailPageProps } from "./types";
 
 type GalleryLoadStatus = "idle" | "loading" | "loaded" | "error";
+type GalleryLoadMode = "background" | "interactive";
 
 interface GalleryImagesResponse {
   images?: VillaImage[];
@@ -27,6 +28,10 @@ interface GalleryLoadState {
   images: VillaImage[];
   status: GalleryLoadStatus;
   villaId: string;
+}
+
+interface LoadGalleryImagesOptions {
+  mode?: GalleryLoadMode;
 }
 
 function getInitialGalleryLoadState(villaId: string): GalleryLoadState {
@@ -96,8 +101,11 @@ export function VillaDetailPage({
     [],
   );
 
-  const loadGalleryImages = useCallback(async () => {
+  const loadGalleryImages = useCallback(async ({
+    mode = "interactive",
+  }: LoadGalleryImagesOptions = {}) => {
     const latestGalleryLoadState = galleryLoadStateRef.current;
+    const isBackgroundLoad = mode === "background";
 
     if (
       latestGalleryLoadState.villaId === id &&
@@ -112,13 +120,15 @@ export function VillaDetailPage({
     }
 
     const requestId = id;
-    replaceGalleryLoadState({
-      error: null,
-      images: [],
-      status: "loading",
-      villaId: requestId,
-    });
-    setFailedImageUrls(new Set());
+    if (!isBackgroundLoad) {
+      replaceGalleryLoadState({
+        error: null,
+        images: [],
+        status: "loading",
+        villaId: requestId,
+      });
+      setFailedImageUrls(new Set());
+    }
 
     const promise = fetch(`/api/villas/${encodeURIComponent(requestId)}/images`)
       .then(async (response) => {
@@ -147,7 +157,8 @@ export function VillaDetailPage({
 
       return loadedImages;
     } catch (error) {
-      updateGalleryLoadState((currentState) =>
+      if (!isBackgroundLoad) {
+        updateGalleryLoadState((currentState) =>
         currentState.villaId === requestId
           ? {
               ...currentState,
@@ -155,7 +166,8 @@ export function VillaDetailPage({
               status: "error",
             }
           : currentState,
-      );
+        );
+      }
 
       throw error;
     } finally {
@@ -167,15 +179,31 @@ export function VillaDetailPage({
 
   useEffect(() => {
     let cancelled = false;
+    let idleHandle: number | null = null;
+    let timeoutHandle: ReturnType<typeof window.setTimeout> | null = null;
 
-    void Promise.resolve().then(() => {
+    const loadWhenIdle = () => {
       if (!cancelled) {
-        void loadGalleryImages().catch(() => undefined);
+        void loadGalleryImages({ mode: "background" }).catch(() => undefined);
       }
-    });
+    };
+
+    if ("requestIdleCallback" in window) {
+      idleHandle = window.requestIdleCallback(loadWhenIdle, { timeout: 3000 });
+    } else {
+      timeoutHandle = globalThis.setTimeout(loadWhenIdle, 1200);
+    }
 
     return () => {
       cancelled = true;
+
+      if (idleHandle !== null) {
+        window.cancelIdleCallback(idleHandle);
+      }
+
+      if (timeoutHandle !== null) {
+        globalThis.clearTimeout(timeoutHandle);
+      }
     };
   }, [loadGalleryImages]);
 

@@ -54,6 +54,49 @@ function findSearchSubmitButton(container: HTMLElement) {
   });
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+
+  return { promise, reject, resolve };
+}
+
+function createCatalogResponse(
+  items: VillaListing[],
+  overrides: Partial<{
+    hasMore: boolean;
+    page: number;
+    pageSize: number;
+    total: number;
+  }> = {},
+) {
+  return {
+    headers: new Headers({ "content-type": "application/json" }),
+    json: async () => ({
+      hasMore: overrides.hasMore ?? false,
+      items,
+      page: overrides.page ?? 1,
+      pageSize: overrides.pageSize ?? 12,
+      total: overrides.total ?? items.length,
+    }),
+    ok: true,
+  } as Response;
+}
+
+function expectCatalogFetchCall(
+  fetchMock: ReturnType<typeof vi.fn>,
+  callNumber: number,
+  url: string,
+) {
+  expect(fetchMock).toHaveBeenNthCalledWith(callNumber, url, {
+    signal: expect.any(AbortSignal),
+  });
+}
+
 describe("SearchPage", () => {
   afterEach(() => {
     navigationMock.searchParams = new URLSearchParams();
@@ -167,16 +210,9 @@ describe("SearchPage", () => {
       id: "702",
       price: 20000,
     };
-    const fetchMock = vi.fn().mockResolvedValue({
-      json: async () => ({
-        hasMore: false,
-        items: [matchingVilla],
-        page: 1,
-        pageSize: 12,
-        total: 1,
-      }),
-      ok: true,
-    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      createCatalogResponse([matchingVilla]),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const container = document.createElement("div");
@@ -210,7 +246,9 @@ describe("SearchPage", () => {
       searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
+    expectCatalogFetchCall(
+      fetchMock,
+      1,
       "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=702&sort=recommended&page=1&limit=12",
     );
 
@@ -226,16 +264,9 @@ describe("SearchPage", () => {
       id: "702",
       price: 20000,
     };
-    const fetchMock = vi.fn().mockResolvedValue({
-      json: async () => ({
-        hasMore: false,
-        items: [matchingVilla],
-        page: 1,
-        pageSize: 12,
-        total: 1,
-      }),
-      ok: true,
-    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      createCatalogResponse([matchingVilla]),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const container = document.createElement("div");
@@ -280,9 +311,154 @@ describe("SearchPage", () => {
       searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
+    expectCatalogFetchCall(
+      fetchMock,
+      1,
       "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=702&sort=recommended&page=1&limit=12",
     );
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("keeps the newest submitted search when catalog requests finish out of order", async () => {
+    const staleVilla = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
+    const newestVilla = {
+      ...villa,
+      id: "703",
+      price: 21000,
+    };
+    const firstRequest = createDeferred<Response>();
+    const secondRequest = createDeferred<Response>();
+    const signals: AbortSignal[] = [];
+    const fetchMock = vi.fn(
+      (_url: string, init?: RequestInit) => {
+        if (init?.signal) {
+          signals.push(init.signal);
+        }
+
+        return signals.length === 1
+          ? firstRequest.promise
+          : secondRequest.promise;
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 22000,
+            resultCount: 3,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[type="search"]',
+    );
+    const searchButton = findSearchSubmitButton(container);
+
+    expect(searchInput).not.toBeNull();
+    expect(searchButton).not.toBeUndefined();
+
+    await act(async () => {
+      setSearchInputValue(searchInput as HTMLInputElement, "702");
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expectCatalogFetchCall(
+      fetchMock,
+      1,
+      "/api/houses?guests=1&bedrooms=1&maxPrice=22000&id=702&sort=recommended&page=1&limit=12",
+    );
+    expect(signals[0]?.aborted).toBe(false);
+
+    await act(async () => {
+      setSearchInputValue(searchInput as HTMLInputElement, "703");
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expectCatalogFetchCall(
+      fetchMock,
+      2,
+      "/api/houses?guests=1&bedrooms=1&maxPrice=22000&id=703&sort=recommended&page=1&limit=12",
+    );
+    expect(signals[0]?.aborted).toBe(true);
+    expect(signals[1]?.aborted).toBe(false);
+
+    await act(async () => {
+      secondRequest.resolve(createCatalogResponse([newestVilla]));
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("703");
+    expect(container.textContent).not.toContain("702");
+
+    await act(async () => {
+      firstRequest.resolve(createCatalogResponse([staleVilla]));
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("703");
+    expect(container.textContent).not.toContain("702");
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("does not parse catalog responses that are not JSON", async () => {
+    const jsonMock = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue({
+      headers: new Headers({ "content-type": "text/html" }),
+      json: jsonMock,
+      ok: true,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    const searchButton = findSearchSubmitButton(container);
+
+    await act(async () => {
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(jsonMock).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("โหลดข้อมูลไม่สำเร็จ");
 
     await act(async () => {
       root.unmount();
