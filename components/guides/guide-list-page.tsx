@@ -1,6 +1,5 @@
 import { ArrowRight, FileText, Pin } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 import type { GuidePost } from "@/lib/guides/types";
 import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
@@ -10,7 +9,10 @@ interface GuideListPageProps {
 }
 
 function getGuideImage(guide: GuidePost) {
-  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
+  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null, {
+    quality: 60,
+    width: 640,
+  });
 }
 
 function GuideCard({ guide }: { guide: GuidePost }) {
@@ -93,13 +95,12 @@ export function GuideListPage({ guides }: GuideListPageProps) {
               >
                 ค้นหาบ้านพักทั้งหมด
               </a>
-              <Link
+              <a
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
                 href="/"
-                prefetch={false}
               >
                 กลับหน้าแรก
-              </Link>
+              </a>
             </nav>
           </div>
         </header>

@@ -56,21 +56,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => mocks.router,
 }));
 
-vi.mock("next/link", () => ({
-  default: ({
-    children,
-    href,
-    ...props
-  }: {
-    children: React.ReactNode;
-    href: string;
-  }) => (
-    <a data-href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
 vi.mock("@/components/admin/admin-auth", () => ({
   readAdminAccessToken: mocks.readAdminAccessToken,
 }));

@@ -58,7 +58,25 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=3600, s-maxage=43200, stale-while-revalidate=43200",
+            value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        source: "/admin/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
+          },
+        ],
+      },
+      {
+        source: "/api/admin/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
           },
         ],
       },
@@ -68,7 +86,7 @@ const nextConfig: NextConfig = {
     deviceSizes: [390, 640, 750, 828, 1080, 1200, 1440, 1920],
     formats: ["image/avif", "image/webp"],
     imageSizes: [64, 96, 128, 160, 192, 244, 256, 292, 320, 384, 448, 512],
-    minimumCacheTTL: 60 * 60 * 24 * 30,
+    minimumCacheTTL: 60 * 60 * 24 * 365,
     qualities: [60, 75],
     unoptimized: true,
     remotePatterns: [

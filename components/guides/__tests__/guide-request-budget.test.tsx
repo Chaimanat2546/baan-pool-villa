@@ -1,5 +1,4 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { GuidePost } from "@/lib/guides/types";
@@ -15,12 +14,6 @@ interface MockImageProps {
   src: string;
 }
 
-interface MockLinkProps {
-  children: ReactNode;
-  href: string;
-  prefetch?: boolean;
-}
-
 vi.mock("next/image", () => ({
   default: ({ alt, preload, priority, src }: MockImageProps) => (
     <span
@@ -29,14 +22,6 @@ vi.mock("next/image", () => ({
       data-priority={priority ? "true" : "false"}
       data-src={src}
     />
-  ),
-}));
-
-vi.mock("next/link", () => ({
-  default: ({ children, href, prefetch, ...props }: MockLinkProps) => (
-    <a data-prefetch={prefetch === false ? "false" : "auto"} href={href} {...props}>
-      {children}
-    </a>
   ),
 }));
 
@@ -99,7 +84,7 @@ describe("guide detail request budget", () => {
     );
 
     expect(markup).toContain(
-      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fguide.jpg"',
+      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fguide.jpg&amp;w=640&amp;q=60"',
     );
   });
 

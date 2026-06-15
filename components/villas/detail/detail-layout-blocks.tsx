@@ -14,6 +14,7 @@ import type {
   DetailLayoutBlockType,
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import { buildVillaGalleryImageProxyUrl } from "@/lib/public-image-proxy";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import { BookingSidebar } from "./booking-sidebar";
@@ -162,6 +163,7 @@ function renderAmenities({ listing }: DetailLayoutBlockContext) {
 
 function renderCategorizedImages({
   galleryCategories,
+  listing,
 }: DetailLayoutBlockContext) {
   const previewCategories = galleryCategories
     .map((category) => ({
@@ -183,8 +185,14 @@ function renderCategorizedImages({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
         {previewCategories.map((category) => {
           const previewItem = category.items[0];
+          const previewImageSrc = previewItem
+            ? buildVillaGalleryImageProxyUrl(listing.id, previewItem.url, {
+                quality: 60,
+                width: 640,
+              })
+            : null;
 
-          if (!previewItem) {
+          if (!previewItem || !previewImageSrc) {
             return null;
           }
 
@@ -199,7 +207,7 @@ function renderCategorizedImages({
                   className="object-cover"
                   fill
                   sizes="(max-width: 1024px) 50vw, 320px"
-                  src={previewItem.url}
+                  src={previewImageSrc}
                   unoptimized
                 />
               </div>

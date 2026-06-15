@@ -95,9 +95,60 @@ describe("GET /api/guides/images/proxy", () => {
     await expect(response.text()).resolves.toBe("guide bytes");
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe(
-      "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+      "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=31536000",
     );
     expect(response.headers.get("Content-Type")).toBe("image/webp");
+  });
+
+  it("rejects unsupported guide image transform parameters", async () => {
+    const { GET } = await import("../../../app/(public)/api/guides/images/proxy/route");
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fguide-cover.jpg&w=999&q=50",
+      ),
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      error: "Invalid image transform",
+    });
+    expect(response.status).toBe(400);
+    expect(getPublishedGuidesMock).not.toHaveBeenCalled();
+  });
+
+  it("uses Cloudflare image transforms for allowlisted guide image sizes", async () => {
+    getPublishedGuidesMock.mockResolvedValue([guide]);
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("guide bytes", {
+        headers: { "Content-Type": "image/avif" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import("../../../app/(public)/api/guides/images/proxy/route");
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fguide-cover.jpg&w=640&q=60",
+        { headers: { Accept: "image/avif,image/webp,image/*,*/*" } },
+      ),
+    );
+
+    await expect(response.text()).resolves.toBe("guide bytes");
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith("https://assets.example.com/guide-cover.jpg", {
+      cache: "no-store",
+      cf: {
+        image: {
+          fit: "scale-down",
+          format: "avif",
+          quality: 60,
+          width: 640,
+        },
+      },
+      redirect: "manual",
+      signal: expect.any(AbortSignal),
+    });
+    expect(response.headers.get("Vary")).toBe("Accept");
   });
 
   it("normalizes guide image URLs before comparing them to the request URL", async () => {

@@ -24,10 +24,12 @@ async function readJson<T>(response: Response): Promise<T> {
   }
 }
 
-async function fetchHouseListingsFromApi(): Promise<VillaListing[]> {
+async function fetchHouseListingsFromApi(
+  revalidate = CACHE_REVALIDATE_SECONDS.villaListings,
+): Promise<VillaListing[]> {
   const response = await fetch(HOUSE_LIST_URL, {
     next: {
-      revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
+      revalidate,
       tags: [CACHE_TAGS.villaListings],
     },
   });
@@ -51,6 +53,10 @@ const fetchCachedHouseListings = unstable_cache(
 
 export async function fetchHouseListings(): Promise<VillaListing[]> {
   return fetchCachedHouseListings();
+}
+
+export async function fetchHouseListingsForSitemap(): Promise<VillaListing[]> {
+  return fetchHouseListingsFromApi(CACHE_REVALIDATE_SECONDS.sitemap);
 }
 
 export async function getListingById(id: string): Promise<VillaListing | null> {

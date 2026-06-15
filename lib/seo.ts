@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 
 import type { GuidePost } from "@/lib/guides/types";
 import type { LegalPage } from "@/lib/legal-pages/types";
+import {
+  buildGuideImageProxyUrl,
+  buildSiteAssetProxyUrl,
+  buildVillaCoverImageProxyUrl,
+} from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -96,6 +101,27 @@ function absoluteHttpUrl(value: string | null | undefined, fallback: string): st
   return absoluteUrl(fallback);
 }
 
+function buildAbsoluteMetadataImageUrl(
+  image: string | null | undefined,
+  fallback: string = defaultOgImage,
+): string {
+  return absoluteHttpUrl(image, fallback);
+}
+
+function buildSiteAssetMetadataImageUrl(
+  image: string | null | undefined,
+): string | null {
+  return buildSiteAssetProxyUrl(image ?? null, { quality: 75, width: 1200 }) ?? image ?? null;
+}
+
+function buildGuideMetadataImageUrl(image: string | null | undefined): string | null {
+  return buildGuideImageProxyUrl(image ?? null, { quality: 75, width: 1200 }) ?? image ?? null;
+}
+
+function buildVillaCoverMetadataImageUrl(image: string | null | undefined): string | null {
+  return buildVillaCoverImageProxyUrl(image ?? null, { quality: 75, width: 1200 }) ?? image ?? null;
+}
+
 export function getVillaTitle(villa: VillaListing): string {
   const zoneLabel = villa.zoneLabel.trim();
   const titleLocation = zoneLabel.includes("พัทยา")
@@ -173,7 +199,7 @@ export function buildPageMetadata({
   title: string;
 }): Metadata {
   const canonicalUrl = absoluteUrl(canonicalPath);
-  const imageUrl = absoluteHttpUrl(image, defaultOgImage);
+  const imageUrl = buildAbsoluteMetadataImageUrl(image);
   const openGraphImageAlt = imageAlt?.trim() || defaultOgImageAlt;
 
   return {
@@ -263,12 +289,14 @@ export function buildSiteSettingsPageMetadata({
     (sectionSeo && "keywords" in sectionSeo && sectionSeo.keywords.length > 0
       ? sectionSeo.keywords
       : settings.seo.keywords);
+  const settingsImage = sectionSeo?.ogImage.url ?? settings.seo.ogImage.url;
+  const resolvedImage = image ?? buildSiteAssetMetadataImageUrl(settingsImage);
 
   return buildPageMetadata({
     absoluteTitle,
     canonicalPath,
     description: description ?? sectionSeo?.description ?? settings.seo.description,
-    image: image ?? sectionSeo?.ogImage.url ?? settings.seo.ogImage.url,
+    image: resolvedImage,
     imageAlt: imageAlt ?? sectionSeo?.ogImage.alt ?? settings.seo.ogImage.alt,
     keywords: resolvedKeywords,
     openGraphType,
@@ -288,7 +316,7 @@ export function buildGuideArticleMetadata({
   return buildSiteSettingsPageMetadata({
     canonicalPath: `/guides/${guide.slug}`,
     description: guide.excerpt,
-    image: guide.coverImage?.url,
+    image: buildGuideMetadataImageUrl(guide.coverImage?.url),
     imageAlt: guide.coverImage?.alt ?? guide.title,
     openGraphType: "article",
     publishedTime: guide.publishedAt ?? guide.createdAt,
@@ -322,7 +350,7 @@ export function buildVillaDetailMetadata({
   return buildSiteSettingsPageMetadata({
     canonicalPath: `/villas/${villa.id}`,
     description: getVillaDescription(villa),
-    image: villa.coverImage,
+    image: buildVillaCoverMetadataImageUrl(villa.coverImage),
     imageAlt: getVillaTitle(villa),
     keywords: uniqueKeywords([
       ...(settings.pageSeo.villaDetail.keywords.length > 0
@@ -357,7 +385,9 @@ export function buildHomeJsonLd(settings: SiteSettings): Record<string, unknown>
     "@type": "LodgingBusiness",
     name: settings.seo.businessName,
     description: settings.seo.description,
-    image: absoluteHttpUrl(settings.seo.ogImage.url, defaultOgImage),
+    image: buildAbsoluteMetadataImageUrl(
+      buildSiteAssetMetadataImageUrl(settings.seo.ogImage.url),
+    ),
     url: absoluteUrl("/"),
     areaServed: ["พัทยา", "จอมเทียน", "บางแสน", "หัวหิน"],
     amenityFeature: [

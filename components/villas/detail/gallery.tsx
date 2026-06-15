@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Download, ImageIcon, ImageOff, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState, type TouchEvent } from "react";
+import { buildVillaGalleryImageProxyUrl } from "@/lib/public-image-proxy";
 import type { VillaListing } from "@/lib/villas/types";
 import { getGalleryItemDescription, getVillaTitle } from "./helpers";
 import type { GalleryCategory, GalleryItem } from "./types";
@@ -28,20 +29,6 @@ function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string 
   return `/api/villas/${encodeURIComponent(listingId)}/images/download?${params.toString()}`;
 }
 
-function buildGalleryDisplaySrc(listingId: string, item: GalleryItem): string | null {
-  const targetUrl = normalizeGalleryDisplayImageUrl(item.url);
-
-  if (!targetUrl) {
-    return null;
-  }
-
-  const params = new URLSearchParams({
-    url: targetUrl,
-  });
-
-  return `/api/villas/${encodeURIComponent(listingId)}/images/proxy?${params.toString()}`;
-}
-
 function normalizeGalleryDisplayImageUrl(value: string): string | null {
   const trimmedValue = value.trim();
 
@@ -60,6 +47,20 @@ function normalizeGalleryDisplayImageUrl(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+function buildGalleryDisplaySrc(
+  listingId: string,
+  item: GalleryItem,
+  width = 828,
+  quality = 60,
+): string | null {
+  const targetUrl = normalizeGalleryDisplayImageUrl(item.url);
+
+  return buildVillaGalleryImageProxyUrl(listingId, targetUrl, {
+    quality,
+    width,
+  });
 }
 
 /**
@@ -644,7 +645,12 @@ export function GalleryLightbox({
 
   const nextItem = activeItems[(activeIndex + 1) % activeItems.length];
   const activeImageDownloadHref = buildGalleryDownloadHref(listing.id, activeItem);
-  const activeImageDisplaySrc = buildGalleryDisplaySrc(listing.id, activeItem);
+  const activeImageDisplaySrc = buildGalleryDisplaySrc(
+    listing.id,
+    activeItem,
+    1920,
+    75,
+  );
   const isActiveImageLoading =
     Boolean(activeImageDisplaySrc) && loadedImageKey !== activeItem.key;
   const handleImageTouchStart = (event: TouchEvent<HTMLDivElement>) => {
@@ -940,10 +946,10 @@ export function GalleryLightbox({
                   }}
                 >
 
-                  {buildGalleryDisplaySrc(listing.id, item) ? (
+                  {buildGalleryDisplaySrc(listing.id, item, 160, 60) ? (
                   <Image
 
-                    src={buildGalleryDisplaySrc(listing.id, item) ?? ""}
+                    src={buildGalleryDisplaySrc(listing.id, item, 160, 60) ?? ""}
 
                     alt={item.caption ?? item.zoneLabel}
 

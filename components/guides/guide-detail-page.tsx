@@ -1,6 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
 import { ArticlesSection } from "@/components/villas/home/articles-section";
@@ -239,6 +238,101 @@ function normalizePublicLinkHref(value: unknown): string | null {
   return null;
 }
 
+function hasControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+
+    if (code <= 31 || code === 127) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function normalizePublicTextColor(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const color = value.trim();
+
+  if (
+    color.length === 0 ||
+    color.length > 80 ||
+    color.includes(";") ||
+    color.includes("<") ||
+    color.includes(">") ||
+    hasControlCharacter(color)
+  ) {
+    return null;
+  }
+
+  return color;
+}
+
+function renderMarkedInlineContent(
+  text: string,
+  marks: GuideTextMark[] | undefined,
+  keyPrefix: string,
+): ReactNode {
+  if (!Array.isArray(marks) || marks.length === 0) {
+    return text;
+  }
+
+  return marks.reduceRight<ReactNode>((node, mark, markIndex) => {
+    const key = `${keyPrefix}-${markIndex}`;
+
+    switch (mark.type) {
+      case "bold":
+        return <strong key={key}>{node}</strong>;
+      case "italic":
+        return <em key={key}>{node}</em>;
+      case "underline":
+        return (
+          <span className="underline underline-offset-4" key={key}>
+            {node}
+          </span>
+        );
+      case "textColor": {
+        const color = normalizePublicTextColor(mark.attrs?.color);
+
+        return color ? (
+          <span key={key} style={{ color } as CSSProperties}>
+            {node}
+          </span>
+        ) : (
+          node
+        );
+      }
+      case "link": {
+        const href = normalizePublicLinkHref(mark.attrs?.href);
+
+        if (!href) {
+          return node;
+        }
+
+        const isExternal =
+          href.startsWith("http://") || href.startsWith("https://");
+
+        return (
+          <a
+            className="font-semibold text-[var(--site-primary)] underline underline-offset-4 transition hover:text-[var(--site-primary-hover)]"
+            href={href}
+            key={key}
+            rel={isExternal ? "noopener noreferrer" : undefined}
+            target={isExternal ? "_blank" : undefined}
+          >
+            {node}
+          </a>
+        );
+      }
+      default:
+        return node;
+    }
+  }, text);
+}
+
 /**
  * Convert inline guide text segments into renderable React nodes, turning link marks into anchor elements when a valid href is present.
  *
@@ -251,26 +345,7 @@ function renderInlineContent(content: GuideTextContent[]): ReactNode[] {
       return [];
     }
 
-    const linkMark = item.marks?.find((mark) => mark.type === "link");
-    const href = normalizePublicLinkHref(linkMark?.attrs?.href);
-
-    if (!href) {
-      return item.text;
-    }
-
-    const isExternal = href.startsWith("http://") || href.startsWith("https://");
-
-    return (
-      <a
-        className="font-semibold text-[var(--site-primary)] underline underline-offset-4 transition hover:text-[var(--site-primary-hover)]"
-        href={href}
-        key={`${href}-${index}`}
-        rel={isExternal ? "noopener noreferrer" : undefined}
-        target={isExternal ? "_blank" : undefined}
-      >
-        {item.text}
-      </a>
-    );
+    return renderMarkedInlineContent(item.text, item.marks, `guide-text-${index}`);
   });
 }
 
@@ -283,6 +358,16 @@ function renderInlineContent(content: GuideTextContent[]): ReactNode[] {
  */
 function YouTubeEmbed({ title, videoId }: { title: string; videoId: string }) {
   return <YouTubeLiteEmbed title={title} videoId={videoId} />;
+}
+
+function isGuideBlockListType(
+  type: unknown,
+): type is "bulletListItem" | "numberedListItem" | "checkListItem" {
+  return (
+    type === "bulletListItem" ||
+    type === "numberedListItem" ||
+    type === "checkListItem"
+  );
 }
 
 /**
@@ -301,92 +386,155 @@ function YouTubeEmbed({ title, videoId }: { title: string; videoId: string }) {
  * @returns A JSX element containing the rendered guide content grid.
  */
 function GuideContent({ blocks }: { blocks: unknown[] }) {
+  const contentNodes: ReactNode[] = [];
+
+  for (let index = 0; index < blocks.length; index += 1) {
+    const block = blocks[index];
+
+    if (!block || typeof block !== "object" || Array.isArray(block)) {
+      continue;
+    }
+
+    const guideBlock = block as GuideBlock;
+
+    if (isGuideBlockListType(guideBlock.type)) {
+      const listType = guideBlock.type;
+      const listItems: ReactNode[] = [];
+      let listIndex = index;
+
+      while (listIndex < blocks.length) {
+        const nextBlock = blocks[listIndex];
+
+        if (
+          !nextBlock ||
+          typeof nextBlock !== "object" ||
+          Array.isArray(nextBlock)
+        ) {
+          break;
+        }
+
+        const nextGuideBlock = nextBlock as GuideBlock;
+
+        if (nextGuideBlock.type !== listType) {
+          break;
+        }
+
+        listItems.push(
+          <li key={listIndex}>
+            {renderInlineContent(getBlockContent(nextGuideBlock))}
+          </li>,
+        );
+        listIndex += 1;
+      }
+
+      if (listType === "numberedListItem") {
+        contentNodes.push(
+          <ol
+            className="guide-public-list guide-public-list-ordered"
+            key={index}
+          >
+            {listItems}
+          </ol>,
+        );
+      } else if (listType === "checkListItem") {
+        contentNodes.push(
+          <ul className="guide-public-list guide-public-check-list" key={index}>
+            {listItems}
+          </ul>,
+        );
+      } else {
+        contentNodes.push(
+          <ul className="guide-public-list guide-public-bullet-list" key={index}>
+            {listItems}
+          </ul>,
+        );
+      }
+
+      index = listIndex - 1;
+      continue;
+    }
+
+    const text = getBlockText(guideBlock);
+    const inlineContent = renderInlineContent(getBlockContent(guideBlock));
+    const youtubeVideoId = getYouTubeVideoIdFromText(text);
+
+    switch (guideBlock.type) {
+      case "heading":
+        contentNodes.push(
+          <h2
+            className="pt-3 text-2xl font-semibold leading-tight sm:text-3xl"
+            key={index}
+          >
+            {inlineContent}
+          </h2>,
+        );
+        break;
+      case "quote":
+        contentNodes.push(
+          <blockquote
+            className="border-l-4 border-[var(--site-primary)] pl-4 text-xl font-medium leading-9 text-[var(--site-text)]"
+            key={index}
+          >
+            {inlineContent}
+          </blockquote>,
+        );
+        break;
+      case "image": {
+        const imageUrl = buildGuideImageProxyUrl(getImageUrl(guideBlock), {
+          quality: 75,
+          width: 1200,
+        });
+
+        if (!imageUrl) {
+          break;
+        }
+
+        contentNodes.push(
+          <figure className="grid gap-2 py-3" key={index}>
+            <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-[var(--site-surface-tint)]">
+              <Image
+                alt={getImageAlt(guideBlock, "รูปประกอบบทความ")}
+                className="object-cover"
+                fill
+                sizes="(max-width: 768px) 100vw, 768px"
+                src={imageUrl}
+                unoptimized
+              />
+            </div>
+            <figcaption className="text-sm text-[var(--site-muted)]">
+              {getImageAlt(guideBlock, "")}
+            </figcaption>
+          </figure>,
+        );
+        break;
+      }
+      default:
+        if (youtubeVideoId) {
+          contentNodes.push(
+            <YouTubeEmbed
+              key={index}
+              title={`${text} - YouTube`}
+              videoId={youtubeVideoId}
+            />,
+          );
+          break;
+        }
+
+        contentNodes.push(
+          <p className="text-lg leading-9 text-[var(--site-text)]" key={index}>
+            {inlineContent}
+          </p>,
+        );
+        break;
+    }
+  }
+
   return (
-    <div className="grid w-full gap-5 text-[var(--site-text)]" data-guide-content>
-      {blocks.map((block, index) => {
-        if (!block || typeof block !== "object" || Array.isArray(block)) {
-          return null;
-        }
-
-        const guideBlock = block as GuideBlock;
-        const text = getBlockText(guideBlock);
-        const inlineContent = renderInlineContent(getBlockContent(guideBlock));
-        const youtubeVideoId = getYouTubeVideoIdFromText(text);
-
-        switch (guideBlock.type) {
-          case "heading":
-            return (
-              <h2
-                className="pt-4 text-2xl font-semibold leading-tight sm:text-3xl"
-                key={index}
-              >
-                {inlineContent}
-              </h2>
-            );
-          case "quote":
-            return (
-              <blockquote
-                className="border-l-4 border-[var(--site-primary)] pl-4 text-xl font-medium leading-9 text-[var(--site-text)]"
-                key={index}
-              >
-                {inlineContent}
-              </blockquote>
-            );
-          case "bulletListItem":
-          case "numberedListItem":
-          case "checkListItem":
-            return (
-              <p
-                className="rounded-md bg-[var(--site-surface)] px-4 py-3 text-base leading-8 text-[var(--site-text)]"
-                key={index}
-              >
-                {guideBlock.type === "checkListItem" ? "✓ " : "• "}
-                {inlineContent}
-              </p>
-            );
-          case "image": {
-            const imageUrl = buildGuideImageProxyUrl(getImageUrl(guideBlock));
-
-            if (!imageUrl) {
-              return null;
-            }
-
-            return (
-              <figure className="grid gap-2 py-3" key={index}>
-                <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-[var(--site-surface-tint)]">
-                  <Image
-                    alt={getImageAlt(guideBlock, "รูปประกอบบทความ")}
-                    className="object-cover"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 768px"
-                    src={imageUrl}
-                    unoptimized
-                  />
-                </div>
-                <figcaption className="text-sm text-[var(--site-muted)]">
-                  {getImageAlt(guideBlock, "")}
-                </figcaption>
-              </figure>
-            );
-          }
-          default:
-            if (youtubeVideoId) {
-              return (
-                <YouTubeEmbed
-                  key={index}
-                  title={`${text} - YouTube`}
-                  videoId={youtubeVideoId}
-                />
-              );
-            }
-
-            return (
-              <p className="text-lg leading-9 text-[var(--site-text)]" key={index}>
-                {inlineContent}
-              </p>
-            );
-        }
-      })}
+    <div
+      className="grid w-full gap-0 text-[var(--site-text)]"
+      data-guide-content
+    >
+      {contentNodes}
     </div>
   );
 }
@@ -455,7 +603,10 @@ export function GuideDetailPage({
   relatedGuides,
   settings,
 }: GuideDetailPageProps) {
-  const coverImageUrl = buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
+  const coverImageUrl = buildGuideImageProxyUrl(guide.coverImage?.url ?? null, {
+    quality: 75,
+    width: 1200,
+  });
 
   return (
     <main className="bg-[var(--site-surface-soft)] text-[var(--site-text)]">
@@ -488,13 +639,12 @@ export function GuideDetailPage({
               >
                 ค้นหาบ้านพักพูลวิลล่า
               </a>
-              <Link
+              <a
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
                 href="/guides"
-                prefetch={false}
               >
                 อ่านบทความอื่น
-              </Link>
+              </a>
             </nav>
           </div>
 

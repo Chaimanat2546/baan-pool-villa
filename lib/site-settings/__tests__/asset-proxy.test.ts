@@ -83,7 +83,7 @@ describe("GET /api/site-assets/proxy", () => {
     await expect(response.text()).resolves.toBe("hero bytes");
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe(
-      "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+      "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=31536000",
     );
     expect(response.headers.get("Content-Type")).toBe("image/webp");
   });

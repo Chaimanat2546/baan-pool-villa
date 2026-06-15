@@ -1,4 +1,9 @@
+const SIX_HOURS_SECONDS = 6 * 60 * 60;
 const TWELVE_HOURS_SECONDS = 12 * 60 * 60;
+const TWENTY_FOUR_HOURS_SECONDS = 24 * 60 * 60;
+
+export const SITEMAP_REVALIDATE_SECONDS = TWENTY_FOUR_HOURS_SECONDS;
+export type SitemapRevalidateSeconds = typeof SITEMAP_REVALIDATE_SECONDS;
 
 export const CACHE_REVALIDATE_SECONDS = {
   guides: TWELVE_HOURS_SECONDS,
@@ -8,7 +13,8 @@ export const CACHE_REVALIDATE_SECONDS = {
   tiktokOEmbed: TWELVE_HOURS_SECONDS,
   villaDetail: TWELVE_HOURS_SECONDS,
   villaImages: TWELVE_HOURS_SECONDS,
-  villaListings: TWELVE_HOURS_SECONDS,
+  villaListings: SIX_HOURS_SECONDS,
+  sitemap: SITEMAP_REVALIDATE_SECONDS,
 } as const;
 
 export const CACHE_TAGS = {
@@ -30,7 +36,7 @@ export const CACHE_HEADERS = {
   homeSections: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaDetail: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaImages: "public, s-maxage=43200, stale-while-revalidate=43200",
-  villaListings: "public, s-maxage=43200, stale-while-revalidate=43200",
+  villaListings: "public, s-maxage=21600, stale-while-revalidate=21600",
 } as const;
 
 export function getVillaDetailPath(id: string): string {

@@ -1,5 +1,48 @@
 export const PUBLIC_IMAGE_PROXY_CACHE_CONTROL =
-  "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800";
+  "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=31536000";
+
+export const PUBLIC_IMAGE_TRANSFORM_WIDTHS = [
+  64,
+  96,
+  128,
+  160,
+  192,
+  244,
+  256,
+  292,
+  320,
+  384,
+  390,
+  448,
+  512,
+  640,
+  750,
+  828,
+  1080,
+  1200,
+  1440,
+  1920,
+] as const;
+
+export const PUBLIC_IMAGE_TRANSFORM_QUALITIES = [60, 75] as const;
+
+export type PublicImageTransformWidth = (typeof PUBLIC_IMAGE_TRANSFORM_WIDTHS)[number];
+export type PublicImageTransformQuality =
+  (typeof PUBLIC_IMAGE_TRANSFORM_QUALITIES)[number];
+
+export interface PublicImageTransformOptions {
+  quality?: number | null;
+  width?: number | null;
+}
+
+export interface PublicImageTransformParams {
+  quality?: PublicImageTransformQuality;
+  width?: PublicImageTransformWidth;
+}
+
+export type PublicImageTransformParseResult =
+  | { params: PublicImageTransformParams; valid: true }
+  | { params: null; valid: false };
 
 const IPV4_PRIVATE_RANGES = [
   { max: 10, min: 10 },
@@ -111,7 +154,77 @@ export function normalizePublicImageSourceUrl(sourceUrl: string | null): string 
   }
 }
 
-function buildPublicImageProxyUrl(proxyPath: string, sourceUrl: string | null) {
+function isAllowedPublicImageWidth(width: number): width is PublicImageTransformWidth {
+  return PUBLIC_IMAGE_TRANSFORM_WIDTHS.some((allowedWidth) => allowedWidth === width);
+}
+
+function isAllowedPublicImageQuality(
+  quality: number,
+): quality is PublicImageTransformQuality {
+  return PUBLIC_IMAGE_TRANSFORM_QUALITIES.some(
+    (allowedQuality) => allowedQuality === quality,
+  );
+}
+
+function parseTransformInteger(value: string | null): number | null {
+  if (!value || !/^\d+$/.test(value)) {
+    return null;
+  }
+
+  return Number.parseInt(value, 10);
+}
+
+export function parsePublicImageTransformParams(
+  searchParams: URLSearchParams,
+): PublicImageTransformParseResult {
+  const widthValue = searchParams.get("w");
+  const qualityValue = searchParams.get("q");
+  const params: PublicImageTransformParams = {};
+
+  if (widthValue !== null) {
+    const width = parseTransformInteger(widthValue);
+
+    if (width === null || !isAllowedPublicImageWidth(width)) {
+      return { params: null, valid: false };
+    }
+
+    params.width = width;
+  }
+
+  if (qualityValue !== null) {
+    const quality = parseTransformInteger(qualityValue);
+
+    if (quality === null || !isAllowedPublicImageQuality(quality)) {
+      return { params: null, valid: false };
+    }
+
+    params.quality = quality;
+  }
+
+  return { params, valid: true };
+}
+
+function appendPublicImageTransformParams(
+  params: URLSearchParams,
+  options: PublicImageTransformOptions | undefined,
+) {
+  const width = options?.width;
+  const quality = options?.quality;
+
+  if (typeof width === "number" && isAllowedPublicImageWidth(width)) {
+    params.set("w", width.toString());
+  }
+
+  if (typeof quality === "number" && isAllowedPublicImageQuality(quality)) {
+    params.set("q", quality.toString());
+  }
+}
+
+function buildPublicImageProxyUrl(
+  proxyPath: string,
+  sourceUrl: string | null,
+  options?: PublicImageTransformOptions,
+) {
   const normalizedUrl = normalizePublicImageSourceUrl(sourceUrl);
 
   if (!normalizedUrl) {
@@ -120,18 +233,46 @@ function buildPublicImageProxyUrl(proxyPath: string, sourceUrl: string | null) {
 
   const params = new URLSearchParams();
   params.set("url", normalizedUrl);
+  appendPublicImageTransformParams(params, options);
 
   return `${proxyPath}?${params.toString()}`;
 }
 
-export function buildGuideImageProxyUrl(sourceUrl: string | null) {
-  return buildPublicImageProxyUrl("/api/guides/images/proxy", sourceUrl);
+export function buildGuideImageProxyUrl(
+  sourceUrl: string | null,
+  options?: PublicImageTransformOptions,
+) {
+  return buildPublicImageProxyUrl("/api/guides/images/proxy", sourceUrl, options);
 }
 
-export function buildSiteAssetProxyUrl(sourceUrl: string | null) {
-  return buildPublicImageProxyUrl("/api/site-assets/proxy", sourceUrl);
+export function buildSiteAssetProxyUrl(
+  sourceUrl: string | null,
+  options?: PublicImageTransformOptions,
+) {
+  return buildPublicImageProxyUrl("/api/site-assets/proxy", sourceUrl, options);
 }
 
-export function buildVillaCoverImageProxyUrl(sourceUrl: string | null) {
-  return buildPublicImageProxyUrl("/api/houses/images/proxy", sourceUrl);
+export function buildVillaCoverImageProxyUrl(
+  sourceUrl: string | null,
+  options?: PublicImageTransformOptions,
+) {
+  return buildPublicImageProxyUrl("/api/houses/images/proxy", sourceUrl, options);
+}
+
+export function buildVillaGalleryImageProxyUrl(
+  listingId: string,
+  sourceUrl: string | null,
+  options?: PublicImageTransformOptions,
+) {
+  const trimmedListingId = listingId.trim();
+
+  if (!/^[1-9]\d*$/.test(trimmedListingId)) {
+    return null;
+  }
+
+  return buildPublicImageProxyUrl(
+    `/api/villas/${encodeURIComponent(trimmedListingId)}/images/proxy`,
+    sourceUrl,
+    options,
+  );
 }

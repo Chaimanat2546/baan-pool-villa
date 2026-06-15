@@ -58,11 +58,19 @@ describe("rendered page cache route config", () => {
     const sitemap = readProjectFile("app/sitemap.ts");
     const nextConfig = readProjectFile("next.config.ts");
 
-    expect(sitemap).toMatch(/export\s+const\s+revalidate\s*=\s*43200\s*;/);
+    expect(sitemap).toMatch(/export\s+const\s+revalidate\s*=\s*86400\s*;/);
     expect(sitemap).not.toMatch(/export\s+const\s+revalidate\s*=\s*0\s*;/);
     expect(nextConfig).toContain('source: "/sitemap.xml"');
     expect(nextConfig).toContain(
-      "public, max-age=3600, s-maxage=43200, stale-while-revalidate=43200",
+      "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
     );
+  });
+
+  it("marks admin pages and admin APIs as no-store", () => {
+    const nextConfig = readProjectFile("next.config.ts");
+
+    expect(nextConfig).toContain('source: "/admin/:path*"');
+    expect(nextConfig).toContain('source: "/api/admin/:path*"');
+    expect(nextConfig).toContain('value: "no-store"');
   });
 });

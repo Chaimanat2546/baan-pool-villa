@@ -35,7 +35,7 @@ describe("DestinationsSection", () => {
     );
 
     expect(markup).toContain(
-      'data-src="/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F501-destination.jpg"',
+      'data-src="/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F501-destination.jpg&amp;w=1200&amp;q=60"',
     );
   });
 });

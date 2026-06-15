@@ -85,6 +85,15 @@ const getCachedPublishedLegalPages = unstable_cache(
   },
 );
 
+const getCachedPublishedLegalPagesForSitemap = unstable_cache(
+  fetchPublishedLegalPages,
+  [CACHE_TAGS.legalPages, "sitemap"],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.sitemap,
+    tags: [CACHE_TAGS.legalPages],
+  },
+);
+
 type CachedLegalPageLoader = () => Promise<LegalPage>;
 
 const cachedLegalPageLoaders = new Map<LegalPageSlug, CachedLegalPageLoader>();
@@ -122,6 +131,14 @@ export async function getLegalPageBySlug(
 export async function getPublishedLegalPages(): Promise<LegalPage[]> {
   try {
     return await getCachedPublishedLegalPages();
+  } catch {
+    return [LEGAL_PAGE_DEFAULTS.terms, LEGAL_PAGE_DEFAULTS.privacy];
+  }
+}
+
+export async function getPublishedLegalPagesForSitemap(): Promise<LegalPage[]> {
+  try {
+    return await getCachedPublishedLegalPagesForSitemap();
   } catch {
     return [LEGAL_PAGE_DEFAULTS.terms, LEGAL_PAGE_DEFAULTS.privacy];
   }

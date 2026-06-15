@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { LEGAL_PAGE_DEFAULTS } from "../defaults";
-import { getLegalPageBySlug, getPublishedLegalPages } from "../server";
+import {
+  getLegalPageBySlug,
+  getPublishedLegalPages,
+  getPublishedLegalPagesForSitemap,
+} from "../server";
 import { createHomeConfigClient } from "../../home-sections/supabase";
 import { unstable_cache } from "next/cache";
 
@@ -148,6 +152,21 @@ describe("getPublishedLegalPages", () => {
       [CACHE_TAGS.legalPages],
       {
         revalidate: CACHE_REVALIDATE_SECONDS.legalPages,
+        tags: [CACHE_TAGS.legalPages],
+      },
+    );
+  });
+
+  it("wraps sitemap legal page reads in a twenty-four-hour tagged Next cache", async () => {
+    mockLegalPageListQuery({ data: [], error: null });
+
+    await getPublishedLegalPagesForSitemap();
+
+    expect(unstableCacheMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      [CACHE_TAGS.legalPages, "sitemap"],
+      {
+        revalidate: CACHE_REVALIDATE_SECONDS.sitemap,
         tags: [CACHE_TAGS.legalPages],
       },
     );

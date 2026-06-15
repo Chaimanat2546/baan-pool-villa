@@ -42,8 +42,21 @@ const fetchCachedPublishedGuides = unstable_cache(
   },
 );
 
+const fetchCachedPublishedGuidesForSitemap = unstable_cache(
+  fetchPublishedGuideRows,
+  [CACHE_TAGS.guides, "sitemap"],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.sitemap,
+    tags: [CACHE_TAGS.guides],
+  },
+);
+
 export async function getPublishedGuides(): Promise<GuidePost[]> {
   return fetchCachedPublishedGuides();
+}
+
+export async function getPublishedGuidesForSitemap(): Promise<GuidePost[]> {
+  return fetchCachedPublishedGuidesForSitemap();
 }
 
 export async function getGuideBySlug(slug: string): Promise<GuidePost | null> {

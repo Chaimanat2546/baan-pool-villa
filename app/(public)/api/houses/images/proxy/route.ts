@@ -3,6 +3,7 @@ import { limitPublicApiRequest } from "@/lib/api/rate-limit";
 import {
   fetchPublicImageProxyResponse,
   normalizePublicImageProxyUrl,
+  parsePublicImageProxyTransformRequest,
 } from "@/lib/public-image-proxy-server";
 import { fetchHouseListings } from "@/lib/villas/server";
 
@@ -20,6 +21,12 @@ export async function GET(request: Request) {
     return Response.json({ error: "Invalid image URL" }, { status: 400 });
   }
 
+  const transformRequest = parsePublicImageProxyTransformRequest(request);
+
+  if (!transformRequest.valid) {
+    return Response.json({ error: "Invalid image transform" }, { status: 400 });
+  }
+
   try {
     const listings = await fetchHouseListings();
     const isAllowedCoverImage = listings.some(
@@ -30,7 +37,10 @@ export async function GET(request: Request) {
       return Response.json({ error: "Image not found" }, { status: 404 });
     }
 
-    const imageResponse = await fetchPublicImageProxyResponse(targetUrl);
+    const imageResponse = await fetchPublicImageProxyResponse(
+      targetUrl,
+      transformRequest.params,
+    );
 
     if (!imageResponse) {
       return Response.json({ error: "Unable to load image" }, { status: 502 });

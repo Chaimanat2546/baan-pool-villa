@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { VillaListing } from "@/lib/villas/types";
 
 export function Breadcrumbs({ listing }: { listing: VillaListing }) {
@@ -7,27 +6,25 @@ export function Breadcrumbs({ listing }: { listing: VillaListing }) {
 
     <div className="mx-auto hidden w-full max-w-7xl items-center gap-2 px-4 py-4 text-xs font-semibold text-[var(--site-muted)] sm:px-6 lg:flex lg:px-8">
 
-      <Link
+      <a
         href="/"
-        prefetch={false}
         className="hover:text-[var(--site-primary)]"
       >
 
         Home
 
-      </Link>
+      </a>
 
       <span>{">"}</span>
 
-      <Link
+      <a
         href="/"
-        prefetch={false}
         className="hover:text-[var(--site-primary)]"
       >
 
         Pattaya Villas
 
-      </Link>
+      </a>
 
       <span>{">"}</span>
 

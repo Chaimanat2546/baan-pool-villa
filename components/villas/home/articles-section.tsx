@@ -18,7 +18,10 @@ export function selectHomeGuides(guides: GuidePost[]): GuidePost[] {
 }
 
 function getGuideImage(guide: GuidePost) {
-  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
+  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null, {
+    quality: 60,
+    width: 640,
+  });
 }
 
 export function ArticlesSection({ guides }: ArticlesSectionProps) {

@@ -22,7 +22,7 @@ import {
 import { getHtmlEdgeCacheVersionToken } from "./worker-html-cache-version.js";
 
 const IMAGE_CACHE_CONTROL =
-  "public, max-age=2592000, s-maxage=2592000, stale-while-revalidate=86400";
+  "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=31536000";
 
 function isNextImageRequest(request) {
   const { pathname } = new URL(request.url);
@@ -95,7 +95,10 @@ async function fetchWithHtmlEdgeCache(request, env, ctx) {
   }
 
   const response = await fetchOpenNext(request, env, ctx);
-  const cacheResponse = toHtmlEdgeCacheResponse(response);
+  const cacheResponse = toHtmlEdgeCacheResponse(
+    response,
+    decision.cacheControl,
+  );
 
   if (!cacheResponse) {
     return withHtmlEdgeCacheHeader(response, "BYPASS");
@@ -172,7 +175,10 @@ async function fetchWithJsonEdgeCache(request, env, ctx) {
   }
 
   const response = await fetchOpenNext(request, env, ctx);
-  const cacheResponse = toJsonEdgeCacheResponse(response);
+  const cacheResponse = toJsonEdgeCacheResponse(
+    response,
+    decision.cacheControl,
+  );
 
   if (!cacheResponse) {
     return withJsonEdgeCacheHeader(response, "BYPASS");

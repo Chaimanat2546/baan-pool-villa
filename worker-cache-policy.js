@@ -1,13 +1,40 @@
-const HTML_EDGE_CACHE_SECONDS = 60 * 60;
-const IMAGE_EDGE_CACHE_SECONDS = 24 * 60 * 60;
-const IMAGE_EDGE_STALE_SECONDS = 7 * 24 * 60 * 60;
+const HTML_EDGE_CACHE_SECONDS = 6 * 60 * 60;
+const VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS = 24 * 60 * 60;
+const IMAGE_EDGE_CACHE_SECONDS = 365 * 24 * 60 * 60;
+const IMAGE_EDGE_STALE_SECONDS = 365 * 24 * 60 * 60;
+const HOUSE_JSON_EDGE_CACHE_SECONDS = 6 * 60 * 60;
 const JSON_EDGE_CACHE_SECONDS = 12 * 60 * 60;
+const IMAGE_TRANSFORM_WIDTHS = new Set([
+  64,
+  96,
+  128,
+  160,
+  192,
+  244,
+  256,
+  292,
+  320,
+  384,
+  390,
+  448,
+  512,
+  640,
+  750,
+  828,
+  1080,
+  1200,
+  1440,
+  1920,
+]);
+const IMAGE_TRANSFORM_QUALITIES = new Set([60, 75]);
 
 export const HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${HTML_EDGE_CACHE_SECONDS}`;
+export const VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS}`;
 export const HTML_EDGE_CACHE_HEADER = "x-bpv-html-cache";
 export const HTML_EDGE_CACHE_VERSION_PARAM = "__bpv_html_v";
 export const IMAGE_EDGE_CACHE_CONTROL = `public, max-age=${IMAGE_EDGE_CACHE_SECONDS}, s-maxage=${IMAGE_EDGE_CACHE_SECONDS}, stale-while-revalidate=${IMAGE_EDGE_STALE_SECONDS}`;
 export const IMAGE_EDGE_CACHE_HEADER = "x-bpv-image-cache";
+export const HOUSE_JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${HOUSE_JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${HOUSE_JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_HEADER = "x-bpv-json-cache";
 export const JSON_EDGE_CACHE_VERSION_PARAM = "__bpv_json_v";
@@ -89,6 +116,56 @@ export function isPublicHtmlCachePath(pathname) {
     isGuideDetailPath(pathname) ||
     isVillaDetailPath(pathname)
   );
+}
+
+function parseImageTransformInteger(value) {
+  if (!value || !/^\d+$/.test(value)) {
+    return null;
+  }
+
+  return Number.parseInt(value, 10);
+}
+
+function getImageTransformDecision(url) {
+  const widthValue = url.searchParams.get("w");
+  const qualityValue = url.searchParams.get("q");
+  const transform = {};
+
+  if (widthValue !== null) {
+    const width = parseImageTransformInteger(widthValue);
+
+    if (width === null || !IMAGE_TRANSFORM_WIDTHS.has(width)) {
+      return { transform: null, valid: false };
+    }
+
+    transform.width = width;
+  }
+
+  if (qualityValue !== null) {
+    const quality = parseImageTransformInteger(qualityValue);
+
+    if (quality === null || !IMAGE_TRANSFORM_QUALITIES.has(quality)) {
+      return { transform: null, valid: false };
+    }
+
+    transform.quality = quality;
+  }
+
+  return { transform, valid: true };
+}
+
+function getPreferredImageCacheFormat(request) {
+  const accept = request.headers.get("Accept")?.toLowerCase() ?? "";
+
+  if (accept.includes("image/avif")) {
+    return "avif";
+  }
+
+  if (accept.includes("image/webp")) {
+    return "webp";
+  }
+
+  return "original";
 }
 
 export function isNextStaticAssetPath(pathname) {
@@ -231,14 +308,43 @@ function getJsonCacheVersionGroups(pathname) {
   return [];
 }
 
+function getHtmlCacheControl(pathname) {
+  return isVillaDetailPath(pathname)
+    ? VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL
+    : HTML_EDGE_CACHE_CONTROL;
+}
+
+function getJsonCacheControl(pathname) {
+  return pathname === "/api/houses"
+    ? HOUSE_JSON_EDGE_CACHE_CONTROL
+    : JSON_EDGE_CACHE_CONTROL;
+}
+
 export function createImageEdgeCacheKey(request) {
   const url = new URL(request.url);
   const sourceUrl = url.searchParams.get("url") ?? "";
+  const transformDecision = getImageTransformDecision(url);
   url.hash = "";
   url.search = "";
 
   if (sourceUrl) {
     url.searchParams.set("url", sourceUrl);
+  }
+
+  if (transformDecision.valid) {
+    const { quality, width } = transformDecision.transform;
+
+    if (width) {
+      url.searchParams.set("w", width.toString());
+    }
+
+    if (quality) {
+      url.searchParams.set("q", quality.toString());
+    }
+
+    if (width || quality) {
+      url.searchParams.set("f", getPreferredImageCacheFormat(request));
+    }
   }
 
   return new Request(url.toString(), { method: "GET" });
@@ -286,6 +392,7 @@ export function getHtmlEdgeCacheDecision(request) {
 
   return {
     cacheKey: createHtmlEdgeCacheKey(request),
+    cacheControl: getHtmlCacheControl(url.pathname),
     cacheable: true,
     candidate: true,
     reason: "html",
@@ -307,6 +414,10 @@ export function getImageEdgeCacheDecision(request) {
 
   if (!url.searchParams.get("url")) {
     return { cacheable: false, candidate: true, reason: "url" };
+  }
+
+  if (!getImageTransformDecision(url).valid) {
+    return { cacheable: false, candidate: true, reason: "transform" };
   }
 
   if (hasHeader(request, "Cookie")) {
@@ -355,6 +466,7 @@ export function getJsonEdgeCacheDecision(request) {
 
   return {
     cacheKey: createJsonEdgeCacheKey(request),
+    cacheControl: getJsonCacheControl(url.pathname),
     cacheable: true,
     candidate: true,
     reason: "json",
@@ -410,7 +522,10 @@ export function withStaticAssetCacheHeaders(response) {
   });
 }
 
-export function toHtmlEdgeCacheResponse(response) {
+export function toHtmlEdgeCacheResponse(
+  response,
+  cacheControl = HTML_EDGE_CACHE_CONTROL,
+) {
   const contentType = response.headers.get("Content-Type")?.toLowerCase() ?? "";
 
   if (
@@ -422,7 +537,7 @@ export function toHtmlEdgeCacheResponse(response) {
   }
 
   const headers = new Headers(response.headers);
-  headers.set("Cache-Control", HTML_EDGE_CACHE_CONTROL);
+  headers.set("Cache-Control", cacheControl);
 
   return new Response(response.body, {
     headers,
@@ -452,7 +567,10 @@ export function toImageEdgeCacheResponse(response) {
   });
 }
 
-export function toJsonEdgeCacheResponse(response) {
+export function toJsonEdgeCacheResponse(
+  response,
+  cacheControl = JSON_EDGE_CACHE_CONTROL,
+) {
   const contentType = response.headers.get("Content-Type")?.toLowerCase() ?? "";
 
   if (
@@ -464,7 +582,7 @@ export function toJsonEdgeCacheResponse(response) {
   }
 
   const headers = new Headers(response.headers);
-  headers.set("Cache-Control", JSON_EDGE_CACHE_CONTROL);
+  headers.set("Cache-Control", cacheControl);
 
   return new Response(response.body, {
     headers,

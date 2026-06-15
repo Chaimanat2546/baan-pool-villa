@@ -18,7 +18,6 @@ import {
   Utensils,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import {
   getVillaSearchIntentSummary,
@@ -79,13 +78,12 @@ export function VillaIntro({
         >
           ค้นหาบ้านพักเพิ่มเติม
         </a>
-        <Link
+        <a
           className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
           href="/guides"
-          prefetch={false}
         >
           อ่านคู่มือก่อนจอง
-        </Link>
+        </a>
       </nav>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-[var(--site-muted)]">

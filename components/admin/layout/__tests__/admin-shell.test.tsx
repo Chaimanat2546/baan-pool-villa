@@ -19,23 +19,6 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("next/link", () => ({
-  default: ({
-    children,
-    href,
-    prefetch,
-    ...props
-  }: {
-    children: React.ReactNode;
-    href: string;
-    prefetch?: boolean | null;
-  }) => (
-    <a data-href={href} data-prefetch={String(prefetch)} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
 vi.mock("@/lib/home-sections/supabase", () => ({
   createBrowserHomeConfigClient: () => ({
     auth: {
@@ -58,7 +41,7 @@ describe("AdminShell", () => {
     vi.unstubAllGlobals();
   });
 
-  it("disables Next prefetch for admin navigation links", async () => {
+  it("uses document navigation for admin navigation links", async () => {
     const page = await mountAdminPage(
       <AdminShell settings={DEFAULT_SITE_SETTINGS}>
         <div>settings</div>
@@ -68,9 +51,8 @@ describe("AdminShell", () => {
     const navLinks = Array.from(page.container.querySelectorAll("nav a"));
 
     expect(navLinks.length).toBeGreaterThan(0);
-    expect(navLinks.every((link) => link.getAttribute("data-prefetch") === "false")).toBe(
-      true,
-    );
+    expect(navLinks.every((link) => link.hasAttribute("href"))).toBe(true);
+    expect(navLinks.some((link) => link.hasAttribute("data-prefetch"))).toBe(false);
 
     await page.unmount();
   });
@@ -126,7 +108,7 @@ describe("AdminShell", () => {
     );
 
     const navLinks = Array.from(page.container.querySelectorAll("nav a"));
-    const linkTargets = navLinks.map((link) => link.getAttribute("data-href"));
+    const linkTargets = navLinks.map((link) => link.getAttribute("href"));
     const disabledItems = page.container.querySelectorAll('nav [aria-disabled="true"]');
 
     expect(linkTargets).toContain("/admin/tiktok");

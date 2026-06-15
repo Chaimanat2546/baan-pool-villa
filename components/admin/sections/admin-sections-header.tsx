@@ -1,5 +1,4 @@
 import { CheckCircle2, Eye, Plus, Save } from "lucide-react";
-import Link from "next/link";
 
 interface AdminSectionsHeaderProps {
   activeSectionsCount: number;
@@ -59,7 +58,7 @@ export function AdminSectionsHeader({
           <Plus aria-hidden="true" className="size-4" />
           เพิ่มชุดบ้านพัก
         </button>
-        <Link
+        <a
           className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
           href="/"
           rel="noopener noreferrer"
@@ -67,7 +66,7 @@ export function AdminSectionsHeader({
         >
           <Eye aria-hidden="true" className="size-4" />
           ดูหน้าเว็บจริง
-        </Link>
+        </a>
         <button
           className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80"
           disabled={isSaving || isLoading || !hasUnsavedChanges}
