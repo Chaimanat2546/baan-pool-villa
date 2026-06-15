@@ -1,7 +1,6 @@
 "use client";
 
 import { AlertCircle, RotateCcw, Search } from "lucide-react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -357,20 +356,18 @@ export function SearchPage({
               aria-label="ลิงก์ที่เกี่ยวข้องกับการค้นหาบ้านพัก"
               className="mt-4 flex flex-wrap gap-2 text-sm font-bold"
             >
-              <Link
+              <a
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
                 href="/"
-                prefetch={false}
               >
                 หน้าแรก
-              </Link>
-              <Link
+              </a>
+              <a
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
                 href="/guides"
-                prefetch={false}
               >
                 อ่านคู่มือเลือกบ้านพัก
-              </Link>
+              </a>
             </nav>
           </div>
           <p className="max-w-sm text-sm leading-6 text-[var(--site-muted)]">

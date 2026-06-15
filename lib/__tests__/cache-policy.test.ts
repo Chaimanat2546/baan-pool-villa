@@ -8,10 +8,18 @@ import {
 } from "../cache-policy";
 
 describe("cache policy", () => {
+  const SIX_HOURS_SECONDS = 6 * 60 * 60;
   const TWELVE_HOURS_SECONDS = 12 * 60 * 60;
 
-  it("keeps public villa API cache durations at twelve hours", () => {
-    expect(CACHE_REVALIDATE_SECONDS.villaListings).toBe(TWELVE_HOURS_SECONDS);
+  it("keeps the public villa catalog API cache at six hours", () => {
+    expect(CACHE_REVALIDATE_SECONDS.villaListings).toBe(SIX_HOURS_SECONDS);
+  });
+
+  it("keeps the sitemap route cache at twenty-four hours", () => {
+    expect(CACHE_REVALIDATE_SECONDS.sitemap).toBe(24 * 60 * 60);
+  });
+
+  it("keeps public villa detail data cache durations at twelve hours", () => {
     expect(CACHE_REVALIDATE_SECONDS.villaDetail).toBe(TWELVE_HOURS_SECONDS);
   });
 
@@ -45,12 +53,11 @@ describe("cache policy", () => {
   it("does not keep route-level rendered response TTLs in the data cache policy", () => {
     expect("homePage" in CACHE_REVALIDATE_SECONDS).toBe(false);
     expect("searchPage" in CACHE_REVALIDATE_SECONDS).toBe(false);
-    expect("sitemap" in CACHE_REVALIDATE_SECONDS).toBe(false);
   });
 
   it("centralizes public route cache-control headers", () => {
     expect(CACHE_HEADERS.villaListings).toBe(
-      "public, s-maxage=43200, stale-while-revalidate=43200",
+      "public, s-maxage=21600, stale-while-revalidate=21600",
     );
     expect(CACHE_HEADERS.villaDetail).toBe(
       "public, s-maxage=43200, stale-while-revalidate=43200",

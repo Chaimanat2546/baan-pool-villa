@@ -1,5 +1,4 @@
 import { CalendarDays, ChevronLeft, ChevronRight, Phone } from "lucide-react";
-import Link from "next/link";
 import { LineIcon, MessengerIcon } from "@/components/layout/contact-icons";
 import { buildContactLinks, withPhoneHref } from "@/lib/site-contact";
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -122,7 +121,7 @@ export function BookingSidebar({
             ))}
           </div>
 
-          <Link
+          <a
             href={contactLinks.messenger}
             target="_blank"
             rel="noreferrer"
@@ -130,9 +129,9 @@ export function BookingSidebar({
           >
             <MessengerIcon className="h-6 w-6" />
             แชทเลย
-          </Link>
+          </a>
 
-          <Link
+          <a
             href={contactLinks.line}
             target="_blank"
             rel="noreferrer"
@@ -140,7 +139,7 @@ export function BookingSidebar({
           >
             <LineIcon className="h-6 w-6" />
             จองผ่าน LINE
-          </Link>
+          </a>
         </div>
       </div>
     </aside>

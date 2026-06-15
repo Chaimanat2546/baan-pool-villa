@@ -39,6 +39,20 @@ async function expectRateLimitResponse(response: Response) {
 }
 
 describe("GET /api/houses", () => {
+  it("returns the public catalog with a six-hour cache header", async () => {
+    fetchHouseListingsMock.mockResolvedValue([{ id: "9" }]);
+
+    const { GET } = await import("../../../app/(public)/api/houses/route");
+    const response = await GET(new Request("https://example.com/api/houses"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, s-maxage=21600, stale-while-revalidate=21600",
+    );
+    expect(body).toEqual({ items: [{ id: "9" }] });
+  });
+
   it("returns a generic 502 error and logs backend failures", async () => {
     const rawError = new Error("secret listing backend detail");
     fetchHouseListingsMock.mockRejectedValue(rawError);

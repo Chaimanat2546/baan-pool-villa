@@ -1,5 +1,4 @@
 import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
 
 export default function NotFound() {
   return (
@@ -10,13 +9,13 @@ export default function NotFound() {
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--site-muted)]">
             บ้านพักอาจไม่มีอยู่ในระบบ หรืออาจถูกปิดการแสดงผลชั่วคราว
           </p>
-          <Link
+          <a
             href="/"
             className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 py-3 text-sm font-bold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
           >
             <ChevronLeft className="h-4 w-4" />
             กลับไปหน้าค้นหา
-          </Link>
+          </a>
         </div>
       </div>
     </main>

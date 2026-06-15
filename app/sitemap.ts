@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next";
 
-import { getPublishedGuides } from "@/lib/guides/server";
-import { getPublishedLegalPages } from "@/lib/legal-pages/server";
+import { getPublishedGuidesForSitemap } from "@/lib/guides/server";
+import { getPublishedLegalPagesForSitemap } from "@/lib/legal-pages/server";
 import { absoluteUrl } from "@/lib/seo";
-import { fetchHouseListings } from "@/lib/villas/server";
+import { fetchHouseListingsForSitemap } from "@/lib/villas/server";
 
 // Cache crawler reads at the route level; underlying data helpers still use tagged caches.
-export const revalidate = 43200;
+export const revalidate = 86400;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -28,13 +28,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const [listings, guidesResult, legalPagesResult] = await Promise.all([
-    fetchHouseListings(),
-    getPublishedGuides().catch((error: unknown) => {
+    fetchHouseListingsForSitemap(),
+    getPublishedGuidesForSitemap().catch((error: unknown) => {
       console.error("Unable to load guide routes for sitemap", error);
 
       return [];
     }),
-    getPublishedLegalPages().catch((error: unknown) => {
+    getPublishedLegalPagesForSitemap().catch((error: unknown) => {
       console.error("Unable to load legal page routes for sitemap", error);
 
       return [];

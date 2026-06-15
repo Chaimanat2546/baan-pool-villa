@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { unstable_cache } from "next/cache";
 import type { RawHouse } from "../types";
-import { fetchHouseListings, fetchVillaDetail, fetchVillaPageData } from "../server";
+import {
+  fetchHouseListings,
+  fetchHouseListingsForSitemap,
+  fetchVillaDetail,
+  fetchVillaPageData,
+} from "../server";
 
 vi.mock("server-only", () => ({}));
 
@@ -104,6 +109,24 @@ describe("fetchHouseListings", () => {
       {
         next: {
           revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
+          tags: [CACHE_TAGS.villaListings],
+        },
+      },
+    );
+  });
+
+  it("loads sitemap villa routes with a twenty-four-hour fetch cache", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([rawHouse]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchHouseListingsForSitemap()).resolves.toEqual([
+      expect.objectContaining({ id: "9" }),
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://www.devillegroups.com/api/json/getHouse_deville.json",
+      {
+        next: {
+          revalidate: CACHE_REVALIDATE_SECONDS.sitemap,
           tags: [CACHE_TAGS.villaListings],
         },
       },

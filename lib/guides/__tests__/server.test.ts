@@ -5,6 +5,7 @@ import type { VillaListing } from "../../villas/types";
 import {
   getGuideBySlug,
   getPublishedGuides,
+  getPublishedGuidesForSitemap,
   resolveGuideRecommendedVillas,
 } from "../server";
 import { createHomeConfigClient } from "../../home-sections/supabase";
@@ -161,6 +162,21 @@ describe("getPublishedGuides", () => {
 
     await expect(getPublishedGuides()).rejects.toThrow(
       "Guide posts config is unavailable",
+    );
+  });
+
+  it("wraps sitemap guide reads in a twenty-four-hour tagged Next cache", async () => {
+    mockGuideListQuery({ data: [], error: null });
+
+    await getPublishedGuidesForSitemap();
+
+    expect(unstableCacheMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      [CACHE_TAGS.guides, "sitemap"],
+      {
+        revalidate: CACHE_REVALIDATE_SECONDS.sitemap,
+        tags: [CACHE_TAGS.guides],
+      },
     );
   });
 });
