@@ -7,19 +7,18 @@ import {
   ReceiptText,
   ShieldCheck,
 } from "lucide-react";
-import Image from "next/image";
 import type { ReactNode } from "react";
 import type {
   DetailLayoutBlock,
   DetailLayoutBlockType,
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
-import { buildVillaGalleryImageProxyUrl } from "@/lib/public-image-proxy";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import { BookingSidebar } from "./booking-sidebar";
 import { AmenitiesSection, VideoReviewSection } from "./content-sections";
 import { findFact, findSection } from "./helpers";
+import { LazyCategorizedImages } from "./lazy-categorized-images";
 import { NearbySection } from "./nearby-section";
 import { RecommendedVillas } from "./recommended-villas";
 import type { GalleryCategory } from "./types";
@@ -182,51 +181,13 @@ function renderCategorizedImages({
       icon={<ImageIcon className="h-5 w-5" />}
       title="รูปภาพตามหมวดหมู่"
     >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-        {previewCategories.map((category) => {
-          const previewItem = category.items[0];
-          const previewImageSrc = previewItem
-            ? buildVillaGalleryImageProxyUrl(listing.id, previewItem.url, {
-                quality: 60,
-                width: 640,
-              })
-            : null;
-
-          if (!previewItem || !previewImageSrc) {
-            return null;
-          }
-
-          return (
-            <div
-              key={category.key}
-              className="overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface-soft)]"
-            >
-              <div className="relative aspect-[4/3] bg-[var(--site-surface-tint)]">
-                <Image
-                  alt={previewItem.caption ?? category.label}
-                  className="object-cover"
-                  fill
-                  sizes="(max-width: 1024px) 50vw, 320px"
-                  src={previewImageSrc}
-                  unoptimized
-                />
-              </div>
-              <div className="flex items-center justify-between gap-3 px-3 py-2">
-                <span className="min-w-0 truncate text-sm font-black text-[var(--site-text)]">
-                  {category.label}
-                </span>
-                <span className="shrink-0 text-xs font-bold text-[var(--site-muted)]">
-                  {category.items.length.toLocaleString("th-TH")} รูป
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <LazyCategorizedImages
+        listing={listing}
+        previewCategories={previewCategories}
+      />
     </DetailCard>
   );
 }
-
 function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
   const costs = findSection(content, sectionTitles.costs);
   const promotions = findSection(content, sectionTitles.promotions);

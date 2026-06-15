@@ -228,6 +228,24 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).not.toContain("youtube-nocookie.com/embed");
   });
 
+  it("defers categorized image preview sources before the block approaches the viewport", () => {
+    const layout: DetailLayoutConfig = {
+      ...DEFAULT_DETAIL_LAYOUT,
+      rows: [
+        {
+          id: "categorized_images_only",
+          columns: 1,
+          enabled: true,
+          blocks: [block("categorized_images")],
+        },
+      ],
+    };
+    const markup = render(layout);
+
+    expect(markup).toContain('data-detail-categorized-images="deferred"');
+    expect(markup).not.toContain("/api/villas/66/images/proxy");
+  });
+
   it("renders long text blocks as compact expandable previews", () => {
     const detailTitle = content.sections[0]?.title ?? "";
     const longLines = Array.from(
