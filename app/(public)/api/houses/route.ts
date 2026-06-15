@@ -36,6 +36,7 @@ function parseBoundedInteger(
 
   const parsed = Number(value);
 
+  // Covers every non-finite conversion result, including NaN, Infinity, and -Infinity.
   if (!Number.isFinite(parsed)) {
     return fallback;
   }

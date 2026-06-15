@@ -2,7 +2,7 @@
 
 import { AlertCircle, RotateCcw, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { SearchPageInitialMeta } from "@/components/villas/search/page-data";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
@@ -43,12 +43,33 @@ function getSearchErrorMessage(error: unknown): string {
 
   if (
     message.startsWith("unable to load houses") ||
+    message.startsWith("invalid house list response") ||
     message === "invalid house list payload"
   ) {
     return "ไม่สามารถโหลดข้อมูลบ้านพักได้ กรุณาลองใหม่อีกครั้ง";
   }
 
   return error.message;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
+async function readSearchCatalogPayload(
+  response: Response,
+): Promise<SearchCatalogApiResponse> {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error("Invalid house list response content type");
+  }
+
+  try {
+    return (await response.json()) as SearchCatalogApiResponse;
+  } catch {
+    throw new Error("Invalid house list response JSON");
+  }
 }
 const SORT_OPTIONS: { label: string; value: VillaSortKey }[] = [
   { label: "แนะนำ", value: "recommended" },
@@ -178,6 +199,8 @@ export function SearchPage({
   );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const catalogRequestControllerRef = useRef<AbortController | null>(null);
+  const catalogRequestSequenceRef = useRef(0);
 
   const maxAvailablePrice = resolvedMeta.maxPrice;
   const zones = useMemo(() => resolvedMeta.zones, [resolvedMeta.zones]);
@@ -218,6 +241,14 @@ export function SearchPage({
     !getInitialCatalogComplete(initialMeta) ||
     resolvedMeta.zones.length > 0;
 
+  useEffect(() => {
+    return () => {
+      catalogRequestSequenceRef.current += 1;
+      catalogRequestControllerRef.current?.abort();
+      catalogRequestControllerRef.current = null;
+    };
+  }, []);
+
   const loadCatalogPage = useCallback(async ({
     append = false,
     filtersOverride,
@@ -245,18 +276,31 @@ export function SearchPage({
       return true;
     }
 
+    catalogRequestSequenceRef.current += 1;
+    const requestSequence = catalogRequestSequenceRef.current;
+    catalogRequestControllerRef.current?.abort();
+    const abortController = new AbortController();
+    catalogRequestControllerRef.current = abortController;
+
     if (!append) {
+      setIsCatalogComplete(false);
       setIsCatalogHydrating(true);
     }
 
     try {
-      const response = await fetch(`/api/houses?${params.toString()}`);
+      const response = await fetch(`/api/houses?${params.toString()}`, {
+        signal: abortController.signal,
+      });
 
       if (!response.ok) {
         throw new Error(`Unable to load houses (${response.status})`);
       }
 
-      const payload = (await response.json()) as SearchCatalogApiResponse;
+      const payload = await readSearchCatalogPayload(response);
+
+      if (catalogRequestSequenceRef.current !== requestSequence) {
+        return false;
+      }
 
       if (!Array.isArray(payload.items)) {
         throw new Error(payload.error ?? "Invalid house list payload");
@@ -272,15 +316,25 @@ export function SearchPage({
         typeof payload.total === "number" ? payload.total : nextItems.length,
       );
       setLoadedCatalogPage(typeof payload.page === "number" ? payload.page : page);
-      setIsCatalogComplete(false);
       setError(null);
       return true;
     } catch (hydrateError) {
+      if (
+        isAbortError(hydrateError) ||
+        catalogRequestSequenceRef.current !== requestSequence
+      ) {
+        return false;
+      }
+
       setError(getSearchErrorMessage(hydrateError));
 
       return false;
     } finally {
-      if (!append) {
+      if (catalogRequestControllerRef.current === abortController) {
+        catalogRequestControllerRef.current = null;
+      }
+
+      if (!append && catalogRequestSequenceRef.current === requestSequence) {
         setIsCatalogHydrating(false);
       }
     }

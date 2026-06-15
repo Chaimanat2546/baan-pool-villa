@@ -7,6 +7,7 @@ import { absoluteUrl } from "@/lib/seo";
 import { fetchHouseListingsForSitemap } from "@/lib/villas/server";
 
 // Cache crawler reads at the route level; underlying data helpers still use tagged caches.
+// Next.js requires route segment revalidate values to be statically analyzable literals.
 export const revalidate: SitemapRevalidateSeconds = 86400;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
