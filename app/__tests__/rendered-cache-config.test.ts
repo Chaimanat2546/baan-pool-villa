@@ -58,8 +58,8 @@ describe("rendered page cache route config", () => {
     const sitemap = readProjectFile("app/sitemap.ts");
     const nextConfig = readProjectFile("next.config.ts");
 
-    expect(sitemap).toContain(
-      'import type { SitemapRevalidateSeconds } from "@/lib/cache-policy";',
+    expect(sitemap).toMatch(
+      /import\s+type\s*\{\s*SitemapRevalidateSeconds\s*\}\s+from\s+["']@\/lib\/cache-policy["']\s*;/,
     );
     expect(sitemap).toMatch(
       /export\s+const\s+revalidate\s*:\s*SitemapRevalidateSeconds\s*=\s*86400\s*;/,

@@ -19,6 +19,10 @@ import type { GalleryItem, VillaDetailPageProps } from "./types";
 type GalleryLoadStatus = "idle" | "loading" | "loaded" | "error";
 type GalleryLoadMode = "background" | "interactive";
 
+const BACKGROUND_GALLERY_IDLE_TIMEOUT_MS = 3000;
+// Browsers without requestIdleCallback need a fixed delay that keeps first paint quiet.
+const BACKGROUND_GALLERY_FALLBACK_DELAY_MS = 1200;
+
 interface GalleryImagesResponse {
   images?: VillaImage[];
 }
@@ -189,9 +193,14 @@ export function VillaDetailPage({
     };
 
     if ("requestIdleCallback" in window) {
-      idleHandle = window.requestIdleCallback(loadWhenIdle, { timeout: 3000 });
+      idleHandle = window.requestIdleCallback(loadWhenIdle, {
+        timeout: BACKGROUND_GALLERY_IDLE_TIMEOUT_MS,
+      });
     } else {
-      timeoutHandle = globalThis.setTimeout(loadWhenIdle, 1200);
+      timeoutHandle = globalThis.setTimeout(
+        loadWhenIdle,
+        BACKGROUND_GALLERY_FALLBACK_DELAY_MS,
+      );
     }
 
     return () => {

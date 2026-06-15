@@ -87,7 +87,7 @@ export function LazyCategorizedImages({
                   alt={previewItem.caption ?? category.label}
                   className="object-cover"
                   fill
-                  loading="lazy"
+                  loading="eager"
                   sizes="(max-width: 1024px) 50vw, 320px"
                   src={previewImageSrc}
                   unoptimized
