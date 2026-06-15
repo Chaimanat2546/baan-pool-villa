@@ -328,7 +328,7 @@ function TextColorControl({ editor }: { editor: Editor }) {
         ? createPortal(
             <div
               aria-modal="true"
-              className="pointer-events-none fixed inset-0 z-[200] grid place-items-center overflow-y-auto px-4 py-6"
+              className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto px-4 py-6"
               role="dialog"
             >
               <div className="pointer-events-auto max-h-[calc(100vh-3rem)] w-full max-w-[330px] overflow-y-auto overflow-x-hidden rounded-lg border border-[var(--site-border)] bg-white p-4 shadow-2xl ring-1 ring-black/5">
@@ -359,7 +359,7 @@ function TextColorControl({ editor }: { editor: Editor }) {
                   })}
                 </div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--site-muted)]">
-                  CUSTOM
+                  สีที่กำหนดเอง
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -959,6 +959,7 @@ function BlockEditor({
       StarterKit.configure({
         heading: { levels: [2] },
         link: false,
+        underline: false,
       }),
       UnderlineMark,
       TextColorMark,

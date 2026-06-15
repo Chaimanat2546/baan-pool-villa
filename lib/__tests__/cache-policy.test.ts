@@ -4,6 +4,7 @@ import {
   CACHE_HEADERS,
   CACHE_REVALIDATE_SECONDS,
   CACHE_TAGS,
+  SITEMAP_REVALIDATE_SECONDS,
   getVillaDetailPath,
 } from "../cache-policy";
 
@@ -16,7 +17,8 @@ describe("cache policy", () => {
   });
 
   it("keeps the sitemap route cache at twenty-four hours", () => {
-    expect(CACHE_REVALIDATE_SECONDS.sitemap).toBe(24 * 60 * 60);
+    expect(CACHE_REVALIDATE_SECONDS.sitemap).toBe(SITEMAP_REVALIDATE_SECONDS);
+    expect(SITEMAP_REVALIDATE_SECONDS).toBe(24 * 60 * 60);
   });
 
   it("keeps public villa detail data cache durations at twelve hours", () => {

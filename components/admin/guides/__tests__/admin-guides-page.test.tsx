@@ -230,6 +230,7 @@ describe("AdminGuidesPage", () => {
       expect.objectContaining({
         heading: { levels: [2] },
         link: false,
+        underline: false,
       }),
     );
     expect(mocks.linkExtension.configure).toHaveBeenCalledTimes(1);
@@ -256,6 +257,9 @@ describe("AdminGuidesPage", () => {
 
     expect(extensionNames).toContain("underline");
     expect(extensionNames).toContain("textColor");
+    expect(
+      extensionNames?.filter((extensionName) => extensionName === "underline"),
+    ).toHaveLength(1);
 
     await page.unmount();
   });

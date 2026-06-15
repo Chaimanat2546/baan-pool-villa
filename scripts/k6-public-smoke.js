@@ -5,6 +5,10 @@ import { Rate } from "k6/metrics";
 function normalizeBaseUrl(value) {
   const trimmedValue = value.trim().replace(/\/+$/, "");
 
+  if (!trimmedValue) {
+    throw new Error("BASE_URL must not be empty or whitespace.");
+  }
+
   if (/^https?:\/\//i.test(trimmedValue)) {
     return trimmedValue;
   }
@@ -12,11 +16,22 @@ function normalizeBaseUrl(value) {
   return `https://${trimmedValue}`;
 }
 
+function readNumberConfig(name, fallbackValue) {
+  const rawValue = __ENV[name] || fallbackValue;
+  const value = Number(rawValue);
+
+  if (Number.isNaN(value)) {
+    throw new Error(`${name} must be a valid number.`);
+  }
+
+  return value;
+}
+
 const baseUrl = normalizeBaseUrl(__ENV.BASE_URL || "http://127.0.0.1:3100");
 const villaId = __ENV.VILLA_ID || "9";
-const vus = Number(__ENV.VUS || 1);
+const vus = readNumberConfig("VUS", 1);
 const duration = __ENV.DURATION || "40s";
-const sleepSeconds = Number(__ENV.SLEEP_SECONDS || 4);
+const sleepSeconds = readNumberConfig("SLEEP_SECONDS", 4);
 
 export const options = {
   thresholds: {

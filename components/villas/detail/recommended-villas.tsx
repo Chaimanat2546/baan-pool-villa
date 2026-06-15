@@ -11,14 +11,19 @@ export function RecommendedVillas({
   }
 
   return (
-    <VillaRail
-      cardTitleHeadingLevel="h3"
-      cta={section.cta}
-      description={section.description}
-      id="recommendations"
-      title={section.title}
-      titleHeadingLevel="h2"
-      villas={section.villas}
-    />
+    <div
+      className="relative left-1/2 w-screen -translate-x-1/2"
+      data-detail-recommended-villas="home-rail"
+    >
+      <VillaRail
+        cardTitleHeadingLevel="h3"
+        cta={section.cta}
+        description={section.description}
+        id="recommendations"
+        title={section.title}
+        titleHeadingLevel="h2"
+        villas={section.villas}
+      />
+    </div>
   );
 }

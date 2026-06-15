@@ -3,6 +3,8 @@ import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
 import { buildSiteAssetProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
+const FALLBACK_LOGO_IMAGE_SRC = "/images/logo.jpg";
+
 const menuItems = [
   { href: "/", label: "หน้าแรก" },
   { href: "/search", label: "ค้นหาบ้านพัก" },
@@ -19,7 +21,7 @@ interface SiteFooterProps {
 export function SiteFooter({ settings }: SiteFooterProps) {
   const logoImageSrc =
     buildSiteAssetProxyUrl(settings.logoImage.url, { quality: 75, width: 160 }) ??
-    settings.logoImage.url;
+    FALLBACK_LOGO_IMAGE_SRC;
   const contactItems = [
     ...settings.contact.phoneContacts.map(
       (contact) => ({

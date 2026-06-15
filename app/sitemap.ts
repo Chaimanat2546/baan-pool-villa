@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import type { SitemapRevalidateSeconds } from "@/lib/cache-policy";
 
 import { getPublishedGuidesForSitemap } from "@/lib/guides/server";
 import { getPublishedLegalPagesForSitemap } from "@/lib/legal-pages/server";
@@ -6,7 +7,7 @@ import { absoluteUrl } from "@/lib/seo";
 import { fetchHouseListingsForSitemap } from "@/lib/villas/server";
 
 // Cache crawler reads at the route level; underlying data helpers still use tagged caches.
-export const revalidate = 86400;
+export const revalidate: SitemapRevalidateSeconds = 86400;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [

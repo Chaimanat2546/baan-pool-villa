@@ -10,7 +10,7 @@ export default function NotFound() {
             บ้านพักอาจไม่มีอยู่ในระบบ หรืออาจถูกปิดการแสดงผลชั่วคราว
           </p>
           <a
-            href="/"
+            href="/search"
             className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 py-3 text-sm font-bold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
           >
             <ChevronLeft className="h-4 w-4" />

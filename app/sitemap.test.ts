@@ -4,6 +4,7 @@ import sitemap from "./sitemap";
 import * as sitemapModule from "./sitemap";
 import { getPublishedGuidesForSitemap } from "@/lib/guides/server";
 import { getPublishedLegalPagesForSitemap } from "@/lib/legal-pages/server";
+import { SITEMAP_REVALIDATE_SECONDS } from "@/lib/cache-policy";
 import { fetchHouseListingsForSitemap } from "@/lib/villas/server";
 
 vi.mock("@/lib/guides/server", () => ({
@@ -35,7 +36,7 @@ describe("sitemap", () => {
   });
 
   it("exports a route response cache window for sitemap.xml", () => {
-    expect(sitemapModule).toHaveProperty("revalidate", 86400);
+    expect(sitemapModule).toHaveProperty("revalidate", SITEMAP_REVALIDATE_SECONDS);
   });
 
   it("includes dynamic villa, guide, and legal routes when data sources load", async () => {

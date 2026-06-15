@@ -204,6 +204,14 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).toContain("77</h3>");
   });
 
+  it("renders detail recommendations as a full-bleed homepage rail", () => {
+    const markup = render(DEFAULT_DETAIL_LAYOUT);
+
+    expect(markup).toContain('data-detail-recommended-villas="home-rail"');
+    expect(markup).toContain("relative left-1/2 w-screen -translate-x-1/2");
+    expect(markup).toContain("mx-auto w-full max-w-7xl px-4 py-8");
+  });
+
   it("hides the review video block when there are no videos", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT, { videos: [] });
 

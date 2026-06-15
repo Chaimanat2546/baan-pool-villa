@@ -238,6 +238,18 @@ function normalizePublicLinkHref(value: unknown): string | null {
   return null;
 }
 
+function hasControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+
+    if (code <= 31 || code === 127) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function normalizePublicTextColor(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -251,7 +263,7 @@ function normalizePublicTextColor(value: unknown): string | null {
     color.includes(";") ||
     color.includes("<") ||
     color.includes(">") ||
-    /[\u0000-\u001f\u007f]/.test(color)
+    hasControlCharacter(color)
   ) {
     return null;
   }
