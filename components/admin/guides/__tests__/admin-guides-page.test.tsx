@@ -2,9 +2,10 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act } from "react";
+import { act, type ReactNode } from "react";
 
 import {
+  changeInput,
   click,
   flushEffects,
   makeFetchMock,
@@ -13,6 +14,11 @@ import {
 import type { GuidePost } from "@/lib/guides/types";
 
 const mocks = vi.hoisted(() => ({
+  editorInstance: null as null | {
+    chain: () => unknown;
+    getAttributes: (name: string) => Record<string, unknown>;
+    isActive: (name: string, attrs?: Record<string, unknown>) => boolean;
+  },
   editorOptions: [] as unknown[],
   imageExtension: { configure: vi.fn() },
   linkExtension: { configure: vi.fn() },
@@ -86,17 +92,20 @@ vi.mock("@tiptap/react", () => ({
   EditorContent: () => <div data-testid="mock-editor" />,
   useEditor: (options: unknown) => {
     mocks.editorOptions.push(options);
-    return null;
+    return mocks.editorInstance;
   },
 }));
 vi.mock("@tiptap/react/menus", () => ({
-  BubbleMenu: () => null,
+  BubbleMenu: ({ children }: { children: ReactNode }) => (
+    <div data-testid="mock-bubble-menu">{children}</div>
+  ),
 }));
 
 import { AdminGuidesPage } from "../admin-guides-page";
 
 describe("AdminGuidesPage", () => {
   beforeEach(() => {
+    mocks.editorInstance = null;
     mocks.editorOptions.length = 0;
     mocks.imageExtension.configure.mockClear();
     mocks.linkExtension.configure.mockClear();
@@ -226,6 +235,123 @@ describe("AdminGuidesPage", () => {
     expect(mocks.linkExtension.configure).toHaveBeenCalledTimes(1);
 
     await page.unmount();
+  });
+
+  it("registers rich text marks for guide content editing", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { guides: [guidePost] },
+        url: "/api/admin/guides",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage />);
+    const editorOptions = mocks.editorOptions[0] as {
+      extensions?: { name?: string }[];
+    };
+    const extensionNames = editorOptions.extensions?.map((extension) => {
+      return extension.name;
+    });
+
+    expect(extensionNames).toContain("underline");
+    expect(extensionNames).toContain("textColor");
+
+    await page.unmount();
+  });
+
+  it("shows a Word-style color control with swatches and native custom picker", async () => {
+    const originalInnerWidth = window.innerWidth;
+    const run = vi.fn();
+    const focus = vi.fn(() => ({ setMark }));
+    const setMark = vi.fn(() => ({ run }));
+
+    mocks.editorInstance = {
+      chain: () => ({ focus }),
+      getAttributes: (name: string) => {
+        return name === "textColor" ? { color: "#0f5a66" } : {};
+      },
+      isActive: () => false,
+    };
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1200,
+    });
+    Object.defineProperty(document.documentElement, "clientWidth", {
+      configurable: true,
+      value: 1183,
+    });
+
+    const fetchMock = makeFetchMock([
+      {
+        body: { guides: [guidePost] },
+        url: "/api/admin/guides",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage />);
+    const colorButton = page.container.querySelector(
+      "[data-guide-mark-type='textColor']",
+    ) as HTMLButtonElement | null;
+
+    expect(colorButton).not.toBeNull();
+
+    const toolbar = colorButton?.closest("[data-guide-toolbar='bar']");
+    expect(toolbar?.className).toContain("grid-rows-2");
+    expect(toolbar?.className).toContain("sm:flex");
+
+    const bubbleToolbar = page.container.querySelector(
+      "[data-guide-toolbar='bubble']",
+    );
+    expect(bubbleToolbar?.className).toContain("grid-rows-2");
+    expect(bubbleToolbar?.className).toContain("sm:flex");
+
+    await click(colorButton as HTMLButtonElement);
+
+    expect(page.container.querySelector("[role='dialog']")).toBeNull();
+    expect(document.body.querySelector("[role='dialog']")).not.toBeNull();
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.style.paddingRight).toBe("17px");
+    expect(
+      document.body.querySelectorAll("[data-guide-color-swatch='true']").length,
+    ).toBeGreaterThan(20);
+
+    const customButton = document.body.querySelector(
+      "[data-guide-color-custom-open='true']",
+    ) as HTMLButtonElement | null;
+
+    expect(customButton).not.toBeNull();
+    expect(
+      document.body.querySelector("[data-guide-color-code-input='true']"),
+    ).toBeNull();
+    expect(
+      document.body.querySelector("[data-guide-color-custom-preview='true']"),
+    ).toBeNull();
+    expect(
+      document.body.querySelector("[data-guide-color-custom-apply='true']"),
+    ).toBeNull();
+
+    await click(customButton as HTMLButtonElement);
+
+    const colorInput = document.body.querySelector(
+      "[data-guide-color-picker='true']",
+    ) as HTMLInputElement | null;
+
+    expect(colorInput).not.toBeNull();
+
+    await changeInput(colorInput as HTMLInputElement, "#112233");
+
+    expect(setMark).toHaveBeenCalledWith("textColor", { color: "#112233" });
+    expect(document.body.style.paddingRight).toBe("");
+
+    await page.unmount();
+    expect(document.body.style.overflow).toBe("");
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: originalInnerWidth,
+    });
+    Reflect.deleteProperty(document.documentElement, "clientWidth");
   });
 
   it("loads the admin guide cover image eagerly", async () => {

@@ -97,6 +97,109 @@ describe("getYouTubeEmbedUrl", () => {
     expect(markup).not.toContain("javascript:alert");
   });
 
+  it("renders saved rich text marks on public guide content", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Styled text",
+                marks: [
+                  { type: "bold" },
+                  { type: "italic" },
+                  { type: "underline" },
+                  { type: "textColor", attrs: { color: "#c026d3" } },
+                ],
+              },
+            ],
+          },
+        ])}
+        recommendedVillas={[]}
+        relatedGuides={[]}
+      />,
+    );
+
+    expect(markup).toContain("<strong>");
+    expect(markup).toContain("<em>");
+    expect(markup).toContain('class="underline underline-offset-4"');
+    expect(markup).toContain('style="color:#c026d3"');
+  });
+
+  it("groups adjacent guide list blocks into real public lists", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([
+          {
+            type: "bulletListItem",
+            content: [{ type: "text", text: "First item" }],
+          },
+          {
+            type: "bulletListItem",
+            content: [{ type: "text", text: "Second item" }],
+          },
+          {
+            type: "numberedListItem",
+            content: [{ type: "text", text: "Number one" }],
+          },
+        ])}
+        recommendedVillas={[]}
+        relatedGuides={[]}
+      />,
+    );
+
+    expect(markup).toContain(
+      '<ul class="guide-public-list guide-public-bullet-list"><li>First item</li><li>Second item</li></ul>',
+    );
+    expect(markup).toContain(
+      '<ol class="guide-public-list guide-public-list-ordered"><li>Number one</li></ol>',
+    );
+    expect(markup).not.toContain("• First item");
+  });
+
+  it("does not force bullet list text to be semibold", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([
+          {
+            type: "bulletListItem",
+            content: [{ type: "text", text: "Regular bullet" }],
+          },
+        ])}
+        recommendedVillas={[]}
+        relatedGuides={[]}
+      />,
+    );
+
+    expect(markup).toContain(
+      '<ul class="guide-public-list guide-public-bullet-list"><li>Regular bullet</li></ul>',
+    );
+    expect(markup).not.toContain('<li class="font-semibold">Regular bullet</li>');
+  });
+
+  it("keeps adjacent content blocks visually tight so blank blocks control extra spacing", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "First paragraph" }],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Second paragraph" }],
+          },
+        ])}
+        recommendedVillas={[]}
+        relatedGuides={[]}
+      />,
+    );
+
+    expect(markup).toContain('class="grid w-full gap-0 text-[var(--site-text)]"');
+  });
+
   it("renders YouTube links as thumbnail posters without loading embeds before play", () => {
     const markup = renderToStaticMarkup(
       <GuideDetailPage
