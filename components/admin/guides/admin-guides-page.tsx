@@ -260,7 +260,6 @@ function TextColorControl({ editor }: { editor: Editor }) {
   const currentColor = getEditorTextColor(editor);
   const currentRgb = getRgbFromHexColor(currentColor);
   const [isOpen, setIsOpen] = useState(false);
-  const colorPickerInputRef = useRef<HTMLInputElement>(null);
   const modalRoot = typeof document === "undefined" ? null : document.body;
 
   useEffect(() => {
@@ -371,29 +370,24 @@ function TextColorControl({ editor }: { editor: Editor }) {
                     style={{ backgroundColor: currentRgb.hex }}
                     type="button"
                   />
-                  <button
+                  <label
                     aria-label="เพิ่มสี"
-                    className="grid size-6 place-items-center rounded-full border border-[var(--site-border-strong)] text-[var(--site-primary)]"
+                    className="relative grid size-6 cursor-pointer place-items-center overflow-hidden rounded-full border border-[var(--site-border-strong)] text-[var(--site-primary)] focus-within:ring-2 focus-within:ring-[var(--site-primary)]/20"
                     data-guide-color-custom-open="true"
-                    onClick={() => {
-                      colorPickerInputRef.current?.click();
-                    }}
                     title="เพิ่มสี"
-                    type="button"
                   >
-                    <Plus aria-hidden="true" className="size-4" />
-                  </button>
-                  <input
-                    aria-label="เลือกสีข้อความ"
-                    className="sr-only"
-                    data-guide-color-picker="true"
-                    onChange={(event) => {
-                      applyColor(event.currentTarget.value);
-                    }}
-                    ref={colorPickerInputRef}
-                    type="color"
-                    value={currentRgb.hex}
-                  />
+                    <Plus aria-hidden="true" className="pointer-events-none size-4" />
+                    <input
+                      aria-label="เลือกสีข้อความ"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      data-guide-color-picker="true"
+                      onChange={(event) => {
+                        applyColor(event.currentTarget.value);
+                      }}
+                      type="color"
+                      value={currentRgb.hex}
+                    />
+                  </label>
                   <button
                     className="ml-auto text-xs font-semibold text-[var(--site-muted)] hover:text-[var(--site-primary)]"
                     onClick={() => {

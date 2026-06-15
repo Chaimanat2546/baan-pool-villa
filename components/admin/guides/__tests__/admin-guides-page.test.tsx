@@ -323,9 +323,16 @@ describe("AdminGuidesPage", () => {
 
     const customButton = document.body.querySelector(
       "[data-guide-color-custom-open='true']",
-    ) as HTMLButtonElement | null;
+    ) as HTMLElement | null;
 
     expect(customButton).not.toBeNull();
+    const colorInput = document.body.querySelector(
+      "[data-guide-color-picker='true']",
+    ) as HTMLInputElement | null;
+
+    expect(colorInput).not.toBeNull();
+    expect(customButton?.contains(colorInput)).toBe(true);
+    expect(colorInput?.className).toContain("absolute");
     expect(
       document.body.querySelector("[data-guide-color-code-input='true']"),
     ).toBeNull();
@@ -336,13 +343,7 @@ describe("AdminGuidesPage", () => {
       document.body.querySelector("[data-guide-color-custom-apply='true']"),
     ).toBeNull();
 
-    await click(customButton as HTMLButtonElement);
-
-    const colorInput = document.body.querySelector(
-      "[data-guide-color-picker='true']",
-    ) as HTMLInputElement | null;
-
-    expect(colorInput).not.toBeNull();
+    await click(customButton as HTMLElement);
 
     await changeInput(colorInput as HTMLInputElement, "#112233");
 
