@@ -21,12 +21,6 @@ vi.mock("next/image", () => ({
   ),
 }));
 
-vi.mock("next/link", () => ({
-  default: () => {
-    throw new Error("Villa detail cards must use document navigation");
-  },
-}));
-
 const villa: VillaListing = {
   amenities: [],
   bathrooms: 4,
@@ -53,7 +47,7 @@ describe("VillaCard navigation", () => {
     const markup = renderToStaticMarkup(<VillaCard villa={villa} />);
 
     expect(markup).toContain(
-      'data-src="/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F501.jpg"',
+      'data-src="/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F501.jpg&amp;w=640&amp;q=60"',
     );
     expect(markup).not.toContain(
       'data-src="https://devillegroups.com/imgs/profile_imgs_large/501.jpg"',

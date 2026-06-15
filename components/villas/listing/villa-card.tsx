@@ -25,7 +25,10 @@ export function VillaCard({
 }: VillaCardProps) {
   const visibleAmenities = villa.amenities.slice(0, 3);
   const TitleTag = titleHeadingLevel;
-  const coverImageSrc = buildVillaCoverImageProxyUrl(villa.coverImage);
+  const coverImageSrc = buildVillaCoverImageProxyUrl(villa.coverImage, {
+    quality: 60,
+    width: 640,
+  });
 
   return (
     <a

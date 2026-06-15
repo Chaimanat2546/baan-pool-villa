@@ -164,10 +164,10 @@ describe("getYouTubeEmbedUrl", () => {
     );
 
     expect(markup).toContain(
-      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fcover.jpg"',
+      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fcover.jpg&amp;w=1200&amp;q=75"',
     );
     expect(markup).toContain(
-      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Finline.jpg"',
+      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Finline.jpg&amp;w=1200&amp;q=75"',
     );
   });
 });

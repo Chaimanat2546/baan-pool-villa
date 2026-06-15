@@ -2,8 +2,8 @@
 
 import { MapPin, Menu, X } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
+import { buildSiteAssetProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 const navItems = [
@@ -22,18 +22,21 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
   const bankNotice = `กรุณาโอนเงิน ชื่อบัญชี ${settings.bank.accountName} `;
   const bankAccount = `${settings.bank.bankName} เลขที่ ${settings.bank.accountNumber}`;
 
+  const logoImageSrc =
+    buildSiteAssetProxyUrl(settings.logoImage.url, { quality: 75, width: 128 }) ??
+    settings.logoImage.url;
+
   return (
     <header className="sticky top-0 z-50 bg-[var(--site-primary)] text-[var(--site-on-primary)]">
       <div className="border-b border-[color:var(--site-on-primary)] bg-[var(--site-primary)]/95 shadow-[0_1px_1px_rgba(0,0,0,0.05)] backdrop-blur-[6px]">
         <div className="relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <Link
+          <a
             href="/"
-            prefetch={false}
             className="flex min-w-0 flex-1 items-center gap-3"
           >
             <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-white/10">
               <Image
-                src={settings.logoImage.url}
+                src={logoImageSrc}
                 alt={settings.logoImage.alt}
                 fill
                 sizes="44px"
@@ -54,29 +57,27 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 เท่านั้น
               </span>
             </span>
-          </Link>
+          </a>
 
           <div className="hidden shrink-0 items-center justify-end gap-8 lg:flex">
             <nav className="flex h-16 items-center justify-end gap-8 text-2xl font-semibold leading-8">
               {navItems.map((item) => (
-                <Link
+                <a
                   key={`${item.href}-${item.label}`}
                   href={item.href}
-                  prefetch={false}
                   className="whitespace-nowrap transition hover:text-[var(--site-accent)]"
                 >
                   {item.label}
-                </Link>
+                </a>
               ))}
             </nav>
-            <Link
+            <a
               href="/#contact"
-              prefetch={false}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-4 text-sm font-medium leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
             >
               <MapPin className="h-4 w-4" />
               จองเลย
-            </Link>
+            </a>
           </div>
 
           <button
@@ -95,21 +96,19 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
             <div className="absolute left-4 right-4 top-[calc(100%-4px)] z-50 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_18px_48px_rgba(2,35,31,0.22)] lg:hidden">
               <div className="grid divide-y divide-[var(--site-border)] text-base font-semibold">
                 {navItems.map((item) => (
-                  <Link
+                  <a
                     key={`mobile-${item.href}-${item.label}`}
                     href={item.href}
-                    prefetch={false}
                     className="px-4 py-3"
                     onClick={() => {
                       setIsMenuOpen(false);
                     }}
                   >
                     {item.label}
-                  </Link>
+                  </a>
                 ))}
-                <Link
+                <a
                   href="/#contact"
-                  prefetch={false}
                   className="flex items-center gap-2 px-4 py-3 text-[var(--site-primary)]"
                   onClick={() => {
                     setIsMenuOpen(false);
@@ -117,7 +116,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 >
                   <MapPin className="h-4 w-4" />
                   จองเลย
-                </Link>
+                </a>
               </div>
             </div>
           ) : null}

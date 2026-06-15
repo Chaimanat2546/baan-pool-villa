@@ -40,7 +40,7 @@ export function HeroSection({
   zones,
 }: HeroSectionProps) {
   const heroImageSrc =
-    buildSiteAssetProxyUrl(heroImage.url) ??
+    buildSiteAssetProxyUrl(heroImage.url, { quality: 75, width: 1920 }) ??
     (isSafeLocalImagePath(heroImage.url) ? heroImage.url : null);
 
   return (

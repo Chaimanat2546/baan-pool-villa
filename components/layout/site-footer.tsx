@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
+import { buildSiteAssetProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 const menuItems = [
@@ -17,6 +17,9 @@ interface SiteFooterProps {
 }
 
 export function SiteFooter({ settings }: SiteFooterProps) {
+  const logoImageSrc =
+    buildSiteAssetProxyUrl(settings.logoImage.url, { quality: 75, width: 160 }) ??
+    settings.logoImage.url;
   const contactItems = [
     ...settings.contact.phoneContacts.map(
       (contact) => ({
@@ -41,7 +44,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
           <div className="flex items-center gap-3">
             <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] border-4 border-white bg-white/10">
               <Image
-                src={settings.logoImage.url}
+                src={logoImageSrc}
                 alt={settings.logoImage.alt}
                 fill
                 sizes="64px"
@@ -75,14 +78,13 @@ export function SiteFooter({ settings }: SiteFooterProps) {
           </h3>
           <div className="mt-[22px] grid gap-4 text-base leading-6">
             {menuItems.map((item) => (
-              <Link
+              <a
                 key={item.href}
                 href={item.href}
-                prefetch={false}
                 className="text-[var(--site-on-primary)] opacity-60 transition hover:opacity-100"
               >
                 {item.label}
-              </Link>
+              </a>
             ))}
           </div>
         </nav>

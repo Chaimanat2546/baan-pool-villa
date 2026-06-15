@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
@@ -345,7 +344,10 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
               </p>
             );
           case "image": {
-            const imageUrl = buildGuideImageProxyUrl(getImageUrl(guideBlock));
+            const imageUrl = buildGuideImageProxyUrl(getImageUrl(guideBlock), {
+              quality: 75,
+              width: 1200,
+            });
 
             if (!imageUrl) {
               return null;
@@ -455,7 +457,10 @@ export function GuideDetailPage({
   relatedGuides,
   settings,
 }: GuideDetailPageProps) {
-  const coverImageUrl = buildGuideImageProxyUrl(guide.coverImage?.url ?? null);
+  const coverImageUrl = buildGuideImageProxyUrl(guide.coverImage?.url ?? null, {
+    quality: 75,
+    width: 1200,
+  });
 
   return (
     <main className="bg-[var(--site-surface-soft)] text-[var(--site-text)]">
@@ -488,13 +493,12 @@ export function GuideDetailPage({
               >
                 ค้นหาบ้านพักพูลวิลล่า
               </a>
-              <Link
+              <a
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
                 href="/guides"
-                prefetch={false}
               >
                 อ่านบทความอื่น
-              </Link>
+              </a>
             </nav>
           </div>
 

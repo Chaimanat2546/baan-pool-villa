@@ -35,7 +35,10 @@ export function DestinationsSection({ villas }: DestinationsSectionProps) {
         {destinations.slice(0, 12).map((destination, index) => {
           const destinationImage = villas[index]?.coverImage;
           const destinationImageSrc =
-            buildVillaCoverImageProxyUrl(destinationImage) ?? destinationImage;
+            buildVillaCoverImageProxyUrl(destinationImage, {
+              quality: 60,
+              width: 1200,
+            }) ?? destinationImage;
 
           return (
             <article

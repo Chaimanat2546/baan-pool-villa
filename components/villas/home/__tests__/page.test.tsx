@@ -240,10 +240,10 @@ describe("HomePage", () => {
     expect(tiktokSectionStart).toBeGreaterThan(destinationSectionStart);
 
     expect(destinationsMarkup).toContain(
-      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-1.jpg",
+      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-1.jpg&amp;w=1200&amp;q=60",
     );
     expect(destinationsMarkup).toContain(
-      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-2.jpg",
+      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-2.jpg&amp;w=1200&amp;q=60",
     );
   });
 

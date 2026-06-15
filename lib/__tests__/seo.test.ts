@@ -116,6 +116,9 @@ const sampleVilla: VillaListing = {
   zoneLabel: "Jomtien",
 };
 
+const sampleVillaCoverProxyUrl =
+  "https://example.com/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F901.jpg&w=1200&q=75";
+
 const sampleGuide: GuidePost = {
   contentBlocks: [],
   coverImage: {
@@ -348,6 +351,34 @@ describe("SEO helpers", () => {
     ]);
   });
 
+  it("routes absolute CMS SEO images through the site asset proxy", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+    const settings = cmsSettings();
+    settings.seo.ogImage.url =
+      "https://assets.example.com/storage/v1/object/public/site-assets/seo-cover.jpg";
+
+    const metadata = buildSiteSettingsPageMetadata({
+      canonicalPath: "/",
+      settings,
+      title: settings.seo.title,
+    });
+    const expectedImageUrl =
+      "https://example.com/api/site-assets/proxy?url=https%3A%2F%2Fassets.example.com%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fsite-assets%2Fseo-cover.jpg&w=1200&q=75";
+
+    expect(metadata).toMatchObject({
+      openGraph: {
+        images: [
+          {
+            url: expectedImageUrl,
+          },
+        ],
+      },
+      twitter: {
+        images: [expectedImageUrl],
+      },
+    });
+  });
+
   it("lets route-level SEO values override CMS defaults when needed", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
 
@@ -507,7 +538,7 @@ describe("SEO helpers", () => {
         images: [
           {
             alt: "พูลวิลล่า 901 Jomtien พัทยา",
-            url: "https://devillegroups.com/imgs/profile_imgs_large/901.jpg",
+            url: sampleVillaCoverProxyUrl,
           },
         ],
         title: "พูลวิลล่า 901 Jomtien พัทยา",
@@ -518,7 +549,7 @@ describe("SEO helpers", () => {
         card: "summary_large_image",
         description:
           "พูลวิลล่า 901 Jomtien พัทยา บ้านพักพูลวิลล่าสระส่วนตัว รองรับ 12 คน | 5 ห้องนอน | 4 ห้องน้ำ | ใกล้ทะเล 500m | เริ่มต้น 12,000 บาท/คืน",
-        images: ["https://devillegroups.com/imgs/profile_imgs_large/901.jpg"],
+        images: [sampleVillaCoverProxyUrl],
         title: "พูลวิลล่า 901 Jomtien พัทยา",
       },
     });
