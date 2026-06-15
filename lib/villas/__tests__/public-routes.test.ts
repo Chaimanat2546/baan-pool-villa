@@ -39,8 +39,21 @@ async function expectRateLimitResponse(response: Response) {
 }
 
 describe("GET /api/houses", () => {
-  it("returns the public catalog with a six-hour cache header", async () => {
-    fetchHouseListingsMock.mockResolvedValue([{ id: "9" }]);
+  it("returns a bounded first page of the public catalog with a six-hour cache header", async () => {
+    const listings = Array.from({ length: 30 }, (_, index) => ({
+      amenities: [],
+      bathrooms: 3,
+      bedrooms: 4,
+      coverImage: null,
+      distanceToSea: "1 km",
+      id: String(index + 1),
+      people: 8,
+      poolType: "private",
+      price: 10000 + index,
+      zone: "jomtien",
+      zoneLabel: "Jomtien",
+    }));
+    fetchHouseListingsMock.mockResolvedValue(listings);
 
     const { GET } = await import("../../../app/(public)/api/houses/route");
     const response = await GET(new Request("https://example.com/api/houses"));
@@ -50,7 +63,79 @@ describe("GET /api/houses", () => {
     expect(response.headers.get("Cache-Control")).toBe(
       "public, s-maxage=21600, stale-while-revalidate=21600",
     );
-    expect(body).toEqual({ items: [{ id: "9" }] });
+    expect(body).toMatchObject({
+      hasMore: true,
+      page: 1,
+      pageSize: 12,
+      total: 30,
+    });
+    expect(body.items).toHaveLength(12);
+    expect(body.items[0]).toEqual(listings[0]);
+  });
+
+  it("filters, sorts, and clamps public catalog page sizes", async () => {
+    fetchHouseListingsMock.mockResolvedValue([
+      {
+        amenities: [],
+        bathrooms: 2,
+        bedrooms: 2,
+        coverImage: null,
+        distanceToSea: "1 km",
+        id: "1",
+        people: 4,
+        poolType: "private",
+        price: 9000,
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+      {
+        amenities: [],
+        bathrooms: 3,
+        bedrooms: 4,
+        coverImage: null,
+        distanceToSea: "1 km",
+        id: "2",
+        people: 10,
+        poolType: "private",
+        price: 18000,
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+      {
+        amenities: [],
+        bathrooms: 4,
+        bedrooms: 5,
+        coverImage: null,
+        distanceToSea: "1 km",
+        id: "3",
+        people: 12,
+        poolType: "private",
+        price: 15000,
+        zone: "pattaya",
+        zoneLabel: "Pattaya",
+      },
+    ]);
+
+    const { GET } = await import("../../../app/(public)/api/houses/route");
+    const response = await GET(
+      new Request(
+        "https://example.com/api/houses?zone=jomtien&guests=8&bedrooms=3&sort=price_desc&limit=999",
+      ),
+    );
+    const body = await response.json();
+
+    expect(body).toMatchObject({
+      hasMore: false,
+      page: 1,
+      pageSize: 24,
+      total: 1,
+    });
+    expect(body.items).toEqual([
+      expect.objectContaining({
+        id: "2",
+        price: 18000,
+      }),
+    ]);
   });
 
   it("returns a generic 502 error and logs backend failures", async () => {

@@ -148,7 +148,7 @@
               <tr>
                 <td><code>app/(public)/search/page.tsx</code></td>
                 <td><code>/search</code></td>
-                <td><code>components/villas/search/page</code>, villa listing helpers, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is intentionally not performed by the server route; the client reads the current URL, hydrates the full catalog through <code>/api/houses</code> when a deep link has search criteria, and filters/sorts in the browser to reduce Cloudflare Worker CPU and RSC request cost.</td>
+                <td><code>components/villas/search/page</code>, villa listing helpers, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is intentionally not performed by the server route; the client reads the current URL, then requests bounded filtered pages from <code>/api/houses</code> when a deep link or interaction needs more results, so the public API does not expose the full catalog in one response.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/search/loading.tsx</code></td>
@@ -213,7 +213,7 @@
               <tr>
                 <td><code>app/(public)/api/houses/route.ts</code></td>
                 <td><code>/api/houses</code></td>
-                <td><code>lib/villas/server.ts</code>, 6-hour public cache headers, and Worker JSON edge cache for the large public catalog response.</td>
+                <td><code>lib/villas/server.ts</code>, villa filter helpers, 6-hour public cache headers, and Worker JSON edge cache for bounded, paginated public catalog responses.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/houses/images/proxy/route.ts</code></td>
@@ -441,8 +441,8 @@
             </tr>
             <tr>
               <td><code>components/villas/search</code></td>
-              <td>Search page, search bar, filters, mobile filter drawer, search loading skeleton, first-page server result hydration, and on-demand catalog hydration through <code>/api/houses</code>.</td>
-              <td>Keep results incremental/paginated and do not add a visible near-sea toggle unless requested. The route sends the initial filtered page plus result metadata marked as a partial catalog; the client fetches the full catalog only when an interaction needs more results or broader filtering.</td>
+              <td>Search page, search bar, filters, mobile filter drawer, search loading skeleton, first-page server result hydration, and on-demand paginated catalog requests through <code>/api/houses</code>.</td>
+              <td>Keep results incremental/paginated and do not add a visible near-sea toggle unless requested. The route sends the initial page plus result metadata marked as a partial catalog; the client fetches bounded filtered pages when an interaction needs more results or broader filtering.</td>
             </tr>
             <tr>
               <td><code>components/villas/detail</code></td>
@@ -531,7 +531,7 @@
             </tr>
             <tr>
               <td><code>lib/cache-policy.ts</code></td>
-              <td>Data cache durations, cache tags, and public API Cache-Control headers. The public villa catalog and <code>/api/houses</code> response use a 6-hour TTL; public villa detail data, guide, legal page, home-section, site-settings, image metadata, and embed reads keep a 12-hour TTL. <code>sitemap.xml</code> keeps a 24-hour route cache and response cache header, and uses sitemap-specific villa, guide, and legal readers with 24-hour data caches so lower page/API TTLs do not shorten crawler caching.</td>
+              <td>Data cache durations, cache tags, and public API Cache-Control headers. The public villa catalog data and bounded <code>/api/houses</code> responses use a 6-hour TTL; public villa detail data, guide, legal page, home-section, site-settings, image metadata, and embed reads keep a 12-hour TTL. <code>sitemap.xml</code> keeps a 24-hour route cache and response cache header, and uses sitemap-specific villa, guide, and legal readers with 24-hour data caches so lower page/API TTLs do not shorten crawler caching.</td>
               <td><code>lib/__tests__/cache-policy.test.ts</code></td>
             </tr>
             <tr>

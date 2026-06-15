@@ -2,7 +2,7 @@
 
 import { AlertCircle, RotateCcw, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { SearchPageInitialMeta } from "@/components/villas/search/page-data";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
@@ -11,6 +11,7 @@ import {
   filterVillas,
   filterVillasById,
   filtersFromSearchParams,
+  filtersToSearchParams,
   getDefaultFilters,
   getMaxVillaPrice,
   getUniqueZones,
@@ -49,17 +50,6 @@ function getSearchErrorMessage(error: unknown): string {
 
   return error.message;
 }
-const CATALOG_HYDRATION_SEARCH_PARAMS = [
-  "amenities",
-  "bedrooms",
-  "guests",
-  "id",
-  "maxPrice",
-  "nearSea",
-  "sort",
-  "zone",
-];
-
 const SORT_OPTIONS: { label: string; value: VillaSortKey }[] = [
   { label: "แนะนำ", value: "recommended" },
   { label: "ราคา ต่ำ-สูง", value: "price_asc" },
@@ -68,8 +58,18 @@ const SORT_OPTIONS: { label: string; value: VillaSortKey }[] = [
   { label: "ห้องนอน มาก-น้อย", value: "bedrooms_desc" },
 ];
 
+function scrollResultsIntoView(resultsElement: HTMLDivElement | null) {
+  resultsElement?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+}
+
 function isVillaSortKey(value: string | null): value is VillaSortKey {
   return SORT_OPTIONS.some((option) => option.value === value);
+}
+
+function getSortKeyFromSearchParams(searchParams: URLSearchParams): VillaSortKey {
+  const requestedSortKey = searchParams.get("sort");
+
+  return isVillaSortKey(requestedSortKey) ? requestedSortKey : "recommended";
 }
 
 function getSearchConditionLabels(
@@ -96,13 +96,21 @@ function getSearchConditionLabels(
   ];
 }
 
-function hasCatalogHydrationSearchParams(searchParams: URLSearchParams): boolean {
-  return CATALOG_HYDRATION_SEARCH_PARAMS.some((key) => searchParams.has(key));
-}
-
 interface SearchCatalogApiResponse {
   error?: string;
+  hasMore?: boolean;
   items?: VillaListing[];
+  page?: number;
+  pageSize?: number;
+  total?: number;
+}
+
+interface CatalogPageRequest {
+  append?: boolean;
+  filtersOverride?: VillaFilters;
+  page: number;
+  sortOverride?: VillaSortKey;
+  villaIdOverride?: string;
 }
 
 export function getInitialCatalogComplete(
@@ -135,15 +143,17 @@ export function SearchPage({
     () => new URLSearchParams(resolvedInitialSearchParams),
     [resolvedInitialSearchParams],
   );
-  const shouldHydrateCatalogForDeepLink = useMemo(
-    () => hasCatalogHydrationSearchParams(searchParams),
-    [searchParams],
-  );
   const [villas, setVillas] = useState<VillaListing[]>(() => initialVillas);
-  const pendingVillaIdQuery = useRef<string | null>(null);
   const [isCatalogComplete, setIsCatalogComplete] = useState(
     getInitialCatalogComplete(initialMeta),
   );
+  const [catalogHasMore, setCatalogHasMore] = useState(
+    () => !getInitialCatalogComplete(initialMeta) && initialVillas.length < resolvedMeta.resultCount,
+  );
+  const [catalogResultCount, setCatalogResultCount] = useState(
+    () => resolvedMeta.resultCount,
+  );
+  const [loadedCatalogPage, setLoadedCatalogPage] = useState(1);
   const [isCatalogHydrating, setIsCatalogHydrating] = useState(false);
   const [error, setError] = useState<string | null>(
     initialLoadError ? getSearchErrorMessage(new Error(initialLoadError)) : null,
@@ -151,11 +161,15 @@ export function SearchPage({
   const [filters, setFilters] = useState<VillaFilters>(() =>
     filtersFromSearchParams(searchParams, resolvedMeta.maxPrice),
   );
-  const [sortKey, setSortKey] = useState<VillaSortKey>(() => {
-    const requestedSortKey = searchParams.get("sort");
-
-    return isVillaSortKey(requestedSortKey) ? requestedSortKey : "recommended";
-  });
+  const [draftFilters, setDraftFilters] = useState<VillaFilters>(() =>
+    filtersFromSearchParams(searchParams, resolvedMeta.maxPrice),
+  );
+  const [sortKey, setSortKey] = useState<VillaSortKey>(() =>
+    getSortKeyFromSearchParams(searchParams),
+  );
+  const [draftSortKey, setDraftSortKey] = useState<VillaSortKey>(() =>
+    getSortKeyFromSearchParams(searchParams),
+  );
   const [villaIdQuery, setVillaIdQuery] = useState(
     () => searchParams.get("id") ?? "",
   );
@@ -164,7 +178,6 @@ export function SearchPage({
   );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const resultsRef = useRef<HTMLDivElement | null>(null);
-  const pendingHydration = useRef<Promise<boolean> | null>(null);
 
   const maxAvailablePrice = resolvedMeta.maxPrice;
   const zones = useMemo(() => resolvedMeta.zones, [resolvedMeta.zones]);
@@ -179,12 +192,13 @@ export function SearchPage({
       sortKey,
     );
   }, [isCatalogComplete, isCatalogHydrating, villas, filters, villaIdQuery, sortKey]);
-  const visibleVillas = useMemo(
-    () => filteredVillas.slice(0, visibleCount),
-    [filteredVillas, visibleCount],
-  );
-  const resultCount = isCatalogComplete ? filteredVillas.length : resolvedMeta.resultCount;
-  const canLoadMore = visibleVillas.length < resultCount;
+  const visibleVillas = useMemo(() => {
+    return isCatalogComplete ? filteredVillas.slice(0, visibleCount) : filteredVillas;
+  }, [filteredVillas, isCatalogComplete, visibleCount]);
+  const resultCount = isCatalogComplete ? filteredVillas.length : catalogResultCount;
+  const canLoadMore = isCatalogComplete
+    ? visibleVillas.length < resultCount
+    : catalogHasMore;
   const searchConditionLabels = useMemo(() => {
     const labels = getSearchConditionLabels(filters, zones);
     const sortLabel = SORT_OPTIONS.find((option) => option.value === sortKey)?.label;
@@ -204,99 +218,125 @@ export function SearchPage({
     !getInitialCatalogComplete(initialMeta) ||
     resolvedMeta.zones.length > 0;
 
-  const hydrateCatalog = useCallback(async () => {
-    if (isCatalogComplete) {
+  const loadCatalogPage = useCallback(async ({
+    append = false,
+    filtersOverride,
+    page,
+    sortOverride,
+    villaIdOverride,
+  }: CatalogPageRequest) => {
+    const nextFilters = normalizeFiltersForSearch(
+      filtersOverride ?? filters,
+      maxAvailablePrice,
+    );
+    const nextSortKey = sortOverride ?? sortKey;
+    const nextVillaIdQuery = villaIdOverride ?? villaIdQuery;
+    const params = filtersToSearchParams(nextFilters);
+
+    if (nextVillaIdQuery.trim()) {
+      params.set("id", nextVillaIdQuery.trim());
+    }
+
+    params.set("sort", nextSortKey);
+    params.set("page", String(page));
+    params.set("limit", String(PAGE_SIZE));
+
+    if (isCatalogComplete && !append) {
       return true;
     }
 
-    if (pendingHydration.current) {
-      return pendingHydration.current;
+    if (!append) {
+      setIsCatalogHydrating(true);
     }
 
-    setIsCatalogHydrating(true);
+    try {
+      const response = await fetch(`/api/houses?${params.toString()}`);
 
-    const hydration = (async () => {
-      try {
-        const response = await fetch("/api/houses");
+      if (!response.ok) {
+        throw new Error(`Unable to load houses (${response.status})`);
+      }
 
-        if (!response.ok) {
-          throw new Error(`Unable to load houses (${response.status})`);
-        }
+      const payload = (await response.json()) as SearchCatalogApiResponse;
 
-        const payload = (await response.json()) as SearchCatalogApiResponse;
+      if (!Array.isArray(payload.items)) {
+        throw new Error(payload.error ?? "Invalid house list payload");
+      }
 
-        if (!Array.isArray(payload.items)) {
-          throw new Error(payload.error ?? "Invalid house list payload");
-        }
+      const nextItems = payload.items;
 
-        setVillas(payload.items);
-        setIsCatalogComplete(true);
-        setError(null);
-        return true;
-      } catch (hydrateError) {
-        setError(getSearchErrorMessage(hydrateError));
+      setVillas((currentVillas) =>
+        append ? [...currentVillas, ...nextItems] : nextItems,
+      );
+      setCatalogHasMore(Boolean(payload.hasMore));
+      setCatalogResultCount(
+        typeof payload.total === "number" ? payload.total : nextItems.length,
+      );
+      setLoadedCatalogPage(typeof payload.page === "number" ? payload.page : page);
+      setIsCatalogComplete(false);
+      setError(null);
+      return true;
+    } catch (hydrateError) {
+      setError(getSearchErrorMessage(hydrateError));
 
-        return false;
-      } finally {
+      return false;
+    } finally {
+      if (!append) {
         setIsCatalogHydrating(false);
       }
-    })();
-
-    pendingHydration.current = hydration;
-
-    void hydration.finally(() => {
-      if (pendingHydration.current === hydration) {
-        pendingHydration.current = null;
-      }
-    });
-
-    return hydration;
-  }, [isCatalogComplete]);
-
-  useEffect(() => {
-    if (isCatalogComplete && pendingVillaIdQuery.current !== null) {
-      setVillaIdQuery(pendingVillaIdQuery.current);
-      pendingVillaIdQuery.current = null;
-      setVisibleCount(PAGE_SIZE);
     }
-  }, [isCatalogComplete]);
-
-  useEffect(() => {
-    if (!isCatalogComplete && shouldHydrateCatalogForDeepLink) {
-      void hydrateCatalog();
-    }
-  }, [hydrateCatalog, isCatalogComplete, shouldHydrateCatalogForDeepLink]);
+  }, [filters, isCatalogComplete, maxAvailablePrice, sortKey, villaIdQuery]);
 
   function handleSearch() {
-    if (!isCatalogComplete) {
-      void hydrateCatalog();
-    }
+    const nextFilters = normalizeFiltersForSearch(draftFilters, maxAvailablePrice);
+    const nextVillaIdQuery = villaIdInput.trim();
 
-    setFilters((currentFilters) =>
-      normalizeFiltersForSearch(currentFilters, maxAvailablePrice),
-    );
+    setDraftFilters(nextFilters);
+    setFilters(nextFilters);
+    setSortKey(draftSortKey);
+    setVillaIdQuery(nextVillaIdQuery);
+    if (!isCatalogComplete) {
+      void loadCatalogPage({
+        filtersOverride: nextFilters,
+        page: 1,
+        sortOverride: draftSortKey,
+        villaIdOverride: nextVillaIdQuery,
+      });
+    }
     setVisibleCount(PAGE_SIZE);
-    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollResultsIntoView(resultsRef.current);
   }
 
   function handleFilterChange(nextFilters: VillaFilters) {
-    setFilters(normalizeFiltersForSearch(nextFilters, maxAvailablePrice));
-    if (!isCatalogComplete) {
-      void hydrateCatalog();
-    }
-    setVisibleCount(PAGE_SIZE);
+    const normalizedFilters = normalizeFiltersForSearch(nextFilters, maxAvailablePrice);
+
+    setDraftFilters(normalizedFilters);
   }
 
   function handleApplyMobileFilters(nextFilters: VillaFilters) {
-    handleFilterChange(nextFilters);
+    const normalizedFilters = normalizeFiltersForSearch(nextFilters, maxAvailablePrice);
+    const nextVillaIdQuery = villaIdInput.trim();
+
+    setDraftFilters(normalizedFilters);
+    setFilters(normalizedFilters);
+    setSortKey(draftSortKey);
+    setVillaIdQuery(nextVillaIdQuery);
+    if (!isCatalogComplete) {
+      void loadCatalogPage({
+        filtersOverride: normalizedFilters,
+        page: 1,
+        sortOverride: draftSortKey,
+        villaIdOverride: nextVillaIdQuery,
+      });
+    }
     requestAnimationFrame(() => {
-      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      scrollResultsIntoView(resultsRef.current);
     });
   }
 
   function showMoreResults() {
     if (!isCatalogComplete) {
-      void hydrateCatalog();
+      void loadCatalogPage({ append: true, page: loadedCatalogPage + 1 });
+      return;
     }
 
     setVisibleCount((current) => current + PAGE_SIZE);
@@ -304,35 +344,22 @@ export function SearchPage({
 
   function handleVillaIdQueryChange(value: string) {
     setVillaIdInput(value);
-
-    if (!isCatalogComplete) {
-      pendingVillaIdQuery.current = value;
-      void hydrateCatalog();
-      return;
-    }
-
-    setVillaIdQuery(value);
-    setVisibleCount(PAGE_SIZE);
   }
 
   function handleSortKeyChange(value: string) {
-    if (!isCatalogComplete) {
-      void hydrateCatalog();
-    }
+    const nextSortKey = isVillaSortKey(value) ? value : "recommended";
 
-    setSortKey(isVillaSortKey(value) ? value : "recommended");
-    setVisibleCount(PAGE_SIZE);
+    setDraftSortKey(nextSortKey);
   }
 
   function clearSearchConditions() {
-    if (!isCatalogComplete) {
-      void hydrateCatalog();
-    }
+    const nextFilters = getDefaultFilters(Math.max(maxAvailablePrice, 1000));
 
-    setFilters(getDefaultFilters(Math.max(maxAvailablePrice, 1000)));
+    setDraftFilters(nextFilters);
+    setFilters(nextFilters);
     setVillaIdInput("");
     setVillaIdQuery("");
-    pendingVillaIdQuery.current = null;
+    setDraftSortKey("recommended");
     setSortKey("recommended");
     setVisibleCount(PAGE_SIZE);
   }
@@ -398,17 +425,26 @@ export function SearchPage({
               <DropdownSelect
                 ariaLabel="เรียงลำดับบ้านพัก"
                 options={SORT_OPTIONS}
-                value={sortKey}
+                value={draftSortKey}
                 onChange={handleSortKeyChange}
               />
             </div>
+
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)] md:col-span-2 lg:hidden"
+            >
+              <Search className="h-4 w-4" />
+              ค้นหาบ้านพัก
+            </button>
           </div>
         ) : null}
 
         {isSearchReady ? (
           <div className="lg:hidden">
             <MobileFilterDrawer
-              filters={filters}
+              filters={draftFilters}
               zones={zones}
               maxAvailablePrice={maxAvailablePrice}
               resultCount={resultCount}
@@ -420,7 +456,7 @@ export function SearchPage({
         {isSearchReady ? (
           <div className="hidden lg:block">
             <SearchBar
-              filters={filters}
+              filters={draftFilters}
               zones={zones}
               maxAvailablePrice={maxAvailablePrice}
               onChange={handleFilterChange}
