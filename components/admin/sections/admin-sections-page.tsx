@@ -10,7 +10,6 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   type DragEvent,
@@ -852,7 +851,7 @@ export function AdminSectionsPage() {
               <Plus aria-hidden="true" className="size-4" />
               เพิ่มชุดบ้านพัก
             </button>
-            <Link
+            <a
               className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
               href="/"
               rel="noopener noreferrer"
@@ -860,7 +859,7 @@ export function AdminSectionsPage() {
             >
               <Eye aria-hidden="true" className="size-4" />
               ดูหน้าเว็บจริง
-            </Link>
+            </a>
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
               disabled={isSaving || isLoading || !hasUnsavedChanges}

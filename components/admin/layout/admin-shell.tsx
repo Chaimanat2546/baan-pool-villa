@@ -7,7 +7,6 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -110,16 +109,15 @@ function AdminNavigation({
         );
 
         return (
-          <Link
+          <a
             className={className}
             href={item.href}
             key={item.href}
             onClick={onNavigate}
-            prefetch={false}
             title={collapsed ? item.label : undefined}
           >
             {content}
-          </Link>
+          </a>
         );
       })}
     </nav>
