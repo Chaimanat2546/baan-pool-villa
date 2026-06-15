@@ -49,11 +49,14 @@ vi.mock("../gallery", () => ({
 
 vi.mock("../detail-layout-renderer", () => ({
   DetailLayoutRenderer: ({
+    bookingSidebarId,
     galleryCategories,
   }: {
+    bookingSidebarId?: string;
     galleryCategories: Array<{ items: GalleryItem[] }>;
   }) => (
     <div
+      data-booking-sidebar-id={bookingSidebarId}
       data-detail-gallery-urls={galleryCategories
         .flatMap((category) => category.items.map((item) => item.url))
         .join("|")}
@@ -177,6 +180,30 @@ afterEach(() => {
 });
 
 describe("VillaDetailPage deferred gallery loader", () => {
+  it("places the mobile booking contact before the configurable detail layout", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(makeJsonResponse({ images: [] })));
+    const page = renderPage();
+
+    await page.render(makePage());
+    await flushReact();
+
+    const mobileBooking = page.container.querySelector(
+      "[data-mobile-booking-contact]",
+    );
+    const detailLayout = page.container.querySelector("[data-detail-gallery-urls]");
+
+    expect(mobileBooking).not.toBeNull();
+    expect(mobileBooking?.querySelector("#contact")).not.toBeNull();
+    expect(detailLayout?.getAttribute("data-booking-sidebar-id")).toBe(
+      "desktop-contact",
+    );
+    expect(page.container.innerHTML.indexOf("data-mobile-booking-contact")).toBeLessThan(
+      page.container.innerHTML.indexOf("data-detail-gallery-urls"),
+    );
+
+    await page.unmount();
+  });
+
   it("keeps gallery image loading out of the first render", async () => {
     const fetchMock = vi.fn().mockResolvedValue(makeJsonResponse({ images: [apiImage] }));
     vi.stubGlobal("fetch", fetchMock);
