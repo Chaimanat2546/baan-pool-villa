@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  HOUSE_JSON_EDGE_CACHE_CONTROL,
   HTML_EDGE_CACHE_CONTROL,
   HTML_EDGE_CACHE_HEADER,
   IMAGE_EDGE_CACHE_CONTROL,
@@ -8,6 +9,7 @@ import {
   JSON_EDGE_CACHE_CONTROL,
   JSON_EDGE_CACHE_HEADER,
   STATIC_ASSET_CACHE_CONTROL,
+  VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL,
   createHtmlEdgeCacheKey,
   createHtmlEdgeVersionToken,
   createImageEdgeCacheKey,
@@ -34,8 +36,14 @@ function request(path: string, init: RequestInit = {}) {
 }
 
 describe("worker HTML edge cache policy", () => {
-  it("keeps public HTML edge cache shared for one hour", () => {
-    expect(HTML_EDGE_CACHE_CONTROL).toBe("public, max-age=0, s-maxage=3600");
+  it("keeps public HTML edge cache shared for six hours by default", () => {
+    expect(HTML_EDGE_CACHE_CONTROL).toBe("public, max-age=0, s-maxage=21600");
+  });
+
+  it("keeps villa detail HTML edge cache shared for twenty-four hours", () => {
+    expect(VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL).toBe(
+      "public, max-age=0, s-maxage=86400",
+    );
   });
 
   it("allows only the first conservative public HTML page batch", () => {
@@ -87,8 +95,16 @@ describe("worker HTML edge cache policy", () => {
 
     expect(decision.cacheable).toBe(true);
     expect(decision.reason).toBe("html");
+    expect(decision.cacheControl).toBe(HTML_EDGE_CACHE_CONTROL);
     expect(decision.cacheKey?.method).toBe("GET");
     expect(decision.cacheKey?.url).toBe("https://example.com/guides");
+  });
+
+  it("assigns the longer HTML cache control to villa detail pages", () => {
+    expect(getHtmlEdgeCacheDecision(request("/villas/9"))).toMatchObject({
+      cacheControl: VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL,
+      cacheable: true,
+    });
   });
 
   it("assigns CMS version groups to each cacheable public HTML route", () => {
@@ -217,6 +233,12 @@ describe("worker static asset cache policy", () => {
 });
 
 describe("worker image edge cache policy", () => {
+  it("keeps public image proxy responses shared for one year", () => {
+    expect(IMAGE_EDGE_CACHE_CONTROL).toBe(
+      "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=31536000",
+    );
+  });
+
   it("allows only public villa image display proxy requests", () => {
     expect(
       getImageEdgeCacheDecision(
@@ -282,7 +304,8 @@ describe("worker image edge cache policy", () => {
   it("builds an image cache key that keeps only the source URL query and drops hash", () => {
     const cacheKey = createImageEdgeCacheKey(
       request(
-        "/api/houses/images/proxy?foo=1&url=https%3A%2F%2Fimages.example.com%2Fpool.jpg%3Fv%3D1&bar=2#top",
+        "/api/houses/images/proxy?foo=1&url=https%3A%2F%2Fimages.example.com%2Fpool.jpg%3Fv%3D1&w=640&q=60&bar=2#top",
+        { headers: { Accept: "image/avif,image/webp,image/*,*/*" } },
       ),
     );
     const url = new URL(cacheKey.url);
@@ -290,9 +313,25 @@ describe("worker image edge cache policy", () => {
     expect(cacheKey.method).toBe("GET");
     expect(url.pathname).toBe("/api/houses/images/proxy");
     expect(url.searchParams.get("url")).toBe("https://images.example.com/pool.jpg?v=1");
+    expect(url.searchParams.get("w")).toBe("640");
+    expect(url.searchParams.get("q")).toBe("60");
+    expect(url.searchParams.get("f")).toBe("avif");
     expect(url.searchParams.has("foo")).toBe(false);
     expect(url.searchParams.has("bar")).toBe(false);
     expect(url.hash).toBe("");
+  });
+
+  it("bypasses unsupported image transform variants before caching", () => {
+    expect(
+      getImageEdgeCacheDecision(
+        request("/api/houses/images/proxy?url=https://x.test/a.jpg&w=999"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "transform" });
+    expect(
+      getImageEdgeCacheDecision(
+        request("/api/houses/images/proxy?url=https://x.test/a.jpg&q=90"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "transform" });
   });
 
   it("stores only successful image proxy responses without Set-Cookie", () => {
@@ -339,14 +378,22 @@ describe("worker image edge cache policy", () => {
 });
 
 describe("worker JSON edge cache policy", () => {
+  it("keeps the public house catalog JSON cache shared for six hours", () => {
+    expect(HOUSE_JSON_EDGE_CACHE_CONTROL).toBe(
+      "public, s-maxage=21600, stale-while-revalidate=21600",
+    );
+  });
+
   it("allows the bounded public JSON API batch", () => {
     expect(getJsonEdgeCacheDecision(request("/api/houses"))).toMatchObject({
+      cacheControl: HOUSE_JSON_EDGE_CACHE_CONTROL,
       cacheable: true,
       candidate: true,
       reason: "json",
       versionGroups: ["villa-listings"],
     });
     expect(getJsonEdgeCacheDecision(request("/api/home-sections"))).toMatchObject({
+      cacheControl: JSON_EDGE_CACHE_CONTROL,
       cacheable: true,
       candidate: true,
       reason: "json",

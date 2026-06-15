@@ -4,6 +4,7 @@ import {
   buildGuideImageProxyUrl,
   buildSiteAssetProxyUrl,
   buildVillaCoverImageProxyUrl,
+  buildVillaGalleryImageProxyUrl,
 } from "@/lib/public-image-proxy";
 
 describe("public image proxy URL builders", () => {
@@ -37,5 +38,47 @@ describe("public image proxy URL builders", () => {
     expect(url.searchParams.get("url")).toBe(
       "https://assets.example.com/guide.jpg",
     );
+  });
+
+  it("adds allowlisted transform params to proxy URLs", () => {
+    const proxyUrl = buildVillaCoverImageProxyUrl(
+      "https://assets.example.com/cover.jpg",
+      { quality: 60, width: 640 },
+    );
+    const url = new URL(proxyUrl ?? "", "https://example.com");
+
+    expect(url.pathname).toBe("/api/houses/images/proxy");
+    expect(url.searchParams.get("url")).toBe(
+      "https://assets.example.com/cover.jpg",
+    );
+    expect(url.searchParams.get("w")).toBe("640");
+    expect(url.searchParams.get("q")).toBe("60");
+  });
+
+  it("omits unsupported transform params from generated proxy URLs", () => {
+    const proxyUrl = buildSiteAssetProxyUrl(
+      "https://assets.example.com/hero.jpg",
+      { quality: 90, width: 999 },
+    );
+    const url = new URL(proxyUrl ?? "", "https://example.com");
+
+    expect(url.searchParams.has("w")).toBe(false);
+    expect(url.searchParams.has("q")).toBe(false);
+  });
+
+  it("builds villa gallery proxy URLs with encoded listing ids and transforms", () => {
+    const proxyUrl = buildVillaGalleryImageProxyUrl(
+      "88",
+      "https://assets.example.com/gallery.jpg",
+      { quality: 75, width: 1920 },
+    );
+    const url = new URL(proxyUrl ?? "", "https://example.com");
+
+    expect(url.pathname).toBe("/api/villas/88/images/proxy");
+    expect(url.searchParams.get("url")).toBe(
+      "https://assets.example.com/gallery.jpg",
+    );
+    expect(url.searchParams.get("w")).toBe("1920");
+    expect(url.searchParams.get("q")).toBe("75");
   });
 });
