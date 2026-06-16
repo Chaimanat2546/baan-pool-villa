@@ -40,7 +40,7 @@ export function NearbySection({
           <h3 className="text-sm font-black text-[var(--site-text)]">
             จุดหมายจาก Google Maps
           </h3>
-          <span className="text-xs font-bold text-[var(--site-muted)] lg:hidden">
+          <span className="text-xs font-bold text-[var(--site-muted)] md:hidden">
             เลื่อนได้
           </span>
         </div>

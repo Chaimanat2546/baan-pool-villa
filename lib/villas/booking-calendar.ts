@@ -128,12 +128,45 @@ function createDateKey(date: Date): string {
   ].join("-");
 }
 
+function isAsciiDigits(value: string): boolean {
+  if (!value) {
+    return false;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+
+    if (code < 48 || code > 57) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function parseDateKey(dateKey: string | null | undefined): Date | null {
-  if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+  if (!dateKey) {
     return null;
   }
 
-  const [year, month, day] = dateKey.split("-").map(Number);
+  const parts = dateKey.split("-");
+
+  if (parts.length !== 3 || parts.some((part) => !isAsciiDigits(part))) {
+    return null;
+  }
+
+  const [year, month, day] = parts.map(Number);
+
+  if (month < 1 || month > 12) {
+    return null;
+  }
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  if (day < 1 || day > daysInMonth) {
+    return null;
+  }
+
   return new Date(year, month - 1, day);
 }
 

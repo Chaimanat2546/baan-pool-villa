@@ -4,10 +4,11 @@ import {
   BedDouble,
   Car,
   Check,
+  CircleDot,
   Clock,
   Flame,
-  Home,
   MapPin,
+  Music,
   PawPrint,
   Play,
   ShieldCheck,
@@ -15,7 +16,6 @@ import {
   Users,
   Waves,
   Wifi,
-  Utensils,
 } from "lucide-react";
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
@@ -24,7 +24,7 @@ import {
   getVillaTitle as getSeoVillaTitle,
 } from "@/lib/seo";
 import type { VillaDetailContent } from "@/lib/villas/detail";
-import type { VillaListing } from "@/lib/villas/types";
+import type { Amenity, AmenityKey, VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
 import { findFact, findSection } from "./helpers";
 
@@ -234,24 +234,43 @@ export function AboutSection({
 }
 
 const DEFAULT_AMENITY_PREVIEW_COUNT = 12;
+const AMENITY_ICONS: Record<AmenityKey, typeof Wifi> = {
+  airhockey: CircleDot,
+  bath: Bath,
+  billard: CircleDot,
+  discotech: Music,
+  fancyring: Waves,
+  grill: Flame,
+  jacuzzi: Bath,
+  karaoke: Music,
+  pet: PawPrint,
+  slider: Waves,
+  snooker: CircleDot,
+  swimming_kid: Waves,
+  tabletennis: CircleDot,
+  wifi: Wifi,
+};
+
+function getAmenityIcon(amenityKey: Amenity["key"]) {
+  return AMENITY_ICONS[amenityKey] ?? Star;
+}
 
 export function AmenitiesSection({
+  amenities,
   compact = false,
-  listing,
   previewCount = DEFAULT_AMENITY_PREVIEW_COUNT,
 }: {
+  amenities: Amenity[];
   compact?: boolean;
-  listing: VillaListing;
   previewCount?: number;
 }) {
 
-  const icons = [Waves, Flame, Utensils, Wifi, Home, PawPrint, Car, Star];
-  const shouldCompact = compact && listing.amenities.length > previewCount;
+  const shouldCompact = compact && amenities.length > previewCount;
   const visibleAmenities = shouldCompact
-    ? listing.amenities.slice(0, previewCount)
-    : listing.amenities;
+    ? amenities.slice(0, previewCount)
+    : amenities;
   const hiddenAmenities = shouldCompact
-    ? listing.amenities.slice(previewCount)
+    ? amenities.slice(previewCount)
     : [];
 
   return (
@@ -265,13 +284,17 @@ export function AmenitiesSection({
 
       <div className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
 
-        {visibleAmenities.map((amenity, index) => {
+        {visibleAmenities.map((amenity) => {
 
-          const Icon = icons[index % icons.length];
+          const Icon = getAmenityIcon(amenity.key);
 
           return (
 
-            <div key={amenity.key} className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]">
+            <div
+              key={amenity.key}
+              className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]"
+              data-amenity-icon={amenity.key}
+            >
 
               <Icon className="h-4 w-4 text-[var(--site-primary)]" />
 
@@ -291,13 +314,14 @@ export function AmenitiesSection({
             ดูสิ่งอำนวยความสะดวกเพิ่มอีก {hiddenAmenities.length.toLocaleString("th-TH")} รายการ
           </summary>
           <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-            {hiddenAmenities.map((amenity, index) => {
-              const Icon = icons[(previewCount + index) % icons.length];
+            {hiddenAmenities.map((amenity) => {
+              const Icon = getAmenityIcon(amenity.key);
 
               return (
                 <div
                   key={amenity.key}
                   className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]"
+                  data-amenity-icon={amenity.key}
                 >
                   <Icon className="h-4 w-4 text-[var(--site-primary)]" />
                   {amenity.label}
@@ -568,7 +592,10 @@ export function PolicySection({
 
   const deposit = findFact(content.facts, "ค่าประกัน");
 
-  const hasPet = listing.amenities.some((amenity) => amenity.key === "pet");
+  const amenities = content.amenities.length > 0
+    ? content.amenities
+    : listing.amenities;
+  const hasPet = amenities.some((amenity) => amenity.key === "pet");
 
   return (
 

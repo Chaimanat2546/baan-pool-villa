@@ -1,5 +1,6 @@
 import { CACHE_HEADERS } from "@/lib/cache-policy";
 import { publicApiErrorResponse } from "@/lib/api/errors";
+import { limitPublicApiRequest } from "@/lib/api/rate-limit";
 import {
   fetchVillaBookingCalendar,
   isValidBookingCalendarMonth,
@@ -13,6 +14,12 @@ export async function GET(
 
   if (!isValidBookingCalendarMonth(month)) {
     return Response.json({ error: "Invalid month." }, { status: 400 });
+  }
+
+  const rateLimitResponse = limitPublicApiRequest(request, "publicDetail");
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
   }
 
   const { id } = await context.params;

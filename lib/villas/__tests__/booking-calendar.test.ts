@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fetchVillaBookingCalendar,
   normalizeBookingCalendar,
@@ -6,6 +6,11 @@ import {
 } from "../booking-calendar";
 
 vi.mock("server-only", () => ({}));
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 const baseResponse: RawBookingCalendarResponse = {
   base_price: {
@@ -124,6 +129,31 @@ describe("normalizeBookingCalendar", () => {
     });
   });
 
+  it("ignores calendar-invalid booking date ranges", () => {
+    const calendar = normalizeBookingCalendar(
+      {
+        ...baseResponse,
+        bookings: [
+          {
+            book_checkin: "2026-02-31",
+            book_checkout: "2026-03-03",
+            book_type: "deville",
+          },
+        ],
+      },
+      "2026-03",
+    );
+
+    expect(calendar.days["2026-03-01"]).toMatchObject({
+      disabled: false,
+      kind: "base",
+    });
+    expect(calendar.days["2026-03-02"]).toMatchObject({
+      disabled: false,
+      kind: "base",
+    });
+  });
+
   it("marks holidays, hotpro holidays, and hot holidays with the requested backgrounds and icons", () => {
     const calendar = normalizeBookingCalendar(
       {
@@ -188,5 +218,77 @@ describe("fetchVillaBookingCalendar", () => {
       status: "missing_token",
     });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns unavailable when the upstream API returns a non-OK response", async () => {
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("nope", { status: 503 })),
+    );
+
+    await expect(fetchVillaBookingCalendar("9", "2026-06")).resolves.toEqual({
+      calendar: null,
+      status: "unavailable",
+    });
+  });
+
+  it("returns unavailable when fetch or JSON parsing throws", async () => {
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network")));
+
+    await expect(fetchVillaBookingCalendar("9", "2026-06")).resolves.toEqual({
+      calendar: null,
+      status: "unavailable",
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("not json", {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        }),
+      ),
+    );
+
+    await expect(fetchVillaBookingCalendar("9", "2026-06")).resolves.toEqual({
+      calendar: null,
+      status: "unavailable",
+    });
+  });
+
+  it("returns normalized calendar data when the upstream API succeeds", async () => {
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(baseResponse));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchVillaBookingCalendar("9", "2026-06");
+
+    expect(result).toMatchObject({
+      calendar: {
+        days: {
+          "2026-06-16": {
+            kind: "base",
+            price: 9900,
+          },
+        },
+        month: "2026-06",
+        status: "available",
+      },
+      status: "available",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        searchParams: expect.any(URLSearchParams),
+      }),
+      expect.objectContaining({
+        headers: { Authorization: "Bearer calendar-token" },
+        next: expect.objectContaining({
+          revalidate: expect.any(Number),
+          tags: expect.arrayContaining(["villa-details", "villa-detail:9"]),
+        }),
+      }),
+    );
   });
 });

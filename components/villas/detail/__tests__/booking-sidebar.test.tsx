@@ -24,6 +24,7 @@ const listing: VillaListing = {
 };
 
 const content: VillaDetailContent = {
+  amenities: [],
   facts: [
     { label: "เวลาเช็คอิน", value: "14:00" },
     { label: "เวลาเช็คเอาต์", value: "12:00" },
@@ -283,7 +284,7 @@ describe("BookingSidebar", () => {
 
     expect(
       page.container.querySelector('[role="presentation"]')?.className,
-    ).toContain("backdrop-blur-[1px]");
+    ).toContain("backdrop-blur-xs");
     expect(
       page.container.querySelector('[role="presentation"]')?.className,
     ).not.toContain("backdrop-blur-sm");
@@ -333,7 +334,7 @@ describe("BookingSidebar", () => {
     expect(document.body.style.overflow).toBe("hidden");
     expect(
       page.container.querySelector('[role="presentation"]')?.className,
-    ).toContain("pb-[calc(7.5rem+env(safe-area-inset-bottom))]");
+    ).toContain("pb-[calc(10rem+env(safe-area-inset-bottom))]");
 
     await act(async () => {
       page.container
@@ -418,8 +419,14 @@ describe("BookingSidebar", () => {
     expect(baseDate?.querySelector("[data-calendar-icon-slot='empty']")).not.toBeNull();
     expect(waitingDate?.disabled).toBe(true);
     expect(waitingDate?.dataset.calendarDayKind).toBe("booking_waiting");
+    expect(
+      waitingDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
+    ).toBeNull();
     expect(bookedDate?.disabled).toBe(true);
     expect(bookedDate?.dataset.calendarDayKind).toBe("booking_confirmed");
+    expect(
+      bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
+    ).not.toBeNull();
     expect(holidayDate?.dataset.calendarDayKind).toBe("holiday");
     expect(holidayDate?.className).toContain("bg-[var(--site-accent-soft)]");
     expect(hotproDate?.dataset.calendarDayKind).toBe("hotpro");

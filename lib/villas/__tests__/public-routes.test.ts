@@ -247,6 +247,37 @@ describe("GET /api/villas/[id]", () => {
 });
 
 describe("GET /api/villas/[id]/booking-calendar", () => {
+  it("rate limits repeated calendar requests before loading booking data", async () => {
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const request = new Request(
+      "https://example.com/api/villas/9/booking-calendar?month=2026-06",
+      { headers: { "CF-Connecting-IP": "203.0.113.81" } },
+    );
+    const context = { params: Promise.resolve({ id: "9" }) };
+
+    for (
+      let index = 0;
+      index < PUBLIC_RATE_LIMIT_POLICIES.publicDetail.limit;
+      index += 1
+    ) {
+      fetchVillaBookingCalendarMock.mockResolvedValue({
+        calendar: { days: {}, month: "2026-06", status: "available" },
+        status: "available",
+      });
+      const response = await GET(request, context);
+      expect(response.status).not.toBe(429);
+    }
+
+    fetchVillaBookingCalendarMock.mockClear();
+    const blocked = await GET(request, context);
+
+    expect(blocked.status).toBe(429);
+    await expectRateLimitResponse(blocked);
+    expect(fetchVillaBookingCalendarMock).not.toHaveBeenCalled();
+  });
+
   it("returns 400 for invalid month parameters before calling the booking API", async () => {
     const { GET } = await import(
       "../../../app/(public)/api/villas/[id]/booking-calendar/route"

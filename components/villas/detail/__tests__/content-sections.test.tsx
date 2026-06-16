@@ -4,6 +4,7 @@ import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
 import {
   AboutSection,
+  AmenitiesSection,
   PolicySection,
 } from "../content-sections";
 import { NearbySection } from "../nearby-section";
@@ -23,6 +24,7 @@ const listing: VillaListing = {
 };
 
 const content: VillaDetailContent = {
+  amenities: [],
   facts: [
     { label: "เวลาเช็คอิน", value: "14:00" },
     { label: "เวลาเช็คเอาต์", value: "12:00" },
@@ -78,5 +80,30 @@ describe("Detail content sections", () => {
     expect(markup).toContain("md:grid-cols-2");
     expect(markup).toContain("md:overflow-visible");
     expect(markup).toContain("md:w-full");
+    expect(markup).toContain("md:hidden");
+    expect(markup).not.toContain("lg:hidden");
+  });
+
+  it("uses stable icons for each amenity key instead of list position", () => {
+    const markup = renderToStaticMarkup(
+      <AmenitiesSection
+        amenities={[
+          { key: "wifi", label: "Wi-Fi" },
+          { key: "grill", label: "เตาปิ้งย่าง" },
+          { key: "tabletennis", label: "โต๊ะปิงปอง" },
+          { key: "karaoke", label: "คาราโอเกะ" },
+          { key: "pet", label: "นำสัตว์เลี้ยงได้" },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain('data-amenity-icon="wifi"');
+    expect(markup).toContain("lucide-wifi");
+    expect(markup).toContain('data-amenity-icon="grill"');
+    expect(markup).toContain("lucide-flame");
+    expect(markup).toContain('data-amenity-icon="karaoke"');
+    expect(markup).toContain("lucide-music");
+    expect(markup).toContain('data-amenity-icon="pet"');
+    expect(markup).toContain("lucide-paw-print");
   });
 });
