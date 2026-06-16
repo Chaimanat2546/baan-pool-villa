@@ -3,7 +3,7 @@ import {
   PUBLIC_RATE_LIMIT_POLICIES,
   resetPublicRateLimitForTests,
 } from "@/lib/api/rate-limit";
-import type { VillaDetailPayload, VillaImage } from "@/lib/villas/types";
+import type { VillaImage } from "@/lib/villas/types";
 import {
   buildImageDownloadFilename,
   createAttachmentDisposition,
@@ -43,12 +43,6 @@ const imageRows: VillaImage[] = [
   },
 ];
 
-const detailPayload = {
-  listing: {
-    coverImage: "https://devillegroups.com/imgs/profile_imgs_large/cover.jpg",
-  },
-} as VillaDetailPayload;
-
 beforeEach(() => {
   vi.restoreAllMocks();
   resetPublicRateLimitForTests();
@@ -82,19 +76,18 @@ describe("download image validation helpers", () => {
     expect(normalizeDownloadImageUrl("https://[fe80::1]/pool.jpg")).toBeNull();
   });
 
-  it("allows exact villa image URLs and the listing cover only", () => {
-    expect(
-      isAllowedVillaImageUrl("https://images.example.com/pool.jpg", imageRows, detailPayload),
-    ).toBe(true);
+  it("allows exact villa image URLs without falling back to the listing cover", () => {
+    expect(isAllowedVillaImageUrl("https://images.example.com/pool.jpg", imageRows)).toBe(
+      true,
+    );
     expect(
       isAllowedVillaImageUrl(
         "https://devillegroups.com/imgs/profile_imgs_large/cover.jpg",
         imageRows,
-        detailPayload,
       ),
-    ).toBe(true);
+    ).toBe(false);
     expect(
-      isAllowedVillaImageUrl("https://images.example.com/other-villa.jpg", imageRows, detailPayload),
+      isAllowedVillaImageUrl("https://images.example.com/other-villa.jpg", imageRows),
     ).toBe(false);
   });
 
@@ -108,7 +101,6 @@ describe("download image validation helpers", () => {
             imageUrl: "https://IMAGES.example.com:443/pool.jpg",
           },
         ],
-        null,
       ),
     ).toBe(true);
   });
@@ -208,7 +200,6 @@ describe("GET /api/villas/[id]/images/download", () => {
 
   it("returns 404 when the requested URL is not part of the villa gallery", async () => {
     fetchVillaImagesMock.mockResolvedValue(imageRows);
-    fetchVillaDetailMock.mockResolvedValue(detailPayload);
     const { GET } = await import(
       "../../../app/(public)/api/villas/[id]/images/download/route"
     );
@@ -222,6 +213,28 @@ describe("GET /api/villas/[id]/images/download", () => {
 
     await expect(response.json()).resolves.toEqual({ error: "Image not found" });
     expect(response.status).toBe(404);
+    expect(fetchVillaDetailMock).not.toHaveBeenCalled();
+  });
+
+  it("does not download the listing API cover as a villa gallery image", async () => {
+    fetchVillaImagesMock.mockResolvedValue(imageRows);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/images/download/route"
+    );
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/images/download?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2Fcover.jpg",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    await expect(response.json()).resolves.toEqual({ error: "Image not found" });
+    expect(response.status).toBe(404);
+    expect(fetchVillaDetailMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("proxies an allowed gallery image as an attachment", async () => {

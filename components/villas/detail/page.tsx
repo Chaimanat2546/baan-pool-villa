@@ -111,12 +111,6 @@ export function VillaDetailPage({
   const content = buildVillaDetailContent(payload.detail);
   const showMobileBookingContact = hasEnabledBookingContact(settings.detailLayout);
 
-  useEffect(() => {
-    void Promise.resolve().then(() => {
-      setActiveGalleryItem(null);
-    });
-  }, [id]);
-
   const replaceGalleryLoadState = useCallback((nextState: GalleryLoadState) => {
     galleryLoadStateRef.current = nextState;
     setGalleryLoadState(nextState);
@@ -133,11 +127,33 @@ export function VillaDetailPage({
     [],
   );
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void Promise.resolve().then(() => {
+      if (cancelled) {
+        return;
+      }
+
+      setActiveGalleryItem(null);
+      setFailedImageUrls(new Set());
+      replaceGalleryLoadState(getInitialGalleryLoadState(id));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, replaceGalleryLoadState]);
+
   const loadGalleryImages = useCallback(async ({
     mode = "interactive",
   }: LoadGalleryImagesOptions = {}) => {
     const latestGalleryLoadState = galleryLoadStateRef.current;
     const isBackgroundLoad = mode === "background";
+    const shouldExposeBackgroundLoad =
+      isBackgroundLoad &&
+      latestGalleryLoadState.villaId === id &&
+      latestGalleryLoadState.images.length === 0;
 
     if (
       latestGalleryLoadState.villaId === id &&
@@ -152,7 +168,7 @@ export function VillaDetailPage({
     }
 
     const requestId = id;
-    if (!isBackgroundLoad) {
+    if (!isBackgroundLoad || shouldExposeBackgroundLoad) {
       replaceGalleryLoadState({
         error: null,
         images: [],
@@ -189,7 +205,7 @@ export function VillaDetailPage({
 
       return loadedImages;
     } catch (error) {
-      if (!isBackgroundLoad) {
+      if (!isBackgroundLoad || shouldExposeBackgroundLoad) {
         updateGalleryLoadState((currentState) =>
         currentState.villaId === requestId
           ? {
@@ -275,6 +291,9 @@ export function VillaDetailPage({
     [visibleGalleryItems],
 
   );
+  const shouldShowGallerySkeleton =
+    galleryLoadStatus === "loading" ||
+    (galleryLoadStatus === "idle" && galleryItems.length === 0);
 
   const handleImageError = (imageUrl: string) => {
 
@@ -330,7 +349,7 @@ export function VillaDetailPage({
 
       <Breadcrumbs listing={listing} />
 
-      {galleryLoadStatus === "loading" ? (
+      {shouldShowGallerySkeleton ? (
 
         <GallerySkeleton />
 
@@ -356,7 +375,20 @@ export function VillaDetailPage({
 
           <div className="grid aspect-[16/7] place-items-center rounded-2xl bg-[var(--site-surface-tint)] text-[var(--site-muted)]">
 
-            <ImageOff className="h-10 w-10" />
+            <div className="flex flex-col items-center gap-3">
+
+              <ImageOff className="h-10 w-10" />
+
+              <button
+                className="rounded-full bg-[var(--site-primary)] px-4 py-2 text-sm font-black text-[var(--site-on-primary)]"
+                data-gallery-retry="true"
+                type="button"
+                onClick={handleGalleryRetry}
+              >
+                โหลดรูปอีกครั้ง
+              </button>
+
+            </div>
 
           </div>
 

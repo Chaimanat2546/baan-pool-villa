@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { VillaDetailPayload, VillaImage } from "@/lib/villas/types";
+import type { VillaImage } from "@/lib/villas/types";
 
 vi.mock("server-only", () => ({}));
 
@@ -32,12 +32,6 @@ const imageRows: VillaImage[] = [
     zone: "pool",
   },
 ];
-
-const detailPayload = {
-  listing: {
-    coverImage: "https://devillegroups.com/imgs/profile_imgs_large/cover.jpg",
-  },
-} as VillaDetailPayload;
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -83,7 +77,6 @@ describe("GET /api/villas/[id]/images/proxy", () => {
 
   it("returns 404 when the requested URL is not part of the villa gallery", async () => {
     fetchVillaImagesMock.mockResolvedValue(imageRows);
-    fetchVillaDetailMock.mockResolvedValue(detailPayload);
     const { GET } = await import(
       "../../../app/(public)/api/villas/[id]/images/proxy/route"
     );
@@ -97,6 +90,28 @@ describe("GET /api/villas/[id]/images/proxy", () => {
 
     await expect(response.json()).resolves.toEqual({ error: "Image not found" });
     expect(response.status).toBe(404);
+    expect(fetchVillaDetailMock).not.toHaveBeenCalled();
+  });
+
+  it("does not proxy the listing API cover as a villa gallery image", async () => {
+    fetchVillaImagesMock.mockResolvedValue(imageRows);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/images/proxy/route"
+    );
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2Fcover.jpg",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    await expect(response.json()).resolves.toEqual({ error: "Image not found" });
+    expect(response.status).toBe(404);
+    expect(fetchVillaDetailMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("proxies an allowed gallery image with public display cache headers", async () => {

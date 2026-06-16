@@ -7,7 +7,6 @@ import {
 import { publicApiErrorResponse } from "@/lib/api/errors";
 import { limitPublicApiRequest } from "@/lib/api/rate-limit";
 import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
-import { fetchVillaDetail } from "@/lib/villas/server";
 
 const IMAGE_DOWNLOAD_TIMEOUT_MS = 10_000;
 
@@ -55,9 +54,8 @@ export async function GET(
   try {
     const images = await fetchVillaImages(id);
     const matchedImage = images.find((image) => image.imageUrl === targetUrl) ?? null;
-    const detailPayload = matchedImage ? null : await fetchVillaDetail(id);
 
-    if (!isAllowedVillaImageUrl(targetUrl, images, detailPayload)) {
+    if (!isAllowedVillaImageUrl(targetUrl, images)) {
       return Response.json({ error: "Image not found" }, { status: 404 });
     }
 

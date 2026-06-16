@@ -7,7 +7,6 @@ import {
   parsePublicImageProxyTransformRequest,
 } from "@/lib/public-image-proxy-server";
 import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
-import { fetchVillaDetail } from "@/lib/villas/server";
 
 export async function GET(
   request: Request,
@@ -45,13 +44,8 @@ export async function GET(
 
   try {
     const images = await fetchVillaImages(id);
-    const matchedImage =
-      images.find(
-        (image) => normalizePublicImageProxyUrl(image.imageUrl) === targetUrl,
-      ) ?? null;
-    const detailPayload = matchedImage ? null : await fetchVillaDetail(id);
 
-    if (!isAllowedVillaImageUrl(targetUrl, images, detailPayload)) {
+    if (!isAllowedVillaImageUrl(targetUrl, images)) {
       return Response.json({ error: "Image not found" }, { status: 404 });
     }
 

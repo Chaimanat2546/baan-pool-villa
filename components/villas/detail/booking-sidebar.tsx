@@ -1,6 +1,13 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Phone } from "lucide-react";
+import {
+  BadgePercent,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  Phone,
+} from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { LineIcon, MessengerIcon } from "@/components/layout/contact-icons";
 import { Button } from "@/components/ui/button";
@@ -28,6 +35,35 @@ const THAI_MONTHS = [
   "ธันวาคม",
 ] as const;
 
+interface BookingCalendarDay {
+  disabled: boolean;
+  icons: ("fire" | "promotion")[];
+  kind:
+    | "base"
+    | "booking_confirmed"
+    | "booking_waiting"
+    | "holiday"
+    | "hot_holiday"
+    | "hotpro"
+    | "promotion";
+  label: string;
+  price: number | null;
+  tone:
+    | "booked"
+    | "default"
+    | "holiday"
+    | "hot_holiday"
+    | "hotpro"
+    | "promotion"
+    | "waiting";
+}
+
+interface BookingCalendarMonth {
+  days: Record<string, BookingCalendarDay>;
+  month: string;
+  status: "available";
+}
+
 function startOfCalendarDate(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -36,10 +72,136 @@ function addCalendarMonths(date: Date, monthOffset: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + monthOffset, 1);
 }
 
+function formatCalendarMonthKey(date: Date): string {
+  return [
+    String(date.getFullYear()),
+    String(date.getMonth() + 1).padStart(2, "0"),
+  ].join("-");
+}
+
+function formatCalendarDateKey(date: Date): string {
+  return [
+    String(date.getFullYear()),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 function formatThaiCalendarDate(date: Date): string {
   return `${date.getDate()} ${THAI_MONTHS[date.getMonth()]} ${
     date.getFullYear() + 543
   }`;
+}
+
+function formatCalendarPrice(price: number | null): string {
+  return typeof price === "number"
+    ? `${price.toLocaleString("th-TH")} บาท`
+    : "- บาท";
+}
+
+function getFallbackCalendarDay(price: number): BookingCalendarDay {
+  return {
+    disabled: false,
+    icons: [],
+    kind: "base",
+    label: "วันธรรมดา",
+    price,
+    tone: "default",
+  };
+}
+
+function getCalendarToneClass(day: BookingCalendarDay): string | null {
+  switch (day.tone) {
+    case "booked":
+      return "bg-red-200 text-red-900 ring-1 ring-red-500/30 hover:bg-red-200 hover:text-red-900";
+    case "holiday":
+    case "hot_holiday":
+      return "bg-[var(--site-accent-soft)] text-[var(--site-accent)] ring-1 ring-[var(--site-accent)]/25 hover:bg-[var(--site-accent-soft)] hover:text-[var(--site-accent)]";
+    case "waiting":
+      return "bg-emerald-200 text-emerald-900 ring-1 ring-emerald-500/30 hover:bg-emerald-200 hover:text-emerald-900";
+    default:
+      return null;
+  }
+}
+
+function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"] }) {
+  const reduceMotion = useReducedMotion();
+  const hasPromotion = icons.includes("promotion");
+  const hasFire = icons.includes("fire");
+  const isEmpty = icons.length === 0;
+
+  const iconAnimation = reduceMotion
+    ? undefined
+    : {
+        opacity: hasFire ? [0.82, 1, 0.86] : [0.78, 1, 0.78],
+        rotate: hasFire ? [-5, 4, -3] : [0, -4, 4, 0],
+        scale: hasFire ? [1, 1.16, 1.04] : [1, 1.1, 1],
+      };
+  const iconTransition = reduceMotion
+    ? undefined
+    : {
+        duration: hasFire ? 1.25 : 1.8,
+        ease: "easeInOut" as const,
+        repeat: Infinity,
+      };
+
+  return (
+    <motion.span
+      aria-hidden="true"
+      animate={iconAnimation}
+      className={cn(
+        "absolute right-1 bottom-1 inline-flex size-3.5 items-center justify-center rounded-full text-[var(--site-primary)]",
+        hasFire ? "text-amber-600" : null,
+        isEmpty ? "opacity-0" : null,
+      )}
+      data-calendar-icon-slot={isEmpty ? "empty" : "filled"}
+      transition={iconTransition}
+    >
+      {hasPromotion ? (
+        <BadgePercent
+          aria-hidden="true"
+          className="h-3.5 w-3.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)] text-pink-400"
+          data-calendar-icon="promotion"
+        />
+      ) : null}
+      {hasFire ? (
+        <Flame
+          aria-hidden="true"
+          className="h-3.5 w-3.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)] text-amber-600"
+          data-calendar-icon="fire"
+        />
+      ) : null}
+    </motion.span>
+  );
+}
+
+function CalendarLegendItem({
+  children,
+  icon,
+  swatchClassName,
+}: {
+  children: string;
+  icon?: BookingCalendarDay["icons"][number];
+  swatchClassName?: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-2.5 py-1 text-[11px] font-bold text-[var(--site-muted)]">
+      <span
+        className={cn(
+          "inline-flex size-4 items-center justify-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface-soft)] text-[var(--site-text)]",
+          swatchClassName,
+        )}
+      >
+        {icon === "promotion" ? (
+          <BadgePercent aria-hidden="true" className="h-3 w-3 text-pink-400" />
+        ) : null}
+        {icon === "fire" ? (
+          <Flame aria-hidden="true" className="h-3 w-3 text-amber-600" />
+        ) : null}
+      </span>
+      {children}
+    </span>
+  );
 }
 
 export function BookingSidebar({
@@ -62,8 +224,29 @@ export function BookingSidebar({
   );
   const [selectedCalendarDate, setSelectedCalendarDate] =
     useState<Date | null>(null);
+  const [bookingCalendar, setBookingCalendar] =
+    useState<BookingCalendarMonth | null>(null);
   const isPastCalendarDate = (date: Date) =>
     startOfCalendarDate(date).getTime() < todayStart.getTime();
+  const isOutsideVisibleMonth = (date: Date) =>
+    date.getFullYear() !== visibleMonth.getFullYear() ||
+    date.getMonth() !== visibleMonth.getMonth();
+  const getCalendarDay = (date: Date): BookingCalendarDay => {
+    if (
+      isOutsideVisibleMonth(date) ||
+      bookingCalendar?.month !== formatCalendarMonthKey(visibleMonth)
+    ) {
+      return getFallbackCalendarDay(listing.price);
+    }
+
+    return (
+      bookingCalendar.days[formatCalendarDateKey(date)] ??
+      getFallbackCalendarDay(listing.price)
+    );
+  };
+  const selectedCalendarDay = selectedCalendarDate
+    ? getCalendarDay(selectedCalendarDate)
+    : null;
   const checkIn = findFact(content.facts, "เช็คอิน") ?? "14:00";
   const checkOut =
     findFact(content.facts, "เช็คเอ้า") ??
@@ -71,6 +254,42 @@ export function BookingSidebar({
     "12:00";
   const contactLinks = buildContactLinks(settings.contact);
   const phoneContacts = settings.contact.phoneContacts.map(withPhoneHref);
+
+  useEffect(() => {
+    const monthKey = formatCalendarMonthKey(visibleMonth);
+    const controller = new AbortController();
+    let isActive = true;
+
+    void fetch(
+      `/api/villas/${encodeURIComponent(listing.id)}/booking-calendar?month=${monthKey}`,
+      { signal: controller.signal },
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Unable to load booking calendar.");
+        }
+
+        return (await response.json()) as BookingCalendarMonth;
+      })
+      .then((calendar) => {
+        if (isActive && calendar.month === monthKey) {
+          setBookingCalendar(calendar);
+        }
+      })
+      .catch((error: unknown) => {
+        if (
+          isActive &&
+          !(error instanceof DOMException && error.name === "AbortError")
+        ) {
+          setBookingCalendar(null);
+        }
+      });
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [listing.id, visibleMonth]);
 
   useEffect(() => {
     if (!selectedCalendarDate) {
@@ -108,9 +327,18 @@ export function BookingSidebar({
           mode="single"
           month={visibleMonth}
           onMonthChange={setVisibleMonth}
-          disabled={{ before: todayStart }}
+          disabled={(date) =>
+            isPastCalendarDate(date) ||
+            isOutsideVisibleMonth(date) ||
+            getCalendarDay(date).disabled
+          }
           onSelect={(date) => {
-            if (date && !isPastCalendarDate(date)) {
+            if (
+              date &&
+              !isPastCalendarDate(date) &&
+              !isOutsideVisibleMonth(date) &&
+              !getCalendarDay(date).disabled
+            ) {
               setSelectedCalendarDate(date);
             }
           }}
@@ -121,45 +349,65 @@ export function BookingSidebar({
               `${THAI_MONTHS[date.getMonth()]} ${date.getFullYear() + 543}`,
           }}
           footer={
-            <div
-              className="mt-3 flex items-center justify-center gap-2"
-              data-calendar-nav="true"
-            >
-              <Button
-                aria-label="ดูเดือนก่อนหน้า"
-                onClick={() => {
-                  setVisibleMonth((month) => addCalendarMonths(month, -1));
-                }}
-                className="size-10 rounded-xl"
-                size="icon"
-                type="button"
-                variant="outline"
+            <div className="mt-3 space-y-3">
+              <div
+                className="flex flex-wrap justify-center gap-1.5"
+                data-calendar-legend="true"
               >
-                <ChevronLeft data-icon="inline-start" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setVisibleMonth(currentMonth);
-                }}
-                className="h-10 rounded-xl px-5"
-                size="default"
+                <CalendarLegendItem icon="promotion">
+                  โปรโมชั่น
+                </CalendarLegendItem>
+                <CalendarLegendItem swatchClassName="border-emerald-500/30 bg-emerald-100">
+                  ติดจองแต่ยังไม่โอน
+                </CalendarLegendItem>
+                <CalendarLegendItem swatchClassName="border-red-500/30 bg-red-100">
+                  ติดจองแล้ว
+                </CalendarLegendItem>
+                <CalendarLegendItem swatchClassName="border-[var(--site-accent)]/25 bg-yellow-100">
+                  วันหยุด
+                </CalendarLegendItem>
+                <CalendarLegendItem icon="fire">โปรไฟลุก</CalendarLegendItem>
+              </div>
+              <div
+                className="flex items-center justify-center gap-2"
+                data-calendar-nav="true"
               >
-                วันนี้
-              </Button>
-              <Button
-                aria-label="ดูเดือนถัดไป"
-                onClick={() => {
-                  setVisibleMonth((month) => addCalendarMonths(month, 1));
-                }}
-                className="size-10 rounded-xl"
-                size="icon"
-                type="button"
-                variant="outline"
-              >
-                <ChevronRight data-icon="inline-start" />
-              </Button>
+                <Button
+                  aria-label="ดูเดือนก่อนหน้า"
+                  onClick={() => {
+                    setVisibleMonth((month) => addCalendarMonths(month, -1));
+                  }}
+                  className="size-11 rounded-xl"
+                  size="icon"
+                  type="button"
+                  variant="outline"
+                >
+                  <ChevronLeft data-icon="inline-start" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setVisibleMonth(currentMonth);
+                  }}
+                  className="h-11 rounded-xl px-6"
+                  size="default"
+                >
+                  วันนี้
+                </Button>
+                <Button
+                  aria-label="ดูเดือนถัดไป"
+                  onClick={() => {
+                    setVisibleMonth((month) => addCalendarMonths(month, 1));
+                  }}
+                  className="size-11 rounded-xl"
+                  size="icon"
+                  type="button"
+                  variant="outline"
+                >
+                  <ChevronRight data-icon="inline-start" />
+                </Button>
+              </div>
             </div>
           }
           components={{
@@ -172,6 +420,7 @@ export function BookingSidebar({
               const isOutsideVisibleMonth =
                 day.date.getFullYear() !== visibleMonth.getFullYear() ||
                 day.date.getMonth() !== visibleMonth.getMonth();
+              const calendarDay = getCalendarDay(day.date);
 
               return (
                 <CalendarDayButton
@@ -186,11 +435,33 @@ export function BookingSidebar({
                     isOutsideVisibleMonth
                       ? "bg-[var(--site-surface-soft)] text-[var(--site-muted)] opacity-45 ring-0 shadow-none hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-muted)] disabled:opacity-45"
                       : null,
+                    !isPast && !isOutsideVisibleMonth
+                      ? getCalendarToneClass(calendarDay)
+                      : null,
+                    calendarDay.disabled
+                      ? "disabled:pointer-events-none disabled:opacity-100"
+                      : null,
+                    "relative grid !min-w-0 place-items-center overflow-hidden gap-0",
                     "transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
                   )}
+                  data-calendar-day-kind={
+                    isOutsideVisibleMonth ? undefined : calendarDay.kind
+                  }
+                  data-calendar-day-tone={
+                    isOutsideVisibleMonth ? undefined : calendarDay.tone
+                  }
                   day={day}
                   {...props}
-                />
+                >
+                  <span className="relative z-10 leading-none">
+                    {day.date.getDate()}
+                  </span>
+                  <CalendarDayIcons
+                    icons={
+                      !isPast && !isOutsideVisibleMonth ? calendarDay.icons : []
+                    }
+                  />
+                </CalendarDayButton>
               );
             },
           }}
@@ -201,13 +472,13 @@ export function BookingSidebar({
               return formatThaiCalendarDate(date);
             },
           }}
-          className="w-full rounded-[1.35rem] border border-[var(--site-border)] bg-[linear-gradient(180deg,var(--site-surface),var(--site-surface-soft))] p-3 text-[var(--site-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),var(--site-card-shadow)] ring-1 ring-[var(--site-primary)]/10 [--cell-size:2.35rem] sm:[--cell-size:2.5rem] [&_.rdp-dropdown_root]:border-[var(--site-border)] [&_.rdp-dropdown_root]:bg-[var(--site-surface)] [&_.rdp-weekday]:text-[var(--site-muted)]"
+          className="w-full rounded-[1.35rem] border border-[var(--site-border)] bg-[linear-gradient(180deg,var(--site-surface),var(--site-surface-soft))] p-3 text-[var(--site-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),var(--site-card-shadow)] ring-1 ring-[var(--site-primary)]/10 [--cell-size:2.35rem] sm:[--cell-size:2.5rem] [&_.rdp-day]:min-w-0 [&_.rdp-dropdown_root]:border-[var(--site-border)] [&_.rdp-dropdown_root]:bg-[var(--site-surface)] [&_.rdp-week]:grid [&_.rdp-week]:grid-cols-7 [&_.rdp-week]:gap-1.5 [&_.rdp-weekday]:flex [&_.rdp-weekday]:items-center [&_.rdp-weekday]:justify-center [&_.rdp-weekday]:text-[var(--site-muted)] [&_.rdp-weekdays]:grid [&_.rdp-weekdays]:grid-cols-7 [&_.rdp-weekdays]:gap-1.5"
           buttonVariant="outline"
         />
 
-        {selectedCalendarDate ? (
+        {selectedCalendarDate && selectedCalendarDay ? (
           <div
-            className="fixed inset-0 z-[70] flex items-end justify-center overflow-y-auto px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-[1px] md:items-center md:p-4"
+            className="fixed inset-0 z-[70] flex items-end justify-center overflow-y-auto px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-4 bg-[var(--site-surface-soft)]/40 backdrop-blur-xs md:items-center md:p-4"
             role="presentation"
           >
             <div
@@ -245,9 +516,11 @@ export function BookingSidebar({
                 data-date-detail-panel="true"
               >
                 <p className="font-black text-[var(--site-text)]">
-                  วันนี้เป็นวันธรรมดา
+                  {selectedCalendarDay.label}
                 </p>
-                <p className="mt-2 text-[var(--site-muted)]">ราคา - บาท</p>
+                <p className="mt-2 text-[var(--site-muted)]">
+                  ราคา {formatCalendarPrice(selectedCalendarDay.price)}
+                </p>
               </div>
             </div>
           </div>

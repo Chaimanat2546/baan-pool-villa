@@ -236,6 +236,11 @@
                 <td>Villa detail data helpers, public cache headers, and Worker JSON edge cache.</td>
               </tr>
               <tr>
+                <td><code>app/(public)/api/villas/[id]/booking-calendar/route.ts</code></td>
+                <td><code>/api/villas/:id/booking-calendar</code></td>
+                <td>Same-origin booking calendar proxy backed by <code>lib/villas/booking-calendar.ts</code>. It validates <code>month=YYYY-MM</code>, keeps <code>PATTAYA_BOOKINGS_API_TOKEN</code> server-only, normalizes upstream booking, holiday, hot-pro, promotion, and base-price data for the client calendar, and uses villa detail cache headers.</td>
+              </tr>
+              <tr>
                 <td><code>app/(public)/api/villas/[id]/images/route.ts</code></td>
                 <td><code>/api/villas/:id/images</code></td>
                 <td><code>lib/villas/images.ts</code>, public cache headers, and Worker JSON edge cache.</td>
@@ -243,7 +248,7 @@
               <tr>
                 <td><code>app/(public)/api/villas/[id]/images/proxy/route.ts</code></td>
                 <td><code>/api/villas/:id/images/proxy</code></td>
-                <td>Validated gallery display image proxy. It accepts only HTTPS image URLs that belong to the villa gallery rows or listing cover, supports allowlisted <code>w</code>/<code>q</code> transform params, fetches upstream with <code>no-store</code> and Cloudflare <code>cf.image</code> resize/format options when requested, returns only <code>image/*</code> responses with 1-year public display cache headers, and is cached again by the Worker image edge cache.</td>
+                <td>Validated gallery display image proxy. It accepts only HTTPS image URLs that belong to the villa Supabase gallery rows, supports allowlisted <code>w</code>/<code>q</code> transform params, fetches upstream with <code>no-store</code> and Cloudflare <code>cf.image</code> resize/format options when requested, returns only <code>image/*</code> responses with 1-year public display cache headers, and is cached again by the Worker image edge cache.</td>
               </tr>
             </tbody>
           </table>
@@ -496,7 +501,7 @@
           <tbody>
             <tr>
               <td><code>lib/villas</code></td>
-              <td>External villa listings/detail fetches, tagged normalized catalog caching, filtering, amenities, Supabase image reads, villa types.</td>
+              <td>External villa listings/detail fetches, booking calendar normalization/fetches, tagged normalized catalog caching, filtering, amenities, Supabase image reads, villa types.</td>
               <td><code>lib/villas/__tests__</code></td>
             </tr>
             <tr>
@@ -593,10 +598,16 @@
               <td>Villa detail route and public villa detail API.</td>
             </tr>
             <tr>
+              <td>Villa booking calendar</td>
+              <td>Pattaya booking API at <code>https://www.pattayapartypoolvilla.com/api/bookings?property_id={id}&amp;month={YYYY-MM}</code> with server-only <code>PATTAYA_BOOKINGS_API_TOKEN</code>.</td>
+              <td><code>lib/villas/booking-calendar.ts</code>, villa detail cache tag/header, and <code>app/(public)/api/villas/[id]/booking-calendar/route.ts</code>.</td>
+              <td>The villa detail booking sidebar fetches the same-origin route by visible month, displays only marker backgrounds/icons in the calendar, disables past and booked days, shows the legend below the grid, and opens a date-detail modal with the normalized event label and event/base price for selectable days.</td>
+            </tr>
+            <tr>
               <td>Villa images</td>
               <td>Supabase image rows matched by <code>images.property_id</code> to villa id.</td>
               <td><code>lib/villas/images.ts</code>, image host builder, shared villa-images tag, per-villa image cache tag, and validated display/download proxy routes.</td>
-              <td>Public villa images API and the villa detail client gallery loader; detail SSR keeps gallery rows outside the critical path, then the client loads the full image set after browser idle or direct gallery interaction so the visible gallery and lightbox categories can hydrate without starting every detail image request during first render. Categorized gallery previews keep placeholders until their block approaches the viewport. Displayed gallery images, villa listing covers, destination covers, site hero assets, and guide images use same-origin display proxy routes for Worker edge caching; download links keep the attachment endpoint and remain <code>no-store</code>.</td>
+              <td>Public villa images API and the villa detail client gallery loader; detail SSR keeps gallery rows outside the critical path, then the client loads the full Supabase image set after browser idle or direct gallery retry/interaction so the visible gallery and lightbox categories can hydrate without starting every detail image request during first render. Detail gallery display and download endpoints allow only the Supabase gallery rows; listing covers remain owned by the listing/home cover proxy. Categorized gallery previews keep placeholders until their block approaches the viewport. Displayed gallery images, villa listing covers, destination covers, site hero assets, and guide images use same-origin display proxy routes for Worker edge caching; download links keep the attachment endpoint and remain <code>no-store</code>.</td>
             </tr>
               <tr>
                 <td>Home sections</td>
