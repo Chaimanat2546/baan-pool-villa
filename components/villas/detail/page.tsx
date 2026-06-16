@@ -326,7 +326,7 @@ export function VillaDetailPage({
 
   return (
 
-    <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] pb-24 text-[var(--site-text)] lg:pb-0">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] pb-24 text-[var(--site-text)] md:pb-0">
 
       <Breadcrumbs listing={listing} />
 
