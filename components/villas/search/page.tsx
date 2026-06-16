@@ -487,7 +487,7 @@ export function SearchPage({
             <button
               type="button"
               onClick={handleSearch}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)] md:col-span-2 lg:hidden"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)] md:hidden"
             >
               <Search className="h-4 w-4" />
               ค้นหาบ้านพัก
@@ -496,7 +496,7 @@ export function SearchPage({
         ) : null}
 
         {isSearchReady ? (
-          <div className="lg:hidden">
+          <div className="md:hidden">
             <MobileFilterDrawer
               filters={draftFilters}
               zones={zones}
@@ -508,7 +508,7 @@ export function SearchPage({
         ) : null}
 
         {isSearchReady ? (
-          <div className="hidden lg:block">
+          <div className="hidden md:block">
             <SearchBar
               filters={draftFilters}
               zones={zones}

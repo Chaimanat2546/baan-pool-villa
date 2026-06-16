@@ -89,6 +89,15 @@ const apiImage: VillaImage = {
   zone: "outside",
 };
 
+const apiCoverImage: VillaImage = {
+  caption: "Cover",
+  id: 1,
+  imageName: "cover.jpg",
+  imageUrl: "https://images.example.com/supabase-cover.jpg",
+  isCover: true,
+  zone: "cover",
+};
+
 function makePayload(activeListing = listing): VillaDetailPayload {
   return {
     detail: null,
@@ -146,6 +155,50 @@ function makeJsonResponse(body: unknown, status = 200) {
   });
 }
 
+function getGalleryImageFetchCalls(fetchMock: ReturnType<typeof vi.fn>) {
+  return fetchMock.mock.calls.filter(([input]) =>
+    /^\/api\/villas\/[^/]+\/images$/.test(String(input)),
+  );
+}
+
+function makeGalleryFetchMock(
+  ...galleryResponses: Array<() => Response>
+): ReturnType<typeof vi.fn> {
+  let galleryResponseIndex = 0;
+
+  return vi.fn((input: RequestInfo | URL) => {
+    if (/^\/api\/villas\/[^/]+\/images$/.test(String(input))) {
+      const responseFactory =
+        galleryResponses[Math.min(galleryResponseIndex, galleryResponses.length - 1)] ??
+        (() => makeJsonResponse({ images: [] }));
+      galleryResponseIndex += 1;
+      return Promise.resolve(responseFactory());
+    }
+
+    return Promise.resolve(makeJsonResponse({}));
+  });
+}
+
+function stubIdleCallback() {
+  let idleCallback: IdleRequestCallback | null = null;
+
+  vi.stubGlobal(
+    "requestIdleCallback",
+    vi.fn((callback: IdleRequestCallback) => {
+      idleCallback = callback;
+      return 1;
+    }),
+  );
+  vi.stubGlobal("cancelIdleCallback", vi.fn());
+
+  return async () => {
+    await act(async () => {
+      idleCallback?.({ didTimeout: false, timeRemaining: () => 50 });
+    });
+    await flushReact();
+  };
+}
+
 function deferred<T>() {
   let resolve: (value: T) => void = () => undefined;
   let reject: (error: unknown) => void = () => undefined;
@@ -161,15 +214,19 @@ async function clickFirstGalleryItem(container: HTMLElement) {
   const galleryButton = container.querySelector(
     "[data-gallery-item]",
   ) as HTMLButtonElement | null;
+  const retryButton = container.querySelector(
+    "[data-gallery-retry]",
+  ) as HTMLButtonElement | null;
+  const targetButton = galleryButton ?? retryButton;
 
-  if (!galleryButton) {
+  if (!targetButton) {
     throw new Error(
-      'clickFirstGalleryItem expected a "[data-gallery-item]" button to be present.',
+      'clickFirstGalleryItem expected a "[data-gallery-item]" or "[data-gallery-retry]" button to be present.',
     );
   }
 
   await act(async () => {
-    galleryButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    targetButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   await flushReact();
 }
@@ -181,7 +238,7 @@ afterEach(() => {
 
 describe("VillaDetailPage deferred gallery loader", () => {
   it("places the mobile booking contact before the configurable detail layout", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(makeJsonResponse({ images: [] })));
+    vi.stubGlobal("fetch", makeGalleryFetchMock(() => makeJsonResponse({ images: [] })));
     const page = renderPage();
 
     await page.render(makePage());
@@ -204,16 +261,20 @@ describe("VillaDetailPage deferred gallery loader", () => {
     await page.unmount();
   });
 
-  it("keeps gallery image loading out of the first render", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(makeJsonResponse({ images: [apiImage] }));
+  it("does not render the listing API cover before Supabase images load", async () => {
+    const fetchMock = makeGalleryFetchMock(() =>
+      makeJsonResponse({ images: [apiImage] }),
+    );
     vi.stubGlobal("fetch", fetchMock);
     const page = renderPage();
 
     await page.render(makePage());
     await flushReact();
 
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(page.container.querySelector("[data-gallery-item]")).not.toBeNull();
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(0);
+    expect(page.container.querySelector('[data-gallery-skeleton="true"]')).not.toBeNull();
+    expect(page.container.querySelector("[data-gallery-item]")).toBeNull();
+    expect(page.container.innerHTML).not.toContain(listing.coverImage);
     expect(
       page.container.querySelector("[data-detail-gallery-urls]")?.getAttribute(
         "data-detail-gallery-urls",
@@ -224,54 +285,48 @@ describe("VillaDetailPage deferred gallery loader", () => {
   });
 
   it("loads gallery images after the browser becomes idle", async () => {
-    let idleCallback: IdleRequestCallback | null = null;
-    const fetchMock = vi.fn().mockResolvedValue(makeJsonResponse({ images: [apiImage] }));
-    vi.stubGlobal("fetch", fetchMock);
-    vi.stubGlobal(
-      "requestIdleCallback",
-      vi.fn((callback: IdleRequestCallback) => {
-        idleCallback = callback;
-        return 1;
-      }),
+    const fetchMock = makeGalleryFetchMock(() =>
+      makeJsonResponse({ images: [apiCoverImage, apiImage] }),
     );
-    vi.stubGlobal("cancelIdleCallback", vi.fn());
+    vi.stubGlobal("fetch", fetchMock);
+    const runIdleCallback = stubIdleCallback();
     const page = renderPage();
 
     await page.render(makePage());
     await flushReact();
 
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(idleCallback).not.toBeNull();
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(0);
 
-    await act(async () => {
-      idleCallback?.({ didTimeout: false, timeRemaining: () => 50 });
-    });
-    await flushReact();
+    await runIdleCallback();
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
     expect(
       page.container.querySelector("[data-detail-gallery-urls]")?.getAttribute(
         "data-detail-gallery-urls",
       ),
-    ).toContain(apiImage.imageUrl);
+    ).toContain(apiCoverImage.imageUrl);
+    expect(page.container.querySelector("[data-gallery-item]")?.getAttribute(
+      "data-gallery-item",
+    )).toBe(apiCoverImage.imageUrl);
 
     await page.unmount();
   });
 
   it("retries gallery loading after a transient API failure", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(makeJsonResponse({ error: "temporary" }, 502))
-      .mockResolvedValueOnce(makeJsonResponse({ images: [apiImage] }));
+    const fetchMock = makeGalleryFetchMock(
+      () => makeJsonResponse({ error: "temporary" }, 502),
+      () => makeJsonResponse({ images: [apiImage] }),
+    );
     vi.stubGlobal("fetch", fetchMock);
+    const runIdleCallback = stubIdleCallback();
     const page = renderPage();
 
     await page.render(makePage());
     await flushReact();
 
-    await clickFirstGalleryItem(page.container);
+    await runIdleCallback();
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
     expect(page.container.querySelector("[data-gallery-load-status]")?.textContent).toContain(
       "ลองใหม่",
     );
@@ -286,7 +341,7 @@ describe("VillaDetailPage deferred gallery loader", () => {
     });
     await flushReact();
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(2);
     expect(
       page.container.querySelector("[data-detail-gallery-urls]")?.getAttribute(
         "data-detail-gallery-urls",
@@ -298,14 +353,21 @@ describe("VillaDetailPage deferred gallery loader", () => {
 
   it("shows a skeleton in the gallery area while gallery images are loading after interaction", async () => {
     const pendingResponse = deferred<Response>();
-    const fetchMock = vi.fn(() => pendingResponse.promise);
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      if (/^\/api\/villas\/[^/]+\/images$/.test(String(input))) {
+        return pendingResponse.promise;
+      }
+
+      return Promise.resolve(makeJsonResponse({}));
+    });
     vi.stubGlobal("fetch", fetchMock);
+    const runIdleCallback = stubIdleCallback();
     const page = renderPage();
 
     await page.render(makePage());
     await flushReact();
 
-    await clickFirstGalleryItem(page.container);
+    await runIdleCallback();
 
     expect(page.container.querySelector('[data-gallery-skeleton="true"]')).not.toBeNull();
     expect(page.container.querySelector("[data-gallery-item]")).toBeNull();
@@ -317,22 +379,30 @@ describe("VillaDetailPage deferred gallery loader", () => {
   });
 
   it("reuses loaded gallery images instead of issuing another request", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(makeJsonResponse({ images: [apiImage] }));
+    const fetchMock = makeGalleryFetchMock(() =>
+      makeJsonResponse({ images: [apiImage] }),
+    );
     vi.stubGlobal("fetch", fetchMock);
+    const runIdleCallback = stubIdleCallback();
     const page = renderPage();
 
     await page.render(makePage());
     await flushReact();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(0);
+
+    await runIdleCallback();
+
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
+    expect(page.container.querySelector("[data-lightbox-active]")).toBeNull();
 
     await clickFirstGalleryItem(page.container);
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
     expect(page.container.querySelector("[data-lightbox-active]")).not.toBeNull();
 
     await clickFirstGalleryItem(page.container);
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
 
     await page.unmount();
   });
@@ -358,11 +428,13 @@ describe("VillaDetailPage deferred gallery loader", () => {
       return Promise.resolve(makeJsonResponse({ images: [apiImage] }));
     });
     vi.stubGlobal("fetch", fetchMock);
+    const runIdleCallback = stubIdleCallback();
     const page = renderPage();
 
     await page.render(makePage("9", listing));
     await flushReact();
 
+    await runIdleCallback();
     await clickFirstGalleryItem(page.container);
 
     expect(page.container.querySelector("[data-lightbox-active]")).not.toBeNull();
@@ -406,14 +478,16 @@ describe("VillaDetailPage deferred gallery loader", () => {
       return Promise.resolve(makeJsonResponse({ images: [] }));
     });
     vi.stubGlobal("fetch", fetchMock);
+    const runIdleCallback = stubIdleCallback();
     const page = renderPage();
 
     await page.render(makePage("9", listing));
     await flushReact();
+    await runIdleCallback();
 
     await page.render(makePage("10", villaTen));
     await flushReact();
-    await clickFirstGalleryItem(page.container);
+    await runIdleCallback();
 
     pendingNine.resolve(makeJsonResponse({ images: [imageForNine] }));
     await flushReact();

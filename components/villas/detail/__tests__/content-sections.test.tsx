@@ -6,6 +6,7 @@ import {
   AboutSection,
   PolicySection,
 } from "../content-sections";
+import { NearbySection } from "../nearby-section";
 
 const listing: VillaListing = {
   id: "66",
@@ -36,6 +37,22 @@ const content: VillaDetailContent = {
   videos: [],
 };
 
+const contentWithNearbyPlaces: VillaDetailContent = {
+  ...content,
+  nearbyPlaces: [
+    {
+      name: "The Glass House Beachfront Restaurant and Bar",
+      zone: "บางเสร่",
+      url: "https://maps.app.goo.gl/example-one",
+    },
+    {
+      name: "Cave Beach Club",
+      zone: "บางเสร่",
+      url: "https://maps.app.goo.gl/example-two",
+    },
+  ],
+};
+
 describe("Detail content sections", () => {
   it("AboutSection renders without mock badges", () => {
     const markup = renderToStaticMarkup(
@@ -51,5 +68,15 @@ describe("Detail content sections", () => {
     );
 
     expect(markup).not.toContain("Mock FE");
+  });
+
+  it("lays nearby cards into a bounded tablet grid", () => {
+    const markup = renderToStaticMarkup(
+      <NearbySection content={contentWithNearbyPlaces} />,
+    );
+
+    expect(markup).toContain("md:grid-cols-2");
+    expect(markup).toContain("md:overflow-visible");
+    expect(markup).toContain("md:w-full");
   });
 });

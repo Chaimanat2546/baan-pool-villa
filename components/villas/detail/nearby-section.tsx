@@ -44,14 +44,14 @@ export function NearbySection({
             เลื่อนได้
           </span>
         </div>
-        <div className="-mx-0.5 flex snap-x gap-4 overflow-x-auto px-0.5 pb-3 sm:-mx-6 sm:px-6 lg:mx-0 lg:block lg:space-y-3 lg:overflow-visible lg:px-0 lg:pb-0">
+        <div className="-mx-0.5 flex snap-x gap-4 overflow-x-auto px-0.5 pb-3 sm:-mx-6 sm:px-6 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 lg:block lg:space-y-3">
           {cards.map((card) => (
             <a
               key={card.key}
               href={card.href ?? "#"}
               target={card.href ? "_blank" : undefined}
               rel={card.href ? "noreferrer" : undefined}
-              className="block w-[299px] shrink-0 snap-start rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_30px_rgba(6,63,53,0.06)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_16px_34px_rgba(6,63,53,0.11)] sm:w-[56%] lg:w-full"
+              className="block w-[299px] shrink-0 snap-start rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_30px_rgba(6,63,53,0.06)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_16px_34px_rgba(6,63,53,0.11)] sm:w-[56%] md:w-full"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-black text-[var(--site-primary)]">

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
-import type { VillaDetailPayload, VillaImage } from "./types";
+import type { VillaImage } from "./types";
 
 const IMAGE_EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
   "image/avif": "avif",
@@ -24,25 +24,17 @@ export function normalizeDownloadImageUrl(value: string | null): string | null {
 }
 
 /**
- * Checks whether an image URL belongs to the villa's known images or matches the listing's cover image.
+ * Checks whether an image URL belongs to the villa's known Supabase image rows.
  *
  * @param imageUrl - The image URL to verify
  * @param images - Array of villa images to check against (`image.imageUrl` is compared)
- * @param detailPayload - Optional villa detail payload whose `listing.coverImage` may be considered allowed
- * @returns `true` if `imageUrl` equals any `image.imageUrl` in `images` or matches `detailPayload.listing.coverImage`, `false` otherwise.
+ * @returns `true` if `imageUrl` equals any `image.imageUrl` in `images`, `false` otherwise.
  */
 export function isAllowedVillaImageUrl(
   imageUrl: string,
   images: VillaImage[],
-  detailPayload: VillaDetailPayload | null,
 ): boolean {
-  if (
-    images.some((image) => normalizeDownloadImageUrl(image.imageUrl) === imageUrl)
-  ) {
-    return true;
-  }
-
-  return normalizeDownloadImageUrl(detailPayload?.listing.coverImage ?? null) === imageUrl;
+  return images.some((image) => normalizeDownloadImageUrl(image.imageUrl) === imageUrl);
 }
 
 /**
