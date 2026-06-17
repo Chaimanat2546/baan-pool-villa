@@ -1,11 +1,13 @@
 import type {
   RecommendedVillaSection,
+  VillaImage,
   VillaDetailPayload,
 } from "@/lib/villas/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 export interface VillaDetailPageProps {
   id: string;
+  initialGalleryImages?: VillaImage[];
   payload: VillaDetailPayload;
   recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;

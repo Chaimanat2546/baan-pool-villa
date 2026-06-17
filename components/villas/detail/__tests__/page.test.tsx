@@ -148,6 +148,22 @@ function makePage(id = listing.id, activeListing = listing) {
   );
 }
 
+function makePageWithInitialGalleryImages(
+  initialGalleryImages: VillaImage[],
+  id = listing.id,
+  activeListing = listing,
+) {
+  return (
+    <VillaDetailPage
+      id={id}
+      initialGalleryImages={initialGalleryImages}
+      payload={makePayload(activeListing)}
+      recommendedSection={null}
+      settings={DEFAULT_SITE_SETTINGS}
+    />
+  );
+}
+
 function makeJsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -308,6 +324,30 @@ describe("VillaDetailPage deferred gallery loader", () => {
     expect(page.container.querySelector("[data-gallery-item]")?.getAttribute(
       "data-gallery-item",
     )).toBe(apiCoverImage.imageUrl);
+
+    await page.unmount();
+  });
+
+  it("renders initial gallery images before the idle gallery request", async () => {
+    const fetchMock = makeGalleryFetchMock(() =>
+      makeJsonResponse({ images: [apiCoverImage, apiImage] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const page = renderPage();
+
+    await page.render(makePageWithInitialGalleryImages([apiCoverImage]));
+    await flushReact();
+
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(0);
+    expect(page.container.querySelector('[data-gallery-skeleton="true"]')).toBeNull();
+    expect(page.container.querySelector("[data-gallery-item]")?.getAttribute(
+      "data-gallery-item",
+    )).toBe(apiCoverImage.imageUrl);
+    expect(
+      page.container.querySelector("[data-detail-gallery-urls]")?.getAttribute(
+        "data-detail-gallery-urls",
+      ),
+    ).toContain(apiCoverImage.imageUrl);
 
     await page.unmount();
   });
