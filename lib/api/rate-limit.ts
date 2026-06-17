@@ -42,6 +42,12 @@ function readTrimmedHeader(headers: Headers, headerName: string): string | null 
   return value ? value : null;
 }
 
+/**
+ * Resolves the client key used for public API rate limiting.
+ *
+ * @param request - The incoming public API request.
+ * @returns The client identifier used for rate-limit buckets.
+ */
 export function getPublicRateLimitClientKey(request: Request): string {
   return readTrimmedHeader(request.headers, "CF-Connecting-IP") ?? "unknown";
 }
@@ -84,6 +90,13 @@ function createTooManyRequestsResponse(retryAfterSeconds: number): Response {
   );
 }
 
+/**
+ * Applies the configured public API rate limit policy to a request.
+ *
+ * @param request - The incoming public API request.
+ * @param policy - The rate-limit policy to enforce.
+ * @returns A `429` response when the request is rate-limited, or `null` when allowed.
+ */
 export function limitPublicApiRequest(
   request: Request,
   policy: PublicRateLimitPolicy,
@@ -120,6 +133,11 @@ export function limitPublicApiRequest(
   return null;
 }
 
+/**
+ * Clears in-memory public API rate-limit buckets for test isolation.
+ *
+ * @returns `void`.
+ */
 export function resetPublicRateLimitForTests() {
   buckets.clear();
 }

@@ -40,6 +40,9 @@ small code block already says.
 6. Use JSDoc selectively.
    Add JSDoc to shared helpers, public utility functions, route-facing helpers,
    and other exported functions whose contract matters to multiple callers.
+   When a function is reused across modules or has validation/business rules,
+   prefer fuller JSDoc that explains the contract and documents parameters and
+   return values. If the JSDoc only restates a clear function name, delete it.
    Skip JSDoc for small local helpers unless the contract is non-obvious.
 
 7. Prefer comments at the narrowest useful scope.
@@ -62,6 +65,9 @@ Comments are usually worth adding in these cases:
 - route handler input validation and allowlist decisions
 - non-obvious UI fallback behavior
 - temporary workarounds with a clear reason and removal condition
+
+When in doubt, prefer no comment over a descriptive comment that only explains
+what the code obviously does.
 
 ## When Comments Are Usually Unnecessary
 
@@ -97,6 +103,18 @@ layers.
 export function normalizeVillaSummary(raw: RawVillaSummary): VillaSummary {
   // ...
 }
+```
+
+When the function contract matters, a fuller JSDoc style is preferred:
+
+```ts
+/**
+ * Checks whether an image URL belongs to the villa's resolved image set.
+ *
+ * @param imageUrl - The normalized image URL to verify.
+ * @param images - The resolved villa images allowed for this villa.
+ * @returns `true` when the URL matches one of the villa's known images.
+ */
 ```
 
 ### 3. Guard or fallback comment

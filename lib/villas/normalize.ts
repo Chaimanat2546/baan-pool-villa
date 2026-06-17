@@ -12,6 +12,14 @@ function toNumber(value: string | number | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+/**
+ * Applies the shared listing commission rules so public villa prices stay
+ * consistent across routes and components.
+ *
+ * @param price - The upstream villa price value, which may be numeric, string,
+ * or empty.
+ * @returns The display price after applying the shared commission rules.
+ */
 export function calculateCommission(price: string | number | null | undefined): number {
   const numericPrice = toNumber(price);
   const last3 = numericPrice % 1000;
@@ -27,10 +35,23 @@ export function calculateCommission(price: string | number | null | undefined): 
   return Math.trunc(numericPrice + (last3 === 500 ? 3400 : 3900));
 }
 
+/**
+ * Resolves a human-readable label for a normalized zone key.
+ *
+ * @param zone - The normalized zone key from the villa catalog.
+ * @returns The localized label when known, or the original zone key.
+ */
 export function getZoneLabel(zone: string): string {
   return ZONE_LABELS[zone] ?? zone;
 }
 
+/**
+ * Normalizes the external listing payload into the stable card/list shape used
+ * throughout the public UI.
+ *
+ * @param house - The raw villa record returned by the external listing API.
+ * @returns The normalized villa listing used by shared public components.
+ */
 export function normalizeHouse(house: RawHouse): VillaListing {
   const zone = house.h_zone?.trim() || "unknown";
   const imageName = house.img_name?.trim();
@@ -50,6 +71,13 @@ export function normalizeHouse(house: RawHouse): VillaListing {
   };
 }
 
+/**
+ * Keeps batch listing normalization in one shared path so callers do not
+ * duplicate upstream cleanup rules.
+ *
+ * @param houses - The raw villa records returned by the external listing API.
+ * @returns The normalized villa listings in their original source order.
+ */
 export function normalizeHouses(houses: RawHouse[]): VillaListing[] {
   return houses.map(normalizeHouse);
 }

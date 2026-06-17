@@ -19,6 +19,13 @@ function isInternalHref(value: string): boolean {
   return href.startsWith("/") && !href.startsWith("//");
 }
 
+/**
+ * Normalizes a free-form house id into the numeric id format used by villa and
+ * home-section data.
+ *
+ * @param value - The raw house id entered in the admin UI.
+ * @returns The normalized numeric house id, or `null` when invalid.
+ */
 export function normalizeHouseId(value: string): string | null {
   const compactValue = value.trim().replace(/\s+/g, "");
 
@@ -41,6 +48,13 @@ export function normalizeHouseId(value: string): string | null {
   return String(numericId);
 }
 
+/**
+ * Validates home-section drafts and returns admin-facing error messages for
+ * invalid config.
+ *
+ * @param sections - The home-section drafts collected from the admin editor.
+ * @returns User-facing validation error messages, or an empty array when valid.
+ */
 export function validateHomeSectionDrafts(sections: HomeSectionDraft[]): string[] {
   const errors: string[] = [];
   const seenSlugs = new Set<string>();
@@ -131,6 +145,14 @@ export function validateHomeSectionDrafts(sections: HomeSectionDraft[]): string[
   return errors;
 }
 
+/**
+ * Reorders section drafts and rewrites their display order for persistence.
+ *
+ * @param sections - The current home-section drafts.
+ * @param fromIndex - The original index of the section being moved.
+ * @param toIndex - The target index for the moved section.
+ * @returns The reordered drafts with normalized `displayOrder` values.
+ */
 export function moveHomeSectionDraft<
   Section extends HomeSectionDraft & { displayOrder?: number },
 >(
@@ -158,6 +180,13 @@ export function moveHomeSectionDraft<
   }));
 }
 
+/**
+ * Normalizes home-section drafts into the payload shape expected by the save
+ * API.
+ *
+ * @param sections - The validated home-section drafts from the admin editor.
+ * @returns Normalized payloads ready for persistence.
+ */
 export function normalizeHomeSectionDraftsForSave(
   sections: HomeSectionDraft[],
 ): HomeSectionSavePayload[] {

@@ -117,6 +117,13 @@ function isValidMonth(month: string): boolean {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
 }
 
+/**
+ * Validates the public `YYYY-MM` month format accepted by the booking calendar
+ * route.
+ *
+ * @param month - The raw month value from the public request.
+ * @returns `true` when the value matches the supported booking-calendar month format.
+ */
 export function isValidBookingCalendarMonth(month: string): boolean {
   return isValidMonth(month);
 }
@@ -264,6 +271,8 @@ function setCalendarEvent(
 ) {
   const existing = events.get(dateKey);
 
+  // Higher-priority events win so booked days override promotions and holiday
+  // pricing metadata when multiple upstream ranges overlap.
   if (!existing || event.priority > existing.priority) {
     events.set(dateKey, event);
   }
@@ -273,6 +282,14 @@ function normalizeBookingType(bookType: string | null | undefined) {
   return bookType?.trim().toLowerCase() ?? "";
 }
 
+/**
+ * Flattens the booking API response into one day record per date so the client
+ * calendar can render without re-implementing upstream overlap rules.
+ *
+ * @param response - The raw booking calendar response from the upstream API.
+ * @param month - The requested month in `YYYY-MM` format.
+ * @returns The normalized calendar month used by the public villa detail page.
+ */
 export function normalizeBookingCalendar(
   response: RawBookingCalendarResponse,
   month: string,
@@ -394,6 +411,15 @@ async function readJson<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+/**
+ * Fetches one month of booking data through the same cache policy as villa
+ * detail content while keeping the booking token server-only.
+ *
+ * @param propertyId - The villa property id expected by the booking API.
+ * @param month - The requested month in `YYYY-MM` format.
+ * @returns The normalized calendar result, or an availability status when the
+ * data cannot be returned.
+ */
 export async function fetchVillaBookingCalendar(
   propertyId: string,
   month: string,

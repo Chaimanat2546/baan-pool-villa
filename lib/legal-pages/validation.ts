@@ -17,12 +17,25 @@ const LEGAL_PAGE_ALLOWED_BLOCK_TYPES = new Set([
   "quote",
 ]);
 
+/**
+ * Checks whether a value is one of the supported legal-page slugs.
+ *
+ * @param value - The value to test.
+ * @returns `true` when the value is a supported legal-page slug.
+ */
 export function isLegalPageSlug(value: unknown): value is LegalPageSlug {
   return (
     typeof value === "string" && LEGAL_PAGE_SLUGS.includes(value as LegalPageSlug)
   );
 }
 
+/**
+ * Normalizes a legal-page draft into the payload shape expected by the save
+ * API.
+ *
+ * @param draft - The legal-page draft from the admin editor.
+ * @returns A normalized legal-page draft ready for persistence.
+ */
 export function normalizeLegalPageDraftForSave(
   draft: LegalPageDraft,
 ): LegalPageDraft {
@@ -36,6 +49,13 @@ export function normalizeLegalPageDraftForSave(
   };
 }
 
+/**
+ * Normalizes a raw legal-page row from Supabase into the shared legal-page
+ * shape used by public and admin consumers.
+ *
+ * @param row - The raw legal-page row returned by Supabase.
+ * @returns The normalized legal page.
+ */
 export function normalizeLegalPageRow(row: LegalPageRow): LegalPage {
   const status = isLegalPageStatus(row.status) ? row.status : "draft";
 
@@ -52,6 +72,13 @@ export function normalizeLegalPageRow(row: LegalPageRow): LegalPage {
   };
 }
 
+/**
+ * Validates a legal-page draft and returns admin-facing error messages for
+ * invalid content.
+ *
+ * @param draft - The legal-page draft collected from the admin editor.
+ * @returns User-facing validation error messages, or an empty array when valid.
+ */
 export function validateLegalPageDraft(draft: LegalPageDraft): string[] {
   const errors: string[] = [];
   const normalizedDraft = normalizeLegalPageDraftForSave(draft);

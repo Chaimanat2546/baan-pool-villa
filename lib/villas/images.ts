@@ -47,6 +47,14 @@ function getSupabaseConfig() {
   return { supabaseUrl, supabaseKey };
 }
 
+/**
+ * Accepts absolute URLs or legacy relative paths and returns a normalized
+ * absolute image URL.
+ *
+ * @param imageUrl - The raw image URL or relative path from Supabase data.
+ * @param supabaseUrl - The base Supabase URL used to resolve relative paths.
+ * @returns The normalized absolute image URL, or `null` when empty.
+ */
 export function normalizeImageUrl(
   imageUrl: string | null,
   supabaseUrl = DEFAULT_SUPABASE_URL,
@@ -64,6 +72,13 @@ export function normalizeImageUrl(
   }
 }
 
+/**
+ * Builds the proxy-backed display URL used for public villa gallery images.
+ *
+ * @param imageName - The stored Supabase image name.
+ * @param proxyBaseUrl - The proxy base URL used for public image delivery.
+ * @returns The proxy image URL, or `null` when the image name is empty.
+ */
 export function buildProxyImageUrl(
   imageName: string | null,
   proxyBaseUrl = DEFAULT_IMAGE_PROXY_BASE_URL,
@@ -77,6 +92,15 @@ export function buildProxyImageUrl(
   return new URL(encodeURIComponent(trimmedImageName), proxyBaseUrl).toString();
 }
 
+/**
+ * Prefers the image-name proxy path when possible so public image delivery can
+ * stay behind the shared display proxy and edge cache.
+ *
+ * @param rows - The raw Supabase image rows for a villa.
+ * @param supabaseUrl - The base Supabase URL used to resolve relative paths.
+ * @param proxyBaseUrl - The proxy base URL used for public image delivery.
+ * @returns The normalized villa images ready for public rendering.
+ */
 export function normalizeImageRows(
   rows: SupabaseImageRow[],
   supabaseUrl = DEFAULT_SUPABASE_URL,
@@ -102,6 +126,13 @@ export function normalizeImageRows(
     }));
 }
 
+/**
+ * Rejects non-numeric or unsafe ids before they are used in Supabase queries.
+ *
+ * @param id - The villa id from the public route or API request.
+ * @returns The parsed numeric villa id safe to use in Supabase queries.
+ * @throws {Error} When the id is not a positive safe integer.
+ */
 export function parseVillaId(id: string): number {
   if (!/^[1-9]\d*$/.test(id)) {
     throw new Error("Invalid villa id");
@@ -144,6 +175,12 @@ async function fetchVillaImagesFromSupabase(
   return normalizeImageRows((data ?? []) as SupabaseImageRow[], supabaseUrl);
 }
 
+/**
+ * Loads and caches the Supabase gallery rows for a single villa.
+ *
+ * @param id - The villa id from the public route or API request.
+ * @returns The normalized gallery images for the requested villa.
+ */
 export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   const villaId = parseVillaId(id);
   const tag = CACHE_TAGS.villaImage(id);

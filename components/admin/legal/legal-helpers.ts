@@ -360,6 +360,8 @@ export function mapLegalPageToDraft(page: LegalPage): AdminLegalDraft {
   };
 }
 
+// Keep both legal editor tabs renderable even when Supabase rows are missing
+// or partially shaped by falling back to the repo defaults per slug.
 export function normalizeLegalDrafts(payload: unknown): AdminLegalDraft[] {
   const rawPages = isRecord(payload)
     ? ((payload as { legalPages?: unknown }).legalPages as unknown)

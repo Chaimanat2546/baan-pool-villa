@@ -29,6 +29,14 @@ export type AdminRouteAuthResult =
       response: Response;
     };
 
+/**
+ * Applies shared origin and bearer-token admin checks before a route uses the
+ * home-config Supabase client.
+ *
+ * @param request - The incoming admin request to authorize.
+ * @returns Either an authorized Supabase client or an error response ready to
+ * return from the route.
+ */
 export async function requireHomeConfigAdmin(
   request: Request,
 ): Promise<AdminRouteAuthResult> {
@@ -71,6 +79,12 @@ function isNoRowsError(error: SupabaseLikeError | null | undefined): boolean {
   );
 }
 
+/**
+ * Maps Supabase-like errors to the HTTP status code used by admin API routes.
+ *
+ * @param error - The Supabase-like error object to inspect.
+ * @returns The HTTP status code that best represents the error.
+ */
 export function getSupabaseErrorStatus(
   error: SupabaseLikeError | null | undefined,
 ): number {
@@ -97,6 +111,14 @@ export function getSupabaseErrorStatus(
   return 500;
 }
 
+/**
+ * Builds a shared JSON error response from a Supabase-like error object.
+ *
+ * @param error - The Supabase-like error object returned by a request.
+ * @param fallbackMessage - The fallback message to use when the error has no message.
+ * @param extra - Optional extra fields to include in the JSON response.
+ * @returns A JSON error response with normalized status and Supabase details.
+ */
 export function adminSupabaseErrorResponse(
   error: SupabaseLikeError | null | undefined,
   fallbackMessage: string,

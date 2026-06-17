@@ -35,6 +35,14 @@ function isOriginGuardedMethod(method: string): boolean {
   return ADMIN_ORIGIN_GUARDED_METHODS.has(method.toUpperCase());
 }
 
+/**
+ * Checks whether an admin request's `Origin` header is allowed for guarded
+ * mutation requests.
+ *
+ * @param request - The incoming admin request to validate.
+ * @returns `true` when the request origin matches the request host, the
+ * configured site origin, or an allowed local development origin.
+ */
 export function isAllowedAdminRequestOrigin(request: Request): boolean {
   if (!isOriginGuardedMethod(request.method)) {
     return true;

@@ -125,6 +125,14 @@ function resolveSectionVillas(
   }
 }
 
+/**
+ * Resolves active homepage sections from CMS config against the available villa
+ * catalog.
+ *
+ * @param configs - The normalized home-section config records from CMS.
+ * @param villas - The normalized villa catalog available for section selection.
+ * @returns The resolved homepage sections ready for public rendering.
+ */
 export function resolveHomeSections(
   configs: HomeSectionConfig[],
   villas: VillaListing[],
@@ -147,6 +155,14 @@ export function resolveHomeSections(
     });
 }
 
+/**
+ * Builds the default homepage sections used when CMS config is empty or
+ * unavailable.
+ *
+ * @param villas - The normalized villa catalog available for fallback section
+ * selection.
+ * @returns Built-in homepage sections filtered to non-empty villa lists.
+ */
 export function buildFallbackHomeSections(
   villas: VillaListing[],
 ): ResolvedHomeSection[] {
