@@ -1,19 +1,8 @@
 import type { SiteTikTokSettings } from "@/lib/site-settings/types";
 
-import {
-  formatAdminErrorMessage,
-  translateAdminErrorMessage,
-  translateAdminErrorMessages,
-} from "@/components/admin/admin-error-messages";
+import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
+import { extractAdminErrors } from "@/components/admin/admin-api-client";
 import type { AdminTikTokDraft, AdminTikTokResponse } from "./types";
-
-interface ErrorPayloadParts {
-  code?: unknown;
-  details?: unknown;
-  error?: unknown;
-  errors?: unknown;
-  hint?: unknown;
-}
 
 const ADMIN_ACCESS_ERROR_PREFIX = "Unable to verify admin access:";
 const AUTH_FAILURE_MESSAGES = new Set([
@@ -86,33 +75,7 @@ export function extractTikTokErrors(
   payload: unknown,
   fallback: string,
 ): string[] {
-  if (!payload || typeof payload !== "object") {
-    return [fallback];
-  }
-
-  const typedPayload = payload as ErrorPayloadParts;
-
-  if (Array.isArray(typedPayload.errors)) {
-    const errors = typedPayload.errors.filter(
-      (error): error is string => typeof error === "string" && error.length > 0,
-    );
-
-    if (errors.length > 0) {
-      return translateAdminErrorMessages(errors);
-    }
-  }
-
-  if (typeof typedPayload.error === "string" && typedPayload.error.length > 0) {
-    const detailParts = [
-      typeof typedPayload.code === "string" ? typedPayload.code : null,
-      typeof typedPayload.details === "string" ? typedPayload.details : null,
-      typeof typedPayload.hint === "string" ? typedPayload.hint : null,
-    ].filter((part): part is string => typeof part === "string" && part.length > 0);
-
-    return [formatAdminErrorMessage(typedPayload.error, detailParts)];
-  }
-
-  return [fallback];
+  return extractAdminErrors(payload, fallback);
 }
 
 // Treat rich 403 payloads as inline save errors, not forced logout signals.

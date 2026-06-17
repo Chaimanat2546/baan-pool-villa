@@ -26,10 +26,12 @@ import {
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
 import {
-  formatAdminErrorMessage,
   getAdminErrorMessage,
-  translateAdminErrorMessages,
 } from "@/components/admin/admin-error-messages";
+import {
+  extractAdminErrors as extractErrors,
+  readJsonPayload,
+} from "@/components/admin/admin-api-client";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
@@ -170,52 +172,6 @@ function parseManualIds(value: string) {
     .map((houseId) => houseId.trim())
     .filter(Boolean)
     .map((houseId) => ({ houseId, isActive: true }));
-}
-
-function extractErrors(payload: unknown, fallback: string): string[] {
-  if (!payload || typeof payload !== "object") {
-    return [fallback];
-  }
-
-  const errorPayload = payload as {
-    code?: unknown;
-    details?: unknown;
-    error?: unknown;
-    errors?: unknown;
-    hint?: unknown;
-  };
-
-  if (Array.isArray(errorPayload.errors)) {
-    const errors = errorPayload.errors.filter(
-      (error): error is string => typeof error === "string" && error.length > 0,
-    );
-
-    if (errors.length > 0) {
-      return translateAdminErrorMessages(errors);
-    }
-  }
-
-  if (typeof errorPayload.error === "string" && errorPayload.error) {
-    const detailParts = [
-      typeof errorPayload.code === "string" ? errorPayload.code : null,
-      typeof errorPayload.details === "string" ? errorPayload.details : null,
-      typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter(
-      (part): part is string => typeof part === "string" && part.length > 0,
-    );
-
-    return [formatAdminErrorMessage(errorPayload.error, detailParts)];
-  }
-
-  return [fallback];
-}
-
-async function readJsonPayload(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
 }
 
 /**

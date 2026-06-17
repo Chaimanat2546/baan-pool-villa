@@ -5,29 +5,16 @@ import {
   type LegalPageSlug,
 } from "@/lib/legal-pages/types";
 import {
-  formatAdminErrorMessage,
-  translateAdminErrorMessages,
-} from "@/components/admin/admin-error-messages";
+  extractAdminErrors,
+  readJsonPayload,
+  shouldRedirectToLogin,
+} from "@/components/admin/admin-api-client";
 
 import type {
   AdminLegalDraft,
   AdminLegalSavePayload,
   AdminLegalTextBlock,
 } from "./types";
-
-const ADMIN_ACCESS_ERROR_PREFIX = "Unable to verify admin access:";
-const AUTH_FAILURE_MESSAGES = new Set([
-  "Invalid or expired Supabase session. Please sign in again.",
-  "Signed-in user is not listed as an active home config admin.",
-]);
-
-interface ErrorPayloadParts {
-  code?: unknown;
-  details?: unknown;
-  error?: unknown;
-  errors?: unknown;
-  hint?: unknown;
-}
 
 interface LegalContentNode {
   content?: unknown;
@@ -204,69 +191,14 @@ function toTextBlock(
   };
 }
 
-export function shouldRedirectToLogin(
-  status: number,
-  payload: unknown,
-): boolean {
-  if (status === 401) {
-    return true;
-  }
-
-  if (status !== 403) {
-    return false;
-  }
-
-  const message = isRecord(payload)
-    ? (payload as { error?: unknown }).error
-    : undefined;
-
-  return (
-    typeof message === "string" &&
-    (AUTH_FAILURE_MESSAGES.has(message) ||
-      message.startsWith(ADMIN_ACCESS_ERROR_PREFIX))
-  );
-}
-
 export function extractLegalErrors(
   payload: unknown,
   fallback: string,
 ): string[] {
-  if (!payload || typeof payload !== "object") {
-    return [fallback];
-  }
-
-  const errorPayload = payload as ErrorPayloadParts;
-
-  if (Array.isArray(errorPayload.errors)) {
-    const errors = errorPayload.errors.filter(
-      (error): error is string => typeof error === "string" && error.length > 0,
-    );
-
-    if (errors.length > 0) {
-      return translateAdminErrorMessages(errors);
-    }
-  }
-
-  if (typeof errorPayload.error === "string" && errorPayload.error.length > 0) {
-    const detailParts = [
-      typeof errorPayload.code === "string" ? errorPayload.code : null,
-      typeof errorPayload.details === "string" ? errorPayload.details : null,
-      typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter((part): part is string => typeof part === "string" && part.length > 0);
-
-    return [formatAdminErrorMessage(errorPayload.error, detailParts)];
-  }
-
-  return [fallback];
+  return extractAdminErrors(payload, fallback);
 }
 
-export async function readJsonPayload(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
+export { readJsonPayload, shouldRedirectToLogin };
 
 export function blocksToText(blocks: unknown): string {
   if (!Array.isArray(blocks)) {

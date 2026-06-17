@@ -1,22 +1,18 @@
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
+import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import {
-  formatAdminErrorMessage,
-  translateAdminErrorMessage,
-  translateAdminErrorMessages,
-} from "@/components/admin/admin-error-messages";
+  extractAdminErrors,
+  readJsonPayload,
+  shouldRedirectToLogin,
+} from "@/components/admin/admin-api-client";
 import type {
   AdminSettingsDraft,
   AdminSiteSettingsResponse,
 } from "./types";
 
 const HEX_COLOR_PATTERN = /^#[\da-f]{6}$/i;
-const ADMIN_ACCESS_ERROR_PREFIX = "Unable to verify admin access:";
-const AUTH_FAILURE_MESSAGES = new Set([
-  "Invalid or expired Supabase session. Please sign in again.",
-  "Signed-in user is not listed as an active home config admin.",
-]);
 
 function getFileSnapshot(file: File | null): string | null {
   return file
@@ -162,50 +158,25 @@ export function extractErrors(
   payload: unknown,
   fallback: string,
 ): string[] {
-  if (!payload || typeof payload !== "object") {
-    return [fallback];
-  }
+  const errors = extractAdminErrors(payload, fallback);
+  const errorPayload =
+    payload && typeof payload === "object"
+      ? (payload as AdminSiteSettingsResponse)
+      : null;
 
-  const errorPayload = payload as AdminSiteSettingsResponse;
-
-  if (Array.isArray(errorPayload.errors)) {
-    const errors = errorPayload.errors.filter(
-      (error): error is string => typeof error === "string" && error.length > 0,
-    );
-
-    if (errors.length > 0) {
-      return translateAdminErrorMessages(errors);
-    }
-  }
-
-  if (typeof errorPayload.error === "string" && errorPayload.error) {
-    const detailParts = [
-      typeof errorPayload.code === "string" ? errorPayload.code : null,
-      typeof errorPayload.details === "string" ? errorPayload.details : null,
-      typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter((part): part is string => typeof part === "string" && part.length > 0);
-    const warningPart =
-      typeof errorPayload.warning === "string" && errorPayload.warning
-        ? `คำเตือน: ${errorPayload.warning}`
-        : null;
-
+  if (
+    typeof errorPayload?.error === "string" &&
+    errorPayload.error &&
+    typeof errorPayload.warning === "string" &&
+    errorPayload.warning
+  ) {
     return [
-      formatAdminErrorMessage(errorPayload.error, detailParts),
-      ...(warningPart && typeof errorPayload.warning === "string"
-        ? [`คำเตือน: ${translateAdminErrorMessage(errorPayload.warning)}`]
-        : []),
+      ...errors,
+      `คำเตือน: ${translateAdminErrorMessage(errorPayload.warning)}`,
     ];
   }
 
-  return [fallback];
-}
-
-export async function readJsonPayload(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
+  return errors;
 }
 
 export function extractWarnings(payload: AdminSiteSettingsResponse): string[] {
@@ -223,25 +194,4 @@ export function extractWarnings(payload: AdminSiteSettingsResponse): string[] {
   return warnings.map(translateAdminErrorMessage);
 }
 
-// Only auth/session failures should bounce the admin back to login. Other 403
-// responses still need to surface inline so the user keeps local form state.
-export function shouldRedirectToLogin(
-  status: number,
-  payload: AdminSiteSettingsResponse | null,
-): boolean {
-  if (status === 401) {
-    return true;
-  }
-
-  if (status !== 403) {
-    return false;
-  }
-
-  const message = payload?.error;
-
-  return (
-    typeof message === "string" &&
-    (AUTH_FAILURE_MESSAGES.has(message) ||
-      message.startsWith(ADMIN_ACCESS_ERROR_PREFIX))
-  );
-}
+export { readJsonPayload, shouldRedirectToLogin };
