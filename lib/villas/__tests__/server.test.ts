@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { unstable_cache } from "next/cache";
 import type { RawHouse } from "../types";
@@ -15,8 +15,8 @@ vi.mock("next/cache", () => ({
   unstable_cache: vi.fn((fn: unknown) => fn),
 }));
 
-const { fetchVillaImagesMock } = vi.hoisted(() => ({
-  fetchVillaImagesMock: vi.fn(),
+const { fetchVillaPreviewImagesMock } = vi.hoisted(() => ({
+  fetchVillaPreviewImagesMock: vi.fn(),
 }));
 
 const { getResolvedHomeSectionsMock } = vi.hoisted(() => ({
@@ -28,7 +28,7 @@ vi.mock("@/lib/home-sections/server", () => ({
 }));
 
 vi.mock("../images", () => ({
-  fetchVillaImages: fetchVillaImagesMock,
+  fetchVillaPreviewImages: fetchVillaPreviewImagesMock,
 }));
 
 const unstableCacheMock = vi.mocked(unstable_cache);
@@ -64,10 +64,14 @@ function jsonResponse(data: unknown, init?: ResponseInit) {
 }
 
 afterEach(() => {
-  fetchVillaImagesMock.mockReset();
+  fetchVillaPreviewImagesMock.mockReset();
   getResolvedHomeSectionsMock.mockReset();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+});
+
+beforeEach(() => {
+  fetchVillaPreviewImagesMock.mockResolvedValue([]);
 });
 
 describe("fetchHouseListings", () => {
@@ -185,22 +189,53 @@ describe("fetchVillaDetail", () => {
 });
 
 describe("fetchVillaPageData", () => {
-  it("returns server-fetched detail payload without loading gallery images during SSR", async () => {
+  it("returns server-fetched detail payload with up to four initial gallery images", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([rawHouse]));
     vi.stubGlobal("fetch", fetchMock);
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "");
-    vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "");
     getResolvedHomeSectionsMock.mockResolvedValue({
       degraded: false,
       sections: [],
       source: "config",
     });
-    fetchVillaImagesMock.mockResolvedValue([
+    fetchVillaPreviewImagesMock.mockResolvedValue([
       {
         caption: null,
         id: 1,
         imageName: "pool.jpg",
         imageUrl: "https://images.example.com/pool.jpg",
+        isCover: false,
+        zone: "outside",
+      },
+      {
+        caption: null,
+        id: 2,
+        imageName: "bedroom.jpg",
+        imageUrl: "https://images.example.com/bedroom.jpg",
+        isCover: false,
+        zone: "inside",
+      },
+      {
+        caption: null,
+        id: 3,
+        imageName: "living.jpg",
+        imageUrl: "https://images.example.com/living.jpg",
+        isCover: false,
+        zone: "inside",
+      },
+      {
+        caption: null,
+        id: 4,
+        imageName: "cover.jpg",
+        imageUrl: "https://images.example.com/cover.jpg",
+        isCover: true,
+        zone: "cover",
+      },
+      {
+        caption: null,
+        id: 5,
+        imageName: "extra.jpg",
+        imageUrl: "https://images.example.com/extra.jpg",
         isCover: false,
         zone: "outside",
       },
@@ -216,8 +251,13 @@ describe("fetchVillaPageData", () => {
       },
       recommendedSection: null,
     });
-    expect(data).not.toHaveProperty("images");
-    expect(fetchVillaImagesMock).not.toHaveBeenCalled();
+    expect(data?.initialGalleryImages).toEqual([
+      expect.objectContaining({ id: 1 }),
+      expect.objectContaining({ id: 2 }),
+      expect.objectContaining({ id: 3 }),
+      expect.objectContaining({ id: 4 }),
+    ]);
+    expect(fetchVillaPreviewImagesMock).toHaveBeenCalledWith("9");
   });
 
   it("uses the first resolved home section for villa recommendations", async () => {
