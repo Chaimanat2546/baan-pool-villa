@@ -4,6 +4,7 @@ import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 
 const BOOKING_CALENDAR_URL =
   "https://www.pattayapartypoolvilla.com/api/bookings";
+const BOOKING_CALENDAR_TIMEOUT_MS = 8_000;
 
 const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
@@ -406,6 +407,10 @@ export async function fetchVillaBookingCalendar(
   const url = new URL(BOOKING_CALENDAR_URL);
   url.searchParams.set("property_id", propertyId);
   url.searchParams.set("month", month);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, BOOKING_CALENDAR_TIMEOUT_MS);
 
   try {
     const response = await fetch(url, {
@@ -416,6 +421,7 @@ export async function fetchVillaBookingCalendar(
         revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
         tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail(propertyId)],
       },
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -431,5 +437,7 @@ export async function fetchVillaBookingCalendar(
     };
   } catch {
     return { calendar: null, status: "unavailable" };
+  } finally {
+    clearTimeout(timeout);
   }
 }

@@ -258,6 +258,36 @@ describe("fetchVillaBookingCalendar", () => {
     });
   });
 
+  it("returns unavailable when the upstream request hangs past the timeout", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
+
+    const fetchMock = vi.fn(
+      (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+          });
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const resultPromise = fetchVillaBookingCalendar("9", "2026-06");
+
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    await expect(resultPromise).resolves.toEqual({
+      calendar: null,
+      status: "unavailable",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(URL),
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
   it("returns normalized calendar data when the upstream API succeeds", async () => {
     vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
     const fetchMock = vi.fn().mockResolvedValue(Response.json(baseResponse));
