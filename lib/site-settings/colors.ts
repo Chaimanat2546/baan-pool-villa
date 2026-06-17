@@ -25,6 +25,14 @@ function rgbToHex(red: number, green: number, blue: number): string {
     .join("")}`;
 }
 
+/**
+ * Blends two hex colors using the provided weight for the right-hand color.
+ *
+ * @param leftHex - The base color in `#RRGGBB` format.
+ * @param rightHex - The mixed-in color in `#RRGGBB` format.
+ * @param rightWeight - The blend weight applied to `rightHex`, clamped between `0` and `1`.
+ * @returns The blended hex color in `#RRGGBB` format.
+ */
 export function mixHexColors(
   leftHex: string,
   rightHex: string,
@@ -52,6 +60,13 @@ function getRelativeLuminance(hex: string): number {
   return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
 }
 
+/**
+ * Calculates the WCAG contrast ratio between two hex colors.
+ *
+ * @param foregroundHex - The foreground color in `#RRGGBB` format.
+ * @param backgroundHex - The background color in `#RRGGBB` format.
+ * @returns The contrast ratio between the two colors.
+ */
 export function getContrastRatio(
   foregroundHex: string,
   backgroundHex: string,
@@ -64,6 +79,12 @@ export function getContrastRatio(
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+/**
+ * Chooses the more readable text color for a given background.
+ *
+ * @param backgroundHex - The background color in `#RRGGBB` format.
+ * @returns Either white or dark slate text, whichever has better contrast.
+ */
 export function getReadableTextColor(
   backgroundHex: string,
 ): "#ffffff" | "#0f172a" {
@@ -118,6 +139,13 @@ function ensureReadableOnBackground(
   return readableTarget;
 }
 
+/**
+ * Builds the CSS custom properties derived from resolved site colors for the
+ * shared theme layer.
+ *
+ * @param input - The resolved primary and accent colors.
+ * @returns A CSS variable map with readable derived theme colors.
+ */
 export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
   const primaryColor = ensureReadableOnSurface(input.primaryColor.toLowerCase());
   const accentColor = ensureReadableOnSurface(input.accentColor.toLowerCase());

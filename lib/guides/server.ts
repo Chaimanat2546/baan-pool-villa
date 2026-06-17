@@ -51,14 +51,31 @@ const fetchCachedPublishedGuidesForSitemap = unstable_cache(
   },
 );
 
+/**
+ * Returns the cached published guide posts used by public guide pages and
+ * homepage guide sections.
+ *
+ * @returns The normalized published guide posts from the shared guide cache.
+ */
 export async function getPublishedGuides(): Promise<GuidePost[]> {
   return fetchCachedPublishedGuides();
 }
 
+/**
+ * Returns published guide posts using the sitemap cache window.
+ *
+ * @returns The normalized published guide posts for sitemap generation.
+ */
 export async function getPublishedGuidesForSitemap(): Promise<GuidePost[]> {
   return fetchCachedPublishedGuidesForSitemap();
 }
 
+/**
+ * Resolves a published guide post by slug from the guide CMS cache.
+ *
+ * @param slug - The public guide slug from the route.
+ * @returns The matching published guide post, or `null` when the slug is not found.
+ */
 export async function getGuideBySlug(slug: string): Promise<GuidePost | null> {
   const normalizedSlug = createSlugFromTitle(decodeSlugParam(slug));
   const fetchCachedGuide = unstable_cache(
@@ -90,6 +107,13 @@ export async function getGuideBySlug(slug: string): Promise<GuidePost | null> {
   return fetchCachedGuide();
 }
 
+/**
+ * Maps a guide's recommended villa ids back to the available villa catalog.
+ *
+ * @param houseIds - The recommended villa ids stored on the guide post.
+ * @param villas - The normalized villa catalog available for recommendation lookup.
+ * @returns The matching villa listings in the same order as the guide ids.
+ */
 export function resolveGuideRecommendedVillas(
   houseIds: string[],
   villas: VillaListing[],

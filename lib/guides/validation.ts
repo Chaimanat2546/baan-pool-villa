@@ -29,6 +29,12 @@ const GUIDE_ALLOWED_BLOCK_TYPES = new Set([
   "image",
 ]);
 
+/**
+ * Creates a normalized slug from a guide title.
+ *
+ * @param title - The raw guide title or slug-like input.
+ * @returns The normalized slug, or a fallback slug when the input is empty.
+ */
 export function createSlugFromTitle(title: string): string {
   const slug = title
     .normalize("NFC")
@@ -41,6 +47,14 @@ export function createSlugFromTitle(title: string): string {
   return slug.length > 0 ? slug : FALLBACK_SLUG;
 }
 
+/**
+ * Builds a unique guide slug that avoids collisions with existing guide slugs.
+ *
+ * @param slug - The desired guide title or slug-like input.
+ * @param existingSlugs - The slugs that already exist in the guide CMS.
+ * @param currentSlug - The current slug to preserve during edits when unchanged.
+ * @returns A normalized slug that does not collide with existing guide slugs.
+ */
 export function buildUniqueSlug(
   slug: string,
   existingSlugs: string[],
@@ -69,6 +83,13 @@ export function buildUniqueSlug(
   return candidate;
 }
 
+/**
+ * Normalizes a free-form house id into the numeric id format used by guides
+ * and villa data.
+ *
+ * @param value - The raw house id entered in the guide editor.
+ * @returns The normalized numeric house id, or `null` when invalid.
+ */
 export function normalizeGuideHouseId(value: string): string | null {
   const compactValue = value.trim().replace(/\s+/g, "");
 
@@ -91,6 +112,13 @@ export function normalizeGuideHouseId(value: string): string | null {
   return String(numericId);
 }
 
+/**
+ * Validates a guide draft and returns admin-facing error messages for invalid
+ * guide content.
+ *
+ * @param draft - The guide draft collected from the admin editor.
+ * @returns User-facing validation error messages, or an empty array when valid.
+ */
 export function validateGuideDraft(draft: GuideDraft): string[] {
   const errors: string[] = [];
   const normalizedDraft = normalizeGuideDraftForSave(draft);
@@ -135,6 +163,13 @@ export function validateGuideDraft(draft: GuideDraft): string[] {
   return errors;
 }
 
+/**
+ * Normalizes a mutable guide draft into the payload shape expected by the save
+ * API.
+ *
+ * @param draft - The guide draft from the admin editor.
+ * @returns A normalized guide payload ready for persistence.
+ */
 export function normalizeGuideDraftForSave(
   draft: GuideDraft,
 ): GuideSavePayload {
@@ -152,6 +187,13 @@ export function normalizeGuideDraftForSave(
   };
 }
 
+/**
+ * Normalizes a raw guide-post row from Supabase into the shared guide-post
+ * shape used by public and admin consumers.
+ *
+ * @param row - The raw guide-post row returned by Supabase.
+ * @returns The normalized guide post.
+ */
 export function normalizeGuidePostRow(row: GuidePostRow): GuidePost {
   const status = isGuideStatus(row.status) ? row.status : "draft";
 
@@ -176,6 +218,13 @@ export function normalizeGuidePostRow(row: GuidePostRow): GuidePost {
   };
 }
 
+/**
+ * Validates uploaded guide image metadata before assets are saved.
+ *
+ * @param mimeType - The uploaded file MIME type.
+ * @param sizeBytes - The uploaded file size in bytes.
+ * @returns User-facing validation error messages for invalid upload metadata.
+ */
 export function validateGuideUploadMetadata(
   mimeType: string,
   sizeBytes: number,
