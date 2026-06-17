@@ -381,7 +381,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
-                <td>Admin auth through the shared bearer-token and mutation-origin guard, validate site settings (excluding TikTok fields), handle asset uploads, persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
+                <td>Admin auth through the shared bearer-token and mutation-origin guard, parse admin multipart settings fields through <code>lib/site-settings/admin-form-fields.ts</code>, handle asset upload/history cleanup through <code>lib/site-settings/admin-asset-uploads.ts</code>, validate site settings (excluding TikTok fields), persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
@@ -506,7 +506,7 @@
             </tr>
             <tr>
               <td><code>lib/site-settings</code></td>
-              <td>Site identity, theme colors, logo/hero assets, global SEO, section SEO templates, contact/TikTok settings, defaults, validation, Supabase reads, retention.</td>
+              <td>Site identity, theme colors, logo/hero assets, global SEO, section SEO templates, contact/TikTok settings, admin multipart form parsing, admin asset upload/history cleanup, defaults, validation, Supabase reads, retention.</td>
               <td><code>lib/site-settings/__tests__</code></td>
             </tr>
             <tr>
