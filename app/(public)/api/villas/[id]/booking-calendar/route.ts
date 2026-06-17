@@ -12,14 +12,14 @@ export async function GET(
 ) {
   const month = new URL(request.url).searchParams.get("month") ?? "";
 
-  if (!isValidBookingCalendarMonth(month)) {
-    return Response.json({ error: "Invalid month." }, { status: 400 });
-  }
-
   const rateLimitResponse = limitPublicApiRequest(request, "publicDetail");
 
   if (rateLimitResponse) {
     return rateLimitResponse;
+  }
+
+  if (!isValidBookingCalendarMonth(month)) {
+    return Response.json({ error: "Invalid month." }, { status: 400 });
   }
 
   const { id } = await context.params;

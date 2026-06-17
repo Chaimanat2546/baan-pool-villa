@@ -418,11 +418,15 @@ describe("BookingSidebar", () => {
     expect(baseDate?.dataset.calendarDayKind).toBe("base");
     expect(baseDate?.querySelector("[data-calendar-icon-slot='empty']")).not.toBeNull();
     expect(waitingDate?.disabled).toBe(true);
+    expect(waitingDate?.getAttribute("aria-disabled")).toBe("true");
+    expect(waitingDate?.tabIndex).toBe(-1);
     expect(waitingDate?.dataset.calendarDayKind).toBe("booking_waiting");
     expect(
       waitingDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
     ).toBeNull();
     expect(bookedDate?.disabled).toBe(true);
+    expect(bookedDate?.getAttribute("aria-disabled")).toBe("true");
+    expect(bookedDate?.tabIndex).toBe(-1);
     expect(bookedDate?.dataset.calendarDayKind).toBe("booking_confirmed");
     expect(
       bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),

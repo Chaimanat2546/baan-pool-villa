@@ -31,14 +31,14 @@ export type VillaDetailVideo = {
   label: string;
 };
 
-export type VillaDetailContent = {
+export interface VillaDetailContent {
   amenities: Amenity[];
   facts: VillaDetailFact[];
   location: VillaDetailLocation | null;
   nearbyPlaces: VillaNearbyPlace[];
   sections: VillaDetailSection[];
   videos: VillaDetailVideo[];
-};
+}
 
 type DetailRecord = Record<string, unknown>;
 

@@ -8,6 +8,7 @@ import {
 vi.mock("server-only", () => ({}));
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });

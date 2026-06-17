@@ -255,15 +255,17 @@ function getAmenityIcon(amenityKey: Amenity["key"]) {
   return AMENITY_ICONS[amenityKey] ?? Star;
 }
 
+interface AmenitiesSectionProps {
+  amenities: Amenity[];
+  compact?: boolean;
+  previewCount?: number;
+}
+
 export function AmenitiesSection({
   amenities,
   compact = false,
   previewCount = DEFAULT_AMENITY_PREVIEW_COUNT,
-}: {
-  amenities: Amenity[];
-  compact?: boolean;
-  previewCount?: number;
-}) {
+}: AmenitiesSectionProps) {
 
   const shouldCompact = compact && amenities.length > previewCount;
   const visibleAmenities = shouldCompact

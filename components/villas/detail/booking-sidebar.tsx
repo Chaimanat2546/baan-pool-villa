@@ -510,6 +510,7 @@ export function BookingSidebar({
 
               return (
                 <CalendarDayButton
+                  {...props}
                   className={cn(
                     className,
                     isPast
@@ -537,9 +538,9 @@ export function BookingSidebar({
                     isOutsideVisibleMonth ? undefined : calendarDay.tone
                   }
                   day={day}
+                  disabled={isBlockedBooking || props.disabled}
                   aria-disabled={isBlockedBooking ? true : props["aria-disabled"]}
                   tabIndex={isBlockedBooking ? -1 : props.tabIndex}
-                  {...props}
                 >
                   <CalendarDayOverlay day={calendarDay} />
                   <span

@@ -313,6 +313,10 @@ describe("DetailLayoutRenderer", () => {
 
     const amenitiesBlockStart = markup.indexOf('data-detail-layout-block="amenities"');
     const mapBlockStart = markup.indexOf('data-detail-layout-block="map_nearby"');
+
+    expect(amenitiesBlockStart).toBeGreaterThanOrEqual(0);
+    expect(mapBlockStart).toBeGreaterThanOrEqual(0);
+
     const amenitiesBlockMarkup = markup.slice(amenitiesBlockStart, mapBlockStart);
 
     expect(amenitiesBlockMarkup).toContain("Pet Friendly");
