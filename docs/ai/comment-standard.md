@@ -42,8 +42,8 @@ small code block already says.
    and other exported functions whose contract matters to multiple callers.
    When a function is reused across modules or has validation/business rules,
    prefer fuller JSDoc that explains the contract and documents parameters and
-   return values. Skip JSDoc for small local helpers unless the contract is
-   non-obvious.
+   return values. If the JSDoc only restates a clear function name, delete it.
+   Skip JSDoc for small local helpers unless the contract is non-obvious.
 
 7. Prefer comments at the narrowest useful scope.
    Put the comment directly above the function, guard, fallback, transform, or
@@ -65,6 +65,9 @@ Comments are usually worth adding in these cases:
 - route handler input validation and allowlist decisions
 - non-obvious UI fallback behavior
 - temporary workarounds with a clear reason and removal condition
+
+When in doubt, prefer no comment over a descriptive comment that only explains
+what the code obviously does.
 
 ## When Comments Are Usually Unnecessary
 

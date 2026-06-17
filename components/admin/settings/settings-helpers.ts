@@ -28,6 +28,8 @@ export function isHexColor(value: string): boolean {
   return HEX_COLOR_PATTERN.test(value.trim());
 }
 
+// Keep the preview renderable while the form is mid-edit by falling back to
+// safe brand colors whenever the draft still contains an invalid hex value.
 export function buildDraftThemeStyle(draft: AdminSettingsDraft) {
   const accentColor = draft.accentColor.trim().toLowerCase();
   const primaryColor = draft.primaryColor.trim().toLowerCase();
@@ -221,6 +223,8 @@ export function extractWarnings(payload: AdminSiteSettingsResponse): string[] {
   return warnings.map(translateAdminErrorMessage);
 }
 
+// Only auth/session failures should bounce the admin back to login. Other 403
+// responses still need to surface inline so the user keeps local form state.
 export function shouldRedirectToLogin(
   status: number,
   payload: AdminSiteSettingsResponse | null,
