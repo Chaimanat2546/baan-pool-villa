@@ -446,7 +446,7 @@
             </tr>
             <tr>
               <td><code>components/villas/detail</code></td>
-              <td>Villa detail page, gallery, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI helpers, recommendations, layout renderer, detail skeletons, and review video posters backed by <code>lib/villas/detail</code> thumbnail URLs.</td>
+              <td>Villa detail page, gallery grid, gallery lightbox, gallery tile components, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI/visual helpers, recommendations, layout renderer, detail skeletons, and review video posters backed by <code>lib/villas/detail</code> thumbnail URLs.</td>
               <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Review videos should render thumbnail posters first and mount YouTube iframes only after play.</td>
             </tr>
             <tr>
@@ -596,7 +596,7 @@
               <td>Villa booking calendar</td>
               <td>Pattaya booking API at <code>https://www.pattayapartypoolvilla.com/api/bookings?property_id={id}&amp;month={YYYY-MM}</code> with server-only <code>PATTAYA_BOOKINGS_API_TOKEN</code>.</td>
               <td><code>lib/villas/booking-calendar.ts</code>, villa detail cache tag/header, and <code>app/(public)/api/villas/[id]/booking-calendar/route.ts</code>.</td>
-              <td>The villa detail booking sidebar fetches the same-origin route by visible month, displays marker backgrounds/icons plus normalized display prices in the calendar, disables past and booked days, shows the legend below the grid, and opens a date-detail modal with the normalized event label, event/base price, and promotion message for selectable days.</td>
+              <td>The villa detail booking sidebar fetches the same-origin route by visible month, reuses already loaded months in the current client page, displays marker backgrounds/icons plus normalized display prices in the calendar, disables past and booked days, shows the legend below the grid, and opens a date-detail modal with the normalized event label, event/base price, and promotion message for selectable days.</td>
             </tr>
             <tr>
               <td>Villa images</td>

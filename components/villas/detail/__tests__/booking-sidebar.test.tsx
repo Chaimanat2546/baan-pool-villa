@@ -149,6 +149,14 @@ function mockBookingCalendarFetch() {
   );
 }
 
+function getFetchedBookingCalendarMonths() {
+  return vi.mocked(fetch).mock.calls.map(([input]) => {
+    const url = input instanceof Request ? input.url : String(input);
+
+    return new URL(url, "https://example.com").searchParams.get("month");
+  });
+}
+
 async function renderBookingSidebar() {
   const container = document.createElement("div");
   document.body.append(container);
@@ -249,15 +257,53 @@ describe("BookingSidebar", () => {
     expect(calendarGrid?.compareDocumentPosition(calendarNav ?? null)).toBe(
       Node.DOCUMENT_POSITION_PRECEDING,
     );
-    expect(navButtons?.[0]?.className).toContain("h-12");
-    expect(navButtons?.[1]?.className).toContain("size-14");
-    expect(navButtons?.[2]?.className).toContain("size-14");
+    expect(navButtons?.[0]?.className).toContain("rounded-2xl");
+    expect(navButtons?.[1]?.className).toContain("size-10");
+    expect(navButtons?.[2]?.className).toContain("size-10");
 
     await act(async () => {
       todayButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(page.container.textContent).toContain("มิถุนายน");
+    await page.cleanup();
+  });
+
+  it("reuses booking calendar months already fetched in the current page", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
+    const page = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
+
+    await act(async () => {
+      page.container
+        .querySelector("[data-calendar-nav]")
+        ?.querySelectorAll("button")[2]
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06", "2026-07"]);
+
+    await act(async () => {
+      page.container
+        .querySelector("[data-calendar-nav]")
+        ?.querySelectorAll("button")[0]
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      page.container
+        .querySelector("[data-calendar-nav]")
+        ?.querySelectorAll("button")[2]
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06", "2026-07"]);
     await page.cleanup();
   });
 
