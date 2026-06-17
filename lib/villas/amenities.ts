@@ -21,6 +21,13 @@ export const AMENITY_LABELS = Object.fromEntries(
   AMENITY_OPTIONS.map((amenity) => [amenity.key, amenity.label]),
 ) as Record<AmenityKey, string>;
 
+/**
+ * Maps the listing feed's amenity flags into the shared amenity objects used by
+ * search filters and villa cards.
+ *
+ * @param house - The raw villa listing record from the external house feed.
+ * @returns The enabled amenity objects recognized by this repository.
+ */
 export function getHouseAmenities(house: RawHouse): Amenity[] {
   return AMENITY_OPTIONS.filter((amenity) => house[amenity.key] === "y");
 }

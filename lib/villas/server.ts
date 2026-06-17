@@ -54,6 +54,8 @@ const fetchCachedHouseListings = unstable_cache(
 /**
  * Returns the cached public villa catalog used by home, search, guides, and
  * other listing consumers.
+ *
+ * @returns The normalized villa listings from the shared listing cache.
  */
 export async function fetchHouseListings(): Promise<VillaListing[]> {
   return fetchCachedHouseListings();
@@ -62,11 +64,19 @@ export async function fetchHouseListings(): Promise<VillaListing[]> {
 /**
  * Uses the same listing normalization as the main catalog, but with the
  * sitemap request budget so sitemap generation can keep its own cache window.
+ *
+ * @returns The normalized villa listings using the sitemap cache window.
  */
 export async function fetchHouseListingsForSitemap(): Promise<VillaListing[]> {
   return fetchHouseListingsFromApi(CACHE_REVALIDATE_SECONDS.sitemap);
 }
 
+/**
+ * Finds a villa listing by id from the cached public catalog.
+ *
+ * @param id - The villa id from the public route or API request.
+ * @returns The matching villa listing, or `null` when the id is unknown.
+ */
 export async function getListingById(id: string): Promise<VillaListing | null> {
   const listings = await fetchHouseListings();
   return listings.find((listing) => listing.id === id) ?? null;
@@ -75,6 +85,12 @@ export async function getListingById(id: string): Promise<VillaListing | null> {
 /**
  * Resolves the listing first, then adds optional detail data when the upstream
  * detail API and bearer token are available.
+ *
+ * @param id - The villa id to resolve.
+ * @param listings - An optional preloaded listing array to avoid a duplicate
+ * catalog lookup.
+ * @returns The combined listing/detail payload, or `null` when the villa does
+ * not exist in the public catalog.
  */
 export async function fetchVillaDetail(
   id: string,
@@ -161,6 +177,10 @@ function toRecommendedVillaSection(
 /**
  * Combines villa detail data with the first resolved home-section
  * recommendation block used on the public detail page.
+ *
+ * @param id - The villa id to resolve for the public detail page.
+ * @returns The page payload and recommendation block, or `null` when the villa
+ * id is not found.
  */
 export async function fetchVillaPageData(
   id: string,

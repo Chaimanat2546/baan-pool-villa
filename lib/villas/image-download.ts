@@ -12,23 +12,28 @@ const IMAGE_EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
 };
 
 /**
- * Normalize and validate an image URL string for download.
+ * Normalizes and validates an image URL before it is used for downloads.
  *
- * Trims the input and, if non-empty, parses it as a URL; only accepts `https:` URLs with no username or password and returns the URL's canonical string form. Returns `null` when the input is empty, cannot be parsed as a URL, or fails validation.
+ * Reuses the shared public-image validation rules so download handling stays
+ * aligned with the same protocol and credential restrictions as other public
+ * image flows.
  *
- * @param value - The raw URL string to normalize (may be `null`)
- * @returns The normalized URL string if `value` is a valid `https` URL without credentials, `null` otherwise
+ * @param value - The raw image URL value to validate.
+ * @returns The normalized URL when it is allowed, or `null` when invalid.
  */
 export function normalizeDownloadImageUrl(value: string | null): string | null {
   return normalizePublicImageSourceUrl(value);
 }
 
 /**
- * Checks whether an image URL belongs to the villa's known Supabase image rows.
+ * Checks whether an image URL belongs to the villa's known image rows.
  *
- * @param imageUrl - The image URL to verify
- * @param images - Array of villa images to check against (`image.imageUrl` is compared)
- * @returns `true` if `imageUrl` equals any `image.imageUrl` in `images`, `false` otherwise.
+ * This keeps the download route limited to images already resolved for the
+ * requested villa instead of allowing arbitrary remote URLs.
+ *
+ * @param imageUrl - The normalized image URL to verify.
+ * @param images - The resolved villa images allowed for this villa.
+ * @returns `true` when the URL matches one of the villa's known images.
  */
 export function isAllowedVillaImageUrl(
   imageUrl: string,
@@ -38,10 +43,7 @@ export function isAllowedVillaImageUrl(
 }
 
 /**
- * Produces a lowercase slug fragment suitable for filenames or identifiers.
- *
- * @param value - Input string to normalize; may be null or undefined
- * @returns The normalized slug with runs of non-alphanumeric characters replaced by `-` and a trailing dot-extension removed; `null` if the input is falsy or the result is empty
+ * Produces a lowercase slug fragment suitable for download filenames.
  */
 function slugPart(value: string | null | undefined): string | null {
   const slug = value
@@ -55,11 +57,8 @@ function slugPart(value: string | null | undefined): string | null {
 }
 
 /**
- * Determine the file extension for an image based on its MIME type or, if necessary, the source URL.
- *
- * @param contentType - The image MIME type (may include `;` parameters)
- * @param sourceUrl - Optional source URL used as a fallback to extract an extension from the pathname
- * @returns The file extension (without a leading dot), normalized to lowercase; returns `"jpg"` when the extension cannot be determined
+ * Prefers MIME-derived extensions, then falls back to the source URL, with
+ * `jpg` as the final safe default.
  */
 function getImageExtension(contentType: string, sourceUrl?: string): string {
   const normalizedContentType = contentType.split(";")[0]?.trim().toLowerCase();
@@ -89,20 +88,18 @@ function getImageExtension(contentType: string, sourceUrl?: string): string {
 }
 
 /**
- * Builds a sanitized download filename for a villa image.
+ * Builds a stable download filename from villa metadata and the detected image
+ * extension.
  *
- * The filename is constructed from these parts (in order): the literal `"villa"`, a slugified
- * `villaId`, an optional slugified `zoneKey`, and either a slugified `imageName` or a slugified
- * fallback from `sourceUrl`. Parts that are missing are omitted and remaining parts are joined by
- * hyphens. The file extension is chosen from `contentType` or inferred from `sourceUrl`, with a
- * `"jpg"` fallback.
+ * The filename keeps a predictable `villa-...` shape so downloads remain
+ * readable even when upstream image names are inconsistent or missing.
  *
- * @param contentType - MIME type used to determine the file extension
- * @param imageName - Optional human-readable image name to include in the filename
- * @param sourceUrl - Optional source URL used as a fallback for the name and extension
- * @param villaId - Villa identifier included and slugified in the filename
- * @param zoneKey - Optional zone identifier included and slugified in the filename
- * @returns The resulting filename including its extension (e.g., `villa-my-villa-beach.jpg`)
+ * @param contentType - The response MIME type used to derive the file extension.
+ * @param imageName - An optional image name to include in the filename.
+ * @param sourceUrl - An optional source URL used as a fallback for the name and extension.
+ * @param villaId - The villa identifier to include in the filename.
+ * @param zoneKey - An optional zone identifier to include in the filename.
+ * @returns A sanitized filename with an extension, such as `villa-pattaya-12.jpg`.
  */
 export function buildImageDownloadFilename({
   contentType,
@@ -129,10 +126,10 @@ export function buildImageDownloadFilename({
 }
 
 /**
- * Produce a safe `Content-Disposition` header value for downloading a file.
+ * Builds a safe attachment header value from a candidate filename.
  *
- * @param filename - The original filename to sanitize; may contain unsafe characters and whitespace
- * @returns The `Content-Disposition` header string `attachment; filename="..."` using a sanitized filename where runs of disallowed characters are replaced with `-`, leading/trailing `-` are removed, and `"villa-image.jpg"` is used when the sanitized name is empty
+ * @param filename - The candidate filename to sanitize.
+ * @returns A `Content-Disposition` value with a safe fallback filename.
  */
 export function createAttachmentDisposition(filename: string): string {
   const safeFilename = filename

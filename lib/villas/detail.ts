@@ -432,6 +432,9 @@ function buildDetailAmenities(detail: DetailRecord): Amenity[] {
 /**
  * Converts raw detail payloads into structured content blocks for the public
  * villa detail page without leaking upstream field names into the UI layer.
+ *
+ * @param detail - The raw villa detail payload returned by the detail API.
+ * @returns Structured detail content ready for the public detail UI.
  */
 export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
   if (!isRecord(detail)) {
