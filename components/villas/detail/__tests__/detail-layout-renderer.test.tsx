@@ -53,6 +53,7 @@ const recommendedSection: RecommendedVillaSection = {
 };
 
 const content: VillaDetailContent = {
+  amenities: [],
   facts: [
     { label: "เช็คอิน", value: "14:00" },
     { label: "เช็คเอาต์", value: "12:00" },
@@ -294,6 +295,32 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).toContain('data-detail-amenities-compact="true"');
     expect(markup).toContain("Amenity 1");
     expect(markup).toContain("Amenity 16");
+  });
+
+  it("prefers detail amenities over listing amenities on the villa detail page", () => {
+    const markup = render(
+      DEFAULT_DETAIL_LAYOUT,
+      {
+        amenities: [{ key: "pet", label: "Pet Friendly" }],
+      },
+      {
+        listing: {
+          ...listing,
+          amenities: [{ key: "wifi", label: "Wi-Fi" }],
+        },
+      },
+    );
+
+    const amenitiesBlockStart = markup.indexOf('data-detail-layout-block="amenities"');
+    const mapBlockStart = markup.indexOf('data-detail-layout-block="map_nearby"');
+
+    expect(amenitiesBlockStart).toBeGreaterThanOrEqual(0);
+    expect(mapBlockStart).toBeGreaterThanOrEqual(0);
+
+    const amenitiesBlockMarkup = markup.slice(amenitiesBlockStart, mapBlockStart);
+
+    expect(amenitiesBlockMarkup).toContain("Pet Friendly");
+    expect(amenitiesBlockMarkup).not.toContain("Wi-Fi");
   });
 
   it("compacts grouped price details before they dominate a row", () => {

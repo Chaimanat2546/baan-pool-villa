@@ -13,7 +13,7 @@ const IMAGE_DOWNLOAD_TIMEOUT_MS = 10_000;
 /**
  * Handle GET requests to download a villa image identified by the route `id`.
  *
- * This endpoint expects a query parameter `url` (the image URL to download). It validates the `id` format, normalizes and validates the target image URL, checks authorization against the villa's images (and optionally villa detail), downloads the image from the upstream URL, and returns the upstream image stream with appropriate download headers.
+ * This endpoint expects a query parameter `url` (the image URL to download). It validates the `id` format, normalizes and validates the target image URL, checks authorization against the villa's gallery images, downloads the image from the upstream URL, and returns the upstream image stream with appropriate download headers.
  *
  * @param request - Incoming Request whose URL search params must include `url`; optional search params: `name` (override filename) and `zone` (zone key for filename).
  * @param context - Route context containing `params` that resolve to an object with `id` (the villa id).

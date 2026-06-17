@@ -4,6 +4,7 @@ import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 
 const BOOKING_CALENDAR_URL =
   "https://www.pattayapartypoolvilla.com/api/bookings";
+const BOOKING_CALENDAR_TIMEOUT_MS = 8_000;
 
 const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
@@ -128,12 +129,45 @@ function createDateKey(date: Date): string {
   ].join("-");
 }
 
+function isAsciiDigits(value: string): boolean {
+  if (!value) {
+    return false;
+  }
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+
+    if (code < 48 || code > 57) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function parseDateKey(dateKey: string | null | undefined): Date | null {
-  if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+  if (!dateKey) {
     return null;
   }
 
-  const [year, month, day] = dateKey.split("-").map(Number);
+  const parts = dateKey.split("-");
+
+  if (parts.length !== 3 || parts.some((part) => !isAsciiDigits(part))) {
+    return null;
+  }
+
+  const [year, month, day] = parts.map(Number);
+
+  if (month < 1 || month > 12) {
+    return null;
+  }
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  if (day < 1 || day > daysInMonth) {
+    return null;
+  }
+
   return new Date(year, month - 1, day);
 }
 
@@ -373,6 +407,10 @@ export async function fetchVillaBookingCalendar(
   const url = new URL(BOOKING_CALENDAR_URL);
   url.searchParams.set("property_id", propertyId);
   url.searchParams.set("month", month);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, BOOKING_CALENDAR_TIMEOUT_MS);
 
   try {
     const response = await fetch(url, {
@@ -383,6 +421,7 @@ export async function fetchVillaBookingCalendar(
         revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
         tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail(propertyId)],
       },
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -398,5 +437,7 @@ export async function fetchVillaBookingCalendar(
     };
   } catch {
     return { calendar: null, status: "unavailable" };
+  } finally {
+    clearTimeout(timeout);
   }
 }

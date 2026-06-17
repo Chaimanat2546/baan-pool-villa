@@ -1,3 +1,6 @@
+import { AMENITY_OPTIONS } from "./amenities";
+import type { Amenity } from "./types";
+
 export type VillaDetailFact = {
   label: string;
   value: string;
@@ -28,13 +31,14 @@ export type VillaDetailVideo = {
   label: string;
 };
 
-export type VillaDetailContent = {
+export interface VillaDetailContent {
+  amenities: Amenity[];
   facts: VillaDetailFact[];
   location: VillaDetailLocation | null;
   nearbyPlaces: VillaNearbyPlace[];
   sections: VillaDetailSection[];
   videos: VillaDetailVideo[];
-};
+}
 
 type DetailRecord = Record<string, unknown>;
 
@@ -381,9 +385,52 @@ function buildVillaVideos(detail: DetailRecord): VillaDetailVideo[] {
   }));
 }
 
+function isEnabledFacilityValue(value: unknown): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  const normalizedValue = value.trim().toLowerCase();
+  return normalizedValue === "y" || normalizedValue === "yes" || normalizedValue === "true" || normalizedValue === "1";
+}
+
+function buildDetailAmenities(detail: DetailRecord): Amenity[] {
+  const facilities = detail.facilities;
+
+  if (!isRecord(facilities)) {
+    return [];
+  }
+
+  const amenities = AMENITY_OPTIONS.filter((amenity) =>
+    isEnabledFacilityValue(facilities[amenity.key]),
+  );
+
+  if (
+    isEnabledFacilityValue(facilities.pets) &&
+    !amenities.some((amenity) => amenity.key === "pet")
+  ) {
+    const petAmenity = AMENITY_OPTIONS.find((amenity) => amenity.key === "pet");
+
+    if (petAmenity) {
+      amenities.push(petAmenity);
+    }
+  }
+
+  return amenities;
+}
+
 export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
   if (!isRecord(detail)) {
     return {
+      amenities: [],
       facts: [],
       location: null,
       nearbyPlaces: [],
@@ -424,6 +471,7 @@ export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
   addSection(sections, "นโยบายสัตว์เลี้ยง", buildPetPolicyLines(detail));
 
   return {
+    amenities: buildDetailAmenities(detail),
     facts,
     location,
     nearbyPlaces: buildNearbyPlaces(detail),
