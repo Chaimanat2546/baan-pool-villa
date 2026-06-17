@@ -12,6 +12,10 @@ function toNumber(value: string | number | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+/**
+ * Applies the shared listing commission rules so public villa prices stay
+ * consistent across routes and components.
+ */
 export function calculateCommission(price: string | number | null | undefined): number {
   const numericPrice = toNumber(price);
   const last3 = numericPrice % 1000;
@@ -31,6 +35,10 @@ export function getZoneLabel(zone: string): string {
   return ZONE_LABELS[zone] ?? zone;
 }
 
+/**
+ * Normalizes the external listing payload into the stable card/list shape used
+ * throughout the public UI.
+ */
 export function normalizeHouse(house: RawHouse): VillaListing {
   const zone = house.h_zone?.trim() || "unknown";
   const imageName = house.img_name?.trim();
@@ -50,6 +58,10 @@ export function normalizeHouse(house: RawHouse): VillaListing {
   };
 }
 
+/**
+ * Keeps batch listing normalization in one shared path so callers do not
+ * duplicate upstream cleanup rules.
+ */
 export function normalizeHouses(houses: RawHouse[]): VillaListing[] {
   return houses.map(normalizeHouse);
 }

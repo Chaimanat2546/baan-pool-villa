@@ -227,6 +227,8 @@ function normalizeVideoUrls(value: string | null): string[] {
     return [];
   }
 
+  // Editors may paste one URL, comma-separated URLs, or mixed text with links,
+  // so we try URL extraction first and fall back to delimiter splitting.
   const urlMatches = extractVideoUrlCandidates(value);
   const candidates =
     urlMatches.length > 0 ? urlMatches : splitVideoUrlCandidates(value);
@@ -427,6 +429,10 @@ function buildDetailAmenities(detail: DetailRecord): Amenity[] {
   return amenities;
 }
 
+/**
+ * Converts raw detail payloads into structured content blocks for the public
+ * villa detail page without leaking upstream field names into the UI layer.
+ */
 export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
   if (!isRecord(detail)) {
     return {

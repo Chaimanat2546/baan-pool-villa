@@ -46,6 +46,9 @@ type FiltersToSearchParamsOptions = {
   omitMaxPrice?: boolean;
 };
 
+/**
+ * Serializes normalized filter state back into the public search URL format.
+ */
 export function filtersToSearchParams(
   filters: VillaFilters,
   options: FiltersToSearchParamsOptions = {},
@@ -74,6 +77,10 @@ export function filtersToSearchParams(
   return params;
 }
 
+/**
+ * Clamps UI filter values to the supported search bounds before they are used
+ * in requests or persisted back to the URL.
+ */
 export function normalizeFiltersForSearch(
   filters: VillaFilters,
   maxPrice: number,
@@ -96,6 +103,10 @@ export function normalizeFiltersForSearch(
   };
 }
 
+/**
+ * Reads public search params defensively so deep links with missing or invalid
+ * values still resolve to a safe filter state.
+ */
 export function filtersFromSearchParams(
   searchParams: URLSearchParams,
   maxPrice: number,
@@ -143,6 +154,10 @@ export function filtersFromSearchParams(
   };
 }
 
+/**
+ * Parses mixed kilometer/meter distance strings from the upstream catalog into
+ * a comparable kilometer value for near-sea filtering.
+ */
 export function getDistanceToSeaInKm(distanceToSea: string): number | null {
   const normalizedDistance = distanceToSea.trim().toLowerCase();
 
@@ -173,12 +188,19 @@ export function getDistanceToSeaInKm(distanceToSea: string): number | null {
   return distance;
 }
 
+/**
+ * Near-sea links use a fixed 2 km threshold so homepage deep links and search
+ * filtering share the same interpretation.
+ */
 export function isNearSeaVilla(villa: VillaListing): boolean {
   const distanceInKm = getDistanceToSeaInKm(villa.distanceToSea);
 
   return distanceInKm !== null && distanceInKm <= 2;
 }
 
+/**
+ * Applies the public search filter rules without mutating the source catalog.
+ */
 export function filterVillas(
   villas: VillaListing[],
   filters: VillaFilters,
@@ -207,6 +229,10 @@ export function filterVillas(
   });
 }
 
+/**
+ * Supports forgiving villa-id matching so search can find houses from plain
+ * numeric ids or prefixed forms like `dv123`.
+ */
 export function filterVillasById(
   villas: VillaListing[],
   villaIdQuery: string,
@@ -227,6 +253,10 @@ export function filterVillasById(
   });
 }
 
+/**
+ * Returns a sorted copy so callers can reuse the original listing order for
+ * the default recommended view.
+ */
 export function sortVillas(
   villas: VillaListing[],
   sortKey: VillaSortKey,
@@ -248,10 +278,18 @@ export function sortVillas(
   }
 }
 
+/**
+ * Derives the highest listing price for slider bounds and other price-based UI
+ * defaults.
+ */
 export function getMaxVillaPrice(villas: VillaListing[]): number {
   return villas.reduce((max, villa) => Math.max(max, villa.price), 0);
 }
 
+/**
+ * Preserves one label per zone value so filter controls stay stable even when
+ * many villas belong to the same zone.
+ */
 export function getUniqueZones(
   villas: VillaListing[],
 ): Array<{ value: string; label: string }> {

@@ -117,6 +117,10 @@ function isValidMonth(month: string): boolean {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
 }
 
+/**
+ * Validates the public `YYYY-MM` month format accepted by the booking calendar
+ * route.
+ */
 export function isValidBookingCalendarMonth(month: string): boolean {
   return isValidMonth(month);
 }
@@ -264,6 +268,8 @@ function setCalendarEvent(
 ) {
   const existing = events.get(dateKey);
 
+  // Higher-priority events win so booked days override promotions and holiday
+  // pricing metadata when multiple upstream ranges overlap.
   if (!existing || event.priority > existing.priority) {
     events.set(dateKey, event);
   }
@@ -273,6 +279,10 @@ function normalizeBookingType(bookType: string | null | undefined) {
   return bookType?.trim().toLowerCase() ?? "";
 }
 
+/**
+ * Flattens the booking API response into one day record per date so the client
+ * calendar can render without re-implementing upstream overlap rules.
+ */
 export function normalizeBookingCalendar(
   response: RawBookingCalendarResponse,
   month: string,
@@ -394,6 +404,10 @@ async function readJson<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+/**
+ * Fetches one month of booking data through the same cache policy as villa
+ * detail content while keeping the booking token server-only.
+ */
 export async function fetchVillaBookingCalendar(
   propertyId: string,
   month: string,

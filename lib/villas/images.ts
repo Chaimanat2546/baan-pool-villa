@@ -47,6 +47,10 @@ function getSupabaseConfig() {
   return { supabaseUrl, supabaseKey };
 }
 
+/**
+ * Accepts absolute URLs or legacy relative paths and returns a normalized
+ * absolute image URL.
+ */
 export function normalizeImageUrl(
   imageUrl: string | null,
   supabaseUrl = DEFAULT_SUPABASE_URL,
@@ -64,6 +68,9 @@ export function normalizeImageUrl(
   }
 }
 
+/**
+ * Builds the proxy-backed display URL used for public villa gallery images.
+ */
 export function buildProxyImageUrl(
   imageName: string | null,
   proxyBaseUrl = DEFAULT_IMAGE_PROXY_BASE_URL,
@@ -77,6 +84,10 @@ export function buildProxyImageUrl(
   return new URL(encodeURIComponent(trimmedImageName), proxyBaseUrl).toString();
 }
 
+/**
+ * Prefers the image-name proxy path when possible so public image delivery can
+ * stay behind the shared display proxy and edge cache.
+ */
 export function normalizeImageRows(
   rows: SupabaseImageRow[],
   supabaseUrl = DEFAULT_SUPABASE_URL,
@@ -102,6 +113,9 @@ export function normalizeImageRows(
     }));
 }
 
+/**
+ * Rejects non-numeric or unsafe ids before they are used in Supabase queries.
+ */
 export function parseVillaId(id: string): number {
   if (!/^[1-9]\d*$/.test(id)) {
     throw new Error("Invalid villa id");
@@ -144,6 +158,9 @@ async function fetchVillaImagesFromSupabase(
   return normalizeImageRows((data ?? []) as SupabaseImageRow[], supabaseUrl);
 }
 
+/**
+ * Loads and caches the Supabase gallery rows for a single villa.
+ */
 export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   const villaId = parseVillaId(id);
   const tag = CACHE_TAGS.villaImage(id);

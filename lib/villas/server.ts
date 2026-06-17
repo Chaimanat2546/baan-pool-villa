@@ -51,10 +51,18 @@ const fetchCachedHouseListings = unstable_cache(
   },
 );
 
+/**
+ * Returns the cached public villa catalog used by home, search, guides, and
+ * other listing consumers.
+ */
 export async function fetchHouseListings(): Promise<VillaListing[]> {
   return fetchCachedHouseListings();
 }
 
+/**
+ * Uses the same listing normalization as the main catalog, but with the
+ * sitemap request budget so sitemap generation can keep its own cache window.
+ */
 export async function fetchHouseListingsForSitemap(): Promise<VillaListing[]> {
   return fetchHouseListingsFromApi(CACHE_REVALIDATE_SECONDS.sitemap);
 }
@@ -64,6 +72,10 @@ export async function getListingById(id: string): Promise<VillaListing | null> {
   return listings.find((listing) => listing.id === id) ?? null;
 }
 
+/**
+ * Resolves the listing first, then adds optional detail data when the upstream
+ * detail API and bearer token are available.
+ */
 export async function fetchVillaDetail(
   id: string,
   listings?: VillaListing[],
@@ -130,6 +142,8 @@ export type VillaPageData = {
 function toRecommendedVillaSection(
   sections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"],
 ): RecommendedVillaSection | null {
+  // Villa detail pages only surface the first populated section so the
+  // recommendation rail stays aligned with homepage merchandising order.
   const firstSection = sections.find((section) => section.villas.length > 0);
 
   if (!firstSection) {
@@ -144,6 +158,10 @@ function toRecommendedVillaSection(
   };
 }
 
+/**
+ * Combines villa detail data with the first resolved home-section
+ * recommendation block used on the public detail page.
+ */
 export async function fetchVillaPageData(
   id: string,
 ): Promise<VillaPageData | null> {
