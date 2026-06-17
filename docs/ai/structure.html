@@ -441,12 +441,12 @@
             </tr>
             <tr>
               <td><code>components/villas/search</code></td>
-              <td>Search page, search bar, filters, mobile filter drawer, search loading skeleton, first-page server result hydration, and on-demand paginated catalog requests through <code>/api/houses</code>.</td>
+              <td>Search page, search page UI helpers, search bar, filters, mobile filter drawer, search loading skeleton, first-page server result hydration, and on-demand paginated catalog requests through <code>/api/houses</code>.</td>
               <td>Keep results incremental/paginated and do not add a visible near-sea toggle unless requested. The route sends the initial page plus result metadata marked as a partial catalog; the client fetches bounded filtered pages when an interaction needs more results or broader filtering.</td>
             </tr>
             <tr>
               <td><code>components/villas/detail</code></td>
-              <td>Villa detail page, gallery, intro, booking sidebar, recommendations, layout renderer, detail skeletons, and review video posters backed by <code>lib/villas/detail</code> thumbnail URLs.</td>
+              <td>Villa detail page, gallery, gallery URL/proxy helpers, intro, booking sidebar, booking calendar UI helpers, recommendations, layout renderer, detail skeletons, and review video posters backed by <code>lib/villas/detail</code> thumbnail URLs.</td>
               <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Review videos should render thumbnail posters first and mount YouTube iframes only after play.</td>
             </tr>
             <tr>

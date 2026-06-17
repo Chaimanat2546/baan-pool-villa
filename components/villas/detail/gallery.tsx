@@ -1,68 +1,10 @@
 import { ChevronLeft, ChevronRight, Download, ImageIcon, ImageOff, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState, type TouchEvent } from "react";
-import { buildVillaGalleryImageProxyUrl } from "@/lib/public-image-proxy";
 import type { VillaListing } from "@/lib/villas/types";
+import { buildGalleryDisplaySrc, buildGalleryDownloadHref } from "./gallery-urls";
 import { getGalleryItemDescription, getVillaTitle } from "./helpers";
 import type { GalleryCategory, GalleryItem } from "./types";
-
-/**
- * Build a download URL for a gallery image under the villas images download API.
- *
- * @param listingId - The villa listing identifier to include in the request path
- * @param item - The gallery item whose `url` and optional `imageName`/`zoneKey` will be serialized as query parameters
- * @returns The API path for downloading the image, including encoded `listingId` and query parameters (`url`, and optionally `name` and `zone`)
- */
-function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string {
-  const params = new URLSearchParams({
-    download: "1",
-    url: item.url,
-  });
-
-  if (item.imageName) {
-    params.set("name", item.imageName);
-  }
-
-  if (item.zoneKey) {
-    params.set("zone", item.zoneKey);
-  }
-
-  return `/api/villas/${encodeURIComponent(listingId)}/images?${params.toString()}`;
-}
-
-function normalizeGalleryDisplayImageUrl(value: string): string | null {
-  const trimmedValue = value.trim();
-
-  if (!trimmedValue) {
-    return null;
-  }
-
-  try {
-    const url = new URL(trimmedValue);
-
-    if (url.protocol !== "https:" || url.username || url.password) {
-      return null;
-    }
-
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
-
-function buildGalleryDisplaySrc(
-  listingId: string,
-  item: GalleryItem,
-  width = 828,
-  quality = 60,
-): string | null {
-  const targetUrl = normalizeGalleryDisplayImageUrl(item.url);
-
-  return buildVillaGalleryImageProxyUrl(listingId, targetUrl, {
-    quality,
-    width,
-  });
-}
 
 /**
  * Renders a clickable gallery image tile that displays either the provided image or a placeholder.
