@@ -4,18 +4,13 @@ import {
   BedDouble,
   Car,
   Check,
-  CircleDot,
   Clock,
-  Flame,
   MapPin,
-  Music,
   PawPrint,
   Play,
   ShieldCheck,
-  Star,
   Users,
   Waves,
-  Wifi,
 } from "lucide-react";
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
@@ -24,8 +19,9 @@ import {
   getVillaTitle as getSeoVillaTitle,
 } from "@/lib/seo";
 import type { VillaDetailContent } from "@/lib/villas/detail";
-import type { Amenity, AmenityKey, VillaListing } from "@/lib/villas/types";
+import type { Amenity, VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
+import { DEFAULT_AMENITY_PREVIEW_COUNT, getAmenityIcon } from "./content-amenities";
 import { findFact, findSection } from "./helpers";
 
 export function VillaIntro({
@@ -231,28 +227,6 @@ export function AboutSection({
 
   );
 
-}
-
-const DEFAULT_AMENITY_PREVIEW_COUNT = 12;
-const AMENITY_ICONS: Record<AmenityKey, typeof Wifi> = {
-  airhockey: CircleDot,
-  bath: Bath,
-  billard: CircleDot,
-  discotech: Music,
-  fancyring: Waves,
-  grill: Flame,
-  jacuzzi: Bath,
-  karaoke: Music,
-  pet: PawPrint,
-  slider: Waves,
-  snooker: CircleDot,
-  swimming_kid: Waves,
-  tabletennis: CircleDot,
-  wifi: Wifi,
-};
-
-function getAmenityIcon(amenityKey: Amenity["key"]) {
-  return AMENITY_ICONS[amenityKey] ?? Star;
 }
 
 interface AmenitiesSectionProps {
