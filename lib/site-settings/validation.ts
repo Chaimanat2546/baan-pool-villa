@@ -44,10 +44,13 @@ export function isHexColor(value: string): boolean {
 }
 
 /**
- * Builds a normalized SiteSettings object from a database row, applying field-level normalization and fallbacks.
+ * Normalizes a raw site-settings row into the shared settings shape used by
+ * public pages and admin surfaces.
  *
- * @param row - The raw site settings row from the database, or `null` to indicate no stored settings
- * @returns A normalized `SiteSettings` object. If `row` is `null` or individual fields are missing/invalid, corresponding values from `DEFAULT_SITE_SETTINGS` are used
+ * @param row - The raw site-settings row from Supabase, or `null` when no row
+ * is stored.
+ * @returns The normalized site settings with safe defaults applied where
+ * values are missing or invalid.
  */
 export function normalizeSiteSettingsRow(
   row: SiteSettingsRow | null,
@@ -185,14 +188,12 @@ export function normalizeSiteSettingsRow(
 }
 
 /**
- * Trim and normalize all textual fields of a SiteSettingsDraft and remove empty URL entries.
+ * Trims and normalizes a mutable site-settings draft before validation or
+ * persistence.
  *
- * Produces a new draft object where string fields are trimmed (colors are lowercased),
- * each phone contact's `name`, `phone`, and `time` are trimmed, and URL/keyword arrays
- * have empty strings removed.
- *
- * @param draft - The input SiteSettingsDraft to normalize
- * @returns A new SiteSettingsDraft with trimmed values, lowercase color codes, and filtered URL arrays
+ * @param draft - The site-settings draft collected from the admin form.
+ * @returns A normalized draft with trimmed text, lowercase colors, and empty
+ * URL entries removed.
  */
 export function normalizeSiteSettingsDraft(
   draft: SiteSettingsDraft,
@@ -246,10 +247,10 @@ export interface TikTokSettingsDraftInput {
 }
 
 /**
- * Normalize a TikTok settings draft by trimming text fields and removing empty video entries.
+ * Trims TikTok settings input before validation or persistence.
  *
- * @param draft - Input draft containing `accountUrl` and `videoUrls` to normalize
- * @returns The normalized draft with `accountUrl` trimmed and `videoUrls` containing only non-empty, trimmed URLs
+ * @param draft - The TikTok settings draft from the admin form.
+ * @returns The normalized TikTok draft with empty video entries removed.
  */
 export function normalizeTikTokSettingsDraft(
   draft: TikTokSettingsDraftInput,
@@ -263,14 +264,10 @@ export function normalizeTikTokSettingsDraft(
 }
 
 /**
- * Validate TikTok account and video URL fields in a TikTok settings draft.
+ * Validates TikTok account and video URL input from the admin form.
  *
- * Validations:
- * - If any video URL is provided, an account URL must be present and must be a valid TikTok profile URL.
- * - Each non-empty video URL must be a full TikTok video URL that contains a parsable video ID.
- *
- * @param draft - Input draft containing `accountUrl` and `videoUrls` to validate
- * @returns An array of human-readable validation error messages (empty if no errors)
+ * @param draft - The TikTok settings draft to validate.
+ * @returns User-facing validation error messages for invalid TikTok fields.
  */
 export function validateTikTokSettingsDraft(
   draft: TikTokSettingsDraftInput,
@@ -308,13 +305,11 @@ export function validateTikTokSettingsDraft(
 }
 
 /**
- * Validate a site settings draft and produce user-facing error messages for any invalid fields.
+ * Validates the full site-settings draft and returns admin-facing error
+ * messages for invalid fields.
  *
- * Performs validations for site name, colors, hero/SEO image fields and alt text, SEO title/description/business name,
- * social "sameAs" URLs, bank account fields, phone contact entries, messenger/LINE URLs and IDs, and TikTok account/video inputs.
- *
- * @param draft - The draft object to validate
- * @returns An array of human-readable validation error messages (empty if the draft is valid)
+ * @param draft - The normalized site-settings draft to validate.
+ * @returns User-facing validation error messages, or an empty array when valid.
  */
 export function validateSiteSettingsDraft(
   draft: SiteSettingsDraft,
@@ -466,13 +461,14 @@ export function validateSiteSettingsDraft(
 
   return errors;
 }
+
 /**
- * Validate an uploaded site image's MIME type and file size.
+ * Validates uploaded site-asset metadata before a logo or hero image is saved.
  *
- * @param assetType - The kind of asset (`"logo"` or `"hero"`) used to tailor error message wording
- * @param mimeType - The file MIME type to validate
- * @param sizeBytes - The file size in bytes
- * @returns An array of user-facing validation error messages; empty when the file passes both checks
+ * @param assetType - The asset type used to tailor error messages.
+ * @param mimeType - The uploaded file MIME type.
+ * @param sizeBytes - The uploaded file size in bytes.
+ * @returns User-facing validation error messages for invalid upload metadata.
  */
 export function validateUploadMetadata(
   assetType: SiteAssetType,
@@ -493,6 +489,13 @@ export function validateUploadMetadata(
   return errors;
 }
 
+/**
+ * Chooses older non-current uploads that can be removed while keeping the most
+ * recent retained uploads for each asset type.
+ *
+ * @param uploads - The recorded upload history for site assets.
+ * @returns Upload records eligible for cleanup.
+ */
 export function selectAssetUploadsForCleanup(
   uploads: SiteAssetUploadRecord[],
 ): SiteAssetUploadRecord[] {
@@ -555,14 +558,6 @@ function normalizeImage(
   };
 }
 
-/**
- * Produce a SiteImageSettings object from a public image URL or path, or return a provided fallback.
- *
- * @param url - Candidate image location; either a path starting with `/` (but not `//`) or an `http`/`https` URL
- * @param alt - The alt text to associate with the image
- * @param fallback - The value to return when `url` is not a valid public image URL
- * @returns A `SiteImageSettings` object with `path`, `url`, and `alt` derived from the validated `url`, or `fallback` if the URL is not a public image
- */
 function normalizePublicImage(
   url: string | null | undefined,
   alt: string,
@@ -736,12 +731,6 @@ function hasUnsafeKeywordCharacters(value: string): boolean {
   return false;
 }
 
-/**
- * Normalize an array of TikTok video URL strings from a database row into structured video settings.
- *
- * @param value - The raw value from the row (expected to be an array of strings); non-array inputs or non-string entries are ignored.
- * @returns An array of objects `{ url, videoId }` for each input string that yielded a valid TikTok video ID; an empty array if none are valid.
- */
 function normalizeTikTokVideosFromRow(
   value: unknown,
 ): SiteTikTokVideoSettings[] {
@@ -769,46 +758,22 @@ function normalizeTikTokVideosFromRow(
   return videos;
 }
 
-/**
- * Normalize a TikTok account URL into a validated profile URL or an empty string.
- *
- * @param value - The input value; null or undefined is treated as empty and the value is trimmed before validation.
- * @returns The trimmed TikTok profile URL if it is a valid account URL, otherwise an empty string.
- */
 function normalizeTikTokAccountUrl(value: string | null | undefined): string {
   const trimmed = value?.trim() ?? "";
 
   return isValidTikTokAccountUrl(trimmed) ? trimmed : "";
 }
 
-/**
- * Check whether a string is a valid TikTok profile URL and not a TikTok video URL.
- *
- * @param value - The URL string to validate
- * @returns `true` if `value` is a TikTok profile URL using an allowed host and matching the profile path pattern, `false` otherwise
- */
 function isValidTikTokAccountUrl(value: string): boolean {
   const videoId = parseTikTokVideoId(value);
 
   return videoId === null && isValidTikTokHostAndPath(value, TIKTOK_PROFILE_PATH_PATTERN);
 }
 
-/**
- * Checks whether a string is a valid TikTok video URL.
- *
- * @param value - The URL or string to validate
- * @returns `true` if the input contains a valid TikTok video identifier and matches supported TikTok video URL formats, `false` otherwise.
- */
 function isValidTikTokVideoUrl(value: string): boolean {
   return parseTikTokVideoId(value) !== null;
 }
 
-/**
- * Extracts a TikTok video ID from a TikTok URL.
- *
- * @param value - The URL string to parse (TikTok profile/video or player URL)
- * @returns The extracted numeric video ID when the input is a valid TikTok video URL, `null` otherwise.
- */
 function parseTikTokVideoId(value: string): string | null {
   const parsed = parseTikTokUrl(value);
 
@@ -835,13 +800,6 @@ function parseTikTokVideoId(value: string): string | null {
   return null;
 }
 
-/**
- * Checks whether a string is a TikTok URL using an allowed host and a pathname that matches a given pattern.
- *
- * @param value - The URL string to validate.
- * @param pathPattern - Regular expression to test against the parsed URL's pathname.
- * @returns `true` if `value` parses as an `http`/`https` TikTok URL whose host is in the allowed set and whose pathname matches `pathPattern`, `false` otherwise.
- */
 function isValidTikTokHostAndPath(
   value: string,
   pathPattern: RegExp,
@@ -858,12 +816,6 @@ function isValidTikTokHostAndPath(
   );
 }
 
-/**
- * Parse a string as a URL and return it only if it is an http/https URL hosted on a recognized TikTok hostname.
- *
- * @param value - The input string to parse as a URL
- * @returns A `URL` object when `value` is a valid http/https URL whose hostname is in the TikTok host set, `null` otherwise
- */
 function parseTikTokUrl(value: string): URL | null {
   try {
     const url = new URL(value);
@@ -882,15 +834,6 @@ function parseTikTokUrl(value: string): URL | null {
   }
 }
 
-/**
- * Normalize an arbitrary input into a validated array of phone contact objects or fall back.
- *
- * Trims `name`, `phone`, and `time` for each valid contact and filters out entries missing any of those fields.
- *
- * @param value - The input value to normalize (expected to be an array of objects but may be any type)
- * @param fallback - Array to return when `value` is not an array or contains no valid contacts
- * @returns An array of `SitePhoneContact` objects with trimmed `name`, `phone`, and `time` fields; returns `fallback` if no valid contacts are produced
- */
 function normalizePhoneContacts(
   value: unknown,
   fallback: SitePhoneContact[],
@@ -967,12 +910,6 @@ function isPublicImageUrl(value: string): boolean {
   );
 }
 
-/**
- * Checks whether a string is a valid HTTP or HTTPS URL.
- *
- * @param value - The input string to validate as a URL
- * @returns `true` if `value` parses as a URL whose protocol is `http:` or `https:`, `false` otherwise.
- */
 function isHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);

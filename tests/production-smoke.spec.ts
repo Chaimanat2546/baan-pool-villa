@@ -104,7 +104,7 @@ test("search page renders, and a live villa detail page renders when listing dat
   expect(detailHref).toMatch(/^\/villas\/[^/]+$/);
 
   const detailResponse = await page.goto(detailHref ?? "/search", {
-    waitUntil: "networkidle",
+    waitUntil: "domcontentloaded",
   });
 
   expect(detailResponse?.ok()).toBe(true);

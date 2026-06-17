@@ -153,12 +153,16 @@ function renderKitchen({ content }: DetailLayoutBlockContext) {
   return renderSectionBlock(content, sectionTitles.kitchen);
 }
 
-function renderAmenities({ listing }: DetailLayoutBlockContext) {
-  if (listing.amenities.length === 0) {
+function renderAmenities({ content, listing }: DetailLayoutBlockContext) {
+  const amenities = content.amenities.length > 0
+    ? content.amenities
+    : listing.amenities;
+
+  if (amenities.length === 0) {
     return null;
   }
 
-  return <AmenitiesSection compact listing={listing} />;
+  return <AmenitiesSection amenities={amenities} compact />;
 }
 
 function renderCategorizedImages({

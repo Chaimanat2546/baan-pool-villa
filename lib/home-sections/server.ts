@@ -197,6 +197,8 @@ async function fetchConfiguredHomeSections(
 
     return { degraded: false, reason: "empty_config", status: "fallback" };
   } catch (error) {
+    // Treat config failures as a degraded fallback path so the homepage can
+    // still render curated default sections instead of failing closed.
     const reportedError =
       error instanceof Error
         ? error
@@ -211,6 +213,15 @@ async function fetchConfiguredHomeSections(
   }
 }
 
+/**
+ * Resolves homepage villa sections from CMS config and falls back to built-in
+ * sections when config is empty or unavailable.
+ *
+ * @param villas - The normalized villa catalog available for homepage section
+ * resolution.
+ * @returns The resolved homepage sections, including whether the result is
+ * degraded and whether it came from config or fallback logic.
+ */
 export async function getResolvedHomeSections(
   villas: VillaListing[],
 ): Promise<ResolvedHomeSectionsResult> {

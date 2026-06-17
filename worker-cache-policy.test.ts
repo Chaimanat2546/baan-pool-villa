@@ -405,6 +405,16 @@ describe("worker JSON edge cache policy", () => {
       reason: "json",
       versionGroups: ["villa-details"],
     });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/villas/9/booking-calendar?month=2026-06"),
+      ),
+    ).toMatchObject({
+      cacheable: true,
+      candidate: true,
+      reason: "json",
+      versionGroups: ["villa-details"],
+    });
     expect(getJsonEdgeCacheDecision(request("/api/villas/9/images"))).toMatchObject({
       cacheable: true,
       candidate: true,
@@ -432,6 +442,16 @@ describe("worker JSON edge cache policy", () => {
     });
     expect(
       getJsonEdgeCacheDecision(
+        request("/api/villas/9/booking-calendar?month=2026-13"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/villas/9/booking-calendar?month=2026-06&debug=1"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(
         request("/api/houses", { headers: { Cookie: "session=1" } }),
       ),
     ).toMatchObject({ cacheable: false, candidate: true, reason: "cookie" });
@@ -457,6 +477,20 @@ describe("worker JSON edge cache policy", () => {
     expect(cacheKey.method).toBe("GET");
     expect(url.pathname).toBe("/api/home-sections");
     expect(url.searchParams.get("__bpv_json_v")).toBe("home-sections:42");
+    expect(url.hash).toBe("");
+  });
+
+  it("keeps the booking calendar month in JSON cache keys", () => {
+    const cacheKey = createJsonEdgeCacheKey(
+      request("/api/villas/9/booking-calendar?month=2026-06#top"),
+      "villa-details:42",
+    );
+    const url = new URL(cacheKey.url);
+
+    expect(cacheKey.method).toBe("GET");
+    expect(url.pathname).toBe("/api/villas/9/booking-calendar");
+    expect(url.searchParams.get("month")).toBe("2026-06");
+    expect(url.searchParams.get("__bpv_json_v")).toBe("villa-details:42");
     expect(url.hash).toBe("");
   });
 

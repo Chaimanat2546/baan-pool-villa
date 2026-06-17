@@ -288,6 +288,23 @@ function isVillaImagesApiPath(pathname) {
   return /^[1-9]\d*$/.test(id);
 }
 
+function isVillaBookingCalendarApiPath(pathname) {
+  const prefix = "/api/villas/";
+  const suffix = "/booking-calendar";
+
+  if (!pathname.startsWith(prefix) || !pathname.endsWith(suffix)) {
+    return false;
+  }
+
+  const id = pathname.slice(prefix.length, -suffix.length);
+
+  return /^[1-9]\d*$/.test(id);
+}
+
+function isValidBookingCalendarMonth(value) {
+  return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+}
+
 function getJsonCacheVersionGroups(pathname) {
   if (pathname === "/api/houses") {
     return [HTML_CACHE_VERSION_GROUPS.villaListings];
@@ -298,6 +315,10 @@ function getJsonCacheVersionGroups(pathname) {
   }
 
   if (isVillaDetailApiPath(pathname)) {
+    return [HTML_CACHE_VERSION_GROUPS.villaDetails];
+  }
+
+  if (isVillaBookingCalendarApiPath(pathname)) {
     return [HTML_CACHE_VERSION_GROUPS.villaDetails];
   }
 
@@ -352,8 +373,16 @@ export function createImageEdgeCacheKey(request) {
 
 export function createJsonEdgeCacheKey(request, versionToken = "") {
   const url = new URL(request.url);
+  const month = isVillaBookingCalendarApiPath(url.pathname)
+    ? url.searchParams.get("month")
+    : null;
+
   url.search = "";
   url.hash = "";
+
+  if (isValidBookingCalendarMonth(month)) {
+    url.searchParams.set("month", month);
+  }
 
   if (versionToken) {
     url.searchParams.set(JSON_EDGE_CACHE_VERSION_PARAM, versionToken);
@@ -442,6 +471,7 @@ export function getJsonEdgeCacheDecision(request) {
     url.pathname === "/api/houses" ||
     url.pathname === "/api/home-sections" ||
     isVillaDetailApiPath(url.pathname) ||
+    isVillaBookingCalendarApiPath(url.pathname) ||
     isVillaImagesApiPath(url.pathname);
 
   if (!isCandidatePath) {
@@ -452,7 +482,16 @@ export function getJsonEdgeCacheDecision(request) {
     return { cacheable: false, candidate: true, reason: "method" };
   }
 
-  if (url.search.length > 0) {
+  if (isVillaBookingCalendarApiPath(url.pathname)) {
+    const month = url.searchParams.get("month");
+    const searchParamCount = Array.from(url.searchParams.keys()).length;
+    const hasOnlyMonth =
+      searchParamCount === 1 && isValidBookingCalendarMonth(month);
+
+    if (!hasOnlyMonth) {
+      return { cacheable: false, candidate: true, reason: "query" };
+    }
+  } else if (url.search.length > 0) {
     return { cacheable: false, candidate: true, reason: "query" };
   }
 

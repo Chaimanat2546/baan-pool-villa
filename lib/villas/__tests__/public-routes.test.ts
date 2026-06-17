@@ -7,9 +7,20 @@ import {
   resetPublicRateLimitForTests,
 } from "@/lib/api/rate-limit";
 
-const { fetchHouseListingsMock, fetchVillaDetailMock } = vi.hoisted(() => ({
+const {
+  fetchHouseListingsMock,
+  fetchVillaBookingCalendarMock,
+  fetchVillaDetailMock,
+} = vi.hoisted(() => ({
   fetchHouseListingsMock: vi.fn(),
+  fetchVillaBookingCalendarMock: vi.fn(),
   fetchVillaDetailMock: vi.fn(),
+}));
+
+vi.mock("@/lib/villas/booking-calendar", () => ({
+  fetchVillaBookingCalendar: fetchVillaBookingCalendarMock,
+  isValidBookingCalendarMonth: (month: string) =>
+    /^\d{4}-(0[1-9]|1[0-2])$/.test(month),
 }));
 
 vi.mock("@/lib/villas/server", () => ({
@@ -21,6 +32,7 @@ beforeEach(() => {
   vi.resetModules();
   vi.restoreAllMocks();
   resetPublicRateLimitForTests();
+  fetchVillaBookingCalendarMock.mockReset();
   fetchHouseListingsMock.mockReset();
   fetchVillaDetailMock.mockReset();
 });
@@ -231,5 +243,177 @@ describe("GET /api/villas/[id]", () => {
 
     expect(response.status).toBe(404);
     expect(body).toEqual({ error: "Villa not found" });
+  });
+});
+
+describe("GET /api/villas/[id]/booking-calendar", () => {
+  it("rate limits repeated calendar requests before loading booking data", async () => {
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const request = new Request(
+      "https://example.com/api/villas/9/booking-calendar?month=2026-06",
+      { headers: { "CF-Connecting-IP": "203.0.113.81" } },
+    );
+    const context = { params: Promise.resolve({ id: "9" }) };
+
+    for (
+      let index = 0;
+      index < PUBLIC_RATE_LIMIT_POLICIES.publicDetail.limit;
+      index += 1
+    ) {
+      fetchVillaBookingCalendarMock.mockResolvedValue({
+        calendar: { days: {}, month: "2026-06", status: "available" },
+        status: "available",
+      });
+      const response = await GET(request, context);
+      expect(response.status).not.toBe(429);
+    }
+
+    fetchVillaBookingCalendarMock.mockClear();
+    const blocked = await GET(request, context);
+
+    expect(blocked.status).toBe(429);
+    await expectRateLimitResponse(blocked);
+    expect(fetchVillaBookingCalendarMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for invalid month parameters before calling the booking API", async () => {
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/booking-calendar?month=2026-13",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Invalid month.",
+    });
+    expect(fetchVillaBookingCalendarMock).not.toHaveBeenCalled();
+  });
+
+  it("rate limits invalid month requests before validation reaches the booking API", async () => {
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const request = new Request(
+      "https://example.com/api/villas/9/booking-calendar?month=2026-13",
+      { headers: { "CF-Connecting-IP": "203.0.113.82" } },
+    );
+    const context = { params: Promise.resolve({ id: "9" }) };
+
+    for (
+      let index = 0;
+      index < PUBLIC_RATE_LIMIT_POLICIES.publicDetail.limit;
+      index += 1
+    ) {
+      const response = await GET(request, context);
+      expect(response.status).toBe(400);
+    }
+
+    const blocked = await GET(request, context);
+
+    expect(blocked.status).toBe(429);
+    await expectRateLimitResponse(blocked);
+    expect(fetchVillaBookingCalendarMock).not.toHaveBeenCalled();
+  });
+
+  it("returns calendar data with the villa detail cache header", async () => {
+    fetchVillaBookingCalendarMock.mockResolvedValue({
+      calendar: {
+        days: {
+          "2026-06-16": {
+            disabled: false,
+            icons: ["promotion"],
+            kind: "promotion",
+            label: "โปรโมชั่น",
+            price: 7900,
+            tone: "promotion",
+          },
+        },
+        month: "2026-06",
+        status: "available",
+      },
+      status: "available",
+    });
+
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/booking-calendar?month=2026-06",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, s-maxage=43200, stale-while-revalidate=43200",
+    );
+    expect(fetchVillaBookingCalendarMock).toHaveBeenCalledWith("9", "2026-06");
+    expect(body).toMatchObject({
+      days: {
+        "2026-06-16": {
+          kind: "promotion",
+          price: 7900,
+        },
+      },
+      month: "2026-06",
+      status: "available",
+    });
+  });
+
+  it("returns 503 when the server booking token is missing", async () => {
+    fetchVillaBookingCalendarMock.mockResolvedValue({
+      calendar: null,
+      status: "missing_token",
+    });
+
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/booking-calendar?month=2026-06",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    await expect(response.json()).resolves.toEqual({
+      error: "Booking calendar is not configured.",
+    });
+  });
+
+  it("returns a generic 502 error and logs backend failures", async () => {
+    const rawError = new Error("secret booking backend detail");
+    fetchVillaBookingCalendarMock.mockRejectedValue(rawError);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/booking-calendar?month=2026-06",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body).toEqual({ error: "Unable to load booking calendar" });
+    expect(JSON.stringify(body)).not.toContain("secret booking backend detail");
+    expect(consoleError).toHaveBeenCalledWith(
+      "Unable to load booking calendar",
+      rawError,
+    );
   });
 });

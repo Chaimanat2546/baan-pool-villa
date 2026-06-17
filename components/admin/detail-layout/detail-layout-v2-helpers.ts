@@ -364,7 +364,6 @@ export function removeDetailLayoutV2WideBlock(
     ),
   }));
 }
-
 export function compactDetailLayoutV2WideRowBlocks(
   draft: DetailLayoutV2Draft,
   rowId: string,

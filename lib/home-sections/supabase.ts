@@ -8,6 +8,14 @@ type HomeConfigSupabaseClient = ReturnType<typeof createClient>;
 let browserHomeConfigClient: HomeConfigSupabaseClient | null = null;
 let browserHomeConfigClientKey = "";
 
+/**
+ * Reads the public Supabase environment required for home-section config
+ * access.
+ *
+ * @returns The trimmed Supabase URL and publishable key for the home config
+ * project.
+ * @throws {Error} When the required public environment variables are missing.
+ */
 export function getHomeConfigSupabaseEnv() {
   const supabaseUrl = process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL?.trim();
   const supabaseKey =
@@ -20,6 +28,13 @@ export function getHomeConfigSupabaseEnv() {
   return { supabaseUrl, supabaseKey };
 }
 
+/**
+ * Creates a server-safe Supabase client for the home-section config project.
+ *
+ * @param accessToken - An optional bearer token used for authenticated admin
+ * requests.
+ * @returns A Supabase client configured for non-persistent server use.
+ */
 export function createHomeConfigClient(accessToken?: string) {
   const { supabaseUrl, supabaseKey } = getHomeConfigSupabaseEnv();
 
@@ -39,6 +54,13 @@ export function createHomeConfigClient(accessToken?: string) {
   });
 }
 
+/**
+ * Reuses a browser Supabase client for the home-section config project so the
+ * client bundle does not recreate it on every call.
+ *
+ * @returns A memoized browser Supabase client for public home config access.
+ * @throws {Error} When the required public environment variables are missing.
+ */
 export function createBrowserHomeConfigClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL?.trim();
   const supabaseKey =

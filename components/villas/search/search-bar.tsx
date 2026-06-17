@@ -127,7 +127,7 @@ export function SearchBar({
       ref={containerRef}
       className="rounded-[20px] bg-[var(--site-surface)] px-6 pb-10 pt-6 shadow-[0_12px_16px_rgba(15,47,53,0.14)]"
     >
-      <div className="grid gap-3 lg:grid-cols-[227px_155px_155px_230px_178px_auto] lg:items-end">
+      <div className="grid gap-3 md:grid-cols-2 md:items-end xl:grid-cols-[227px_155px_155px_230px_178px_auto]">
         <div className="relative min-w-0">
           <label className="text-sm font-medium leading-5 text-[var(--site-text)]">ทำเลที่พัก</label>
           <button
@@ -251,7 +251,7 @@ export function SearchBar({
               id={amenitiesMenuId}
               role="dialog"
               aria-label="เลือกสิ่งอำนวยความสะดวก"
-              className="absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)] lg:min-w-80"
+              className="absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)] md:min-w-80"
             >
               <div role="group" aria-label="สิ่งอำนวยความสะดวก" className="grid max-h-72 gap-1 overflow-y-auto">
                 {AMENITY_OPTIONS.map((amenity) => {

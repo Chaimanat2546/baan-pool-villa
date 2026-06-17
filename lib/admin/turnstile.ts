@@ -60,10 +60,21 @@ function isSiteverifyPayload(value: unknown): value is TurnstileSiteverifyPayloa
   return typeof value === "object" && value !== null;
 }
 
+/**
+ * Resets the one-time development bypass warning for test isolation.
+ *
+ * @returns `void`.
+ */
 export function resetTurnstileWarningForTests() {
   hasWarnedAboutDevelopmentBypass = false;
 }
 
+/**
+ * Reads the current Turnstile configuration from environment variables.
+ *
+ * @returns The resolved Turnstile config, including bypass behavior for
+ * development.
+ */
 export function getTurnstileConfig(): TurnstileConfig {
   const siteKey = getOptionalEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY");
   const secretKey = getOptionalEnv("TURNSTILE_SECRET_KEY");
@@ -79,6 +90,12 @@ export function getTurnstileConfig(): TurnstileConfig {
   };
 }
 
+/**
+ * Resolves the best client IP value available for Turnstile verification.
+ *
+ * @param request - The incoming request that may contain forwarding headers.
+ * @returns The best available client IP, or `null` when unavailable.
+ */
 export function getTurnstileClientIp(request: Request): string | null {
   const cloudflareIp = request.headers.get("CF-Connecting-IP")?.trim();
 
@@ -92,6 +109,14 @@ export function getTurnstileClientIp(request: Request): string | null {
   return firstForwardedIp ? firstForwardedIp : null;
 }
 
+/**
+ * Verifies a Turnstile token against Cloudflare and returns a normalized auth
+ * result for admin login routes.
+ *
+ * @param options - The request and token used for Turnstile verification.
+ * @returns A normalized Turnstile verification result, including development
+ * bypass behavior when enabled.
+ */
 export async function verifyTurnstileToken({
   request,
   token,

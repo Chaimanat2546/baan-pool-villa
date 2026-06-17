@@ -23,6 +23,8 @@ async function fetchPublishedLegalPage(slug: LegalPageSlug): Promise<LegalPage> 
   }
 
   if (!data) {
+    // Missing CMS rows should fall back to safe published defaults so legal
+    // routes remain available even before content is configured.
     return LEGAL_PAGE_DEFAULTS[slug];
   }
 
@@ -118,6 +120,13 @@ function getCachedLegalPageLoader(slug: LegalPageSlug): CachedLegalPageLoader {
   return loader;
 }
 
+/**
+ * Resolves one legal page by slug from the legal-page CMS cache.
+ *
+ * @param slug - The legal page slug to load.
+ * @returns The published legal page, or a safe built-in default when the CMS
+ * content is unavailable.
+ */
 export async function getLegalPageBySlug(
   slug: LegalPageSlug,
 ): Promise<LegalPage> {
@@ -128,6 +137,12 @@ export async function getLegalPageBySlug(
   }
 }
 
+/**
+ * Returns all published legal pages from the shared legal-page cache.
+ *
+ * @returns The published legal pages, or built-in defaults when the CMS is
+ * unavailable.
+ */
 export async function getPublishedLegalPages(): Promise<LegalPage[]> {
   try {
     return await getCachedPublishedLegalPages();
@@ -136,6 +151,12 @@ export async function getPublishedLegalPages(): Promise<LegalPage[]> {
   }
 }
 
+/**
+ * Returns published legal pages using the sitemap cache window.
+ *
+ * @returns The published legal pages for sitemap generation, or built-in
+ * defaults when the CMS is unavailable.
+ */
 export async function getPublishedLegalPagesForSitemap(): Promise<LegalPage[]> {
   try {
     return await getCachedPublishedLegalPagesForSitemap();

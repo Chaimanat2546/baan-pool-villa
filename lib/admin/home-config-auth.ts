@@ -29,6 +29,14 @@ interface AdminAuthCacheEntry {
 
 const adminAuthCache = new Map<string, AdminAuthCacheEntry>();
 
+/**
+ * Builds a JSON error response used by shared admin route helpers.
+ *
+ * @param message - The primary error message to return.
+ * @param status - The HTTP status code for the response.
+ * @param extra - Optional extra error fields to include in the response body.
+ * @returns A JSON response with the shared admin error shape.
+ */
 export function jsonError(
   message: string,
   status: number,
@@ -41,6 +49,13 @@ function isAuthorizationSeparator(characterCode: number): boolean {
   return characterCode === 32 || characterCode === 9;
 }
 
+/**
+ * Extracts a bearer token from an Authorization header when the header is
+ * present and well-formed.
+ *
+ * @param request - The incoming request that may contain a bearer token.
+ * @returns The bearer token, or `null` when the header is missing or invalid.
+ */
 export function getBearerToken(request: Request): string | null {
   const header = request.headers.get("authorization");
 
@@ -155,6 +170,14 @@ function cacheSuccessfulAdminAuth(
   adminAuthCache.set(key, { expiresAt, result });
 }
 
+/**
+ * Verifies that a Supabase session token belongs to an active home-config
+ * admin and returns a scoped Supabase client on success.
+ *
+ * @param token - The bearer token from the incoming admin request.
+ * @returns An auth result containing either a ready Supabase client or an
+ * admin-facing error message and status.
+ */
 export async function assertHomeConfigAdmin(
   token: string,
 ): Promise<AdminCheckResult> {
@@ -162,6 +185,8 @@ export async function assertHomeConfigAdmin(
   const cacheKey = await getAdminAuthCacheKey(token);
   const cachedResult = adminAuthCache.get(cacheKey);
 
+  // Cache only successful auth checks so repeated admin mutations do not keep
+  // re-validating the same session on every request.
   if (cachedResult && cachedResult.expiresAt > now) {
     return cachedResult.result;
   }

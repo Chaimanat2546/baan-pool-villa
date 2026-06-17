@@ -30,6 +30,8 @@ const getCachedSiteSettings = unstable_cache(
       .maybeSingle();
 
     if (error) {
+      // Fall back through older select shapes so partially migrated CMS tables
+      // can still return usable settings during rollout.
       const { data: withoutKeywordsData, error: withoutKeywordsError } = await supabase
         .from("site_settings")
         .select(SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS)
@@ -120,6 +122,13 @@ const getCachedSiteSettings = unstable_cache(
   },
 );
 
+/**
+ * Loads the resolved site settings from the cached CMS config and falls back
+ * to local defaults when remote settings are unavailable.
+ *
+ * @returns The resolved site settings, including whether the result is
+ * degraded and whether it came from remote config or local fallback defaults.
+ */
 export async function getSiteSettings(): Promise<SiteSettingsLoadResult> {
   try {
     return await getCachedSiteSettings();

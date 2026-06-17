@@ -42,45 +42,43 @@ function getImageZoneKey(zone: string | null): string {
   return zoneKey ? zoneKey : "uncategorized";
 }
 
+function isCoverZone(zone: string | null): boolean {
+  const zoneKey = zone?.trim().toLowerCase();
+
+  return zoneKey === "cover" || zoneKey === "รูปปก" || zoneKey === "ภาพปก";
+}
+
 export function buildGalleryItems(
-  payload: VillaDetailPayload,
+  _payload: VillaDetailPayload,
   images: VillaImage[],
 ): GalleryItem[] {
   const seenUrls = new Set<string>();
   const items: GalleryItem[] = [];
-  if (payload.listing.coverImage) {
-    seenUrls.add(payload.listing.coverImage);
-    items.push({
-      key: `listing-cover-${payload.listing.coverImage}`,
-      url: payload.listing.coverImage,
-      caption: "Cover image from house listing",
-      imageName: null,
-      isCover: true,
-      isMock: false,
-      zone: "cover",
-      zoneLabel: "Cover",
-      zoneKey: "cover",
-    });
-  }
   const sortedImages = [...images].sort((a, b) => {
-    if (a.isCover === b.isCover) {
+    const aIsCover = a.isCover || isCoverZone(a.zone);
+    const bIsCover = b.isCover || isCoverZone(b.zone);
+
+    if (aIsCover === bIsCover) {
       return a.id - b.id;
     }
-    return a.isCover ? -1 : 1;
+    return aIsCover ? -1 : 1;
   });
   for (const image of sortedImages) {
     if (image.imageUrl && !seenUrls.has(image.imageUrl)) {
+      const imageIsCover = image.isCover || isCoverZone(image.zone);
+      const zone = imageIsCover ? "cover" : image.zone;
+
       seenUrls.add(image.imageUrl);
       items.push({
         key: `real-${image.id}-${image.imageUrl}`,
         url: image.imageUrl,
         caption: image.caption,
         imageName: image.imageName,
-        isCover: image.isCover,
+        isCover: imageIsCover,
         isMock: false,
-        zone: image.zone,
-        zoneLabel: getImageZoneLabel(image.zone),
-        zoneKey: getImageZoneKey(image.zone),
+        zone,
+        zoneLabel: getImageZoneLabel(zone),
+        zoneKey: getImageZoneKey(zone),
       });
     }
   }

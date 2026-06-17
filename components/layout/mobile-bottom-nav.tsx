@@ -32,7 +32,7 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
     <>
       <nav
         aria-label="ช่องทางติดต่อด่วน"
-        className="fixed inset-x-0 bottom-3 z-50 px-3 pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="fixed inset-x-0 bottom-3 z-50 px-3 pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         <div className="mx-auto grid max-w-md grid-cols-3 overflow-hidden rounded-[2rem] border border-white/80 bg-[var(--site-surface)] px-1 py-1.5 shadow-[0_16px_40px_rgba(15,23,42,0.16)]">
           <button
@@ -89,7 +89,7 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
 
       {isPhoneSheetOpen ? (
         <div
-          className="fixed inset-0 z-[80] lg:hidden"
+          className="fixed inset-0 z-[80] md:hidden"
           role="dialog"
           aria-modal="true"
         >

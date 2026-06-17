@@ -7,6 +7,12 @@ export const LEGAL_PAGE_PATHS: Record<LegalPageSlug, `/${LegalPageSlug}`> = {
   terms: "/terms",
 } as const;
 
+/**
+ * Resolves the public route path for a legal-page slug.
+ *
+ * @param slug - The legal-page slug to map.
+ * @returns The public route path for the requested legal page.
+ */
 export function getLegalPagePath(slug: LegalPageSlug): `/${LegalPageSlug}` {
   return LEGAL_PAGE_PATHS[slug];
 }

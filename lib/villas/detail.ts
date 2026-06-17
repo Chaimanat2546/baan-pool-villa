@@ -1,3 +1,6 @@
+import { AMENITY_OPTIONS } from "./amenities";
+import type { Amenity } from "./types";
+
 export type VillaDetailFact = {
   label: string;
   value: string;
@@ -28,13 +31,14 @@ export type VillaDetailVideo = {
   label: string;
 };
 
-export type VillaDetailContent = {
+export interface VillaDetailContent {
+  amenities: Amenity[];
   facts: VillaDetailFact[];
   location: VillaDetailLocation | null;
   nearbyPlaces: VillaNearbyPlace[];
   sections: VillaDetailSection[];
   videos: VillaDetailVideo[];
-};
+}
 
 type DetailRecord = Record<string, unknown>;
 
@@ -223,6 +227,8 @@ function normalizeVideoUrls(value: string | null): string[] {
     return [];
   }
 
+  // Editors may paste one URL, comma-separated URLs, or mixed text with links,
+  // so we try URL extraction first and fall back to delimiter splitting.
   const urlMatches = extractVideoUrlCandidates(value);
   const candidates =
     urlMatches.length > 0 ? urlMatches : splitVideoUrlCandidates(value);
@@ -381,9 +387,59 @@ function buildVillaVideos(detail: DetailRecord): VillaDetailVideo[] {
   }));
 }
 
+function isEnabledFacilityValue(value: unknown): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  const normalizedValue = value.trim().toLowerCase();
+  return normalizedValue === "y" || normalizedValue === "yes" || normalizedValue === "true" || normalizedValue === "1";
+}
+
+function buildDetailAmenities(detail: DetailRecord): Amenity[] {
+  const facilities = detail.facilities;
+
+  if (!isRecord(facilities)) {
+    return [];
+  }
+
+  const amenities = AMENITY_OPTIONS.filter((amenity) =>
+    isEnabledFacilityValue(facilities[amenity.key]),
+  );
+
+  if (
+    isEnabledFacilityValue(facilities.pets) &&
+    !amenities.some((amenity) => amenity.key === "pet")
+  ) {
+    const petAmenity = AMENITY_OPTIONS.find((amenity) => amenity.key === "pet");
+
+    if (petAmenity) {
+      amenities.push(petAmenity);
+    }
+  }
+
+  return amenities;
+}
+
+/**
+ * Converts raw detail payloads into structured content blocks for the public
+ * villa detail page without leaking upstream field names into the UI layer.
+ *
+ * @param detail - The raw villa detail payload returned by the detail API.
+ * @returns Structured detail content ready for the public detail UI.
+ */
 export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
   if (!isRecord(detail)) {
     return {
+      amenities: [],
       facts: [],
       location: null,
       nearbyPlaces: [],
@@ -424,6 +480,7 @@ export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
   addSection(sections, "นโยบายสัตว์เลี้ยง", buildPetPolicyLines(detail));
 
   return {
+    amenities: buildDetailAmenities(detail),
     facts,
     location,
     nearbyPlaces: buildNearbyPlaces(detail),
