@@ -204,7 +204,7 @@ describe("BookingSidebar", () => {
     expect(markup).toContain("จองผ่าน LINE");
   });
 
-  it("uses the basic shadcn calendar caption and can return to the current month", async () => {
+  it("renders calendar navigation inside the caption and can return to the current month", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
     const page = await renderBookingSidebar();
@@ -224,10 +224,12 @@ describe("BookingSidebar", () => {
     expect(currentDay?.className).toContain("border-[var(--site-primary)]");
     expect(currentDay?.className).toContain("ring-[var(--site-primary)]/20");
 
+    const calendarGrid = page.container.querySelector(".rdp-month_grid");
+    const calendarNav = page.container.querySelector("[data-calendar-nav]");
+    const navButtons = calendarNav?.querySelectorAll("button");
+
     await act(async () => {
-      page.container
-        .querySelector<HTMLButtonElement>('[aria-label="ดูเดือนถัดไป"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      navButtons?.[2]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(page.container.textContent).toContain("กรกฎาคม");
 
@@ -235,23 +237,21 @@ describe("BookingSidebar", () => {
     expect(page.container.querySelector(".rdp-years_dropdown")).toBeNull();
 
     const todayButton = Array.from(
-      page.container.querySelectorAll<HTMLButtonElement>("button"),
+      page.container.querySelectorAll<HTMLButtonElement>(
+        "[data-calendar-nav] button",
+      ),
     ).find((button) => button.textContent?.trim() === "วันนี้");
 
     expect(todayButton).not.toBeNull();
     expect(page.container.querySelector(".rdp-root")?.contains(todayButton ?? null)).toBe(
       true,
     );
-    const calendarGrid = page.container.querySelector(".rdp-month_grid");
-    const calendarNav = page.container.querySelector("[data-calendar-nav]");
-    const navButtons = calendarNav?.querySelectorAll("button");
-
     expect(calendarGrid?.compareDocumentPosition(calendarNav ?? null)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
+      Node.DOCUMENT_POSITION_PRECEDING,
     );
-    expect(navButtons?.[0]?.className).toContain("size-11");
-    expect(navButtons?.[1]?.className).toContain("h-11");
-    expect(navButtons?.[2]?.className).toContain("size-11");
+    expect(navButtons?.[0]?.className).toContain("h-12");
+    expect(navButtons?.[1]?.className).toContain("size-14");
+    expect(navButtons?.[2]?.className).toContain("size-14");
 
     await act(async () => {
       todayButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -378,7 +378,8 @@ describe("BookingSidebar", () => {
 
     await act(async () => {
       page.container
-        .querySelector<HTMLButtonElement>('[aria-label="ดูเดือนถัดไป"]')
+        .querySelector("[data-calendar-nav]")
+        ?.querySelectorAll("button")[2]
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 

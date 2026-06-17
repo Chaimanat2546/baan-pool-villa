@@ -334,10 +334,6 @@ export function BookingSidebar({
           }}
           hideNavigation
           today={today}
-          formatters={{
-            formatCaption: (date) =>
-              `${THAI_MONTHS[date.getMonth()]} ${date.getFullYear() + 543}`,
-          }}
           footer={
             <div className="mt-3 space-y-3">
               <div
@@ -361,49 +357,59 @@ export function BookingSidebar({
                 </CalendarLegendItem>
                 <CalendarLegendItem icon="fire">โปรไฟลุก</CalendarLegendItem>
               </div>
+            </div>
+          }
+          components={{
+            MonthCaption: ({ calendarMonth, className }) => (
               <div
-                className="flex items-center justify-center gap-2"
+                className={cn(className, "h-auto flex-col gap-4 px-0 pb-1")}
                 data-calendar-nav="true"
               >
-                <Button
-                  aria-label="ดูเดือนก่อนหน้า"
-                  onClick={() => {
-                    setVisibleMonth((month) => addCalendarMonths(month, -1));
-                  }}
-                  className="size-11 rounded-xl"
-                  size="icon"
-                  type="button"
-                  variant="outline"
-                >
-                  <ChevronLeft data-icon="inline-start" />
-                </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => {
                     setVisibleMonth(currentMonth);
                   }}
-                  className="h-11 rounded-xl px-6"
+                  className="rounded-2xl px-10 text-lg font-extrabold text-[var(--site-primary)]"
                   size="default"
                 >
                   วันนี้
                 </Button>
-                <Button
-                  aria-label="ดูเดือนถัดไป"
-                  onClick={() => {
-                    setVisibleMonth((month) => addCalendarMonths(month, 1));
-                  }}
-                  className="size-11 rounded-xl"
-                  size="icon"
-                  type="button"
-                  variant="outline"
-                >
-                  <ChevronRight data-icon="inline-start" />
-                </Button>
+                <div className="flex justify-between w-full items-center gap-4">
+                  <Button
+                    aria-label="ดูเดือนก่อนหน้า"
+                    onClick={() => {
+                      setVisibleMonth((month) =>
+                        addCalendarMonths(month, -1),
+                      );
+                    }}
+                    className="size-10 rounded-2xl text-[var(--site-primary)]"
+                    size="icon"
+                    type="button"
+                    variant="outline"
+                  >
+                    <ChevronLeft data-icon="inline-start" />
+                  </Button>
+                  <div className="text-center text-xl font-extrabold text-[var(--site-text)]">
+                    {THAI_MONTHS[calendarMonth.date.getMonth()]}{" "}
+                    {calendarMonth.date.getFullYear() + 543}
+                  </div>
+                  <Button
+                    aria-label="ดูเดือนถัดไป"
+                    onClick={() => {
+                      setVisibleMonth((month) => addCalendarMonths(month, 1));
+                    }}
+                    className="size-10 rounded-2xl text-[var(--site-primary)]"
+                    size="icon"
+                    type="button"
+                    variant="outline"
+                  >
+                    <ChevronRight data-icon="inline-start" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          }
-          components={{
+            ),
             DayButton: ({ className, day, ...props }) => {
               const isPast = isPastCalendarDate(day.date);
               const isToday =
