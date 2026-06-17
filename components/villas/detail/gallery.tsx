@@ -15,6 +15,7 @@ import type { GalleryCategory, GalleryItem } from "./types";
  */
 function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string {
   const params = new URLSearchParams({
+    download: "1",
     url: item.url,
   });
 
@@ -26,7 +27,7 @@ function buildGalleryDownloadHref(listingId: string, item: GalleryItem): string 
     params.set("zone", item.zoneKey);
   }
 
-  return `/api/villas/${encodeURIComponent(listingId)}/images/download?${params.toString()}`;
+  return `/api/villas/${encodeURIComponent(listingId)}/images?${params.toString()}`;
 }
 
 function normalizeGalleryDisplayImageUrl(value: string): string | null {

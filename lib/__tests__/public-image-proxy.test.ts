@@ -74,7 +74,7 @@ describe("public image proxy URL builders", () => {
     );
     const url = new URL(proxyUrl ?? "", "https://example.com");
 
-    expect(url.pathname).toBe("/api/villas/88/images/proxy");
+    expect(url.pathname).toBe("/api/villas/88/images");
     expect(url.searchParams.get("url")).toBe(
       "https://assets.example.com/gallery.jpg",
     );

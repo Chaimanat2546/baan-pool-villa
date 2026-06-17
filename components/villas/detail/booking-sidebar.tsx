@@ -36,6 +36,7 @@ const THAI_MONTHS = [
 
 interface BookingCalendarDay {
   disabled: boolean;
+  displayPrice: string | null;
   icons: ("fire" | "promotion")[];
   kind:
     | "base"
@@ -47,6 +48,7 @@ interface BookingCalendarDay {
     | "promotion";
   label: string;
   price: number | null;
+  promotionMessage: string | null;
   tone:
     | "booked"
     | "default"
@@ -101,10 +103,12 @@ function formatCalendarPrice(price: number | null): string {
 function getFallbackCalendarDay(price: number): BookingCalendarDay {
   return {
     disabled: false,
+    displayPrice: new Intl.NumberFormat("th-TH").format(price),
     icons: [],
     kind: "base",
     label: "วันธรรมดา",
     price,
+    promotionMessage: null,
     tone: "default",
   };
 }
@@ -115,7 +119,7 @@ function getCalendarToneClass(day: BookingCalendarDay): string | null {
       return "bg-red-800 text-white ring-2 hover:text-white";
     case "holiday":
     case "hot_holiday":
-      return "bg-yellow-400 text-white ring-1 ring-[var(--site-accent)]/25 hover:bg-yellow-500 hover:text-white";
+      return "bg-yellow-500 text-white ring-1 ring-[var(--site-accent)]/25 hover:bg-yellow-500 hover:text-white";
     case "waiting":
       return "bg-emerald-700 text-white ring-1 ring-emerald-500/30 hover:bg-emerald-700 hover:text-emerald-100";
     default:
@@ -196,7 +200,7 @@ function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"] }) {
         <motion.span
           aria-hidden="true"
           animate={iconAnimation}
-          className="absolute inset-0 z-[1] grid -translate-y-1 place-items-center text-[var(--site-primary)]"
+          className="absolute inset-0 z-[1] grid place-items-center text-[var(--site-primary)]"
           data-calendar-icon-slot="filled"
           transition={iconTransition}
         >
@@ -210,12 +214,12 @@ function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"] }) {
         <motion.span
           aria-hidden="true"
           animate={iconAnimation}
-          className="absolute inset-0 z-[1] grid place-items-center"
+          className="pointer-events-none absolute top-0.5 right-0.5 z-[20] grid place-items-center"
           data-calendar-icon-slot="filled"
           transition={iconTransition}
         >
           <BadgePercent
-            className="size-7 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)] text-rose-500/90"
+            className="size-4 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)] text-rose-500/90"
             data-calendar-icon="promotion"
           />
         </motion.span>
@@ -514,21 +518,21 @@ export function BookingSidebar({
                   className={cn(
                     className,
                     isPast
-                      ? "bg-[var(--site-surface-tint)] text-[var(--site-muted)] opacity-60 ring-0 hover:bg-[var(--site-surface-tint)] hover:text-[var(--site-muted)] disabled:opacity-60"
+                      ? "bg-[var(--site-surface-tint)] text-[var(--site-muted)] opacity-60 ring-0 hover:bg-[var(--site-surface-tint)] hover:text-[var(--site-muted)] disabled:opacity-60 "
                       : null,
                     !isPast && isToday
-                      ? "border border-[var(--site-primary)] text-[var(--site-primary)] ring-2 ring-[var(--site-primary)]/20 hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)]"
+                      ? "border border-[var(--site-primary)] text-[var(--site-primary)] ring-2 ring-[var(--site-primary)]/20 hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)] "
                       : null,
                     isOutsideVisibleMonth
-                      ? "bg-[var(--site-surface-soft)] text-[var(--site-muted)] opacity-45 ring-0 shadow-none hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-muted)] disabled:opacity-45"
+                      ? "bg-[var(--site-surface-soft)] text-[var(--site-muted)] opacity-45 ring-0 shadow-none hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-muted)] disabled:opacity-45 "
                       : null,
                     !isPast && !isOutsideVisibleMonth
                       ? getCalendarToneClass(calendarDay)
                       : null,
                     isBlockedBooking
-                      ? "pointer-events-none cursor-not-allowed"
+                      ? "pointer-events-none cursor-not-allowed "
                       : null,
-                    "relative grid !min-w-0 place-items-center overflow-visible gap-0 opacity-70",
+                    "relative !block !h-12 !min-w-0 overflow-visible text-center opacity-70 ring-1 ring-[var(--site-border)] hover:opacity-100 disabled:opacity-70",
                     "transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
                   )}
                   data-calendar-day-kind={
@@ -543,18 +547,39 @@ export function BookingSidebar({
                   tabIndex={isBlockedBooking ? -1 : props.tabIndex}
                 >
                   <CalendarDayOverlay day={calendarDay} />
-                  <span
-                    className={cn(
-                      "relative z-10 leading-none font-bold",
-                      !isPast &&
-                        !isOutsideVisibleMonth &&
-                        calendarDay.icons.includes("fire")
-                        ? " text-white drop-shadow-[0_1px_2px_rgba(120,12,12,0.24)]"
-                        : null,
-                    )}
-                  >
-                    {day.date.getDate()}
-                  </span>
+                  <div className="relative z-10 pt-[5px] leading-none">
+                    <span
+                      className={cn(
+                        "block text-[18px] leading-none font-black",
+                        !isPast &&
+                          !isOutsideVisibleMonth &&
+                          calendarDay.icons.includes("fire")
+                          ? " text-white [paint-order:stroke_fill] [-webkit-text-stroke:2px_black] drop-shadow-[0_1px_2px_rgba(120,12,12,0.24)]"
+                          : null,
+                      )}
+                      data-calendar-day-number="true"
+                    >
+                      {day.date.getDate()}
+                    </span>
+                    {!isPast &&
+                    !isOutsideVisibleMonth &&
+                    !calendarDay.disabled &&
+                    calendarDay.displayPrice ? (
+                      <span
+                        className={cn(
+                          "block mt-1 text-[10px] leading-none font-black",
+                          !isPast &&
+                            !isOutsideVisibleMonth &&
+                            calendarDay.icons.includes("fire")
+                            ? "text-white [paint-order:stroke_fill] [-webkit-text-stroke:2px_black] drop-shadow-[0_1px_2px_rgba(120,12,12,0.24)]"
+                            : null,
+                        )}
+                        data-calendar-day-price="true"
+                      >
+                        {calendarDay.displayPrice}
+                      </span>
+                    ) : null}
+                  </div>
                   <CalendarDayIcons
                     icons={
                       !isPast && !isOutsideVisibleMonth ? calendarDay.icons : []
@@ -571,7 +596,8 @@ export function BookingSidebar({
               return formatThaiCalendarDate(date);
             },
           }}
-          className="w-full rounded-[1.35rem] border border-[var(--site-border)] bg-[linear-gradient(180deg,var(--site-surface),var(--site-surface-soft))] p-3 text-[var(--site-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),var(--site-card-shadow)] ring-1 ring-[var(--site-primary)]/10 [--cell-size:2.35rem] sm:[--cell-size:2.5rem] [&_.rdp-caption_label]:font-black [&_.rdp-day]:min-w-0 [&_.rdp-day_button]:font-black [&_.rdp-dropdown_root]:border-[var(--site-border)] [&_.rdp-dropdown_root]:bg-[var(--site-surface)] [&_.rdp-week]:grid [&_.rdp-week]:grid-cols-7 [&_.rdp-week]:gap-1.5 [&_.rdp-weekday]:flex [&_.rdp-weekday]:items-center [&_.rdp-weekday]:justify-center [&_.rdp-weekday]:text-[var(--site-muted)] [&_.rdp-weekdays]:grid [&_.rdp-weekdays]:grid-cols-7 [&_.rdp-weekdays]:gap-1.5"
+          //ปรับสไตล์ของปฏิทินให้เข้ากับธีมของเว็บไซต์ โดยใช้คลาส Tailwind CSS และกำหนดรูปแบบการแสดงผลของวันต่างๆ ในปฏิทิน
+          className="w-full rounded-[1.35rem] border border-[var(--site-border)] bg-[linear-gradient(180deg,var(--site-surface),var(--site-surface-soft))] p-3 text-[var(--site-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),var(--site-card-shadow)] ring-1 ring-[var(--site-primary)]/10 [--cell-size:2.35rem] sm:[--cell-size:2.5rem] [&_.rdp-caption_label]:font-black [&_.rdp-day]:min-w-0 [&_.rdp-day_button]:font-black [&_.rdp-dropdown_root]:border-[var(--site-border)] [&_.rdp-dropdown_root]:bg-[var(--site-surface)] [&_.rdp-week]:my-4 [&_.rdp-week]:grid [&_.rdp-week]:grid-cols-7 [&_.rdp-week]:gap-1.5 [&_.rdp-weekday]:flex [&_.rdp-weekday]:items-center [&_.rdp-weekday]:justify-center [&_.rdp-weekday]:text-[var(--site-muted)] [&_.rdp-weekdays]:grid [&_.rdp-weekdays]:grid-cols-7 [&_.rdp-weekdays]:gap-1.5"
           buttonVariant="outline"
         />
 
@@ -611,7 +637,7 @@ export function BookingSidebar({
               </div>
 
               <div
-                className="mt-4 overflow-hidden rounded-[1.25rem] border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_18px_42px_rgba(6,63,53,0.12)]"
+                className="mt-4 overflow-hidden rounded-[1.25rem] border border-[var(--site-border)] bg-[var(--site-primary-soft)] shadow-[0_18px_42px_rgba(6,63,53,0.12)]"
                 data-date-detail-panel="true"
               >
                 <div className="bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
@@ -619,13 +645,18 @@ export function BookingSidebar({
                     {selectedCalendarDay.label}
                   </p>
                   <p className="mt-2 text-3xl font-black leading-none">
-                    {formatCalendarPrice(selectedCalendarDay.price)}
+                    ราคา {formatCalendarPrice(selectedCalendarDay.price)}
                   </p>
                   <p className="mt-2 text-xs font-bold text-[var(--site-on-primary)]/80">
                     ราคาเฉพาะวันที่เลือก ทักแอดมินเพื่อยืนยันก่อนหลุดคิว
                   </p>
                 </div>
                 <div className="grid gap-3 p-3">
+                  {selectedCalendarDay.promotionMessage ? (
+                    <p className="whitespace-pre-line rounded-xl bg-[var(--site-surface)] px-3 py-2 text-xs font-bold leading-5 text-[var(--site-text)]">
+                      {selectedCalendarDay.promotionMessage}
+                    </p>
+                  ) : null}
                   <p className="rounded-xl bg-[var(--site-primary-soft)] px-3 py-2 text-xs font-bold leading-5 text-[var(--site-text)]">
                     ส่งวันที่นี้ให้ทีมจองได้ทันที พร้อมเช็กราคาสุดท้ายและเงื่อนไขเข้าพัก
                   </p>

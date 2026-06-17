@@ -137,7 +137,7 @@ describe("Gallery", () => {
 
     const imageUrl = new URL(imageProps[0]?.src ?? "", "https://example.com");
 
-    expect(imageUrl.pathname).toBe("/api/villas/88/images/proxy");
+    expect(imageUrl.pathname).toBe("/api/villas/88/images");
     expect(imageUrl.searchParams.get("url")).toBe("https://cdn.test/cover.jpg");
     expect(imageUrl.searchParams.get("w")).toBe("828");
     expect(imageUrl.searchParams.get("q")).toBe("60");

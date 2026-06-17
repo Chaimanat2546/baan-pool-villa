@@ -44,61 +44,85 @@ function buildCalendarResponse(month: string) {
     const dateKey = `${month}-${String(day).padStart(2, "0")}`;
     days[dateKey] = {
       disabled: false,
+      displayPrice: "9,900",
       icons: [],
       kind: "base",
       label: "วันธรรมดา",
       price: 9900,
+      promotionMessage: null,
       tone: "default",
     };
   }
 
   if (month === "2026-06") {
+    const promotionMessage = [
+      "วันธรรมดา อา-พฤ แบ่งเปิดได้",
+      "- 3 ห้องนอน ราคา 5900/12 ท่าน",
+      "- 4 ห้องนอน ราคา 6900/15 ท่าน",
+      "- 5 ห้องนอน ราคา 7900/17 ท่าน",
+      "- 6 ห้องนอน ราคา 8900/20 ท่าน",
+      "",
+      "วันศุกร์ และ วันเสาร์ เปิดเต็ม 6 ห้องนอนเท่านั้น",
+    ].join("\n");
+
     days["2026-06-17"] = {
       disabled: false,
+      displayPrice: "5,900",
       icons: ["promotion"],
       kind: "promotion",
       label: "โปรโมชั่น",
-      price: 7900,
+      price: 5900,
+      promotionMessage,
       tone: "promotion",
     };
     days["2026-06-18"] = {
       disabled: true,
+      displayPrice: "9,900",
       icons: [],
       kind: "booking_waiting",
       label: "ติดจองแต่ยังไม่โอน",
       price: 9900,
+      promotionMessage: null,
       tone: "waiting",
     };
     days["2026-06-19"] = {
       disabled: true,
+      displayPrice: "13,900",
       icons: [],
       kind: "booking_confirmed",
       label: "ติดจองแล้ว",
       price: 13900,
+      promotionMessage: null,
       tone: "booked",
     };
     days["2026-06-20"] = {
       disabled: false,
+      displayPrice: "18,900",
       icons: [],
       kind: "holiday",
       label: "วันหยุดนักขัตฤกษ์",
       price: 18900,
+      promotionMessage: null,
       tone: "holiday",
     };
     days["2026-06-21"] = {
       disabled: false,
+      displayPrice: "12,900",
       icons: ["fire"],
       kind: "hotpro",
       label: "โปรไฟลุก",
       price: 12900,
+      promotionMessage: null,
       tone: "hotpro",
     };
     days["2026-06-22"] = {
       disabled: false,
+      displayPrice: "15,900",
       icons: ["fire"],
       kind: "hot_holiday",
       label: "โปรไฟลุกในวันหยุด",
       price: 15900,
+      promotionMessage: null,
       tone: "hot_holiday",
     };
   }
@@ -186,6 +210,9 @@ describe("BookingSidebar", () => {
     const page = await renderBookingSidebar();
 
     expect(page.container.textContent).toContain("มิถุนายน");
+    expect(
+      page.container.querySelector("[data-slot='calendar']")?.className,
+    ).toContain("[&_.rdp-week]:my-4");
     const currentDay = Array.from(
       page.container.querySelectorAll<HTMLButtonElement>("button"),
     ).find((button) =>
@@ -276,7 +303,9 @@ describe("BookingSidebar", () => {
 
     const normalDate = Array.from(
       page.container.querySelectorAll<HTMLButtonElement>("button"),
-    ).find((button) => button.textContent?.trim() === "23");
+    ).find((button) =>
+      button.getAttribute("aria-label")?.startsWith("23 มิถุนายน 2569"),
+    );
 
     await act(async () => {
       normalDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -310,7 +339,9 @@ describe("BookingSidebar", () => {
 
     const pastDate = Array.from(
       page.container.querySelectorAll<HTMLButtonElement>("button"),
-    ).find((button) => button.textContent?.trim() === "15");
+    ).find((button) =>
+      button.getAttribute("aria-label")?.startsWith("15 มิถุนายน 2569"),
+    );
 
     expect(pastDate?.disabled).toBe(true);
     expect(pastDate?.className).toContain("bg-[var(--site-surface-tint)]");
@@ -322,7 +353,9 @@ describe("BookingSidebar", () => {
 
     const normalDate = Array.from(
       page.container.querySelectorAll<HTMLButtonElement>("button"),
-    ).find((button) => button.textContent?.trim() === "23");
+    ).find((button) =>
+      button.getAttribute("aria-label")?.startsWith("23 มิถุนายน 2569"),
+    );
 
     await act(async () => {
       normalDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -382,6 +415,9 @@ describe("BookingSidebar", () => {
     ).find((button) =>
       button.getAttribute("aria-label")?.startsWith("17 มิถุนายน 2569"),
     );
+    const pastDate = Array.from(
+      page.container.querySelectorAll<HTMLButtonElement>("button"),
+    ).find((button) => button.getAttribute("aria-label")?.startsWith("15 "));
     const baseDate = Array.from(
       page.container.querySelectorAll<HTMLButtonElement>("button"),
     ).find((button) =>
@@ -415,12 +451,41 @@ describe("BookingSidebar", () => {
 
     expect(promotionDate?.dataset.calendarDayKind).toBe("promotion");
     expect(promotionDate?.querySelector("[data-calendar-icon='promotion']")).not.toBeNull();
+    expect(
+      promotionDate?.querySelector("[data-calendar-icon-slot='filled']")
+        ?.className,
+    ).toContain("top-0.5");
+    expect(
+      promotionDate?.querySelector("[data-calendar-icon-slot='filled']")
+        ?.className,
+    ).toContain("z-[20]");
+    expect(
+      promotionDate
+        ?.querySelector("[data-calendar-icon='promotion']")
+        ?.getAttribute("class"),
+    ).toContain("size-4");
+    expect(promotionDate?.className).toContain("!block");
+    expect(promotionDate?.className).toContain("!h-12");
+    expect(
+      promotionDate
+        ?.querySelector("[data-calendar-day-number]")
+        ?.getAttribute("class"),
+    ).toContain("text-[18px]");
+    expect(
+      promotionDate
+        ?.querySelector("[data-calendar-day-price]")
+        ?.getAttribute("class"),
+    ).toContain("text-[10px]");
+    expect(promotionDate?.textContent).toContain("5,900");
+    expect(pastDate?.querySelector("[data-calendar-day-price]")).toBeNull();
     expect(baseDate?.dataset.calendarDayKind).toBe("base");
     expect(baseDate?.querySelector("[data-calendar-icon-slot='empty']")).not.toBeNull();
+    expect(baseDate?.textContent).toContain("9,900");
     expect(waitingDate?.disabled).toBe(true);
     expect(waitingDate?.getAttribute("aria-disabled")).toBe("true");
     expect(waitingDate?.tabIndex).toBe(-1);
     expect(waitingDate?.dataset.calendarDayKind).toBe("booking_waiting");
+    expect(waitingDate?.querySelector("[data-calendar-day-price]")).toBeNull();
     expect(
       waitingDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
     ).toBeNull();
@@ -428,16 +493,17 @@ describe("BookingSidebar", () => {
     expect(bookedDate?.getAttribute("aria-disabled")).toBe("true");
     expect(bookedDate?.tabIndex).toBe(-1);
     expect(bookedDate?.dataset.calendarDayKind).toBe("booking_confirmed");
+    expect(bookedDate?.querySelector("[data-calendar-day-price]")).toBeNull();
     expect(
       bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
     ).not.toBeNull();
     expect(holidayDate?.dataset.calendarDayKind).toBe("holiday");
-    expect(holidayDate?.className).toContain("bg-[var(--site-accent-soft)]");
+    expect(holidayDate?.className).toContain("bg-yellow-500");
     expect(hotproDate?.dataset.calendarDayKind).toBe("hotpro");
-    expect(hotproDate?.className).not.toContain("bg-[var(--site-accent-soft)]");
+    expect(hotproDate?.className).not.toContain("bg-yellow-500");
     expect(hotproDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
     expect(hotHolidayDate?.dataset.calendarDayKind).toBe("hot_holiday");
-    expect(hotHolidayDate?.className).toContain("bg-[var(--site-accent-soft)]");
+    expect(hotHolidayDate?.className).toContain("bg-yellow-500");
     expect(hotHolidayDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
 
     expect(page.container.querySelector("[data-calendar-legend]")?.textContent).toContain(
@@ -453,7 +519,9 @@ describe("BookingSidebar", () => {
 
     const dialog = page.container.querySelector('[role="dialog"]');
     expect(dialog?.textContent).toContain("โปรโมชั่น");
-    expect(dialog?.textContent).toContain("ราคา 7,900 บาท");
+    expect(dialog?.textContent).toContain("ราคา 5,900 บาท");
+    expect(dialog?.textContent).toContain("วันธรรมดา อา-พฤ แบ่งเปิดได้");
+    expect(dialog?.textContent).toContain("3 ห้องนอน ราคา 5900/12 ท่าน");
 
     await page.cleanup();
   });

@@ -245,6 +245,19 @@ export function createHtmlEdgeVersionToken({
 
 function isVillaImageProxyPath(pathname) {
   const prefix = "/api/villas/";
+  const suffix = "/images";
+
+  if (!pathname.startsWith(prefix) || !pathname.endsWith(suffix)) {
+    return false;
+  }
+
+  const id = pathname.slice(prefix.length, -suffix.length);
+
+  return /^[1-9]\d*$/.test(id);
+}
+
+function isLegacyVillaImageProxyPath(pathname) {
+  const prefix = "/api/villas/";
   const suffix = "/images/proxy";
 
   if (!pathname.startsWith(prefix) || !pathname.endsWith(suffix)) {
@@ -261,7 +274,8 @@ function isPublicImageProxyPath(pathname) {
     pathname === "/api/houses/images/proxy" ||
     pathname === "/api/site-assets/proxy" ||
     pathname === "/api/guides/images/proxy" ||
-    isVillaImageProxyPath(pathname)
+    isVillaImageProxyPath(pathname) ||
+    isLegacyVillaImageProxyPath(pathname)
   );
 }
 
@@ -439,6 +453,14 @@ export function getImageEdgeCacheDecision(request) {
 
   if (request.method !== "GET") {
     return { cacheable: false, candidate: true, reason: "method" };
+  }
+
+  if (isVillaImageProxyPath(url.pathname) && url.searchParams.get("download") === "1") {
+    return { cacheable: false, candidate: false, reason: "path" };
+  }
+
+  if (!url.searchParams.get("url") && isVillaImageProxyPath(url.pathname)) {
+    return { cacheable: false, candidate: false, reason: "path" };
   }
 
   if (!url.searchParams.get("url")) {

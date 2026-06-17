@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PUBLIC_RATE_LIMIT_POLICIES,
   resetPublicRateLimitForTests,
@@ -72,6 +72,10 @@ beforeEach(() => {
   unstableCacheMock.mockClear();
   process.env = { ...originalEnv };
   setSupabaseEnv();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("normalizeImageRows", () => {
@@ -444,5 +448,93 @@ describe("GET /api/villas/[id]/images", () => {
     });
     expect(response.status).toBe(502);
     expect(consoleError).toHaveBeenCalled();
+  });
+
+  it("proxies an allowed gallery image from the parent images route", async () => {
+    mockImagesQuery({
+      data: [
+        {
+          id: 7,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "pool.jpg",
+          image_url: null,
+          caption: "Pool",
+          image_zone: "pool",
+        },
+      ],
+      error: null,
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("photo bytes", {
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import("../../../app/(public)/api/villas/[id]/images/route");
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/images?url=https%3A%2F%2Fimages.example.com%2Fpool.jpg&w=828&q=60",
+        { headers: { Accept: "image/webp" } },
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    await expect(response.text()).resolves.toBe("photo bytes");
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith("https://images.example.com/pool.jpg", {
+      cache: "no-store",
+      cf: {
+        image: {
+          fit: "scale-down",
+          format: "webp",
+          quality: 60,
+          width: 828,
+        },
+      },
+      redirect: "manual",
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it("downloads an allowed gallery image from the parent images route", async () => {
+    mockImagesQuery({
+      data: [
+        {
+          id: 7,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "pool.jpg",
+          image_url: null,
+          caption: "Pool",
+          image_zone: "pool",
+        },
+      ],
+      error: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("photo bytes", {
+          headers: { "Content-Type": "image/jpeg" },
+        }),
+      ),
+    );
+    const { GET } = await import("../../../app/(public)/api/villas/[id]/images/route");
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/images?download=1&url=https%3A%2F%2Fimages.example.com%2Fpool.jpg",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    await expect(response.text()).resolves.toBe("photo bytes");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Content-Disposition")).toBe(
+      'attachment; filename="villa-9-pool-pool.jpg"',
+    );
   });
 });
