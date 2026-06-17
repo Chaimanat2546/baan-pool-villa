@@ -93,6 +93,7 @@ export default async function Page({ params }: VillaPageProps) {
       />
       <VillaDetailPage
         id={id}
+        initialGalleryImages={data.initialGalleryImages}
         payload={data.payload}
         recommendedSection={data.recommendedSection}
         settings={siteSettingsResult.settings}

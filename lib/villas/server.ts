@@ -3,11 +3,13 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { getResolvedHomeSections } from "@/lib/home-sections/server";
+import { fetchVillaPreviewImages } from "./images";
 import { normalizeHouses } from "./normalize";
 import type {
   RawHouse,
   RecommendedVillaSection,
   VillaDetailPayload,
+  VillaImage,
   VillaListing,
 } from "./types";
 
@@ -151,6 +153,7 @@ export async function fetchVillaDetail(
 }
 
 export type VillaPageData = {
+  initialGalleryImages: VillaImage[];
   payload: VillaDetailPayload;
   recommendedSection: RecommendedVillaSection | null;
 };
@@ -192,9 +195,16 @@ export async function fetchVillaPageData(
     return null;
   }
 
-  const homeSections = await getResolvedHomeSections(listings);
+  const [homeSections, initialGalleryImages] = await Promise.all([
+    getResolvedHomeSections(listings),
+    fetchVillaPreviewImages(id).catch((error: unknown) => {
+      console.error("Unable to load villa detail initial gallery images", error);
+      return [];
+    }),
+  ]);
 
   return {
+    initialGalleryImages: initialGalleryImages.slice(0, 4),
     payload,
     recommendedSection: toRecommendedVillaSection(homeSections.sections),
   };

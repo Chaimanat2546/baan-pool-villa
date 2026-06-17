@@ -21,12 +21,13 @@ import {
 } from "./helpers";
 import type { GalleryItem, VillaDetailPageProps } from "./types";
 
-type GalleryLoadStatus = "idle" | "loading" | "loaded" | "error";
+type GalleryLoadStatus = "idle" | "preview" | "loading" | "loaded" | "error";
 type GalleryLoadMode = "background" | "interactive";
 
 const BACKGROUND_GALLERY_IDLE_TIMEOUT_MS = 3000;
 // Browsers without requestIdleCallback need a fixed delay that keeps first paint quiet.
 const BACKGROUND_GALLERY_FALLBACK_DELAY_MS = 1200;
+const EMPTY_INITIAL_GALLERY_IMAGES: VillaImage[] = [];
 
 interface GalleryImagesResponse {
   images?: VillaImage[];
@@ -76,15 +77,31 @@ function hasEnabledBookingContact(layout: AnyDetailLayoutConfig): boolean {
 
 export function VillaDetailPage({
   id,
+  initialGalleryImages = EMPTY_INITIAL_GALLERY_IMAGES,
   payload,
   recommendedSection,
   settings,
 }: VillaDetailPageProps) {
   const [galleryLoadState, setGalleryLoadState] = useState<GalleryLoadState>(
-    () => getInitialGalleryLoadState(id),
+    () =>
+      initialGalleryImages.length > 0
+        ? {
+            error: null,
+            images: initialGalleryImages,
+            status: "preview",
+            villaId: id,
+          }
+        : getInitialGalleryLoadState(id),
   );
   const galleryLoadStateRef = useRef<GalleryLoadState>(
-    getInitialGalleryLoadState(id),
+    initialGalleryImages.length > 0
+      ? {
+          error: null,
+          images: initialGalleryImages,
+          status: "preview",
+          villaId: id,
+        }
+      : getInitialGalleryLoadState(id),
   );
   const inFlightPromiseRef = useRef<{
     id: string;
@@ -137,13 +154,22 @@ export function VillaDetailPage({
 
       setActiveGalleryItem(null);
       setFailedImageUrls(new Set());
-      replaceGalleryLoadState(getInitialGalleryLoadState(id));
+      replaceGalleryLoadState(
+        initialGalleryImages.length > 0
+          ? {
+              error: null,
+              images: initialGalleryImages,
+              status: "preview",
+              villaId: id,
+            }
+          : getInitialGalleryLoadState(id),
+      );
     });
 
     return () => {
       cancelled = true;
     };
-  }, [id, replaceGalleryLoadState]);
+  }, [id, initialGalleryImages, replaceGalleryLoadState]);
 
   const loadGalleryImages = useCallback(async ({
     mode = "interactive",

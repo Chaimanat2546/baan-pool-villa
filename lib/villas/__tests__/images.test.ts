@@ -8,6 +8,7 @@ import { unstable_cache } from "next/cache";
 import {
   buildProxyImageUrl,
   fetchVillaImages,
+  fetchVillaPreviewImages,
   normalizeImageRows,
   normalizeImageUrl,
 } from "../images";
@@ -41,7 +42,9 @@ function mockImagesQuery(response: unknown) {
   const query = {
     select: vi.fn(),
     eq: vi.fn(),
+    limit: vi.fn(),
     order: vi.fn(),
+    then: vi.fn(),
   };
   const supabase = {
     from: vi.fn(() => query),
@@ -49,8 +52,13 @@ function mockImagesQuery(response: unknown) {
 
   query.select.mockReturnValue(query);
   query.eq.mockReturnValue(query);
-  query.order.mockImplementation((column: string) =>
-    column === "id" ? Promise.resolve(response) : query,
+  query.limit.mockReturnValue(query);
+  query.order.mockReturnValue(query);
+  query.then.mockImplementation(
+    (
+      resolve: (value: unknown) => unknown,
+      reject: (error: unknown) => unknown,
+    ) => Promise.resolve(response).then(resolve, reject),
   );
   createClientMock.mockReturnValue(supabase);
 
@@ -275,6 +283,104 @@ describe("fetchVillaImages", () => {
       "next-public-key",
       expect.any(Object),
     );
+  });
+});
+
+describe("fetchVillaPreviewImages", () => {
+  it("returns the same prioritized images that the detail gallery displays first", async () => {
+    const { query } = mockImagesQuery({
+      data: [
+        {
+          id: 1,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "cover.jpg",
+          image_url: null,
+          caption: "Cover",
+          image_zone: "cover",
+        },
+        {
+          id: 2,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "uncategorized.jpg",
+          image_url: null,
+          caption: "Uncategorized",
+          image_zone: null,
+        },
+        {
+          id: 3,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "inside.jpg",
+          image_url: null,
+          caption: "Inside",
+          image_zone: "inside",
+        },
+        {
+          id: 4,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "outside.jpg",
+          image_url: null,
+          caption: "Outside",
+          image_zone: "outside",
+        },
+        {
+          id: 5,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "review.jpg",
+          image_url: null,
+          caption: "Review",
+          image_zone: "review",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(fetchVillaPreviewImages("9")).resolves.toEqual([
+      {
+        id: 1,
+        imageUrl: "https://images.example.com/cover.jpg",
+        imageName: "cover.jpg",
+        caption: "Cover",
+        isCover: true,
+        zone: "cover",
+      },
+      {
+        id: 4,
+        imageUrl: "https://images.example.com/outside.jpg",
+        imageName: "outside.jpg",
+        caption: "Outside",
+        isCover: false,
+        zone: "outside",
+      },
+      {
+        id: 3,
+        imageUrl: "https://images.example.com/inside.jpg",
+        imageName: "inside.jpg",
+        caption: "Inside",
+        isCover: false,
+        zone: "inside",
+      },
+      {
+        id: 5,
+        imageUrl: "https://images.example.com/review.jpg",
+        imageName: "review.jpg",
+        caption: "Review",
+        isCover: false,
+        zone: "review",
+      },
+    ]);
+
+    expect(query.eq).toHaveBeenCalledWith("property_id", 9);
+    expect(query.order).toHaveBeenNthCalledWith(1, "cover_select", {
+      ascending: false,
+      nullsFirst: false,
+    });
+    expect(query.order).toHaveBeenNthCalledWith(2, "id", { ascending: true });
+    expect(query.limit).not.toHaveBeenCalled();
   });
 });
 

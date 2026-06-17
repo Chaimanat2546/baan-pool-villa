@@ -29,6 +29,85 @@ function normalizeNullableText(value: string | null): string | null {
   return trimmedValue;
 }
 
+function getPreviewZoneKey(zone: string | null): string {
+  const zoneKey = zone?.trim().toLowerCase();
+
+  return zoneKey ? zoneKey : "uncategorized";
+}
+
+function isCoverZone(zone: string | null): boolean {
+  const zoneKey = getPreviewZoneKey(zone);
+
+  return (
+    zoneKey === "cover" ||
+    zoneKey === "\u0e23\u0e39\u0e1b\u0e1b\u0e01" ||
+    zoneKey === "\u0e20\u0e32\u0e1e\u0e1b\u0e01"
+  );
+}
+
+function isPreviewCoverImage(image: VillaImage): boolean {
+  return image.isCover || isCoverZone(image.zone);
+}
+
+function getBentoZonePriority(zone: string | null): number {
+  const zoneKey = getPreviewZoneKey(zone);
+
+  if (zoneKey === "outside") {
+    return 0;
+  }
+
+  if (zoneKey === "inside") {
+    return 1;
+  }
+
+  if (zoneKey === "review") {
+    return 2;
+  }
+
+  return 3;
+}
+
+function selectPreviewImages(images: VillaImage[]): VillaImage[] {
+  const seenUrls = new Set<string>();
+  const sortedImages = [...images].sort((a, b) => {
+    const aIsCover = isPreviewCoverImage(a);
+    const bIsCover = isPreviewCoverImage(b);
+
+    if (aIsCover === bIsCover) {
+      return a.id - b.id;
+    }
+
+    return aIsCover ? -1 : 1;
+  });
+  const uniqueImages = sortedImages.filter((image) => {
+    if (seenUrls.has(image.imageUrl)) {
+      return false;
+    }
+
+    seenUrls.add(image.imageUrl);
+    return true;
+  });
+  const [mainImage, ...sideImages] = uniqueImages;
+
+  if (!mainImage) {
+    return [];
+  }
+
+  return [
+    mainImage,
+    ...sideImages
+      .map((image, index) => ({ image, index }))
+      .sort((a, b) => {
+        const priorityDiff =
+          getBentoZonePriority(a.image.zone) - getBentoZonePriority(b.image.zone);
+
+        return priorityDiff || a.index - b.index;
+      })
+      .slice(0, 3)
+      .map(({ image }) => image),
+  ];
+}
+
 function getSupabaseConfig() {
   const supabaseUrl =
     process.env.SUPABASE_URL ??
@@ -150,6 +229,7 @@ export function parseVillaId(id: string): number {
 async function fetchVillaImagesFromSupabase(
   id: string,
   villaId: number,
+  limit?: number,
 ): Promise<VillaImage[]> {
   const { supabaseUrl, supabaseKey } = getSupabaseConfig();
 
@@ -161,12 +241,18 @@ async function fetchVillaImagesFromSupabase(
     },
   });
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("images")
     .select("id, property_id, cover_select, image_name, image_url, caption, image_zone")
     .eq("property_id", villaId)
     .order("cover_select", { ascending: false, nullsFirst: false })
     .order("id", { ascending: true });
+
+  if (typeof limit === "number") {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(error.message);
@@ -194,4 +280,26 @@ export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   );
 
   return getCachedVillaImages();
+}
+
+/**
+ * Loads only the first gallery rows needed to render the above-the-fold detail
+ * preview without putting the complete gallery in the server render path.
+ *
+ * @param id - The villa id from the public route.
+ * @returns Up to four normalized gallery images for the requested villa.
+ */
+export async function fetchVillaPreviewImages(id: string): Promise<VillaImage[]> {
+  const villaId = parseVillaId(id);
+  const tag = CACHE_TAGS.villaImage(id);
+  const getCachedVillaPreviewImages = unstable_cache(
+    async () => selectPreviewImages(await fetchVillaImagesFromSupabase(id, villaId)),
+    [`${tag}:preview`],
+    {
+      revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
+      tags: [CACHE_TAGS.villaImages, tag],
+    },
+  );
+
+  return getCachedVillaPreviewImages();
 }
