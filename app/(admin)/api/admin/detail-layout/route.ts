@@ -3,46 +3,18 @@ import {
   requireHomeConfigAdmin,
 } from "@/lib/admin/route-helpers";
 import { revalidateDetailLayoutCache } from "@/lib/cache-revalidation";
-import {
-  DEFAULT_SITE_SETTINGS,
-  SITE_SETTINGS_ID,
-} from "@/lib/site-settings/defaults";
+import { SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
 import type { SiteSettingsRow } from "@/lib/site-settings/types";
 import {
   normalizeAnyDetailLayout,
   validateAnyDetailLayout,
 } from "@/lib/detail-layout/compat";
-import type { AnyDetailLayoutConfig } from "@/lib/detail-layout/types";
-
-const DETAIL_LAYOUT_SELECT = "id,detail_layout";
-
-function buildDefaultSettingsInsertPayload(detailLayout: AnyDetailLayoutConfig) {
-  return {
-    id: SITE_SETTINGS_ID,
-    site_name: DEFAULT_SITE_SETTINGS.siteName,
-    primary_color: DEFAULT_SITE_SETTINGS.primaryColor,
-    accent_color: DEFAULT_SITE_SETTINGS.accentColor,
-    logo_image_path: DEFAULT_SITE_SETTINGS.logoImage.path,
-    logo_image_url: DEFAULT_SITE_SETTINGS.logoImage.url,
-    hero_image_path: DEFAULT_SITE_SETTINGS.heroImage.path,
-    hero_image_url: DEFAULT_SITE_SETTINGS.heroImage.url,
-    hero_image_alt: DEFAULT_SITE_SETTINGS.heroImage.alt,
-    bank_account_name: DEFAULT_SITE_SETTINGS.bank.accountName,
-    bank_name: DEFAULT_SITE_SETTINGS.bank.bankName,
-    bank_account_number: DEFAULT_SITE_SETTINGS.bank.accountNumber,
-    phone_contacts: DEFAULT_SITE_SETTINGS.contact.phoneContacts,
-    messenger_url: DEFAULT_SITE_SETTINGS.contact.messengerUrl,
-    line_id: DEFAULT_SITE_SETTINGS.contact.lineId,
-    line_url: DEFAULT_SITE_SETTINGS.contact.lineUrl,
-    seo_title: DEFAULT_SITE_SETTINGS.seo.title,
-    seo_description: DEFAULT_SITE_SETTINGS.seo.description,
-    seo_og_image_url: DEFAULT_SITE_SETTINGS.seo.ogImage.url,
-    seo_og_image_alt: DEFAULT_SITE_SETTINGS.seo.ogImage.alt,
-    seo_business_name: DEFAULT_SITE_SETTINGS.seo.businessName,
-    seo_same_as_urls: DEFAULT_SITE_SETTINGS.seo.sameAsUrls,
-    detail_layout: detailLayout,
-  };
-}
+import {
+  buildDefaultSettingsInsertPayload,
+  DETAIL_LAYOUT_SELECT,
+  readDetailLayoutPayload,
+  readJsonPayload,
+} from "@/lib/detail-layout/admin-route";
 
 export async function GET(request: Request) {
   const admin = await requireHomeConfigAdmin(request);
@@ -75,18 +47,13 @@ export async function PUT(request: Request) {
     return admin.response;
   }
 
-  let body: unknown;
+  const jsonPayload = await readJsonPayload(request);
 
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ errors: ["Request body must be JSON."] }, { status: 400 });
+  if (!jsonPayload.ok) {
+    return jsonPayload.response;
   }
 
-  const layout =
-    typeof body === "object" && body !== null && !Array.isArray(body)
-      ? (body as { layout?: unknown }).layout
-      : undefined;
+  const layout = readDetailLayoutPayload(jsonPayload.payload);
   const validation = validateAnyDetailLayout(layout);
 
   if (!validation.ok) {

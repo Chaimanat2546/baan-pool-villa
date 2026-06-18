@@ -2,10 +2,6 @@ import {
   adminSupabaseErrorResponse,
   requireHomeConfigAdmin,
 } from "@/lib/admin/route-helpers";
-import type {
-  HomeConfigSupabaseClient,
-  SupabaseLikeError,
-} from "@/lib/admin/route-helpers";
 import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
 import {
   cleanupRetainedAssets,
@@ -22,6 +18,11 @@ import {
   readStringArrayField,
   readStringField,
 } from "@/lib/site-settings/admin-form-fields";
+import {
+  ASSET_UPLOAD_FIELDS,
+  buildSavedSettingsRow,
+  loadAdminSiteSettings,
+} from "@/lib/site-settings/admin-route";
 import { SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
 import type {
   SiteAssetType,
@@ -33,155 +34,6 @@ import {
   validateSiteSettingsDraft,
   validateUploadMetadata,
 } from "@/lib/site-settings/validation";
-
-const SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords,detail_layout,tiktok_account_url,tiktok_video_urls";
-const SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_og_image_url,guides_seo_og_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
-const SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout,tiktok_account_url,tiktok_video_urls";
-const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
-const SITE_SETTINGS_GENERAL_SELECT =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls";
-const ASSET_UPLOAD_FIELDS: { assetType: SiteAssetType; fieldName: string }[] = [
-  { assetType: "logo", fieldName: "logo" },
-  { assetType: "hero", fieldName: "hero" },
-];
-
-/**
- * Determines whether a Supabase-style error likely indicates a missing column or schema cache issue.
- *
- * @param error - The Supabase-like error object to inspect, or `null`/`undefined`.
- * @returns `true` if the error appears to be caused by a missing column or schema-cache/schema-mismatch problem, `false` otherwise.
- */
-function isMissingColumnError(error: SupabaseLikeError | null | undefined): boolean {
-  if (!error) {
-    return false;
-  }
-
-  const message = (error.message ?? "").toLowerCase();
-  return (
-    error.code === "42703" ||
-    (message.includes("column") && message.includes("does not exist")) ||
-    message.includes("schema cache") ||
-    message.includes("unknown column")
-  );
-}
-
-/**
- * Load the admin-visible site settings row, falling back to reduced column sets if the database schema is missing recently added columns.
- *
- * Attempts to select the full `SITE_SETTINGS_SELECT` projection by the fixed site settings ID; if that query fails with an error that appears to indicate a missing column or schema cache issue, retries with projections that omit optional feature columns.
- *
- * @returns An object with `data` set to the found site settings row or `null` when not found, and `error` set to a Supabase-like error object when retrieval failed or `null` on success.
- */
-async function loadAdminSiteSettings(
-  supabase: HomeConfigSupabaseClient,
-): Promise<{
-  data: SiteSettingsRow | null;
-  error: SupabaseLikeError | null;
-}> {
-  const primary = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!primary.error) {
-    return {
-      data: (primary.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
-  }
-
-  if (!isMissingColumnError(primary.error)) {
-    return { data: null, error: primary.error };
-  }
-
-  const fallbackWithoutKeywords = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!fallbackWithoutKeywords.error) {
-    return {
-      data: (fallbackWithoutKeywords.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
-  }
-
-  if (!isMissingColumnError(fallbackWithoutKeywords.error)) {
-    return { data: null, error: fallbackWithoutKeywords.error };
-  }
-
-  const fallbackWithoutPageSeo = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!fallbackWithoutPageSeo.error) {
-    return {
-      data: (fallbackWithoutPageSeo.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
-  }
-
-  if (!isMissingColumnError(fallbackWithoutPageSeo.error)) {
-    return { data: null, error: fallbackWithoutPageSeo.error };
-  }
-
-  const fallback = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT_WITHOUT_TIKTOK)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!fallback.error) {
-    return {
-      data: (fallback.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
-  }
-
-  if (!isMissingColumnError(fallback.error)) {
-    return { data: null, error: fallback.error };
-  }
-
-  const general = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_GENERAL_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!general.error) {
-    return {
-      data: (general.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
-  }
-
-  return { data: null, error: general.error };
-}
-
-/**
- * Produce a SiteSettingsRow by merging saved values into an existing row, with saved values taking precedence.
- *
- * @param existingRow - The current persisted settings row, or `null` if none exists
- * @param savePayload - Partial settings values to apply on top of `existingRow`
- * @returns A `SiteSettingsRow` representing the merged result
- */
-function buildSavedSettingsRow(
-  existingRow: SiteSettingsRow | null,
-  savePayload: Record<string, unknown>,
-): SiteSettingsRow {
-  return {
-    ...(existingRow ?? {}),
-    ...savePayload,
-  } as SiteSettingsRow;
-}
 
 /**
  * Handle GET requests to return the current admin-visible site settings.
