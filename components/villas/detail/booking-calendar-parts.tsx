@@ -171,6 +171,65 @@ export function CalendarFirstAvailablePointer() {
   );
 }
 
+export function CalendarFirstAvailableTooltip({
+  align,
+  onDismiss,
+}: {
+  align: "center" | "end" | "start";
+  onDismiss: () => void;
+}) {
+  return (
+    <article
+      aria-label="คำแนะนำการใช้งานปฏิทิน"
+      aria-live="polite"
+      className={cn(
+        "absolute -top-50 z-[50] w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-left shadow-xl shadow-black/15 ring-1 ring-[var(--site-primary)]/10",
+        align === "start"
+          ? "left-0"
+          : align === "end"
+            ? "right-0"
+            : "left-1/2 -translate-x-1/2",
+      )}
+      data-calendar-first-available-tip-align={align}
+      data-calendar-first-available-tip="true"
+      id="tourTooltip"
+      role="dialog"
+    >
+      <div className="text-[10px] font-black tracking-[0.16em] text-[var(--site-primary)] uppercase">
+        ทิปการใช้งาน
+      </div>
+      <h2 className="mt-1 text-sm leading-snug font-black text-[var(--site-text)]">
+        กดวันที่เพื่อดูรายละเอียดได้
+      </h2>
+      <p className="mt-1.5 text-xs leading-relaxed text-[var(--site-muted)]">
+        แตะหรือคลิกวันที่ในปฏิทิน เพื่อดูราคา โปรโมชัน และสถานะว่าง/ติดจองของแต่ละวัน
+      </p>
+      <div className="mt-3 flex justify-end">
+        <button
+          className="inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-bold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2 focus-visible:outline-none"
+          data-calendar-first-available-tip-dismiss="true"
+          id="dismissTipBtn"
+          onClick={onDismiss}
+          type="button"
+        >
+          เข้าใจแล้ว
+        </button>
+      </div>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute bottom-[-7px] size-3 rotate-45 border-r border-b border-[var(--site-border)] bg-[var(--site-surface)]",
+          align === "start"
+            ? "left-5"
+            : align === "end"
+              ? "right-5"
+              : "left-1/2 -translate-x-1/2",
+        )}
+      />
+    </article>
+  );
+}
+
 export function CalendarLegendItem({
   children,
   icon,
