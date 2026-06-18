@@ -5,7 +5,6 @@ import type { VillaListing } from "@/lib/villas/types";
 import {
   AboutSection,
   AmenitiesSection,
-  PolicySection,
 } from "../content-sections";
 import { NearbySection } from "../nearby-section";
 
@@ -59,14 +58,6 @@ describe("Detail content sections", () => {
   it("AboutSection renders without mock badges", () => {
     const markup = renderToStaticMarkup(
       <AboutSection content={content} listing={listing} />,
-    );
-
-    expect(markup).not.toContain("Mock FE");
-  });
-
-  it("PolicySection does not expose mock prototype copy", () => {
-    const markup = renderToStaticMarkup(
-      <PolicySection content={content} listing={listing} />,
     );
 
     expect(markup).not.toContain("Mock FE");

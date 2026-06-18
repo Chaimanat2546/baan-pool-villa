@@ -16,7 +16,6 @@ import type { Amenity, VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
 import { DEFAULT_AMENITY_PREVIEW_COUNT, getAmenityIcon } from "./content-amenities";
 import { findSection } from "./helpers";
-export { PolicySection } from "./policy-section";
 
 export function VillaIntro({
 
