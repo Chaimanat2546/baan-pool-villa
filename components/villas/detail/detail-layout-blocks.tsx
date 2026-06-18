@@ -20,7 +20,7 @@ import { AmenitiesSection, VideoReviewSection } from "./content-sections";
 import { findFact, findSection } from "./helpers";
 import { LazyCategorizedImages } from "./lazy-categorized-images";
 import { NearbySection } from "./nearby-section";
-import { RecommendedVillas } from "./recommended-villas";
+import { VillaRail } from "../home/villa-rail";
 import type { GalleryCategory } from "./types";
 
 interface DetailLayoutBlockContext {
@@ -338,7 +338,22 @@ function renderRecommendedVillas({
     return null;
   }
 
-  return <RecommendedVillas section={recommendedSection} />;
+  return (
+    <div
+      className="relative left-1/2 w-screen -translate-x-1/2"
+      data-detail-recommended-villas="home-rail"
+    >
+      <VillaRail
+        cardTitleHeadingLevel="h3"
+        cta={recommendedSection.cta}
+        description={recommendedSection.description}
+        id="recommendations"
+        title={recommendedSection.title}
+        titleHeadingLevel="h2"
+        villas={recommendedSection.villas}
+      />
+    </div>
+  );
 }
 
 const blockRenderers = {
