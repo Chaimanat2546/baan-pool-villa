@@ -195,6 +195,7 @@ export function GalleryLightbox({
     1920,
     75,
   );
+  const lightboxTitleId = `gallery-lightbox-title-${listing.id}`;
   const isActiveImageLoading =
     Boolean(activeImageDisplaySrc) && loadedImageKey !== activeItem.key;
   const handleImageTouchStart = (event: TouchEvent<HTMLDivElement>) => {
@@ -225,7 +226,12 @@ export function GalleryLightbox({
 
   return (
 
-    <div className="fixed inset-0 z-[70] overscroll-contain bg-[var(--site-primary-hover)] text-[var(--site-on-primary)]">
+    <div
+      aria-labelledby={lightboxTitleId}
+      aria-modal="true"
+      className="fixed inset-0 z-[70] overscroll-contain bg-[var(--site-primary-hover)] text-[var(--site-on-primary)]"
+      role="dialog"
+    >
       <div className="flex h-dvh flex-col overflow-hidden">
 
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
@@ -237,7 +243,10 @@ export function GalleryLightbox({
 
             </p>
 
-            <h2 className="truncate text-lg font-black sm:text-2xl">
+            <h2
+              className="truncate text-lg font-black sm:text-2xl"
+              id={lightboxTitleId}
+            >
 
               {getVillaTitle(listing.id)}
 
@@ -375,15 +384,17 @@ export function GalleryLightbox({
               </span>
             </div>
 
-            <a
-              href={activeImageDownloadHref}
-              aria-label="ดาวน์โหลดรูปนี้"
-              title="ดาวน์โหลดรูปนี้"
-              download
-              className="absolute right-2 top-2 z-20 grid h-10 w-10 place-items-center rounded-full bg-black/50 text-[var(--site-on-primary)] backdrop-blur transition hover:bg-black/65 sm:right-3 sm:top-3 sm:h-11 sm:w-11"
-            >
-              <Download className="h-5 w-5" />
-            </a>
+            {activeImageDownloadHref ? (
+              <a
+                href={activeImageDownloadHref}
+                aria-label="ดาวน์โหลดรูปนี้"
+                title="ดาวน์โหลดรูปนี้"
+                download
+                className="absolute right-2 top-2 z-20 grid h-10 w-10 place-items-center rounded-full bg-black/50 text-[var(--site-on-primary)] backdrop-blur transition hover:bg-black/65 sm:right-3 sm:top-3 sm:h-11 sm:w-11"
+              >
+                <Download className="h-5 w-5" />
+              </a>
+            ) : null}
 
             {activeItems.length > 1 ? (
 

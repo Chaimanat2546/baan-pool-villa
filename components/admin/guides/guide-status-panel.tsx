@@ -201,6 +201,7 @@ export function GuideStatusPanel({
           <input
             accept="image/jpeg,image/png,image/webp"
             className="sr-only"
+            data-guide-cover-input="true"
             disabled={isUploading}
             onChange={(event) => {
               const file = event.target.files?.[0];

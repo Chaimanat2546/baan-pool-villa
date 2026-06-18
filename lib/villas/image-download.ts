@@ -62,9 +62,15 @@ export async function fetchAllowedVillaImageDownload(
     }
 
     const location = response.headers.get("Location");
-    const nextUrl = location
-      ? normalizeDownloadImageUrl(new URL(location, currentUrl).toString())
-      : null;
+    let nextUrl: string | null = null;
+
+    if (location) {
+      try {
+        nextUrl = normalizeDownloadImageUrl(new URL(location, currentUrl).toString());
+      } catch {
+        nextUrl = null;
+      }
+    }
 
     if (!nextUrl || !isAllowedVillaImageUrl(nextUrl, images)) {
       return null;

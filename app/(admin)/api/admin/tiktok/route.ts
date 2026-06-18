@@ -2,236 +2,18 @@ import {
   adminSupabaseErrorResponse,
   requireHomeConfigAdmin,
 } from "@/lib/admin/route-helpers";
-import type {
-  HomeConfigSupabaseClient,
-  SupabaseLikeError,
-} from "@/lib/admin/route-helpers";
 import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
-import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
 import type { SiteSettingsRow } from "@/lib/site-settings/types";
 import {
-  normalizeSiteSettingsRow,
-  normalizeTikTokSettingsDraft,
-  validateTikTokSettingsDraft,
-} from "@/lib/site-settings/validation";
-
-const TIKTOK_SELECT = "id,tiktok_account_url,tiktok_video_urls";
-const TIKTOK_FALLBACK_SELECT = "id";
-const INVALID_TIKTOK_VIDEO_URL_LIST_ERROR =
-  "รายการวิดีโอ TikTok ต้องเป็นรายการลิงก์ที่ถูกต้อง";
-const TIKTOK_ACCOUNT_URL_NOT_STRING_ERROR = "ค่าฟิลด์ tiktokAccountUrl ต้องเป็นข้อความ";
-const TIKTOK_VIDEO_URLS_NOT_STRING_ERROR = "ค่าฟิลด์ tiktokVideoUrls ต้องเป็นข้อความ";
-const TIKTOK_ACCOUNT_URL_MULTIPLE_VALUES_ERROR = "ฟิลด์ tiktokAccountUrl ต้องระบุได้เพียงหนึ่งค่า";
-const TIKTOK_VIDEO_URLS_MULTIPLE_VALUES_ERROR = "ฟิลด์ tiktokVideoUrls ต้องระบุได้เพียงหนึ่งค่า";
-
-interface TikTokSettingsUpdatePayload {
-  tiktok_account_url: string;
-  tiktok_video_urls: string[];
-}
-
-interface TikTokSettingsInsertPayload extends TikTokSettingsUpdatePayload {
-  id: string;
-  site_name: string;
-}
-
-interface StringFieldResult {
-  value: string;
-  errors: string[];
-}
-
-interface StringArrayFieldResult {
-  values: string[];
-  errors: string[];
-}
-
-type AdminTikTokSettingsSource = "config" | "fallback" | "none";
-
-/**
- * Checks whether a Supabase-style error indicates a missing database column or related schema/cache issue.
- *
- * @param error - The Supabase-like error object to inspect (may be null/undefined)
- * @returns `true` if the error indicates a missing column or schema/cache problem, `false` otherwise
- */
-function isMissingColumnError(error: SupabaseLikeError | null | undefined): boolean {
-  if (!error) {
-    return false;
-  }
-
-  const message = (error.message ?? "").toLowerCase();
-
-  return (
-    error.code === "42703" ||
-    (message.includes("column") && message.includes("does not exist")) ||
-    message.includes("schema cache") ||
-    message.includes("unknown column")
-  );
-}
-
-/**
- * Determines whether a Supabase-style error indicates an empty result (no rows).
- *
- * @returns `true` if the error represents a "no rows" condition, `false` otherwise.
- */
-function isNoRowsError(error: SupabaseLikeError | null | undefined): boolean {
-  if (!error) {
-    return false;
-  }
-
-  const message = (error.message ?? "").toLowerCase();
-
-  return (
-    error.code === "PGRST116" ||
-    message.includes("contains 0 rows") ||
-    message.includes("result contains 0 rows")
-  );
-}
-
-/**
- * Reads a single string field from FormData, enforcing that at most one string value is provided and returning any validation errors.
- *
- * @param formData - The FormData object to read the field from.
- * @param fieldName - The name of the field to read; when `fieldName` is `"tiktokVideoUrls"` or `"tiktokAccountUrl"` the function returns field-specific error messages for duplicate or non-string values.
- * @returns An object with `value` set to the field string (empty if missing or invalid) and `errors` containing zero or more validation messages.
- */
-function readStringField(formData: FormData, fieldName: string): StringFieldResult {
-  const values = formData.getAll(fieldName);
-
-  if (values.length === 0) {
-    return { value: "", errors: [] };
-  }
-
-  if (values.length > 1) {
-    const duplicateError =
-      fieldName === "tiktokVideoUrls"
-        ? TIKTOK_VIDEO_URLS_MULTIPLE_VALUES_ERROR
-        : TIKTOK_ACCOUNT_URL_MULTIPLE_VALUES_ERROR;
-
-    return { value: "", errors: [duplicateError] };
-  }
-
-  const value = values[0];
-
-  if (typeof value !== "string") {
-    const error =
-      fieldName === "tiktokVideoUrls"
-        ? TIKTOK_VIDEO_URLS_NOT_STRING_ERROR
-        : TIKTOK_ACCOUNT_URL_NOT_STRING_ERROR;
-
-    return { value: "", errors: [error] };
-  }
-
-  return { value, errors: [] };
-}
-
-/**
- * Parse a FormData field expected to contain a JSON-encoded array of strings.
- *
- * Reads `fieldName` from `formData`, preserves any read errors, and returns:
- * - `values` as the parsed string array when the field contains a valid JSON array of strings,
- * - an empty `values` array with no errors when the field is missing or contains only whitespace,
- * - an empty `values` array and `errors` containing `INVALID_TIKTOK_VIDEO_URL_LIST_ERROR` when the field contains invalid JSON or a value that is not an array of strings.
- *
- * @param formData - The multipart form data to read from.
- * @param fieldName - The field name that holds the JSON-encoded array of strings.
- * @returns An object with `values` (the parsed string array) and `errors` (validation or parsing errors).
- */
-function readStringArrayField(formData: FormData, fieldName: string): StringArrayFieldResult {
-  const rawValue = readStringField(formData, fieldName);
-
-  if (rawValue.errors.length > 0) {
-    return { values: [], errors: rawValue.errors };
-  }
-
-  const trimmedValue = rawValue.value.trim();
-
-  if (trimmedValue.length === 0) {
-    return { values: [], errors: [] };
-  }
-
-  try {
-    const parsedValue = JSON.parse(trimmedValue);
-
-    if (!Array.isArray(parsedValue) || !parsedValue.every((item) => typeof item === "string")) {
-      return {
-        values: [],
-        errors: [INVALID_TIKTOK_VIDEO_URL_LIST_ERROR],
-      };
-    }
-
-    return { values: parsedValue, errors: [] };
-  } catch {
-    return {
-      values: [],
-      errors: [INVALID_TIKTOK_VIDEO_URL_LIST_ERROR],
-    };
-  }
-}
-
-/**
- * Parse TikTok settings fields from multipart FormData into a normalized draft and collect validation errors.
- *
- * @param formData - FormData expected to contain `tiktokAccountUrl` (single string) and `tiktokVideoUrls` (JSON-encoded array string)
- * @returns An object with `draft` (the normalized TikTok settings draft) and `errors` (array of validation error messages; empty if no issues)
- */
-function parseTikTokPayload(formData: FormData): {
-  draft: ReturnType<typeof normalizeTikTokSettingsDraft>;
-  errors: string[];
-} {
-  const accountField = readStringField(formData, "tiktokAccountUrl");
-  const videosField = readStringArrayField(formData, "tiktokVideoUrls");
-  const normalizedDraft = normalizeTikTokSettingsDraft({
-    accountUrl: accountField.value,
-    videoUrls: videosField.values,
-  });
-
-  return {
-    draft: normalizedDraft,
-    errors: [...accountField.errors, ...videosField.errors, ...validateTikTokSettingsDraft(normalizedDraft)],
-  };
-}
-
-/**
- * Load TikTok-related site settings, using a fallback query when the TikTok columns are missing.
- *
- * @returns An object with:
- * - `data`: the `site_settings` row containing TikTok fields when available, or `null` if not found.
- * - `error`: a Supabase-style error object when the query failed, or `null` on success.
- */
-async function loadAdminTikTokSettings(supabase: HomeConfigSupabaseClient): Promise<{
-  data: SiteSettingsRow | null;
-  error: SupabaseLikeError | null;
-  source: AdminTikTokSettingsSource;
-}> {
-  const primary = await supabase
-    .from("site_settings")
-    .select(TIKTOK_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!primary.error) {
-    return {
-      data: (primary.data as SiteSettingsRow | null) ?? null,
-      error: null,
-      source: primary.data ? "config" : "none",
-    };
-  }
-
-  if (!isMissingColumnError(primary.error)) {
-    return { data: null, error: primary.error, source: "none" };
-  }
-
-  const fallback = await supabase
-    .from("site_settings")
-    .select(TIKTOK_FALLBACK_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  return {
-    data: fallback.error ? null : (fallback.data as SiteSettingsRow | null),
-    error: fallback.error ? fallback.error : null,
-    source: fallback.data ? "fallback" : "none",
-  };
-}
+  isNoRowsError,
+  loadAdminTikTokSettings,
+  parseTikTokPayload,
+  TIKTOK_SELECT,
+  toTikTokInsertPayload,
+  toTikTokUpdatePayload,
+} from "@/lib/site-settings/admin-tiktok-route";
+import { SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
+import { normalizeSiteSettingsRow } from "@/lib/site-settings/validation";
 
 /**
  * Serve the admin GET endpoint that returns the TikTok settings and which data source was used.
@@ -292,10 +74,7 @@ export async function PUT(request: Request) {
     return Response.json({ errors }, { status: 400 });
   }
 
-  const payload: TikTokSettingsUpdatePayload = {
-    tiktok_account_url: draft.accountUrl,
-    tiktok_video_urls: draft.videoUrls,
-  };
+  const payload = toTikTokUpdatePayload(draft);
 
   let saveResult = await admin.supabase
     .from("site_settings")
@@ -305,15 +84,9 @@ export async function PUT(request: Request) {
     .single();
 
   if (isNoRowsError(saveResult.error)) {
-    const insertPayload: TikTokSettingsInsertPayload = {
-      id: SITE_SETTINGS_ID,
-      site_name: DEFAULT_SITE_SETTINGS.siteName,
-      ...payload,
-    };
-
     saveResult = await admin.supabase
       .from("site_settings")
-      .insert(insertPayload)
+      .insert(toTikTokInsertPayload(payload))
       .select(TIKTOK_SELECT)
       .single();
   }

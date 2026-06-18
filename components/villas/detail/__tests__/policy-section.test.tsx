@@ -54,8 +54,8 @@ describe("PolicySection", () => {
         content={{
           ...content,
           facts: [
-            { label: "à¹€à¸Šà¹‡à¸„à¸­à¸´à¸™", value: "   " },
-            { label: "à¹€à¸Šà¹‡à¸„à¹€à¸­à¸²à¸•à¹Œ", value: "" },
+            { label: "เช็คอิน", value: "   " },
+            { label: "เช็คเอาต์", value: "   " },
           ],
         }}
         listing={listing}
@@ -64,5 +64,6 @@ describe("PolicySection", () => {
 
     expect(markup).toContain("14:00");
     expect(markup).toContain("12:00");
+    expect(markup).toContain("ปรับตามวันพิเศษ");
   });
 });

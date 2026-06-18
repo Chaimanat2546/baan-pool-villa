@@ -135,7 +135,7 @@ export function VillaDetailPage({
               currentState.villaId === id
                 ? {
                     ...currentState,
-                    error: "à¹‚à¸«à¸¥à¸”à¸£à¸¹à¸›à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ à¸¥à¸­à¸‡à¹ƒà¸«à¸¡à¹ˆà¹„à¸”à¹‰",
+                    error: "โหลดรูปไม่สำเร็จ ลองใหม่ได้",
                     status: "error",
                   }
                 : currentState,
