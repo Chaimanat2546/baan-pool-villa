@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Download, ImageOff, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState, type TouchEvent } from "react";
+import { useEffect, useRef, useState, type RefObject, type TouchEvent } from "react";
 import type { VillaListing } from "@/lib/villas/types";
 import { buildGalleryDisplaySrc, buildGalleryDownloadHref } from "./gallery-urls";
 import { getGalleryItemDescription, getVillaTitle } from "./helpers";
@@ -131,32 +131,16 @@ function getGalleryNavigation(
   };
 }
 
-export function GalleryLightbox({
-  activeItem,
-  categories,
-  listing,
-  onClose,
-  onImageError,
-  onSelect,
-}: {
-  activeItem: GalleryItem | null;
-  categories: GalleryCategory[];
-  listing: VillaListing;
-  onClose: () => void;
-  onImageError: (url: string) => void;
-  onSelect: (item: GalleryItem) => void;
-}) {
-
-  const [loadedImageKey, setLoadedImageKey] = useState<string | null>(null);
-  const thumbnailStripRef = useRef<HTMLDivElement>(null);
-  const touchStartXRef = useRef<number | null>(null);
-
-  useLockedBodyScroll(Boolean(activeItem));
-
+function useActiveThumbnailScroll(
+  thumbnailStripRef: RefObject<HTMLDivElement | null>,
+  activeItem: GalleryItem | null,
+) {
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
       const thumbnailStrip = thumbnailStripRef.current;
-      const activeThumbnail = thumbnailStrip?.querySelector("[data-active-thumbnail='true']");
+      const activeThumbnail = thumbnailStrip?.querySelector(
+        "[data-active-thumbnail='true']",
+      );
 
       if (!thumbnailStrip || !(activeThumbnail instanceof HTMLElement)) {
         return;
@@ -182,15 +166,43 @@ export function GalleryLightbox({
 
       thumbnailStrip.scrollTo({
         behavior: "auto",
-        left: shouldScrollVertically ? thumbnailStrip.scrollLeft : Math.max(0, targetLeft),
-        top: shouldScrollVertically ? Math.max(0, targetTop) : thumbnailStrip.scrollTop,
+        left: shouldScrollVertically
+          ? thumbnailStrip.scrollLeft
+          : Math.max(0, targetLeft),
+        top: shouldScrollVertically
+          ? Math.max(0, targetTop)
+          : thumbnailStrip.scrollTop,
       });
     });
 
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [activeItem]);
+  }, [activeItem, thumbnailStripRef]);
+}
+
+export function GalleryLightbox({
+  activeItem,
+  categories,
+  listing,
+  onClose,
+  onImageError,
+  onSelect,
+}: {
+  activeItem: GalleryItem | null;
+  categories: GalleryCategory[];
+  listing: VillaListing;
+  onClose: () => void;
+  onImageError: (url: string) => void;
+  onSelect: (item: GalleryItem) => void;
+}) {
+
+  const [loadedImageKey, setLoadedImageKey] = useState<string | null>(null);
+  const thumbnailStripRef = useRef<HTMLDivElement>(null);
+  const touchStartXRef = useRef<number | null>(null);
+
+  useLockedBodyScroll(Boolean(activeItem));
+  useActiveThumbnailScroll(thumbnailStripRef, activeItem);
 
   useEffect(() => {
     if (!activeItem) {
