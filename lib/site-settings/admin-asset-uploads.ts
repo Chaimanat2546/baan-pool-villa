@@ -17,6 +17,11 @@ export interface RecordedAsset extends UploadedAsset {
   uploadId: string;
 }
 
+interface UploadFile {
+  assetType: SiteAssetType;
+  file: File;
+}
+
 interface SiteAssetUploadRow {
   id: unknown;
   asset_type: unknown;
@@ -95,6 +100,17 @@ export async function deleteRecordedAssets(
   return warnings;
 }
 
+export async function cleanupFailedSiteAssetSave(
+  supabase: HomeConfigSupabaseClient,
+  recordedAssets: RecordedAsset[],
+  uploadedAssets: UploadedAsset[],
+): Promise<string[]> {
+  return [
+    ...(await deleteRecordedAssets(supabase, recordedAssets)),
+    ...(await removeUploadedAssets(supabase, uploadedAssets)),
+  ];
+}
+
 export async function uploadAsset(
   supabase: HomeConfigSupabaseClient,
   assetType: SiteAssetType,
@@ -131,6 +147,41 @@ export async function uploadAsset(
     },
     error: null,
   };
+}
+
+export async function uploadSiteSettingsAssets(
+  supabase: HomeConfigSupabaseClient,
+  uploadFiles: UploadFile[],
+): Promise<
+  | {
+      ok: true;
+      uploadedAssets: UploadedAsset[];
+    }
+  | {
+      assetType: SiteAssetType;
+      cleanupWarnings: string[];
+      error: SupabaseLikeError | null;
+      ok: false;
+    }
+> {
+  const uploadedAssets: UploadedAsset[] = [];
+
+  for (const upload of uploadFiles) {
+    const result = await uploadAsset(supabase, upload.assetType, upload.file);
+
+    if (result.error || !result.asset) {
+      return {
+        assetType: upload.assetType,
+        cleanupWarnings: await removeUploadedAssets(supabase, uploadedAssets),
+        error: result.error,
+        ok: false,
+      };
+    }
+
+    uploadedAssets.push(result.asset);
+  }
+
+  return { ok: true, uploadedAssets };
 }
 
 function mapUploadRow(row: SiteAssetUploadRow): SiteAssetUploadRecord | null {

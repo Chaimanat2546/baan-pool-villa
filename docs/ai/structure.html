@@ -366,12 +366,12 @@
               <tr>
                 <td><code>app/(admin)/api/admin/login/turnstile/route.ts</code></td>
                 <td><code>/api/admin/login/turnstile</code></td>
-                <td>Verify the admin login Turnstile token before the browser Supabase password login flow proceeds. Production fails closed when Turnstile keys are missing; development bypasses Turnstile verification with a server warning so local admin login remains usable. The login widget uses the <code>admin_login</code> action with automatic theme and flexible sizing.</td>
+                <td>Delegates admin login Turnstile verification to <code>lib/admin/turnstile.ts</code>, which owns origin guarding, JSON body token parsing, no-store response shaping, Cloudflare Siteverify calls, production fail-closed behavior, and the development bypass warning. The login widget uses the <code>admin_login</code> action with automatic theme and flexible sizing.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/home-sections/route.ts</code></td>
                 <td><code>/api/admin/home-sections</code></td>
-                <td>Admin auth, JSON parsing, validation, Supabase persistence, and home cache revalidation. Admin row mapping, request payload parsing, and RPC payload shaping live in <code>lib/home-sections/admin-route.ts</code>.</td>
+                <td>Admin auth and delegation for home section listing and snapshot saves. Admin row mapping, request payload parsing, validation orchestration, RPC payload shaping, Supabase persistence response handling, and home cache revalidation live in <code>lib/home-sections/admin-route.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/home-sections/preview/route.ts</code></td>
@@ -381,37 +381,37 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
-                <td>Admin auth through the shared bearer-token and mutation-origin guard, parse admin multipart settings fields through <code>lib/site-settings/admin-form-fields.ts</code>, load admin-visible settings rows through <code>lib/site-settings/admin-route.ts</code>, handle asset upload/history cleanup through <code>lib/site-settings/admin-asset-uploads.ts</code>, validate site settings (excluding TikTok fields), persist settings, and revalidate public settings cache. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
+                <td>Admin auth through the shared bearer-token and mutation-origin guard, load admin-visible settings rows through <code>lib/site-settings/admin-route.ts</code>, handle asset upload/history cleanup through <code>lib/site-settings/admin-asset-uploads.ts</code>, validate site settings (excluding TikTok fields), persist settings, and revalidate public settings cache. Admin multipart field parsing, upload-file extraction and metadata validation, draft normalization, and save-payload shaping live in <code>lib/site-settings/admin-route.ts</code>. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
                 <td><code>/api/admin/tiktok</code></td>
-                <td>Admin auth, multipart parsing, TikTok URL validation, site-settings column persistence, and public settings cache revalidation. TikTok route form parsing, schema fallback loading, and update/insert payload shaping live in <code>lib/site-settings/admin-tiktok-route.ts</code>.</td>
+                <td>Admin auth and delegation for TikTok settings reads and saves. Multipart parsing, TikTok URL validation, schema fallback loading, site-settings update/insert persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-tiktok-route.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/guides/route.ts</code></td>
                 <td><code>/api/admin/guides</code></td>
-                <td>Admin auth, guide draft validation, unique slug orchestration, guide post persistence, and guide cache revalidation. Admin JSON parsing, delete payload parsing, select projection, slug-row loading, and save-row shaping live in <code>lib/guides/admin-route.ts</code>.</td>
+                <td>Admin auth and delegation for guide listing, saving, deletion, and guide cache revalidation. Admin JSON parsing, delete payload parsing, select projection, slug-row loading, save-row shaping, unique slug orchestration, persistence response handling, and cache revalidation live in <code>lib/guides/admin-route.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/guides/assets/route.ts</code></td>
                 <td><code>/api/admin/guides/assets</code></td>
-                <td>Admin-authenticated guide cover/inline image uploads to Supabase Storage with upload history and cleanup on failure. Admin form parsing, role validation, storage path generation, and upload-history row shaping live in <code>lib/guides/admin-assets-route.ts</code>.</td>
+                <td>Admin auth and delegation for guide cover/inline image uploads. Multipart parsing, role validation, storage path generation, Supabase Storage upload, upload-history row shaping, cleanup on failure, and response shaping live in <code>lib/guides/admin-assets-route.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/legal-pages/route.ts</code></td>
                 <td><code>/api/admin/legal-pages</code></td>
-                <td>Admin auth, legal page validation, Supabase persistence, and legal page cache revalidation. Admin JSON parsing, row validation, fixed-page fallback list mapping, select projection, and save-row shaping live in <code>lib/legal-pages/admin-route.ts</code>.</td>
+                <td>Admin auth and delegation for legal page listing and saves. Admin JSON parsing, row validation, fixed-page fallback list mapping, select projection, save-row shaping, Supabase persistence response handling, and legal page cache revalidation live in <code>lib/legal-pages/admin-route.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/detail-layout/route.ts</code></td>
                 <td><code>/api/admin/detail-layout</code></td>
-                <td>Admin auth, detail layout validation, site-settings persistence, and detail layout cache revalidation. Select projection, JSON payload reading, detail layout extraction, and default site-settings insert payload shaping live in <code>lib/detail-layout/admin-route.ts</code>.</td>
+                <td>Admin auth and delegation for detail layout reads and saves. Select projection, JSON payload reading, detail layout extraction, validation orchestration, site-settings update/insert persistence, response shaping, and detail layout cache revalidation live in <code>lib/detail-layout/admin-route.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/external-data/refresh/route.ts</code></td>
                 <td><code>/api/admin/external-data/refresh</code></td>
-                <td>Authenticated tag-only cache refresh for external villa listings, detail data, and shared villa image tags. The route accepts the default <code>tags-only</code> scope and rejects path-regeneration scopes such as <code>full-public</code> because rendered page cache is disabled. Confirmation, scope, cooldown, and response helpers live in <code>lib/villas/admin-refresh-route.ts</code>.</td>
+                <td>Admin auth and delegation for tag-only cache refresh of external villa listings, detail data, and shared villa image tags. Confirmation, scope validation, cooldown, cache revalidation, and response shaping live in <code>lib/villas/admin-refresh-route.ts</code>; the helper accepts the default <code>tags-only</code> scope and rejects path-regeneration scopes such as <code>full-public</code> because rendered page cache is disabled.</td>
               </tr>
             </tbody>
           </table>

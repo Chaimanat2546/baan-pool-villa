@@ -2,9 +2,12 @@ import type {
   HomeConfigSupabaseClient,
   SupabaseLikeError,
 } from "@/lib/admin/route-helpers";
+import { adminSupabaseErrorResponse } from "@/lib/admin/route-helpers";
+import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
 import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "./defaults";
 import type { SiteSettingsRow } from "./types";
 import {
+  normalizeSiteSettingsRow,
   normalizeTikTokSettingsDraft,
   validateTikTokSettingsDraft,
 } from "./validation";
@@ -211,4 +214,71 @@ export function toTikTokInsertPayload(
     site_name: DEFAULT_SITE_SETTINGS.siteName,
     ...payload,
   };
+}
+
+export async function buildAdminTikTokSettingsResponse(
+  supabase: HomeConfigSupabaseClient,
+) {
+  const { data, error, source } = await loadAdminTikTokSettings(supabase);
+
+  if (error) {
+    return adminSupabaseErrorResponse(error, "Unable to load TikTok settings.");
+  }
+
+  return Response.json({
+    settings: normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null).tiktok,
+    source,
+  });
+}
+
+export async function saveAdminTikTokSettings(
+  request: Request,
+  supabase: HomeConfigSupabaseClient,
+) {
+  let formData: FormData;
+
+  try {
+    formData = await request.formData();
+  } catch {
+    return Response.json(
+      { errors: ["Request body must be multipart/form-data."] },
+      { status: 400 },
+    );
+  }
+
+  const { draft, errors } = parseTikTokPayload(formData);
+
+  if (errors.length > 0) {
+    return Response.json({ errors }, { status: 400 });
+  }
+
+  const payload = toTikTokUpdatePayload(draft);
+
+  let saveResult = await supabase
+    .from("site_settings")
+    .update(payload)
+    .eq("id", SITE_SETTINGS_ID)
+    .select(TIKTOK_SELECT)
+    .single();
+
+  if (isNoRowsError(saveResult.error)) {
+    saveResult = await supabase
+      .from("site_settings")
+      .insert(toTikTokInsertPayload(payload))
+      .select(TIKTOK_SELECT)
+      .single();
+  }
+
+  const { data, error } = saveResult;
+
+  if (error) {
+    return adminSupabaseErrorResponse(error, "Unable to save TikTok settings.");
+  }
+
+  await revalidateSiteSettingsCache();
+
+  return Response.json({
+    settings: normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null).tiktok,
+    source: data ? "config" : "none",
+  });
 }
