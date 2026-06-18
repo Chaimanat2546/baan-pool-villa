@@ -118,7 +118,7 @@ export async function uploadAdminGuideAsset(
   const file = getImageUpload(formData);
 
   if (!file) {
-    return Response.json({ errors: ["à¸•à¹‰à¸­à¸‡à¹€à¸¥à¸·à¸­à¸à¸£à¸¹à¸›à¸šà¸—à¸„à¸§à¸²à¸¡"] }, { status: 400 });
+    return Response.json({ errors: ["ต้องเลือกรูปบทความ"] }, { status: 400 });
   }
 
   const errors = validateGuideUploadMetadata(file.type, file.size);

@@ -11,16 +11,34 @@ interface YouTubeEmbedProps {
   videoId?: string;
 }
 
+const YOUTUBE_EMBED_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "youtube-nocookie.com",
+  "www.youtube-nocookie.com",
+]);
+
 function getBaseEmbedUrl({ embedUrl, videoId }: Pick<YouTubeEmbedProps, "embedUrl" | "videoId">) {
   if (embedUrl) {
-    return embedUrl;
+    try {
+      const url = new URL(embedUrl);
+      if (url.protocol === "https:" && YOUTUBE_EMBED_HOSTS.has(url.hostname)) {
+        return url.href;
+      }
+    } catch {
+      // Fall back to the stored video id below.
+    }
+  }
+
+  if (!videoId) {
+    return null;
   }
 
   return `https://www.youtube-nocookie.com/embed/${videoId}`;
 }
 
-function getPlayerUrl(props: Pick<YouTubeEmbedProps, "embedUrl" | "videoId">) {
-  const url = new URL(getBaseEmbedUrl(props));
+function getPlayerUrl(baseEmbedUrl: string) {
+  const url = new URL(baseEmbedUrl);
   url.searchParams.set("autoplay", "1");
   url.searchParams.set("controls", "0");
   url.searchParams.set("disablekb", "1");
@@ -57,11 +75,13 @@ function getThumbnailUrl(videoId: string) {
 export function YouTubeEmbed({ className, embedUrl, title, videoId }: YouTubeEmbedProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
-  if (!embedUrl && !videoId) {
+  const baseEmbedUrl = getBaseEmbedUrl({ embedUrl, videoId });
+
+  if (!baseEmbedUrl) {
     return null;
   }
 
-  const posterVideoId = getVideoId({ embedUrl, videoId });
+  const posterVideoId = getVideoId({ embedUrl: baseEmbedUrl, videoId });
   const baseClassName =
     "overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_14px_30px_rgba(6,63,53,0.08)]";
 
@@ -75,7 +95,7 @@ export function YouTubeEmbed({ className, embedUrl, title, videoId }: YouTubeEmb
               className="absolute inset-0 h-full w-full"
               loading="lazy"
               referrerPolicy="strict-origin-when-cross-origin"
-              src={getPlayerUrl({ embedUrl, videoId })}
+              src={getPlayerUrl(baseEmbedUrl)}
               title={title}
             />
             <div
