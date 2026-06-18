@@ -29,6 +29,17 @@ interface BookingCalendarPanelProps {
   primaryPhoneContact?: { href: string; phone: string };
 }
 
+function isSameCalendarMonth(date: Date, month: Date) {
+  return (
+    date.getFullYear() === month.getFullYear() &&
+    date.getMonth() === month.getMonth()
+  );
+}
+
+function isSameCalendarDay(date: Date, day: Date) {
+  return isSameCalendarMonth(date, day) && date.getDate() === day.getDate();
+}
+
 export function BookingCalendarPanel({
   contactLinks,
   fallbackPrice,
@@ -61,8 +72,7 @@ export function BookingCalendarPanel({
   const isPastCalendarDate = (date: Date) =>
     startOfCalendarDate(date).getTime() < todayStart.getTime();
   const isOutsideVisibleMonth = (date: Date) =>
-    date.getFullYear() !== visibleMonth.getFullYear() ||
-    date.getMonth() !== visibleMonth.getMonth();
+    !isSameCalendarMonth(date, visibleMonth);
   const getCalendarDay = (date: Date): BookingCalendarDay => {
     if (
       isOutsideVisibleMonth(date) ||
@@ -153,13 +163,11 @@ export function BookingCalendarPanel({
           ),
           DayButton: ({ className, day, ...props }) => {
             const isPast = isPastCalendarDate(day.date);
-            const isToday =
-              day.date.getFullYear() === today.getFullYear() &&
-              day.date.getMonth() === today.getMonth() &&
-              day.date.getDate() === today.getDate();
-            const isOutsideVisibleMonth =
-              day.date.getFullYear() !== visibleMonth.getFullYear() ||
-              day.date.getMonth() !== visibleMonth.getMonth();
+            const isToday = isSameCalendarDay(day.date, today);
+            const isOutsideVisibleMonth = !isSameCalendarMonth(
+              day.date,
+              visibleMonth,
+            );
             const calendarDay = getCalendarDay(day.date);
             const isFirstAvailable =
               formatCalendarDateKey(day.date) === firstAvailableCalendarDateKey;
