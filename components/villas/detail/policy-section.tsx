@@ -52,6 +52,8 @@ export function PolicySection({
   const deposit = findFact(content.facts, "ค่าประกัน");
   const checkInTime = checkIn?.trim() || "14:00";
   const checkOutTime = checkOut?.trim() || "12:00";
+  const hasCheckIn = Boolean(checkIn?.trim());
+  const hasCheckOut = Boolean(checkOut?.trim());
   const amenities = content.amenities.length > 0
     ? content.amenities
     : listing.amenities;
@@ -71,7 +73,7 @@ export function PolicySection({
           <p>
             เช็คอิน {checkInTime} และเช็คเอาท์ {checkOutTime}
           </p>
-          {(!checkIn || !checkOut) ? (
+          {(!hasCheckIn || !hasCheckOut) ? (
             <p className="rounded-xl bg-[var(--site-primary-soft)] p-3">
               เวลาเช็คอิน/เช็คเอาต์อาจมีการปรับตามวันพิเศษ
               กรุณาสอบถามทีมงานเพื่อยืนยันเวลาที่แน่นอน

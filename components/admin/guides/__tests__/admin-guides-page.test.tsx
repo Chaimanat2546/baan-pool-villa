@@ -9,6 +9,7 @@ import {
   click,
   flushEffects,
   makeFetchMock,
+  makeJsonResponse,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 import type { GuidePost } from "@/lib/guides/types";
@@ -436,7 +437,7 @@ describe("AdminGuidesPage", () => {
 
     const page = await mountAdminPage(<AdminGuidesPage />);
     const coverInput = page.container.querySelector(
-      "input[type='file']",
+      "input[data-guide-cover-input]",
     ) as HTMLInputElement | null;
 
     expect(coverInput).not.toBeNull();
@@ -476,6 +477,112 @@ describe("AdminGuidesPage", () => {
     await page.unmount();
   });
 
+  it("reuses an uploaded cover image when retrying after a failed save", async () => {
+    const existingCoverImage = {
+      alt: "Original cover",
+      path: "guides/original.jpg",
+      url: "https://example.supabase.co/storage/v1/object/public/guide-assets/guides/original.jpg",
+    };
+    const uploadedCoverImage = {
+      alt: "Custom cover alt",
+      path: "guides/new-cover.jpg",
+      url: "https://example.supabase.co/storage/v1/object/public/guide-assets/guides/new-cover.jpg",
+    };
+    const guideWithCover = {
+      ...guidePost,
+      coverImage: existingCoverImage,
+    };
+    const savedGuide = {
+      ...guidePost,
+      coverImage: uploadedCoverImage,
+    };
+    let assetPostCount = 0;
+    let guidePutCount = 0;
+    let uploadedAlt: FormDataEntryValue | null = null;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const requestUrl = input instanceof Request ? input.url : String(input);
+      const requestMethod = input instanceof Request
+        ? input.method
+        : init?.method ?? "GET";
+
+      if (requestUrl === "/api/admin/guides" && requestMethod === "GET") {
+        return Promise.resolve(makeJsonResponse({ body: { guides: [guideWithCover] } }));
+      }
+
+      if (requestUrl === "/api/admin/guides/assets" && requestMethod === "POST") {
+        assetPostCount += 1;
+        uploadedAlt = init?.body instanceof FormData ? init.body.get("alt") : null;
+        return Promise.resolve(makeJsonResponse({ body: { image: uploadedCoverImage } }));
+      }
+
+      if (requestUrl === "/api/admin/guides" && requestMethod === "PUT") {
+        guidePutCount += 1;
+
+        if (guidePutCount === 1) {
+          return Promise.resolve(
+            makeJsonResponse({
+              body: { errors: ["Temporary save failure"] },
+              status: 500,
+            }),
+          );
+        }
+
+        return Promise.resolve(makeJsonResponse({ body: { guide: savedGuide } }));
+      }
+
+      return Promise.resolve(
+        makeJsonResponse({
+          body: { error: `Unhandled ${requestMethod} ${requestUrl}` },
+          status: 500,
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage />);
+    const altInput = Array.from(
+      page.container.querySelectorAll<HTMLInputElement>("input"),
+    ).find((input) => input.value === "Original cover");
+    const coverInput = page.container.querySelector(
+      "input[data-guide-cover-input]",
+    ) as HTMLInputElement | null;
+
+    expect(altInput).toBeDefined();
+    expect(coverInput).not.toBeNull();
+
+    await changeInput(altInput as HTMLInputElement, "Custom cover alt");
+    Object.defineProperty(coverInput, "files", {
+      configurable: true,
+      value: [new File(["cover"], "cover.webp", { type: "image/webp" })],
+    });
+
+    act(() => {
+      coverInput?.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await flushEffects();
+
+    const saveButton = page.container.querySelector(
+      "[data-guide-save='true']",
+    ) as HTMLButtonElement | null;
+
+    expect(saveButton).not.toBeNull();
+
+    await click(saveButton as HTMLButtonElement);
+    await flushEffects();
+
+    expect(assetPostCount).toBe(1);
+    expect(guidePutCount).toBe(1);
+    expect(uploadedAlt).toBe("Custom cover alt");
+
+    await click(saveButton as HTMLButtonElement);
+    await flushEffects();
+
+    expect(assetPostCount).toBe(1);
+    expect(guidePutCount).toBe(2);
+
+    await page.unmount();
+  });
+
   it("clears a pending cover image when admins select another guide", async () => {
     const secondGuide = {
       ...guidePost,
@@ -493,7 +600,7 @@ describe("AdminGuidesPage", () => {
 
     const page = await mountAdminPage(<AdminGuidesPage />);
     const coverInput = page.container.querySelector(
-      "input[type='file']",
+      "input[data-guide-cover-input]",
     ) as HTMLInputElement | null;
 
     expect(coverInput).not.toBeNull();
@@ -543,7 +650,7 @@ describe("AdminGuidesPage", () => {
 
     const page = await mountAdminPage(<AdminGuidesPage />);
     const coverInput = page.container.querySelector(
-      "input[type='file']",
+      "input[data-guide-cover-input]",
     ) as HTMLInputElement | null;
 
     expect(coverInput).not.toBeNull();

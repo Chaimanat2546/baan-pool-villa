@@ -47,6 +47,11 @@ describe("search page helpers", () => {
         new Response("oops", { headers: { "content-type": "text/plain" } }),
       ),
     ).rejects.toThrow("Invalid house list response content type");
+    await expect(
+      readSearchCatalogPayload(
+        new Response("{ nope", { headers: { "content-type": "application/json" } }),
+      ),
+    ).rejects.toThrow("Invalid house list response JSON");
 
     const labels = getSearchConditionLabels(filters, [
       { label: "จอมเทียน", value: "jomtien" },
