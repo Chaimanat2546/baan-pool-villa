@@ -184,6 +184,39 @@ async function renderBookingSidebar() {
   };
 }
 
+function getCalendarNavButton(
+  container: HTMLElement,
+  purpose: "next" | "previous" | "today",
+) {
+  const buttons = Array.from(
+    container.querySelectorAll<HTMLButtonElement>("[data-calendar-nav] button"),
+  );
+
+  if (purpose === "today") {
+    return buttons.find((button) => button.textContent?.trim() === "วันนี้") ?? null;
+  }
+
+  return (
+    buttons.find((button) => {
+      const label = button.getAttribute("aria-label")?.toLowerCase() ?? "";
+
+      return purpose === "next"
+        ? label.includes("next") || label.includes("ถัด")
+        : label.includes("previous") || label.includes("ก่อน");
+    }) ?? null
+  );
+}
+
+function clickCalendarNavButton(
+  container: HTMLElement,
+  purpose: "next" | "previous" | "today",
+) {
+  const button = getCalendarNavButton(container, purpose);
+
+  expect(button).not.toBeNull();
+  button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+}
+
 describe("BookingSidebar", () => {
   beforeEach(() => {
     mockBookingCalendarFetch();
@@ -234,21 +267,20 @@ describe("BookingSidebar", () => {
 
     const calendarGrid = page.container.querySelector(".rdp-month_grid");
     const calendarNav = page.container.querySelector("[data-calendar-nav]");
-    const navButtons = calendarNav?.querySelectorAll("button");
+    let todayButton = getCalendarNavButton(page.container, "today");
+    const previousButton = getCalendarNavButton(page.container, "previous");
+    const nextButton = getCalendarNavButton(page.container, "next");
 
     await act(async () => {
-      navButtons?.[2]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      clickCalendarNavButton(page.container, "next");
     });
     expect(page.container.textContent).toContain("กรกฎาคม");
 
     expect(page.container.querySelector(".rdp-months_dropdown")).toBeNull();
     expect(page.container.querySelector(".rdp-years_dropdown")).toBeNull();
 
-    const todayButton = Array.from(
-      page.container.querySelectorAll<HTMLButtonElement>(
-        "[data-calendar-nav] button",
-      ),
-    ).find((button) => button.textContent?.trim() === "วันนี้");
+    todayButton = getCalendarNavButton(page.container, "today");
+
 
     expect(todayButton).not.toBeNull();
     expect(page.container.querySelector(".rdp-root")?.contains(todayButton ?? null)).toBe(
@@ -257,12 +289,12 @@ describe("BookingSidebar", () => {
     expect(calendarGrid?.compareDocumentPosition(calendarNav ?? null)).toBe(
       Node.DOCUMENT_POSITION_PRECEDING,
     );
-    expect(navButtons?.[0]?.className).toContain("rounded-2xl");
-    expect(navButtons?.[1]?.className).toContain("size-10");
-    expect(navButtons?.[2]?.className).toContain("size-10");
+    expect(todayButton?.className).toContain("rounded-2xl");
+    expect(previousButton?.className).toContain("size-10");
+    expect(nextButton?.className).toContain("size-10");
 
     await act(async () => {
-      todayButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      clickCalendarNavButton(page.container, "today");
     });
 
     expect(page.container.textContent).toContain("มิถุนายน");
@@ -280,26 +312,17 @@ describe("BookingSidebar", () => {
     expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
 
     await act(async () => {
-      page.container
-        .querySelector("[data-calendar-nav]")
-        ?.querySelectorAll("button")[2]
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      clickCalendarNavButton(page.container, "next");
       await Promise.resolve();
     });
     expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06", "2026-07"]);
 
     await act(async () => {
-      page.container
-        .querySelector("[data-calendar-nav]")
-        ?.querySelectorAll("button")[0]
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      clickCalendarNavButton(page.container, "today");
       await Promise.resolve();
     });
     await act(async () => {
-      page.container
-        .querySelector("[data-calendar-nav]")
-        ?.querySelectorAll("button")[2]
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      clickCalendarNavButton(page.container, "next");
       await Promise.resolve();
     });
 
@@ -423,10 +446,7 @@ describe("BookingSidebar", () => {
     expect(document.body.style.overflow).toBe("");
 
     await act(async () => {
-      page.container
-        .querySelector("[data-calendar-nav]")
-        ?.querySelectorAll("button")[2]
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      clickCalendarNavButton(page.container, "next");
     });
 
     const ordinaryFutureDate = Array.from(
@@ -545,12 +565,12 @@ describe("BookingSidebar", () => {
       bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
     ).not.toBeNull();
     expect(holidayDate?.dataset.calendarDayKind).toBe("holiday");
-    expect(holidayDate?.className).toContain("bg-yellow-500");
+    expect(holidayDate?.className).toContain("bg-[var(--site-accent)]");
     expect(hotproDate?.dataset.calendarDayKind).toBe("hotpro");
-    expect(hotproDate?.className).not.toContain("bg-yellow-500");
+    expect(hotproDate?.className).not.toContain("bg-[var(--site-accent)]");
     expect(hotproDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
     expect(hotHolidayDate?.dataset.calendarDayKind).toBe("hot_holiday");
-    expect(hotHolidayDate?.className).toContain("bg-yellow-500");
+    expect(hotHolidayDate?.className).toContain("bg-[var(--site-accent)]");
     expect(hotHolidayDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
 
     expect(page.container.querySelector("[data-calendar-legend]")?.textContent).toContain(

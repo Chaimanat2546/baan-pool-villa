@@ -38,13 +38,13 @@ describe("booking calendar UI helpers", () => {
     });
     expect(getCalendarToneClass(fallbackDay)).toBeNull();
     expect(getCalendarToneClass({ ...fallbackDay, tone: "booked" })).toContain(
-      "bg-red-800",
+      "bg-[var(--site-danger,#991b1b)]",
     );
     expect(getCalendarToneClass({ ...fallbackDay, tone: "holiday" })).toContain(
-      "bg-yellow-500",
+      "bg-[var(--site-accent)]",
     );
     expect(getCalendarToneClass({ ...fallbackDay, tone: "waiting" })).toContain(
-      "bg-emerald-700",
+      "bg-[var(--site-primary)]",
     );
   });
 });

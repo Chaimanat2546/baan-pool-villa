@@ -3,6 +3,17 @@ import Image from "next/image";
 import { buildGalleryDisplaySrc } from "./gallery-urls";
 import type { GalleryItem } from "./types";
 
+interface GalleryImageProps {
+  alt: string;
+  className?: string;
+  fetchPriority?: "auto" | "high" | "low";
+  item: GalleryItem;
+  listingId: string;
+  loading?: "eager" | "lazy";
+  onClick?: (item: GalleryItem) => void;
+  onError: (url: string) => void;
+}
+
 export function GalleryImage({
   alt,
   className = "",
@@ -12,16 +23,7 @@ export function GalleryImage({
   onError,
   fetchPriority,
   loading = "lazy",
-}: {
-  alt: string;
-  className?: string;
-  item: GalleryItem;
-  listingId: string;
-  onClick?: (item: GalleryItem) => void;
-  onError: (url: string) => void;
-  fetchPriority?: "auto" | "high" | "low";
-  loading?: "eager" | "lazy";
-}) {
+}: GalleryImageProps) {
   const displaySrc = item.url ? buildGalleryDisplaySrc(listingId, item) : null;
 
   return (

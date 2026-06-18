@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildSiteAssetStoragePath } from "../admin-asset-uploads";
+import { buildSiteAssetStoragePath, uploadAsset } from "../admin-asset-uploads";
 
 describe("admin site asset uploads", () => {
   afterEach(() => {
@@ -24,5 +24,21 @@ describe("admin site asset uploads", () => {
     expect(() => buildSiteAssetStoragePath("logo", "image/gif")).toThrow(
       "Unsupported upload MIME type",
     );
+  });
+
+  it("returns structured errors for unsupported upload MIME types", async () => {
+    const storage = {
+      from: vi.fn(),
+    };
+
+    const result = await uploadAsset(
+      { storage } as never,
+      "logo",
+      new File(["gif"], "logo.gif", { type: "image/gif" }),
+    );
+
+    expect(result.asset).toBeNull();
+    expect(result.error?.message).toBe("Unsupported upload MIME type");
+    expect(storage.from).not.toHaveBeenCalled();
   });
 });

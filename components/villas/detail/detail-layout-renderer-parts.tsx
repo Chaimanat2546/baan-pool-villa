@@ -20,12 +20,19 @@ export interface RenderedDetailLayoutBlock {
   type: DetailLayoutBlockType;
 }
 
-export type RenderedDetailLayoutWideRow = {
+export interface RenderedDetailLayoutWideRow {
   blocks: RenderedDetailLayoutBlock[];
   columns: DetailLayoutWideRow["columns"];
   id: string;
   ratio?: DetailLayoutWideRatio;
-};
+}
+
+interface RenderSplitSectionProps {
+  id: string;
+  narrowBlocks: RenderedDetailLayoutBlock[];
+  ratio: DetailLayoutSplitRatio;
+  wideRows: RenderedDetailLayoutBlock[][];
+}
 
 export function renderBlockContainer(block: RenderedDetailLayoutBlock) {
   const visibilityClass =
@@ -95,12 +102,7 @@ export function renderSplitSection({
   narrowBlocks,
   ratio,
   wideRows,
-}: {
-  id: string;
-  narrowBlocks: RenderedDetailLayoutBlock[];
-  ratio: DetailLayoutSplitRatio;
-  wideRows: RenderedDetailLayoutBlock[][];
-}) {
+}: RenderSplitSectionProps) {
   const wideArea = renderWideArea(wideRows);
   const narrowArea = renderNarrowArea(narrowBlocks);
 

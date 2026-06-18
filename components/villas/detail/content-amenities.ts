@@ -30,5 +30,9 @@ const AMENITY_ICONS: Record<AmenityKey, typeof Wifi> = {
 };
 
 export function getAmenityIcon(amenityKey: Amenity["key"] | string) {
-  return AMENITY_ICONS[amenityKey as AmenityKey] ?? Star;
+  if (!Object.prototype.hasOwnProperty.call(AMENITY_ICONS, amenityKey)) {
+    return Star;
+  }
+
+  return AMENITY_ICONS[amenityKey as AmenityKey];
 }

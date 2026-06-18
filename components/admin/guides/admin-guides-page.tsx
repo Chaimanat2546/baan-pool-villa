@@ -21,6 +21,7 @@ import {
 import {
   extractAdminErrors as extractErrors,
   readJsonPayload,
+  shouldRedirectToLogin,
 } from "@/components/admin/admin-api-client";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
@@ -114,6 +115,7 @@ export function AdminGuidesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
 
   const activeGuide = useMemo(
     () =>
@@ -124,7 +126,8 @@ export function AdminGuidesPage() {
   );
   const currentSnapshot = useMemo(() => makeSnapshot(guides), [guides]);
   const hasUnsavedChanges =
-    savedSnapshot !== null && currentSnapshot !== savedSnapshot;
+    savedSnapshot !== null &&
+    (currentSnapshot !== savedSnapshot || pendingCoverFile !== null);
   const activePreviewHref = activeGuide
     ? `/guides/${createSlugFromTitle(activeGuide.title)}`
     : null;
@@ -158,7 +161,7 @@ export function AdminGuidesPage() {
         });
         const payload = await readJsonPayload(response);
 
-        if (response.status === 401) {
+        if (shouldRedirectToLogin(response.status, payload)) {
           redirectToLogin();
           return;
         }
@@ -224,13 +227,18 @@ export function AdminGuidesPage() {
     );
   }
 
+  function selectActiveDraft(draftId: string | null) {
+    setPendingCoverFile(null);
+    setActiveDraftId(draftId);
+  }
+
   function addGuide() {
     setErrors([]);
     setNotice(null);
     setGuides((currentGuides) => {
       const guide = makeNewGuide(currentGuides);
 
-      setActiveDraftId(guide.draftId);
+      selectActiveDraft(guide.draftId);
       return [guide, ...currentGuides];
     });
   }
@@ -268,7 +276,7 @@ export function AdminGuidesPage() {
       });
       const payload = await readJsonPayload(response);
 
-      if (response.status === 401) {
+      if (shouldRedirectToLogin(response.status, payload)) {
         redirectToLogin();
         return null;
       }
@@ -284,22 +292,34 @@ export function AdminGuidesPage() {
     }
   }
 
-  async function handleCoverUpload(file: File) {
-    const image = await uploadGuideImage(file, "cover");
+  async function handleCoverSelect(file: File) {
+    const validationErrors = validateGuideUploadMetadata(file.type, file.size);
 
-    if (!image) {
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      setNotice(null);
       return;
     }
 
-    updateActiveGuide({ coverImage: image });
+    setErrors([]);
+    setNotice(null);
+    setPendingCoverFile(file);
   }
 
   async function handleInlineImageUpload(file: File) {
     return uploadGuideImage(file, "inline");
   }
 
-  async function handleSave() {
+  async function handleSave(coverFile = pendingCoverFile) {
     if (!activeGuide) {
+      return;
+    }
+
+    const coverImage = coverFile
+      ? await uploadGuideImage(coverFile, "cover")
+      : activeGuide.coverImage;
+
+    if (coverFile && !coverImage) {
       return;
     }
 
@@ -307,7 +327,7 @@ export function AdminGuidesPage() {
       title: activeGuide.title,
       slug: createSlugFromTitle(activeGuide.title),
       excerpt: activeGuide.excerpt,
-      coverImage: activeGuide.coverImage,
+      coverImage,
       contentBlocks: normalizeBlocks(activeGuide.contentBlocks),
       tags: activeGuide.tags,
       recommendedHouseIds: activeGuide.recommendedHouseIds,
@@ -349,7 +369,7 @@ export function AdminGuidesPage() {
       });
       const payload = await readJsonPayload(response);
 
-      if (response.status === 401) {
+      if (shouldRedirectToLogin(response.status, payload)) {
         redirectToLogin();
         return;
       }
@@ -372,6 +392,7 @@ export function AdminGuidesPage() {
         return nextGuides;
       });
       setActiveDraftId(savedGuide.id ?? activeGuide.draftId);
+      setPendingCoverFile(null);
       setNotice("บันทึกบทความแล้ว");
     } catch (caughtError) {
       setErrors([getAdminErrorMessage(caughtError, "บันทึกบทความไม่ได้")]);
@@ -419,7 +440,7 @@ export function AdminGuidesPage() {
       });
       const payload = await readJsonPayload(response);
 
-      if (response.status === 401) {
+      if (shouldRedirectToLogin(response.status, payload)) {
         redirectToLogin();
         return;
       }
@@ -507,6 +528,7 @@ export function AdminGuidesPage() {
 
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
+              data-guide-save="true"
               disabled={
                 !activeGuide ||
                 isSaving ||
@@ -550,7 +572,7 @@ export function AdminGuidesPage() {
               activeDraftId={activeGuide?.draftId ?? null}
               getStatusLabel={getStatusLabel}
               guides={guides}
-              onSelect={setActiveDraftId}
+              onSelect={selectActiveDraft}
             />
           </div>
 
@@ -613,10 +635,11 @@ export function AdminGuidesPage() {
                   hasUnsavedChanges={hasUnsavedChanges}
                   isSaving={isSaving}
                   isUploading={isUploading}
-                  onCoverUpload={handleCoverUpload}
+                  onCoverSelect={handleCoverSelect}
                   onDelete={handleDelete}
                   onSave={handleSave}
                   onUpdate={updateActiveGuide}
+                  pendingCoverFile={pendingCoverFile}
                   statusLabel={getStatusLabel(activeGuide.status)}
                 />
               </div>

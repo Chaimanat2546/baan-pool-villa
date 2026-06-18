@@ -18,8 +18,7 @@ describe("admin site settings form fields", () => {
     expect(readStringField(formData, "siteName")).toBe(" Baan Pool Villa ");
     expect(readStringField(formData, "missing")).toBe("");
     expect(readStringArrayField(formData, "seoKeywords")).toEqual([
-      " pool villa ",
-      "",
+      "pool villa",
       "pattaya",
     ]);
     expect(readStringArrayField(formData, "sameAs")).toEqual([

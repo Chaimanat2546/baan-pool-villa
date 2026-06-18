@@ -6,8 +6,8 @@ export function StatusPill({ enabled }: { enabled: boolean }) {
     <span
       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
         enabled
-          ? "border border-emerald-200 bg-emerald-50 text-emerald-800"
-          : "border border-slate-200 bg-slate-50 text-slate-600"
+          ? "border border-[var(--site-primary)]/25 bg-[var(--site-primary-soft)] text-[var(--site-primary)]"
+          : "border border-[var(--site-border)] bg-[var(--site-surface-soft)] text-[var(--site-muted)]"
       }`}
     >
       {enabled ? "เปิด" : "ปิด"}

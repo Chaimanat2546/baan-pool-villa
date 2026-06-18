@@ -10,7 +10,7 @@ import {
   Upload,
 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { GuideStatus } from "@/lib/guides/types";
 import { createSlugFromTitle } from "@/lib/guides/validation";
@@ -27,10 +27,11 @@ interface GuideStatusPanelProps {
   hasUnsavedChanges: boolean;
   isSaving: boolean;
   isUploading: boolean;
-  onCoverUpload: (file: File) => void;
-  onDelete: () => void;
-  onSave: () => void;
+  onCoverSelect: (file: File) => Promise<void>;
+  onDelete: () => Promise<void>;
+  onSave: () => Promise<void>;
   onUpdate: (changes: Partial<AdminGuideDraft>) => void;
+  pendingCoverFile: File | null;
   statusLabel: string;
 }
 
@@ -39,10 +40,11 @@ export function GuideStatusPanel({
   hasUnsavedChanges,
   isSaving,
   isUploading,
-  onCoverUpload,
+  onCoverSelect,
   onDelete,
   onSave,
   onUpdate,
+  pendingCoverFile,
   statusLabel,
 }: GuideStatusPanelProps) {
   const [tagsInputText, setTagsInputText] = useState(() =>
@@ -53,10 +55,29 @@ export function GuideStatusPanel({
   );
   const slugPreview = createSlugFromTitle(guide.title);
   const previewHref = `/guides/${slugPreview}`;
+  const pendingCoverPreviewUrl = useMemo(() => {
+    if (!pendingCoverFile || typeof URL.createObjectURL !== "function") {
+      return null;
+    }
+
+    return URL.createObjectURL(pendingCoverFile);
+  }, [pendingCoverFile]);
   const statusTone =
     guide.status === "published"
       ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
       : "bg-amber-50 text-amber-800 ring-amber-200";
+  const coverPreviewUrl = pendingCoverPreviewUrl ?? guide.coverImage?.url ?? null;
+  const coverPreviewAlt = pendingCoverFile?.name ?? guide.coverImage?.alt ?? "";
+
+  useEffect(() => {
+    if (!pendingCoverPreviewUrl || typeof URL.revokeObjectURL !== "function") {
+      return;
+    }
+
+    return () => {
+      URL.revokeObjectURL(pendingCoverPreviewUrl);
+    };
+  }, [pendingCoverPreviewUrl]);
 
   return (
     <aside className="grid content-start gap-4">
@@ -144,7 +165,9 @@ export function GuideStatusPanel({
             <button
               aria-label="ลบบทความ"
               className="inline-flex size-10 items-center justify-center rounded-md border border-red-200 bg-[var(--site-surface)] text-red-700 transition hover:bg-red-50"
-              onClick={onDelete}
+              onClick={() => {
+                void onDelete();
+              }}
               type="button"
             >
               <Trash2 aria-hidden="true" className="size-4" />
@@ -156,13 +179,13 @@ export function GuideStatusPanel({
       <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
         <p className="text-sm font-bold text-[var(--site-text)]">รูปปก</p>
         <div className="mt-3 overflow-hidden rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)]">
-          {guide.coverImage?.url ? (
+          {coverPreviewUrl ? (
             <Image
-              alt={guide.coverImage.alt}
+              alt={coverPreviewAlt}
               className="aspect-[16/10] w-full object-cover"
               height={600}
               loading="eager"
-              src={guide.coverImage.url}
+              src={coverPreviewUrl}
               unoptimized
               width={960}
             />
@@ -183,7 +206,7 @@ export function GuideStatusPanel({
               const file = event.target.files?.[0];
 
               if (file) {
-                onCoverUpload(file);
+                void onCoverSelect(file);
               }
 
               event.currentTarget.value = "";
@@ -281,8 +304,11 @@ export function GuideStatusPanel({
 
       <button
         className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] shadow-md shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
+        data-guide-save="true"
         disabled={isSaving || isUploading || !hasUnsavedChanges}
-        onClick={onSave}
+        onClick={() => {
+          void onSave();
+        }}
         type="button"
       >
         <Save

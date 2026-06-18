@@ -47,4 +47,22 @@ describe("PolicySection", () => {
     expect(markup).toContain("อนุญาตให้นำสัตว์เลี้ยงเข้าพักได้");
     expect(markup).not.toContain("Mock FE");
   });
+
+  it("falls back when check-in or check-out facts are blank", () => {
+    const markup = renderToStaticMarkup(
+      <PolicySection
+        content={{
+          ...content,
+          facts: [
+            { label: "à¹€à¸Šà¹‡à¸„à¸­à¸´à¸™", value: "   " },
+            { label: "à¹€à¸Šà¹‡à¸„à¹€à¸­à¸²à¸•à¹Œ", value: "" },
+          ],
+        }}
+        listing={listing}
+      />,
+    );
+
+    expect(markup).toContain("14:00");
+    expect(markup).toContain("12:00");
+  });
 });

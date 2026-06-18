@@ -4,6 +4,7 @@ import { limitPublicApiRequest } from "@/lib/api/rate-limit";
 import {
   buildImageDownloadFilename,
   createAttachmentDisposition,
+  fetchAllowedVillaImageDownload,
   isAllowedVillaImageUrl,
   normalizeDownloadImageUrl,
 } from "@/lib/villas/image-download";
@@ -116,10 +117,10 @@ async function downloadVillaImage(
   const timeout = setTimeout(() => {
     controller.abort();
   }, IMAGE_DOWNLOAD_TIMEOUT_MS);
-  let upstreamResponse: Response;
+  let upstreamResponse: Response | null;
 
   try {
-    upstreamResponse = await fetch(targetUrl, {
+    upstreamResponse = await fetchAllowedVillaImageDownload(targetUrl, images, {
       cache: "no-store",
       signal: controller.signal,
     });
@@ -127,10 +128,10 @@ async function downloadVillaImage(
     clearTimeout(timeout);
   }
 
-  const contentType = upstreamResponse.headers.get("Content-Type") ?? "";
+  const contentType = upstreamResponse?.headers.get("Content-Type") ?? "";
 
   if (
-    !upstreamResponse.ok ||
+    !upstreamResponse?.ok ||
     !upstreamResponse.body ||
     !contentType.trim().toLowerCase().startsWith("image/")
   ) {

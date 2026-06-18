@@ -160,6 +160,25 @@ describe("AdminGuidesPage", () => {
     await page.unmount();
   });
 
+  it("redirects to login when guide loading returns an auth 403", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: {
+          error: "Signed-in user is not listed as an active home config admin.",
+        },
+        status: 403,
+        url: "/api/admin/guides",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage />);
+
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/login");
+
+    await page.unmount();
+  });
+
   it("saves guide edits without triggering a full route refresh", async () => {
     const pinnedGuide = {
       ...guidePost,
@@ -383,6 +402,132 @@ describe("AdminGuidesPage", () => {
 
     expect(coverImage).not.toBeNull();
     expect(coverImage?.dataset.loading).toBe("eager");
+
+    await page.unmount();
+  });
+
+  it("defers cover image upload until admins save the guide", async () => {
+    const coverImage = {
+      alt: "Family Pool Villa",
+      path: "guides/cover.jpg",
+      url: "https://example.supabase.co/storage/v1/object/public/guide-assets/guides/cover.jpg",
+    };
+    const savedGuide = {
+      ...guidePost,
+      coverImage,
+    };
+    const fetchMock = makeFetchMock([
+      {
+        body: { guides: [guidePost] },
+        url: "/api/admin/guides",
+      },
+      {
+        body: { image: coverImage },
+        method: "POST",
+        url: "/api/admin/guides/assets",
+      },
+      {
+        body: { guide: savedGuide },
+        method: "PUT",
+        url: "/api/admin/guides",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage />);
+    const coverInput = page.container.querySelector(
+      "input[type='file']",
+    ) as HTMLInputElement | null;
+
+    expect(coverInput).not.toBeNull();
+
+    Object.defineProperty(coverInput, "files", {
+      configurable: true,
+      value: [new File(["cover"], "cover.webp", { type: "image/webp" })],
+    });
+
+    act(() => {
+      coverInput?.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await flushEffects();
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => url === "/api/admin/guides/assets"),
+    ).toHaveLength(0);
+
+    const saveButton = page.container.querySelector(
+      "[data-guide-save='true']",
+    ) as HTMLButtonElement | null;
+
+    expect(saveButton).not.toBeNull();
+    expect(saveButton?.disabled).toBe(false);
+
+    await click(saveButton as HTMLButtonElement);
+    await flushEffects();
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => url === "/api/admin/guides/assets"),
+    ).toHaveLength(1);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/admin/guides",
+      expect.objectContaining({ method: "PUT" }),
+    );
+
+    await page.unmount();
+  });
+
+  it("clears a pending cover image when admins select another guide", async () => {
+    const secondGuide = {
+      ...guidePost,
+      id: "guide-2",
+      slug: "second-family-guide",
+      title: "Second Family Guide",
+    };
+    const fetchMock = makeFetchMock([
+      {
+        body: { guides: [guidePost, secondGuide] },
+        url: "/api/admin/guides",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage />);
+    const coverInput = page.container.querySelector(
+      "input[type='file']",
+    ) as HTMLInputElement | null;
+
+    expect(coverInput).not.toBeNull();
+
+    Object.defineProperty(coverInput, "files", {
+      configurable: true,
+      value: [new File(["cover"], "cover.webp", { type: "image/webp" })],
+    });
+
+    act(() => {
+      coverInput?.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await flushEffects();
+
+    const saveButton = page.container.querySelector(
+      "[data-guide-save='true']",
+    ) as HTMLButtonElement | null;
+
+    expect(saveButton?.disabled).toBe(false);
+
+    const secondGuideButton = Array.from(
+      page.container.querySelectorAll<HTMLButtonElement>("aside button"),
+    ).find((button) => {
+      return button.textContent?.includes("Second Family Guide");
+    });
+
+    expect(secondGuideButton).not.toBeNull();
+
+    await click(secondGuideButton as HTMLButtonElement);
+
+    expect(saveButton?.disabled).toBe(true);
+    expect(
+      fetchMock.mock.calls.filter(([url]) => url === "/api/admin/guides/assets"),
+    ).toHaveLength(0);
 
     await page.unmount();
   });

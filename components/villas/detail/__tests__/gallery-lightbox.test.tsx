@@ -1,3 +1,8 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { VillaListing } from "@/lib/villas/types";
@@ -70,5 +75,42 @@ describe("GalleryLightbox", () => {
     expect(emptyMarkup).toBe("");
     expect(activeMarkup).toContain("Pool");
     expect(activeMarkup).toContain('data-active-thumbnail="true"');
+  });
+
+  it("does not select an empty category", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const onSelect = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <GalleryLightbox
+          activeItem={item}
+          categories={[...categories, { items: [], key: "empty", label: "Empty" }]}
+          listing={listing}
+          onClose={() => undefined}
+          onImageError={() => undefined}
+          onSelect={onSelect}
+        />,
+      );
+    });
+
+    const emptyCategoryButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Empty"),
+    ) as HTMLButtonElement | undefined;
+
+    expect(emptyCategoryButton).toBeDefined();
+
+    await act(async () => {
+      emptyCategoryButton?.click();
+    });
+
+    expect(onSelect).not.toHaveBeenCalled();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 });

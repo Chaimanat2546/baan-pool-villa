@@ -10,6 +10,8 @@ const IMAGE_EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+const MAX_IMAGE_DOWNLOAD_REDIRECTS = 3;
+const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
 
 /**
  * Normalizes and validates an image URL before it is used for downloads.
@@ -40,6 +42,38 @@ export function isAllowedVillaImageUrl(
   images: VillaImage[],
 ): boolean {
   return images.some((image) => normalizeDownloadImageUrl(image.imageUrl) === imageUrl);
+}
+
+export async function fetchAllowedVillaImageDownload(
+  sourceUrl: string,
+  images: VillaImage[],
+  init: RequestInit = {},
+): Promise<Response | null> {
+  let currentUrl = sourceUrl;
+
+  for (let redirectCount = 0; redirectCount <= MAX_IMAGE_DOWNLOAD_REDIRECTS; redirectCount += 1) {
+    const response = await fetch(currentUrl, {
+      ...init,
+      redirect: "manual",
+    });
+
+    if (!REDIRECT_STATUS_CODES.has(response.status)) {
+      return response;
+    }
+
+    const location = response.headers.get("Location");
+    const nextUrl = location
+      ? normalizeDownloadImageUrl(new URL(location, currentUrl).toString())
+      : null;
+
+    if (!nextUrl || !isAllowedVillaImageUrl(nextUrl, images)) {
+      return null;
+    }
+
+    currentUrl = nextUrl;
+  }
+
+  return null;
 }
 
 /**

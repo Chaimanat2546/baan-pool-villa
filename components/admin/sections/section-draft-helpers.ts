@@ -117,11 +117,26 @@ export function makeNewSection(
 }
 
 export function parseManualIds(value: string) {
-  return value
-    .split(/[\s,;]+/)
-    .map((houseId) => houseId.trim())
-    .filter(Boolean)
-    .map((houseId) => ({ houseId, isActive: true }));
+  const houseIds: string[] = [];
+  let currentHouseId = "";
+
+  for (const character of value) {
+    if (character === "," || character === ";" || character.trim() === "") {
+      if (currentHouseId) {
+        houseIds.push(currentHouseId);
+        currentHouseId = "";
+      }
+      continue;
+    }
+
+    currentHouseId += character;
+  }
+
+  if (currentHouseId) {
+    houseIds.push(currentHouseId);
+  }
+
+  return houseIds.map((houseId) => ({ houseId, isActive: true }));
 }
 
 export function isAbortSignalAborted(

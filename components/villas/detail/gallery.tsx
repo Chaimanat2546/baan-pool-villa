@@ -44,6 +44,10 @@ export function Gallery({
 
   const [main, second, third, fourth] = items;
 
+  if (!main) {
+    return null;
+  }
+
   return (
 
     <section className="mx-auto w-full max-w-7xl px-0 sm:px-6 lg:px-8">

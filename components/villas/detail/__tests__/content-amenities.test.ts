@@ -14,5 +14,6 @@ describe("detail content amenity helpers", () => {
     expect(getAmenityIcon("karaoke")).toBe(Music);
     expect(getAmenityIcon("pet")).toBe(PawPrint);
     expect(getAmenityIcon("unknown")).toBe(Star);
+    expect(getAmenityIcon("__proto__")).toBe(Star);
   });
 });

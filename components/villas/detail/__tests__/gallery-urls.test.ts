@@ -45,6 +45,15 @@ describe("gallery URL helpers", () => {
     expect(displayUrl.searchParams.get("q")).toBe("60");
   });
 
+  it("trims listing ids before building download paths", () => {
+    const downloadUrl = new URL(
+      buildGalleryDownloadHref(" 88 ", galleryItem()),
+      "https://example.com",
+    );
+
+    expect(downloadUrl.pathname).toBe("/api/villas/88/images");
+  });
+
   it("rejects unsafe display image URLs before proxying", () => {
     expect(normalizeGalleryDisplayImageUrl(" https://cdn.test/pool.jpg ")).toBe(
       "https://cdn.test/pool.jpg",

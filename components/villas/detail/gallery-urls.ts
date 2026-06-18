@@ -18,7 +18,7 @@ export function buildGalleryDownloadHref(
     params.set("zone", item.zoneKey);
   }
 
-  return `/api/villas/${encodeURIComponent(listingId)}/images?${params.toString()}`;
+  return `/api/villas/${encodeURIComponent(listingId.trim())}/images?${params.toString()}`;
 }
 
 export function normalizeGalleryDisplayImageUrl(value: string): string | null {

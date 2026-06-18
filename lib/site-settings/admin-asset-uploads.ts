@@ -100,7 +100,17 @@ export async function uploadAsset(
   assetType: SiteAssetType,
   file: File,
 ): Promise<{ asset: UploadedAsset | null; error: SupabaseLikeError | null }> {
-  const path = buildSiteAssetStoragePath(assetType, file.type);
+  let path: string;
+
+  try {
+    path = buildSiteAssetStoragePath(assetType, file.type);
+  } catch (error) {
+    return {
+      asset: null,
+      error: error instanceof Error ? error : new Error("Unable to upload asset"),
+    };
+  }
+
   const { error } = await supabase.storage.from(SITE_ASSETS_BUCKET).upload(path, file, {
     cacheControl: "31536000",
     contentType: file.type,

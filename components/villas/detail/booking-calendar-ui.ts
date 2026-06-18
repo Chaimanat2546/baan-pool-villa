@@ -95,12 +95,12 @@ export function getFallbackCalendarDay(price: number): BookingCalendarDay {
 export function getCalendarToneClass(day: BookingCalendarDay): string | null {
   switch (day.tone) {
     case "booked":
-      return "bg-red-800 text-white ring-2 hover:text-white";
+      return "bg-[var(--site-danger,#991b1b)] text-white ring-2 hover:text-white";
     case "holiday":
     case "hot_holiday":
-      return "bg-yellow-500 text-white ring-1 ring-[var(--site-accent)]/25 hover:bg-yellow-500 hover:text-white";
+      return "bg-[var(--site-accent)] text-white ring-1 ring-[var(--site-accent)]/25 hover:bg-[var(--site-accent)] hover:text-white";
     case "waiting":
-      return "bg-emerald-700 text-white ring-1 ring-emerald-500/30 hover:bg-emerald-700 hover:text-emerald-100";
+      return "bg-[var(--site-primary)] text-[var(--site-on-primary)] ring-1 ring-[var(--site-primary)]/30 hover:bg-[var(--site-primary)] hover:text-[var(--site-on-primary)]";
     default:
       return null;
   }

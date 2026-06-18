@@ -14,6 +14,11 @@ interface VillaDetailGalleryProps {
   totalImageCount: number;
 }
 
+interface VillaDetailGalleryErrorProps {
+  error: string | null;
+  onRetry: () => void;
+}
+
 export function VillaDetailGallery({
   items,
   listing,
@@ -61,10 +66,7 @@ export function VillaDetailGallery({
 export function VillaDetailGalleryError({
   error,
   onRetry,
-}: {
-  error: string | null;
-  onRetry: () => void;
-}) {
+}: VillaDetailGalleryErrorProps) {
   if (error === null) {
     return null;
   }

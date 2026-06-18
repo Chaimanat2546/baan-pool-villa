@@ -290,7 +290,11 @@ export function GalleryLightbox({
               }`}
 
               onClick={() => {
-                onSelect(category.items[0]);
+                const firstItem = category.items[0];
+
+                if (firstItem) {
+                  onSelect(firstItem);
+                }
               }}
             >
 
@@ -440,7 +444,11 @@ export function GalleryLightbox({
                         : "bg-white/10 text-[var(--site-on-primary)] hover:bg-white/20"
                     }`}
                     onClick={() => {
-                      onSelect(category.items[0]);
+                      const firstItem = category.items[0];
+
+                      if (firstItem) {
+                        onSelect(firstItem);
+                      }
                     }}
                   >
                     <span className="block truncate">{category.label}</span>
@@ -490,10 +498,18 @@ export function GalleryLightbox({
                   }}
                 >
 
-                  {buildGalleryDisplaySrc(listing.id, item, 160, 60) ? (
+                  {(() => {
+                    const thumbnailSrc = buildGalleryDisplaySrc(
+                      listing.id,
+                      item,
+                      160,
+                      60,
+                    );
+
+                    return thumbnailSrc ? (
                   <Image
 
-                    src={buildGalleryDisplaySrc(listing.id, item, 160, 60) ?? ""}
+                    src={thumbnailSrc}
 
                     alt={item.caption ?? item.zoneLabel}
 
@@ -511,11 +527,12 @@ export function GalleryLightbox({
                       onImageError(item.url);
                     }}
                   />
-                  ) : (
+                    ) : (
                     <div className="grid h-full place-items-center text-[var(--site-on-primary)] opacity-60">
                       <ImageOff className="h-6 w-6" />
                     </div>
-                  )}
+                    );
+                  })()}
 
                 </button>
 

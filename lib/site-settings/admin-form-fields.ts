@@ -81,7 +81,9 @@ export function readStringArrayField(
       return [];
     }
 
-    return parsedValue.map((item) => (typeof item === "string" ? item : ""));
+    return parsedValue
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter((item) => item.length > 0);
   } catch {
     return splitDelimitedString(rawValue);
   }

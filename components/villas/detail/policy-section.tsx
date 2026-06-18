@@ -50,6 +50,8 @@ export function PolicySection({
   const checkOut = findFact(content.facts, "เช็คเอาต์");
   const maxPeople = findFact(content.facts, "พักได้สูงสุด");
   const deposit = findFact(content.facts, "ค่าประกัน");
+  const checkInTime = checkIn?.trim() || "14:00";
+  const checkOutTime = checkOut?.trim() || "12:00";
   const amenities = content.amenities.length > 0
     ? content.amenities
     : listing.amenities;
@@ -67,7 +69,7 @@ export function PolicySection({
       <div className="mt-6 grid gap-5 md:grid-cols-2">
         <PolicyCard icon={Clock} title="เวลาเช็คอินและเช็คเอาท์">
           <p>
-            เช็คอิน {checkIn ?? "14:00"} และเช็คเอาท์ {checkOut ?? "12:00"}
+            เช็คอิน {checkInTime} และเช็คเอาท์ {checkOutTime}
           </p>
           {(!checkIn || !checkOut) ? (
             <p className="rounded-xl bg-[var(--site-primary-soft)] p-3">
