@@ -175,6 +175,21 @@ describe("download image validation helpers", () => {
     ).resolves.toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("rejects malformed redirect locations without throwing", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        headers: { Location: "http://[::1" },
+        status: 302,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchAllowedVillaImageDownload("https://images.example.com/pool.jpg", imageRows),
+    ).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("GET /api/villas/[id]/images/download", () => {

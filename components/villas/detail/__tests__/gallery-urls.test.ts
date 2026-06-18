@@ -61,5 +61,7 @@ describe("gallery URL helpers", () => {
     expect(normalizeGalleryDisplayImageUrl("http://cdn.test/pool.jpg")).toBeNull();
     expect(normalizeGalleryDisplayImageUrl("https://user:pass@cdn.test/pool.jpg")).toBeNull();
     expect(buildGalleryDisplaySrc("villa-1", galleryItem({ url: "http://cdn.test/a.jpg" }))).toBeNull();
+    expect(buildGalleryDownloadHref("88", galleryItem({ url: "http://cdn.test/a.jpg" }))).toBeNull();
+    expect(buildGalleryDownloadHref("   ", galleryItem())).toBeNull();
   });
 });

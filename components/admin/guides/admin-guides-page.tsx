@@ -116,6 +116,11 @@ export function AdminGuidesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
+  const [pendingUploadedCover, setPendingUploadedCover] = useState<{
+    draftId: string;
+    file: File;
+    image: GuideImage;
+  } | null>(null);
 
   const activeGuide = useMemo(
     () =>
@@ -229,6 +234,7 @@ export function AdminGuidesPage() {
 
   function selectActiveDraft(draftId: string | null) {
     setPendingCoverFile(null);
+    setPendingUploadedCover(null);
     setActiveDraftId(draftId);
   }
 
@@ -262,7 +268,12 @@ export function AdminGuidesPage() {
     formData.set("image", file);
     formData.set("role", role);
     formData.set("guideId", activeGuide?.id ?? "");
-    formData.set("alt", activeGuide?.title ?? "");
+    formData.set(
+      "alt",
+      role === "cover"
+        ? activeGuide?.coverImage?.alt?.trim() || activeGuide?.title || ""
+        : activeGuide?.title ?? "",
+    );
 
     setIsUploading(true);
     setErrors([]);
@@ -304,6 +315,7 @@ export function AdminGuidesPage() {
     setErrors([]);
     setNotice(null);
     setPendingCoverFile(file);
+    setPendingUploadedCover(null);
   }
 
   async function handleInlineImageUpload(file: File) {
@@ -315,9 +327,25 @@ export function AdminGuidesPage() {
       return;
     }
 
-    const coverImage = coverFile
-      ? await uploadGuideImage(coverFile, "cover")
-      : activeGuide.coverImage;
+    let coverImage = activeGuide.coverImage;
+
+    if (coverFile) {
+      const reusableCover =
+        pendingUploadedCover?.draftId === activeGuide.draftId &&
+        pendingUploadedCover.file === coverFile
+          ? pendingUploadedCover.image
+          : null;
+
+      coverImage = reusableCover ?? await uploadGuideImage(coverFile, "cover");
+
+      if (coverImage && !reusableCover) {
+        setPendingUploadedCover({
+          draftId: activeGuide.draftId,
+          file: coverFile,
+          image: coverImage,
+        });
+      }
+    }
 
     if (coverFile && !coverImage) {
       return;
@@ -393,6 +421,7 @@ export function AdminGuidesPage() {
       });
       setActiveDraftId(savedGuide.id ?? activeGuide.draftId);
       setPendingCoverFile(null);
+      setPendingUploadedCover(null);
       setNotice("บันทึกบทความแล้ว");
     } catch (caughtError) {
       setErrors([getAdminErrorMessage(caughtError, "บันทึกบทความไม่ได้")]);

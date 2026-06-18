@@ -309,6 +309,68 @@ describe("BookingSidebar", () => {
     await secondPage.cleanup();
   });
 
+  it("clears aborted booking calendar requests so a remount can retry", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-18T04:00:00.000Z"));
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("The operation was aborted.", "AbortError"));
+        });
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const firstPage = await renderBookingSidebar();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await firstPage.cleanup();
+
+    const secondPage = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await secondPage.cleanup();
+  });
+
+  it("evicts older booking calendar months from the shared client cache", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-18T04:00:00.000Z"));
+    const page = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    for (let index = 0; index < 60; index += 1) {
+      await act(async () => {
+        clickCalendarNavButton(page.container, "next");
+        await Promise.resolve();
+      });
+    }
+
+    expect(getFetchedBookingCalendarMonths()[0]).toBe("2026-06");
+    await page.cleanup();
+    vi.mocked(fetch).mockClear();
+
+    const secondPage = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
+    await secondPage.cleanup();
+  });
+
   it("renders calendar navigation inside the caption and can return to the current month", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
@@ -564,6 +626,7 @@ describe("BookingSidebar", () => {
         ?.querySelector("[data-calendar-first-available-icon]")
         ?.getAttribute("src"),
     ).toBe("/icons/pointing-left-finger-svgrepo-com.svg");
+    expect(bookedDate).not.toBeNull();
     expect(bookedDate?.dataset.calendarFirstAvailable).toBeUndefined();
 
     await act(async () => {

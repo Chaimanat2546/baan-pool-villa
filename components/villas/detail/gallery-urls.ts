@@ -4,10 +4,17 @@ import type { GalleryItem } from "./types";
 export function buildGalleryDownloadHref(
   listingId: string,
   item: GalleryItem,
-): string {
+): string | null {
+  const trimmedListingId = listingId.trim();
+  const targetUrl = normalizeGalleryDisplayImageUrl(item.url);
+
+  if (!trimmedListingId || !targetUrl) {
+    return null;
+  }
+
   const params = new URLSearchParams({
     download: "1",
-    url: item.url,
+    url: targetUrl,
   });
 
   if (item.imageName) {
@@ -18,7 +25,7 @@ export function buildGalleryDownloadHref(
     params.set("zone", item.zoneKey);
   }
 
-  return `/api/villas/${encodeURIComponent(listingId.trim())}/images?${params.toString()}`;
+  return `/api/villas/${encodeURIComponent(trimmedListingId)}/images?${params.toString()}`;
 }
 
 export function normalizeGalleryDisplayImageUrl(value: string): string | null {

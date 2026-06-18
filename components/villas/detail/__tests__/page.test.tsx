@@ -441,7 +441,7 @@ describe("VillaDetailPage deferred gallery loader", () => {
 
     expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
     expect(page.container.querySelector("[data-gallery-load-status]")?.textContent).toContain(
-      "à¸¥à¸­à¸‡à¹ƒà¸«à¸¡à¹ˆ",
+      "ลองใหม่",
     );
 
     await page.unmount();
