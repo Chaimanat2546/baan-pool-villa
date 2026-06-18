@@ -714,20 +714,7 @@ describe("BookingSidebar", () => {
     );
 
     expect(promotionDate?.dataset.calendarDayKind).toBe("promotion");
-    expect(promotionDate?.querySelector("[data-calendar-icon='promotion']")).not.toBeNull();
-    expect(
-      promotionDate?.querySelector("[data-calendar-icon-slot='filled']")
-        ?.className,
-    ).toContain("top-0.5");
-    expect(
-      promotionDate?.querySelector("[data-calendar-icon-slot='filled']")
-        ?.className,
-    ).toContain("z-[20]");
-    expect(
-      promotionDate
-        ?.querySelector("[data-calendar-icon='promotion']")
-        ?.getAttribute("class"),
-    ).toContain("size-4");
+    expect(promotionDate?.querySelector("[data-calendar-icon='promotion']")).toBeNull();
     expect(promotionDate?.className).toContain("!block");
     expect(promotionDate?.className).toContain("!h-12");
     expect(
@@ -770,7 +757,7 @@ describe("BookingSidebar", () => {
     expect(hotHolidayDate?.className).toContain("bg-[var(--site-accent)]");
     expect(hotHolidayDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
 
-    expect(page.container.querySelector("[data-calendar-legend]")?.textContent).toContain(
+    expect(page.container.querySelector("[data-calendar-legend]")?.textContent).not.toContain(
       "โปรโมชั่น",
     );
     expect(page.container.querySelector("[data-calendar-legend]")?.textContent).toContain(

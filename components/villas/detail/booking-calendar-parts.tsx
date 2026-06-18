@@ -1,4 +1,3 @@
-import { BadgePercent } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import { useId, type ComponentProps } from "react";
@@ -53,7 +52,6 @@ function FireSvgIcon({
 
 export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"] }) {
   const reduceMotion = useReducedMotion();
-  const hasPromotion = icons.includes("promotion");
   const hasFire = icons.includes("fire");
   const isEmpty = icons.length === 0;
 
@@ -85,20 +83,6 @@ export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"]
           <FireSvgIcon
             className="size-8 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)]"
             data-calendar-icon="fire"
-          />
-        </motion.span>
-      ) : null}
-      {hasPromotion ? (
-        <motion.span
-          aria-hidden="true"
-          animate={iconAnimation}
-          className="pointer-events-none absolute top-0.5 right-0.5 z-[20] grid place-items-center"
-          data-calendar-icon-slot="filled"
-          transition={iconTransition}
-        >
-          <BadgePercent
-            className="size-4 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)] text-rose-500/90"
-            data-calendar-icon="promotion"
           />
         </motion.span>
       ) : null}
@@ -254,9 +238,6 @@ export function CalendarLegendItem({
             <span className="absolute left-1/2 top-1/2 h-[1.5px] w-[145%] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-full bg-white/55" />
             <span className="absolute left-1/2 top-1/2 h-[1.5px] w-[145%] -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-full bg-white/55" />
           </>
-        ) : null}
-        {icon === "promotion" ? (
-          <BadgePercent aria-hidden="true" className="relative z-10 h-3 w-3 text-rose-500" />
         ) : null}
         {icon === "fire" ? (
           <FireSvgIcon className="relative z-10 size-3" />

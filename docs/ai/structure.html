@@ -163,7 +163,7 @@
               <tr>
                 <td><code>app/(public)/guides/[slug]/page.tsx</code></td>
                 <td><code>/guides/:slug</code></td>
-                <td><code>components/guides/guide-detail-page</code>, guide CMS server reads, villa listing recommendations, SEO/JSON-LD helpers, and lite YouTube posters that defer third-party player iframes until play. Guide detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from guide/villa tags, the route renders Article plus breadcrumb JSON-LD, and admin saves invalidate guide CMS data tags only.</td>
+                <td><code>components/guides/guide-detail-page</code>, guide CMS server reads, villa listing recommendations, SEO/JSON-LD helpers, and lazy YouTube posters that mount restricted embeds after play. Guide detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from guide/villa tags, the route renders Article plus breadcrumb JSON-LD, and admin saves invalidate guide CMS data tags only.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/terms/page.tsx</code> and <code>app/(public)/privacy/page.tsx</code></td>
@@ -446,8 +446,8 @@
             </tr>
             <tr>
               <td><code>components/villas/detail</code></td>
-              <td>Villa detail page/helpers/gallery shell, gallery grid, gallery lightbox, gallery tile components, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI/visual helpers, recommendations, layout renderer/helpers/parts, detail skeletons, and review video posters backed by <code>lib/villas/detail</code> thumbnail URLs.</td>
-              <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Review videos should render thumbnail posters first and mount YouTube iframes only after play.</td>
+              <td>Villa detail page/helpers/gallery shell, gallery grid, gallery lightbox, gallery tile components, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI/visual helpers, recommendations, layout renderer/helpers/parts, detail skeletons, and review videos backed by <code>lib/villas/detail</code> embed URLs.</td>
+              <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Review videos should use the shared lazy YouTube poster/embed UI so guide and villa video rendering stay aligned.</td>
             </tr>
             <tr>
               <td><code>components/villas/listing</code></td>
@@ -476,7 +476,7 @@
             </tr>
             <tr>
               <td><code>components/ui</code></td>
-              <td>Small generic UI primitives such as skeletons and dropdown selects.</td>
+              <td>Small generic UI primitives such as skeletons, dropdown selects, and the shared restricted YouTube embed.</td>
               <td>Only place components here when they are truly generic across public/admin features.</td>
             </tr>
           </tbody>

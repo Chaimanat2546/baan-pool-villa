@@ -4,7 +4,6 @@ import type { BookingCalendarDay } from "../booking-calendar-ui";
 import {
   CalendarDayIcons,
   CalendarDayOverlay,
-  CalendarLegendItem,
 } from "../booking-calendar-parts";
 
 const baseDay: BookingCalendarDay = {
@@ -30,15 +29,11 @@ describe("booking calendar parts", () => {
     const noOverlayMarkup = renderToStaticMarkup(
       <CalendarDayOverlay day={baseDay} />,
     );
-    const legendMarkup = renderToStaticMarkup(
-      <CalendarLegendItem icon="promotion">โปรโมชั่น</CalendarLegendItem>,
-    );
 
     expect(iconsMarkup).toContain('data-calendar-icon="fire"');
-    expect(iconsMarkup).toContain('data-calendar-icon="promotion"');
+    expect(iconsMarkup).not.toContain('data-calendar-icon="promotion"');
     expect(emptyIconsMarkup).toContain('data-calendar-icon-slot="empty"');
     expect(overlayMarkup).toContain('data-calendar-overlay="booked-stripes"');
     expect(noOverlayMarkup).toBe("");
-    expect(legendMarkup).toContain("โปรโมชั่น");
   });
 });

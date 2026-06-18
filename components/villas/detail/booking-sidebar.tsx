@@ -369,9 +369,6 @@ export function BookingSidebar({
                 className="flex flex-wrap justify-center gap-1.5"
                 data-calendar-legend="true"
               >
-                <CalendarLegendItem icon="promotion">
-                  โปรโมชั่น
-                </CalendarLegendItem>
                 <CalendarLegendItem swatchClassName="border-emerald-700 bg-emerald-700">
                   ติดจองแต่ยังไม่โอน
                 </CalendarLegendItem>

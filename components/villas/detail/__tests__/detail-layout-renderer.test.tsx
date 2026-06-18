@@ -219,14 +219,16 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).not.toContain("คลิปรีวิวบ้านพัก");
   });
 
-  it("renders review videos without loading third-party iframes before play", () => {
+  it("renders review videos as thumbnail posters before play", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT);
 
-    expect(markup).toContain("https://youtu.be/example");
+    expect(markup).toContain("data-youtube-play-button");
     expect(markup).toContain("i.ytimg.com%2Fvi%2Fexample%2Fhqdefault.jpg");
     expect(markup).not.toContain("<iframe");
-    expect(markup).not.toContain("youtube.com/embed");
     expect(markup).not.toContain("youtube-nocookie.com/embed");
+    expect(markup).not.toContain("data-youtube-click-guard");
+    expect(markup).not.toContain("https://youtu.be/example");
+    expect(markup).not.toContain("เปิดคลิป");
   });
 
   it("defers categorized image preview sources before the block approaches the viewport", () => {

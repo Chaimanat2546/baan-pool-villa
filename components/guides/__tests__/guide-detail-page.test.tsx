@@ -200,7 +200,7 @@ describe("getYouTubeEmbedUrl", () => {
     expect(markup).toContain('class="grid w-full gap-0 text-[var(--site-text)]"');
   });
 
-  it("renders YouTube links as thumbnail posters without loading embeds before play", () => {
+  it("renders YouTube links as thumbnail posters before play", () => {
     const markup = renderToStaticMarkup(
       <GuideDetailPage
         guide={makeGuide([
@@ -219,10 +219,11 @@ describe("getYouTubeEmbedUrl", () => {
       />,
     );
 
-    expect(markup).toContain("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg");
+    expect(markup).toContain("data-youtube-play-button");
+    expect(markup).toContain("i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg");
     expect(markup).not.toContain("<iframe");
-    expect(markup).not.toContain("youtube.com/embed");
     expect(markup).not.toContain("youtube-nocookie.com/embed");
+    expect(markup).not.toContain("data-youtube-click-guard");
   });
 
   it("renders the contact section before related articles when settings are provided", () => {

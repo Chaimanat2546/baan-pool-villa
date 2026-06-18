@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { CSSProperties, ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
+import { YouTubeEmbed } from "@/components/ui/youtube-embed";
 import { ArticlesSection } from "@/components/villas/home/articles-section";
 import { ScrollRail } from "@/components/villas/home/scroll-rail";
 import { VillaCard } from "@/components/villas/listing/villa-card";
@@ -9,7 +10,6 @@ import type { GuidePost } from "@/lib/guides/types";
 import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
-import { YouTubeLiteEmbed } from "./youtube-lite-embed";
 
 interface GuideDetailPageProps {
   guide: GuidePost;
@@ -356,10 +356,6 @@ function renderInlineContent(content: GuideTextContent[]): ReactNode[] {
  * @param title - Accessible title for the iframe content
  * @returns A React element containing a responsive, styled iframe for the provided `embedUrl`
  */
-function YouTubeEmbed({ title, videoId }: { title: string; videoId: string }) {
-  return <YouTubeLiteEmbed title={title} videoId={videoId} />;
-}
-
 function isGuideBlockListType(
   type: unknown,
 ): type is "bulletListItem" | "numberedListItem" | "checkListItem" {
