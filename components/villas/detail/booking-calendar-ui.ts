@@ -16,7 +16,7 @@ export const THAI_MONTHS = [
 export interface BookingCalendarDay {
   disabled: boolean;
   displayPrice: string | null;
-  icons: ("fire" | "promotion")[];
+  icons: "fire"[];
   kind:
     | "base"
     | "booking_confirmed"

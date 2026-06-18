@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  Phone,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import { LineIcon, MessengerIcon } from "@/components/layout/contact-icons";
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -16,17 +11,21 @@ import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
 import {
+  loadBookingCalendarMonth,
+  peekBookingCalendarClientCache,
+} from "./booking-calendar-client-cache";
+import { CalendarDayDetailDialog } from "./booking-calendar-day-detail-dialog";
+import {
   CalendarDayIcons,
   CalendarDayOverlay,
   CalendarFirstAvailablePointer,
   CalendarFirstAvailableTooltip,
-  CalendarLegendItem,
+  CalendarLegend,
 } from "./booking-calendar-parts";
 import {
   addCalendarMonths,
   formatCalendarDateKey,
   formatCalendarMonthKey,
-  formatCalendarPrice,
   formatThaiCalendarDate,
   getCalendarToneClass,
   getFallbackCalendarDay,
@@ -35,122 +34,10 @@ import {
   type BookingCalendarDay,
   type BookingCalendarMonth,
 } from "./booking-calendar-ui";
+import { BookingSidebarContactActions } from "./booking-sidebar-contact-actions";
 import { findFact } from "./helpers";
 
-const BOOKING_CALENDAR_CLIENT_CACHE_LIMIT = 60;
-const BOOKING_CALENDAR_CLIENT_TIMEOUT_MS = 8_000;
-const bookingCalendarClientCache = new Map<string, BookingCalendarMonth>();
-const bookingCalendarClientRequests = new Map<
-  string,
-  Promise<BookingCalendarMonth>
->();
-
-export function clearBookingCalendarClientCacheForTests() {
-  bookingCalendarClientCache.clear();
-  bookingCalendarClientRequests.clear();
-}
-
-function getCachedBookingCalendarMonth(
-  cacheKey: string,
-): BookingCalendarMonth | null {
-  const cachedCalendar = bookingCalendarClientCache.get(cacheKey);
-
-  if (!cachedCalendar) {
-    return null;
-  }
-
-  bookingCalendarClientCache.delete(cacheKey);
-  bookingCalendarClientCache.set(cacheKey, cachedCalendar);
-
-  return cachedCalendar;
-}
-
-function setCachedBookingCalendarMonth(
-  cacheKey: string,
-  calendar: BookingCalendarMonth,
-) {
-  bookingCalendarClientCache.delete(cacheKey);
-  bookingCalendarClientCache.set(cacheKey, calendar);
-
-  while (bookingCalendarClientCache.size > BOOKING_CALENDAR_CLIENT_CACHE_LIMIT) {
-    const oldestCacheKey = bookingCalendarClientCache.keys().next().value;
-
-    if (!oldestCacheKey) {
-      return;
-    }
-
-    bookingCalendarClientCache.delete(oldestCacheKey);
-  }
-}
-
-function setBookingCalendarClientRequest(
-  cacheKey: string,
-  request: Promise<BookingCalendarMonth>,
-) {
-  bookingCalendarClientRequests.delete(cacheKey);
-  bookingCalendarClientRequests.set(cacheKey, request);
-
-  while (bookingCalendarClientRequests.size > BOOKING_CALENDAR_CLIENT_CACHE_LIMIT) {
-    const oldestCacheKey = bookingCalendarClientRequests.keys().next().value;
-
-    if (!oldestCacheKey) {
-      return;
-    }
-
-    bookingCalendarClientRequests.delete(oldestCacheKey);
-  }
-}
-
-function loadBookingCalendarMonth({
-  cacheKey,
-  listingId,
-  monthKey,
-}: {
-  cacheKey: string;
-  listingId: string;
-  monthKey: string;
-}): Promise<BookingCalendarMonth> {
-  const cachedCalendar = getCachedBookingCalendarMonth(cacheKey);
-
-  if (cachedCalendar) {
-    return Promise.resolve(cachedCalendar);
-  }
-
-  const existingRequest = bookingCalendarClientRequests.get(cacheKey);
-
-  if (existingRequest) {
-    return existingRequest;
-  }
-
-  const controller = new AbortController();
-  const timeout = globalThis.setTimeout(() => {
-    controller.abort();
-  }, BOOKING_CALENDAR_CLIENT_TIMEOUT_MS);
-  const request = fetch(
-    `/api/villas/${encodeURIComponent(listingId)}/booking-calendar?month=${monthKey}`,
-    { signal: controller.signal },
-  )
-    .then(async (response) => {
-      if (!response.ok) {
-        throw new Error("Unable to load booking calendar.");
-      }
-
-      return (await response.json()) as BookingCalendarMonth;
-    })
-    .then((calendar) => {
-      setCachedBookingCalendarMonth(cacheKey, calendar);
-
-      return calendar;
-    })
-    .finally(() => {
-      globalThis.clearTimeout(timeout);
-      bookingCalendarClientRequests.delete(cacheKey);
-    });
-
-  setBookingCalendarClientRequest(cacheKey, request);
-
-  return request;
-}
+export { clearBookingCalendarClientCacheForTests } from "./booking-calendar-client-cache";
 
 function findFirstAvailableCalendarDateKey({
   bookingCalendar,
@@ -235,7 +122,7 @@ export function BookingSidebar({
   const bookingCalendarCacheKey = `${listing.id}:${visibleMonthKey}`;
   const bookingCalendar =
     bookingCalendars[bookingCalendarCacheKey] ??
-    bookingCalendarClientCache.get(bookingCalendarCacheKey) ??
+    peekBookingCalendarClientCache(bookingCalendarCacheKey) ??
     null;
   const firstAvailableCalendarDateKey = findFirstAvailableCalendarDateKey({
     bookingCalendar,
@@ -363,28 +250,7 @@ export function BookingSidebar({
           }}
           hideNavigation
           today={today}
-          footer={
-            <div className="mt-3 space-y-3">
-              <div
-                className="flex flex-wrap justify-center gap-1.5"
-                data-calendar-legend="true"
-              >
-                <CalendarLegendItem swatchClassName="border-emerald-700 bg-emerald-700">
-                  ติดจองแต่ยังไม่โอน
-                </CalendarLegendItem>
-                <CalendarLegendItem
-                  overlay="booked-cross"
-                  swatchClassName="border-[#8f1717]/55 bg-[linear-gradient(180deg,#cf3f3f_0%,#a61f1f_100%)]"
-                >
-                  ติดจองแล้ว
-                </CalendarLegendItem>
-                <CalendarLegendItem swatchClassName="border-[var(--site-accent)]/25 bg-yellow-600">
-                  วันหยุด
-                </CalendarLegendItem>
-                <CalendarLegendItem icon="fire">โปรไฟลุก</CalendarLegendItem>
-              </div>
-            </div>
-          }
+          footer={<CalendarLegend />}
           components={{
             MonthCaption: ({ calendarMonth, className }) => (
               <div
@@ -561,98 +427,15 @@ export function BookingSidebar({
         />
 
         {selectedCalendarDate && selectedCalendarDay ? (
-          <div
-            className="fixed inset-0 z-[70] flex items-end justify-center overflow-y-auto px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-4 bg-[var(--site-surface-soft)]/40 backdrop-blur-xs md:items-center md:p-4"
-            role="presentation"
-          >
-            <div
-              aria-labelledby="calendar-day-detail-title"
-              aria-modal="true"
-              className="w-full max-w-sm rounded-[1.5rem] border border-[var(--site-border)] bg-[linear-gradient(145deg,var(--site-surface),var(--site-surface-soft))] p-4 text-[var(--site-text)] shadow-[var(--site-card-shadow)] ring-1 ring-[var(--site-primary)]/10"
-              data-date-detail-dialog="true"
-              role="dialog"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p
-                    id="calendar-day-detail-title"
-                    className="text-base font-black"
-                  >
-                    รายละเอียดวันที่
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--site-muted)]">
-                    {formatThaiCalendarDate(selectedCalendarDate)}
-                  </p>
-                </div>
-                <button
-                  aria-label="ปิดรายละเอียดวัน"
-                  className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1 text-sm font-black text-[var(--site-muted)] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-[var(--site-primary)] hover:text-[var(--site-primary)]"
-                  type="button"
-                  onClick={() => {
-                    setSelectedCalendarDate(null);
-                  }}
-                >
-                  ปิด
-                </button>
-              </div>
-
-              <div
-                className="mt-4 overflow-hidden rounded-[1.25rem] border border-[var(--site-border)] bg-[var(--site-primary-soft)] shadow-[0_18px_42px_rgba(6,63,53,0.12)]"
-                data-date-detail-panel="true"
-              >
-                <div className="bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--site-accent-on-dark)]">
-                    {selectedCalendarDay.label}
-                  </p>
-                  <p className="mt-2 text-3xl font-black leading-none">
-                    ราคา {formatCalendarPrice(selectedCalendarDay.price)}
-                  </p>
-                  <p className="mt-2 text-xs font-bold text-[var(--site-on-primary)]/80">
-                    ราคาเฉพาะวันที่เลือก ทักแอดมินเพื่อยืนยันก่อนหลุดคิว
-                  </p>
-                </div>
-                <div className="grid gap-3 p-3">
-                  {selectedCalendarDay.promotionMessage ? (
-                    <p className="whitespace-pre-line rounded-xl bg-[var(--site-surface)] px-3 py-2 text-xs font-bold leading-5 text-[var(--site-text)]">
-                      {selectedCalendarDay.promotionMessage}
-                    </p>
-                  ) : null}
-                  <p className="rounded-xl bg-[var(--site-primary-soft)] px-3 py-2 text-xs font-bold leading-5 text-[var(--site-text)]">
-                    ส่งวันที่นี้ให้ทีมจองได้ทันที พร้อมเช็กราคาสุดท้ายและเงื่อนไขเข้าพัก
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <a
-                      href={contactLinks.line}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-3 text-sm font-black text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
-                    >
-                      <LineIcon className="h-5 w-5" />
-                      จอง LINE
-                    </a>
-                    <a
-                      href={contactLinks.messenger}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] px-3 text-sm font-black text-[var(--site-primary)] transition hover:bg-[var(--site-surface-tint)]"
-                    >
-                      <MessengerIcon className="h-5 w-5" />
-                      แชทเลย
-                    </a>
-                  </div>
-                  {primaryPhoneContact ? (
-                    <a
-                      href={primaryPhoneContact.href}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-sm font-black text-[var(--site-text)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-primary-soft)]"
-                    >
-                      <Phone className="h-4 w-4" />
-                      โทร {primaryPhoneContact.phone}
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
+          <CalendarDayDetailDialog
+            contactLinks={contactLinks}
+            date={selectedCalendarDate}
+            day={selectedCalendarDay}
+            onClose={() => {
+              setSelectedCalendarDate(null);
+            }}
+            primaryPhoneContact={primaryPhoneContact}
+          />
         ) : null}
 
         <div className="mt-4 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] p-3 text-sm text-[var(--site-muted)]">
@@ -682,47 +465,10 @@ export function BookingSidebar({
           </p>
         </div>
 
-        <div className="mt-4 grid gap-3">
-          <div className="grid gap-2">
-            {phoneContacts.map((contact) => (
-              <a
-                key={contact.phone}
-                href={contact.href}
-                className="inline-flex items-center justify-between gap-3 rounded-xl border border-[var(--site-border)] px-4 py-3 text-sm font-black text-[var(--site-text)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-primary-soft)]"
-              >
-                <span className="inline-flex min-w-0 items-center gap-2">
-                  <Phone className="h-4 w-4 shrink-0" />
-                  <span className="truncate">
-                    {contact.name} : {contact.phone}
-                  </span>
-                </span>
-                <span className="shrink-0 text-[11px] text-[var(--site-muted)]">
-                  {contact.time.replace("ช่วง ", "")}
-                </span>
-              </a>
-            ))}
-          </div>
-
-          <a
-            href={contactLinks.messenger}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] px-4 py-3 text-sm font-black text-[var(--site-primary)] transition hover:bg-[var(--site-surface-tint)]"
-          >
-            <MessengerIcon className="h-6 w-6" />
-            แชทเลย
-          </a>
-
-          <a
-            href={contactLinks.line}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-4 py-3 text-sm font-black text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
-          >
-            <LineIcon className="h-6 w-6" />
-            จองผ่าน LINE
-          </a>
-        </div>
+        <BookingSidebarContactActions
+          contactLinks={contactLinks}
+          phoneContacts={phoneContacts}
+        />
       </div>
     </aside>
   );

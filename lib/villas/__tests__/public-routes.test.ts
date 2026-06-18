@@ -328,7 +328,7 @@ describe("GET /api/villas/[id]/booking-calendar", () => {
         days: {
           "2026-06-16": {
             disabled: false,
-            icons: ["promotion"],
+            icons: [],
             kind: "promotion",
             label: "โปรโมชั่น",
             price: 7900,

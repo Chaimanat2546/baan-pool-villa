@@ -71,7 +71,7 @@ function buildCalendarResponse(month: string) {
     days["2026-06-17"] = {
       disabled: false,
       displayPrice: "5,900",
-      icons: ["promotion"],
+      icons: [],
       kind: "promotion",
       label: "โปรโมชั่น",
       price: 5900,

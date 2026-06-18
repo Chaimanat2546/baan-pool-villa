@@ -53,7 +53,7 @@ function FireSvgIcon({
 export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"] }) {
   const reduceMotion = useReducedMotion();
   const hasFire = icons.includes("fire");
-  const isEmpty = icons.length === 0;
+  const isEmpty = !hasFire;
 
   const iconAnimation = reduceMotion
     ? undefined
@@ -245,5 +245,28 @@ export function CalendarLegendItem({
       </span>
       {children}
     </span>
+  );
+}
+
+export function CalendarLegend() {
+  return (
+    <div
+      className="mt-3 flex flex-wrap justify-center gap-1.5"
+      data-calendar-legend="true"
+    >
+      <CalendarLegendItem swatchClassName="border-emerald-700 bg-emerald-700">
+        ติดจองแต่ยังไม่โอน
+      </CalendarLegendItem>
+      <CalendarLegendItem
+        overlay="booked-cross"
+        swatchClassName="border-[#8f1717]/55 bg-[linear-gradient(180deg,#cf3f3f_0%,#a61f1f_100%)]"
+      >
+        ติดจองแล้ว
+      </CalendarLegendItem>
+      <CalendarLegendItem swatchClassName="border-[var(--site-accent)]/25 bg-yellow-600">
+        วันหยุด
+      </CalendarLegendItem>
+      <CalendarLegendItem icon="fire">โปรไฟลุก</CalendarLegendItem>
+    </div>
   );
 }
