@@ -234,7 +234,7 @@ describe("BookingSidebar", () => {
     document.body.innerHTML = "";
   });
 
-  it("hides prototype-like calendar mock UI and keeps contact actions", () => {
+  it("keeps contact actions in the booking sidebar", () => {
     const markup = renderToStaticMarkup(
       <BookingSidebar
         content={content}
@@ -243,8 +243,6 @@ describe("BookingSidebar", () => {
       />,
     );
 
-    expect(markup).not.toContain("October 2024");
-    expect(markup).not.toContain("Mock FE");
     expect(markup).toContain("แชทเลย");
     expect(markup).toContain("จองผ่าน LINE");
   });

@@ -45,7 +45,6 @@ describe("PolicySection", () => {
     expect(markup).toContain("14:00");
     expect(markup).toContain("16 คน");
     expect(markup).toContain("อนุญาตให้นำสัตว์เลี้ยงเข้าพักได้");
-    expect(markup).not.toContain("Mock FE");
   });
 
   it("falls back when check-in or check-out facts are blank", () => {

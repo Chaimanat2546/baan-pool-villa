@@ -37,13 +37,13 @@ export function getRowGridClass(
   return "lg:grid-cols-2";
 }
 
-export function isSplitRatio(
+function isSplitRatio(
   ratio: DetailLayoutRow["ratio"],
 ): ratio is DetailLayoutSplitRatio {
   return ratio === "70/30" || ratio === "30/70";
 }
 
-export function isLockedFullWidthBlock(
+function isLockedFullWidthBlock(
   block: DetailLayoutBlockForLayout,
 ): boolean {
   return block.type === "recommended_villas";

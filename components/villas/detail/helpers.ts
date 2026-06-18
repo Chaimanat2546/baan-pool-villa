@@ -3,26 +3,12 @@ import type {
   VillaDetailFact,
   VillaDetailSection,
 } from "@/lib/villas/detail";
-import type { VillaDetailPayload, VillaImage } from "@/lib/villas/types";
+import type { VillaImage } from "@/lib/villas/types";
 import { IMAGE_ZONE_LABELS } from "./constants";
 import type { GalleryCategory, GalleryItem } from "./types";
 
 export function getVillaTitle(id: string): string {
   return `พูลวิลล่า ${id}`;
-}
-
-export function shouldBypassImageOptimizer(imageUrl: string): boolean {
-  try {
-    const url = new URL(imageUrl);
-    return (
-      (url.hostname === "s3.ap-southeast-1.amazonaws.com" &&
-        url.pathname.startsWith("/poolvillas.co.ltd/")) ||
-      url.hostname ===
-        "d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws"
-    );
-  } catch {
-    return false;
-  }
 }
 
 function getImageZoneLabel(zone: string | null): string {
@@ -48,10 +34,7 @@ function isCoverZone(zone: string | null): boolean {
   return zoneKey === "cover" || zoneKey === "รูปปก" || zoneKey === "ภาพปก";
 }
 
-export function buildGalleryItems(
-  _payload: VillaDetailPayload,
-  images: VillaImage[],
-): GalleryItem[] {
+export function buildGalleryItems(images: VillaImage[]): GalleryItem[] {
   const seenUrls = new Set<string>();
   const items: GalleryItem[] = [];
   const sortedImages = [...images].sort((a, b) => {
@@ -133,12 +116,6 @@ export function buildGalleryCategories(items: GalleryItem[]): GalleryCategory[] 
   return Array.from(categories.values());
 }
 
-/**
- * Produce the display description for a gallery item.
- *
- * @param item - The gallery item whose caption and zoneKey determine the description
- * @returns The trimmed `caption` if it exists and (case-insensitively) differs from `item.zoneKey`, otherwise `"รูปบ้านพัก"`
- */
 export function getGalleryItemDescription(item: GalleryItem): string {
   const caption = item.caption?.trim();
   if (caption && caption.toLowerCase() !== item.zoneKey) {
@@ -147,13 +124,6 @@ export function getGalleryItemDescription(item: GalleryItem): string {
   return "รูปบ้านพัก";
 }
 
-/**
- * Locate a section in villa detail content by its exact title.
- *
- * @param content - The villa detail content containing sections to search
- * @param title - The exact section title to match
- * @returns The matching section if found, `null` otherwise
- */
 export function findSection(content: VillaDetailContent, title: string): VillaDetailSection | null {
   return content.sections.find((section) => section.title === title) ?? null;
 }

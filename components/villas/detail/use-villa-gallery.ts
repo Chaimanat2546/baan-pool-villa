@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { VillaDetailPayload, VillaImage } from "@/lib/villas/types";
+import type { VillaImage } from "@/lib/villas/types";
 import {
   getActiveGalleryLoadState,
   getInitialGalleryLoadState,
@@ -26,7 +26,6 @@ interface GalleryImagesResponse {
 interface UseVillaGalleryOptions {
   id: string;
   initialGalleryImages: VillaImage[];
-  payload: VillaDetailPayload;
 }
 
 function getStartingGalleryLoadState(
@@ -41,7 +40,6 @@ function getStartingGalleryLoadState(
 export function useVillaGallery({
   id,
   initialGalleryImages,
-  payload,
 }: UseVillaGalleryOptions) {
   const [galleryLoadState, setGalleryLoadState] = useState<GalleryLoadState>(
     () => getStartingGalleryLoadState(id, initialGalleryImages),
@@ -229,8 +227,8 @@ export function useVillaGallery({
 
   const activeGalleryLoadState = getActiveGalleryLoadState(galleryLoadState, id);
   const allGalleryItems = useMemo(
-    () => buildGalleryItems(payload, activeGalleryLoadState.images),
-    [activeGalleryLoadState.images, payload],
+    () => buildGalleryItems(activeGalleryLoadState.images),
+    [activeGalleryLoadState.images],
   );
   const visibleGalleryItems = useMemo(
     () => allGalleryItems.filter((item) => !failedImageUrls.has(item.url)),
@@ -261,7 +259,7 @@ export function useVillaGallery({
   const handleGalleryImageClick = (item: GalleryItem) => {
     void loadGalleryImages()
       .then((loadedImages) => {
-        const latestGalleryItems = buildGalleryItems(payload, loadedImages).filter(
+        const latestGalleryItems = buildGalleryItems(loadedImages).filter(
           (galleryItem) => !failedImageUrls.has(galleryItem.url),
         );
         const matchingItem =

@@ -3,7 +3,6 @@
 import { buildVillaDetailContent } from "@/lib/villas/detail";
 import type { VillaImage } from "@/lib/villas/types";
 import { BookingSidebar } from "./booking-sidebar";
-import { Breadcrumbs } from "./breadcrumbs";
 import { VillaIntro } from "./content-sections";
 import { hasEnabledBookingContact } from "./detail-page-helpers";
 import {
@@ -39,11 +38,21 @@ export function VillaDetailPage({
     setActiveGalleryItem,
     shouldShowGallerySkeleton,
     visibleGalleryItemCount,
-  } = useVillaGallery({ id, initialGalleryImages, payload });
+  } = useVillaGallery({ id, initialGalleryImages });
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] pb-24 text-[var(--site-text)] md:pb-0">
-      <Breadcrumbs listing={listing} />
+      <div className="mx-auto hidden w-full max-w-7xl items-center gap-2 px-4 py-4 text-xs font-semibold text-[var(--site-muted)] sm:px-6 lg:flex lg:px-8">
+        <a href="/" className="hover:text-[var(--site-primary)]">
+          Home
+        </a>
+        <span>{">"}</span>
+        <a href="/" className="hover:text-[var(--site-primary)]">
+          Pattaya Villas
+        </a>
+        <span>{">"}</span>
+        <span className="text-[var(--site-primary)]">{listing.zoneLabel}</span>
+      </div>
 
       <VillaDetailGallery
         items={galleryItems}
