@@ -18,6 +18,7 @@ import { formatVillaPrice } from "../listing/villa-price";
 import {
   CalendarDayIcons,
   CalendarDayOverlay,
+  CalendarFirstAvailablePointer,
   CalendarLegendItem,
 } from "./booking-calendar-parts";
 import {
@@ -34,6 +35,117 @@ import {
   type BookingCalendarMonth,
 } from "./booking-calendar-ui";
 import { findFact } from "./helpers";
+
+const bookingCalendarClientCache = new Map<string, BookingCalendarMonth>();
+const bookingCalendarClientRequests = new Map<
+  string,
+  Promise<BookingCalendarMonth>
+>();
+
+export function clearBookingCalendarClientCacheForTests() {
+  bookingCalendarClientCache.clear();
+  bookingCalendarClientRequests.clear();
+}
+
+function loadBookingCalendarMonth({
+  cacheKey,
+  listingId,
+  monthKey,
+}: {
+  cacheKey: string;
+  listingId: string;
+  monthKey: string;
+}): Promise<BookingCalendarMonth> {
+  const cachedCalendar = bookingCalendarClientCache.get(cacheKey);
+
+  if (cachedCalendar) {
+    return Promise.resolve(cachedCalendar);
+  }
+
+  const existingRequest = bookingCalendarClientRequests.get(cacheKey);
+
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = fetch(
+    `/api/villas/${encodeURIComponent(listingId)}/booking-calendar?month=${monthKey}`,
+  )
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error("Unable to load booking calendar.");
+      }
+
+      return (await response.json()) as BookingCalendarMonth;
+    })
+    .then((calendar) => {
+      bookingCalendarClientCache.set(cacheKey, calendar);
+
+      return calendar;
+    })
+    .finally(() => {
+      bookingCalendarClientRequests.delete(cacheKey);
+    });
+
+  bookingCalendarClientRequests.set(cacheKey, request);
+
+  return request;
+}
+
+function findFirstAvailableCalendarDateKey({
+  bookingCalendar,
+  todayStart,
+  fallbackPrice,
+  visibleMonth,
+  visibleMonthKey,
+}: {
+  bookingCalendar: BookingCalendarMonth | null;
+  fallbackPrice: number;
+  todayStart: Date;
+  visibleMonth: Date;
+  visibleMonthKey: string;
+}): string | null {
+  if (bookingCalendar?.month !== visibleMonthKey) {
+    return null;
+  }
+
+  const firstDay =
+    todayStart.getFullYear() === visibleMonth.getFullYear() &&
+    todayStart.getMonth() === visibleMonth.getMonth()
+      ? todayStart.getDate()
+      : 1;
+  const lastDay = new Date(
+    visibleMonth.getFullYear(),
+    visibleMonth.getMonth() + 1,
+    0,
+  ).getDate();
+  const lastDate = new Date(
+    visibleMonth.getFullYear(),
+    visibleMonth.getMonth(),
+    lastDay,
+  );
+
+  if (lastDate.getTime() < todayStart.getTime()) {
+    return null;
+  }
+
+  for (let day = firstDay; day <= lastDay; day += 1) {
+    const date = new Date(
+      visibleMonth.getFullYear(),
+      visibleMonth.getMonth(),
+      day,
+    );
+    const dateKey = formatCalendarDateKey(date);
+    const calendarDay =
+      bookingCalendar.days[dateKey] ?? getFallbackCalendarDay(fallbackPrice);
+
+    if (!calendarDay.disabled) {
+      return dateKey;
+    }
+  }
+
+  return null;
+}
 
 export function BookingSidebar({
   content,
@@ -60,7 +172,17 @@ export function BookingSidebar({
   >({});
   const visibleMonthKey = formatCalendarMonthKey(visibleMonth);
   const bookingCalendarCacheKey = `${listing.id}:${visibleMonthKey}`;
-  const bookingCalendar = bookingCalendars[bookingCalendarCacheKey] ?? null;
+  const bookingCalendar =
+    bookingCalendars[bookingCalendarCacheKey] ??
+    bookingCalendarClientCache.get(bookingCalendarCacheKey) ??
+    null;
+  const firstAvailableCalendarDateKey = findFirstAvailableCalendarDateKey({
+    bookingCalendar,
+    fallbackPrice: listing.price,
+    todayStart,
+    visibleMonth,
+    visibleMonthKey,
+  });
   const isPastCalendarDate = (date: Date) =>
     startOfCalendarDate(date).getTime() < todayStart.getTime();
   const isOutsideVisibleMonth = (date: Date) =>
@@ -96,20 +218,13 @@ export function BookingSidebar({
       return;
     }
 
-    const controller = new AbortController();
     let isActive = true;
 
-    void fetch(
-      `/api/villas/${encodeURIComponent(listing.id)}/booking-calendar?month=${visibleMonthKey}`,
-      { signal: controller.signal },
-    )
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error("Unable to load booking calendar.");
-        }
-
-        return (await response.json()) as BookingCalendarMonth;
-      })
+    void loadBookingCalendarMonth({
+      cacheKey: bookingCalendarCacheKey,
+      listingId: listing.id,
+      monthKey: visibleMonthKey,
+    })
       .then((calendar) => {
         if (isActive && calendar.month === visibleMonthKey) {
           setBookingCalendars((currentCalendars) => ({
@@ -118,11 +233,8 @@ export function BookingSidebar({
           }));
         }
       })
-      .catch((error: unknown) => {
-        if (
-          isActive &&
-          !(error instanceof DOMException && error.name === "AbortError")
-        ) {
+      .catch(() => {
+        if (isActive) {
           setBookingCalendars((currentCalendars) => {
             const nextCalendars = { ...currentCalendars };
 
@@ -135,7 +247,6 @@ export function BookingSidebar({
 
     return () => {
       isActive = false;
-      controller.abort();
     };
   }, [bookingCalendar?.month, bookingCalendarCacheKey, listing.id, visibleMonthKey]);
 
@@ -276,6 +387,8 @@ export function BookingSidebar({
                 day.date.getFullYear() !== visibleMonth.getFullYear() ||
                 day.date.getMonth() !== visibleMonth.getMonth();
               const calendarDay = getCalendarDay(day.date);
+              const isFirstAvailable =
+                formatCalendarDateKey(day.date) === firstAvailableCalendarDateKey;
               const isBlockedBooking =
                 !isPast && !isOutsideVisibleMonth && calendarDay.disabled;
 
@@ -307,6 +420,9 @@ export function BookingSidebar({
                   }
                   data-calendar-day-tone={
                     isOutsideVisibleMonth ? undefined : calendarDay.tone
+                  }
+                  data-calendar-first-available={
+                    isFirstAvailable ? "true" : undefined
                   }
                   day={day}
                   disabled={isBlockedBooking || props.disabled}
@@ -352,6 +468,7 @@ export function BookingSidebar({
                       !isPast && !isOutsideVisibleMonth ? calendarDay.icons : []
                     }
                   />
+                  {isFirstAvailable ? <CalendarFirstAvailablePointer /> : null}
                 </CalendarDayButton>
               );
             },

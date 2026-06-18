@@ -7,7 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
-import { BookingSidebar } from "../booking-sidebar";
+import {
+  BookingSidebar,
+  clearBookingCalendarClientCacheForTests,
+} from "../booking-sidebar";
 
 const listing: VillaListing = {
   id: "66",
@@ -223,6 +226,7 @@ describe("BookingSidebar", () => {
   });
 
   afterEach(() => {
+    clearBookingCalendarClientCacheForTests();
     vi.useRealTimers();
     vi.unstubAllGlobals();
     document.body.style.overflow = "";
@@ -243,6 +247,66 @@ describe("BookingSidebar", () => {
     expect(markup).not.toContain("Mock FE");
     expect(markup).toContain("แชทเลย");
     expect(markup).toContain("จองผ่าน LINE");
+  });
+
+  it("dedupes duplicate booking calendar requests across mounted sidebars", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <>
+          <BookingSidebar
+            content={content}
+            listing={listing}
+            settings={DEFAULT_SITE_SETTINGS}
+          />
+          <BookingSidebar
+            content={content}
+            listing={listing}
+            settings={DEFAULT_SITE_SETTINGS}
+          />
+        </>,
+      );
+      await Promise.resolve();
+    });
+
+    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("reuses a cached booking calendar after the sidebar remounts", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-18T04:00:00.000Z"));
+    const firstPage = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
+    await firstPage.cleanup();
+    vi.mocked(fetch).mockClear();
+
+    const secondPage = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      secondPage.container.querySelector("[data-calendar-first-available='true']"),
+    ).not.toBeNull();
+
+    await secondPage.cleanup();
   });
 
   it("renders calendar navigation inside the caption and can return to the current month", async () => {
@@ -464,6 +528,52 @@ describe("BookingSidebar", () => {
     dialog = page.container.querySelector('[role="dialog"]');
     expect(dialog?.textContent).toContain("วันธรรมดา");
     expect(dialog?.textContent).toContain("ราคา 9,900 บาท");
+
+    await page.cleanup();
+  });
+
+  it("points at the nearest available booking date", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-18T04:00:00.000Z"));
+    const page = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const firstAvailableDate =
+      page.container.querySelector<HTMLButtonElement>(
+        "[data-calendar-first-available='true']",
+      );
+    const bookedDate = Array.from(
+      page.container.querySelectorAll<HTMLButtonElement>("button"),
+    ).find((button) =>
+      button.getAttribute("aria-label")?.startsWith("19 à¸¡à¸´à¸–à¸¸à¸™à¸²à¸¢à¸™ 2569"),
+    );
+
+    expect(firstAvailableDate?.getAttribute("aria-label")).toMatch(
+      /^20 มิถุนายน 2569/,
+    );
+    expect(
+      firstAvailableDate?.querySelector(
+        "[data-calendar-first-available-pointer]",
+      ),
+    ).not.toBeNull();
+    expect(
+      firstAvailableDate
+        ?.querySelector("[data-calendar-first-available-icon]")
+        ?.getAttribute("src"),
+    ).toBe("/icons/pointing-left-finger-svgrepo-com.svg");
+    expect(bookedDate?.dataset.calendarFirstAvailable).toBeUndefined();
+
+    await act(async () => {
+      clickCalendarNavButton(page.container, "previous");
+      await Promise.resolve();
+    });
+
+    expect(
+      page.container.querySelector("[data-calendar-first-available='true']"),
+    ).toBeNull();
 
     await page.cleanup();
   });

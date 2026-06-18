@@ -1,5 +1,6 @@
 import { BadgePercent } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
+import Image from "next/image";
 import { useId, type ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 import type { BookingCalendarDay } from "./booking-calendar-ui";
@@ -127,6 +128,46 @@ export function CalendarDayOverlay({ day }: { day: BookingCalendarDay }) {
       <span className="absolute left-1/2 top-1/2 h-[2px] w-[142%] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-full bg-white/45 shadow-[0_1px_2px_rgba(70,8,8,0.12)]" />
       <span className="absolute left-1/2 top-1/2 h-[2px] w-[142%] -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-full bg-white/45 shadow-[0_1px_2px_rgba(70,8,8,0.12)]" />
     </span>
+  );
+}
+
+export function CalendarFirstAvailablePointer() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <motion.span
+      aria-hidden="true"
+      animate={
+        reduceMotion
+          ? undefined
+          : {
+              rotate: [-12, -4, -12],
+              scale: [1, 1.08, 1],
+              y: [0, -4, 0],
+            }
+      }
+      className="pointer-events-none absolute -top-8 left-1 z-[35] drop-shadow-[0_3px_3px_rgba(12,28,24,0.24)]"
+      data-calendar-first-available-pointer="true"
+      transition={
+        reduceMotion
+          ? undefined
+          : {
+              duration: 1.15,
+              ease: "easeInOut",
+              repeat: Infinity,
+            }
+      }
+    >
+      <Image
+        alt=""
+        className="relative z-10 size-11 -rotate-90"
+        data-calendar-first-available-icon="true"
+        height={44}
+        src="/icons/pointing-left-finger-svgrepo-com.svg"
+        unoptimized
+        width={44}
+      />
+    </motion.span>
   );
 }
 
