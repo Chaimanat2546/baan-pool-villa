@@ -1,6 +1,7 @@
 import {
   buildImageDownloadFilename,
   createAttachmentDisposition,
+  fetchAllowedVillaImageDownload,
   isAllowedVillaImageUrl,
   normalizeDownloadImageUrl,
 } from "@/lib/villas/image-download";
@@ -63,10 +64,10 @@ export async function GET(
     const timeout = setTimeout(() => {
       controller.abort();
     }, IMAGE_DOWNLOAD_TIMEOUT_MS);
-    let upstreamResponse: Response;
+    let upstreamResponse: Response | null;
 
     try {
-      upstreamResponse = await fetch(targetUrl, {
+      upstreamResponse = await fetchAllowedVillaImageDownload(targetUrl, images, {
         cache: "no-store",
         signal: controller.signal,
       });
@@ -74,10 +75,10 @@ export async function GET(
       clearTimeout(timeout);
     }
 
-    const contentType = upstreamResponse.headers.get("Content-Type") ?? "";
+    const contentType = upstreamResponse?.headers.get("Content-Type") ?? "";
 
     if (
-      !upstreamResponse.ok ||
+      !upstreamResponse?.ok ||
       !upstreamResponse.body ||
       !contentType.trim().toLowerCase().startsWith("image/")
     ) {

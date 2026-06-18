@@ -13,10 +13,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
 import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
 import {
-  formatAdminErrorMessage,
   getAdminErrorMessage,
-  translateAdminErrorMessages,
 } from "@/components/admin/admin-error-messages";
+import {
+  extractAdminErrors as extractErrors,
+  readJsonPayload,
+  shouldRedirectToLogin,
+} from "@/components/admin/admin-api-client";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
@@ -57,71 +60,7 @@ import type {
   DetailLayoutWideRatio,
 } from "./types";
 
-const ADMIN_ACCESS_ERROR_PREFIX = "Unable to verify admin access:";
 const DETAIL_LAYOUT_PREVIEW_HREF = "/villas/2938";
-const AUTH_FAILURE_MESSAGES = new Set([
-  "Invalid or expired Supabase session. Please sign in again.",
-  "Signed-in user is not listed as an active home config admin.",
-]);
-
-function extractErrors(payload: unknown, fallback: string): string[] {
-  if (!payload || typeof payload !== "object") {
-    return [fallback];
-  }
-
-  const errorPayload = payload as AdminDetailLayoutResponse;
-
-  if (Array.isArray(errorPayload.errors)) {
-    const errors = errorPayload.errors.filter(
-      (error): error is string => typeof error === "string" && error.length > 0,
-    );
-
-    if (errors.length > 0) {
-      return translateAdminErrorMessages(errors);
-    }
-  }
-
-  if (typeof errorPayload.error === "string" && errorPayload.error) {
-    const detailParts = [
-      typeof errorPayload.code === "string" ? errorPayload.code : null,
-      typeof errorPayload.details === "string" ? errorPayload.details : null,
-      typeof errorPayload.hint === "string" ? errorPayload.hint : null,
-    ].filter((part): part is string => typeof part === "string" && part.length > 0);
-
-    return [formatAdminErrorMessage(errorPayload.error, detailParts)];
-  }
-
-  return [fallback];
-}
-
-async function readJsonPayload(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
-
-function shouldRedirectToLogin(
-  status: number,
-  payload: AdminDetailLayoutResponse | null,
-): boolean {
-  if (status === 401) {
-    return true;
-  }
-
-  if (status !== 403) {
-    return false;
-  }
-
-  const message = payload?.error;
-
-  return (
-    typeof message === "string" &&
-    (AUTH_FAILURE_MESSAGES.has(message) ||
-      message.startsWith(ADMIN_ACCESS_ERROR_PREFIX))
-  );
-}
 
 function findWideRow(layout: DetailLayoutV2Draft | null, rowId: string | null) {
   if (!layout || !rowId) {

@@ -7,6 +7,7 @@ import type { VillaImage } from "@/lib/villas/types";
 import {
   buildImageDownloadFilename,
   createAttachmentDisposition,
+  fetchAllowedVillaImageDownload,
   isAllowedVillaImageUrl,
   normalizeDownloadImageUrl,
 } from "../image-download";
@@ -119,6 +120,60 @@ describe("download image validation helpers", () => {
     expect(createAttachmentDisposition("villa 12 pool.jpg")).toBe(
       'attachment; filename="villa-12-pool.jpg"',
     );
+  });
+
+  it("manually follows only allowed image redirects", async () => {
+    const finalImage = {
+      ...imageRows[0],
+      imageUrl: "https://images.example.com/final.jpg",
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, {
+          headers: { Location: finalImage.imageUrl },
+          status: 302,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response("photo bytes", {
+          headers: { "Content-Type": "image/jpeg" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await fetchAllowedVillaImageDownload(
+      "https://images.example.com/pool.jpg",
+      [...imageRows, finalImage],
+      { cache: "no-store" },
+    );
+
+    expect(response?.status).toBe(200);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "https://images.example.com/pool.jpg",
+      { cache: "no-store", redirect: "manual" },
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://images.example.com/final.jpg",
+      { cache: "no-store", redirect: "manual" },
+    );
+  });
+
+  it("rejects redirects outside the villa image allowlist", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        headers: { Location: "https://evil.example.com/pool.jpg" },
+        status: 302,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchAllowedVillaImageDownload("https://images.example.com/pool.jpg", imageRows),
+    ).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -262,6 +317,7 @@ describe("GET /api/villas/[id]/images/download", () => {
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith("https://images.example.com/pool.jpg", {
       cache: "no-store",
+      redirect: "manual",
       signal: expect.any(AbortSignal),
     });
     expect(response.headers.get("Content-Disposition")).toBe(

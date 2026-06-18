@@ -20,16 +20,13 @@ describe("RootLayout", () => {
     expect(markup).not.toContain("select-none");
   });
 
-  it("installs a guarded chunk load recovery script", () => {
+  it("does not render inline scripts from the root layout", () => {
     const markup = renderToStaticMarkup(
       <RootLayout>
         <div>Page content</div>
       </RootLayout>,
     );
 
-    expect(markup).toContain('data-bpv-chunk-recovery="true"');
-    expect(markup).toContain("ChunkLoadError");
-    expect(markup).toContain("sessionStorage.getItem(retryKey)");
-    expect(markup).toContain("/_next/static/chunks/");
+    expect(markup).not.toContain("<script");
   });
 });

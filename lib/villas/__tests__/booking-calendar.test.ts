@@ -84,11 +84,45 @@ describe("normalizeBookingCalendar", () => {
 
     expect(calendar.days["2026-06-16"]).toMatchObject({
       disabled: false,
+      displayPrice: "7,900",
       icons: ["promotion"],
       kind: "promotion",
       label: "โปรโมชั่น",
       price: 7900,
+      promotionMessage: "ลดราคาเดือนมิถุนายน",
       tone: "promotion",
+    });
+  });
+
+  it("uses the lowest price from promotion messages for promotion days", () => {
+    const promotionMessage = [
+      "วันธรรมดา อา-พฤ แบ่งเปิดได้",
+      "- 3 ห้องนอน ราคา 5900/12 ท่าน",
+      "- 4 ห้องนอน ราคา 6900/15 ท่าน",
+      "- 5 ห้องนอน ราคา 7900/17 ท่าน",
+      "- 6 ห้องนอน ราคา 8900/20 ท่าน",
+      "",
+      "วันศุกร์ และ วันเสาร์ เปิดเต็ม 6 ห้องนอนเท่านั้น",
+    ].join("\n");
+    const calendar = normalizeBookingCalendar(
+      {
+        ...baseResponse,
+        protime_promotions: [
+          {
+            protime_end: "2026-06-30",
+            protime_msg: promotionMessage,
+            protime_price_mon: 7900,
+            protime_start: "2026-06-01",
+          },
+        ],
+      },
+      "2026-06",
+    );
+
+    expect(calendar.days["2026-06-15"]).toMatchObject({
+      displayPrice: "5,900",
+      price: 5900,
+      promotionMessage,
     });
   });
 
@@ -114,12 +148,14 @@ describe("normalizeBookingCalendar", () => {
 
     expect(calendar.days["2026-06-10"]).toMatchObject({
       disabled: true,
+      displayPrice: null,
       kind: "booking_waiting",
       label: "ติดจองแต่ยังไม่โอน",
       tone: "waiting",
     });
     expect(calendar.days["2026-06-11"]).toMatchObject({
       disabled: true,
+      displayPrice: null,
       kind: "booking_confirmed",
       label: "ติดจองแล้ว",
       tone: "booked",
