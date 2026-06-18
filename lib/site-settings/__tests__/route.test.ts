@@ -565,6 +565,25 @@ describe("admin site settings route", () => {
     expect(body.errors).toContain("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");
   });
 
+  it("rejects invalid upload files before reading site settings", async () => {
+    const from = vi.fn();
+
+    authSupabase({ from });
+
+    const formData = settingsForm();
+    formData.set("logo", new File(["gif"], "logo.gif", { type: "image/gif" }));
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await PUT(putRequest(formData));
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.errors).toEqual([expect.stringContaining("JPG")]);
+    expect(from).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed phoneContacts payloads before reading site settings", async () => {
     const from = vi.fn();
 

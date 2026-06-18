@@ -1,8 +1,11 @@
 import "server-only";
 
+import { isAllowedAdminRequestOrigin } from "@/lib/admin/request-origin";
+
 export const TURNSTILE_SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
+const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
 const TURNSTILE_SITEVERIFY_TIMEOUT_MS = 3500;
 const TURNSTILE_MISSING_CONFIG_MESSAGE = "Turnstile is not configured.";
 const TURNSTILE_MISSING_TOKEN_MESSAGE = "Missing Turnstile token.";
@@ -41,6 +44,10 @@ interface TurnstileSiteverifyPayload {
   success?: boolean;
 }
 
+interface TurnstileRequestBody {
+  token?: unknown;
+}
+
 function getOptionalEnv(name: string): string | null {
   const value = process.env[name]?.trim();
 
@@ -58,6 +65,23 @@ function warnDevelopmentBypassOnce() {
 
 function isSiteverifyPayload(value: unknown): value is TurnstileSiteverifyPayload {
   return typeof value === "object" && value !== null;
+}
+
+async function readTurnstileToken(request: Request): Promise<string> {
+  try {
+    const body = (await request.json()) as TurnstileRequestBody;
+
+    return typeof body.token === "string" ? body.token.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return Response.json(body, {
+    headers: NO_STORE_HEADERS,
+    status,
+  });
 }
 
 /**
@@ -190,4 +214,22 @@ export async function verifyTurnstileToken({
       status: 502,
     };
   }
+}
+
+export async function buildAdminLoginTurnstileResponse(request: Request) {
+  if (!isAllowedAdminRequestOrigin(request)) {
+    return jsonResponse({ error: "Admin request origin is not allowed." }, 403);
+  }
+
+  const token = await readTurnstileToken(request);
+  const result = await verifyTurnstileToken({ request, token });
+
+  if (!result.ok) {
+    return jsonResponse({ error: result.message }, result.status);
+  }
+
+  return jsonResponse({
+    bypassed: result.bypassed,
+    verified: true,
+  });
 }

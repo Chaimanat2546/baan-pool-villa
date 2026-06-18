@@ -3,9 +3,8 @@ import { limitPublicApiRequest } from "@/lib/api/rate-limit";
 import { getPublishedGuides } from "@/lib/guides/server";
 import type { GuidePost } from "@/lib/guides/types";
 import {
-  fetchPublicImageProxyResponse,
+  buildAllowedPublicImageProxyResponse,
   normalizePublicImageProxyUrl,
-  parsePublicImageProxyTransformRequest,
 } from "@/lib/public-image-proxy-server";
 
 interface GuideImageBlock {
@@ -48,36 +47,15 @@ export async function GET(request: Request) {
     return rateLimitResponse;
   }
 
-  const requestUrl = new URL(request.url);
-  const targetUrl = normalizePublicImageProxyUrl(requestUrl.searchParams.get("url"));
-
-  if (!targetUrl) {
-    return Response.json({ error: "Invalid image URL" }, { status: 400 });
-  }
-
-  const transformRequest = parsePublicImageProxyTransformRequest(request);
-
-  if (!transformRequest.valid) {
-    return Response.json({ error: "Invalid image transform" }, { status: 400 });
-  }
-
   try {
-    const guides = await getPublishedGuides();
+    return await buildAllowedPublicImageProxyResponse(
+      request,
+      async (targetUrl) => {
+        const guides = await getPublishedGuides();
 
-    if (!isAllowedGuideImageUrl(targetUrl, guides)) {
-      return Response.json({ error: "Image not found" }, { status: 404 });
-    }
-
-    const imageResponse = await fetchPublicImageProxyResponse(
-      targetUrl,
-      transformRequest.params,
+        return isAllowedGuideImageUrl(targetUrl, guides);
+      },
     );
-
-    if (!imageResponse) {
-      return Response.json({ error: "Unable to load image" }, { status: 502 });
-    }
-
-    return imageResponse;
   } catch (error) {
     return publicApiErrorResponse("Unable to load image", error);
   }

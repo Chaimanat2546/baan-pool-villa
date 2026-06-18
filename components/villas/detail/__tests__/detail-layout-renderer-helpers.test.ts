@@ -8,7 +8,6 @@ import {
   appendWideRows,
   getRowGridClass,
   isLockedFullWidthRow,
-  isSplitRatio,
   isSplitRow,
   splitV2WideColumns,
   splitWideColumns,
@@ -47,10 +46,8 @@ describe("detail layout renderer helpers", () => {
     const splitRow = row(2, "70/30");
     const balancedRow = row(2, "50/50");
 
-    expect(isSplitRatio("70/30")).toBe(true);
-    expect(isSplitRatio("30/70")).toBe(true);
-    expect(isSplitRatio("50/50")).toBe(false);
     expect(isSplitRow(splitRow, [block("a"), block("b")])).toBe(true);
+    expect(isSplitRow(row(2, "30/70"), [block("a"), block("b")])).toBe(true);
     expect(isSplitRow(splitRow, [block("a")])).toBe(false);
     expect(isSplitRow(balancedRow, [block("a"), block("b")])).toBe(false);
   });

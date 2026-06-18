@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   addCalendarMonths,
+  findFirstAvailableCalendarDateKey,
   formatCalendarDateKey,
   formatCalendarMonthKey,
   formatCalendarPrice,
@@ -46,5 +47,42 @@ describe("booking calendar UI helpers", () => {
     expect(getCalendarToneClass({ ...fallbackDay, tone: "waiting" })).toContain(
       "bg-[var(--site-primary)]",
     );
+  });
+
+  it("finds the first selectable calendar day in the visible month", () => {
+    const fallbackDay = getFallbackCalendarDay(9200);
+    const bookedDay = {
+      ...fallbackDay,
+      disabled: true,
+      kind: "booking_confirmed" as const,
+      tone: "booked" as const,
+    };
+    const calendar = {
+      days: {
+        "2026-06-16": bookedDay,
+        "2026-06-17": bookedDay,
+      },
+      month: "2026-06",
+      status: "available" as const,
+    };
+
+    expect(
+      findFirstAvailableCalendarDateKey({
+        bookingCalendar: calendar,
+        fallbackPrice: 9200,
+        todayStart: new Date(2026, 5, 16),
+        visibleMonth: new Date(2026, 5, 1),
+        visibleMonthKey: "2026-06",
+      }),
+    ).toBe("2026-06-18");
+    expect(
+      findFirstAvailableCalendarDateKey({
+        bookingCalendar: calendar,
+        fallbackPrice: 9200,
+        todayStart: new Date(2026, 5, 16),
+        visibleMonth: new Date(2026, 6, 1),
+        visibleMonthKey: "2026-07",
+      }),
+    ).toBeNull();
   });
 });

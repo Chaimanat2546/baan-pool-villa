@@ -53,7 +53,7 @@ describe("normalizeBookingCalendar", () => {
     });
   });
 
-  it("marks promotion days with only a promotion icon and promotion weekday price", () => {
+  it("marks promotion days without calendar icons and with promotion weekday price", () => {
     const calendar = normalizeBookingCalendar(
       {
         ...baseResponse,
@@ -85,7 +85,7 @@ describe("normalizeBookingCalendar", () => {
     expect(calendar.days["2026-06-16"]).toMatchObject({
       disabled: false,
       displayPrice: "7,900",
-      icons: ["promotion"],
+      icons: [],
       kind: "promotion",
       label: "โปรโมชั่น",
       price: 7900,

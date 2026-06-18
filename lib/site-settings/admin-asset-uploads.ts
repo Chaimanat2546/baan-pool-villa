@@ -2,10 +2,14 @@ import type {
   HomeConfigSupabaseClient,
   SupabaseLikeError,
 } from "@/lib/admin/route-helpers";
+import { getOptionalUpload } from "@/lib/site-settings/admin-form-fields";
 
 import { SITE_ASSETS_BUCKET } from "./defaults";
 import type { SiteAssetType, SiteAssetUploadRecord } from "./types";
-import { selectAssetUploadsForCleanup } from "./validation";
+import {
+  selectAssetUploadsForCleanup,
+  validateUploadMetadata,
+} from "./validation";
 
 export interface UploadedAsset {
   assetType: SiteAssetType;
@@ -16,6 +20,19 @@ export interface UploadedAsset {
 export interface RecordedAsset extends UploadedAsset {
   uploadId: string;
 }
+
+export interface SiteSettingsUploadFile {
+  assetType: SiteAssetType;
+  file: File;
+}
+
+export const ASSET_UPLOAD_FIELDS: {
+  assetType: SiteAssetType;
+  fieldName: string;
+}[] = [
+  { assetType: "logo", fieldName: "logo" },
+  { assetType: "hero", fieldName: "hero" },
+];
 
 interface SiteAssetUploadRow {
   id: unknown;
@@ -95,6 +112,17 @@ export async function deleteRecordedAssets(
   return warnings;
 }
 
+export async function cleanupFailedSiteAssetSave(
+  supabase: HomeConfigSupabaseClient,
+  recordedAssets: RecordedAsset[],
+  uploadedAssets: UploadedAsset[],
+): Promise<string[]> {
+  return [
+    ...(await deleteRecordedAssets(supabase, recordedAssets)),
+    ...(await removeUploadedAssets(supabase, uploadedAssets)),
+  ];
+}
+
 export async function uploadAsset(
   supabase: HomeConfigSupabaseClient,
   assetType: SiteAssetType,
@@ -131,6 +159,62 @@ export async function uploadAsset(
     },
     error: null,
   };
+}
+
+export async function uploadSiteSettingsAssets(
+  supabase: HomeConfigSupabaseClient,
+  uploadFiles: SiteSettingsUploadFile[],
+): Promise<
+  | {
+      ok: true;
+      uploadedAssets: UploadedAsset[];
+    }
+  | {
+      assetType: SiteAssetType;
+      cleanupWarnings: string[];
+      error: SupabaseLikeError | null;
+      ok: false;
+    }
+> {
+  const uploadedAssets: UploadedAsset[] = [];
+
+  for (const upload of uploadFiles) {
+    const result = await uploadAsset(supabase, upload.assetType, upload.file);
+
+    if (result.error || !result.asset) {
+      return {
+        assetType: upload.assetType,
+        cleanupWarnings: await removeUploadedAssets(supabase, uploadedAssets),
+        error: result.error,
+        ok: false,
+      };
+    }
+
+    uploadedAssets.push(result.asset);
+  }
+
+  return { ok: true, uploadedAssets };
+}
+
+export function readSiteSettingsUploadFiles(formData: FormData): {
+  errors: string[];
+  uploadFiles: SiteSettingsUploadFile[];
+} {
+  const errors: string[] = [];
+  const uploadFiles: SiteSettingsUploadFile[] = [];
+
+  ASSET_UPLOAD_FIELDS.forEach(({ assetType, fieldName }) => {
+    const file = getOptionalUpload(formData, fieldName);
+
+    if (!file) {
+      return;
+    }
+
+    errors.push(...validateUploadMetadata(assetType, file.type, file.size));
+    uploadFiles.push({ assetType, file });
+  });
+
+  return { errors, uploadFiles };
 }
 
 function mapUploadRow(row: SiteAssetUploadRow): SiteAssetUploadRecord | null {

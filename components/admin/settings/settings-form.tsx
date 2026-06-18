@@ -93,13 +93,6 @@ function cssImageUrl(value: string): string {
   return `url("${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}")`;
 }
 
-/**
- * Renders the administrative settings form for site branding, theme, hero image, SEO/share metadata, and contact/payment fields.
- *
- * The form reflects `draft` values for live previews, calls `onChange` to propagate edits, and invokes `onSave` when submitted. It uses `isSaving` to set form busy state and `hasUnsavedChanges` to display unsaved status.
- *
- * @returns The rendered settings form element
- */
 export function SettingsForm({
   draft,
   hasUnsavedChanges,

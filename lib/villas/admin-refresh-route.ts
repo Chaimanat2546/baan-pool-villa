@@ -1,3 +1,5 @@
+import { revalidateExternalVillaCache } from "@/lib/cache-revalidation";
+
 const REFRESH_CONFIRMATION_HEADER = "x-admin-refresh-confirmation";
 const REFRESH_CONFIRMATION_VALUE = "external-villa-cache";
 const REFRESH_SCOPE_HEADER = "x-admin-refresh-scope";
@@ -82,4 +84,17 @@ export function buildExternalVillaRefreshResponse(scope: typeof DEFAULT_REFRESH_
     retryAfterSeconds: REFRESH_COOLDOWN_SECONDS,
     message: "External villa data cache refresh requested.",
   });
+}
+
+export async function buildAdminExternalVillaRefreshResponse(request: Request) {
+  const validation = validateExternalVillaRefreshRequest(request);
+
+  if (!validation.ok) {
+    return validation.response;
+  }
+
+  await revalidateExternalVillaCache();
+  markExternalVillaRefreshRequested();
+
+  return buildExternalVillaRefreshResponse(validation.scope);
 }

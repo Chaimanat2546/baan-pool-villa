@@ -1,6 +1,16 @@
-import type { HomeConfigSupabaseClient } from "@/lib/admin/route-helpers";
-import type { GuideDraft, GuideImage, GuideStatus } from "./types";
-import { normalizeGuideDraftForSave } from "./validation";
+import {
+  adminSupabaseErrorResponse,
+  type HomeConfigSupabaseClient,
+} from "@/lib/admin/route-helpers";
+import { revalidateGuideCache } from "@/lib/cache-revalidation";
+import type { GuideDraft, GuideImage, GuidePostRow, GuideStatus } from "./types";
+import {
+  buildUniqueSlug,
+  createSlugFromTitle,
+  normalizeGuideDraftForSave,
+  normalizeGuidePostRow,
+  validateGuideDraft,
+} from "./validation";
 
 export const GUIDE_POST_SELECT =
   "id,slug,title,excerpt,cover_image_path,cover_image_url,cover_image_alt,content_blocks,tags,recommended_house_ids,status,is_pinned,published_at,created_at,updated_at";
@@ -148,6 +158,105 @@ export async function loadSlugRows(supabase: HomeConfigSupabaseClient) {
   return { rows: mapSlugRows(data), error: null };
 }
 
+export async function buildAdminGuidesListResponse(
+  supabase: HomeConfigSupabaseClient,
+) {
+  const { data, error } = await supabase
+    .from("guide_posts")
+    .select(GUIDE_POST_SELECT)
+    .order("is_pinned", { ascending: false })
+    .order("updated_at", { ascending: false });
+
+  if (error || !Array.isArray(data)) {
+    return adminSupabaseErrorResponse(error, "Unable to load guide posts.");
+  }
+
+  return Response.json({
+    guides: (data as GuidePostRow[]).map(normalizeGuidePostRow),
+  });
+}
+
+export async function saveAdminGuide(
+  request: Request,
+  supabase: HomeConfigSupabaseClient,
+) {
+  const jsonPayload = await readJsonPayload(request);
+
+  if (!jsonPayload.ok) {
+    return jsonPayload.response;
+  }
+
+  const parsedPayload = readGuidePayload(jsonPayload.payload);
+
+  if (parsedPayload.errors.length > 0 || !parsedPayload.guide) {
+    return Response.json({ errors: parsedPayload.errors }, { status: 400 });
+  }
+
+  const guideId = parsedPayload.guide.id?.trim();
+  const baseSlug = createSlugFromTitle(parsedPayload.guide.title);
+  const preflightDraft: GuideDraft = {
+    ...parsedPayload.guide,
+    slug: baseSlug,
+    publishedAt:
+      parsedPayload.guide.status === "published"
+        ? parsedPayload.guide.publishedAt ?? new Date().toISOString()
+        : null,
+  };
+  const errors = validateGuideDraft(preflightDraft);
+
+  if (errors.length > 0) {
+    return Response.json({ errors }, { status: 400 });
+  }
+
+  const slugResult = await loadSlugRows(supabase);
+
+  if (slugResult.error) {
+    return adminSupabaseErrorResponse(slugResult.error, "Unable to load guide slugs.");
+  }
+
+  const currentSlug =
+    (guideId
+      ? slugResult.rows.find((row) => row.id === guideId)?.slug
+      : undefined) ?? parsedPayload.guide.slug.trim();
+  const uniqueSlug = buildUniqueSlug(
+    baseSlug,
+    slugResult.rows.map((row) => row.slug),
+    currentSlug || undefined,
+  );
+  const saveRow = mapToSaveRow({
+    ...parsedPayload.guide,
+    slug: uniqueSlug,
+    publishedAt: preflightDraft.publishedAt,
+  });
+  const saveQuery = guideId
+    ? supabase
+        .from("guide_posts")
+        .update(saveRow)
+        .eq("id", guideId)
+        .select(GUIDE_POST_SELECT)
+        .single()
+    : supabase
+        .from("guide_posts")
+        .insert(saveRow)
+        .select(GUIDE_POST_SELECT)
+        .single();
+  const { data, error } = await saveQuery;
+
+  if (error || !data) {
+    return adminSupabaseErrorResponse(error, "Unable to save guide post.");
+  }
+
+  if (currentSlug && currentSlug !== saveRow.slug) {
+    await revalidateGuideCache(currentSlug);
+  }
+
+  await revalidateGuideCache(saveRow.slug);
+
+  return Response.json({
+    guide: normalizeGuidePostRow(data as GuidePostRow),
+  });
+}
+
 export function readDeleteGuidePayload(payload: unknown):
   | {
       id: string;
@@ -168,4 +277,34 @@ export function readDeleteGuidePayload(payload: unknown):
     slug: typeof payload.slug === "string" ? payload.slug : null,
     errors: [],
   };
+}
+
+export async function deleteAdminGuide(
+  request: Request,
+  supabase: HomeConfigSupabaseClient,
+) {
+  const jsonPayload = await readJsonPayload(request);
+
+  if (!jsonPayload.ok) {
+    return jsonPayload.response;
+  }
+
+  const parsedPayload = readDeleteGuidePayload(jsonPayload.payload);
+
+  if (parsedPayload.errors.length > 0 || !parsedPayload.id) {
+    return Response.json({ errors: parsedPayload.errors }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from("guide_posts")
+    .delete()
+    .eq("id", parsedPayload.id);
+
+  if (error) {
+    return adminSupabaseErrorResponse(error, "Unable to delete guide post.");
+  }
+
+  await revalidateGuideCache(parsedPayload.slug);
+
+  return Response.json({ ok: true });
 }

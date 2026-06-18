@@ -10,7 +10,7 @@ const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 type WeekdayKey = (typeof WEEKDAY_KEYS)[number];
 
-export type BookingCalendarIcon = "fire" | "promotion";
+export type BookingCalendarIcon = "fire";
 export type BookingCalendarKind =
   | "base"
   | "booking_confirmed"
@@ -388,7 +388,7 @@ export function normalizeBookingCalendar(
         day: {
           disabled: false,
           displayPrice: formatCalendarDayDisplayPrice(price),
-          icons: ["promotion"],
+          icons: [],
           kind: "promotion",
           label: "โปรโมชั่น",
           price,

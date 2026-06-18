@@ -223,17 +223,6 @@ function moveWideBlock(
   );
 }
 
-/**
- * Admin page UI for editing the Details page layout.
- *
- * Renders a full editor that lets administrators add, move, enable/disable, and
- * remove wide/narrow rows and blocks, preview the layout, and save changes to
- * the server. Manages loading/saving state, validation, error and notice
- * messages, selection state on the canvas, and redirects to the login page if
- * the current session is not authorized.
- *
- * @returns The rendered JSX element for the admin detail layout editor.
- */
 export function AdminDetailLayoutPage() {
   const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();

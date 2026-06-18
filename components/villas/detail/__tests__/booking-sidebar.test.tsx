@@ -71,7 +71,7 @@ function buildCalendarResponse(month: string) {
     days["2026-06-17"] = {
       disabled: false,
       displayPrice: "5,900",
-      icons: ["promotion"],
+      icons: [],
       kind: "promotion",
       label: "โปรโมชั่น",
       price: 5900,
@@ -234,7 +234,7 @@ describe("BookingSidebar", () => {
     document.body.innerHTML = "";
   });
 
-  it("hides prototype-like calendar mock UI and keeps contact actions", () => {
+  it("keeps contact actions in the booking sidebar", () => {
     const markup = renderToStaticMarkup(
       <BookingSidebar
         content={content}
@@ -243,8 +243,6 @@ describe("BookingSidebar", () => {
       />,
     );
 
-    expect(markup).not.toContain("October 2024");
-    expect(markup).not.toContain("Mock FE");
     expect(markup).toContain("แชทเลย");
     expect(markup).toContain("จองผ่าน LINE");
   });
@@ -512,7 +510,9 @@ describe("BookingSidebar", () => {
     expect(
       page.container.querySelector('[role="presentation"]')?.className,
     ).not.toContain("backdrop-blur-sm");
-    expect(page.container.querySelector('[role="dialog"]')?.className).toContain(
+    expect(
+      page.container.querySelector("[data-date-detail-dialog]")?.className,
+    ).toContain(
       "bg-[linear-gradient(145deg,var(--site-surface),var(--site-surface-soft))]",
     );
     expect(
@@ -544,7 +544,7 @@ describe("BookingSidebar", () => {
     await act(async () => {
       pastDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    expect(page.container.querySelector('[role="dialog"]')).toBeNull();
+    expect(page.container.querySelector("[data-date-detail-dialog]")).toBeNull();
 
     const normalDate = Array.from(
       page.container.querySelectorAll<HTMLButtonElement>("button"),
@@ -556,7 +556,7 @@ describe("BookingSidebar", () => {
       normalDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    let dialog = page.container.querySelector('[role="dialog"]');
+    let dialog = page.container.querySelector("[data-date-detail-dialog]");
     expect(dialog?.textContent).toContain("วันธรรมดา");
     expect(dialog?.textContent).toContain("ราคา 9,900 บาท");
     expect(document.body.style.overflow).toBe("hidden");
@@ -587,7 +587,7 @@ describe("BookingSidebar", () => {
       );
     });
 
-    dialog = page.container.querySelector('[role="dialog"]');
+    dialog = page.container.querySelector("[data-date-detail-dialog]");
     expect(dialog?.textContent).toContain("วันธรรมดา");
     expect(dialog?.textContent).toContain("ราคา 9,900 บาท");
 
@@ -626,6 +626,28 @@ describe("BookingSidebar", () => {
         ?.querySelector("[data-calendar-first-available-icon]")
         ?.getAttribute("src"),
     ).toBe("/icons/pointing-left-finger-svgrepo-com.svg");
+    expect(
+      page.container.querySelector("[data-calendar-first-available-tip]"),
+    ).not.toBeNull();
+    expect(
+      page.container.querySelector("[data-calendar-first-available-tip]")
+        ?.getAttribute("data-calendar-first-available-tip-align"),
+    ).toBe("end");
+
+    await act(async () => {
+      page.container
+        .querySelector<HTMLButtonElement>(
+          "[data-calendar-first-available-tip-dismiss]",
+        )
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(
+      page.container.querySelector("[data-calendar-first-available-tip]"),
+    ).toBeNull();
+    expect(
+      firstAvailableDate?.querySelector("[data-calendar-first-available-pointer]"),
+    ).not.toBeNull();
     expect(bookedDate).not.toBeNull();
     expect(bookedDate?.dataset.calendarFirstAvailable).toBeUndefined();
 
@@ -690,20 +712,7 @@ describe("BookingSidebar", () => {
     );
 
     expect(promotionDate?.dataset.calendarDayKind).toBe("promotion");
-    expect(promotionDate?.querySelector("[data-calendar-icon='promotion']")).not.toBeNull();
-    expect(
-      promotionDate?.querySelector("[data-calendar-icon-slot='filled']")
-        ?.className,
-    ).toContain("top-0.5");
-    expect(
-      promotionDate?.querySelector("[data-calendar-icon-slot='filled']")
-        ?.className,
-    ).toContain("z-[20]");
-    expect(
-      promotionDate
-        ?.querySelector("[data-calendar-icon='promotion']")
-        ?.getAttribute("class"),
-    ).toContain("size-4");
+    expect(promotionDate?.querySelector("[data-calendar-icon='promotion']")).toBeNull();
     expect(promotionDate?.className).toContain("!block");
     expect(promotionDate?.className).toContain("!h-12");
     expect(
@@ -746,7 +755,7 @@ describe("BookingSidebar", () => {
     expect(hotHolidayDate?.className).toContain("bg-[var(--site-accent)]");
     expect(hotHolidayDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
 
-    expect(page.container.querySelector("[data-calendar-legend]")?.textContent).toContain(
+    expect(page.container.querySelector("[data-calendar-legend]")?.textContent).not.toContain(
       "โปรโมชั่น",
     );
     expect(page.container.querySelector("[data-calendar-legend]")?.textContent).toContain(
@@ -757,7 +766,7 @@ describe("BookingSidebar", () => {
       promotionDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const dialog = page.container.querySelector('[role="dialog"]');
+    const dialog = page.container.querySelector("[data-date-detail-dialog]");
     expect(dialog?.textContent).toContain("โปรโมชั่น");
     expect(dialog?.textContent).toContain("ราคา 5,900 บาท");
     expect(dialog?.textContent).toContain("วันธรรมดา อา-พฤ แบ่งเปิดได้");

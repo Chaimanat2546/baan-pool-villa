@@ -1,4 +1,3 @@
-import { BadgePercent } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import { useId, type ComponentProps } from "react";
@@ -53,9 +52,8 @@ function FireSvgIcon({
 
 export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"] }) {
   const reduceMotion = useReducedMotion();
-  const hasPromotion = icons.includes("promotion");
   const hasFire = icons.includes("fire");
-  const isEmpty = icons.length === 0;
+  const isEmpty = !hasFire;
 
   const iconAnimation = reduceMotion
     ? undefined
@@ -85,20 +83,6 @@ export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"]
           <FireSvgIcon
             className="size-8 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)]"
             data-calendar-icon="fire"
-          />
-        </motion.span>
-      ) : null}
-      {hasPromotion ? (
-        <motion.span
-          aria-hidden="true"
-          animate={iconAnimation}
-          className="pointer-events-none absolute top-0.5 right-0.5 z-[20] grid place-items-center"
-          data-calendar-icon-slot="filled"
-          transition={iconTransition}
-        >
-          <BadgePercent
-            className="size-4 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)] text-rose-500/90"
-            data-calendar-icon="promotion"
           />
         </motion.span>
       ) : null}
@@ -171,6 +155,65 @@ export function CalendarFirstAvailablePointer() {
   );
 }
 
+export function CalendarFirstAvailableTooltip({
+  align,
+  onDismiss,
+}: {
+  align: "center" | "end" | "start";
+  onDismiss: () => void;
+}) {
+  return (
+    <article
+      aria-label="คำแนะนำการใช้งานปฏิทิน"
+      aria-live="polite"
+      className={cn(
+        "absolute -top-50 z-[50] w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-left shadow-xl shadow-black/15 ring-1 ring-[var(--site-primary)]/10",
+        align === "start"
+          ? "left-0"
+          : align === "end"
+            ? "right-0"
+            : "left-1/2 -translate-x-1/2",
+      )}
+      data-calendar-first-available-tip-align={align}
+      data-calendar-first-available-tip="true"
+      id="tourTooltip"
+      role="dialog"
+    >
+      <div className="text-[10px] font-black tracking-[0.16em] text-[var(--site-primary)] uppercase">
+        ทิปการใช้งาน
+      </div>
+      <h2 className="mt-1 text-sm leading-snug font-black text-[var(--site-text)]">
+        กดวันที่เพื่อดูรายละเอียดได้
+      </h2>
+      <p className="mt-1.5 text-xs leading-relaxed text-[var(--site-muted)]">
+        แตะหรือคลิกวันที่ในปฏิทิน เพื่อดูราคา โปรโมชัน และสถานะว่าง/ติดจองของแต่ละวัน
+      </p>
+      <div className="mt-3 flex justify-end">
+        <button
+          className="inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-bold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2 focus-visible:outline-none"
+          data-calendar-first-available-tip-dismiss="true"
+          id="dismissTipBtn"
+          onClick={onDismiss}
+          type="button"
+        >
+          เข้าใจแล้ว
+        </button>
+      </div>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute bottom-[-7px] size-3 rotate-45 border-r border-b border-[var(--site-border)] bg-[var(--site-surface)]",
+          align === "start"
+            ? "left-5"
+            : align === "end"
+              ? "right-5"
+              : "left-1/2 -translate-x-1/2",
+        )}
+      />
+    </article>
+  );
+}
+
 export function CalendarLegendItem({
   children,
   icon,
@@ -196,14 +239,34 @@ export function CalendarLegendItem({
             <span className="absolute left-1/2 top-1/2 h-[1.5px] w-[145%] -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-full bg-white/55" />
           </>
         ) : null}
-        {icon === "promotion" ? (
-          <BadgePercent aria-hidden="true" className="relative z-10 h-3 w-3 text-rose-500" />
-        ) : null}
         {icon === "fire" ? (
           <FireSvgIcon className="relative z-10 size-3" />
         ) : null}
       </span>
       {children}
     </span>
+  );
+}
+
+export function CalendarLegend() {
+  return (
+    <div
+      className="mt-3 flex flex-wrap justify-center gap-1.5"
+      data-calendar-legend="true"
+    >
+      <CalendarLegendItem swatchClassName="border-emerald-700 bg-emerald-700">
+        ติดจองแต่ยังไม่โอน
+      </CalendarLegendItem>
+      <CalendarLegendItem
+        overlay="booked-cross"
+        swatchClassName="border-[#8f1717]/55 bg-[linear-gradient(180deg,#cf3f3f_0%,#a61f1f_100%)]"
+      >
+        ติดจองแล้ว
+      </CalendarLegendItem>
+      <CalendarLegendItem swatchClassName="border-[var(--site-accent)]/25 bg-yellow-600">
+        วันหยุด
+      </CalendarLegendItem>
+      <CalendarLegendItem icon="fire">โปรไฟลุก</CalendarLegendItem>
+    </div>
   );
 }

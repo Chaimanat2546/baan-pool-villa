@@ -13,14 +13,14 @@ import type {
   DetailLayoutBlockType,
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
-import type { VillaDetailContent } from "@/lib/villas/detail";
+import type { VillaDetailContent, VillaDetailSection } from "@/lib/villas/detail";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import { BookingSidebar } from "./booking-sidebar";
 import { AmenitiesSection, VideoReviewSection } from "./content-sections";
 import { findFact, findSection } from "./helpers";
 import { LazyCategorizedImages } from "./lazy-categorized-images";
 import { NearbySection } from "./nearby-section";
-import { RecommendedVillas } from "./recommended-villas";
+import { VillaRail } from "../home/villa-rail";
 import type { GalleryCategory } from "./types";
 
 interface DetailLayoutBlockContext {
@@ -193,19 +193,20 @@ function renderCategorizedImages({
     </DetailCard>
   );
 }
+
+function hasSectionLines(
+  section: VillaDetailSection | null,
+): section is VillaDetailSection {
+  return Boolean(section && section.lines.length > 0);
+}
+
 function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
   const costs = findSection(content, sectionTitles.costs);
   const promotions = findSection(content, sectionTitles.promotions);
   const notes = findSection(content, sectionTitles.notes);
   const deposit = findFact(content.facts, "ค่าประกัน");
   const extraGuest = findFact(content.facts, "เสริมคน");
-  const groups = [
-    costs,
-    promotions,
-    notes,
-  ].filter((section): section is NonNullable<typeof section> =>
-    Boolean(section && section.lines.length > 0),
-  );
+  const groups = [costs, promotions, notes].filter(hasSectionLines);
 
   if (groups.length === 0 && !deposit && !extraGuest) {
     return null;
@@ -241,10 +242,7 @@ function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
 function renderRulesPetPolicy({ content }: DetailLayoutBlockContext) {
   const rules = findSection(content, sectionTitles.rules);
   const petPolicy = findSection(content, sectionTitles.petPolicy);
-  const groups = [rules, petPolicy].filter(
-    (section): section is NonNullable<typeof section> =>
-      Boolean(section && section.lines.length > 0),
-  );
+  const groups = [rules, petPolicy].filter(hasSectionLines);
 
   if (groups.length === 0) {
     return null;
@@ -338,7 +336,22 @@ function renderRecommendedVillas({
     return null;
   }
 
-  return <RecommendedVillas section={recommendedSection} />;
+  return (
+    <div
+      className="relative left-1/2 w-screen -translate-x-1/2"
+      data-detail-recommended-villas="home-rail"
+    >
+      <VillaRail
+        cardTitleHeadingLevel="h3"
+        cta={recommendedSection.cta}
+        description={recommendedSection.description}
+        id="recommendations"
+        title={recommendedSection.title}
+        titleHeadingLevel="h2"
+        villas={recommendedSection.villas}
+      />
+    </div>
+  );
 }
 
 const blockRenderers = {

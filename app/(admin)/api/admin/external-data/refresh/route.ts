@@ -1,10 +1,5 @@
 import { requireHomeConfigAdmin } from "@/lib/admin/route-helpers";
-import { revalidateExternalVillaCache } from "@/lib/cache-revalidation";
-import {
-  buildExternalVillaRefreshResponse,
-  markExternalVillaRefreshRequested,
-  validateExternalVillaRefreshRequest,
-} from "@/lib/villas/admin-refresh-route";
+import { buildAdminExternalVillaRefreshResponse } from "@/lib/villas/admin-refresh-route";
 
 export async function POST(request: Request) {
   const admin = await requireHomeConfigAdmin(request);
@@ -13,14 +8,5 @@ export async function POST(request: Request) {
     return admin.response;
   }
 
-  const validation = validateExternalVillaRefreshRequest(request);
-
-  if (!validation.ok) {
-    return validation.response;
-  }
-
-  await revalidateExternalVillaCache();
-  markExternalVillaRefreshRequested();
-
-  return buildExternalVillaRefreshResponse(validation.scope);
+  return buildAdminExternalVillaRefreshResponse(request);
 }
