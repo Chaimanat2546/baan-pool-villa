@@ -249,6 +249,13 @@ describe("worker image edge cache policy", () => {
     ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
     expect(
       getImageEdgeCacheDecision(
+        request("/api/villas/9/images?url=https%3A%2F%2Fimages.example.com%2Fpool.jpg", {
+          headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+        }),
+      ),
+    ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
+    expect(
+      getImageEdgeCacheDecision(
         request("/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F501.jpg", {
           headers: { Accept: "image/avif,image/webp,image/*,*/*" },
         }),
@@ -275,11 +282,16 @@ describe("worker image edge cache policy", () => {
       reason: "path",
     });
     expect(
-      getImageEdgeCacheDecision(request("/api/villas/9/images/download?url=https://x.test/a.jpg")),
+      getImageEdgeCacheDecision(request("/api/villas/9/images?download=1&url=https://x.test/a.jpg")),
     ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
   });
 
   it("bypasses unsafe image proxy variants", () => {
+    expect(getImageEdgeCacheDecision(request("/api/villas/9/images"))).toMatchObject({
+      cacheable: false,
+      candidate: false,
+      reason: "path",
+    });
     expect(getImageEdgeCacheDecision(request("/api/villas/9/images/proxy"))).toMatchObject({
       cacheable: false,
       candidate: true,

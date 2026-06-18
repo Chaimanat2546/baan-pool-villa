@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, FormEvent, ReactNode } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import {
   BadgeInfo,
   Building2,
@@ -18,7 +18,12 @@ import type { SiteSettings } from "@/lib/site-settings/types";
 import { validateUploadMetadata } from "@/lib/site-settings/validation";
 
 import { AssetUploadField } from "./asset-upload-field";
-import { buildDraftThemeStyle, isHexColor } from "./settings-helpers";
+import {
+  ColorControl,
+  SectionCard,
+  TextControl,
+} from "./settings-form-controls";
+import { buildDraftThemeStyle } from "./settings-helpers";
 import type { AdminSettingsDraft } from "./types";
 
 interface SettingsFormProps {
@@ -28,42 +33,6 @@ interface SettingsFormProps {
   onChange: (changes: Partial<AdminSettingsDraft>) => void;
   onSave: () => Promise<void>;
   settings: SiteSettings;
-}
-
-interface ColorControlProps {
-  description?: string;
-  id: string;
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}
-
-interface TextControlProps {
-  description?: string;
-  id: string;
-  inputMode?:
-    | "decimal"
-    | "email"
-    | "numeric"
-    | "search"
-    | "tel"
-    | "text"
-    | "url";
-  label: string;
-  maxLength?: number;
-  multiline?: boolean;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  rows?: number;
-  value: string;
-}
-
-interface SectionCardProps {
-  children: ReactNode;
-  description: string;
-  icon: ReactNode;
-  id: string;
-  title: string;
 }
 
 interface SectionNavItem {
@@ -99,174 +68,6 @@ const SECTION_NAV_ITEMS: SectionNavItem[] = [
     label: "ติดต่อและชำระเงิน",
   },
 ];
-
-/**
- * Render a labeled color picker paired with a textual hex input for editing a color value.
- *
- * Renders a color input and a text input side-by-side; the color input reflects a valid trimmed
- * hex value or `#000000` as a fallback, and either control updates the value via `onChange`.
- *
- * @param id - DOM id applied to the text input and its label
- * @param label - Visible label text for the control
- * @param description - Optional descriptive text shown beneath the label
- * @param value - Current color string; will be trimmed before display and when sent to `onChange`
- * @param onChange - Called with the trimmed string value when either input changes
- */
-function ColorControl({
-  description,
-  id,
-  label,
-  onChange,
-  value,
-}: ColorControlProps) {
-  const trimmedValue = value.trim();
-  const colorPickerValue = isHexColor(trimmedValue) ? trimmedValue : "#000000";
-
-  return (
-    <div className="grid gap-2">
-      <div className="space-y-1">
-        <label
-          className="text-sm font-semibold text-[var(--site-text)]"
-          htmlFor={id}
-        >
-          {label}
-        </label>
-        {description ? (
-          <p className="text-xs leading-5 text-[var(--site-muted)]">
-            {description}
-          </p>
-        ) : null}
-      </div>
-      <div className="grid grid-cols-[52px_1fr] gap-3">
-        <input
-          aria-label={`${label} ตัวเลือกสี`}
-          className="h-11 w-[52px] rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-1"
-          onChange={(event) => {
-            onChange(event.target.value.trim());
-          }}
-          type="color"
-          value={colorPickerValue}
-        />
-        <input
-          className="h-11 min-w-0 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 font-mono text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
-          id={id}
-          onChange={(event) => {
-            onChange(event.target.value.trim());
-          }}
-          placeholder="#064e3b"
-          value={trimmedValue}
-        />
-      </div>
-    </div>
-  );
-}
-
-/**
- * Renders a labeled text input or textarea and forwards trimmed input values via `onChange`.
- *
- * Renders a label with optional description and either an input or a textarea depending on `multiline`.
- *
- * @param id - HTML id used for the input/textarea and label association
- * @param label - Visible label text for the control
- * @param description - Optional descriptive text shown under the label
- * @param value - Current text value shown in the input/textarea
- * @param onChange - Called when the user edits the value with the new string
- * @param placeholder - Optional placeholder shown when `value` is empty
- * @param maxLength - Optional maximum number of characters allowed
- * @param multiline - When `true`, renders a textarea instead of a single-line input
- * @param rows - Number of rows for the textarea (when `multiline` is `true`)
- * @returns A labeled form control element (an input or textarea) bound to the provided props
- */
-function TextControl({
-  description,
-  id,
-  inputMode,
-  label,
-  maxLength,
-  multiline = false,
-  onChange,
-  placeholder,
-  rows = 3,
-  value,
-}: TextControlProps) {
-  return (
-    <label
-      className="block text-sm font-semibold text-[var(--site-text)]"
-      htmlFor={id}
-    >
-      <span>{label}</span>
-      {description ? (
-        <span className="mt-1 block text-xs font-medium leading-5 text-[var(--site-muted)]">
-          {description}
-        </span>
-      ) : null}
-      {multiline ? (
-        <textarea
-          className="mt-2 min-h-24 w-full resize-y rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-sm font-medium text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
-          id={id}
-          inputMode={inputMode}
-          maxLength={maxLength}
-          onChange={(event) => {
-            onChange(event.target.value);
-          }}
-          placeholder={placeholder}
-          rows={rows}
-          value={value}
-        />
-      ) : (
-        <input
-          className="mt-2 h-11 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm font-medium text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
-          id={id}
-          inputMode={inputMode}
-          maxLength={maxLength}
-          onChange={(event) => {
-            onChange(event.target.value);
-          }}
-          placeholder={placeholder}
-          value={value}
-        />
-      )}
-    </label>
-  );
-}
-
-/**
- * Render a styled section card with a header (icon, title, description) and a content area.
- *
- * @param id - HTML id attribute used as the section's anchor target.
- * @param title - Visible heading text for the section.
- * @param description - Short descriptive text shown under the heading.
- * @param icon - Visual icon node displayed to the left of the heading.
- * @param children - Content rendered inside the section's body below the header.
- * @returns A section element containing the header (icon, title, description) and the provided children.
- */
-function SectionCard({
-  children,
-  description,
-  icon,
-  id,
-  title,
-}: SectionCardProps) {
-  return (
-    <section
-      className="scroll-mt-32 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm"
-      id={id}
-    >
-      <div className="flex items-start gap-4">
-        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-lg font-bold text-[var(--site-text)]">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
-            {description}
-          </p>
-        </div>
-      </div>
-      <div className="mt-5 grid gap-4">{children}</div>
-    </section>
-  );
-}
 
 function getPreviewImageUrl(value: string, fallback: string): string {
   const trimmedValue = value.trim();

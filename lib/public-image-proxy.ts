@@ -271,7 +271,7 @@ export function buildVillaGalleryImageProxyUrl(
   }
 
   return buildPublicImageProxyUrl(
-    `/api/villas/${encodeURIComponent(trimmedListingId)}/images/proxy`,
+    `/api/villas/${encodeURIComponent(trimmedListingId)}/images`,
     sourceUrl,
     options,
   );

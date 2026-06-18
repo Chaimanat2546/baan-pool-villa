@@ -30,10 +30,12 @@ export type BookingCalendarTone =
 
 export interface BookingCalendarDay {
   disabled: boolean;
+  displayPrice: string | null;
   icons: BookingCalendarIcon[];
   kind: BookingCalendarKind;
   label: string;
   price: number | null;
+  promotionMessage: string | null;
   tone: BookingCalendarTone;
 }
 
@@ -250,16 +252,85 @@ function getPromotionWeekdayPrice(
   return typeof value === "number" ? value : null;
 }
 
+function formatCalendarDayDisplayPrice(price: number | null): string | null {
+  return typeof price === "number"
+    ? new Intl.NumberFormat("th-TH").format(price)
+    : null;
+}
+
+function getLowestPromotionMessagePrice(message: string | null): number | null {
+  if (!message) {
+    return null;
+  }
+
+  let lowestPrice: number | null = null;
+  let searchFrom = 0;
+
+  while (searchFrom < message.length) {
+    const markerIndex = message.indexOf("ราคา", searchFrom);
+
+    if (markerIndex === -1) {
+      break;
+    }
+
+    let priceStart = markerIndex + "ราคา".length;
+
+    while (
+      priceStart < message.length &&
+      message.charCodeAt(priceStart) <= 32
+    ) {
+      priceStart += 1;
+    }
+
+    let priceEnd = priceStart;
+    let digits = "";
+
+    while (priceEnd < message.length) {
+      const char = message[priceEnd];
+      const code = message.charCodeAt(priceEnd);
+
+      if (code >= 48 && code <= 57) {
+        digits += char;
+        priceEnd += 1;
+        continue;
+      }
+
+      if (char === ",") {
+        priceEnd += 1;
+        continue;
+      }
+
+      break;
+    }
+
+    if (digits) {
+      const price = Number(digits);
+
+      if (Number.isFinite(price) && (lowestPrice === null || price < lowestPrice)) {
+        lowestPrice = price;
+      }
+    }
+
+    searchFrom = Math.max(priceEnd, markerIndex + 1);
+  }
+
+  return lowestPrice;
+}
+
 function createBaseDay(
   response: RawBookingCalendarResponse,
   dateKey: string,
 ): BookingCalendarDay {
+  const price = getWeekdayPrice(response.base_price, dateKey);
+
   return {
     disabled: false,
+    displayPrice: formatCalendarDayDisplayPrice(price),
     icons: [],
     kind: "base",
     label: "วันธรรมดา",
-    price: getWeekdayPrice(response.base_price, dateKey),
+    price,
+    promotionMessage: null,
     tone: "default",
   };
 }
@@ -298,21 +369,30 @@ export function normalizeBookingCalendar(
   const events = new Map<string, CalendarEvent>();
 
   for (const promotion of response.protime_promotions ?? []) {
+    const promotionMessage = promotion.protime_msg?.trim() || null;
+    const promotionMessagePrice =
+      getLowestPromotionMessagePrice(promotionMessage);
+
     for (const dateKey of eachDateInRange(
       promotion.protime_start,
       promotion.protime_end,
       month,
       true,
     )) {
+      const price =
+        promotionMessagePrice ??
+        getPromotionWeekdayPrice(promotion, dateKey) ??
+        getWeekdayPrice(response.base_price, dateKey);
+
       setCalendarEvent(events, dateKey, {
         day: {
           disabled: false,
+          displayPrice: formatCalendarDayDisplayPrice(price),
           icons: ["promotion"],
           kind: "promotion",
           label: "โปรโมชั่น",
-          price:
-            getPromotionWeekdayPrice(promotion, dateKey) ??
-            getWeekdayPrice(response.base_price, dateKey),
+          price,
+          promotionMessage,
           tone: "promotion",
         },
         priority: 1,
@@ -328,14 +408,18 @@ export function normalizeBookingCalendar(
       month,
       true,
     )) {
+      const price =
+        holiday.holiday_price ?? getWeekdayPrice(response.base_price, dateKey);
+
       setCalendarEvent(events, dateKey, {
         day: {
           disabled: false,
+          displayPrice: formatCalendarDayDisplayPrice(price),
           icons: isHotpro ? ["fire"] : [],
           kind: isHotpro ? "hotpro" : "holiday",
           label: isHotpro ? "โปรไฟลุก" : "วันหยุดนักขัตฤกษ์",
-          price:
-            holiday.holiday_price ?? getWeekdayPrice(response.base_price, dateKey),
+          price,
+          promotionMessage: null,
           tone: isHotpro ? "hotpro" : "holiday",
         },
         priority: isHotpro ? 2 : 3,
@@ -350,14 +434,18 @@ export function normalizeBookingCalendar(
       month,
       true,
     )) {
+      const price =
+        holiday.holiday_price ?? getWeekdayPrice(response.base_price, dateKey);
+
       setCalendarEvent(events, dateKey, {
         day: {
           disabled: false,
+          displayPrice: formatCalendarDayDisplayPrice(price),
           icons: ["fire"],
           kind: "hot_holiday",
           label: "โปรไฟลุกในวันหยุด",
-          price:
-            holiday.holiday_price ?? getWeekdayPrice(response.base_price, dateKey),
+          price,
+          promotionMessage: null,
           tone: "hot_holiday",
         },
         priority: 4,
@@ -373,13 +461,17 @@ export function normalizeBookingCalendar(
       month,
       false,
     )) {
+      const price = getWeekdayPrice(response.base_price, dateKey);
+
       setCalendarEvent(events, dateKey, {
         day: {
           disabled: true,
+          displayPrice: null,
           icons: [],
           kind: isWaiting ? "booking_waiting" : "booking_confirmed",
           label: isWaiting ? "ติดจองแต่ยังไม่โอน" : "ติดจองแล้ว",
-          price: getWeekdayPrice(response.base_price, dateKey),
+          price,
+          promotionMessage: null,
           tone: isWaiting ? "waiting" : "booked",
         },
         priority: isWaiting ? 5 : 6,

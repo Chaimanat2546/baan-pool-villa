@@ -418,6 +418,35 @@ describe("VillaDetailPage deferred gallery loader", () => {
     await page.unmount();
   });
 
+  it("shows errors when an interactive gallery action reuses a failed background request", async () => {
+    const pendingResponse = deferred<Response>();
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      if (/^\/api\/villas\/[^/]+\/images$/.test(String(input))) {
+        return pendingResponse.promise;
+      }
+
+      return Promise.resolve(makeJsonResponse({}));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const runIdleCallback = stubIdleCallback();
+    const page = renderPage();
+
+    await page.render(makePageWithInitialGalleryImages([apiCoverImage]));
+    await flushReact();
+    await runIdleCallback();
+    await clickFirstGalleryItem(page.container);
+
+    pendingResponse.resolve(makeJsonResponse({ error: "temporary" }, 502));
+    await flushReact();
+
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
+    expect(page.container.querySelector("[data-gallery-load-status]")?.textContent).toContain(
+      "à¸¥à¸­à¸‡à¹ƒà¸«à¸¡à¹ˆ",
+    );
+
+    await page.unmount();
+  });
+
   it("reuses loaded gallery images instead of issuing another request", async () => {
     const fetchMock = makeGalleryFetchMock(() =>
       makeJsonResponse({ images: [apiImage] }),
