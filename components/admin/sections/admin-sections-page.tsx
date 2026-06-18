@@ -64,14 +64,6 @@ import {
   toHomeSectionDraft,
 } from "./section-draft-helpers";
 
-/**
- * Renders a titled section block with a short description and arbitrary child content.
- *
- * @param children - Content to render inside the section below the description
- * @param title - Heading text displayed at the top of the section
- * @param description - Supporting text shown beneath the title
- * @returns A section element containing the title, description, and provided children
- */
 function SectionEditorGroup({
   children,
   description,
@@ -96,13 +88,6 @@ function SectionEditorGroup({
   );
 }
 
-/**
- * Admin interface for managing home-page sections.
- *
- * Provides a full-featured page that loads section drafts, lets administrators add, edit, reorder, delete, validate manual house IDs, and review a prototype-only homepage preview before saving changes back to the server.
- *
- * @returns The React element rendering the admin home-sections management page.
- */
 export function AdminSectionsPage() {
   const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();

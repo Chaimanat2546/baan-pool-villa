@@ -42,15 +42,6 @@ type AdminExternalDataRefreshResponse =
 
 type ExternalDataRefreshScope = "tags-only";
 
-/**
- * Admin page UI for viewing and editing site appearance and contact settings.
- *
- * Loads current site settings into an editable draft, displays loading/errors/notices/warnings,
- * and provides controls to save changes, refresh external data, and open the live site.
- * Handles access-token retrieval and redirects to the admin login when authentication fails.
- *
- * @returns The React element that renders the Admin Settings page
- */
 export function AdminSettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<SiteSettings | null>(null);

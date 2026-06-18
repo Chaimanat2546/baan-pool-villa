@@ -2,10 +2,14 @@ import type {
   HomeConfigSupabaseClient,
   SupabaseLikeError,
 } from "@/lib/admin/route-helpers";
+import { getOptionalUpload } from "@/lib/site-settings/admin-form-fields";
 
 import { SITE_ASSETS_BUCKET } from "./defaults";
 import type { SiteAssetType, SiteAssetUploadRecord } from "./types";
-import { selectAssetUploadsForCleanup } from "./validation";
+import {
+  selectAssetUploadsForCleanup,
+  validateUploadMetadata,
+} from "./validation";
 
 export interface UploadedAsset {
   assetType: SiteAssetType;
@@ -17,10 +21,18 @@ export interface RecordedAsset extends UploadedAsset {
   uploadId: string;
 }
 
-interface UploadFile {
+export interface SiteSettingsUploadFile {
   assetType: SiteAssetType;
   file: File;
 }
+
+export const ASSET_UPLOAD_FIELDS: {
+  assetType: SiteAssetType;
+  fieldName: string;
+}[] = [
+  { assetType: "logo", fieldName: "logo" },
+  { assetType: "hero", fieldName: "hero" },
+];
 
 interface SiteAssetUploadRow {
   id: unknown;
@@ -151,7 +163,7 @@ export async function uploadAsset(
 
 export async function uploadSiteSettingsAssets(
   supabase: HomeConfigSupabaseClient,
-  uploadFiles: UploadFile[],
+  uploadFiles: SiteSettingsUploadFile[],
 ): Promise<
   | {
       ok: true;
@@ -182,6 +194,27 @@ export async function uploadSiteSettingsAssets(
   }
 
   return { ok: true, uploadedAssets };
+}
+
+export function readSiteSettingsUploadFiles(formData: FormData): {
+  errors: string[];
+  uploadFiles: SiteSettingsUploadFile[];
+} {
+  const errors: string[] = [];
+  const uploadFiles: SiteSettingsUploadFile[] = [];
+
+  ASSET_UPLOAD_FIELDS.forEach(({ assetType, fieldName }) => {
+    const file = getOptionalUpload(formData, fieldName);
+
+    if (!file) {
+      return;
+    }
+
+    errors.push(...validateUploadMetadata(assetType, file.type, file.size));
+    uploadFiles.push({ assetType, file });
+  });
+
+  return { errors, uploadFiles };
 }
 
 function mapUploadRow(row: SiteAssetUploadRow): SiteAssetUploadRecord | null {

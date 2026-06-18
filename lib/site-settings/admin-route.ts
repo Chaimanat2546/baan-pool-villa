@@ -3,8 +3,8 @@ import {
   type HomeConfigSupabaseClient,
   type SupabaseLikeError,
 } from "@/lib/admin/route-helpers";
+import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
 import {
-  getOptionalUpload,
   readPhoneContactsField,
   readStringArrayField,
   readStringField,
@@ -12,14 +12,21 @@ import {
 import {
   normalizeSiteSettingsDraft,
   normalizeSiteSettingsRow,
-  validateUploadMetadata,
+  validateSiteSettingsDraft,
 } from "@/lib/site-settings/validation";
+import {
+  cleanupFailedSiteAssetSave,
+  cleanupRetainedAssets,
+  markPreviousUploadsInactive,
+  readSiteSettingsUploadFiles,
+  recordUploadedAssets,
+  uploadSiteSettingsAssets,
+} from "./admin-asset-uploads";
 import { SITE_SETTINGS_ID } from "./defaults";
 import type { UploadedAsset } from "./admin-asset-uploads";
 import type {
   SiteSettings,
   SiteSettingsDraft,
-  SiteAssetType,
   SiteSettingsRow,
 } from "./types";
 
@@ -33,16 +40,13 @@ const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
 const SITE_SETTINGS_GENERAL_SELECT =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls";
-
-export const ASSET_UPLOAD_FIELDS: { assetType: SiteAssetType; fieldName: string }[] = [
-  { assetType: "logo", fieldName: "logo" },
-  { assetType: "hero", fieldName: "hero" },
-];
-
-export interface SiteSettingsUploadFile {
-  assetType: SiteAssetType;
-  file: File;
-}
+const SITE_SETTINGS_SELECTS = [
+  SITE_SETTINGS_SELECT,
+  SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS,
+  SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO,
+  SITE_SETTINGS_SELECT_WITHOUT_TIKTOK,
+  SITE_SETTINGS_GENERAL_SELECT,
+] as const;
 
 export function readSiteSettingsDraft(formData: FormData):
   | { draft: SiteSettingsDraft; ok: true }
@@ -98,27 +102,6 @@ export function readSiteSettingsDraft(formData: FormData):
     }),
     ok: true,
   };
-}
-
-export function readSiteSettingsUploadFiles(formData: FormData): {
-  errors: string[];
-  uploadFiles: SiteSettingsUploadFile[];
-} {
-  const errors: string[] = [];
-  const uploadFiles: SiteSettingsUploadFile[] = [];
-
-  ASSET_UPLOAD_FIELDS.forEach(({ assetType, fieldName }) => {
-    const file = getOptionalUpload(formData, fieldName);
-
-    if (!file) {
-      return;
-    }
-
-    errors.push(...validateUploadMetadata(assetType, file.type, file.size));
-    uploadFiles.push({ assetType, file });
-  });
-
-  return { errors, uploadFiles };
 }
 
 export function buildSiteSettingsSavePayload({
@@ -191,88 +174,30 @@ export async function loadAdminSiteSettings(
   data: SiteSettingsRow | null;
   error: SupabaseLikeError | null;
 }> {
-  const primary = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
+  let lastError: SupabaseLikeError | null = null;
 
-  if (!primary.error) {
-    return {
-      data: (primary.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
+  for (const select of SITE_SETTINGS_SELECTS) {
+    const result = await supabase
+      .from("site_settings")
+      .select(select)
+      .eq("id", SITE_SETTINGS_ID)
+      .maybeSingle();
+
+    if (!result.error) {
+      return {
+        data: (result.data as SiteSettingsRow | null) ?? null,
+        error: null,
+      };
+    }
+
+    if (!isMissingColumnError(result.error)) {
+      return { data: null, error: result.error };
+    }
+
+    lastError = result.error;
   }
 
-  if (!isMissingColumnError(primary.error)) {
-    return { data: null, error: primary.error };
-  }
-
-  const fallbackWithoutKeywords = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!fallbackWithoutKeywords.error) {
-    return {
-      data: (fallbackWithoutKeywords.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
-  }
-
-  if (!isMissingColumnError(fallbackWithoutKeywords.error)) {
-    return { data: null, error: fallbackWithoutKeywords.error };
-  }
-
-  const fallbackWithoutPageSeo = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!fallbackWithoutPageSeo.error) {
-    return {
-      data: (fallbackWithoutPageSeo.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
-  }
-
-  if (!isMissingColumnError(fallbackWithoutPageSeo.error)) {
-    return { data: null, error: fallbackWithoutPageSeo.error };
-  }
-
-  const fallback = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_SELECT_WITHOUT_TIKTOK)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!fallback.error) {
-    return {
-      data: (fallback.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
-  }
-
-  if (!isMissingColumnError(fallback.error)) {
-    return { data: null, error: fallback.error };
-  }
-
-  const general = await supabase
-    .from("site_settings")
-    .select(SITE_SETTINGS_GENERAL_SELECT)
-    .eq("id", SITE_SETTINGS_ID)
-    .maybeSingle();
-
-  if (!general.error) {
-    return {
-      data: (general.data as SiteSettingsRow | null) ?? null,
-      error: null,
-    };
-  }
-
-  return { data: null, error: general.error };
+  return { data: null, error: lastError };
 }
 
 export async function buildAdminSiteSettingsResponse(
@@ -286,6 +211,137 @@ export async function buildAdminSiteSettingsResponse(
 
   return Response.json({
     settings: normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null),
+  });
+}
+
+export async function saveAdminSiteSettings(
+  request: Request,
+  supabase: HomeConfigSupabaseClient,
+) {
+  let formData: FormData;
+
+  try {
+    formData = await request.formData();
+  } catch {
+    return Response.json(
+      { errors: ["Request body must be multipart/form-data."] },
+      { status: 400 },
+    );
+  }
+
+  const draftResult = readSiteSettingsDraft(formData);
+
+  if (!draftResult.ok) {
+    return draftResult.response;
+  }
+
+  const draft = draftResult.draft;
+  const errors = validateSiteSettingsDraft(draft);
+  const uploadResult = readSiteSettingsUploadFiles(formData);
+
+  errors.push(...uploadResult.errors);
+
+  if (errors.length > 0) {
+    return Response.json({ errors }, { status: 400 });
+  }
+
+  const { data: existingRow, error: loadError } = await loadAdminSiteSettings(
+    supabase,
+  );
+
+  if (loadError) {
+    return adminSupabaseErrorResponse(loadError, "Unable to load site settings.");
+  }
+
+  const currentSettings = normalizeSiteSettingsRow(
+    (existingRow as SiteSettingsRow | null) ?? null,
+  );
+  const uploadAssetsResult = await uploadSiteSettingsAssets(
+    supabase,
+    uploadResult.uploadFiles,
+  );
+
+  if (!uploadAssetsResult.ok) {
+    return adminSupabaseErrorResponse(
+      uploadAssetsResult.error,
+      `Unable to upload ${uploadAssetsResult.assetType} image.`,
+      { warning: uploadAssetsResult.cleanupWarnings.join("; ") || undefined },
+    );
+  }
+
+  const uploadedAssets: UploadedAsset[] = uploadAssetsResult.uploadedAssets;
+  const historyResult = await recordUploadedAssets(supabase, uploadedAssets);
+
+  if (!historyResult.ok) {
+    const cleanupWarnings = await cleanupFailedSiteAssetSave(
+      supabase,
+      historyResult.recordedAssets,
+      uploadedAssets,
+    );
+
+    return adminSupabaseErrorResponse(
+      historyResult.error,
+      "Unable to record site asset upload history.",
+      { warning: cleanupWarnings.join("; ") || undefined },
+    );
+  }
+
+  const savePayload = buildSiteSettingsSavePayload({
+    currentSettings,
+    draft,
+    uploadedAssets,
+  });
+
+  const { error: saveError } = await supabase
+    .from("site_settings")
+    .upsert(savePayload, { onConflict: "id" });
+
+  if (saveError) {
+    const cleanupWarnings = await cleanupFailedSiteAssetSave(
+      supabase,
+      historyResult.recordedAssets,
+      uploadedAssets,
+    );
+
+    return adminSupabaseErrorResponse(
+      saveError,
+      "Unable to save site settings.",
+      { warning: cleanupWarnings.join("; ") || undefined },
+    );
+  }
+
+  const historyUpdateError = await markPreviousUploadsInactive(
+    supabase,
+    historyResult.recordedAssets,
+  );
+
+  if (historyUpdateError) {
+    return adminSupabaseErrorResponse(
+      historyUpdateError,
+      "Unable to mark previous site asset uploads inactive.",
+    );
+  }
+
+  const warnings = [
+    ...(uploadedAssets.length > 0 ? await cleanupRetainedAssets(supabase) : []),
+  ];
+  const { data: savedRow, error: reloadError } = await loadAdminSiteSettings(
+    supabase,
+  );
+  const responseRow = reloadError
+    ? buildSavedSettingsRow((existingRow as SiteSettingsRow | null) ?? null, savePayload)
+    : ((savedRow as SiteSettingsRow | null) ??
+      buildSavedSettingsRow((existingRow as SiteSettingsRow | null) ?? null, savePayload));
+
+  if (reloadError) {
+    warnings.push(reloadError.message ?? "Unable to reload saved site settings.");
+  }
+
+  await revalidateSiteSettingsCache();
+
+  return Response.json({
+    settings: normalizeSiteSettingsRow(responseRow),
+    warnings,
   });
 }
 
