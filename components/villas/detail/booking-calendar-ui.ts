@@ -92,6 +92,61 @@ export function getFallbackCalendarDay(price: number): BookingCalendarDay {
   };
 }
 
+export function findFirstAvailableCalendarDateKey({
+  bookingCalendar,
+  todayStart,
+  fallbackPrice,
+  visibleMonth,
+  visibleMonthKey,
+}: {
+  bookingCalendar: BookingCalendarMonth | null;
+  fallbackPrice: number;
+  todayStart: Date;
+  visibleMonth: Date;
+  visibleMonthKey: string;
+}): string | null {
+  if (bookingCalendar?.month !== visibleMonthKey) {
+    return null;
+  }
+
+  const firstDay =
+    todayStart.getFullYear() === visibleMonth.getFullYear() &&
+    todayStart.getMonth() === visibleMonth.getMonth()
+      ? todayStart.getDate()
+      : 1;
+  const lastDay = new Date(
+    visibleMonth.getFullYear(),
+    visibleMonth.getMonth() + 1,
+    0,
+  ).getDate();
+  const lastDate = new Date(
+    visibleMonth.getFullYear(),
+    visibleMonth.getMonth(),
+    lastDay,
+  );
+
+  if (lastDate.getTime() < todayStart.getTime()) {
+    return null;
+  }
+
+  for (let day = firstDay; day <= lastDay; day += 1) {
+    const date = new Date(
+      visibleMonth.getFullYear(),
+      visibleMonth.getMonth(),
+      day,
+    );
+    const dateKey = formatCalendarDateKey(date);
+    const calendarDay =
+      bookingCalendar.days[dateKey] ?? getFallbackCalendarDay(fallbackPrice);
+
+    if (!calendarDay.disabled) {
+      return dateKey;
+    }
+  }
+
+  return null;
+}
+
 export function getCalendarToneClass(day: BookingCalendarDay): string | null {
   switch (day.tone) {
     case "booked":

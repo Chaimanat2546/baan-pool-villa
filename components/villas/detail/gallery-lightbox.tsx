@@ -5,73 +5,153 @@ import type { VillaListing } from "@/lib/villas/types";
 import { buildGalleryDisplaySrc, buildGalleryDownloadHref } from "./gallery-urls";
 import { getGalleryItemDescription, getVillaTitle } from "./helpers";
 import type { GalleryCategory, GalleryItem } from "./types";
-/**
- * Render a full-screen gallery lightbox for viewing and navigating a listing's images.
- *
- * Renders a modal UI with the active image, download link, navigation controls, category list, description, and a thumbnail strip. Locks page scroll while open, aligns the thumbnail strip to the active thumbnail, supports keyboard (Escape, ArrowLeft, ArrowRight) and touch swipe navigation, and reports image load errors.
- *
- * @param activeItem - The currently selected gallery item; when `null` the component renders `null`.
- * @param categories - Gallery categories used to group and navigate images.
- * @param listing - The villa listing used to build the gallery title and download link.
- * @param onClose - Called when the lightbox should be closed (e.g., close button or Escape key).
- * @param onImageError - Called with the image `url` when an image fails to load.
- * @param onSelect - Called with a `GalleryItem` when the user selects or navigates to a different image.
- * @returns The lightbox DOM element, or `null` when `activeItem` is `null`.
- */
-export function GalleryLightbox({
+import { useLockedBodyScroll } from "./use-locked-body-scroll";
 
-  activeItem,
+const GALLERY_SWIPE_THRESHOLD_PX = 48;
 
-  categories,
-
-  listing,
-
-  onClose,
-
-  onImageError,
-
+function GalleryCategoryButton({
+  category,
+  className,
+  isActive,
   onSelect,
-
+  showLabelBlock = false,
 }: {
-
-  activeItem: GalleryItem | null;
-
-  categories: GalleryCategory[];
-
-  listing: VillaListing;
-
-  onClose: () => void;
-
-  onImageError: (url: string) => void;
-
+  category: GalleryCategory;
+  className: string;
+  isActive: boolean;
   onSelect: (item: GalleryItem) => void;
+  showLabelBlock?: boolean;
+}) {
+  return (
+    <button
+      className={`${className} ${
+        isActive
+          ? "bg-[var(--site-surface)] text-[var(--site-text)]"
+          : "bg-white/10 text-[var(--site-on-primary)] hover:bg-white/20"
+      }`}
+      onClick={() => {
+        const firstItem = category.items[0];
 
+        if (firstItem) {
+          onSelect(firstItem);
+        }
+      }}
+      type="button"
+    >
+      {showLabelBlock ? (
+        <>
+          <span className="block truncate">{category.label}</span>
+          <span className="text-[11px] opacity-70">
+            {category.items.length} รูป
+          </span>
+        </>
+      ) : (
+        <>
+          {category.label}
+          <span className="ml-2 text-[11px] opacity-70">
+            {category.items.length} รูป
+          </span>
+        </>
+      )}
+    </button>
+  );
+}
+
+function GalleryThumbnailButton({
+  isActive,
+  item,
+  listingId,
+  onImageError,
+  onSelect,
+}: {
+  isActive: boolean;
+  item: GalleryItem;
+  listingId: string;
+  onImageError: (url: string) => void;
+  onSelect: (item: GalleryItem) => void;
+}) {
+  const thumbnailSrc = buildGalleryDisplaySrc(listingId, item, 160, 60);
+
+  return (
+    <button
+      aria-label={`ดูรูปหมวด${item.zoneLabel}`}
+      className={`relative h-20 w-24 shrink-0 snap-start overflow-hidden rounded-xl border transition sm:h-24 sm:w-32 lg:h-[112px] lg:w-full lg:rounded-lg lg:border-2 ${
+        isActive
+          ? "border-white opacity-100 shadow-[0_0_0_2px_rgba(255,255,255,0.22)]"
+          : "border-white/10 opacity-75 hover:border-white/35 hover:opacity-100"
+      }`}
+      data-active-thumbnail={isActive ? "true" : undefined}
+      onClick={() => {
+        onSelect(item);
+      }}
+      type="button"
+    >
+      {thumbnailSrc ? (
+        <Image
+          alt={item.caption ?? item.zoneLabel}
+          className="object-cover"
+          fill
+          loading="lazy"
+          onError={() => {
+            onImageError(item.url);
+          }}
+          sizes="(max-width: 1024px) 120px, 150px"
+          src={thumbnailSrc}
+          unoptimized
+        />
+      ) : (
+        <div className="grid h-full place-items-center text-[var(--site-on-primary)] opacity-60">
+          <ImageOff className="h-6 w-6" />
+        </div>
+      )}
+    </button>
+  );
+}
+
+function getGalleryNavigation(
+  categories: GalleryCategory[],
+  activeItem: GalleryItem,
+) {
+  const activeCategory =
+    categories.find((category) => category.key === activeItem.zoneKey) ??
+    categories[0];
+  const activeItems = activeCategory?.items ?? [];
+  const activeIndex = Math.max(
+    activeItems.findIndex((item) => item.key === activeItem.key),
+    0,
+  );
+
+  return {
+    activeCategory,
+    activeIndex,
+    activeItems,
+    nextItem: activeItems[(activeIndex + 1) % activeItems.length],
+    previousItem:
+      activeItems[(activeIndex - 1 + activeItems.length) % activeItems.length],
+  };
+}
+
+export function GalleryLightbox({
+  activeItem,
+  categories,
+  listing,
+  onClose,
+  onImageError,
+  onSelect,
+}: {
+  activeItem: GalleryItem | null;
+  categories: GalleryCategory[];
+  listing: VillaListing;
+  onClose: () => void;
+  onImageError: (url: string) => void;
+  onSelect: (item: GalleryItem) => void;
 }) {
 
   const [loadedImageKey, setLoadedImageKey] = useState<string | null>(null);
   const thumbnailStripRef = useRef<HTMLDivElement>(null);
   const touchStartXRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (!activeItem) {
-      return;
-    }
-
-    const originalOverflow = document.body.style.overflow;
-    const originalPaddingRight = document.body.style.paddingRight;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-
-    document.body.style.overflow = "hidden";
-
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.paddingRight = originalPaddingRight;
-    };
-  }, [activeItem]);
+  useLockedBodyScroll(Boolean(activeItem));
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -124,33 +204,21 @@ export function GalleryLightbox({
         return;
       }
 
-      const activeCategoryForKey =
-        categories.find((category) => category.key === activeItem.zoneKey) ??
-        categories[0];
-      const activeItemsForKey = activeCategoryForKey?.items ?? [];
+      const { activeItems, nextItem, previousItem } =
+        getGalleryNavigation(categories, activeItem);
 
-      if (activeItemsForKey.length <= 1) {
+      if (activeItems.length <= 1) {
         return;
       }
 
-      const activeIndexForKey = Math.max(
-        activeItemsForKey.findIndex((item) => item.key === activeItem.key),
-        0,
-      );
-
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        onSelect(
-          activeItemsForKey[
-            (activeIndexForKey - 1 + activeItemsForKey.length) %
-              activeItemsForKey.length
-          ],
-        );
+        onSelect(previousItem);
       }
 
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        onSelect(activeItemsForKey[(activeIndexForKey + 1) % activeItemsForKey.length]);
+        onSelect(nextItem);
       }
     };
 
@@ -162,32 +230,11 @@ export function GalleryLightbox({
   }, [activeItem, categories, onClose, onSelect]);
 
   if (!activeItem) {
-
     return null;
-
   }
 
-  const activeCategory =
-
-    categories.find((category) => category.key === activeItem.zoneKey) ??
-
-    categories[0];
-
-  const activeItems = activeCategory?.items ?? [];
-
-  const activeIndex = Math.max(
-
-    activeItems.findIndex((item) => item.key === activeItem.key),
-
-    0,
-
-  );
-
-  const previousItem =
-
-    activeItems[(activeIndex - 1 + activeItems.length) % activeItems.length];
-
-  const nextItem = activeItems[(activeIndex + 1) % activeItems.length];
+  const { activeIndex, activeItems, nextItem, previousItem } =
+    getGalleryNavigation(categories, activeItem);
   const activeImageDownloadHref = buildGalleryDownloadHref(listing.id, activeItem);
   const activeImageDisplaySrc = buildGalleryDisplaySrc(
     listing.id,
@@ -217,7 +264,7 @@ export function GalleryLightbox({
 
     const deltaX = touchEndX - touchStartX;
 
-    if (Math.abs(deltaX) < 48) {
+    if (Math.abs(deltaX) < GALLERY_SWIPE_THRESHOLD_PX) {
       return;
     }
 
@@ -282,37 +329,13 @@ export function GalleryLightbox({
           <div className="flex snap-x gap-2 overflow-x-auto pb-1">
 
           {categories.map((category) => (
-
-            <button
-
+            <GalleryCategoryButton
+              category={category}
+              className="min-h-10 shrink-0 snap-start rounded-full px-4 py-2 text-xs font-black transition"
+              isActive={category.key === activeItem.zoneKey}
               key={category.key}
-
-              type="button"
-
-              className={`min-h-10 shrink-0 snap-start rounded-full px-4 py-2 text-xs font-black transition ${
-
-                category.key === activeItem.zoneKey
-
-                  ? "bg-[var(--site-surface)] text-[var(--site-text)]"
-
-                  : "bg-white/10 text-[var(--site-on-primary)] hover:bg-white/20"
-              }`}
-
-              onClick={() => {
-                const firstItem = category.items[0];
-
-                if (firstItem) {
-                  onSelect(firstItem);
-                }
-              }}
-            >
-
-              {category.label}
-
-              <span className="ml-2 text-[11px] opacity-70">{category.items.length} รูป</span>
-
-            </button>
-
+              onSelect={onSelect}
+            />
           ))}
 
           </div>
@@ -446,25 +469,14 @@ export function GalleryLightbox({
               <p className="text-xs font-black text-[var(--site-on-primary)] opacity-60">เลือกหมวดหมู่</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {categories.map((category) => (
-                  <button
+                  <GalleryCategoryButton
+                    category={category}
+                    className="min-h-10 rounded-xl px-3 py-2 text-left text-xs font-black transition"
+                    isActive={category.key === activeItem.zoneKey}
                     key={category.key}
-                    type="button"
-                    className={`min-h-10 rounded-xl px-3 py-2 text-left text-xs font-black transition ${
-                      category.key === activeItem.zoneKey
-                        ? "bg-[var(--site-surface)] text-[var(--site-text)]"
-                        : "bg-white/10 text-[var(--site-on-primary)] hover:bg-white/20"
-                    }`}
-                    onClick={() => {
-                      const firstItem = category.items[0];
-
-                      if (firstItem) {
-                        onSelect(firstItem);
-                      }
-                    }}
-                  >
-                    <span className="block truncate">{category.label}</span>
-                    <span className="text-[11px] opacity-70">{category.items.length} รูป</span>
-                  </button>
+                    onSelect={onSelect}
+                    showLabelBlock
+                  />
                 ))}
               </div>
             </div>
@@ -483,70 +495,14 @@ export function GalleryLightbox({
             <div ref={thumbnailStripRef} className="mt-2 flex max-w-full snap-x gap-2 overflow-x-auto overflow-y-hidden pb-1 sm:mt-3 sm:pb-2 lg:min-h-0 lg:flex-1 lg:grid lg:auto-rows-[112px] lg:grid-cols-2 lg:content-start lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1">
 
               {activeItems.map((item) => (
-
-                <button
-
+                <GalleryThumbnailButton
+                  isActive={item.key === activeItem.key}
+                  item={item}
                   key={item.key}
-
-                  data-active-thumbnail={item.key === activeItem.key ? "true" : undefined}
-
-                  type="button"
-
-                  aria-label={`ดูรูปหมวด${item.zoneLabel}`}
-
-                  className={`relative h-20 w-24 shrink-0 snap-start overflow-hidden rounded-xl border transition sm:h-24 sm:w-32 lg:h-[112px] lg:w-full lg:rounded-lg lg:border-2 ${
-
-                    item.key === activeItem.key
-
-                      ? "border-white opacity-100 shadow-[0_0_0_2px_rgba(255,255,255,0.22)]"
-
-                      : "border-white/10 opacity-75 hover:border-white/35 hover:opacity-100"
-
-                  }`}
-
-                  onClick={() => {
-                    onSelect(item);
-                  }}
-                >
-
-                  {(() => {
-                    const thumbnailSrc = buildGalleryDisplaySrc(
-                      listing.id,
-                      item,
-                      160,
-                      60,
-                    );
-
-                    return thumbnailSrc ? (
-                  <Image
-
-                    src={thumbnailSrc}
-
-                    alt={item.caption ?? item.zoneLabel}
-
-                    fill
-
-                    unoptimized
-
-                    sizes="(max-width: 1024px) 120px, 150px"
-
-                    className="object-cover"
-
-                    loading="lazy"
-
-                    onError={() => {
-                      onImageError(item.url);
-                    }}
-                  />
-                    ) : (
-                    <div className="grid h-full place-items-center text-[var(--site-on-primary)] opacity-60">
-                      <ImageOff className="h-6 w-6" />
-                    </div>
-                    );
-                  })()}
-
-                </button>
-
+                  listingId={listing.id}
+                  onImageError={onImageError}
+                  onSelect={onSelect}
+                />
               ))}
 
             </div>
