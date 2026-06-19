@@ -49,13 +49,23 @@ export function validateAdminSettingsDraftForClient(
 
   if (draft.logoFile) {
     errors.push(
-      ...validateUploadMetadata("logo", draft.logoFile.type, draft.logoFile.size),
+      ...validateUploadMetadata(
+        "logo",
+        draft.logoFile.type,
+        draft.logoFile.size,
+        draft.logoFile.name,
+      ),
     );
   }
 
   if (draft.heroFile) {
     errors.push(
-      ...validateUploadMetadata("hero", draft.heroFile.type, draft.heroFile.size),
+      ...validateUploadMetadata(
+        "hero",
+        draft.heroFile.type,
+        draft.heroFile.size,
+        draft.heroFile.name,
+      ),
     );
   }
 

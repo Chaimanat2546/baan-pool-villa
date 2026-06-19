@@ -19,7 +19,7 @@ export function toPublicGuideSummary(guide: GuidePost): PublicGuideSummary {
     id: guide.id,
     isPinned: guide.isPinned,
     slug: guide.slug,
-    tags: guide.tags,
+    tags: [...guide.tags],
     title: guide.title,
   };
 }

@@ -580,7 +580,10 @@ describe("admin site settings route", () => {
 
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.errors).toEqual([expect.stringContaining("JPG")]);
+    expect(body.errors).toEqual([
+      expect.stringContaining("JPG"),
+      expect.stringContaining(".jpg"),
+    ]);
     expect(from).not.toHaveBeenCalled();
   });
 
@@ -1191,7 +1194,7 @@ describe("admin site settings route", () => {
     ]);
   });
 
-  it("returns an error when previous upload history cannot be updated", async () => {
+  it("returns saved settings with a warning when previous upload history cannot be updated", async () => {
     const loadQuery = siteSettingsSelectQuery({ data: dbRow, error: null });
     const historyInsertQuery = uploadHistoryInsertQuery({
       data: { id: "new-logo-upload" },
@@ -1216,8 +1219,12 @@ describe("admin site settings route", () => {
       hint: "check update policy",
     };
     const historyUpdateQuery = uploadHistoryUpdateQuery({ error: updateError });
+    const historySelectQuery = uploadHistorySelectQuery({
+      data: [],
+      error: null,
+    });
     const from = fromQueue({
-      site_asset_uploads: [historyInsertQuery, historyUpdateQuery],
+      site_asset_uploads: [historyInsertQuery, historyUpdateQuery, historySelectQuery],
       site_settings: [loadQuery, saveQuery, reloadQuery],
     });
     const upload = vi.fn().mockResolvedValue({ error: null });
@@ -1228,6 +1235,7 @@ describe("admin site settings route", () => {
     const storageFrom = vi.fn().mockReturnValue({ getPublicUrl, remove, upload });
 
     authSupabase({ from, storage: { from: storageFrom } });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const formData = settingsForm();
     formData.set(
@@ -1240,17 +1248,25 @@ describe("admin site settings route", () => {
     );
     const response = await PUT(putRequest(formData));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      error: "History update failed",
-      code: "42501",
-      details: "RLS denied update",
-      hint: "check update policy",
+      settings: {
+        logoImage: {
+          path: "logo/2026/05/upload.webp",
+          url: "https://cdn.example.com/upload.webp",
+        },
+      },
+      warnings: ["Unable to mark previous site asset uploads inactive."],
     });
+    expect(consoleError).toHaveBeenCalledWith(
+      "Unable to mark previous site asset uploads inactive",
+      updateError,
+    );
     expect(historyUpdateQuery.chain.neq).toHaveBeenCalledWith(
       "id",
       "new-logo-upload",
     );
+    expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("cleans up uploaded storage and history when settings save fails", async () => {

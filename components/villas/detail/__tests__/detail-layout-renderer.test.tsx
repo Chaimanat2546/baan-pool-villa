@@ -195,22 +195,24 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).toContain("จองผ่าน LINE");
     expect(markup).toContain("รายละเอียดห้องนอน");
     expect(markup).toContain("สระว่ายน้ำ");
-    expect(markup).toContain("Homepage featured");
+    expect(markup).toContain('data-lazy-detail-block="recommended_villas"');
   });
 
-  it("renders recommended villa section title as h2 and villa names as h3", () => {
+  it("defers recommended villas until the block approaches the viewport", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT);
 
-    expect(markup).toContain("Homepage featured</h2>");
-    expect(markup).toContain("77</h3>");
+    expect(markup).toContain('data-detail-layout-block="recommended_villas"');
+    expect(markup).toContain('data-lazy-detail-block="recommended_villas"');
+    expect(markup).not.toContain("Homepage featured");
+    expect(markup).not.toContain("77</h3>");
   });
 
-  it("renders detail recommendations as a full-bleed homepage rail", () => {
+  it("keeps the deferred recommendation block in the full-width layout row", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT);
 
-    expect(markup).toContain('data-detail-recommended-villas="home-rail"');
-    expect(markup).toContain("relative left-1/2 w-screen -translate-x-1/2");
-    expect(markup).toContain("mx-auto w-full max-w-7xl px-4 py-8");
+    expect(markup).toContain('data-detail-layout-row="row_recommended"');
+    expect(markup).toContain('data-detail-layout-block="recommended_villas"');
+    expect(markup).not.toContain('data-detail-recommended-villas="deferred-rail"');
   });
 
   it("hides the review video block when there are no videos", () => {
@@ -219,11 +221,12 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).not.toContain("คลิปรีวิวบ้านพัก");
   });
 
-  it("renders review videos as thumbnail posters before play", () => {
+  it("defers review video posters before the block approaches the viewport", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT);
 
-    expect(markup).toContain("data-youtube-play-button");
-    expect(markup).toContain("i.ytimg.com%2Fvi%2Fexample%2Fhqdefault.jpg");
+    expect(markup).toContain('data-lazy-detail-block="review_videos"');
+    expect(markup).not.toContain("data-youtube-play-button");
+    expect(markup).not.toContain("i.ytimg.com%2Fvi%2Fexample%2Fhqdefault.jpg");
     expect(markup).not.toContain("<iframe");
     expect(markup).not.toContain("youtube-nocookie.com/embed");
     expect(markup).not.toContain("data-youtube-click-guard");
@@ -245,7 +248,8 @@ describe("DetailLayoutRenderer", () => {
     };
     const markup = render(layout);
 
-    expect(markup).toContain('data-detail-categorized-images="deferred"');
+    expect(markup).toContain('data-lazy-detail-block="categorized_images"');
+    expect(markup).not.toContain('data-detail-categorized-images="deferred"');
     expect(markup).not.toContain("/api/villas/66/images/proxy");
   });
 
@@ -325,7 +329,7 @@ describe("DetailLayoutRenderer", () => {
     expect(amenitiesBlockMarkup).not.toContain("Wi-Fi");
   });
 
-  it("compacts grouped price details before they dominate a row", () => {
+  it("defers grouped price details before they dominate initial render", () => {
     const costTitle = content.sections[4]?.title ?? "";
     const costLines = Array.from(
       { length: 4 },
@@ -337,9 +341,9 @@ describe("DetailLayoutRenderer", () => {
 
     const markup = render(DEFAULT_DETAIL_LAYOUT, { sections });
 
-    expect(markup).toContain('data-detail-compact-list="true"');
-    expect(markup).toContain("cost line 1");
-    expect(markup).toContain("cost line 4");
+    expect(markup).toContain('data-lazy-detail-block="costs_promotions"');
+    expect(markup).not.toContain("cost line 1");
+    expect(markup).not.toContain("cost line 4");
   });
 
   it("stacks 70-side row pairs into two desktop columns inside a split section", () => {

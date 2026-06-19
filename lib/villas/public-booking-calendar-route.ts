@@ -29,7 +29,10 @@ export async function buildVillaBookingCalendarResponse(
   if (result.status === "unavailable") {
     return Response.json(
       { error: "Booking calendar is unavailable." },
-      { status: 502 },
+      {
+        headers: { "Cache-Control": "no-store" },
+        status: 502,
+      },
     );
   }
 

@@ -275,7 +275,7 @@ describe("fetchVillaPageData", () => {
     expect(fetchVillaPreviewImagesMock).toHaveBeenCalledWith("9");
   });
 
-  it("uses the first resolved home section for villa recommendations", async () => {
+  it("leaves villa recommendations out of the initial page payload", async () => {
     const secondRawHouse = {
       ...rawHouse,
       h_id: "10",
@@ -291,40 +291,10 @@ describe("fetchVillaPageData", () => {
       .mockResolvedValue(jsonResponse([rawHouse, secondRawHouse, thirdRawHouse]));
     vi.stubGlobal("fetch", fetchMock);
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "");
-    getResolvedHomeSectionsMock.mockImplementation(async (listings) => ({
-      degraded: false,
-      sections: [
-        {
-          cta: { href: "/search?featured=1", label: "See featured" },
-          description: "First homepage section",
-          slug: "featured",
-          title: "Homepage featured",
-          villas: [listings[2], listings[1]],
-        },
-      ],
-      source: "config",
-    }));
 
     const data = await fetchVillaPageData("9");
 
-    expect(getResolvedHomeSectionsMock).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "9" }),
-        expect.objectContaining({ id: "10" }),
-        expect.objectContaining({ id: "11" }),
-      ]),
-    );
-    expect(data?.recommendedSection).toMatchObject({
-      cta: { href: "/search?featured=1", label: "See featured" },
-      description: "First homepage section",
-      title: "Homepage featured",
-      villas: [
-        { coverImage: "/api/houses/images/11", id: "11" },
-        { coverImage: "/api/houses/images/10", id: "10" },
-      ],
-    });
-    expect(JSON.stringify(data?.recommendedSection)).not.toContain(
-      "devillegroups.com",
-    );
+    expect(getResolvedHomeSectionsMock).not.toHaveBeenCalled();
+    expect(data?.recommendedSection).toBeNull();
   });
 });

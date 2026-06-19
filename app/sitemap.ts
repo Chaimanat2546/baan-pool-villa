@@ -47,24 +47,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   ]);
 
-  const villaRoutes: MetadataRoute.Sitemap = listings.map((listing) => ({
-    changeFrequency: "daily" as const,
-    images: listing.coverImage
-      ? [absoluteUrl(buildVillaCoverImageProxyPath(listing.id) ?? "")]
-      : undefined,
-    priority: 0.8,
-    url: absoluteUrl(`/villas/${listing.id}`),
-  }));
+  const villaRoutes: MetadataRoute.Sitemap = listings.map((listing) => {
+    const coverImagePath = listing.coverImage
+      ? buildVillaCoverImageProxyPath(listing.id)
+      : null;
 
-  const guideRoutes: MetadataRoute.Sitemap = guidesResult.map((guide) => ({
-    changeFrequency: "weekly" as const,
-    images: guide.coverImage?.url
-      ? [absoluteUrl(buildGuideCoverImageProxyPath(guide.slug) ?? "")]
-      : undefined,
-    lastModified: guide.updatedAt ? new Date(guide.updatedAt) : undefined,
-    priority: guide.isPinned ? 0.75 : 0.65,
-    url: absoluteUrl(`/guides/${guide.slug}`),
-  }));
+    return {
+      changeFrequency: "daily" as const,
+      images: coverImagePath ? [absoluteUrl(coverImagePath)] : undefined,
+      priority: 0.8,
+      url: absoluteUrl(`/villas/${listing.id}`),
+    };
+  });
+
+  const guideRoutes: MetadataRoute.Sitemap = guidesResult.map((guide) => {
+    const coverImagePath = guide.coverImage?.url
+      ? buildGuideCoverImageProxyPath(guide.slug)
+      : null;
+
+    return {
+      changeFrequency: "weekly" as const,
+      images: coverImagePath ? [absoluteUrl(coverImagePath)] : undefined,
+      lastModified: guide.updatedAt ? new Date(guide.updatedAt) : undefined,
+      priority: guide.isPinned ? 0.75 : 0.65,
+      url: absoluteUrl(`/guides/${guide.slug}`),
+    };
+  });
 
   const legalRoutes: MetadataRoute.Sitemap = legalPagesResult.map((page) => ({
     changeFrequency: "monthly" as const,

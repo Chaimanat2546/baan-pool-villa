@@ -37,18 +37,19 @@ export function toPublicVillaListings(
 export function toPublicVillaImage(
   villaId: string,
   image: VillaImage,
-): PublicVillaImage {
-  return {
-    ...image,
-    imageUrl: buildVillaGalleryImageProxyPath(villaId, image.id) ?? "",
-  };
+): PublicVillaImage | null {
+  const imageUrl = buildVillaGalleryImageProxyPath(villaId, image.id);
+
+  return imageUrl ? { ...image, imageUrl } : null;
 }
 
 export function toPublicVillaImages(
   villaId: string,
   images: VillaImage[],
 ): PublicVillaImage[] {
-  return images.map((image) => toPublicVillaImage(villaId, image));
+  return images
+    .map((image) => toPublicVillaImage(villaId, image))
+    .filter((image): image is PublicVillaImage => image !== null);
 }
 
 export function toPublicVillaDetailPayload(

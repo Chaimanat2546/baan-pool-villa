@@ -565,6 +565,7 @@ describe("validateUploadMetadata", () => {
         "hero",
         "image/webp",
         SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
+        "hero.webp",
       ),
     ).toEqual([]);
   });
@@ -575,10 +576,23 @@ describe("validateUploadMetadata", () => {
         "logo",
         "image/gif",
         SITE_SETTINGS_UPLOAD_LIMIT_BYTES + 1,
+        "logo.gif",
       ),
     ).toEqual([
       "ไฟล์โลโก้ต้องเป็น JPG, PNG หรือ WebP",
+      "นามสกุลไฟล์โลโก้ต้องเป็น .jpg, .jpeg, .png หรือ .webp",
       "ไฟล์โลโก้ต้องมีขนาดไม่เกิน 6MB",
     ]);
+  });
+
+  it("rejects files with unsupported image extensions even when MIME type is allowed", () => {
+    expect(
+      validateUploadMetadata(
+        "hero",
+        "image/png",
+        SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
+        "hero.txt",
+      ),
+    ).toEqual(["นามสกุลไฟล์Heroต้องเป็น .jpg, .jpeg, .png หรือ .webp"]);
   });
 });

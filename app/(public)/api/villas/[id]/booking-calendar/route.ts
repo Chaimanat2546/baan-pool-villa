@@ -12,9 +12,9 @@ export async function GET(
     return rateLimitResponse;
   }
 
-  const { id } = await context.params;
-
   try {
+    const { id } = await context.params;
+
     return await buildVillaBookingCalendarResponse(request, id);
   } catch (error) {
     return publicApiErrorResponse("Unable to load booking calendar", error);

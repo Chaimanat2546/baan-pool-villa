@@ -273,7 +273,11 @@ export function useVillaGallery({
 
         setActiveGalleryItem(latestGalleryItems[0] ?? null);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!item.isMock) {
+          setActiveGalleryItem(item);
+        }
+      });
   };
 
   const handleGalleryRetry = () => {
