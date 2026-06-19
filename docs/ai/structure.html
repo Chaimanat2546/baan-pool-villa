@@ -231,6 +231,11 @@
                 <td>Validated site asset image proxy for active public site settings images such as hero, logo, and SEO share images. It uses resolved site settings as the allowlist before handing off to <code>lib/public-image-proxy-server.ts</code> for shared transform validation, upstream fetch, response shaping, and 1-year Worker image edge caching.</td>
               </tr>
               <tr>
+                <td><code>app/(public)/api/site-theme.css/route.ts</code></td>
+                <td><code>/api/site-theme.css</code></td>
+                <td>Same-origin stylesheet route for scoped site theme CSS variables. Public and admin preview shells use <code>lib/site-settings/colors.ts</code> to build validated stylesheet URLs instead of inline React style attributes, keeping style CSP narrow.</td>
+              </tr>
+              <tr>
                 <td><code>app/(public)/api/guides/images/proxy/route.ts</code></td>
                 <td><code>/api/guides/images/proxy</code></td>
                 <td>Legacy validated guide image proxy for URL-addressed callers. Prefer the slug/block routes below for public render paths so Supabase Storage source URLs are not serialized into HTML or client payloads.</td>

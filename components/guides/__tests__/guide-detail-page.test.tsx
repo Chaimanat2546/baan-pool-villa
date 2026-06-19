@@ -125,7 +125,33 @@ describe("getYouTubeEmbedUrl", () => {
     expect(markup).toContain("<strong>");
     expect(markup).toContain("<em>");
     expect(markup).toContain('class="underline underline-offset-4"');
-    expect(markup).toContain('style="color:#c026d3"');
+    expect(markup).toContain('class="guide-text-color-c026d3"');
+    expect(markup).not.toContain("style=");
+  });
+
+  it("renders unsupported rich text colors without inline styles", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Custom color",
+                marks: [{ type: "textColor", attrs: { color: "#112233" } }],
+              },
+            ],
+          },
+        ])}
+        recommendedVillas={[]}
+        relatedGuides={[]}
+      />,
+    );
+
+    expect(markup).toContain("Custom color");
+    expect(markup).not.toContain("#112233");
+    expect(markup).not.toContain("style=");
   });
 
   it("groups adjacent guide list blocks into real public lists", () => {
@@ -268,10 +294,10 @@ describe("getYouTubeEmbedUrl", () => {
     );
 
     expect(markup).toContain(
-      'data-src="/api/guides/images/guide/cover?w=1200&amp;q=75"',
+      'src="/api/guides/images/guide/cover?w=1200&amp;q=75"',
     );
     expect(markup).toContain(
-      'data-src="/api/guides/images/guide/content/0?w=1200&amp;q=75"',
+      'src="/api/guides/images/guide/content/0?w=1200&amp;q=75"',
     );
     expect(markup).not.toContain("assets.example.com");
   });

@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useId, type ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 import type { BookingCalendarDay } from "./booking-calendar-ui";

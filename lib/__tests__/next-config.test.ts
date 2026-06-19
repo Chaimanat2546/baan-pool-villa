@@ -57,6 +57,22 @@ describe("Next image config", () => {
     );
   });
 
+  it("keeps global CSP sources scoped to known browser destinations", async () => {
+    const headers = await nextConfig.headers?.();
+    const csp = headers
+      ?.find((entry) => entry.source === "/:path*")
+      ?.headers.find((header) => header.key === "Content-Security-Policy")
+      ?.value;
+    const imgSrc = getCspDirective(csp, "img-src");
+    const connectSrc = getCspDirective(csp, "connect-src");
+    const styleSrc = getCspDirective(csp, "style-src");
+
+    expect(imgSrc.split(" ")).not.toContain("https:");
+    expect(connectSrc.split(" ")).not.toContain("https:");
+    expect(styleSrc.split(" ")).not.toContain("'unsafe-inline'");
+    expect(getCspDirective(csp, "style-src-attr")).toBe("");
+  });
+
   it("sets route-specific cache headers for sitemap and admin surfaces", async () => {
     const headers = await nextConfig.headers?.();
 

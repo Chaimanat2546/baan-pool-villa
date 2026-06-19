@@ -1,0 +1,94 @@
+.destination-card-overlay {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--site-primary) 92%, transparent),
+    color-mix(in srgb, var(--site-primary) 28%, transparent),
+    transparent
+  );
+}
+
+body.guide-modal-open {
+  overflow: hidden;
+}
+
+body.body-scroll-locked {
+  overflow: hidden;
+}
+
+.guide-text-color-000000 { color: #000000; }
+.guide-text-color-404040 { color: #404040; }
+.guide-text-color-666666 { color: #666666; }
+.guide-text-color-808080 { color: #808080; }
+.guide-text-color-a6a6a6 { color: #a6a6a6; }
+.guide-text-color-bfbfbf { color: #bfbfbf; }
+.guide-text-color-d9d9d9 { color: #d9d9d9; }
+.guide-text-color-f2f2f2 { color: #f2f2f2; }
+.guide-text-color-ffffff { color: #ffffff; }
+.guide-text-color-c00000 { color: #c00000; }
+.guide-text-color-ff0000 { color: #ff0000; }
+.guide-text-color-ffc000 { color: #ffc000; }
+.guide-text-color-ffff00 { color: #ffff00; }
+.guide-text-color-92d050 { color: #92d050; }
+.guide-text-color-00b050 { color: #00b050; }
+.guide-text-color-00b0f0 { color: #00b0f0; }
+.guide-text-color-0070c0 { color: #0070c0; }
+.guide-text-color-002060 { color: #002060; }
+.guide-text-color-7030a0 { color: #7030a0; }
+.guide-text-color-ff00ff { color: #ff00ff; }
+.guide-text-color-f4cccc { color: #f4cccc; }
+.guide-text-color-fce5cd { color: #fce5cd; }
+.guide-text-color-fff2cc { color: #fff2cc; }
+.guide-text-color-d9ead3 { color: #d9ead3; }
+.guide-text-color-d0e0e3 { color: #d0e0e3; }
+.guide-text-color-cfe2f3 { color: #cfe2f3; }
+.guide-text-color-d9d2e9 { color: #d9d2e9; }
+.guide-text-color-ead1dc { color: #ead1dc; }
+.guide-text-color-063f35 { color: #063f35; }
+.guide-text-color-0f5a66 { color: #0f5a66; }
+.guide-text-color-dc2626 { color: #dc2626; }
+.guide-text-color-ea580c { color: #ea580c; }
+.guide-text-color-ca8a04 { color: #ca8a04; }
+.guide-text-color-16a34a { color: #16a34a; }
+.guide-text-color-2563eb { color: #2563eb; }
+.guide-text-color-7c3aed { color: #7c3aed; }
+.guide-text-color-c026d3 { color: #c026d3; }
+.guide-text-color-111827 { color: #111827; }
+
+.guide-color-swatch-000000 { background-color: #000000; }
+.guide-color-swatch-404040 { background-color: #404040; }
+.guide-color-swatch-666666 { background-color: #666666; }
+.guide-color-swatch-808080 { background-color: #808080; }
+.guide-color-swatch-a6a6a6 { background-color: #a6a6a6; }
+.guide-color-swatch-bfbfbf { background-color: #bfbfbf; }
+.guide-color-swatch-d9d9d9 { background-color: #d9d9d9; }
+.guide-color-swatch-f2f2f2 { background-color: #f2f2f2; }
+.guide-color-swatch-ffffff { background-color: #ffffff; }
+.guide-color-swatch-c00000 { background-color: #c00000; }
+.guide-color-swatch-ff0000 { background-color: #ff0000; }
+.guide-color-swatch-ffc000 { background-color: #ffc000; }
+.guide-color-swatch-ffff00 { background-color: #ffff00; }
+.guide-color-swatch-92d050 { background-color: #92d050; }
+.guide-color-swatch-00b050 { background-color: #00b050; }
+.guide-color-swatch-00b0f0 { background-color: #00b0f0; }
+.guide-color-swatch-0070c0 { background-color: #0070c0; }
+.guide-color-swatch-002060 { background-color: #002060; }
+.guide-color-swatch-7030a0 { background-color: #7030a0; }
+.guide-color-swatch-ff00ff { background-color: #ff00ff; }
+.guide-color-swatch-f4cccc { background-color: #f4cccc; }
+.guide-color-swatch-fce5cd { background-color: #fce5cd; }
+.guide-color-swatch-fff2cc { background-color: #fff2cc; }
+.guide-color-swatch-d9ead3 { background-color: #d9ead3; }
+.guide-color-swatch-d0e0e3 { background-color: #d0e0e3; }
+.guide-color-swatch-cfe2f3 { background-color: #cfe2f3; }
+.guide-color-swatch-d9d2e9 { background-color: #d9d2e9; }
+.guide-color-swatch-ead1dc { background-color: #ead1dc; }
+.guide-color-swatch-063f35 { background-color: #063f35; }
+.guide-color-swatch-0f5a66 { background-color: #0f5a66; }
+.guide-color-swatch-dc2626 { background-color: #dc2626; }
+.guide-color-swatch-ea580c { background-color: #ea580c; }
+.guide-color-swatch-ca8a04 { background-color: #ca8a04; }
+.guide-color-swatch-16a34a { background-color: #16a34a; }
+.guide-color-swatch-2563eb { background-color: #2563eb; }
+.guide-color-swatch-7c3aed { background-color: #7c3aed; }
+.guide-color-swatch-c026d3 { background-color: #c026d3; }
+.guide-color-swatch-111827 { background-color: #111827; }

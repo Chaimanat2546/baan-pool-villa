@@ -27,7 +27,7 @@ function expectDocumentNavigationLink(markup: string, href: string) {
 }
 
 function getFirstImageSrc(markup: string): string {
-  const match = markup.match(/\bdata-src="([^"]+)"/);
+  const match = markup.match(/\bsrc="([^"]+)"/);
 
   expect(match?.[1]).toBeDefined();
 
@@ -79,7 +79,7 @@ describe("public navigation request budget", () => {
     expect(getFirstImageSrc(footerMarkup)).toBe(
       "/api/site-assets/proxy?url=https%3A%2F%2Fassets.example.com%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fsite-assets%2Flogo.png&w=160&q=75",
     );
-    expect(headerMarkup).not.toContain('data-src="https://assets.example.com');
-    expect(footerMarkup).not.toContain('data-src="https://assets.example.com');
+    expect(headerMarkup).not.toContain('src="https://assets.example.com');
+    expect(footerMarkup).not.toContain('src="https://assets.example.com');
   });
 });

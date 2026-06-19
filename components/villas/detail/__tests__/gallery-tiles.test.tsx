@@ -1,21 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { GalleryItem } from "../types";
 import { GalleryImage, GalleryReservedTile } from "../gallery-tiles";
-
-interface MockImageProps {
-  alt?: string;
-  src?: string;
-}
-
-const imageProps: MockImageProps[] = [];
-
-vi.mock("next/image", () => ({
-  default: (props: MockImageProps) => {
-    imageProps.push(props);
-    return <span data-gallery-image={props.alt} data-src={props.src} />;
-  },
-}));
 
 function galleryItem(overrides: Partial<GalleryItem> = {}): GalleryItem {
   return {
@@ -34,9 +20,7 @@ function galleryItem(overrides: Partial<GalleryItem> = {}): GalleryItem {
 
 describe("gallery tiles", () => {
   it("renders image tiles through the display proxy", () => {
-    imageProps.length = 0;
-
-    renderToStaticMarkup(
+    const markup = renderToStaticMarkup(
       <GalleryImage
         alt="Pool"
         item={galleryItem()}
@@ -45,11 +29,12 @@ describe("gallery tiles", () => {
       />,
     );
 
-    const imageUrl = new URL(imageProps[0]?.src ?? "", "https://example.com");
+    const imageSrc = markup.match(/<img\b[^>]*\bsrc="([^"]+)"/)?.[1] ?? "";
+    const imageUrl = new URL(imageSrc.replaceAll("&amp;", "&"), "https://example.com");
 
     expect(imageUrl.pathname).toBe("/api/villas/88/images");
     expect(imageUrl.searchParams.get("url")).toBe("https://cdn.test/pool.jpg");
-    expect(imageProps[0]?.alt).toBe("Pool");
+    expect(markup).toContain('alt="Pool"');
   });
 
   it("renders reserved tiles with stable markers", () => {

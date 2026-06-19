@@ -10,7 +10,6 @@ import {
   Link2,
   List,
   Palette,
-  Plus,
   Quote,
   Underline,
   Unlink,
@@ -27,6 +26,13 @@ import StarterKit from "@tiptap/starter-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import {
+  DEFAULT_GUIDE_TEXT_COLOR,
+  getGuideTextColorClass,
+  getGuideTextColorSwatchClass,
+  GUIDE_TEXT_COLOR_SWATCHES,
+  normalizeGuideTextColorForStorage,
+} from "@/lib/guides/text-colors";
 import type { GuideImage } from "@/lib/guides/types";
 
 import {
@@ -56,48 +62,6 @@ const BLOCK_TYPES = EDITOR_BLOCK_TYPES.map((type) => ({
   type,
 }));
 
-const DEFAULT_EDITOR_TEXT_COLOR = "#063f35";
-const EDITOR_TEXT_COLOR_SWATCHES = [
-  "#000000",
-  "#404040",
-  "#666666",
-  "#808080",
-  "#a6a6a6",
-  "#bfbfbf",
-  "#d9d9d9",
-  "#f2f2f2",
-  "#ffffff",
-  "#c00000",
-  "#ff0000",
-  "#ffc000",
-  "#ffff00",
-  "#92d050",
-  "#00b050",
-  "#00b0f0",
-  "#0070c0",
-  "#002060",
-  "#7030a0",
-  "#ff00ff",
-  "#f4cccc",
-  "#fce5cd",
-  "#fff2cc",
-  "#d9ead3",
-  "#d0e0e3",
-  "#cfe2f3",
-  "#d9d2e9",
-  "#ead1dc",
-  "#063f35",
-  "#0f5a66",
-  "#dc2626",
-  "#ea580c",
-  "#ca8a04",
-  "#16a34a",
-  "#2563eb",
-  "#7c3aed",
-  "#c026d3",
-  "#111827",
-] as const;
-
 const UnderlineMark = Mark.create({
   name: "underline",
   parseHTML() {
@@ -111,7 +75,7 @@ const UnderlineMark = Mark.create({
     return [
       "span",
       mergeAttributes(HTMLAttributes, {
-        style: "text-decoration-line: underline;",
+        class: "underline underline-offset-4",
       }),
       0,
     ];
@@ -124,11 +88,20 @@ const TextColorMark = Mark.create({
     return {
       color: {
         default: null,
-        parseHTML: (element) => element.style.color || null,
+        parseHTML: (element) => {
+          const classColor = Array.from(element.classList)
+            .find((className) => className.startsWith("guide-text-color-"))
+            ?.replace("guide-text-color-", "#");
+
+          return (
+            normalizeGuideTextColorForStorage(classColor) ??
+            normalizeGuideTextColorForStorage(element.style.color)
+          );
+        },
         renderHTML: (attributes) => {
-          return typeof attributes.color === "string" && attributes.color
-            ? { style: `color: ${attributes.color}` }
-            : {};
+          const className = getGuideTextColorClass(attributes.color);
+
+          return className ? { class: className } : {};
         },
       },
     };
@@ -143,52 +116,9 @@ const TextColorMark = Mark.create({
 
 function getEditorTextColor(editor: Editor): string {
   const color = editor.getAttributes("textColor").color;
+  const normalizedColor = normalizeGuideTextColorForStorage(color);
 
-  return typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color)
-    ? color
-    : DEFAULT_EDITOR_TEXT_COLOR;
-}
-
-function isSafeEditorTextColor(value: string): boolean {
-  return (
-    value.length > 0 &&
-    value.length <= 80 &&
-    !value.includes(";") &&
-    !value.includes("<") &&
-    !value.includes(">") &&
-    !/[\u0000-\u001f\u007f]/.test(value)
-  );
-}
-
-function normalizeEditorTextColorInput(value: string): string | null {
-  const color = value.trim();
-
-  return isSafeEditorTextColor(color) ? color : null;
-}
-
-function normalizeHexColor(value: string): string | null {
-  const color = value.trim();
-
-  if (/^#[0-9a-fA-F]{6}$/.test(color)) {
-    return color.toLowerCase();
-  }
-
-  if (/^[0-9a-fA-F]{6}$/.test(color)) {
-    return `#${color.toLowerCase()}`;
-  }
-
-  return null;
-}
-
-function getRgbFromHexColor(value: string) {
-  const color = normalizeHexColor(value) ?? DEFAULT_EDITOR_TEXT_COLOR;
-
-  return {
-    b: Number.parseInt(color.slice(5, 7), 16),
-    g: Number.parseInt(color.slice(3, 5), 16),
-    hex: color,
-    r: Number.parseInt(color.slice(1, 3), 16),
-  };
+  return normalizedColor ?? DEFAULT_GUIDE_TEXT_COLOR;
 }
 
 function getEditorToolbarButtonClass(isActive: boolean) {
@@ -201,7 +131,8 @@ function getEditorToolbarButtonClass(isActive: boolean) {
 
 function TextColorControl({ editor }: { editor: Editor }) {
   const currentColor = getEditorTextColor(editor);
-  const currentRgb = getRgbFromHexColor(currentColor);
+  const currentColorClass = getGuideTextColorClass(currentColor);
+  const currentSwatchClass = getGuideTextColorSwatchClass(currentColor);
   const [isOpen, setIsOpen] = useState(false);
   const modalRoot = typeof document === "undefined" ? null : document.body;
 
@@ -210,31 +141,15 @@ function TextColorControl({ editor }: { editor: Editor }) {
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
-    const previousPaddingRight = document.body.style.paddingRight;
-    const pageWidth = document.documentElement.clientWidth;
-    const scrollbarWidth =
-      pageWidth > 0 ? Math.max(0, window.innerWidth - pageWidth) : 0;
-
-    if (scrollbarWidth > 0) {
-      const currentPaddingRight =
-        Number.parseFloat(window.getComputedStyle(document.body).paddingRight) ||
-        0;
-      document.body.style.paddingRight = `${
-        currentPaddingRight + scrollbarWidth
-      }px`;
-    }
-
-    document.body.style.overflow = "hidden";
+    document.body.classList.add("guide-modal-open");
 
     return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.paddingRight = previousPaddingRight;
+      document.body.classList.remove("guide-modal-open");
     };
   }, [isOpen]);
 
   function applyColor(value: string) {
-    const normalizedColor = normalizeEditorTextColorInput(value);
+    const normalizedColor = normalizeGuideTextColorForStorage(value);
 
     if (!normalizedColor) {
       return;
@@ -262,8 +177,7 @@ function TextColorControl({ editor }: { editor: Editor }) {
       >
         <Palette
           aria-hidden="true"
-          className="size-4"
-          style={{ color: currentColor }}
+          className={`size-4 ${currentColorClass ?? ""}`}
         />
       </button>
       {modalRoot && isOpen
@@ -276,13 +190,14 @@ function TextColorControl({ editor }: { editor: Editor }) {
               <div className="pointer-events-auto max-h-[calc(100vh-3rem)] w-full max-w-[330px] overflow-y-auto overflow-x-hidden rounded-lg border border-[var(--site-border)] bg-white p-4 shadow-2xl ring-1 ring-black/5">
                 <div className="grid gap-3">
                   <div className="grid grid-cols-10 gap-1.5">
-                    {EDITOR_TEXT_COLOR_SWATCHES.map((color) => {
-                      const isSelected = color.toLowerCase() === currentRgb.hex;
+                    {GUIDE_TEXT_COLOR_SWATCHES.map((color) => {
+                      const isSelected = color === currentColor;
+                      const swatchClass = getGuideTextColorSwatchClass(color);
 
                       return (
                         <button
                           aria-label={`ใช้สี ${color}`}
-                          className={`grid size-5 place-items-center rounded-full border text-[10px] font-bold text-white shadow-sm ${
+                          className={`grid size-5 place-items-center rounded-full border text-[10px] font-bold text-white shadow-sm ${swatchClass ?? ""} ${
                             isSelected
                               ? "border-black ring-2 ring-black ring-offset-2 ring-offset-white"
                               : "border-black/10 hover:ring-1 hover:ring-black/20"
@@ -292,7 +207,6 @@ function TextColorControl({ editor }: { editor: Editor }) {
                           onClick={() => {
                             applyColor(color);
                           }}
-                          style={{ backgroundColor: color }}
                           title={color}
                           type="button"
                         />
@@ -305,34 +219,12 @@ function TextColorControl({ editor }: { editor: Editor }) {
                   <div className="flex items-center gap-2">
                     <button
                       aria-label="ใช้สีปัจจุบัน"
-                      className="size-6 rounded-full border border-[var(--site-border-strong)]"
+                      className={`size-6 rounded-full border border-[var(--site-border-strong)] ${currentSwatchClass ?? ""}`}
                       onClick={() => {
-                        applyColor(currentRgb.hex);
+                        applyColor(currentColor);
                       }}
-                      style={{ backgroundColor: currentRgb.hex }}
                       type="button"
                     />
-                    <label
-                      aria-label="เพิ่มสี"
-                      className="relative grid size-6 cursor-pointer place-items-center overflow-hidden rounded-full border border-[var(--site-border-strong)] text-[var(--site-primary)] focus-within:ring-2 focus-within:ring-[var(--site-primary)]/20"
-                      data-guide-color-custom-open="true"
-                      title="เพิ่มสี"
-                    >
-                      <Plus
-                        aria-hidden="true"
-                        className="pointer-events-none size-4"
-                      />
-                      <input
-                        aria-label="เลือกสีข้อความ"
-                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                        data-guide-color-picker="true"
-                        onChange={(event) => {
-                          applyColor(event.currentTarget.value);
-                        }}
-                        type="color"
-                        value={currentRgb.hex}
-                      />
-                    </label>
                     <button
                       className="ml-auto text-xs font-semibold text-[var(--site-muted)] hover:text-[var(--site-primary)]"
                       onClick={() => {

@@ -229,8 +229,7 @@ describe("BookingSidebar", () => {
     clearBookingCalendarClientCacheForTests();
     vi.useRealTimers();
     vi.unstubAllGlobals();
-    document.body.style.overflow = "";
-    document.body.style.paddingRight = "";
+    document.body.classList.remove("body-scroll-locked");
     document.body.innerHTML = "";
   });
 
@@ -559,7 +558,7 @@ describe("BookingSidebar", () => {
     let dialog = page.container.querySelector("[data-date-detail-dialog]");
     expect(dialog?.textContent).toContain("วันธรรมดา");
     expect(dialog?.textContent).toContain("ราคา 9,900 บาท");
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(true);
     expect(
       page.container.querySelector('[role="presentation"]')?.className,
     ).toContain("pb-[calc(10rem+env(safe-area-inset-bottom))]");
@@ -569,7 +568,7 @@ describe("BookingSidebar", () => {
         .querySelector<HTMLButtonElement>('[aria-label="ปิดรายละเอียดวัน"]')
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    expect(document.body.style.overflow).toBe("");
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(false);
 
     await act(async () => {
       clickCalendarNavButton(page.container, "next");

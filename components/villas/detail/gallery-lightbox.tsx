@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Download, ImageOff, X } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useEffect, useRef, useState, type RefObject, type TouchEvent } from "react";
 import type { VillaListing } from "@/lib/villas/types";
 import { buildGalleryDisplaySrc, buildGalleryDownloadHref } from "./gallery-urls";

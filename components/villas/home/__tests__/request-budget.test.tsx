@@ -70,7 +70,7 @@ describe("homepage request budget", () => {
       />,
     );
 
-    expect(markup).not.toContain('data-preload="true"');
+    expect(markup).not.toContain('loading="eager"');
     expect(markup).toContain('href="/search"');
     expect(markup).not.toContain('data-prefetch="false" href="/search"');
   });
@@ -92,7 +92,7 @@ describe("homepage request budget", () => {
 
     const renderedVillaLinks = markup.match(/href="\/villas\//g) ?? [];
     const renderedImages =
-      markup.match(/data-src="\/api\/houses\/images\/\d+\?w=640&amp;q=60"/g) ??
+      markup.match(/src="\/api\/houses\/images\/\d+\?w=640&amp;q=60"/g) ??
       [];
 
     expect(renderedVillaLinks).toHaveLength(12);
@@ -106,7 +106,7 @@ describe("homepage request budget", () => {
       <ArticlesSection guides={selectHomeGuideSummaries([guide])} />,
     );
 
-    expect(markup).not.toContain('data-priority="true"');
+    expect(markup).not.toContain('loading="eager"');
     expect(markup).toContain('href="/guides/guide-1"');
     expect(markup).not.toContain('data-prefetch="false" href="/guides/guide-1"');
   });
