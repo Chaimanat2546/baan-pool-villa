@@ -2,20 +2,16 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
-import { getResolvedHomeSections } from "@/lib/home-sections/server";
 import { fetchVillaPreviewImages } from "./images";
 import { normalizeHouses } from "./normalize";
 import {
-  toPublicRecommendedVillaSection,
   toPublicVillaDetailPayload,
   toPublicVillaImages,
-  type PublicRecommendedVillaSection,
   type PublicVillaDetailPayload,
   type PublicVillaImage,
 } from "./public-dto";
 import type {
   RawHouse,
-  RecommendedVillaSection,
   VillaDetailPayload,
   VillaListing,
 } from "./types";
@@ -162,35 +158,15 @@ export async function fetchVillaDetail(
 export type VillaPageData = {
   initialGalleryImages: PublicVillaImage[];
   payload: PublicVillaDetailPayload;
-  recommendedSection: PublicRecommendedVillaSection | null;
+  recommendedSection: null;
 };
 
-function toRecommendedVillaSection(
-  sections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"],
-): RecommendedVillaSection | null {
-  // Villa detail pages only surface the first populated section so the
-  // recommendation rail stays aligned with homepage merchandising order.
-  const firstSection = sections.find((section) => section.villas.length > 0);
-
-  if (!firstSection) {
-    return null;
-  }
-
-  return {
-    ...(firstSection.cta ? { cta: firstSection.cta } : {}),
-    description: firstSection.description,
-    title: firstSection.title,
-    villas: firstSection.villas,
-  };
-}
-
 /**
- * Combines villa detail data with the first resolved home-section
- * recommendation block used on the public detail page.
+ * Combines villa detail data with the initial gallery preview used on the
+ * public detail page.
  *
  * @param id - The villa id to resolve for the public detail page.
- * @returns The page payload and recommendation block, or `null` when the villa
- * id is not found.
+ * @returns The page payload, or `null` when the villa id is not found.
  */
 export async function fetchVillaPageData(
   id: string,
@@ -202,19 +178,16 @@ export async function fetchVillaPageData(
     return null;
   }
 
-  const [homeSections, initialGalleryImages] = await Promise.all([
-    getResolvedHomeSections(listings),
-    fetchVillaPreviewImages(id).catch((error: unknown) => {
+  const initialGalleryImages = await fetchVillaPreviewImages(id).catch(
+    (error: unknown) => {
       console.error("Unable to load villa detail initial gallery images", error);
       return [];
-    }),
-  ]);
+    },
+  );
 
   return {
     initialGalleryImages: toPublicVillaImages(id, initialGalleryImages.slice(0, 4)),
     payload: toPublicVillaDetailPayload(payload),
-    recommendedSection: toPublicRecommendedVillaSection(
-      toRecommendedVillaSection(homeSections.sections),
-    ),
+    recommendedSection: null,
   };
 }
