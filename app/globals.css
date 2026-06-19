@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "./guide-colors.css";
 
 :root {
@@ -34,6 +35,27 @@ body {
     linear-gradient(180deg, #f8fbf7 0%, #eef5f1 100%);
   color: var(--foreground);
   font-family: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes calendar-pointer-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-90deg);
+  }
+
+  50% {
+    transform: translateY(-6px) rotate(-90deg);
+  }
+}
+
+.calendar-pointer-bob {
+  animation: calendar-pointer-bob 1.15s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendar-pointer-bob {
+    animation: none;
+  }
 }
 
 button,

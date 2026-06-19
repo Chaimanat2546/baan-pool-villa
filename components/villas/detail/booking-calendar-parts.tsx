@@ -58,7 +58,7 @@ export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"]
       {hasFire ? (
         <span
           aria-hidden="true"
-          className="absolute inset-0 z-[1] grid place-items-center text-[var(--site-primary)]"
+          className="absolute inset-0 z-[1] grid animate-in place-items-center text-[var(--site-primary)] fade-in zoom-in-95 duration-300"
           data-calendar-icon-slot="filled"
         >
           <FireSvgIcon
@@ -100,12 +100,12 @@ export function CalendarFirstAvailablePointer() {
   return (
     <span
       aria-hidden="true"
-      className="pointer-events-none absolute -top-8 left-1 z-[35] drop-shadow-[0_3px_3px_rgba(12,28,24,0.24)]"
+      className="pointer-events-none absolute -top-8 left-1 z-[35] animate-in drop-shadow-[0_3px_3px_rgba(12,28,24,0.24)] fade-in slide-in-from-bottom-1 zoom-in-95 duration-300"
       data-calendar-first-available-pointer="true"
     >
       <Image
         alt=""
-        className="relative z-10 size-11 -rotate-90"
+        className="calendar-pointer-bob relative z-10 size-11"
         data-calendar-first-available-icon="true"
         height={44}
         src="/icons/pointing-left-finger-svgrepo-com.svg"
@@ -128,7 +128,7 @@ export function CalendarFirstAvailableTooltip({
       aria-label="คำแนะนำการใช้งานปฏิทิน"
       aria-live="polite"
       className={cn(
-        "absolute -top-50 z-40 w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-left shadow-xl shadow-black/15 ring-1 ring-[var(--site-primary)]/10",
+        "absolute -top-50 z-40 w-64 max-w-[calc(100vw-2rem)] animate-in rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-left shadow-xl shadow-black/15 ring-1 ring-[var(--site-primary)]/10 fade-in duration-200",
         align === "start"
           ? "left-0"
           : align === "end"

@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
+import { buildContentSecurityPolicy } from "./lib/security/csp";
+
 const securityHeaders = [
+  {
+    key: "Content-Security-Policy",
+    value: buildContentSecurityPolicy({
+      isDevelopment: process.env.NODE_ENV === "development",
+      supabaseUrl: process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL,
+    }),
+  },
   {
     key: "X-Frame-Options",
     value: "DENY",
