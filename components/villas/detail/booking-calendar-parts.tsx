@@ -1,5 +1,4 @@
-import { motion, useReducedMotion } from "framer-motion";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useId, type ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 import type { BookingCalendarDay } from "./booking-calendar-ui";
@@ -51,40 +50,22 @@ function FireSvgIcon({
 }
 
 export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"] }) {
-  const reduceMotion = useReducedMotion();
   const hasFire = icons.includes("fire");
   const isEmpty = !hasFire;
-
-  const iconAnimation = reduceMotion
-    ? undefined
-    : {
-        opacity: hasFire ? [0.82, 1, 0.86] : [0.78, 1, 0.78],
-        rotate: hasFire ? [-5, 4, -3] : [0, -4, 4, 0],
-        scale: hasFire ? [1, 1.16, 1.04] : [1, 1.1, 1],
-      };
-  const iconTransition = reduceMotion
-    ? undefined
-    : {
-        duration: hasFire ? 1.25 : 1.8,
-        ease: "easeInOut" as const,
-        repeat: Infinity,
-      };
 
   return (
     <>
       {hasFire ? (
-        <motion.span
+        <span
           aria-hidden="true"
-          animate={iconAnimation}
-          className="absolute inset-0 z-[1] grid place-items-center text-[var(--site-primary)]"
+          className="absolute inset-0 z-[1] grid animate-in place-items-center text-[var(--site-primary)] fade-in zoom-in-95 duration-300"
           data-calendar-icon-slot="filled"
-          transition={iconTransition}
         >
           <FireSvgIcon
             className="size-8 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)]"
             data-calendar-icon="fire"
           />
-        </motion.span>
+        </span>
       ) : null}
       {isEmpty ? (
         <span
@@ -116,42 +97,22 @@ export function CalendarDayOverlay({ day }: { day: BookingCalendarDay }) {
 }
 
 export function CalendarFirstAvailablePointer() {
-  const reduceMotion = useReducedMotion();
-
   return (
-    <motion.span
+    <span
       aria-hidden="true"
-      animate={
-        reduceMotion
-          ? undefined
-          : {
-              rotate: [-12, -4, -12],
-              scale: [1, 1.08, 1],
-              y: [0, -4, 0],
-            }
-      }
-      className="pointer-events-none absolute -top-8 left-1 z-[35] drop-shadow-[0_3px_3px_rgba(12,28,24,0.24)]"
+      className="pointer-events-none absolute -top-8 left-1 z-[35] animate-in drop-shadow-[0_3px_3px_rgba(12,28,24,0.24)] fade-in slide-in-from-bottom-1 zoom-in-95 duration-300"
       data-calendar-first-available-pointer="true"
-      transition={
-        reduceMotion
-          ? undefined
-          : {
-              duration: 1.15,
-              ease: "easeInOut",
-              repeat: Infinity,
-            }
-      }
     >
       <Image
         alt=""
-        className="relative z-10 size-11 -rotate-90"
+        className="calendar-pointer-bob relative z-10 size-11"
         data-calendar-first-available-icon="true"
         height={44}
         src="/icons/pointing-left-finger-svgrepo-com.svg"
         unoptimized
         width={44}
       />
-    </motion.span>
+    </span>
   );
 }
 
@@ -167,7 +128,7 @@ export function CalendarFirstAvailableTooltip({
       aria-label="คำแนะนำการใช้งานปฏิทิน"
       aria-live="polite"
       className={cn(
-        "absolute -top-50 z-40 w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-left shadow-xl shadow-black/15 ring-1 ring-[var(--site-primary)]/10",
+        "absolute -top-50 z-40 w-64 max-w-[calc(100vw-2rem)] animate-in rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-left shadow-xl shadow-black/15 ring-1 ring-[var(--site-primary)]/10 fade-in duration-200",
         align === "start"
           ? "left-0"
           : align === "end"

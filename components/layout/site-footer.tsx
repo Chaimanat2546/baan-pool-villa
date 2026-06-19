@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
 import { buildSiteAssetProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";

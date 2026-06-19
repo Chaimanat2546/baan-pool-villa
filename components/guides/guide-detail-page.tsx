@@ -1,5 +1,5 @@
-import Image from "next/image";
-import type { CSSProperties, ReactNode } from "react";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import type { ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
@@ -7,6 +7,7 @@ import { ArticlesSection } from "@/components/villas/home/articles-section";
 import { ScrollRail } from "@/components/ui/scroll-rail";
 import { VillaCard } from "@/components/villas/listing/villa-card";
 import { toPublicGuideSummaries } from "@/lib/guides/public-dto";
+import { getGuideTextColorClass } from "@/lib/guides/text-colors";
 import type { GuidePost } from "@/lib/guides/types";
 import {
   buildGuideContentImageProxyPath,
@@ -242,39 +243,6 @@ function normalizePublicLinkHref(value: unknown): string | null {
   return null;
 }
 
-function hasControlCharacter(value: string): boolean {
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index);
-
-    if (code <= 31 || code === 127) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function normalizePublicTextColor(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const color = value.trim();
-
-  if (
-    color.length === 0 ||
-    color.length > 80 ||
-    color.includes(";") ||
-    color.includes("<") ||
-    color.includes(">") ||
-    hasControlCharacter(color)
-  ) {
-    return null;
-  }
-
-  return color;
-}
-
 function renderMarkedInlineContent(
   text: string,
   marks: GuideTextMark[] | undefined,
@@ -299,10 +267,10 @@ function renderMarkedInlineContent(
           </span>
         );
       case "textColor": {
-        const color = normalizePublicTextColor(mark.attrs?.color);
+        const colorClass = getGuideTextColorClass(mark.attrs?.color);
 
-        return color ? (
-          <span key={key} style={{ color } as CSSProperties}>
+        return colorClass ? (
+          <span className={colorClass} key={key}>
             {node}
           </span>
         ) : (

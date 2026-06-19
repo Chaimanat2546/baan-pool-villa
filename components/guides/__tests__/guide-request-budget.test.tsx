@@ -84,7 +84,7 @@ describe("guide detail request budget", () => {
     );
 
     expect(markup).toContain(
-      'data-src="/api/guides/images/guide-1/cover?w=640&amp;q=60"',
+      'src="/api/guides/images/guide-1/cover?w=640&amp;q=60"',
     );
     expect(markup).not.toContain("assets.example.com");
   });
@@ -100,6 +100,6 @@ describe("guide detail request budget", () => {
 
     const sidebarMarkup = markup.slice(markup.indexOf("data-guide-sidebar"));
 
-    expect(sidebarMarkup).not.toContain('data-preload="true"');
+    expect(sidebarMarkup).not.toContain('loading="eager"');
   });
 });

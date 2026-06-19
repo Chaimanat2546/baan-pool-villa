@@ -1,5 +1,5 @@
 import { ImageOff } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { buildGalleryDisplaySrc } from "./gallery-urls";
 import type { GalleryItem } from "./types";
 

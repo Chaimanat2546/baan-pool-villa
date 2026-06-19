@@ -1,5 +1,5 @@
 import { ArrowRight, FileText, Pin } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
 import type { GuidePost } from "@/lib/guides/types";
 import { buildGuideCoverImageProxyPath } from "@/lib/public-image-proxy";

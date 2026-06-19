@@ -117,12 +117,12 @@ describe("GalleryLightbox", () => {
     });
 
     expect(onSelect).not.toHaveBeenCalled();
-    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(true);
 
     await act(async () => {
       root.unmount();
     });
-    expect(document.body.style.overflow).toBe("");
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(false);
     container.remove();
   });
 

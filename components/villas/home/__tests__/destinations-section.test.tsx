@@ -35,9 +35,7 @@ describe("DestinationsSection", () => {
       />,
     );
 
-    expect(markup).toContain(
-      'data-src="/api/houses/images/501?w=1200&amp;q=60"',
-    );
+    expect(markup).toContain('src="/api/houses/images/501?w=1200&amp;q=60"');
     expect(markup).not.toContain("devillegroups.com");
   });
 });

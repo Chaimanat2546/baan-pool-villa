@@ -1,5 +1,5 @@
 import { BedDouble, MapPin, Users } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
 import { buildVillaCoverImageProxyPath } from "@/lib/public-image-proxy";
 import type { VillaListing } from "@/lib/villas/types";

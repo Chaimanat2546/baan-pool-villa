@@ -284,7 +284,7 @@ describe("AdminGuidesPage", () => {
     await page.unmount();
   });
 
-  it("shows a Word-style color control with swatches and native custom picker", async () => {
+  it("shows a Word-style color control with class-backed swatches", async () => {
     const originalInnerWidth = window.innerWidth;
     const run = vi.fn();
     const focus = vi.fn(() => ({ setMark }));
@@ -335,24 +335,17 @@ describe("AdminGuidesPage", () => {
 
     expect(page.container.querySelector("[role='dialog']")).toBeNull();
     expect(document.body.querySelector("[role='dialog']")).not.toBeNull();
-    expect(document.body.style.overflow).toBe("hidden");
-    expect(document.body.style.paddingRight).toBe("17px");
+    expect(document.body.classList.contains("guide-modal-open")).toBe(true);
     expect(
       document.body.querySelectorAll("[data-guide-color-swatch='true']").length,
     ).toBeGreaterThan(20);
 
-    const customButton = document.body.querySelector(
-      "[data-guide-color-custom-open='true']",
-    ) as HTMLElement | null;
-
-    expect(customButton).not.toBeNull();
-    const colorInput = document.body.querySelector(
-      "[data-guide-color-picker='true']",
-    ) as HTMLInputElement | null;
-
-    expect(colorInput).not.toBeNull();
-    expect(customButton?.contains(colorInput)).toBe(true);
-    expect(colorInput?.className).toContain("absolute");
+    expect(
+      document.body.querySelector("[data-guide-color-custom-open='true']"),
+    ).toBeNull();
+    expect(
+      document.body.querySelector("[data-guide-color-picker='true']"),
+    ).toBeNull();
     expect(
       document.body.querySelector("[data-guide-color-code-input='true']"),
     ).toBeNull();
@@ -363,15 +356,21 @@ describe("AdminGuidesPage", () => {
       document.body.querySelector("[data-guide-color-custom-apply='true']"),
     ).toBeNull();
 
-    await click(customButton as HTMLElement);
+    const swatch = Array.from(
+      document.body.querySelectorAll<HTMLButtonElement>(
+        "[data-guide-color-swatch='true']",
+      ),
+    ).find((button) => button.title === "#c026d3");
 
-    await changeInput(colorInput as HTMLInputElement, "#112233");
+    expect(swatch).toBeDefined();
 
-    expect(setMark).toHaveBeenCalledWith("textColor", { color: "#112233" });
-    expect(document.body.style.paddingRight).toBe("");
+    await click(swatch as HTMLButtonElement);
+
+    expect(setMark).toHaveBeenCalledWith("textColor", { color: "#c026d3" });
+    expect(document.body.classList.contains("guide-modal-open")).toBe(false);
 
     await page.unmount();
-    expect(document.body.style.overflow).toBe("");
+    expect(document.body.classList.contains("guide-modal-open")).toBe(false);
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
       value: originalInnerWidth,
@@ -398,11 +397,11 @@ describe("AdminGuidesPage", () => {
 
     const page = await mountAdminPage(<AdminGuidesPage />);
     const coverImage = page.container.querySelector(
-      "[role='img'][aria-label='Guide cover']",
-    ) as HTMLElement | null;
+      "img[alt='Guide cover']",
+    ) as HTMLImageElement | null;
 
     expect(coverImage).not.toBeNull();
-    expect(coverImage?.dataset.loading).toBe("eager");
+    expect(coverImage?.getAttribute("loading")).toBe("eager");
 
     await page.unmount();
   });

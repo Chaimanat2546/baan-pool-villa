@@ -46,11 +46,9 @@ describe("VillaCard navigation", () => {
   it("renders listing cover images through the public cover proxy", () => {
     const markup = renderToStaticMarkup(<VillaCard villa={villa} />);
 
-    expect(markup).toContain(
-      'data-src="/api/houses/images/501?w=640&amp;q=60"',
-    );
+    expect(markup).toContain('src="/api/houses/images/501?w=640&amp;q=60"');
     expect(markup).not.toContain(
-      'data-src="https://devillegroups.com/imgs/profile_imgs_large/501.jpg"',
+      'src="https://devillegroups.com/imgs/profile_imgs_large/501.jpg"',
     );
     expect(markup).not.toContain("devillegroups.com");
   });

@@ -1,7 +1,7 @@
 "use client";
 
 import { MapPin, Menu, X } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useState } from "react";
 import { buildSiteAssetProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";

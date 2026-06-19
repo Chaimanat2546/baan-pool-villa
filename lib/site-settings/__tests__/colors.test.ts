@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildSiteThemeCss,
+  buildSiteThemeStylesheetHref,
   buildSiteThemeStyle,
   getContrastRatio,
   getReadableTextColor,
@@ -115,5 +117,49 @@ describe("buildSiteThemeStyle", () => {
 
     expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
     expect(style["--site-accent-on-dark"]).not.toBe(style["--site-accent"]);
+  });
+});
+
+describe("buildSiteThemeCss", () => {
+  it("serializes theme variables under a scoped selector", () => {
+    const css = buildSiteThemeCss(
+      {
+        primaryColor: "#064e3b",
+        accentColor: "#eab308",
+      },
+      "settings-preview-theme",
+    );
+
+    expect(css).toContain(".settings-preview-theme{");
+    expect(css).toContain("--site-primary:#064e3b");
+    expect(css).toContain("--site-accent:");
+  });
+
+  it("falls back to the public theme scope for invalid selectors", () => {
+    const css = buildSiteThemeCss(
+      {
+        primaryColor: "#064e3b",
+        accentColor: "#eab308",
+      },
+      "x;body",
+    );
+
+    expect(css.startsWith(".site-theme{")).toBe(true);
+  });
+});
+
+describe("buildSiteThemeStylesheetHref", () => {
+  it("builds the internal theme stylesheet URL", () => {
+    expect(
+      buildSiteThemeStylesheetHref(
+        {
+          primaryColor: "#064e3b",
+          accentColor: "#eab308",
+        },
+        "settings-preview-theme",
+      ),
+    ).toBe(
+      "/api/site-theme.css?accent=%23eab308&primary=%23064e3b&scope=settings-preview-theme",
+    );
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { Play } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useEffect, useState } from "react";
 import { SiTiktok } from "react-icons/si";
 

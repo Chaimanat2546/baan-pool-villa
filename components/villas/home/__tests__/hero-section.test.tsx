@@ -40,7 +40,7 @@ describe("HeroSection", () => {
     );
 
     expect(markup).toContain(
-      'data-src="/api/site-assets/proxy?url=https%3A%2F%2Fassets.example.com%2Fhero.jpg&amp;w=1920&amp;q=75"',
+      'src="/api/site-assets/proxy?url=https%3A%2F%2Fassets.example.com%2Fhero.jpg&amp;w=1920&amp;q=75"',
     );
   });
 });

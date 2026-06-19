@@ -1,32 +1,14 @@
 import type { NextConfig } from "next";
 
-const isDevelopment = process.env.NODE_ENV === "development";
-const CLOUDFLARE_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
-
-const scriptSources = [
-  "'self'",
-  "'unsafe-inline'",
-  ...(isDevelopment ? ["'unsafe-eval'"] : []),
-  CLOUDFLARE_TURNSTILE_ORIGIN,
-];
+import { buildContentSecurityPolicy } from "./lib/security/csp";
 
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
-    value: [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "object-src 'none'",
-      "frame-ancestors 'none'",
-      "img-src 'self' data: blob: https:",
-      "font-src 'self' data: https://fonts.gstatic.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      `script-src ${scriptSources.join(" ")}`,
-      `connect-src 'self' https:${isDevelopment ? " ws: wss:" : ""}`,
-      `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
-      "form-action 'self'",
-      "upgrade-insecure-requests",
-    ].join("; "),
+    value: buildContentSecurityPolicy({
+      isDevelopment: process.env.NODE_ENV === "development",
+      supabaseUrl: process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL,
+    }),
   },
   {
     key: "X-Frame-Options",

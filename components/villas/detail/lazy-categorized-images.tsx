@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useEffect, useRef, useState } from "react";
 import { buildVillaGalleryImageProxyUrl } from "@/lib/public-image-proxy";
 import type { VillaListing } from "@/lib/villas/types";
