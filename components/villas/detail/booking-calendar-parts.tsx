@@ -1,4 +1,3 @@
-import { motion, useReducedMotion } from "framer-motion";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useId, type ComponentProps } from "react";
 import { cn } from "@/lib/utils";
@@ -51,40 +50,22 @@ function FireSvgIcon({
 }
 
 export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"] }) {
-  const reduceMotion = useReducedMotion();
   const hasFire = icons.includes("fire");
   const isEmpty = !hasFire;
-
-  const iconAnimation = reduceMotion
-    ? undefined
-    : {
-        opacity: hasFire ? [0.82, 1, 0.86] : [0.78, 1, 0.78],
-        rotate: hasFire ? [-5, 4, -3] : [0, -4, 4, 0],
-        scale: hasFire ? [1, 1.16, 1.04] : [1, 1.1, 1],
-      };
-  const iconTransition = reduceMotion
-    ? undefined
-    : {
-        duration: hasFire ? 1.25 : 1.8,
-        ease: "easeInOut" as const,
-        repeat: Infinity,
-      };
 
   return (
     <>
       {hasFire ? (
-        <motion.span
+        <span
           aria-hidden="true"
-          animate={iconAnimation}
           className="absolute inset-0 z-[1] grid place-items-center text-[var(--site-primary)]"
           data-calendar-icon-slot="filled"
-          transition={iconTransition}
         >
           <FireSvgIcon
             className="size-8 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)]"
             data-calendar-icon="fire"
           />
-        </motion.span>
+        </span>
       ) : null}
       {isEmpty ? (
         <span
@@ -116,31 +97,11 @@ export function CalendarDayOverlay({ day }: { day: BookingCalendarDay }) {
 }
 
 export function CalendarFirstAvailablePointer() {
-  const reduceMotion = useReducedMotion();
-
   return (
-    <motion.span
+    <span
       aria-hidden="true"
-      animate={
-        reduceMotion
-          ? undefined
-          : {
-              rotate: [-12, -4, -12],
-              scale: [1, 1.08, 1],
-              y: [0, -4, 0],
-            }
-      }
       className="pointer-events-none absolute -top-8 left-1 z-[35] drop-shadow-[0_3px_3px_rgba(12,28,24,0.24)]"
       data-calendar-first-available-pointer="true"
-      transition={
-        reduceMotion
-          ? undefined
-          : {
-              duration: 1.15,
-              ease: "easeInOut",
-              repeat: Infinity,
-            }
-      }
     >
       <Image
         alt=""
@@ -151,7 +112,7 @@ export function CalendarFirstAvailablePointer() {
         unoptimized
         width={44}
       />
-    </motion.span>
+    </span>
   );
 }
 

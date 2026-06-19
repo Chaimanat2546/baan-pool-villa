@@ -4,6 +4,7 @@ import type { BookingCalendarDay } from "../booking-calendar-ui";
 import {
   CalendarDayIcons,
   CalendarDayOverlay,
+  CalendarFirstAvailablePointer,
   CalendarLegend,
 } from "../booking-calendar-parts";
 
@@ -30,13 +31,22 @@ describe("booking calendar parts", () => {
     const noOverlayMarkup = renderToStaticMarkup(
       <CalendarDayOverlay day={baseDay} />,
     );
+    const pointerMarkup = renderToStaticMarkup(<CalendarFirstAvailablePointer />);
     const legendMarkup = renderToStaticMarkup(<CalendarLegend />);
 
     expect(iconsMarkup).toContain('data-calendar-icon="fire"');
+    expect(iconsMarkup).not.toMatch(/\sstyle=/);
     expect(iconsMarkup).not.toContain('data-calendar-icon="promotion"');
     expect(emptyIconsMarkup).toContain('data-calendar-icon-slot="empty"');
+    expect(emptyIconsMarkup).not.toMatch(/\sstyle=/);
     expect(overlayMarkup).toContain('data-calendar-overlay="booked-stripes"');
+    expect(overlayMarkup).not.toMatch(/\sstyle=/);
     expect(noOverlayMarkup).toBe("");
+    expect(pointerMarkup).toContain(
+      'data-calendar-first-available-pointer="true"',
+    );
+    expect(pointerMarkup).not.toMatch(/\sstyle=/);
+    expect(legendMarkup).not.toMatch(/\sstyle=/);
     expect(legendMarkup).toContain("ติดจองแล้ว");
     expect(legendMarkup).not.toContain("โปรโมชั่น");
   });
