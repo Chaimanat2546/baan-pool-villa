@@ -52,7 +52,23 @@ body {
   animation: calendar-pointer-bob 1.15s ease-in-out infinite;
 }
 
+@keyframes calendar-fire-flicker {
+  0%,
+  100% {
+    transform: rotate(-3deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(4deg) scale(1.12);
+  }
+}
+
+.calendar-fire-flicker {
+  animation: calendar-fire-flicker 1.25s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .calendar-fire-flicker,
   .calendar-pointer-bob {
     animation: none;
   }

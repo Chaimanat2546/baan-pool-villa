@@ -62,7 +62,7 @@ export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"]
           data-calendar-icon-slot="filled"
         >
           <FireSvgIcon
-            className="size-8 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)]"
+            className="calendar-fire-flicker size-8 drop-shadow-[0_1px_2px_rgba(0,0,0,0.18)]"
             data-calendar-icon="fire"
           />
         </span>

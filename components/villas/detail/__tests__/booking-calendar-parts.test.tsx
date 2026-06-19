@@ -40,6 +40,7 @@ describe("booking calendar parts", () => {
 
     expect(iconsMarkup).toContain('data-calendar-icon="fire"');
     expect(iconsMarkup).toContain("animate-in");
+    expect(iconsMarkup).toContain("calendar-fire-flicker");
     expect(iconsMarkup).not.toMatch(/\sstyle=/);
     expect(iconsMarkup).not.toContain('data-calendar-icon="promotion"');
     expect(emptyIconsMarkup).toContain('data-calendar-icon-slot="empty"');
