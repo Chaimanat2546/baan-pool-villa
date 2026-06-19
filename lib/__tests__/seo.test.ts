@@ -170,6 +170,18 @@ describe("SEO helpers", () => {
     expect(getSiteUrl()).toEqual(new URL("http://localhost:3000"));
   });
 
+  it("falls back to localhost when NEXT_PUBLIC_SITE_URL is not https", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "http://example.com";
+
+    expect(getSiteUrl()).toEqual(new URL("http://localhost:3000"));
+  });
+
+  it("uses only the https origin from NEXT_PUBLIC_SITE_URL", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com/path?q=1";
+
+    expect(getSiteUrl()).toEqual(new URL("https://example.com"));
+  });
+
   it("builds the global public metadata baseline", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
 

@@ -68,8 +68,8 @@ export function getSiteUrl(): URL {
     try {
       const url = new URL(configuredUrl);
 
-      if (url.protocol === "http:" || url.protocol === "https:") {
-        return url;
+      if (url.protocol === "https:") {
+        return new URL(url.origin);
       }
     } catch {
       // Fall through to the local default when the public site URL is invalid.
