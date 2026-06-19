@@ -1,20 +1,12 @@
-"use client";
-
 import { buildVillaDetailContent } from "@/lib/villas/detail";
-import type { VillaImage } from "@/lib/villas/types";
+import type { PublicVillaImage } from "@/lib/villas/public-dto";
 import { BookingSidebar } from "./booking-sidebar";
 import { VillaIntro } from "./content-sections";
+import { VillaDetailClientShell } from "./detail-client-shell";
 import { hasEnabledBookingContact } from "./detail-page-helpers";
-import {
-  VillaDetailGallery,
-  VillaDetailGalleryError,
-} from "./detail-page-gallery";
-import { DetailLayoutRenderer } from "./detail-layout-renderer";
-import { GalleryLightbox } from "./gallery";
 import type { VillaDetailPageProps } from "./types";
-import { useVillaGallery } from "./use-villa-gallery";
 
-const EMPTY_INITIAL_GALLERY_IMAGES: VillaImage[] = [];
+const EMPTY_INITIAL_GALLERY_IMAGES: PublicVillaImage[] = [];
 
 export function VillaDetailPage({
   id,
@@ -26,19 +18,9 @@ export function VillaDetailPage({
   const { listing } = payload;
   const content = buildVillaDetailContent(payload.detail);
   const showMobileBookingContact = hasEnabledBookingContact(settings.detailLayout);
-  const {
-    activeGalleryItem,
-    galleryCategories,
-    galleryItems,
-    galleryLoadError,
-    galleryLoadStatus,
-    handleGalleryImageClick,
-    handleGalleryRetry,
-    handleImageError,
-    setActiveGalleryItem,
-    shouldShowGallerySkeleton,
-    visibleGalleryItemCount,
-  } = useVillaGallery({ id, initialGalleryImages });
+  const bookingSidebarId = showMobileBookingContact
+    ? "desktop-contact"
+    : "contact";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] pb-24 text-[var(--site-text)] md:pb-0">
@@ -54,56 +36,30 @@ export function VillaDetailPage({
         <span className="text-[var(--site-primary)]">{listing.zoneLabel}</span>
       </div>
 
-      <VillaDetailGallery
-        items={galleryItems}
-        listing={listing}
-        onImageClick={handleGalleryImageClick}
-        onImageError={handleImageError}
-        onRetry={handleGalleryRetry}
-        showSkeleton={shouldShowGallerySkeleton}
-        totalImageCount={visibleGalleryItemCount}
-      />
-
-      <VillaDetailGalleryError
-        error={galleryLoadStatus === "error" ? galleryLoadError : null}
-        onRetry={handleGalleryRetry}
-      />
-
-      <div className="mx-auto w-full max-w-[402px] px-[22.5px] py-8 sm:max-w-7xl sm:px-6 lg:px-8">
-        <VillaIntro content={content} listing={listing} />
-
-        {showMobileBookingContact ? (
-          <div className="mt-4 lg:hidden" data-mobile-booking-contact="true">
-            <BookingSidebar
-              content={content}
-              id="contact"
-              listing={listing}
-              settings={settings}
-            />
-          </div>
-        ) : null}
-      </div>
-
-      <DetailLayoutRenderer
-        bookingSidebarId={showMobileBookingContact ? "desktop-contact" : "contact"}
+      <VillaDetailClientShell
+        bookingSidebarId={bookingSidebarId}
         content={content}
-        galleryCategories={galleryCategories}
-        layout={settings.detailLayout}
+        id={id}
+        initialGalleryImages={initialGalleryImages}
         listing={listing}
         recommendedSection={recommendedSection}
         settings={settings}
-      />
+      >
+        <div className="mx-auto w-full max-w-[402px] px-[22.5px] py-8 sm:max-w-7xl sm:px-6 lg:px-8">
+          <VillaIntro content={content} listing={listing} />
 
-      <GalleryLightbox
-        activeItem={activeGalleryItem}
-        categories={galleryCategories}
-        listing={listing}
-        onClose={() => {
-          setActiveGalleryItem(null);
-        }}
-        onImageError={handleImageError}
-        onSelect={setActiveGalleryItem}
-      />
+          {showMobileBookingContact ? (
+            <div className="mt-4 lg:hidden" data-mobile-booking-contact="true">
+              <BookingSidebar
+                content={content}
+                id="contact"
+                listing={listing}
+                settings={settings}
+              />
+            </div>
+          ) : null}
+        </div>
+      </VillaDetailClientShell>
     </main>
   );
 }

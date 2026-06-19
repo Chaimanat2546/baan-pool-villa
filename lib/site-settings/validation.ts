@@ -32,6 +32,8 @@ const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
 const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
 const THAI_PHONE_PATTERN = /^0\d{9}$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
+const LEGACY_WORDPRESS_OG_IMAGE_URL =
+  "https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg";
 
 /**
  * Checks whether a string is a hex color in the `#RRGGBB` format.
@@ -217,7 +219,7 @@ export function normalizeSiteSettingsDraft(
     seoTitle: draft.seoTitle.trim(),
     seoDescription: draft.seoDescription.trim(),
     seoKeywords: normalizeKeywordList(draft.seoKeywords),
-    seoOgImageUrl: draft.seoOgImageUrl.trim(),
+    seoOgImageUrl: normalizeLegacySeoImageUrl(draft.seoOgImageUrl),
     seoOgImageAlt: draft.seoOgImageAlt.trim(),
     seoBusinessName: draft.seoBusinessName.trim(),
     seoSameAsUrls: draft.seoSameAsUrls
@@ -226,12 +228,16 @@ export function normalizeSiteSettingsDraft(
     searchSeoTitle: draft.searchSeoTitle?.trim() ?? "",
     searchSeoDescription: draft.searchSeoDescription?.trim() ?? "",
     searchSeoKeywords: normalizeKeywordList(draft.searchSeoKeywords ?? []),
-    searchSeoOgImageUrl: draft.searchSeoOgImageUrl?.trim() ?? "",
+    searchSeoOgImageUrl: normalizeLegacySeoImageUrl(
+      draft.searchSeoOgImageUrl ?? "",
+    ),
     searchSeoOgImageAlt: draft.searchSeoOgImageAlt?.trim() ?? "",
     guidesSeoTitle: draft.guidesSeoTitle?.trim() ?? "",
     guidesSeoDescription: draft.guidesSeoDescription?.trim() ?? "",
     guidesSeoKeywords: normalizeKeywordList(draft.guidesSeoKeywords ?? []),
-    guidesSeoOgImageUrl: draft.guidesSeoOgImageUrl?.trim() ?? "",
+    guidesSeoOgImageUrl: normalizeLegacySeoImageUrl(
+      draft.guidesSeoOgImageUrl ?? "",
+    ),
     guidesSeoOgImageAlt: draft.guidesSeoOgImageAlt?.trim() ?? "",
     villaDetailSeoKeywords: normalizeKeywordList(draft.villaDetailSeoKeywords ?? []),
     tiktokAccountUrl: draft.tiktokAccountUrl.trim(),
@@ -563,7 +569,7 @@ function normalizePublicImage(
   alt: string,
   fallback: SiteImageSettings,
 ): SiteImageSettings {
-  const trimmedUrl = url?.trim() ?? "";
+  const trimmedUrl = normalizeLegacySeoImageUrl(url ?? "");
 
   if (!isPublicImageUrl(trimmedUrl)) {
     return fallback;
@@ -574,6 +580,14 @@ function normalizePublicImage(
     url: trimmedUrl,
     alt,
   };
+}
+
+function normalizeLegacySeoImageUrl(value: string): string {
+  const trimmedValue = value.trim();
+
+  return trimmedValue === LEGACY_WORDPRESS_OG_IMAGE_URL
+    ? DEFAULT_SITE_SETTINGS.seo.ogImage.url
+    : trimmedValue;
 }
 
 function normalizeSectionSeoSettings(

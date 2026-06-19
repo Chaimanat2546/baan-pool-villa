@@ -3,6 +3,10 @@ import type { SitemapRevalidateSeconds } from "@/lib/cache-policy";
 
 import { getPublishedGuidesForSitemap } from "@/lib/guides/server";
 import { getPublishedLegalPagesForSitemap } from "@/lib/legal-pages/server";
+import {
+  buildGuideCoverImageProxyPath,
+  buildVillaCoverImageProxyPath,
+} from "@/lib/public-image-proxy";
 import { absoluteUrl } from "@/lib/seo";
 import { fetchHouseListingsForSitemap } from "@/lib/villas/server";
 
@@ -45,14 +49,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const villaRoutes: MetadataRoute.Sitemap = listings.map((listing) => ({
     changeFrequency: "daily" as const,
-    images: listing.coverImage ? [listing.coverImage] : undefined,
+    images: listing.coverImage
+      ? [absoluteUrl(buildVillaCoverImageProxyPath(listing.id) ?? "")]
+      : undefined,
     priority: 0.8,
     url: absoluteUrl(`/villas/${listing.id}`),
   }));
 
   const guideRoutes: MetadataRoute.Sitemap = guidesResult.map((guide) => ({
     changeFrequency: "weekly" as const,
-    images: guide.coverImage?.url ? [guide.coverImage.url] : undefined,
+    images: guide.coverImage?.url
+      ? [absoluteUrl(buildGuideCoverImageProxyPath(guide.slug) ?? "")]
+      : undefined,
     lastModified: guide.updatedAt ? new Date(guide.updatedAt) : undefined,
     priority: guide.isPinned ? 0.75 : 0.65,
     url: absoluteUrl(`/guides/${guide.slug}`),

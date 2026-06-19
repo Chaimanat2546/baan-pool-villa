@@ -4,16 +4,17 @@ import {
   HomePage,
   type HomePageDegradedSources,
 } from "@/components/villas/home/page";
-import { selectHomeGuides } from "@/components/villas/home/articles-section";
+import { selectHomeGuideSummaries } from "@/components/villas/home/articles-section";
 import { toHomePageSettings } from "@/components/villas/home/client-payload";
 import { getPublishedGuides } from "@/lib/guides/server";
-import type { GuidePost } from "@/lib/guides/types";
+import type { PublicGuideSummary } from "@/lib/guides/public-dto";
 import { getResolvedHomeSections } from "@/lib/home-sections/server";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
 import { getMaxVillaPrice, getUniqueZones } from "@/lib/villas/filters";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { fetchHouseListings } from "@/lib/villas/server";
+import { toPublicVillaListing } from "@/lib/villas/public-dto";
 
 type FilterSummary = {
   maxAvailablePrice: number;
@@ -22,11 +23,12 @@ type FilterSummary = {
 
 type DestinationVilla = {
   coverImage: string | null;
+  id: string;
 };
 
 async function getHomePageData(): Promise<{
   degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
-  guides: GuidePost[];
+  guides: PublicGuideSummary[];
   homeSections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"];
   filterSummary: FilterSummary;
   destinationVillas: DestinationVilla[];
@@ -51,7 +53,7 @@ async function getHomePageData(): Promise<{
         homeSections: false,
         villaCatalog: true,
       },
-      guides: selectHomeGuides(guides),
+      guides: selectHomeGuideSummaries(guides),
       homeSections: [],
       filterSummary: {
         maxAvailablePrice: 0,
@@ -77,14 +79,18 @@ async function getHomePageData(): Promise<{
       homeSections: homeSectionsResult.degraded,
       villaCatalog: false,
     },
-    guides: selectHomeGuides(guides),
-    homeSections: homeSectionsResult.sections,
+    guides: selectHomeGuideSummaries(guides),
+    homeSections: homeSectionsResult.sections.map((section) => ({
+      ...section,
+      villas: section.villas.map(toPublicVillaListing),
+    })),
     filterSummary: {
       maxAvailablePrice: getMaxVillaPrice(villas),
       zones: getUniqueZones(villas),
     },
     destinationVillas: villas.slice(0, 12).map((villa) => ({
-      coverImage: villa.coverImage,
+      coverImage: villa.coverImage ? toPublicVillaListing(villa).coverImage : null,
+      id: villa.id,
     })),
   };
 }

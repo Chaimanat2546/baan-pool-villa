@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { VillaImage } from "@/lib/villas/types";
+import type { PublicVillaImage } from "@/lib/villas/public-dto";
 import {
   getActiveGalleryLoadState,
   getInitialGalleryLoadState,
@@ -20,17 +20,17 @@ const BACKGROUND_GALLERY_FALLBACK_DELAY_MS = 1200;
 const GALLERY_LOAD_ERROR_MESSAGE = "โหลดรูปไม่สำเร็จ ลองใหม่ได้";
 
 interface GalleryImagesResponse {
-  images?: VillaImage[];
+  images?: PublicVillaImage[];
 }
 
 interface UseVillaGalleryOptions {
   id: string;
-  initialGalleryImages: VillaImage[];
+  initialGalleryImages: PublicVillaImage[];
 }
 
 function getStartingGalleryLoadState(
   villaId: string,
-  images: VillaImage[],
+  images: PublicVillaImage[],
 ): GalleryLoadState {
   return images.length > 0
     ? getPreviewGalleryLoadState(villaId, images)
@@ -49,7 +49,7 @@ export function useVillaGallery({
   );
   const inFlightPromiseRef = useRef<{
     id: string;
-    promise: Promise<VillaImage[]>;
+    promise: Promise<PublicVillaImage[]>;
   } | null>(null);
   const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(
     () => new Set(),

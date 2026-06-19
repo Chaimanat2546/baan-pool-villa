@@ -5,11 +5,18 @@ import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { getResolvedHomeSections } from "@/lib/home-sections/server";
 import { fetchVillaPreviewImages } from "./images";
 import { normalizeHouses } from "./normalize";
+import {
+  toPublicRecommendedVillaSection,
+  toPublicVillaDetailPayload,
+  toPublicVillaImages,
+  type PublicRecommendedVillaSection,
+  type PublicVillaDetailPayload,
+  type PublicVillaImage,
+} from "./public-dto";
 import type {
   RawHouse,
   RecommendedVillaSection,
   VillaDetailPayload,
-  VillaImage,
   VillaListing,
 } from "./types";
 
@@ -153,9 +160,9 @@ export async function fetchVillaDetail(
 }
 
 export type VillaPageData = {
-  initialGalleryImages: VillaImage[];
-  payload: VillaDetailPayload;
-  recommendedSection: RecommendedVillaSection | null;
+  initialGalleryImages: PublicVillaImage[];
+  payload: PublicVillaDetailPayload;
+  recommendedSection: PublicRecommendedVillaSection | null;
 };
 
 function toRecommendedVillaSection(
@@ -204,8 +211,10 @@ export async function fetchVillaPageData(
   ]);
 
   return {
-    initialGalleryImages: initialGalleryImages.slice(0, 4),
-    payload,
-    recommendedSection: toRecommendedVillaSection(homeSections.sections),
+    initialGalleryImages: toPublicVillaImages(id, initialGalleryImages.slice(0, 4)),
+    payload: toPublicVillaDetailPayload(payload),
+    recommendedSection: toPublicRecommendedVillaSection(
+      toRecommendedVillaSection(homeSections.sections),
+    ),
   };
 }

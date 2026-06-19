@@ -3,10 +3,10 @@
 import { SiTiktok } from "react-icons/si";
 import { useMemo, useState } from "react";
 
+import { ScrollRail } from "@/components/ui/scroll-rail";
 import { selectHomeTikTokVideos } from "./client-payload";
 import type { SiteTikTokSettings } from "@/lib/site-settings/types";
 import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
-import { ScrollRail } from "./scroll-rail";
 import { TikTokLazyCard } from "./tiktok-lazy-card";
 
 interface TikTokSectionProps {

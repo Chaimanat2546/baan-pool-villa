@@ -1,15 +1,15 @@
 import type {
-  RecommendedVillaSection,
-  VillaImage,
-  VillaDetailPayload,
-} from "@/lib/villas/types";
+  PublicRecommendedVillaSection,
+  PublicVillaDetailPayload,
+  PublicVillaImage,
+} from "@/lib/villas/public-dto";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 export interface VillaDetailPageProps {
   id: string;
-  initialGalleryImages?: VillaImage[];
-  payload: VillaDetailPayload;
-  recommendedSection: RecommendedVillaSection | null;
+  initialGalleryImages?: PublicVillaImage[];
+  payload: PublicVillaDetailPayload;
+  recommendedSection: PublicRecommendedVillaSection | null;
   settings: SiteSettings;
 }
 

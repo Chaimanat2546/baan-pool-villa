@@ -193,3 +193,54 @@ describe("GET /api/houses/images/proxy", () => {
     expect(response.status).toBe(200);
   });
 });
+
+describe("GET /api/houses/images/[id]", () => {
+  it("proxies a listing cover by house id without requiring the source URL in the request", async () => {
+    fetchHouseListingsMock.mockResolvedValue([listing]);
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("cover bytes", {
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import(
+      "../../../app/(public)/api/houses/images/[id]/route"
+    );
+
+    const response = await GET(
+      new Request("https://example.com/api/houses/images/501?w=640&q=60"),
+      { params: Promise.resolve({ id: "501" }) },
+    );
+
+    await expect(response.text()).resolves.toBe("cover bytes");
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://devillegroups.com/imgs/profile_imgs_large/501.jpg",
+      expect.objectContaining({
+        cache: "no-store",
+        cf: {
+          image: {
+            fit: "scale-down",
+            quality: 60,
+            width: 640,
+          },
+        },
+      }),
+    );
+  });
+
+  it("returns 404 when the house id has no cover image", async () => {
+    fetchHouseListingsMock.mockResolvedValue([{ ...listing, coverImage: null }]);
+    const { GET } = await import(
+      "../../../app/(public)/api/houses/images/[id]/route"
+    );
+
+    const response = await GET(
+      new Request("https://example.com/api/houses/images/501"),
+      { params: Promise.resolve({ id: "501" }) },
+    );
+
+    await expect(response.json()).resolves.toEqual({ error: "Image not found" });
+    expect(response.status).toBe(404);
+  });
+});

@@ -252,11 +252,26 @@ describe("fetchVillaPageData", () => {
       recommendedSection: null,
     });
     expect(data?.initialGalleryImages).toEqual([
-      expect.objectContaining({ id: 1 }),
-      expect.objectContaining({ id: 2 }),
-      expect.objectContaining({ id: 3 }),
-      expect.objectContaining({ id: 4 }),
+      expect.objectContaining({
+        id: 1,
+        imageUrl: "/api/villas/9/images?imageId=1",
+      }),
+      expect.objectContaining({
+        id: 2,
+        imageUrl: "/api/villas/9/images?imageId=2",
+      }),
+      expect.objectContaining({
+        id: 3,
+        imageUrl: "/api/villas/9/images?imageId=3",
+      }),
+      expect.objectContaining({
+        id: 4,
+        imageUrl: "/api/villas/9/images?imageId=4",
+      }),
     ]);
+    expect(data?.payload.listing.coverImage).toBe("/api/houses/images/9");
+    expect(JSON.stringify(data)).not.toContain("images.example.com");
+    expect(JSON.stringify(data)).not.toContain("devillegroups.com");
     expect(fetchVillaPreviewImagesMock).toHaveBeenCalledWith("9");
   });
 
@@ -303,7 +318,13 @@ describe("fetchVillaPageData", () => {
       cta: { href: "/search?featured=1", label: "See featured" },
       description: "First homepage section",
       title: "Homepage featured",
-      villas: [{ id: "11" }, { id: "10" }],
+      villas: [
+        { coverImage: "/api/houses/images/11", id: "11" },
+        { coverImage: "/api/houses/images/10", id: "10" },
+      ],
     });
+    expect(JSON.stringify(data?.recommendedSection)).not.toContain(
+      "devillegroups.com",
+    );
   });
 });

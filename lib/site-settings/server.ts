@@ -19,6 +19,7 @@ const CONTACT_SITE_SETTINGS_SELECT =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url";
 const LEGACY_SITE_SETTINGS_SELECT =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt";
+const SITE_SETTINGS_CACHE_KEY = `${CACHE_TAGS.siteSettings}:v2`;
 
 const getCachedSiteSettings = unstable_cache(
   async (): Promise<SiteSettingsLoadResult> => {
@@ -115,7 +116,7 @@ const getCachedSiteSettings = unstable_cache(
       source: "config",
     };
   },
-  [CACHE_TAGS.siteSettings],
+  [SITE_SETTINGS_CACHE_KEY],
   {
     revalidate: CACHE_REVALIDATE_SECONDS.siteSettings,
     tags: [CACHE_TAGS.siteSettings],

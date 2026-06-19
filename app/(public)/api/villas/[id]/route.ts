@@ -1,6 +1,7 @@
 import { CACHE_HEADERS } from "@/lib/cache-policy";
 import { publicApiErrorResponse } from "@/lib/api/errors";
 import { limitPublicApiRequest } from "@/lib/api/rate-limit";
+import { toPublicVillaDetailPayload } from "@/lib/villas/public-dto";
 import { fetchVillaDetail } from "@/lib/villas/server";
 
 export async function GET(
@@ -22,7 +23,7 @@ export async function GET(
       return Response.json({ error: "Villa not found" }, { status: 404 });
     }
 
-    return Response.json(payload, {
+    return Response.json(toPublicVillaDetailPayload(payload), {
       headers: {
         "Cache-Control": CACHE_HEADERS.villaDetail,
       },

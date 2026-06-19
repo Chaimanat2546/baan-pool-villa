@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import type { GuidePost } from "@/lib/guides/types";
 import type { LegalPage } from "@/lib/legal-pages/types";
 import {
-  buildGuideImageProxyUrl,
+  buildGuideCoverImageProxyPath,
   buildSiteAssetProxyUrl,
-  buildVillaCoverImageProxyUrl,
+  buildVillaCoverImageProxyPath,
 } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
@@ -112,14 +112,6 @@ function buildSiteAssetMetadataImageUrl(
   image: string | null | undefined,
 ): string | null {
   return buildSiteAssetProxyUrl(image ?? null, { quality: 75, width: 1200 }) ?? image ?? null;
-}
-
-function buildGuideMetadataImageUrl(image: string | null | undefined): string | null {
-  return buildGuideImageProxyUrl(image ?? null, { quality: 75, width: 1200 }) ?? image ?? null;
-}
-
-function buildVillaCoverMetadataImageUrl(image: string | null | undefined): string | null {
-  return buildVillaCoverImageProxyUrl(image ?? null, { quality: 75, width: 1200 }) ?? image ?? null;
 }
 
 export function getVillaTitle(villa: VillaListing): string {
@@ -316,7 +308,9 @@ export function buildGuideArticleMetadata({
   return buildSiteSettingsPageMetadata({
     canonicalPath: `/guides/${guide.slug}`,
     description: guide.excerpt,
-    image: buildGuideMetadataImageUrl(guide.coverImage?.url),
+    image: guide.coverImage?.url
+      ? buildGuideCoverImageProxyPath(guide.slug, { quality: 75, width: 1200 })
+      : null,
     imageAlt: guide.coverImage?.alt ?? guide.title,
     openGraphType: "article",
     publishedTime: guide.publishedAt ?? guide.createdAt,
@@ -350,7 +344,9 @@ export function buildVillaDetailMetadata({
   return buildSiteSettingsPageMetadata({
     canonicalPath: `/villas/${villa.id}`,
     description: getVillaDescription(villa),
-    image: buildVillaCoverMetadataImageUrl(villa.coverImage),
+    image: villa.coverImage
+      ? buildVillaCoverImageProxyPath(villa.id, { quality: 75, width: 1200 })
+      : null,
     imageAlt: getVillaTitle(villa),
     keywords: uniqueKeywords([
       ...(settings.pageSeo.villaDetail.keywords.length > 0

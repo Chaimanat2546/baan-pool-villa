@@ -8,6 +8,7 @@ import {
   sortVillas,
   type VillaSortKey,
 } from "@/lib/villas/filters";
+import { toPublicVillaListings } from "@/lib/villas/public-dto";
 import { fetchHouseListings } from "@/lib/villas/server";
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -71,7 +72,7 @@ export async function buildPublicHousesResponse(request: Request) {
   return Response.json(
     {
       hasMore: offset + items.length < filteredItems.length,
-      items,
+      items: toPublicVillaListings(items),
       page,
       pageSize,
       total: filteredItems.length,

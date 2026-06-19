@@ -269,11 +269,64 @@ function isLegacyVillaImageProxyPath(pathname) {
   return /^[1-9]\d*$/.test(id);
 }
 
+function getVillaImageId(url) {
+  const imageId = url.searchParams.get("imageId") ?? "";
+
+  return isVillaImageProxyPath(url.pathname) && /^[1-9]\d*$/.test(imageId)
+    ? imageId
+    : "";
+}
+
+function isHouseCoverImageProxyPath(pathname) {
+  const prefix = "/api/houses/images/";
+  const id = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : "";
+
+  return /^[1-9]\d*$/.test(id);
+}
+
+function isGuideCoverImageProxyPath(pathname) {
+  const prefix = "/api/guides/images/";
+  const suffix = "/cover";
+
+  if (!pathname.startsWith(prefix) || !pathname.endsWith(suffix)) {
+    return false;
+  }
+
+  const slug = pathname.slice(prefix.length, -suffix.length);
+
+  return slug.length > 0 && !slug.includes("/");
+}
+
+function isGuideContentImageProxyPath(pathname) {
+  const prefix = "/api/guides/images/";
+  const marker = "/content/";
+
+  if (!pathname.startsWith(prefix) || !pathname.includes(marker)) {
+    return false;
+  }
+
+  const rest = pathname.slice(prefix.length);
+  const markerIndex = rest.indexOf(marker);
+  const slug = rest.slice(0, markerIndex);
+  const index = rest.slice(markerIndex + marker.length);
+
+  return slug.length > 0 && !slug.includes("/") && /^\d+$/.test(index);
+}
+
+function isResolvedPublicImageProxyPath(pathname) {
+  return (
+    isHouseCoverImageProxyPath(pathname) ||
+    isGuideCoverImageProxyPath(pathname) ||
+    isGuideContentImageProxyPath(pathname)
+  );
+}
+
 function isPublicImageProxyPath(pathname) {
   return (
     pathname === "/api/houses/images/proxy" ||
     pathname === "/api/site-assets/proxy" ||
     pathname === "/api/guides/images/proxy" ||
+    isResolvedPublicImageProxyPath(pathname) ||
     isVillaImageProxyPath(pathname) ||
     isLegacyVillaImageProxyPath(pathname)
   );
@@ -358,12 +411,17 @@ function getJsonCacheControl(pathname) {
 export function createImageEdgeCacheKey(request) {
   const url = new URL(request.url);
   const sourceUrl = url.searchParams.get("url") ?? "";
+  const imageId = getVillaImageId(url);
   const transformDecision = getImageTransformDecision(url);
   url.hash = "";
   url.search = "";
 
   if (sourceUrl) {
     url.searchParams.set("url", sourceUrl);
+  }
+
+  if (imageId) {
+    url.searchParams.set("imageId", imageId);
   }
 
   if (transformDecision.valid) {
@@ -459,11 +517,19 @@ export function getImageEdgeCacheDecision(request) {
     return { cacheable: false, candidate: false, reason: "path" };
   }
 
-  if (!url.searchParams.get("url") && isVillaImageProxyPath(url.pathname)) {
+  if (
+    !url.searchParams.get("url") &&
+    isVillaImageProxyPath(url.pathname) &&
+    !getVillaImageId(url)
+  ) {
     return { cacheable: false, candidate: false, reason: "path" };
   }
 
-  if (!url.searchParams.get("url")) {
+  if (
+    !url.searchParams.get("url") &&
+    !getVillaImageId(url) &&
+    !isResolvedPublicImageProxyPath(url.pathname)
+  ) {
     return { cacheable: false, candidate: true, reason: "url" };
   }
 

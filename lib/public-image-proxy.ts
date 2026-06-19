@@ -238,6 +238,23 @@ function buildPublicImageProxyUrl(
   return `${proxyPath}?${params.toString()}`;
 }
 
+function buildPublicImageProxyPath(
+  proxyPath: string,
+  options?: PublicImageTransformOptions,
+) {
+  const params = new URLSearchParams();
+  appendPublicImageTransformParams(params, options);
+  const query = params.toString();
+
+  return query ? `${proxyPath}?${query}` : proxyPath;
+}
+
+function normalizePathSegment(value: string) {
+  const segment = value.trim();
+
+  return segment && !segment.includes("/") ? encodeURIComponent(segment) : null;
+}
+
 export function buildGuideImageProxyUrl(
   sourceUrl: string | null,
   options?: PublicImageTransformOptions,
@@ -259,6 +276,52 @@ export function buildVillaCoverImageProxyUrl(
   return buildPublicImageProxyUrl("/api/houses/images/proxy", sourceUrl, options);
 }
 
+export function buildVillaCoverImageProxyPath(
+  listingId: string,
+  options?: PublicImageTransformOptions,
+) {
+  const normalizedListingId = normalizePathSegment(listingId);
+
+  return normalizedListingId
+    ? buildPublicImageProxyPath(`/api/houses/images/${normalizedListingId}`, options)
+    : null;
+}
+
+export function buildGuideCoverImageProxyPath(
+  slug: string,
+  options?: PublicImageTransformOptions,
+) {
+  const normalizedSlug = normalizePathSegment(slug);
+
+  return normalizedSlug
+    ? buildPublicImageProxyPath(
+        `/api/guides/images/${normalizedSlug}/cover`,
+        options,
+      )
+    : null;
+}
+
+export function buildGuideContentImageProxyPath(
+  slug: string,
+  blockIndex: number,
+  options?: PublicImageTransformOptions,
+) {
+  const normalizedSlug = normalizePathSegment(slug);
+
+  if (
+    !normalizedSlug ||
+    !Number.isInteger(blockIndex) ||
+    blockIndex < 0
+  ) {
+    return null;
+  }
+
+  return buildPublicImageProxyPath(
+    `/api/guides/images/${normalizedSlug}/content/${blockIndex}`,
+    options,
+  );
+}
+
 export function buildVillaGalleryImageProxyUrl(
   listingId: string,
   sourceUrl: string | null,
@@ -275,4 +338,21 @@ export function buildVillaGalleryImageProxyUrl(
     sourceUrl,
     options,
   );
+}
+
+export function buildVillaGalleryImageProxyPath(
+  listingId: string,
+  imageId: number,
+  options?: PublicImageTransformOptions,
+) {
+  const trimmedListingId = listingId.trim();
+
+  if (!/^[1-9]\d*$/.test(trimmedListingId) || !Number.isInteger(imageId) || imageId <= 0) {
+    return null;
+  }
+
+  const params = new URLSearchParams({ imageId: imageId.toString() });
+  appendPublicImageTransformParams(params, options);
+
+  return `/api/villas/${encodeURIComponent(trimmedListingId)}/images?${params.toString()}`;
 }
