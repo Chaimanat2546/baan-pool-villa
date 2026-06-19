@@ -90,6 +90,12 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
     console.error("Unable to load related guides", guidesResult.reason);
   }
 
+  const guideCoverImagePath = guide.coverImage?.url
+    ? buildGuideCoverImageProxyPath(guide.slug, {
+        quality: 75,
+        width: 1200,
+      })
+    : null;
   const jsonLd = [
     buildBreadcrumbJsonLd([
       { name: "หน้าแรก", path: "/" },
@@ -101,16 +107,7 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
       "@type": "Article",
       headline: guide.title,
       description: guide.excerpt,
-      image: guide.coverImage?.url
-        ? [
-            absoluteUrl(
-              buildGuideCoverImageProxyPath(guide.slug, {
-                quality: 75,
-                width: 1200,
-              }) ?? "",
-            ),
-          ]
-        : undefined,
+      image: guideCoverImagePath ? [absoluteUrl(guideCoverImagePath)] : undefined,
       datePublished: guide.publishedAt ?? guide.createdAt,
       dateModified: guide.updatedAt,
       mainEntityOfPage: absoluteUrl(`/guides/${guide.slug}`),

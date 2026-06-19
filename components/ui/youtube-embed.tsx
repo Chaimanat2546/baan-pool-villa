@@ -95,6 +95,7 @@ export function YouTubeEmbed({ className, embedUrl, title, videoId }: YouTubeEmb
               className="absolute inset-0 h-full w-full"
               loading="lazy"
               referrerPolicy="strict-origin-when-cross-origin"
+              sandbox="allow-presentation allow-same-origin allow-scripts"
               src={getPlayerUrl(baseEmbedUrl)}
               title={title}
             />

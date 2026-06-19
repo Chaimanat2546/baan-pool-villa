@@ -62,7 +62,10 @@ function normalizeGalleryProxyPath(value: string): URL | null {
       return null;
     }
 
-    return url;
+    return new URL(
+      `${url.pathname}?imageId=${encodeURIComponent(url.searchParams.get("imageId") ?? "")}`,
+      "https://local.invalid",
+    );
   } catch {
     return null;
   }

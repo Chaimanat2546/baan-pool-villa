@@ -34,8 +34,13 @@ describe("YouTubeEmbed", () => {
         container.querySelector("button")?.click();
       });
 
-      expect(container.querySelector("iframe")?.getAttribute("src")).toContain(
+      const iframe = container.querySelector("iframe");
+
+      expect(iframe?.getAttribute("src")).toContain(
         "https://www.youtube-nocookie.com/embed/safe-video?",
+      );
+      expect(iframe?.getAttribute("sandbox")).toBe(
+        "allow-presentation allow-same-origin allow-scripts",
       );
     } finally {
       await act(async () => {

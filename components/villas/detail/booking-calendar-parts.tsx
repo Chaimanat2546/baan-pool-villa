@@ -259,11 +259,11 @@ export function CalendarLegend() {
       </CalendarLegendItem>
       <CalendarLegendItem
         overlay="booked-cross"
-        swatchClassName="border-[#8f1717]/55 bg-[linear-gradient(180deg,#cf3f3f_0%,#a61f1f_100%)]"
+        swatchClassName="border-[var(--site-danger,#991b1b)] bg-[var(--site-danger,#991b1b)]"
       >
         ติดจองแล้ว
       </CalendarLegendItem>
-      <CalendarLegendItem swatchClassName="border-[var(--site-accent)]/25 bg-yellow-600">
+      <CalendarLegendItem swatchClassName="border-[var(--site-accent)]/25 bg-[var(--site-accent)]">
         วันหยุด
       </CalendarLegendItem>
       <CalendarLegendItem icon="fire">โปรไฟลุก</CalendarLegendItem>

@@ -18,11 +18,11 @@ export function BookingSidebarContactActions({
   return (
     <div className="mt-4 grid gap-3">
       <div className="grid gap-2">
-        {phoneContacts.map((contact) => (
+        {phoneContacts.map((contact, index) => (
           <a
             className="inline-flex items-center justify-between gap-3 rounded-xl border border-[var(--site-border)] px-4 py-3 text-sm font-black text-[var(--site-text)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-primary-soft)]"
             href={contact.href}
-            key={contact.phone}
+            key={index}
           >
             <span className="inline-flex min-w-0 items-center gap-2">
               <Phone className="h-4 w-4 shrink-0" />

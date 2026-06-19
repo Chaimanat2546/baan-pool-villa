@@ -316,13 +316,13 @@ export async function saveAdminSiteSettings(
   );
 
   if (historyUpdateError) {
-    return adminSupabaseErrorResponse(
-      historyUpdateError,
-      "Unable to mark previous site asset uploads inactive.",
-    );
+    console.error("Unable to mark previous site asset uploads inactive", historyUpdateError);
   }
 
   const warnings = [
+    ...(historyUpdateError
+      ? ["Unable to mark previous site asset uploads inactive."]
+      : []),
     ...(uploadedAssets.length > 0 ? await cleanupRetainedAssets(supabase) : []),
   ];
   const { data: savedRow, error: reloadError } = await loadAdminSiteSettings(
