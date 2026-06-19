@@ -256,7 +256,21 @@ describe("worker image edge cache policy", () => {
     ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
     expect(
       getImageEdgeCacheDecision(
+        request("/api/villas/9/images?imageId=7&w=828&q=60", {
+          headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+        }),
+      ),
+    ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
+    expect(
+      getImageEdgeCacheDecision(
         request("/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F501.jpg", {
+          headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+        }),
+      ),
+    ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
+    expect(
+      getImageEdgeCacheDecision(
+        request("/api/houses/images/501?w=640&q=60", {
           headers: { Accept: "image/avif,image/webp,image/*,*/*" },
         }),
       ),
@@ -275,6 +289,20 @@ describe("worker image edge cache policy", () => {
         }),
       ),
     ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
+    expect(
+      getImageEdgeCacheDecision(
+        request("/api/guides/images/family-trip/cover?w=1200&q=75", {
+          headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+        }),
+      ),
+    ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
+    expect(
+      getImageEdgeCacheDecision(
+        request("/api/guides/images/family-trip/content/3?w=1200&q=75", {
+          headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+        }),
+      ),
+    ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
 
     expect(getImageEdgeCacheDecision(request("/api/villas/9/images"))).toMatchObject({
       cacheable: false,
@@ -283,6 +311,9 @@ describe("worker image edge cache policy", () => {
     });
     expect(
       getImageEdgeCacheDecision(request("/api/villas/9/images?download=1&url=https://x.test/a.jpg")),
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
+    expect(
+      getImageEdgeCacheDecision(request("/api/villas/9/images?download=1&imageId=7")),
     ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
   });
 
@@ -330,6 +361,42 @@ describe("worker image edge cache policy", () => {
     expect(url.searchParams.get("f")).toBe("avif");
     expect(url.searchParams.has("foo")).toBe(false);
     expect(url.searchParams.has("bar")).toBe(false);
+    expect(url.hash).toBe("");
+  });
+
+  it("builds an image cache key for resolved image paths without source URL query", () => {
+    const cacheKey = createImageEdgeCacheKey(
+      request("/api/guides/images/family-trip/cover?w=1200&q=75#top", {
+        headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+      }),
+    );
+    const url = new URL(cacheKey.url);
+
+    expect(cacheKey.method).toBe("GET");
+    expect(url.pathname).toBe("/api/guides/images/family-trip/cover");
+    expect(url.searchParams.get("w")).toBe("1200");
+    expect(url.searchParams.get("q")).toBe("75");
+    expect(url.searchParams.get("f")).toBe("avif");
+    expect(url.searchParams.has("url")).toBe(false);
+    expect(url.hash).toBe("");
+  });
+
+  it("builds an image cache key for villa gallery image-id paths", () => {
+    const cacheKey = createImageEdgeCacheKey(
+      request("/api/villas/9/images?imageId=7&foo=1&w=828&q=60#top", {
+        headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+      }),
+    );
+    const url = new URL(cacheKey.url);
+
+    expect(cacheKey.method).toBe("GET");
+    expect(url.pathname).toBe("/api/villas/9/images");
+    expect(url.searchParams.get("imageId")).toBe("7");
+    expect(url.searchParams.get("w")).toBe("828");
+    expect(url.searchParams.get("q")).toBe("60");
+    expect(url.searchParams.get("f")).toBe("avif");
+    expect(url.searchParams.has("url")).toBe(false);
+    expect(url.searchParams.has("foo")).toBe(false);
     expect(url.hash).toBe("");
   });
 

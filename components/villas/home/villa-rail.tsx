@@ -1,9 +1,9 @@
 import { ArrowRight } from "lucide-react";
 
+import { ScrollRail } from "@/components/ui/scroll-rail";
 import type { VillaListing } from "@/lib/villas/types";
 
 import { VillaCard } from "../listing/villa-card";
-import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
 
 interface VillaRailCtaConfig {

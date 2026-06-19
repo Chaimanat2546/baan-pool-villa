@@ -31,6 +31,8 @@ export type PublicImageProxyTransformRequest =
   | { params: PublicImageProxyTransformParams; valid: true }
   | { params: null; valid: false };
 
+type PublicImageProxyAuthorizer = (targetUrl: string) => boolean | Promise<boolean>;
+
 export function normalizePublicImageProxyUrl(value: string | null): string | null {
   return normalizeDownloadImageUrl(value);
 }
@@ -138,6 +140,67 @@ export async function fetchPublicImageProxyResponse(
   return upstreamResponse
     ? toPublicImageProxyResponse(upstreamResponse, transform)
     : null;
+}
+
+export async function buildAllowedPublicImageProxyResponse(
+  request: Request,
+  isAllowedUrl: PublicImageProxyAuthorizer,
+) {
+  const requestUrl = new URL(request.url);
+  const targetUrl = normalizePublicImageProxyUrl(requestUrl.searchParams.get("url"));
+
+  if (!targetUrl) {
+    return Response.json({ error: "Invalid image URL" }, { status: 400 });
+  }
+
+  const transformRequest = parsePublicImageProxyTransformRequest(request);
+
+  if (!transformRequest.valid) {
+    return Response.json({ error: "Invalid image transform" }, { status: 400 });
+  }
+
+  if (!(await isAllowedUrl(targetUrl))) {
+    return Response.json({ error: "Image not found" }, { status: 404 });
+  }
+
+  const imageResponse = await fetchPublicImageProxyResponse(
+    targetUrl,
+    transformRequest.params,
+  );
+
+  if (!imageResponse) {
+    return Response.json({ error: "Unable to load image" }, { status: 502 });
+  }
+
+  return imageResponse;
+}
+
+export async function buildResolvedPublicImageProxyResponse(
+  request: Request,
+  sourceUrl: string | null,
+) {
+  const targetUrl = normalizePublicImageProxyUrl(sourceUrl);
+
+  if (!targetUrl) {
+    return Response.json({ error: "Image not found" }, { status: 404 });
+  }
+
+  const transformRequest = parsePublicImageProxyTransformRequest(request);
+
+  if (!transformRequest.valid) {
+    return Response.json({ error: "Invalid image transform" }, { status: 400 });
+  }
+
+  const imageResponse = await fetchPublicImageProxyResponse(
+    targetUrl,
+    transformRequest.params,
+  );
+
+  if (!imageResponse) {
+    return Response.json({ error: "Unable to load image" }, { status: 502 });
+  }
+
+  return imageResponse;
 }
 
 async function cancelUpstreamResponseBody(upstreamResponse: Response) {

@@ -3,6 +3,7 @@ import {
   getMaxVillaPrice,
   getUniqueZones,
 } from "@/lib/villas/filters";
+import { toPublicVillaListings } from "@/lib/villas/public-dto";
 import type { VillaListing } from "@/lib/villas/types";
 
 const PAGE_SIZE = 12;
@@ -29,7 +30,7 @@ export async function getSearchPageData(
 
     return {
       error: null,
-      villas: villas.slice(0, PAGE_SIZE),
+      villas: toPublicVillaListings(villas.slice(0, PAGE_SIZE)),
       meta: {
         catalogComplete: false,
         maxPrice,

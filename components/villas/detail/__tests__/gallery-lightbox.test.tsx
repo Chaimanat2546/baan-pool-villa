@@ -48,6 +48,12 @@ const categories: GalleryCategory[] = [
     label: "Pool",
   },
 ];
+const secondItem: GalleryItem = {
+  ...item,
+  imageName: "pool-2.jpg",
+  key: "pool-2",
+  url: "https://cdn.test/pool-2.jpg",
+};
 
 describe("GalleryLightbox", () => {
   it("renders nothing without an active item and renders active gallery details", () => {
@@ -111,6 +117,39 @@ describe("GalleryLightbox", () => {
     });
 
     expect(onSelect).not.toHaveBeenCalled();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    await act(async () => {
+      root.unmount();
+    });
+    expect(document.body.style.overflow).toBe("");
+    container.remove();
+  });
+
+  it("selects the next image with the keyboard", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const onSelect = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <GalleryLightbox
+          activeItem={item}
+          categories={[{ ...categories[0], items: [item, secondItem] }]}
+          listing={listing}
+          onClose={() => undefined}
+          onImageError={() => undefined}
+          onSelect={onSelect}
+        />,
+      );
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+    });
+
+    expect(onSelect).toHaveBeenCalledWith(secondItem);
 
     await act(async () => {
       root.unmount();

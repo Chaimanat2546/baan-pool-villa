@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildGuideContentImageProxyPath,
+  buildGuideCoverImageProxyPath,
   buildGuideImageProxyUrl,
   buildSiteAssetProxyUrl,
+  buildVillaCoverImageProxyPath,
   buildVillaCoverImageProxyUrl,
+  buildVillaGalleryImageProxyPath,
   buildVillaGalleryImageProxyUrl,
 } from "@/lib/public-image-proxy";
 
@@ -53,6 +57,30 @@ describe("public image proxy URL builders", () => {
     );
     expect(url.searchParams.get("w")).toBe("640");
     expect(url.searchParams.get("q")).toBe("60");
+  });
+
+  it("builds id-based public image proxy paths without source URLs", () => {
+    expect(
+      buildVillaCoverImageProxyPath("501", { quality: 60, width: 640 }),
+    ).toBe("/api/houses/images/501?w=640&q=60");
+    expect(
+      buildGuideCoverImageProxyPath("family-trip", {
+        quality: 75,
+        width: 1200,
+      }),
+    ).toBe("/api/guides/images/family-trip/cover?w=1200&q=75");
+    expect(
+      buildGuideContentImageProxyPath("family-trip", 3, {
+        quality: 75,
+        width: 1200,
+      }),
+    ).toBe("/api/guides/images/family-trip/content/3?w=1200&q=75");
+    expect(
+      buildVillaGalleryImageProxyPath("88", 7, {
+        quality: 60,
+        width: 828,
+      }),
+    ).toBe("/api/villas/88/images?imageId=7&w=828&q=60");
   });
 
   it("omits unsupported transform params from generated proxy URLs", () => {

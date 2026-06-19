@@ -1,4 +1,14 @@
 import type {
+  HomeConfigSupabaseClient,
+  SupabaseLikeError,
+} from "@/lib/admin/route-helpers";
+import { adminSupabaseErrorResponse } from "@/lib/admin/route-helpers";
+import { revalidateHomeSectionsCache } from "@/lib/cache-revalidation";
+import {
+  normalizeHomeSectionDraftsForSave,
+  validateHomeSectionDrafts,
+} from "@/lib/home-sections/validation";
+import type {
   HomeSectionDraft,
   HomeSectionFallbackMode,
   HomeSectionMode,
@@ -175,6 +185,38 @@ export function mapHomeSectionRow(row: HomeSectionRow): AdminHomeSectionDraft {
       mapHomeSectionItemRow(item as HomeSectionItemRow),
     ),
   };
+}
+
+export async function buildAdminHomeSectionsResponse(
+  supabase: HomeConfigSupabaseClient,
+) {
+  const { data, error } = await supabase
+    .from("home_sections")
+    .select(HOME_SECTIONS_ADMIN_SELECT)
+    .order("display_order", { ascending: true })
+    .order("position", {
+      ascending: true,
+      referencedTable: "home_section_items",
+    });
+
+  if (error || !Array.isArray(data)) {
+    return adminSupabaseErrorResponse(error, "Unable to load home sections.");
+  }
+
+  try {
+    return Response.json({
+      sections: (data as HomeSectionRow[]).map(mapHomeSectionRow),
+    });
+  } catch (error) {
+    return Response.json(
+      {
+        error: "Invalid home section data.",
+        details:
+          error instanceof Error ? error.message : "Unable to map home section row.",
+      },
+      { status: 500 },
+    );
+  }
 }
 
 function readString(
@@ -396,4 +438,46 @@ export function mapSavedHomeSectionPayload(
       isActive: item.is_active,
     })),
   };
+}
+
+export async function saveAdminHomeSections(
+  request: Request,
+  supabase: HomeConfigSupabaseClient,
+) {
+  let payload: unknown;
+
+  try {
+    payload = await request.json();
+  } catch {
+    return Response.json({ errors: ["Request body must be JSON."] }, { status: 400 });
+  }
+
+  const parsedPayload = parseSectionsPayload(payload);
+
+  if (parsedPayload.errors.length > 0) {
+    return Response.json({ errors: parsedPayload.errors }, { status: 400 });
+  }
+
+  const sections = parsedPayload.sections;
+  const errors = validateHomeSectionDrafts(sections);
+
+  if (errors.length > 0) {
+    return Response.json({ errors }, { status: 400 });
+  }
+
+  const normalizedSections = normalizeHomeSectionDraftsForSave(sections);
+  const rpcPayload = toRpcPayload(normalizedSections);
+  const { error } = await supabase.rpc("save_home_section_snapshot", {
+    snapshot: rpcPayload,
+  }) as { error: SupabaseLikeError | null };
+
+  if (error) {
+    return adminSupabaseErrorResponse(error, "Unable to save home sections.");
+  }
+
+  await revalidateHomeSectionsCache();
+
+  return Response.json({
+    sections: rpcPayload.map(mapSavedHomeSectionPayload),
+  });
 }

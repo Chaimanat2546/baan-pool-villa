@@ -2,14 +2,14 @@ import type {
   AnyDetailLayoutConfig,
   DetailLayoutBlock,
 } from "@/lib/detail-layout/types";
-import type { VillaImage } from "@/lib/villas/types";
+import type { PublicVillaImage } from "@/lib/villas/public-dto";
 
 export type GalleryLoadStatus = "idle" | "preview" | "loading" | "loaded" | "error";
 export type GalleryLoadMode = "background" | "interactive";
 
 export interface GalleryLoadState {
   error: string | null;
-  images: VillaImage[];
+  images: PublicVillaImage[];
   status: GalleryLoadStatus;
   villaId: string;
 }
@@ -29,7 +29,7 @@ export function getInitialGalleryLoadState(villaId: string): GalleryLoadState {
 
 export function getPreviewGalleryLoadState(
   villaId: string,
-  images: VillaImage[],
+  images: PublicVillaImage[],
 ): GalleryLoadState {
   return {
     error: null,

@@ -1,27 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { VillaDetailContent } from "@/lib/villas/detail";
-import type { VillaListing } from "@/lib/villas/types";
-import {
-  AboutSection,
-  AmenitiesSection,
-  PolicySection,
-} from "../content-sections";
+import { AmenitiesSection } from "../content-sections";
 import { NearbySection } from "../nearby-section";
-
-const listing: VillaListing = {
-  id: "66",
-  zone: "jomtien",
-  zoneLabel: "Jomtien",
-  bedrooms: 4,
-  bathrooms: 3,
-  distanceToSea: "500m",
-  price: 12000,
-  people: 12,
-  coverImage: null,
-  amenities: [],
-  poolType: "private",
-};
 
 const content: VillaDetailContent = {
   amenities: [],
@@ -56,22 +37,6 @@ const contentWithNearbyPlaces: VillaDetailContent = {
 };
 
 describe("Detail content sections", () => {
-  it("AboutSection renders without mock badges", () => {
-    const markup = renderToStaticMarkup(
-      <AboutSection content={content} listing={listing} />,
-    );
-
-    expect(markup).not.toContain("Mock FE");
-  });
-
-  it("PolicySection does not expose mock prototype copy", () => {
-    const markup = renderToStaticMarkup(
-      <PolicySection content={content} listing={listing} />,
-    );
-
-    expect(markup).not.toContain("Mock FE");
-  });
-
   it("lays nearby cards into a bounded tablet grid", () => {
     const markup = renderToStaticMarkup(
       <NearbySection content={contentWithNearbyPlaces} />,

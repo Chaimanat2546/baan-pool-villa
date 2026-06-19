@@ -205,3 +205,81 @@ describe("GET /api/guides/images/proxy", () => {
     expect(response.headers.get("Content-Type")).toBe("image/png");
   });
 });
+
+describe("GET /api/guides/images/[slug]", () => {
+  it("proxies a guide cover by slug without requiring the source URL in the request", async () => {
+    getPublishedGuidesMock.mockResolvedValue([guide]);
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("guide bytes", {
+        headers: { "Content-Type": "image/webp" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import(
+      "../../../app/(public)/api/guides/images/[slug]/cover/route"
+    );
+
+    const response = await GET(
+      new Request("https://example.com/api/guides/images/guide-1/cover?w=640&q=60"),
+      { params: Promise.resolve({ slug: "guide-1" }) },
+    );
+
+    await expect(response.text()).resolves.toBe("guide bytes");
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://assets.example.com/guide-cover.jpg",
+      expect.objectContaining({
+        cache: "no-store",
+        cf: {
+          image: {
+            fit: "scale-down",
+            quality: 60,
+            width: 640,
+          },
+        },
+      }),
+    );
+  });
+
+  it("proxies a guide content image by slug and block index", async () => {
+    getPublishedGuidesMock.mockResolvedValue([guide]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("inline bytes", {
+          headers: { "Content-Type": "image/png" },
+        }),
+      ),
+    );
+    const { GET } = await import(
+      "../../../app/(public)/api/guides/images/[slug]/content/[index]/route"
+    );
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/guides/images/guide-1/content/0?w=1200&q=75",
+      ),
+      { params: Promise.resolve({ slug: "guide-1", index: "0" }) },
+    );
+
+    await expect(response.text()).resolves.toBe("inline bytes");
+    expect(response.status).toBe(200);
+  });
+
+  it("returns 404 when the guide content block is not an image", async () => {
+    getPublishedGuidesMock.mockResolvedValue([
+      { ...guide, contentBlocks: [{ type: "paragraph" }] },
+    ]);
+    const { GET } = await import(
+      "../../../app/(public)/api/guides/images/[slug]/content/[index]/route"
+    );
+
+    const response = await GET(
+      new Request("https://example.com/api/guides/images/guide-1/content/0"),
+      { params: Promise.resolve({ slug: "guide-1", index: "0" }) },
+    );
+
+    await expect(response.json()).resolves.toEqual({ error: "Image not found" });
+    expect(response.status).toBe(404);
+  });
+});

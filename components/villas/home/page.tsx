@@ -1,17 +1,9 @@
-"use client";
-
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
 import type { HomePageSettings } from "@/components/villas/home/client-payload";
-import type { GuidePost } from "@/lib/guides/types";
+import type { PublicGuideSummary } from "@/lib/guides/public-dto";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
-import {
-  filtersToSearchParams,
-  getDefaultFilters,
-  normalizeFiltersForSearch,
-} from "@/lib/villas/filters";
-import type { VillaFilters } from "@/lib/villas/types";
 
 import { ArticlesSection } from "./articles-section";
 import { DestinationsSection } from "./destinations-section";
@@ -28,6 +20,7 @@ type FilterSummary = {
 
 type DestinationVilla = {
   coverImage: string | null;
+  id: string;
 };
 
 export interface HomePageDegradedSources {
@@ -39,7 +32,7 @@ export interface HomePageDegradedSources {
 
 interface HomePageProps {
   degradedSources?: HomePageDegradedSources;
-  initialGuides?: GuidePost[];
+  initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   filterSummary?: FilterSummary;
   destinationVillas?: DestinationVilla[];
@@ -70,27 +63,9 @@ export function HomePage({
 }: HomePageProps) {
   const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? 0;
   const zones = filterSummary?.zones ?? [];
-  const [guides] = useState<GuidePost[]>(() => initialGuides);
-  const [homeSections] = useState<ResolvedHomeSection[]>(
-    () => initialHomeSections,
+  const railSections = initialHomeSections.filter(
+    (section) => section.villas.length > 0,
   );
-  const [filters, setFilters] = useState<VillaFilters>(() =>
-    getDefaultFilters(Math.max(maxAvailablePrice, 1000)),
-  );
-
-  const railSections = homeSections.filter((section) => section.villas.length > 0);
-
-  function handleHeroSearch() {
-    const shouldOmitPlaceholderPrice =
-      maxAvailablePrice <= 1000 && filters.maxPrice <= 1000;
-    const params = filtersToSearchParams(
-      normalizeFiltersForSearch(filters, maxAvailablePrice),
-      { omitMaxPrice: shouldOmitPlaceholderPrice },
-    );
-    const query = params.toString();
-
-    window.open(query ? `/search?${query}` : "/search", "_self");
-  }
 
   const degradedSourceNames = [
     degradedSources?.siteSettings ? "siteSettings" : null,
@@ -108,12 +83,9 @@ export function HomePage({
       }
     >
       <HeroSection
-        filters={filters}
         heroImage={settings.heroImage}
         zones={zones}
         maxAvailablePrice={maxAvailablePrice}
-        onChange={setFilters}
-        onSearch={handleHeroSearch}
       />
 
       <div>
@@ -136,7 +108,7 @@ export function HomePage({
 
         <DestinationsSection villas={destinationVillas} />
         <TikTokSection tiktok={settings.tiktok} />
-        <ArticlesSection guides={guides} />
+        <ArticlesSection guides={initialGuides} />
         <FaqSection />
         <ContactSection settings={settings} />
       </div>

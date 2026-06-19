@@ -84,8 +84,9 @@ describe("guide detail request budget", () => {
     );
 
     expect(markup).toContain(
-      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fguide.jpg&amp;w=640&amp;q=60"',
+      'data-src="/api/guides/images/guide-1/cover?w=640&amp;q=60"',
     );
+    expect(markup).not.toContain("assets.example.com");
   });
 
   it("does not preload recommended villa card images in duplicate sidebar layouts", () => {

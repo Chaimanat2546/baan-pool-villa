@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   Bath,
   BedDouble,
   MapPin,
@@ -7,8 +6,7 @@ import {
   Users,
   Waves,
 } from "lucide-react";
-import Image from "next/image";
-import { useState } from "react";
+import { YouTubeEmbed } from "@/components/ui/youtube-embed";
 import {
   getVillaSearchIntentSummary,
   getVillaTitle as getSeoVillaTitle,
@@ -18,7 +16,6 @@ import type { Amenity, VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
 import { DEFAULT_AMENITY_PREVIEW_COUNT, getAmenityIcon } from "./content-amenities";
 import { findSection } from "./helpers";
-export { PolicySection } from "./policy-section";
 
 export function VillaIntro({
 
@@ -311,36 +308,11 @@ export function AmenitiesSection({
 }
 
 export function VideoReviewSection({ videos }: { videos: VillaDetailContent["videos"] }) {
-  const [activeVideoUrls, setActiveVideoUrls] = useState<Set<string>>(
-    () => new Set(),
-  );
-
   if (videos.length === 0) {
 
     return null;
 
   }
-
-  function playVideo(videoUrl: string) {
-    setActiveVideoUrls((currentVideoUrls) => {
-      if (currentVideoUrls.has(videoUrl)) {
-        return currentVideoUrls;
-      }
-
-      const nextVideoUrls = new Set(currentVideoUrls);
-      nextVideoUrls.add(videoUrl);
-      return nextVideoUrls;
-    });
-  }
-
-  function getPlayerUrl(embedUrl: string) {
-    const url = new URL(embedUrl);
-    url.searchParams.set("autoplay", "1");
-    url.searchParams.set("rel", "0");
-    return url.href;
-  }
-
-
 
   return (
 
@@ -369,65 +341,13 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
 
           >
 
-            {video.embedUrl && activeVideoUrls.has(video.url) ? (
+            {video.embedUrl ? (
 
-              <div className="aspect-video bg-[var(--site-primary-hover)]">
-
-                <iframe
-
-                  src={getPlayerUrl(video.embedUrl)}
-
-                  title={video.label}
-
-                  className="h-full w-full"
-
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-
-                  allowFullScreen
-
-                  loading="lazy"
-
-                  referrerPolicy="strict-origin-when-cross-origin"
-
-                />
-
-              </div>
-
-            ) : video.embedUrl ? (
-
-              <button
-                type="button"
-                className="group relative grid aspect-video w-full cursor-pointer place-items-center overflow-hidden bg-[var(--site-primary-hover)] text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2"
-                onClick={() => {
-                  playVideo(video.url);
-                }}
-              >
-                {video.thumbnailUrl ? (
-                  <Image
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    height={360}
-                    sizes="(max-width: 768px) 100vw, 768px"
-                    src={video.thumbnailUrl}
-                    width={640}
-                  />
-                ) : null}
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,15,40,0.06),rgba(5,15,40,0.72))]"
-                />
-                <span className="relative grid h-16 w-16 place-items-center rounded-full bg-white/92 text-[var(--site-primary)] shadow-[0_18px_42px_rgba(0,0,0,0.24)] transition group-hover:scale-105">
-                  <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
-                </span>
-                <span className="absolute bottom-4 left-4 right-4 text-left">
-                  <span className="block text-base font-black text-white drop-shadow">
-                    {video.label}
-                  </span>
-                  <span className="mt-1 block text-sm font-semibold text-white/85">
-                    กดเพื่อเล่นวิดีโอ
-                  </span>
-                </span>
-              </button>
+              <YouTubeEmbed
+                className="rounded-none border-0 shadow-none"
+                embedUrl={video.embedUrl}
+                title={video.label}
+              />
 
             ) : (
 
@@ -448,35 +368,6 @@ export function VideoReviewSection({ videos }: { videos: VillaDetailContent["vid
               </div>
 
             )}
-
-            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-
-              <div>
-
-                <h3 className="font-black text-[var(--site-text)]">{video.label}</h3>
-
-                <p className="mt-1 break-all text-xs text-[var(--site-muted)]">{video.url}</p>
-
-              </div>
-
-              <a
-
-                href={video.watchUrl}
-                target="_blank"
-
-                rel="noreferrer"
-
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-4 py-2 text-sm font-black text-[var(--site-on-primary)]"
-
-              >
-
-                เปิดคลิป
-
-                <ArrowRight className="h-4 w-4" />
-
-              </a>
-
-            </div>
 
           </article>
 

@@ -24,14 +24,6 @@ import {
 } from "./tiktok-helpers";
 import type { AdminTikTokDraft, AdminTikTokResponse } from "./types";
 
-/**
- * Render the admin UI for managing TikTok account and video settings.
- *
- * Displays current settings, loading/saving states, error/warning/notice messages,
- * and controls to edit and persist changes to the server.
- *
- * @returns The React element for the TikTok administration page.
- */
 export function AdminTikTokPage() {
   const router = useRouter();
   const [draft, setDraft] = useState<AdminTikTokDraft>(EMPTY_TIKTOK_DRAFT);

@@ -56,7 +56,7 @@ describe("GET /api/houses", () => {
       amenities: [],
       bathrooms: 3,
       bedrooms: 4,
-      coverImage: null,
+      coverImage: `https://devillegroups.com/imgs/profile_imgs_large/${index + 1}.jpg`,
       distanceToSea: "1 km",
       id: String(index + 1),
       people: 8,
@@ -82,7 +82,11 @@ describe("GET /api/houses", () => {
       total: 30,
     });
     expect(body.items).toHaveLength(12);
-    expect(body.items[0]).toEqual(listings[0]);
+    expect(body.items[0]).toEqual({
+      ...listings[0],
+      coverImage: "/api/houses/images/1",
+    });
+    expect(JSON.stringify(body)).not.toContain("devillegroups.com");
   });
 
   it("filters, sorts, and clamps public catalog page sizes", async () => {
@@ -191,6 +195,36 @@ describe("GET /api/houses", () => {
 });
 
 describe("GET /api/villas/[id]", () => {
+  it("returns public detail data without raw cover image URLs", async () => {
+    fetchVillaDetailMock.mockResolvedValue({
+      detail: null,
+      detailStatus: "missing_token",
+      listing: {
+        amenities: [],
+        bathrooms: 3,
+        bedrooms: 4,
+        coverImage: "https://devillegroups.com/imgs/profile_imgs_large/9.jpg",
+        distanceToSea: "1 km",
+        id: "9",
+        people: 8,
+        poolType: "private",
+        price: 12000,
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+    });
+
+    const { GET } = await import("../../../app/(public)/api/villas/[id]/route");
+    const response = await GET(new Request("https://example.com/api/villas/9"), {
+      params: Promise.resolve({ id: "9" }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.listing.coverImage).toBe("/api/houses/images/9");
+    expect(JSON.stringify(body)).not.toContain("devillegroups.com");
+  });
+
   it("rate limits repeated detail requests before loading villa detail", async () => {
     const { GET } = await import("../../../app/(public)/api/villas/[id]/route");
     const request = new Request("https://example.com/api/villas/9", {
@@ -328,7 +362,7 @@ describe("GET /api/villas/[id]/booking-calendar", () => {
         days: {
           "2026-06-16": {
             disabled: false,
-            icons: ["promotion"],
+            icons: [],
             kind: "promotion",
             label: "โปรโมชั่น",
             price: 7900,

@@ -16,6 +16,9 @@ import {
 } from "../validation";
 import type { SiteSettingsDraft } from "../types";
 
+const legacyWordPressOgImageUrl =
+  "https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg";
+
 const validRow = {
   id: "global",
   site_name: " Baan Pool Villa ",
@@ -227,6 +230,28 @@ describe("normalizeSiteSettingsRow", () => {
     expect(settings.detailLayout).not.toBe(DEFAULT_DETAIL_LAYOUT_V2);
   });
 
+  it("rewrites the legacy WordPress OG image to the local default image", () => {
+    const settings = normalizeSiteSettingsRow({
+      ...validRow,
+      seo_og_image_url: legacyWordPressOgImageUrl,
+      search_seo_og_image_url: legacyWordPressOgImageUrl,
+      guides_seo_og_image_url: legacyWordPressOgImageUrl,
+    });
+
+    expect(settings.seo.ogImage).toMatchObject({
+      path: DEFAULT_SITE_SETTINGS.seo.ogImage.url,
+      url: DEFAULT_SITE_SETTINGS.seo.ogImage.url,
+    });
+    expect(settings.pageSeo.search.ogImage).toMatchObject({
+      path: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.url,
+      url: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.url,
+    });
+    expect(settings.pageSeo.guides.ogImage).toMatchObject({
+      path: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.url,
+      url: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.url,
+    });
+  });
+
   it("falls back for malformed colors and missing images", () => {
     expect(
       normalizeSiteSettingsRow({
@@ -362,6 +387,21 @@ describe("normalizeSiteSettingsDraft", () => {
         "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
         "https://www.tiktok.com/player/v1/7370000000000000002",
       ],
+    });
+  });
+
+  it("rewrites legacy WordPress OG image draft values to the local default image", () => {
+    expect(
+      normalizeSiteSettingsDraft({
+        ...validDraft,
+        seoOgImageUrl: ` ${legacyWordPressOgImageUrl} `,
+        searchSeoOgImageUrl: ` ${legacyWordPressOgImageUrl} `,
+        guidesSeoOgImageUrl: ` ${legacyWordPressOgImageUrl} `,
+      }),
+    ).toMatchObject({
+      seoOgImageUrl: DEFAULT_SITE_SETTINGS.seo.ogImage.url,
+      searchSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.url,
+      guidesSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.url,
     });
   });
 });

@@ -1,7 +1,7 @@
 import { BedDouble, MapPin, Users } from "lucide-react";
 import Image from "next/image";
 
-import { buildVillaCoverImageProxyUrl } from "@/lib/public-image-proxy";
+import { buildVillaCoverImageProxyPath } from "@/lib/public-image-proxy";
 import type { VillaListing } from "@/lib/villas/types";
 
 interface VillaCardProps {
@@ -25,10 +25,12 @@ export function VillaCard({
 }: VillaCardProps) {
   const visibleAmenities = villa.amenities.slice(0, 3);
   const TitleTag = titleHeadingLevel;
-  const coverImageSrc = buildVillaCoverImageProxyUrl(villa.coverImage, {
-    quality: 60,
-    width: 640,
-  });
+  const coverImageSrc = villa.coverImage
+    ? buildVillaCoverImageProxyPath(villa.id, {
+        quality: 60,
+        width: 640,
+      })
+    : null;
 
   return (
     <a

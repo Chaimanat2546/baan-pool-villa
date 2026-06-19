@@ -71,7 +71,7 @@ describe("getSiteSettings", () => {
 
     expect(unstableCacheMock).toHaveBeenCalledWith(
       expect.any(Function),
-      [CACHE_TAGS.siteSettings],
+      [`${CACHE_TAGS.siteSettings}:v2`],
       {
         revalidate: CACHE_REVALIDATE_SECONDS.siteSettings,
         tags: [CACHE_TAGS.siteSettings],

@@ -54,6 +54,29 @@ describe("gallery URL helpers", () => {
     expect(downloadUrl.pathname).toBe("/api/villas/88/images");
   });
 
+  it("keeps image-id gallery proxy paths free of raw URL params", () => {
+    const item = galleryItem({
+      url: "/api/villas/88/images?imageId=7",
+    });
+    const downloadUrl = new URL(
+      buildGalleryDownloadHref("88", item) ?? "",
+      "https://example.com",
+    );
+    const displayUrl = new URL(
+      buildGalleryDisplaySrc("88", item) ?? "",
+      "https://example.com",
+    );
+
+    expect(downloadUrl.pathname).toBe("/api/villas/88/images");
+    expect(downloadUrl.searchParams.get("imageId")).toBe("7");
+    expect(downloadUrl.searchParams.get("download")).toBe("1");
+    expect(downloadUrl.searchParams.has("url")).toBe(false);
+    expect(displayUrl.searchParams.get("imageId")).toBe("7");
+    expect(displayUrl.searchParams.get("w")).toBe("828");
+    expect(displayUrl.searchParams.get("q")).toBe("60");
+    expect(displayUrl.searchParams.has("url")).toBe(false);
+  });
+
   it("rejects unsafe display image URLs before proxying", () => {
     expect(normalizeGalleryDisplayImageUrl(" https://cdn.test/pool.jpg ")).toBe(
       "https://cdn.test/pool.jpg",

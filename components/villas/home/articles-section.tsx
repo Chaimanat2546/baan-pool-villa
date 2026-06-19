@@ -1,31 +1,39 @@
 import { ArrowRight, Pin } from "lucide-react";
 import Image from "next/image";
 
+import {
+  toPublicGuideSummaries,
+  type PublicGuideSummary,
+} from "@/lib/guides/public-dto";
+import { buildGuideCoverImageProxyPath } from "@/lib/public-image-proxy";
 import type { GuidePost } from "@/lib/guides/types";
-import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
+import { ScrollRail } from "@/components/ui/scroll-rail";
 
-import { ScrollRail } from "./scroll-rail";
 import { SectionHeader } from "./section-header";
 
 const HOME_GUIDE_LIMIT = 7;
 
 interface ArticlesSectionProps {
-  guides: GuidePost[];
+  guides: PublicGuideSummary[];
 }
 
-export function selectHomeGuides(guides: GuidePost[]): GuidePost[] {
-  return guides.slice(0, HOME_GUIDE_LIMIT);
+export function selectHomeGuideSummaries(
+  guides: GuidePost[],
+): PublicGuideSummary[] {
+  return toPublicGuideSummaries(guides).slice(0, HOME_GUIDE_LIMIT);
 }
 
-function getGuideImage(guide: GuidePost) {
-  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null, {
-    quality: 60,
-    width: 640,
-  });
+function getGuideImage(guide: PublicGuideSummary) {
+  return guide.hasCoverImage
+    ? buildGuideCoverImageProxyPath(guide.slug, {
+        quality: 60,
+        width: 640,
+      })
+    : null;
 }
 
 export function ArticlesSection({ guides }: ArticlesSectionProps) {
-  const visibleGuides = selectHomeGuides(guides);
+  const visibleGuides = guides.slice(0, HOME_GUIDE_LIMIT);
 
   if (visibleGuides.length === 0) {
     return null;
@@ -57,7 +65,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
               <div className="relative aspect-[4/3] bg-[var(--site-surface-tint)]">
                 {imageUrl ? (
                   <Image
-                    alt={guide.coverImage?.alt ?? guide.title}
+                    alt={guide.coverImageAlt ?? guide.title}
                     className="object-cover transition duration-500 group-hover:scale-105"
                     fill
                     sizes="(max-width: 768px) 306px, 394px"

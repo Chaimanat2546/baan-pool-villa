@@ -93,13 +93,6 @@ function cssImageUrl(value: string): string {
   return `url("${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}")`;
 }
 
-/**
- * Renders the administrative settings form for site branding, theme, hero image, SEO/share metadata, and contact/payment fields.
- *
- * The form reflects `draft` values for live previews, calls `onChange` to propagate edits, and invokes `onSave` when submitted. It uses `isSaving` to set form busy state and `hasUnsavedChanges` to display unsaved status.
- *
- * @returns The rendered settings form element
- */
 export function SettingsForm({
   draft,
   hasUnsavedChanges,
@@ -423,7 +416,7 @@ export function SettingsForm({
               onChange={(seoOgImageUrl) => {
                 onChange({ seoOgImageUrl });
               }}
-              placeholder="https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg"
+              placeholder="/images/BPV-66_Cover-Web.jpg"
               value={draft.seoOgImageUrl}
             />
             <TextControl
@@ -464,7 +457,7 @@ export function SettingsForm({
                 onChange={(searchSeoOgImageUrl) => {
                   onChange({ searchSeoOgImageUrl });
                 }}
-                placeholder="https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg"
+                placeholder="/images/BPV-66_Cover-Web.jpg"
                 value={draft.searchSeoOgImageUrl}
               />
               <TextControl
@@ -527,7 +520,7 @@ export function SettingsForm({
                 onChange={(guidesSeoOgImageUrl) => {
                   onChange({ guidesSeoOgImageUrl });
                 }}
-                placeholder="https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg"
+                placeholder="/images/BPV-66_Cover-Web.jpg"
                 value={draft.guidesSeoOgImageUrl}
               />
               <TextControl

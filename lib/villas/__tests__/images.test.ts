@@ -450,6 +450,87 @@ describe("GET /api/villas/[id]/images", () => {
     expect(consoleError).toHaveBeenCalled();
   });
 
+  it("returns gallery image proxy paths without raw source URLs", async () => {
+    mockImagesQuery({
+      data: [
+        {
+          id: 7,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "pool.jpg",
+          image_url: null,
+          caption: "Pool",
+          image_zone: "pool",
+        },
+      ],
+      error: null,
+    });
+    const { GET } = await import("../../../app/(public)/api/villas/[id]/images/route");
+
+    const response = await GET(
+      new Request("https://example.com/api/villas/9/images"),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.images).toEqual([
+      expect.objectContaining({
+        id: 7,
+        imageUrl: "/api/villas/9/images?imageId=7",
+      }),
+    ]);
+    expect(JSON.stringify(body)).not.toContain("images.example.com");
+  });
+
+  it("proxies an allowed gallery image by image id", async () => {
+    mockImagesQuery({
+      data: [
+        {
+          id: 7,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "pool.jpg",
+          image_url: null,
+          caption: "Pool",
+          image_zone: "pool",
+        },
+      ],
+      error: null,
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("photo bytes", {
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import("../../../app/(public)/api/villas/[id]/images/route");
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/images?imageId=7&w=828&q=60",
+        { headers: { Accept: "image/webp" } },
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    await expect(response.text()).resolves.toBe("photo bytes");
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith("https://images.example.com/pool.jpg", {
+      cache: "no-store",
+      cf: {
+        image: {
+          fit: "scale-down",
+          format: "webp",
+          quality: 60,
+          width: 828,
+        },
+      },
+      redirect: "manual",
+      signal: expect.any(AbortSignal),
+    });
+  });
+
   it("proxies an allowed gallery image from the parent images route", async () => {
     mockImagesQuery({
       data: [

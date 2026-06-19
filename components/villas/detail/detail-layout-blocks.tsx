@@ -13,14 +13,14 @@ import type {
   DetailLayoutBlockType,
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
-import type { VillaDetailContent } from "@/lib/villas/detail";
+import type { VillaDetailContent, VillaDetailSection } from "@/lib/villas/detail";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import { BookingSidebar } from "./booking-sidebar";
 import { AmenitiesSection, VideoReviewSection } from "./content-sections";
 import { findFact, findSection } from "./helpers";
 import { LazyCategorizedImages } from "./lazy-categorized-images";
 import { NearbySection } from "./nearby-section";
-import { RecommendedVillas } from "./recommended-villas";
+import { VillaCard } from "../listing/villa-card";
 import type { GalleryCategory } from "./types";
 
 interface DetailLayoutBlockContext {
@@ -35,6 +35,7 @@ interface DetailLayoutBlockContext {
 type BlockRenderer = (context: DetailLayoutBlockContext) => ReactNode | null;
 
 const DEFAULT_COMPACT_LINE_LIMIT = 5;
+const DEFAULT_RECOMMENDED_CTA_HREF = "/search";
 
 const sectionTitles = {
   details: "รายละเอียดเพิ่มเติม",
@@ -193,19 +194,20 @@ function renderCategorizedImages({
     </DetailCard>
   );
 }
+
+function hasSectionLines(
+  section: VillaDetailSection | null,
+): section is VillaDetailSection {
+  return Boolean(section && section.lines.length > 0);
+}
+
 function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
   const costs = findSection(content, sectionTitles.costs);
   const promotions = findSection(content, sectionTitles.promotions);
   const notes = findSection(content, sectionTitles.notes);
   const deposit = findFact(content.facts, "ค่าประกัน");
   const extraGuest = findFact(content.facts, "เสริมคน");
-  const groups = [
-    costs,
-    promotions,
-    notes,
-  ].filter((section): section is NonNullable<typeof section> =>
-    Boolean(section && section.lines.length > 0),
-  );
+  const groups = [costs, promotions, notes].filter(hasSectionLines);
 
   if (groups.length === 0 && !deposit && !extraGuest) {
     return null;
@@ -241,10 +243,7 @@ function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
 function renderRulesPetPolicy({ content }: DetailLayoutBlockContext) {
   const rules = findSection(content, sectionTitles.rules);
   const petPolicy = findSection(content, sectionTitles.petPolicy);
-  const groups = [rules, petPolicy].filter(
-    (section): section is NonNullable<typeof section> =>
-      Boolean(section && section.lines.length > 0),
-  );
+  const groups = [rules, petPolicy].filter(hasSectionLines);
 
   if (groups.length === 0) {
     return null;
@@ -338,7 +337,62 @@ function renderRecommendedVillas({
     return null;
   }
 
-  return <RecommendedVillas section={recommendedSection} />;
+  const ctaHref = recommendedSection.cta
+    ? sanitizeRecommendedCtaHref(recommendedSection.cta.href)
+    : null;
+
+  return (
+    <div
+      className="relative left-1/2 w-screen -translate-x-1/2"
+      data-detail-recommended-villas="static-rail"
+    >
+      <section
+        id="recommendations"
+        className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14"
+      >
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl font-black text-[var(--site-text)]">
+            {recommendedSection.title}
+          </h2>
+          <p className="mt-3 text-base leading-7 text-[var(--site-muted)]">
+            {recommendedSection.description}
+          </p>
+        </div>
+        <div className="-mx-4 mt-4 flex snap-x gap-5 overflow-x-auto px-4 py-4 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8 [&::-webkit-scrollbar]:hidden">
+          {recommendedSection.villas.slice(0, 12).map((villa) => (
+            <div key={villa.id} className="w-[290px] shrink-0 snap-start">
+              <VillaCard villa={villa} titleHeadingLevel="h3" />
+            </div>
+          ))}
+        </div>
+        {recommendedSection.cta ? (
+          <div className="mt-8 text-center">
+            <a
+              href={ctaHref ?? DEFAULT_RECOMMENDED_CTA_HREF}
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--site-primary)] px-5 py-3 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_30px_rgba(6,77,61,0.22)] transition hover:bg-[var(--site-primary-hover)]"
+            >
+              {recommendedSection.cta.label} <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+function sanitizeRecommendedCtaHref(href: string): string {
+  if (href.startsWith("/") && !href.startsWith("//")) {
+    return href;
+  }
+
+  try {
+    const url = new URL(href);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.toString()
+      : DEFAULT_RECOMMENDED_CTA_HREF;
+  } catch {
+    return DEFAULT_RECOMMENDED_CTA_HREF;
+  }
 }
 
 const blockRenderers = {

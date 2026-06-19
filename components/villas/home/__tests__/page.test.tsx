@@ -26,6 +26,7 @@ import type { GuidePost } from "../../../../lib/guides/types";
 import type { ResolvedHomeSection } from "../../../../lib/home-sections/types";
 import type { VillaListing } from "../../../../lib/villas/types";
 import { toHomePageSettings } from "../client-payload";
+import { selectHomeGuideSummaries } from "../articles-section";
 import { HomePage } from "../page";
 
 const villa: VillaListing = {
@@ -55,7 +56,10 @@ const filterSummary = {
 };
 
 const destinationVillas = [
-  { coverImage: "https://devillegroups.com/imgs/profile_imgs_large/501-destination.jpg" },
+  {
+    coverImage: "https://devillegroups.com/imgs/profile_imgs_large/501-destination.jpg",
+    id: "501",
+  },
 ];
 
 function makeGuide(index: number): GuidePost {
@@ -203,8 +207,8 @@ describe("HomePage", () => {
 
   it("uses compact destinationVillas payload for destination cards", () => {
     const compactDestinationVillas = [
-      { coverImage: "https://example.com/destination-1.jpg" },
-      { coverImage: "https://example.com/destination-2.jpg" },
+      { coverImage: "https://example.com/destination-1.jpg", id: "501" },
+      { coverImage: "https://example.com/destination-2.jpg", id: "502" },
     ];
 
     const markup = renderToStaticMarkup(
@@ -240,17 +244,18 @@ describe("HomePage", () => {
     expect(tiktokSectionStart).toBeGreaterThan(destinationSectionStart);
 
     expect(destinationsMarkup).toContain(
-      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-1.jpg&amp;w=1200&amp;q=60",
+      "/api/houses/images/501?w=1200&amp;q=60",
     );
     expect(destinationsMarkup).toContain(
-      "/api/houses/images/proxy?url=https%3A%2F%2Fexample.com%2Fdestination-2.jpg&amp;w=1200&amp;q=60",
+      "/api/houses/images/502?w=1200&amp;q=60",
     );
+    expect(destinationsMarkup).not.toContain("example.com/destination");
   });
 
   it("renders TikTok section from settings without server preview props and keeps guide placement after it", () => {
     const markup = renderToStaticMarkup(
       <HomePage
-        initialGuides={[makeGuide(1)]}
+        initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
@@ -304,7 +309,7 @@ describe("HomePage", () => {
   it("dedupes TikTok videos by videoId and keeps max 6 visible posters", () => {
     const markup = renderToStaticMarkup(
       <HomePage
-        initialGuides={[makeGuide(1)]}
+        initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
@@ -372,7 +377,7 @@ describe("HomePage", () => {
   it("limits TikTok render to first 6 normalized videos when 8 are configured", () => {
     const markup = renderToStaticMarkup(
       <HomePage
-        initialGuides={[makeGuide(1)]}
+        initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
@@ -431,7 +436,7 @@ describe("HomePage", () => {
   it("dedupes TikTok videos by trimmed videoId and renders canonical IDs", () => {
     const markup = renderToStaticMarkup(
       <HomePage
-        initialGuides={[makeGuide(1)]}
+        initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
@@ -472,7 +477,7 @@ describe("HomePage", () => {
   it("does not render TikTok section when no videos are configured", () => {
     const markup = renderToStaticMarkup(
       <HomePage
-        initialGuides={[makeGuide(1)]}
+        initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}

@@ -31,14 +31,6 @@ interface TikTokFormProps {
   onSave: () => void;
 }
 
-/**
- * Move an element within an array from one index to another and return a new array.
- *
- * @param items - The array to reorder; the original array is not mutated.
- * @param sourceIndex - Zero-based index of the element to move.
- * @param targetIndex - Zero-based index where the element should be inserted.
- * @returns A new array with the element moved from `sourceIndex` to `targetIndex`. If either index is out of bounds or the source element is `undefined`, the original `items` array is returned.
- */
 function moveArrayItem<T>(items: T[], sourceIndex: number, targetIndex: number): T[] {
   if (
     sourceIndex < 0 ||
@@ -61,12 +53,6 @@ function moveArrayItem<T>(items: T[], sourceIndex: number, targetIndex: number):
   return nextItems;
 }
 
-/**
- * Produce a canonical external TikTok account URL suitable for preview.
- *
- * @param value - A user-provided account string (URL or handle), may include surrounding whitespace
- * @returns The canonical absolute account URL as a string, or `null` if the input is not a valid preview URL or cannot be parsed
- */
 function getAccountPreviewHref(value: string): string | null {
   const trimmed = value.trim();
 
@@ -81,16 +67,6 @@ function getAccountPreviewHref(value: string): string | null {
   }
 }
 
-/**
- * Derives a TikTok handle from a URL-like string or returns a fallback handle.
- *
- * If `value` is empty after trimming, returns the default handle `@baanpoolvilla_official`.
- * If `value` parses as a URL and its first path segment that starts with `@` exists, that segment is returned.
- * Otherwise, the trimmed input string is returned unchanged.
- *
- * @param value - Raw or URL-like input that may contain a TikTok handle
- * @returns The TikTok handle (for example `@username`), the trimmed input when no handle is found, or `@baanpoolvilla_official` when `value` is empty
- */
 function getTikTokHandle(value: string): string {
   const trimmed = value.trim();
 
@@ -110,17 +86,6 @@ function getTikTokHandle(value: string): string {
   }
 }
 
-/**
- * Produce a user-facing label for a TikTok video input.
- *
- * If `value` is empty, returns `video/{fallbackIndex + 1}`. If `value` is a TikTok URL
- * containing `.../video/{id}` or the embed path `player/v1/{id}`, returns `video/{id}`.
- * Otherwise returns the trimmed `value`.
- *
- * @param value - The raw or URL-like video input
- * @param fallbackIndex - Index used to generate a default label when `value` is empty
- * @returns The computed video label (e.g. `video/123456` or `video/1`)
- */
 function getTikTokVideoLabel(value: string, fallbackIndex: number): string {
   const trimmed = value.trim();
 
@@ -147,12 +112,6 @@ function getTikTokVideoLabel(value: string, fallbackIndex: number): string {
   return trimmed;
 }
 
-/**
- * Validates and canonicalizes a TikTok video URL for use as a preview link.
- *
- * @param value - The input URL or text to validate and normalize
- * @returns The canonical `https` TikTok URL string when `value` is a valid TikTok link, `null` otherwise
- */
 function getVideoPreviewHref(value: string): string | null {
   const trimmed = value.trim();
 
@@ -176,12 +135,6 @@ function getVideoPreviewHref(value: string): string | null {
   }
 }
 
-/**
- * Convert a TikTok video URL or raw input into a canonical TikTok player embed URL.
- *
- * @param value - The URL-like or raw input that may contain a TikTok video id or path
- * @returns The TikTok player embed URL for the extracted numeric video id, or `null` if the input is empty, not an `https` TikTok URL (tiktok.com, www.tiktok.com, m.tiktok.com), or does not contain a numeric video id
- */
 function getTikTokPlayerHref(value: string): string | null {
   const trimmed = value.trim();
 
@@ -215,20 +168,10 @@ function getTikTokPlayerHref(value: string): string | null {
   }
 }
 
-/**
- * Focuses the video URL input corresponding to a specific row.
- *
- * @param rowId - Row identifier used to construct the input element id `tiktokVideoUrl-{rowId}`
- */
 function focusVideoInput(rowId: string) {
   document.getElementById(`tiktokVideoUrl-${rowId}`)?.focus();
 }
 
-/**
- * Append a new empty video row to the TikTok draft.
- *
- * @returns The same `draft` object shape with a new row id appended to `videoRowIds` and an empty string appended to `videoUrls`; other fields are preserved.
- */
 export function addTikTokVideoRow(draft: AdminTikTokDraft): AdminTikTokDraft {
   return {
     ...draft,
@@ -237,14 +180,6 @@ export function addTikTokVideoRow(draft: AdminTikTokDraft): AdminTikTokDraft {
   };
 }
 
-/**
- * Update or append a video URL in a TikTok draft at the specified index.
- *
- * @param draft - The draft containing `videoUrls` and `videoRowIds`.
- * @param index - The index to update; if `index` is greater than or equal to the current length, the `nextValue` is appended as a new row and a new row id is generated.
- * @param nextValue - The video URL to set for the row.
- * @returns The updated draft with new `videoUrls` (and `videoRowIds` if a row was appended). The original `draft` is not mutated.
- */
 export function updateTikTokVideoRow(
   draft: AdminTikTokDraft,
   index: number,
@@ -267,13 +202,6 @@ export function updateTikTokVideoRow(
   };
 }
 
-/**
- * Remove the video row at the specified index from the draft.
- *
- * @param draft - The current TikTok draft to update.
- * @param index - Zero-based index of the video row to remove.
- * @returns The updated draft with the `videoUrls` and `videoRowIds` entries at `index` removed.
- */
 export function deleteTikTokVideoRow(
   draft: AdminTikTokDraft,
   index: number,
@@ -285,17 +213,6 @@ export function deleteTikTokVideoRow(
   };
 }
 
-/**
- * Move a video row in the draft one position up or down.
- *
- * Reorders `videoUrls` and `videoRowIds` by moving the element at `index`
- * to `index + direction`, preserving the rest of the draft unchanged.
- *
- * @param draft - The current TikTok draft to update
- * @param index - The zero-based index of the row to move
- * @param direction - `-1` to move the row up, `1` to move the row down
- * @returns A new `AdminTikTokDraft` with `videoUrls` and `videoRowIds` reordered
- */
 export function moveTikTokVideoRow(
   draft: AdminTikTokDraft,
   index: number,
@@ -311,14 +228,6 @@ export function moveTikTokVideoRow(
   };
 }
 
-/**
- * Reorders draft's video rows by moving the item at `sourceIndex` to `targetIndex`.
- *
- * @param draft - The admin TikTok draft to update.
- * @param sourceIndex - Zero-based index of the row to move.
- * @param targetIndex - Zero-based index to move the row to.
- * @returns A new draft with `videoUrls` and `videoRowIds` updated to reflect the move. If the provided indices are invalid or the moved element is undefined, the original draft is returned unchanged.
- */
 export function moveTikTokVideoRowToIndex(
   draft: AdminTikTokDraft,
   sourceIndex: number,
@@ -334,16 +243,6 @@ export function moveTikTokVideoRowToIndex(
   };
 }
 
-/**
- * Renders an admin form for editing a TikTok account link and an ordered list of TikTok video URLs, including controls for add/edit/delete, drag-and-drop reordering, and a live preview iframe.
- *
- * @param draft - The current draft data for the TikTok form (account URL, videoUrls, videoRowIds).
- * @param hasUnsavedChanges - Whether the draft has unsaved changes; used to annotate the form state.
- * @param isSaving - Whether a save operation is in progress; used to set the form busy state.
- * @param onChange - Callback invoked with an updated draft when the user modifies the form.
- * @param onSave - Callback invoked when the form is submitted.
- * @returns The rendered form element for the TikTok admin UI.
- */
 export function TikTokForm({
   draft,
   hasUnsavedChanges,

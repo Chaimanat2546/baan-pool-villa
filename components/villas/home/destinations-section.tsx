@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { buildVillaCoverImageProxyUrl } from "@/lib/public-image-proxy";
+import { buildVillaCoverImageProxyPath } from "@/lib/public-image-proxy";
 import { SectionHeader } from "./section-header";
 
 const destinations = [
@@ -18,6 +18,7 @@ const destinations = [
 
 type DestinationVilla = {
   coverImage: string | null;
+  id: string;
 };
 
 interface DestinationsSectionProps {
@@ -33,12 +34,13 @@ export function DestinationsSection({ villas }: DestinationsSectionProps) {
       />
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {destinations.slice(0, 12).map((destination, index) => {
-          const destinationImage = villas[index]?.coverImage;
-          const destinationImageSrc =
-            buildVillaCoverImageProxyUrl(destinationImage, {
-              quality: 60,
-              width: 1200,
-            }) ?? destinationImage;
+          const destinationVilla = villas[index];
+          const destinationImageSrc = destinationVilla?.coverImage
+            ? buildVillaCoverImageProxyPath(destinationVilla.id, {
+                quality: 60,
+                width: 1200,
+              })
+            : null;
 
           return (
             <article
