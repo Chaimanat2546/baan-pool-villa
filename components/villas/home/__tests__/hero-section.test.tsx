@@ -13,24 +13,12 @@ describe("HeroSection", () => {
   it("renders a dedicated mobile search entry point on the home hero", () => {
     const markup = renderToStaticMarkup(
       <HeroSection
-        filters={{
-          amenities: [],
-          bedrooms: 4,
-          guests: 8,
-          maxPrice: 12000,
-          nearSea: false,
-          sort: "default",
-          villaId: "",
-          zone: "all",
-        }}
         heroImage={{
           alt: "Hero image",
           path: "/hero.jpg",
           url: "/hero.jpg",
         }}
         maxAvailablePrice={12000}
-        onChange={() => {}}
-        onSearch={() => {}}
         zones={[{ label: "Jomtien", value: "jomtien" }]}
       />,
     );
@@ -41,24 +29,12 @@ describe("HeroSection", () => {
   it("renders the hero image through the public site asset proxy", () => {
     const markup = renderToStaticMarkup(
       <HeroSection
-        filters={{
-          amenities: [],
-          bedrooms: 4,
-          guests: 8,
-          maxPrice: 12000,
-          nearSea: false,
-          sort: "default",
-          villaId: "",
-          zone: "all",
-        }}
         heroImage={{
           alt: "Hero image",
           path: "hero.jpg",
           url: "https://assets.example.com/hero.jpg",
         }}
         maxAvailablePrice={12000}
-        onChange={() => {}}
-        onSearch={() => {}}
         zones={[{ label: "Jomtien", value: "jomtien" }]}
       />,
     );

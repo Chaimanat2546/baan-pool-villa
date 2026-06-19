@@ -117,7 +117,7 @@ const sampleVilla: VillaListing = {
 };
 
 const sampleVillaCoverProxyUrl =
-  "https://example.com/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F901.jpg&w=1200&q=75";
+  "https://example.com/api/houses/images/901?w=1200&q=75";
 
 const sampleGuide: GuidePost = {
   contentBlocks: [],
@@ -470,7 +470,7 @@ describe("SEO helpers", () => {
         images: [
           {
             alt: "Family choosing Pattaya pool villa",
-            url: "https://example.com/guides/family-cover.jpg",
+            url: "https://example.com/api/guides/images/choose-pattaya-pool-villa/cover?w=1200&q=75",
           },
         ],
         publishedTime: "2026-01-05T00:00:00.000Z",
@@ -481,7 +481,9 @@ describe("SEO helpers", () => {
       twitter: {
         card: "summary_large_image",
         description: "วิธีเลือกพูลวิลล่าพัทยาสำหรับครอบครัวและกลุ่มเพื่อน",
-        images: ["https://example.com/guides/family-cover.jpg"],
+        images: [
+          "https://example.com/api/guides/images/choose-pattaya-pool-villa/cover?w=1200&q=75",
+        ],
         title: "เลือกพูลวิลล่าพัทยาให้เหมาะกับทริป",
       },
     });

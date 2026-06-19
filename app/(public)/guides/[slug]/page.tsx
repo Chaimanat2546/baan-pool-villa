@@ -9,6 +9,7 @@ import {
   buildGuideArticleMetadata,
   buildSiteSettingsPageMetadata,
 } from "@/lib/seo";
+import { buildGuideCoverImageProxyPath } from "@/lib/public-image-proxy";
 import {
   getGuideBySlug,
   getPublishedGuides,
@@ -100,7 +101,16 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
       "@type": "Article",
       headline: guide.title,
       description: guide.excerpt,
-      image: guide.coverImage?.url ? [guide.coverImage.url] : undefined,
+      image: guide.coverImage?.url
+        ? [
+            absoluteUrl(
+              buildGuideCoverImageProxyPath(guide.slug, {
+                quality: 75,
+                width: 1200,
+              }) ?? "",
+            ),
+          ]
+        : undefined,
       datePublished: guide.publishedAt ?? guide.createdAt,
       dateModified: guide.updatedAt,
       mainEntityOfPage: absoluteUrl(`/guides/${guide.slug}`),

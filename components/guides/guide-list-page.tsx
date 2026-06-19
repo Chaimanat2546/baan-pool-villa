@@ -2,17 +2,19 @@ import { ArrowRight, FileText, Pin } from "lucide-react";
 import Image from "next/image";
 
 import type { GuidePost } from "@/lib/guides/types";
-import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
+import { buildGuideCoverImageProxyPath } from "@/lib/public-image-proxy";
 
 interface GuideListPageProps {
   guides: GuidePost[];
 }
 
 function getGuideImage(guide: GuidePost) {
-  return buildGuideImageProxyUrl(guide.coverImage?.url ?? null, {
-    quality: 60,
-    width: 640,
-  });
+  return guide.coverImage?.url
+    ? buildGuideCoverImageProxyPath(guide.slug, {
+        quality: 60,
+        width: 640,
+      })
+    : null;
 }
 
 function GuideCard({ guide }: { guide: GuidePost }) {

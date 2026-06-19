@@ -4,10 +4,14 @@ import type { CSSProperties, ReactNode } from "react";
 import { ContactSection } from "@/components/layout/contact-section";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
 import { ArticlesSection } from "@/components/villas/home/articles-section";
-import { ScrollRail } from "@/components/villas/home/scroll-rail";
+import { ScrollRail } from "@/components/ui/scroll-rail";
 import { VillaCard } from "@/components/villas/listing/villa-card";
+import { toPublicGuideSummaries } from "@/lib/guides/public-dto";
 import type { GuidePost } from "@/lib/guides/types";
-import { buildGuideImageProxyUrl } from "@/lib/public-image-proxy";
+import {
+  buildGuideContentImageProxyPath,
+  buildGuideCoverImageProxyPath,
+} from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -381,7 +385,7 @@ function isGuideBlockListType(
  * @param blocks - Array of raw guide blocks (each expected to be an object shaped like `GuideBlock`); non-object or array entries are ignored.
  * @returns A JSX element containing the rendered guide content grid.
  */
-function GuideContent({ blocks }: { blocks: unknown[] }) {
+function GuideContent({ blocks, guideSlug }: { blocks: unknown[]; guideSlug: string }) {
   const contentNodes: ReactNode[] = [];
 
   for (let index = 0; index < blocks.length; index += 1) {
@@ -476,10 +480,12 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
         );
         break;
       case "image": {
-        const imageUrl = buildGuideImageProxyUrl(getImageUrl(guideBlock), {
-          quality: 75,
-          width: 1200,
-        });
+        const imageUrl = getImageUrl(guideBlock)
+          ? buildGuideContentImageProxyPath(guideSlug, index, {
+              quality: 75,
+              width: 1200,
+            })
+          : null;
 
         if (!imageUrl) {
           break;
@@ -599,10 +605,12 @@ export function GuideDetailPage({
   relatedGuides,
   settings,
 }: GuideDetailPageProps) {
-  const coverImageUrl = buildGuideImageProxyUrl(guide.coverImage?.url ?? null, {
-    quality: 75,
-    width: 1200,
-  });
+  const coverImageUrl = guide.coverImage?.url
+    ? buildGuideCoverImageProxyPath(guide.slug, {
+        quality: 75,
+        width: 1200,
+      })
+    : null;
 
   return (
     <main className="bg-[var(--site-surface-soft)] text-[var(--site-text)]">
@@ -663,12 +671,12 @@ export function GuideDetailPage({
           className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)] lg:px-8 lg:py-14"
           data-guide-detail-layout
         >
-          <GuideContent blocks={guide.contentBlocks} />
+          <GuideContent blocks={guide.contentBlocks} guideSlug={guide.slug} />
           <RecommendedVillaSidebar villas={recommendedVillas} />
         </div>
       </article>
       {settings ? <ContactSection settings={settings} /> : null}
-      <ArticlesSection guides={relatedGuides} />
+      <ArticlesSection guides={toPublicGuideSummaries(relatedGuides)} />
     </main>
   );
 }

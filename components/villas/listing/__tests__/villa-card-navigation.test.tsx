@@ -47,10 +47,11 @@ describe("VillaCard navigation", () => {
     const markup = renderToStaticMarkup(<VillaCard villa={villa} />);
 
     expect(markup).toContain(
-      'data-src="/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F501.jpg&amp;w=640&amp;q=60"',
+      'data-src="/api/houses/images/501?w=640&amp;q=60"',
     );
     expect(markup).not.toContain(
       'data-src="https://devillegroups.com/imgs/profile_imgs_large/501.jpg"',
     );
+    expect(markup).not.toContain("devillegroups.com");
   });
 });

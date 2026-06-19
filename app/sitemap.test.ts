@@ -98,12 +98,12 @@ describe("sitemap", () => {
     const legalRoute = routes.find((route) => route.url === "https://example.com/terms");
 
     expect(villaRoute).toMatchObject({
-      images: ["https://example.com/villa.jpg"],
+      images: ["https://example.com/api/houses/images/101"],
       url: "https://example.com/villas/101",
     });
     expect(villaRoute).not.toHaveProperty("lastModified");
     expect(guideRoute).toMatchObject({
-      images: ["https://example.com/guide.jpg"],
+      images: ["https://example.com/api/guides/images/family-guide/cover"],
       lastModified: new Date("2026-06-02T00:00:00.000Z"),
       url: "https://example.com/guides/family-guide",
     });

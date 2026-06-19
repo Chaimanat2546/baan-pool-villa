@@ -416,7 +416,7 @@ export function SettingsForm({
               onChange={(seoOgImageUrl) => {
                 onChange({ seoOgImageUrl });
               }}
-              placeholder="https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg"
+              placeholder="/images/BPV-66_Cover-Web.jpg"
               value={draft.seoOgImageUrl}
             />
             <TextControl
@@ -457,7 +457,7 @@ export function SettingsForm({
                 onChange={(searchSeoOgImageUrl) => {
                   onChange({ searchSeoOgImageUrl });
                 }}
-                placeholder="https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg"
+                placeholder="/images/BPV-66_Cover-Web.jpg"
                 value={draft.searchSeoOgImageUrl}
               />
               <TextControl
@@ -520,7 +520,7 @@ export function SettingsForm({
                 onChange={(guidesSeoOgImageUrl) => {
                   onChange({ guidesSeoOgImageUrl });
                 }}
-                placeholder="https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg"
+                placeholder="/images/BPV-66_Cover-Web.jpg"
                 value={draft.guidesSeoOgImageUrl}
               />
               <TextControl

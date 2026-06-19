@@ -175,6 +175,34 @@ export async function buildAllowedPublicImageProxyResponse(
   return imageResponse;
 }
 
+export async function buildResolvedPublicImageProxyResponse(
+  request: Request,
+  sourceUrl: string | null,
+) {
+  const targetUrl = normalizePublicImageProxyUrl(sourceUrl);
+
+  if (!targetUrl) {
+    return Response.json({ error: "Image not found" }, { status: 404 });
+  }
+
+  const transformRequest = parsePublicImageProxyTransformRequest(request);
+
+  if (!transformRequest.valid) {
+    return Response.json({ error: "Invalid image transform" }, { status: 400 });
+  }
+
+  const imageResponse = await fetchPublicImageProxyResponse(
+    targetUrl,
+    transformRequest.params,
+  );
+
+  if (!imageResponse) {
+    return Response.json({ error: "Unable to load image" }, { status: 502 });
+  }
+
+  return imageResponse;
+}
+
 async function cancelUpstreamResponseBody(upstreamResponse: Response) {
   await upstreamResponse.body?.cancel().catch(() => undefined);
 }

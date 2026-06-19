@@ -12,6 +12,7 @@ import {
   normalizeDownloadImageUrl,
 } from "@/lib/villas/image-download";
 import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
+import { toPublicVillaImages } from "@/lib/villas/public-dto";
 
 const IMAGE_DOWNLOAD_TIMEOUT_MS = 10_000;
 
@@ -27,6 +28,18 @@ export async function buildVillaImagesRouteResponse(request: Request, id: string
   const requestUrl = new URL(request.url);
   const images = await fetchVillaImages(id);
 
+  if (requestUrl.searchParams.has("imageId")) {
+    const image = findVillaImageById(images, requestUrl.searchParams.get("imageId"));
+
+    if (!image) {
+      return Response.json({ error: "Image not found" }, { status: 404 });
+    }
+
+    return requestUrl.searchParams.get("download") === "1"
+      ? downloadVillaImage(requestUrl, id, images, image.imageUrl)
+      : proxyVillaImage(request, requestUrl, images, image.imageUrl);
+  }
+
   if (requestUrl.searchParams.has("url")) {
     return requestUrl.searchParams.get("download") === "1"
       ? downloadVillaImage(requestUrl, id, images)
@@ -34,7 +47,7 @@ export async function buildVillaImagesRouteResponse(request: Request, id: string
   }
 
   return Response.json(
-    { images },
+    { images: toPublicVillaImages(id, images) },
     {
       headers: {
         "Cache-Control": CACHE_HEADERS.villaImages,
@@ -83,8 +96,11 @@ async function proxyVillaImage(
   request: Request,
   requestUrl: URL,
   images: VillaImages,
+  sourceUrl?: string,
 ) {
-  const targetUrl = normalizePublicImageProxyUrl(requestUrl.searchParams.get("url"));
+  const targetUrl = sourceUrl
+    ? normalizePublicImageProxyUrl(sourceUrl)
+    : normalizePublicImageProxyUrl(requestUrl.searchParams.get("url"));
 
   if (!targetUrl) {
     return Response.json({ error: "Invalid image URL" }, { status: 400 });
@@ -116,8 +132,11 @@ async function downloadVillaImage(
   requestUrl: URL,
   villaId: string,
   images: VillaImages,
+  sourceUrl?: string,
 ) {
-  const targetUrl = normalizeDownloadImageUrl(requestUrl.searchParams.get("url"));
+  const targetUrl = sourceUrl
+    ? normalizeDownloadImageUrl(sourceUrl)
+    : normalizeDownloadImageUrl(requestUrl.searchParams.get("url"));
 
   if (!targetUrl) {
     return Response.json({ error: "Invalid image URL" }, { status: 400 });
@@ -169,4 +188,14 @@ async function downloadVillaImage(
       "Content-Type": contentType,
     },
   });
+}
+
+function findVillaImageById(images: VillaImages, imageIdValue: string | null) {
+  if (!imageIdValue || !/^[1-9]\d*$/.test(imageIdValue)) {
+    return null;
+  }
+
+  const imageId = Number.parseInt(imageIdValue, 10);
+
+  return images.find((image) => image.id === imageId) ?? null;
 }

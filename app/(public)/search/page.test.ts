@@ -62,7 +62,16 @@ describe("getSearchPageData", () => {
 
     expect(result).toEqual({
       error: null,
-      villas,
+      villas: [
+        {
+          ...villas[0],
+          coverImage: "/api/houses/images/901",
+        },
+        {
+          ...villas[1],
+          coverImage: "/api/houses/images/902",
+        },
+      ],
       meta: {
         catalogComplete: false,
         maxPrice: 18000,
@@ -84,7 +93,7 @@ describe("getSearchPageData", () => {
       zone: "pattaya",
     });
 
-    expect(result.villas).toEqual(villas);
+    expect(JSON.stringify(result.villas)).not.toContain("devillegroups.com");
     expect(result.meta.resultCount).toBe(2);
   });
 

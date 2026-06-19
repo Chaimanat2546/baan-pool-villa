@@ -16,7 +16,7 @@ vi.mock("next/image", () => ({
 describe("DestinationsSection", () => {
   it("renders without mock badge artifacts", () => {
     const markup = renderToStaticMarkup(
-      <DestinationsSection villas={[{ coverImage: "/images/hero.jpg" }]} />,
+      <DestinationsSection villas={[{ coverImage: "/images/hero.jpg", id: "501" }]} />,
     );
 
     expect(markup).not.toContain("Mock FE");
@@ -29,13 +29,15 @@ describe("DestinationsSection", () => {
           {
             coverImage:
               "https://devillegroups.com/imgs/profile_imgs_large/501-destination.jpg",
+            id: "501",
           },
         ]}
       />,
     );
 
     expect(markup).toContain(
-      'data-src="/api/houses/images/proxy?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F501-destination.jpg&amp;w=1200&amp;q=60"',
+      'data-src="/api/houses/images/501?w=1200&amp;q=60"',
     );
+    expect(markup).not.toContain("devillegroups.com");
   });
 });

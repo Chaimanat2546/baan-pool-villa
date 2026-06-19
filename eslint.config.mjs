@@ -6,6 +6,11 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    settings: {
+      react: {
+        version: "19.2.7",
+      },
+    },
     rules: {
       // The public site intentionally uses document navigation to avoid
       // click-time RSC requests and automatic route prefetching.

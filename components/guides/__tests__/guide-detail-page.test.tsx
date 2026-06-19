@@ -268,10 +268,11 @@ describe("getYouTubeEmbedUrl", () => {
     );
 
     expect(markup).toContain(
-      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fcover.jpg&amp;w=1200&amp;q=75"',
+      'data-src="/api/guides/images/guide/cover?w=1200&amp;q=75"',
     );
     expect(markup).toContain(
-      'data-src="/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Finline.jpg&amp;w=1200&amp;q=75"',
+      'data-src="/api/guides/images/guide/content/0?w=1200&amp;q=75"',
     );
+    expect(markup).not.toContain("assets.example.com");
   });
 });

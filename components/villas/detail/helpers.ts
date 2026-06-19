@@ -3,7 +3,7 @@ import type {
   VillaDetailFact,
   VillaDetailSection,
 } from "@/lib/villas/detail";
-import type { VillaImage } from "@/lib/villas/types";
+import type { PublicVillaImage } from "@/lib/villas/public-dto";
 import { IMAGE_ZONE_LABELS } from "./constants";
 import type { GalleryCategory, GalleryItem } from "./types";
 
@@ -34,7 +34,7 @@ function isCoverZone(zone: string | null): boolean {
   return zoneKey === "cover" || zoneKey === "รูปปก" || zoneKey === "ภาพปก";
 }
 
-export function buildGalleryItems(images: VillaImage[]): GalleryItem[] {
+export function buildGalleryItems(images: PublicVillaImage[]): GalleryItem[] {
   const seenUrls = new Set<string>();
   const items: GalleryItem[] = [];
   const sortedImages = [...images].sort((a, b) => {

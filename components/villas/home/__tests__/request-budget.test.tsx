@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { GuidePost } from "@/lib/guides/types";
 import type { VillaListing } from "@/lib/villas/types";
 
-import { ArticlesSection } from "../articles-section";
+import { ArticlesSection, selectHomeGuideSummaries } from "../articles-section";
 import { VillaRail } from "../villa-rail";
 
 interface MockImageProps {
@@ -92,17 +92,19 @@ describe("homepage request budget", () => {
 
     const renderedVillaLinks = markup.match(/href="\/villas\//g) ?? [];
     const renderedImages =
-      markup.match(
-        /data-src="\/api\/houses\/images\/proxy\?url=https%3A%2F%2Fdevillegroups.com%2Fimgs%2Fprofile_imgs_large%2F/g,
-      ) ?? [];
+      markup.match(/data-src="\/api\/houses\/images\/\d+\?w=640&amp;q=60"/g) ??
+      [];
 
     expect(renderedVillaLinks).toHaveLength(12);
     expect(renderedImages).toHaveLength(12);
+    expect(markup).not.toContain("devillegroups.com");
     expect(markup).toContain('href="/villas/11"');
   });
 
   it("does not priority-preload article rail images and uses document navigation for guide routes", () => {
-    const markup = renderToStaticMarkup(<ArticlesSection guides={[guide]} />);
+    const markup = renderToStaticMarkup(
+      <ArticlesSection guides={selectHomeGuideSummaries([guide])} />,
+    );
 
     expect(markup).not.toContain('data-priority="true"');
     expect(markup).toContain('href="/guides/guide-1"');
