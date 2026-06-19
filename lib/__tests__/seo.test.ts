@@ -9,6 +9,7 @@ import {
   buildLegalPageMetadata,
   buildSiteSettingsPageMetadata,
   buildVillaDetailMetadata,
+  getSiteUrl,
   getVillaDescription,
   getVillaKeywords,
   getVillaSearchIntentSummary,
@@ -163,6 +164,12 @@ afterEach(() => {
 });
 
 describe("SEO helpers", () => {
+  it("falls back to localhost when NEXT_PUBLIC_SITE_URL is invalid", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "not a url";
+
+    expect(getSiteUrl()).toEqual(new URL("http://localhost:3000"));
+  });
+
   it("builds the global public metadata baseline", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
 

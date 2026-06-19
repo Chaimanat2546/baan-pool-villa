@@ -62,17 +62,21 @@ interface BreadcrumbItem {
 }
 
 export function getSiteUrl(): URL {
-  const configuredUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ??
-    process.env.VERCEL_URL ??
-    "http://localhost:3000";
-  const url =
-    configuredUrl.startsWith("http://") || configuredUrl.startsWith("https://")
-      ? configuredUrl
-      : `https://${configuredUrl}`;
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
 
-  return new URL(url);
+  if (configuredUrl) {
+    try {
+      const url = new URL(configuredUrl);
+
+      if (url.protocol === "http:" || url.protocol === "https:") {
+        return url;
+      }
+    } catch {
+      // Fall through to the local default when the public site URL is invalid.
+    }
+  }
+
+  return new URL("http://localhost:3000");
 }
 
 export function absoluteUrl(pathname: string): string {
