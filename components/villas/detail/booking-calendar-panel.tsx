@@ -78,7 +78,7 @@ export function BookingCalendarPanel({
       isOutsideVisibleMonth(date) ||
       bookingCalendar?.month !== visibleMonthKey
     ) {
-      return getFallbackCalendarDay(fallbackPrice);
+      return { ...getFallbackCalendarDay(fallbackPrice), disabled: true };
     }
 
     return (
@@ -136,7 +136,9 @@ export function BookingCalendarPanel({
         month={visibleMonth}
         onMonthChange={setVisibleMonth}
         disabled={(date) =>
-          isPastCalendarDate(date) || isOutsideVisibleMonth(date)
+          isPastCalendarDate(date) ||
+          isOutsideVisibleMonth(date) ||
+          bookingCalendar?.month !== visibleMonthKey
         }
         onSelect={(date) => {
           if (

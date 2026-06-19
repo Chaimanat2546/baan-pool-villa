@@ -247,7 +247,7 @@ export function SettingsForm({
             }}
             selectedFile={draft.logoFile}
             validateFile={(file) => {
-              return validateUploadMetadata("logo", file.type, file.size);
+              return validateUploadMetadata("logo", file.type, file.size, file.name);
             }}
           />
         </SectionCard>
@@ -333,7 +333,7 @@ export function SettingsForm({
             }}
             selectedFile={draft.heroFile}
             validateFile={(file) => {
-              return validateUploadMetadata("hero", file.type, file.size);
+              return validateUploadMetadata("hero", file.type, file.size, file.name);
             }}
           />
         </SectionCard>

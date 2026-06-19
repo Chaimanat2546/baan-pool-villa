@@ -167,7 +167,7 @@ export function CalendarFirstAvailableTooltip({
       aria-label="คำแนะนำการใช้งานปฏิทิน"
       aria-live="polite"
       className={cn(
-        "absolute -top-50 z-[50] w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-left shadow-xl shadow-black/15 ring-1 ring-[var(--site-primary)]/10",
+        "absolute -top-50 z-40 w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-left shadow-xl shadow-black/15 ring-1 ring-[var(--site-primary)]/10",
         align === "start"
           ? "left-0"
           : align === "end"
@@ -259,11 +259,11 @@ export function CalendarLegend() {
       </CalendarLegendItem>
       <CalendarLegendItem
         overlay="booked-cross"
-        swatchClassName="border-[#8f1717]/55 bg-[linear-gradient(180deg,#cf3f3f_0%,#a61f1f_100%)]"
+        swatchClassName="bg-red-700/60"
       >
         ติดจองแล้ว
       </CalendarLegendItem>
-      <CalendarLegendItem swatchClassName="border-[var(--site-accent)]/25 bg-yellow-600">
+      <CalendarLegendItem swatchClassName="bg-yellow-500/50">
         วันหยุด
       </CalendarLegendItem>
       <CalendarLegendItem icon="fire">โปรไฟลุก</CalendarLegendItem>

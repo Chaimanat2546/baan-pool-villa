@@ -53,6 +53,12 @@ export default async function Page({ params }: VillaPageProps) {
   }
 
   const listing = data.payload.listing;
+  const coverImagePath = listing.coverImage
+    ? buildVillaCoverImageProxyPath(listing.id, {
+        quality: 75,
+        width: 1200,
+      })
+    : null;
   const jsonLd = [
     buildBreadcrumbJsonLd([
       { name: "หน้าแรก", path: "/" },
@@ -64,16 +70,7 @@ export default async function Page({ params }: VillaPageProps) {
       "@type": "VacationRental",
       name: getVillaTitle(listing),
       description: getVillaSearchIntentSummary(listing),
-      image: listing.coverImage
-        ? [
-            absoluteUrl(
-              buildVillaCoverImageProxyPath(listing.id, {
-                quality: 75,
-                width: 1200,
-              }) ?? "",
-            ),
-          ]
-        : undefined,
+      image: coverImagePath ? [absoluteUrl(coverImagePath)] : undefined,
       url: absoluteUrl(`/villas/${listing.id}`),
       address: {
         "@type": "PostalAddress",

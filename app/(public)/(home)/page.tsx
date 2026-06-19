@@ -88,10 +88,14 @@ async function getHomePageData(): Promise<{
       maxAvailablePrice: getMaxVillaPrice(villas),
       zones: getUniqueZones(villas),
     },
-    destinationVillas: villas.slice(0, 12).map((villa) => ({
-      coverImage: villa.coverImage ? toPublicVillaListing(villa).coverImage : null,
-      id: villa.id,
-    })),
+    destinationVillas: villas.slice(0, 12).map((villa) => {
+      const publicVilla = toPublicVillaListing(villa);
+
+      return {
+        coverImage: publicVilla.coverImage,
+        id: publicVilla.id,
+      };
+    }),
   };
 }
 

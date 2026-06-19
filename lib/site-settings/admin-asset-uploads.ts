@@ -210,7 +210,9 @@ export function readSiteSettingsUploadFiles(formData: FormData): {
       return;
     }
 
-    errors.push(...validateUploadMetadata(assetType, file.type, file.size));
+    errors.push(
+      ...validateUploadMetadata(assetType, file.type, file.size, file.name),
+    );
     uploadFiles.push({ assetType, file });
   });
 

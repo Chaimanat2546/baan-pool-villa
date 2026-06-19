@@ -56,7 +56,7 @@ describe("gallery URL helpers", () => {
 
   it("keeps image-id gallery proxy paths free of raw URL params", () => {
     const item = galleryItem({
-      url: "/api/villas/88/images?imageId=7",
+      url: "/api/villas/88/images?imageId=7&url=https%3A%2F%2Fcdn.test%2Fraw.jpg&stale=1",
     });
     const downloadUrl = new URL(
       buildGalleryDownloadHref("88", item) ?? "",
@@ -71,10 +71,12 @@ describe("gallery URL helpers", () => {
     expect(downloadUrl.searchParams.get("imageId")).toBe("7");
     expect(downloadUrl.searchParams.get("download")).toBe("1");
     expect(downloadUrl.searchParams.has("url")).toBe(false);
+    expect(downloadUrl.searchParams.has("stale")).toBe(false);
     expect(displayUrl.searchParams.get("imageId")).toBe("7");
     expect(displayUrl.searchParams.get("w")).toBe("828");
     expect(displayUrl.searchParams.get("q")).toBe("60");
     expect(displayUrl.searchParams.has("url")).toBe(false);
+    expect(displayUrl.searchParams.has("stale")).toBe(false);
   });
 
   it("rejects unsafe display image URLs before proxying", () => {

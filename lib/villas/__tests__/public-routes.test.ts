@@ -426,6 +426,29 @@ describe("GET /api/villas/[id]/booking-calendar", () => {
     });
   });
 
+  it("returns no-store for transient unavailable booking calendar responses", async () => {
+    fetchVillaBookingCalendarMock.mockResolvedValue({
+      calendar: null,
+      status: "unavailable",
+    });
+
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/booking-calendar?month=2026-06",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    await expect(response.json()).resolves.toEqual({
+      error: "Booking calendar is unavailable.",
+    });
+  });
+
   it("returns a generic 502 error and logs backend failures", async () => {
     const rawError = new Error("secret booking backend detail");
     fetchVillaBookingCalendarMock.mockRejectedValue(rawError);

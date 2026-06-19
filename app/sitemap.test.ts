@@ -148,6 +148,58 @@ describe("sitemap", () => {
     });
   });
 
+  it("omits image sitemap entries when proxy paths cannot be built", async () => {
+    fetchHouseListingsForSitemapMock.mockResolvedValue([
+      {
+        amenities: [],
+        bathrooms: 2,
+        bedrooms: 3,
+        coverImage: "https://example.com/villa.jpg",
+        distanceToSea: "500m",
+        id: "bad/id",
+        people: 8,
+        poolType: "private",
+        price: 9000,
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+    ]);
+    getPublishedGuidesForSitemapMock.mockResolvedValue([
+      {
+        contentBlocks: [],
+        coverImage: {
+          alt: "Guide cover",
+          path: "guides/cover.jpg",
+          url: "https://example.com/guide.jpg",
+        },
+        createdAt: "2026-06-01T00:00:00.000Z",
+        excerpt: "Guide excerpt",
+        id: "guide-1",
+        isPinned: false,
+        publishedAt: "2026-06-01T00:00:00.000Z",
+        recommendedHouseIds: [],
+        slug: "bad/slug",
+        status: "published",
+        tags: [],
+        title: "Family guide",
+        updatedAt: null,
+      },
+    ]);
+
+    const routes = await sitemap();
+    const villaRoute = routes.find(
+      (route) => route.url === "https://example.com/villas/bad/id",
+    );
+    const guideRoute = routes.find(
+      (route) => route.url === "https://example.com/guides/bad/slug",
+    );
+
+    expect(villaRoute).toBeDefined();
+    expect(villaRoute?.images).toBeUndefined();
+    expect(guideRoute).toBeDefined();
+    expect(guideRoute?.images).toBeUndefined();
+  });
+
   it("rejects instead of returning a partial sitemap when villa routes cannot load", async () => {
     fetchHouseListingsForSitemapMock.mockRejectedValue(
       new Error("villa catalog offline"),

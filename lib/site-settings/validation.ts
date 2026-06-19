@@ -32,6 +32,12 @@ const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
 const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
 const THAI_PHONE_PATTERN = /^0\d{9}$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
+const SITE_SETTINGS_ALLOWED_IMAGE_EXTENSIONS = new Set([
+  "jpeg",
+  "jpg",
+  "png",
+  "webp",
+]);
 const LEGACY_WORDPRESS_OG_IMAGE_URL =
   "https://baanpoolvillas.com/wp-content/uploads/2026/03/BPV-66_Cover-Web.jpg";
 
@@ -480,12 +486,18 @@ export function validateUploadMetadata(
   assetType: SiteAssetType,
   mimeType: string,
   sizeBytes: number,
+  fileName: string,
 ): string[] {
   const errors: string[] = [];
   const label = assetType === "logo" ? "โลโก้" : "Hero";
+  const extension = fileName.trim().split(".").pop()?.toLowerCase() ?? "";
 
   if (!SITE_SETTINGS_ALLOWED_IMAGE_MIME_TYPES.has(mimeType)) {
     errors.push(`ไฟล์${label}ต้องเป็น JPG, PNG หรือ WebP`);
+  }
+
+  if (!SITE_SETTINGS_ALLOWED_IMAGE_EXTENSIONS.has(extension)) {
+    errors.push(`นามสกุลไฟล์${label}ต้องเป็น .jpg, .jpeg, .png หรือ .webp`);
   }
 
   if (sizeBytes > SITE_SETTINGS_UPLOAD_LIMIT_BYTES) {
