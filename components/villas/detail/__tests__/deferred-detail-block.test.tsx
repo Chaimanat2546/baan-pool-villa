@@ -81,9 +81,35 @@ afterEach(() => {
 describe("deferred detail blocks", () => {
   it("loads recommended villas only after the lazy block enters the viewport", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ sections: [] }), {
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify({
+          sections: [
+            {
+              description: "Recommended villas",
+              slug: "featured",
+              title: "Featured villas",
+              villas: [
+                {
+                  amenities: [],
+                  bathrooms: 2,
+                  bedrooms: 3,
+                  coverImage: null,
+                  distanceToSea: "1 km",
+                  id: "77",
+                  people: 8,
+                  poolType: "private",
+                  price: 9000,
+                  zone: "pattaya",
+                  zoneLabel: "Pattaya",
+                },
+              ],
+            },
+          ],
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     );
     vi.stubGlobal("fetch", fetchMock);
     const showLazyBlock = stubIntersectionObserver();
@@ -102,6 +128,7 @@ describe("deferred detail blocks", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/home-sections");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(page.container.querySelectorAll("button")).toHaveLength(2);
 
     await page.unmount();
   });

@@ -46,6 +46,33 @@ function scrollResultsIntoView(resultsElement: HTMLDivElement | null) {
   resultsElement?.scrollIntoView?.({ behavior: "smooth", block: "start" });
 }
 
+function replaceSearchUrl(
+  filters: VillaFilters,
+  villaIdQuery: string,
+  sortKey: VillaSortKey,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const params = filtersToSearchParams(filters);
+  const trimmedVillaId = villaIdQuery.trim();
+
+  if (trimmedVillaId) {
+    params.set("id", trimmedVillaId);
+  }
+
+  params.set("sort", sortKey);
+
+  window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
+}
+
+function clearSearchUrl() {
+  if (typeof window !== "undefined") {
+    window.history.replaceState(null, "", window.location.pathname);
+  }
+}
+
 export function getInitialCatalogComplete(
   initialMeta: SearchPageInitialMeta | undefined,
 ): boolean {
@@ -260,6 +287,7 @@ export function SearchPage({
     setFilters(nextFilters);
     setSortKey(draftSortKey);
     setVillaIdQuery(nextVillaIdQuery);
+    replaceSearchUrl(nextFilters, nextVillaIdQuery, draftSortKey);
     if (!isCatalogComplete) {
       void loadCatalogPage({
         filtersOverride: nextFilters,
@@ -286,6 +314,7 @@ export function SearchPage({
     setFilters(normalizedFilters);
     setSortKey(draftSortKey);
     setVillaIdQuery(nextVillaIdQuery);
+    replaceSearchUrl(normalizedFilters, nextVillaIdQuery, draftSortKey);
     if (!isCatalogComplete) {
       void loadCatalogPage({
         filtersOverride: normalizedFilters,
@@ -328,6 +357,7 @@ export function SearchPage({
     setDraftSortKey("recommended");
     setSortKey("recommended");
     setVisibleCount(PAGE_SIZE);
+    clearSearchUrl();
   }
 
   return (

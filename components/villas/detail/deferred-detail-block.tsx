@@ -2,6 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ScrollRail } from "@/components/ui/scroll-rail";
 import type { PublicRecommendedVillaSection } from "@/lib/villas/public-dto";
 import { VillaCard } from "../listing/villa-card";
 
@@ -156,13 +157,16 @@ export function DeferredRecommendedVillas() {
             {recommendedSection.description}
           </p>
         </div>
-        <div className="-mx-4 mt-4 flex snap-x gap-5 overflow-x-auto px-4 py-4 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8 [&::-webkit-scrollbar]:hidden">
+        <ScrollRail
+          label={recommendedSection.title}
+          className="-mx-4 mt-4 gap-5 px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8"
+        >
           {recommendedSection.villas.slice(0, 12).map((villa) => (
             <div key={villa.id} className="w-[290px] shrink-0 snap-start">
               <VillaCard villa={villa} titleHeadingLevel="h3" />
             </div>
           ))}
-        </div>
+        </ScrollRail>
         {recommendedSection.cta ? (
           <div className="mt-8 text-center">
             <a
