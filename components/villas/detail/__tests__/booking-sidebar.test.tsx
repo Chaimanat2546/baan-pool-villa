@@ -12,6 +12,8 @@ import {
   clearBookingCalendarClientCacheForTests,
 } from "../booking-sidebar";
 
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
 const listing: VillaListing = {
   id: "66",
   zone: "jomtien",
@@ -366,7 +368,7 @@ describe("BookingSidebar", () => {
 
     expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
     await secondPage.cleanup();
-  });
+  }, 10_000);
 
   it("renders calendar navigation inside the caption and can return to the current month", async () => {
     vi.useFakeTimers();

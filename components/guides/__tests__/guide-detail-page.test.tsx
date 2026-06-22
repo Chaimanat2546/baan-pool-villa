@@ -269,7 +269,7 @@ describe("getYouTubeEmbedUrl", () => {
     );
   });
 
-  it("renders cover and inline guide images through the public guide image proxy", () => {
+  it("passes cover and inline guide images to the AWS image loader", () => {
     const markup = renderToStaticMarkup(
       <GuideDetailPage
         guide={{
@@ -293,12 +293,8 @@ describe("getYouTubeEmbedUrl", () => {
       />,
     );
 
-    expect(markup).toContain(
-      'src="/api/guides/images/guide/cover?w=1200&amp;q=75"',
-    );
-    expect(markup).toContain(
-      'src="/api/guides/images/guide/content/0?w=1200&amp;q=75"',
-    );
-    expect(markup).not.toContain("assets.example.com");
+    expect(markup).toContain('data-src="https://assets.example.com/cover.jpg"');
+    expect(markup).toContain('data-src="https://assets.example.com/inline.jpg"');
+    expect(markup).not.toContain("/api/guides/images");
   });
 });

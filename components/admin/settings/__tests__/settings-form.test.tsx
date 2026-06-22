@@ -166,10 +166,13 @@ describe("SettingsForm", () => {
   it("renders asset preview images with fill layout inside fixed preview frames", () => {
     const html = renderSettingsForm();
 
-    expect(html).toContain(`alt="${DEFAULT_SITE_SETTINGS.logoImage.alt}"`);
     expect(html).toContain(
-      `alt="${DEFAULT_SITE_SETTINGS.heroImage.alt}"`,
+      `aria-label="${DEFAULT_SITE_SETTINGS.logoImage.alt}"`,
     );
+    expect(html).toContain(
+      `aria-label="${DEFAULT_SITE_SETTINGS.heroImage.alt}"`,
+    );
+    expect(html).toContain('data-fill="true"');
   });
 
   it("rejects unsupported logo files immediately", async () => {

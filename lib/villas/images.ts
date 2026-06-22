@@ -10,7 +10,7 @@ type SupabaseImageRow = {
   property_id: number;
   cover_select: number | null;
   image_name: string | null;
-  image_url: string | null;
+  image_url?: string | null;
   caption: string | null;
   image_zone: string | null;
 };
@@ -18,6 +18,10 @@ type SupabaseImageRow = {
 const DEFAULT_SUPABASE_URL = "https://rqizfiayvcbozlzuvbok.supabase.co";
 const DEFAULT_IMAGE_PROXY_BASE_URL =
   "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws/";
+const IMAGE_SELECT_COLUMNS =
+  "id, property_id, cover_select, image_name, image_url, caption, image_zone";
+const LEGACY_IMAGE_SELECT_COLUMNS =
+  "id, property_id, cover_select, image_name, caption, image_zone";
 
 function normalizeNullableText(value: string | null): string | null {
   const trimmedValue = value?.trim();
@@ -126,6 +130,31 @@ function getSupabaseConfig() {
   return { supabaseUrl, supabaseKey };
 }
 
+function getSupabaseErrorText(error: unknown): string {
+  if (error && typeof error === "object" && "message" in error) {
+    return String(error.message);
+  }
+
+  return error instanceof Error ? error.message : "";
+}
+
+function isMissingImageUrlColumnError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const code = "code" in error ? String(error.code) : "";
+  const message = getSupabaseErrorText(error).toLowerCase();
+
+  return (
+    message.includes("image_url") &&
+    (code === "42703" ||
+      code === "PGRST204" ||
+      message.includes("column") ||
+      message.includes("schema cache"))
+  );
+}
+
 /**
  * Accepts absolute URLs or legacy relative paths and returns a normalized
  * absolute image URL.
@@ -172,8 +201,9 @@ export function buildProxyImageUrl(
 }
 
 /**
- * Prefers the image-name proxy path when possible so public image delivery can
- * stay behind the shared display proxy and edge cache.
+ * Prefers the stored image URL so public image delivery can use next/image with
+ * the configured loader. The image-name proxy path remains a legacy fallback
+ * for rows that do not have an image URL.
  *
  * @param rows - The raw Supabase image rows for a villa.
  * @param supabaseUrl - The base Supabase URL used to resolve relative paths.
@@ -189,8 +219,8 @@ export function normalizeImageRows(
     .map((row) => ({
       row,
       imageUrl:
-        buildProxyImageUrl(row.image_name, proxyBaseUrl) ??
-        normalizeImageUrl(row.image_url, supabaseUrl),
+        normalizeImageUrl(row.image_url ?? null, supabaseUrl) ??
+        buildProxyImageUrl(row.image_name, proxyBaseUrl),
     }))
     .filter((item): item is { row: SupabaseImageRow; imageUrl: string } =>
       Boolean(item.imageUrl),
@@ -241,24 +271,34 @@ async function fetchVillaImagesFromSupabase(
     },
   });
 
-  let query = supabase
-    .from("images")
-    .select("id, property_id, cover_select, image_name, image_url, caption, image_zone")
-    .eq("property_id", villaId)
-    .order("cover_select", { ascending: false, nullsFirst: false })
-    .order("id", { ascending: true });
+  const queryImages = async (columns: string) => {
+    let query = supabase
+      .from("images")
+      .select(columns)
+      .eq("property_id", villaId)
+      .order("cover_select", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true });
 
-  if (typeof limit === "number") {
-    query = query.limit(limit);
+    if (typeof limit === "number") {
+      query = query.limit(limit);
+    }
+
+    return query;
+  };
+
+  let { data, error } = await queryImages(IMAGE_SELECT_COLUMNS);
+
+  if (error && isMissingImageUrlColumnError(error)) {
+    const legacyResponse = await queryImages(LEGACY_IMAGE_SELECT_COLUMNS);
+    data = legacyResponse.data;
+    error = legacyResponse.error;
   }
-
-  const { data, error } = await query;
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(getSupabaseErrorText(error));
   }
 
-  return normalizeImageRows((data ?? []) as SupabaseImageRow[], supabaseUrl);
+  return normalizeImageRows((data ?? []) as unknown as SupabaseImageRow[], supabaseUrl);
 }
 
 /**

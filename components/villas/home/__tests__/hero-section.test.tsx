@@ -26,7 +26,7 @@ describe("HeroSection", () => {
     expect(markup).toContain('data-home-mobile-search="true"');
   });
 
-  it("renders the hero image through the public site asset proxy", () => {
+  it("passes the hero image to the AWS image loader", () => {
     const markup = renderToStaticMarkup(
       <HeroSection
         heroImage={{
@@ -39,8 +39,7 @@ describe("HeroSection", () => {
       />,
     );
 
-    expect(markup).toContain(
-      'src="/api/site-assets/proxy?url=https%3A%2F%2Fassets.example.com%2Fhero.jpg&amp;w=1920&amp;q=75"',
-    );
+    expect(markup).toContain('data-src="https://assets.example.com/hero.jpg"');
+    expect(markup).not.toContain("/api/site-assets/proxy");
   });
 });

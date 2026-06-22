@@ -802,7 +802,6 @@ export function SettingsForm({
                   fill
                   sizes="360px"
                   src={heroPreviewUrl}
-                  unoptimized
                 />
               </div>
               <div className="p-4">
@@ -844,7 +843,6 @@ export function SettingsForm({
                   fill
                   sizes="360px"
                   src={sharePreviewImageUrl}
-                  unoptimized
                 />
               </div>
               <div className="p-4">

@@ -109,7 +109,6 @@ export function CalendarFirstAvailablePointer() {
         data-calendar-first-available-icon="true"
         height={44}
         src="/icons/pointing-left-finger-svgrepo-com.svg"
-        unoptimized
         width={44}
       />
     </span>

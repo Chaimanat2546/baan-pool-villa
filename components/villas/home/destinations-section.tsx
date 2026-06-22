@@ -1,6 +1,6 @@
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
-import { buildVillaCoverImageProxyPath } from "@/lib/public-image-proxy";
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import { SectionHeader } from "./section-header";
 
 const destinations = [
@@ -35,12 +35,9 @@ export function DestinationsSection({ villas }: DestinationsSectionProps) {
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {destinations.slice(0, 12).map((destination, index) => {
           const destinationVilla = villas[index];
-          const destinationImageSrc = destinationVilla?.coverImage
-            ? buildVillaCoverImageProxyPath(destinationVilla.id, {
-                quality: 60,
-                width: 1200,
-              })
-            : null;
+          const destinationImageSrc = normalizePublicImageSourceUrl(
+            destinationVilla?.coverImage ?? null,
+          );
 
           return (
             <article
@@ -52,8 +49,8 @@ export function DestinationsSection({ villas }: DestinationsSectionProps) {
                   src={destinationImageSrc}
                   alt={destination.title}
                   fill
+                  quality={60}
                   sizes="(max-width: 1024px) 100vw, 50vw"
-                  unoptimized
                   className="object-cover opacity-70"
                 />
               ) : null}

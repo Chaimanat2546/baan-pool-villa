@@ -186,7 +186,6 @@ export function GuideStatusPanel({
               height={600}
               loading="eager"
               src={coverPreviewUrl}
-              unoptimized
               width={960}
             />
           ) : (

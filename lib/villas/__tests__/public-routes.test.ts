@@ -84,9 +84,8 @@ describe("GET /api/houses", () => {
     expect(body.items).toHaveLength(12);
     expect(body.items[0]).toEqual({
       ...listings[0],
-      coverImage: "/api/houses/images/1",
+      coverImage: "https://devillegroups.com/imgs/profile_imgs_large/1.jpg",
     });
-    expect(JSON.stringify(body)).not.toContain("devillegroups.com");
   });
 
   it("filters, sorts, and clamps public catalog page sizes", async () => {
@@ -195,7 +194,7 @@ describe("GET /api/houses", () => {
 });
 
 describe("GET /api/villas/[id]", () => {
-  it("returns public detail data without raw cover image URLs", async () => {
+  it("returns public detail data with validated cover image sources", async () => {
     fetchVillaDetailMock.mockResolvedValue({
       detail: null,
       detailStatus: "missing_token",
@@ -221,8 +220,9 @@ describe("GET /api/villas/[id]", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.listing.coverImage).toBe("/api/houses/images/9");
-    expect(JSON.stringify(body)).not.toContain("devillegroups.com");
+    expect(body.listing.coverImage).toBe(
+      "https://devillegroups.com/imgs/profile_imgs_large/9.jpg",
+    );
   });
 
   it("rate limits repeated detail requests before loading villa detail", async () => {

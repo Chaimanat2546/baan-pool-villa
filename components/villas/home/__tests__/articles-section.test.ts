@@ -41,7 +41,9 @@ describe("selectHomeGuideSummaries", () => {
       "guide-5",
       "guide-6",
     ]);
-    expect(JSON.stringify(summaries)).not.toContain("storage/v1/object");
+    expect(summaries[0]?.coverImageUrl).toBe(
+      "https://hmxuqvgyliuwbytcodwm.supabase.co/storage/v1/object/public/guide-assets/guides/guide-0.jpg",
+    );
     expect(JSON.stringify(summaries)).not.toContain("contentBlocks");
   });
 });

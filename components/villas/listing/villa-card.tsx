@@ -1,7 +1,7 @@
 import { BedDouble, MapPin, Users } from "lucide-react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
-import { buildVillaCoverImageProxyPath } from "@/lib/public-image-proxy";
+import { normalizePublicVillaCoverImage } from "@/lib/villas/public-dto";
 import type { VillaListing } from "@/lib/villas/types";
 
 interface VillaCardProps {
@@ -25,12 +25,7 @@ export function VillaCard({
 }: VillaCardProps) {
   const visibleAmenities = villa.amenities.slice(0, 3);
   const TitleTag = titleHeadingLevel;
-  const coverImageSrc = villa.coverImage
-    ? buildVillaCoverImageProxyPath(villa.id, {
-        quality: 60,
-        width: 640,
-      })
-    : null;
+  const coverImageSrc = normalizePublicVillaCoverImage(villa);
 
   return (
     <a
@@ -46,7 +41,6 @@ export function VillaCard({
             preload={preload}
             quality={60}
             sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
-            unoptimized
             className="object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (

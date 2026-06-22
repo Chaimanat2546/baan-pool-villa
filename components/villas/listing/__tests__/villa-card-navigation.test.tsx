@@ -43,13 +43,12 @@ describe("VillaCard navigation", () => {
     expect(markup).not.toContain("data-next-link");
   });
 
-  it("renders listing cover images through the public cover proxy", () => {
+  it("passes listing cover images to the AWS image loader", () => {
     const markup = renderToStaticMarkup(<VillaCard villa={villa} />);
 
-    expect(markup).toContain('src="/api/houses/images/501?w=640&amp;q=60"');
-    expect(markup).not.toContain(
-      'src="https://devillegroups.com/imgs/profile_imgs_large/501.jpg"',
+    expect(markup).toContain(
+      'data-src="https://devillegroups.com/imgs/profile_imgs_large/501.jpg"',
     );
-    expect(markup).not.toContain("devillegroups.com");
+    expect(markup).not.toContain("/api/houses/images");
   });
 });

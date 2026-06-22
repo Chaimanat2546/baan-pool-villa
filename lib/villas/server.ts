@@ -59,6 +59,7 @@ const AMENITY_KEY_SET = new Set<AmenityKey>(
   AMENITY_OPTIONS.map((amenity) => amenity.key),
 );
 const DEFAULT_VILLA_SUPABASE_URL = "https://rqizfiayvcbozlzuvbok.supabase.co";
+const COVER_IMAGE_PROPERTY_ID_CHUNK_SIZE = 50;
 
 const LISTING_SELECT_COLUMNS = `
   property_id,
@@ -186,6 +187,37 @@ function toVillaListing(
   };
 }
 
+function isCoverZone(zone: string | null): boolean {
+  const key = zone?.trim().toLowerCase();
+
+  return key === "cover" || key === "รูปปก" || key === "ภาพปก";
+}
+
+function sortCoverImageRows(rows: SupabaseImageRow[]): SupabaseImageRow[] {
+  return [...rows].sort((a, b) => {
+    const aCoverZone = isCoverZone(a.image_zone);
+    const bCoverZone = isCoverZone(b.image_zone);
+
+    if (aCoverZone !== bCoverZone) {
+      return aCoverZone ? -1 : 1;
+    }
+
+    const coverDiff = (b.cover_select ?? 0) - (a.cover_select ?? 0);
+
+    return coverDiff || a.id - b.id;
+  });
+}
+
+function chunkPropertyIds(propertyIds: number[]): number[][] {
+  const chunks: number[][] = [];
+
+  for (let index = 0; index < propertyIds.length; index += COVER_IMAGE_PROPERTY_ID_CHUNK_SIZE) {
+    chunks.push(propertyIds.slice(index, index + COVER_IMAGE_PROPERTY_ID_CHUNK_SIZE));
+  }
+
+  return chunks;
+}
+
 async function fetchCoverImages(
   supabase: VillaSupabaseClient,
   supabaseUrl: string,
@@ -195,20 +227,27 @@ async function fetchCoverImages(
     return new Map();
   }
 
-  const { data, error } = await supabase
-    .from("images")
-    .select("id, property_id, cover_select, image_name, image_url, caption, image_zone")
-    .in("property_id", propertyIds)
-    .order("cover_select", { ascending: false, nullsFirst: false })
-    .order("id", { ascending: true });
+  const rows: SupabaseImageRow[] = [];
 
-  if (error) {
-    throw new Error(`Supabase images query failed: ${error.message}`);
+  for (const chunk of chunkPropertyIds(propertyIds)) {
+    const { data, error } = await supabase
+      .from("images")
+      .select("id, property_id, cover_select, image_name, image_url, caption, image_zone")
+      .in("property_id", chunk)
+      .eq("image_zone", "cover")
+      .order("cover_select", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true });
+
+    if (error) {
+      throw new Error(`Supabase images query failed: ${error.message}`);
+    }
+
+    rows.push(...((data ?? []) as SupabaseImageRow[]));
   }
 
   const coverImages = new Map<string, string>();
 
-  for (const row of (data ?? []) as SupabaseImageRow[]) {
+  for (const row of sortCoverImageRows(rows)) {
     const key = String(row.property_id);
 
     if (!coverImages.has(key)) {

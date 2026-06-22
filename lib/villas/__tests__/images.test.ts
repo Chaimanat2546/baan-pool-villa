@@ -38,7 +38,7 @@ function setSupabaseEnv() {
   process.env.SUPABASE_PUBLISHABLE_KEY = "publishable-key";
 }
 
-function mockImagesQuery(response: unknown) {
+function makeImagesQuery(response: unknown) {
   const query = {
     select: vi.fn(),
     eq: vi.fn(),
@@ -46,10 +46,6 @@ function mockImagesQuery(response: unknown) {
     order: vi.fn(),
     then: vi.fn(),
   };
-  const supabase = {
-    from: vi.fn(() => query),
-  };
-
   query.select.mockReturnValue(query);
   query.eq.mockReturnValue(query);
   query.limit.mockReturnValue(query);
@@ -60,9 +56,24 @@ function mockImagesQuery(response: unknown) {
       reject: (error: unknown) => unknown,
     ) => Promise.resolve(response).then(resolve, reject),
   );
+
+  return query;
+}
+
+function mockImagesQuerySequence(responses: unknown[]) {
+  const queries = responses.map(makeImagesQuery);
+  let queryIndex = 0;
+  const supabase = {
+    from: vi.fn(() => queries[Math.min(queryIndex++, queries.length - 1)]),
+  };
+
   createClientMock.mockReturnValue(supabase);
 
-  return { query, supabase };
+  return { query: queries[0], queries, supabase };
+}
+
+function mockImagesQuery(response: unknown) {
+  return mockImagesQuerySequence([response]);
 }
 
 beforeEach(() => {
@@ -91,7 +102,7 @@ describe("normalizeImageRows", () => {
     );
   });
 
-  it("builds proxy image URLs from image_name before using raw image URLs", () => {
+  it("uses raw image URLs before falling back to image_name proxy URLs", () => {
     expect(buildProxyImageUrl("pool image.jpg", "https://images.example.com/")).toBe(
       "https://images.example.com/pool%20image.jpg",
     );
@@ -111,7 +122,8 @@ describe("normalizeImageRows", () => {
     ).toEqual([
       {
         id: 7,
-        imageUrl: "https://images.example.com/pool.jpg",
+        imageUrl:
+          "https://rqizfiayvcbozlzuvbok.supabase.co/storage/v1/object/public/villas/pool.jpg",
         imageName: "pool.jpg",
         caption: "Pool view",
         isCover: true,
@@ -215,7 +227,8 @@ describe("fetchVillaImages", () => {
     await expect(fetchVillaImages("9")).resolves.toEqual([
       {
         id: 7,
-        imageUrl: "https://images.example.com/pool.jpg",
+        imageUrl:
+          "https://example.supabase.co/storage/v1/object/public/villas/pool.jpg",
         imageName: "pool.jpg",
         caption: "Pool view",
         isCover: true,
@@ -286,6 +299,50 @@ describe("fetchVillaImages", () => {
       "https://example.supabase.co",
       "next-public-key",
       expect.any(Object),
+    );
+  });
+
+  it("falls back to legacy image rows when the image_url column is unavailable", async () => {
+    const { queries } = mockImagesQuerySequence([
+      {
+        data: null,
+        error: {
+          code: "PGRST204",
+          message:
+            "Could not find the 'image_url' column of 'images' in the schema cache",
+        },
+      },
+      {
+        data: [
+          {
+            id: 7,
+            property_id: 9,
+            cover_select: 1,
+            image_name: "pool.jpg",
+            caption: "Pool",
+            image_zone: "pool",
+          },
+        ],
+        error: null,
+      },
+    ]);
+
+    await expect(fetchVillaImages("9")).resolves.toEqual([
+      {
+        id: 7,
+        imageUrl: "https://images.example.com/pool.jpg",
+        imageName: "pool.jpg",
+        caption: "Pool",
+        isCover: true,
+        zone: "pool",
+      },
+    ]);
+
+    expect(queries[0]?.select).toHaveBeenCalledWith(
+      "id, property_id, cover_select, image_name, image_url, caption, image_zone",
+    );
+    expect(queries[1]?.select).toHaveBeenCalledWith(
+      "id, property_id, cover_select, image_name, caption, image_zone",
     );
   });
 });
@@ -450,7 +507,7 @@ describe("GET /api/villas/[id]/images", () => {
     expect(consoleError).toHaveBeenCalled();
   });
 
-  it("returns gallery image proxy paths without raw source URLs", async () => {
+  it("returns validated gallery image source URLs for the AWS image loader", async () => {
     mockImagesQuery({
       data: [
         {
@@ -477,10 +534,9 @@ describe("GET /api/villas/[id]/images", () => {
     expect(body.images).toEqual([
       expect.objectContaining({
         id: 7,
-        imageUrl: "/api/villas/9/images?imageId=7",
+        imageUrl: "https://images.example.com/pool.jpg",
       }),
     ]);
-    expect(JSON.stringify(body)).not.toContain("images.example.com");
   });
 
   it("proxies an allowed gallery image by image id", async () => {

@@ -11,8 +11,10 @@ function getCspDirective(csp: string | undefined, name: string): string {
 }
 
 describe("Next image config", () => {
-  it("serves images directly without using the Next image optimizer", () => {
-    expect(nextConfig.images?.unoptimized).toBe(true);
+  it("uses the custom image loader", () => {
+    expect(nextConfig.images?.loader).toBe("custom");
+    expect(nextConfig.images?.loaderFile).toBe("./lib/aws-loader.ts");
+    expect(nextConfig.images?.unoptimized).toBeUndefined();
   });
 
   it("keeps the fallback image optimizer cache at one year", () => {
@@ -41,7 +43,7 @@ describe("Next image config", () => {
     );
   });
 
-  it("keeps the global style CSP strict for Cloudflare static headers", async () => {
+  it("allows inline styles needed by Next Image", async () => {
     const headers = await nextConfig.headers?.();
     const csp = headers
       ?.find((entry) => entry.source === "/:path*")
@@ -50,9 +52,11 @@ describe("Next image config", () => {
     const styleSrc = getCspDirective(csp, "style-src");
 
     expect(styleSrc).toContain("'self'");
+    expect(styleSrc).toContain("'unsafe-inline'");
     expect(styleSrc).toContain("https://fonts.googleapis.com");
-    expect(styleSrc.split(" ")).not.toContain("'unsafe-inline'");
-    expect(getCspDirective(csp, "style-src-attr")).toBe("");
+    expect(getCspDirective(csp, "style-src-attr")).toBe(
+      "style-src-attr 'unsafe-inline'",
+    );
   });
 
   it("sets route-specific cache headers for sitemap and admin surfaces", async () => {

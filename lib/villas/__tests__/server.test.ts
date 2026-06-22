@@ -79,7 +79,7 @@ const imageRows = [
   {
     caption: null,
     cover_select: 1,
-    id: 4,
+    id: "c67ed4d6-89e5-4a56-a0de-f46b1f7d4410",
     image_name: null,
     image_url: "https://example.supabase.co/storage/v1/object/public/villas/cover.jpg",
     image_zone: "cover",
@@ -102,6 +102,7 @@ function listingQuery(data = listingRows, error: unknown = null) {
 
 function imagesQuery(data = imageRows, error: unknown = null) {
   const query = {
+    eq: vi.fn(() => query),
     in: vi.fn(() => query),
     order: vi.fn(),
     select: vi.fn(() => query),
@@ -174,8 +175,7 @@ describe("fetchHouseListings", () => {
         ],
         bathrooms: 5,
         bedrooms: 6,
-        coverImage:
-          "https://example.supabase.co/storage/v1/object/public/villas/cover.jpg",
+        coverImage: "https://example.supabase.co/storage/v1/object/public/villas/cover.jpg",
         distanceToSea: "-",
         id: "9",
         people: 12,
@@ -208,6 +208,40 @@ describe("fetchHouseListings", () => {
       expect.objectContaining({ id: "9" }),
     ]);
     expect(createClientMock).toHaveBeenCalled();
+  });
+
+  it("prefers image_zone cover rows before cover_select fallback", async () => {
+    mockSupabase({
+      imageRows: [
+        {
+          caption: null,
+          cover_select: 9,
+          id: "ed881cf9-aaf0-4e52-ad3f-b47385eb0902",
+          image_name: null,
+          image_url:
+            "https://example.supabase.co/storage/v1/object/public/villas/sort-first.jpg",
+          image_zone: "outside",
+          property_id: 9,
+        },
+        {
+          caption: null,
+          cover_select: 0,
+          id: "355213d6-cbeb-4ce4-801c-2328d06b53d7",
+          image_name: null,
+          image_url:
+            "https://example.supabase.co/storage/v1/object/public/villas/zone-cover.jpg",
+          image_zone: "cover",
+          property_id: 9,
+        },
+      ],
+    });
+
+    await expect(fetchHouseListings()).resolves.toEqual([
+      expect.objectContaining({
+        coverImage:
+          "https://example.supabase.co/storage/v1/object/public/villas/zone-cover.jpg",
+      }),
+    ]);
   });
 });
 

@@ -1,4 +1,4 @@
-import { buildVillaGalleryImageProxyUrl } from "@/lib/public-image-proxy";
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { GalleryItem } from "./types";
 
 export function buildGalleryDownloadHref(
@@ -107,8 +107,9 @@ export function buildGalleryDisplaySrc(
 
   const targetUrl = normalizeGalleryDisplayImageUrl(item.url);
 
-  return buildVillaGalleryImageProxyUrl(listingId, targetUrl, {
-    quality,
-    width,
-  });
+  void listingId;
+  void width;
+  void quality;
+
+  return normalizePublicImageSourceUrl(targetUrl);
 }

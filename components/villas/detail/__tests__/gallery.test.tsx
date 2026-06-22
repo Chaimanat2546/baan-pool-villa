@@ -89,7 +89,7 @@ describe("Gallery", () => {
     expect(markup).not.toContain("priority=");
   });
 
-  it("renders gallery tile images through the villa image display proxy", () => {
+  it("passes gallery tile images to next/image without the villa display proxy", () => {
     const listing: VillaListing = {
       id: "88",
       zone: "jomtien",
@@ -115,15 +115,13 @@ describe("Gallery", () => {
     );
 
     const imageSrc = markup.match(/<img\b[^>]*\bsrc="([^"]+)"/)?.[1] ?? "";
-    const imageUrl = new URL(imageSrc.replaceAll("&amp;", "&"), "https://example.com");
+    const decodedImageSrc = decodeURIComponent(imageSrc.replaceAll("&amp;", "&"));
 
-    expect(imageUrl.pathname).toBe("/api/villas/88/images");
-    expect(imageUrl.searchParams.get("url")).toBe("https://cdn.test/cover.jpg");
-    expect(imageUrl.searchParams.get("w")).toBe("828");
-    expect(imageUrl.searchParams.get("q")).toBe("60");
+    expect(decodedImageSrc).toContain("https://cdn.test/cover.jpg");
+    expect(imageSrc).not.toContain("/api/villas/88/images");
   });
 
-  it("does not invoke the villa image display proxy for unsafe image URLs", () => {
+  it("does not render unsafe image URLs", () => {
     const listing: VillaListing = {
       id: "89",
       zone: "jomtien",
@@ -151,6 +149,7 @@ describe("Gallery", () => {
     );
 
     expect(markup).not.toContain("/api/villas/89/images");
+    expect(markup).not.toContain("http://cdn.test/cover.jpg");
   });
 
   it("reserves side tile slots when only the cover image is available", () => {

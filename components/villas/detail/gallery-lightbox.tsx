@@ -97,7 +97,6 @@ function GalleryThumbnailButton({
           }}
           sizes="(max-width: 1024px) 120px, 150px"
           src={thumbnailSrc}
-          unoptimized
         />
       ) : (
         <div className="grid h-full place-items-center text-[var(--site-on-primary)] opacity-60">
@@ -149,7 +148,7 @@ function useActiveThumbnailScroll(
       const stripRect = thumbnailStrip.getBoundingClientRect();
       const thumbnailRect = activeThumbnail.getBoundingClientRect();
       const shouldScrollVertically =
-        window.matchMedia("(min-width: 1024px)").matches &&
+        window.matchMedia?.("(min-width: 1024px)").matches === true &&
         thumbnailStrip.scrollHeight > thumbnailStrip.clientHeight;
       const targetLeft =
         thumbnailStrip.scrollLeft +
@@ -164,15 +163,23 @@ function useActiveThumbnailScroll(
         thumbnailStrip.clientHeight / 2 +
         thumbnailRect.height / 2;
 
-      thumbnailStrip.scrollTo({
-        behavior: "auto",
-        left: shouldScrollVertically
-          ? thumbnailStrip.scrollLeft
-          : Math.max(0, targetLeft),
-        top: shouldScrollVertically
-          ? Math.max(0, targetTop)
-          : thumbnailStrip.scrollTop,
-      });
+      const nextScrollLeft = shouldScrollVertically
+        ? thumbnailStrip.scrollLeft
+        : Math.max(0, targetLeft);
+      const nextScrollTop = shouldScrollVertically
+        ? Math.max(0, targetTop)
+        : thumbnailStrip.scrollTop;
+
+      if (typeof thumbnailStrip.scrollTo === "function") {
+        thumbnailStrip.scrollTo({
+          behavior: "auto",
+          left: nextScrollLeft,
+          top: nextScrollTop,
+        });
+      } else {
+        thumbnailStrip.scrollLeft = nextScrollLeft;
+        thumbnailStrip.scrollTop = nextScrollTop;
+      }
     });
 
     return () => {
@@ -375,8 +382,6 @@ export function GalleryLightbox({
               loading="eager"
 
               fetchPriority="high"
-
-              unoptimized
 
               sizes="(max-width: 1024px) 100vw, calc(100vw - 400px)"
 
