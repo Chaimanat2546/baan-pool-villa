@@ -1,6 +1,6 @@
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
-import { buildVillaCoverImageProxyPath } from "@/lib/public-image-proxy";
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import { SectionHeader } from "./section-header";
 
 const destinations = [
@@ -35,12 +35,9 @@ export function DestinationsSection({ villas }: DestinationsSectionProps) {
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {destinations.slice(0, 12).map((destination, index) => {
           const destinationVilla = villas[index];
-          const destinationImageSrc = destinationVilla?.coverImage
-            ? buildVillaCoverImageProxyPath(destinationVilla.id, {
-                quality: 60,
-                width: 1200,
-              })
-            : null;
+          const destinationImageSrc = normalizePublicImageSourceUrl(
+            destinationVilla?.coverImage ?? null,
+          );
 
           return (
             <article
@@ -52,18 +49,12 @@ export function DestinationsSection({ villas }: DestinationsSectionProps) {
                   src={destinationImageSrc}
                   alt={destination.title}
                   fill
+                  quality={60}
                   sizes="(max-width: 1024px) 100vw, 50vw"
-                  unoptimized
                   className="object-cover opacity-70"
                 />
               ) : null}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(to top, color-mix(in srgb, var(--site-primary) 92%, transparent), color-mix(in srgb, var(--site-primary) 28%, transparent), transparent)",
-                }}
-              />
+              <div className="destination-card-overlay absolute inset-0" />
               <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-white/15 p-6 backdrop-blur">
                 <div className="flex items-center gap-2">
                   <h3 className="text-2xl font-black">{destination.title}</h3>

@@ -70,7 +70,7 @@ describe("homepage request budget", () => {
       />,
     );
 
-    expect(markup).not.toContain('data-preload="true"');
+    expect(markup).not.toContain('loading="eager"');
     expect(markup).toContain('href="/search"');
     expect(markup).not.toContain('data-prefetch="false" href="/search"');
   });
@@ -92,12 +92,13 @@ describe("homepage request budget", () => {
 
     const renderedVillaLinks = markup.match(/href="\/villas\//g) ?? [];
     const renderedImages =
-      markup.match(/data-src="\/api\/houses\/images\/\d+\?w=640&amp;q=60"/g) ??
-      [];
+      markup.match(
+        /data-src="https:\/\/devillegroups\.com\/imgs\/profile_imgs_large\/\d+\.jpg"/g,
+      ) ?? [];
 
     expect(renderedVillaLinks).toHaveLength(12);
     expect(renderedImages).toHaveLength(12);
-    expect(markup).not.toContain("devillegroups.com");
+    expect(markup).not.toContain("/api/houses/images");
     expect(markup).toContain('href="/villas/11"');
   });
 
@@ -106,7 +107,7 @@ describe("homepage request budget", () => {
       <ArticlesSection guides={selectHomeGuideSummaries([guide])} />,
     );
 
-    expect(markup).not.toContain('data-priority="true"');
+    expect(markup).not.toContain('loading="eager"');
     expect(markup).toContain('href="/guides/guide-1"');
     expect(markup).not.toContain('data-prefetch="false" href="/guides/guide-1"');
   });

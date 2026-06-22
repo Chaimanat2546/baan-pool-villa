@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useState } from "react";
 import { FaYoutube } from "react-icons/fa";
 

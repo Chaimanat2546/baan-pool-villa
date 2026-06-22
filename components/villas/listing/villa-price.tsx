@@ -1,5 +1,5 @@
 interface VillaPriceProps {
-  price: number;
+  price: number | null;
   variant?: "badge" | "text";
   className?: string;
 };
@@ -10,8 +10,8 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
-export function formatVillaPrice(price: number): string {
-  return currencyFormatter.format(price);
+export function formatVillaPrice(price: number | null): string {
+  return price === null ? "" : currencyFormatter.format(price);
 }
 
 export function VillaPrice({

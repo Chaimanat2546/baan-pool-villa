@@ -79,10 +79,10 @@ export function formatCalendarPrice(price: number | null): string {
     : "- บาท";
 }
 
-export function getFallbackCalendarDay(price: number): BookingCalendarDay {
+export function getFallbackCalendarDay(price: number | null): BookingCalendarDay {
   return {
     disabled: false,
-    displayPrice: new Intl.NumberFormat("th-TH").format(price),
+    displayPrice: price === null ? null : new Intl.NumberFormat("th-TH").format(price),
     icons: [],
     kind: "base",
     label: "วันธรรมดา",
@@ -100,7 +100,7 @@ export function findFirstAvailableCalendarDateKey({
   visibleMonthKey,
 }: {
   bookingCalendar: BookingCalendarMonth | null;
-  fallbackPrice: number;
+  fallbackPrice: number | null;
   todayStart: Date;
   visibleMonth: Date;
   visibleMonthKey: string;

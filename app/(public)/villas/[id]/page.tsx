@@ -6,12 +6,12 @@ import { serializeJsonLd } from "@/lib/json-ld";
 import {
   absoluteUrl,
   buildBreadcrumbJsonLd,
+  buildMetadataImageUrl,
   buildSiteSettingsPageMetadata,
   buildVillaDetailMetadata,
   getVillaSearchIntentSummary,
   getVillaTitle,
 } from "@/lib/seo";
-import { buildVillaCoverImageProxyPath } from "@/lib/public-image-proxy";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
@@ -53,11 +53,8 @@ export default async function Page({ params }: VillaPageProps) {
   }
 
   const listing = data.payload.listing;
-  const coverImagePath = listing.coverImage
-    ? buildVillaCoverImageProxyPath(listing.id, {
-        quality: 75,
-        width: 1200,
-      })
+  const coverImageUrl = listing.coverImage
+    ? buildMetadataImageUrl(listing.coverImage)
     : null;
   const jsonLd = [
     buildBreadcrumbJsonLd([
@@ -70,7 +67,7 @@ export default async function Page({ params }: VillaPageProps) {
       "@type": "VacationRental",
       name: getVillaTitle(listing),
       description: getVillaSearchIntentSummary(listing),
-      image: coverImagePath ? [absoluteUrl(coverImagePath)] : undefined,
+      image: coverImageUrl ? [coverImageUrl] : undefined,
       url: absoluteUrl(`/villas/${listing.id}`),
       address: {
         "@type": "PostalAddress",
@@ -88,7 +85,10 @@ export default async function Page({ params }: VillaPageProps) {
         "@type": "LocationFeatureSpecification",
         name: amenity.label,
       })),
-      priceRange: `เริ่มต้น ${listing.price.toLocaleString("th-TH")} บาท/คืน`,
+      priceRange:
+        listing.price === null
+          ? undefined
+          : `เริ่มต้น ${listing.price.toLocaleString("th-TH")} บาท/คืน`,
     },
   ];
 

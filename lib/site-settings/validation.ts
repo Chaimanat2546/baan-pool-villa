@@ -3,6 +3,7 @@ import {
   SITE_SETTINGS_ALLOWED_IMAGE_MIME_TYPES,
   SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
 } from "./defaults";
+import { isAllowedPublicImageHostname } from "@/lib/public-image-proxy";
 import { normalizeAnyDetailLayout } from "../detail-layout/compat";
 import type {
   SiteAssetUploadRecord,
@@ -565,7 +566,11 @@ function normalizeImage(
   const trimmedPath = path?.trim() ?? "";
   const trimmedUrl = url?.trim() ?? "";
 
-  if (trimmedPath.length === 0 || trimmedUrl.length === 0) {
+  if (
+    trimmedPath.length === 0 ||
+    trimmedUrl.length === 0 ||
+    !isPublicImageUrl(trimmedUrl)
+  ) {
     return fallback;
   }
 
@@ -930,10 +935,22 @@ function normalizeUrl(value: string | null | undefined, fallback: string): strin
 }
 
 function isPublicImageUrl(value: string): boolean {
-  return (
-    (value.startsWith("/") && !value.startsWith("//")) ||
-    isHttpUrl(value)
-  );
+  if (value.startsWith("/") && !value.startsWith("//")) {
+    return true;
+  }
+
+  try {
+    const url = new URL(value);
+
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      isAllowedPublicImageHostname(url.hostname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 function isHttpUrl(value: string): boolean {

@@ -33,12 +33,13 @@ export type RawHouse = {
 
 export type VillaListing = {
   id: string;
+  title?: string;
   zone: string;
   zoneLabel: string;
   bedrooms: number;
   bathrooms: number;
   distanceToSea: string;
-  price: number;
+  price: number | null;
   people: number;
   coverImage: string | null;
   amenities: Amenity[];

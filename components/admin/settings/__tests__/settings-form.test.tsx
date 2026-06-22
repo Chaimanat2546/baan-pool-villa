@@ -35,10 +35,9 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("@/lib/site-settings/colors", () => ({
-  buildSiteThemeStyle: vi.fn(() => ({
-    "--site-accent": "#eab308",
-    "--site-primary": "#064e3b",
-  })),
+  buildSiteThemeStylesheetHref: vi.fn(
+    () => "/api/site-theme.css?primary=%23064e3b&accent=%23eab308&scope=settings-preview-theme",
+  ),
 }));
 
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
@@ -87,6 +86,8 @@ describe("SettingsForm", () => {
     expect(html).toContain("ตัวอย่างผลค้นหา Google");
     expect(html).toContain("ตัวอย่างตอนแชร์ลิงก์");
     expect(html).toContain("ดูบ้านพัก");
+    expect(html).toContain('rel="stylesheet"');
+    expect(html).not.toContain("style=");
   });
 
   it("renders per-page SEO keyword editors", () => {
@@ -166,11 +167,12 @@ describe("SettingsForm", () => {
     const html = renderSettingsForm();
 
     expect(html).toContain(
-      `aria-label="${DEFAULT_SITE_SETTINGS.logoImage.alt}" data-fill="true" data-height=""`,
+      `aria-label="${DEFAULT_SITE_SETTINGS.logoImage.alt}"`,
     );
     expect(html).toContain(
-      `aria-label="${DEFAULT_SITE_SETTINGS.heroImage.alt}" data-fill="true" data-height=""`,
+      `aria-label="${DEFAULT_SITE_SETTINGS.heroImage.alt}"`,
     );
+    expect(html).toContain('data-fill="true"');
   });
 
   it("rejects unsupported logo files immediately", async () => {

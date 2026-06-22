@@ -6,6 +6,7 @@ import {
   filtersFromSearchParams,
   getDistanceToSeaInKm,
   getDefaultFilters,
+  getMaxVillaPrice,
   isNearSeaVilla,
   normalizeFiltersForSearch,
   sortVillas,
@@ -15,6 +16,7 @@ import type { VillaListing } from "../types";
 const villas: VillaListing[] = [
   {
     id: "9",
+    title: "Sea Breeze Villa",
     zone: "pattaya",
     zoneLabel: "พัทยา",
     bedrooms: 3,
@@ -28,6 +30,7 @@ const villas: VillaListing[] = [
   },
   {
     id: "25",
+    title: "Jomtien Party House",
     zone: "jomtien",
     zoneLabel: "จอมเทียน",
     bedrooms: 5,
@@ -38,6 +41,20 @@ const villas: VillaListing[] = [
     coverImage: null,
     amenities: [],
     poolType: "chlorine",
+  },
+  {
+    id: "77",
+    title: "Quiet Pool Home",
+    zone: "pattaya",
+    zoneLabel: "à¸žà¸±à¸—à¸¢à¸²",
+    bedrooms: 2,
+    bathrooms: 2,
+    distanceToSea: "9 à¸à¸¡.",
+    price: null,
+    people: 4,
+    coverImage: null,
+    amenities: [],
+    poolType: "salt",
   },
 ];
 
@@ -172,6 +189,15 @@ describe("isNearSeaVilla", () => {
 });
 
 describe("filterVillas", () => {
+  it("keeps villas without a price in search results", () => {
+    expect(
+      filterVillas(villas, {
+        ...getDefaultFilters(10000),
+        guests: 1,
+      }).map((villa) => villa.id),
+    ).toContain("77");
+  });
+
   it("can filter by the same near-sea condition used on the home page", () => {
     expect(
       filterVillas(villas, {
@@ -191,20 +217,46 @@ describe("filterVillasById", () => {
   it("matches display ids with DV prefix", () => {
     expect(filterVillasById(villas, "DV-25").map((villa) => villa.id)).toEqual(["25"]);
   });
+
+  it("matches villa titles", () => {
+    expect(filterVillasById(villas, "party").map((villa) => villa.id)).toEqual(["25"]);
+  });
 });
 
 describe("sortVillas", () => {
   it("sorts by price from low to high", () => {
-    expect(sortVillas(villas, "price_asc").map((villa) => villa.id)).toEqual(["25", "9"]);
+    expect(sortVillas(villas, "price_asc").map((villa) => villa.id)).toEqual([
+      "25",
+      "9",
+      "77",
+    ]);
+  });
+
+  it("keeps villas without a price last when sorting by price", () => {
+    expect(sortVillas(villas, "price_desc").map((villa) => villa.id)).toEqual([
+      "9",
+      "25",
+      "77",
+    ]);
   });
 
   it("sorts by guest capacity from high to low", () => {
-    expect(sortVillas(villas, "people_desc").map((villa) => villa.id)).toEqual(["25", "9"]);
+    expect(sortVillas(villas, "people_desc").map((villa) => villa.id)).toEqual([
+      "25",
+      "9",
+      "77",
+    ]);
   });
 
   it("does not mutate the original list", () => {
     sortVillas(villas, "price_asc");
 
-    expect(villas.map((villa) => villa.id)).toEqual(["9", "25"]);
+    expect(villas.map((villa) => villa.id)).toEqual(["9", "25", "77"]);
+  });
+});
+
+describe("getMaxVillaPrice", () => {
+  it("ignores villas without a price", () => {
+    expect(getMaxVillaPrice(villas)).toBe(12000);
   });
 });

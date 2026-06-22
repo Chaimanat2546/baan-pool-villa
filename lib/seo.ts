@@ -2,11 +2,7 @@ import type { Metadata } from "next";
 
 import type { GuidePost } from "@/lib/guides/types";
 import type { LegalPage } from "@/lib/legal-pages/types";
-import {
-  buildGuideCoverImageProxyPath,
-  buildSiteAssetProxyUrl,
-  buildVillaCoverImageProxyPath,
-} from "@/lib/public-image-proxy";
+import { buildAwsImageUrl } from "@/lib/aws-image-url";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 
@@ -62,17 +58,21 @@ interface BreadcrumbItem {
 }
 
 export function getSiteUrl(): URL {
-  const configuredUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ??
-    process.env.VERCEL_URL ??
-    "http://localhost:3000";
-  const url =
-    configuredUrl.startsWith("http://") || configuredUrl.startsWith("https://")
-      ? configuredUrl
-      : `https://${configuredUrl}`;
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
 
-  return new URL(url);
+  if (configuredUrl) {
+    try {
+      const url = new URL(configuredUrl);
+
+      if (url.protocol === "https:") {
+        return new URL(url.origin);
+      }
+    } catch {
+      // Fall through to the local default when the public site URL is invalid.
+    }
+  }
+
+  return new URL("http://localhost:3000");
 }
 
 export function absoluteUrl(pathname: string): string {
@@ -105,16 +105,42 @@ function buildAbsoluteMetadataImageUrl(
   image: string | null | undefined,
   fallback: string = defaultOgImage,
 ): string {
-  return absoluteHttpUrl(image, fallback);
+  return buildMetadataImageUrl(image, { fallback });
 }
 
 function buildSiteAssetMetadataImageUrl(
   image: string | null | undefined,
 ): string | null {
-  return buildSiteAssetProxyUrl(image ?? null, { quality: 75, width: 1200 }) ?? image ?? null;
+  return image ? buildMetadataImageUrl(image) : null;
+}
+
+export function buildMetadataImageUrl(
+  image: string | null | undefined,
+  {
+    fallback = defaultOgImage,
+    quality = 75,
+    width = 1200,
+  }: { fallback?: string; quality?: number; width?: number } = {},
+): string {
+  const candidate = image?.trim() || fallback;
+
+  try {
+    return absoluteHttpUrl(
+      buildAwsImageUrl({ quality, src: candidate, width }),
+      fallback,
+    );
+  } catch {
+    return absoluteHttpUrl(candidate, fallback);
+  }
 }
 
 export function getVillaTitle(villa: VillaListing): string {
+  const customTitle = villa.title?.trim();
+
+  if (customTitle) {
+    return customTitle;
+  }
+
   const zoneLabel = villa.zoneLabel.trim();
   const titleLocation = zoneLabel.includes("พัทยา")
     ? zoneLabel
@@ -128,7 +154,7 @@ function uniqueKeywords(keywords: string[]): string[] {
 }
 
 export function getVillaDescription(villa: VillaListing): string {
-  const price = villa.price.toLocaleString("th-TH");
+  const price = villa.price?.toLocaleString("th-TH") ?? "";
 
   return [
     `${getVillaTitle(villa)} บ้านพักพูลวิลล่าสระส่วนตัว รองรับ ${villa.people.toLocaleString("th-TH")} คน`,
@@ -145,7 +171,7 @@ export function getVillaSearchIntentSummary(villa: VillaListing): string {
     `รองรับ ${villa.people.toLocaleString("th-TH")} คน`,
     `${villa.bedrooms.toLocaleString("th-TH")} ห้องนอน`,
     `ทำเล ${villa.zoneLabel}`,
-    `ราคาเริ่มต้น ${villa.price.toLocaleString("th-TH")} บาทต่อคืน`,
+    `ราคาเริ่มต้น ${villa.price?.toLocaleString("th-TH") ?? ""} บาทต่อคืน`,
   ].join(" ");
 }
 
@@ -308,9 +334,7 @@ export function buildGuideArticleMetadata({
   return buildSiteSettingsPageMetadata({
     canonicalPath: `/guides/${guide.slug}`,
     description: guide.excerpt,
-    image: guide.coverImage?.url
-      ? buildGuideCoverImageProxyPath(guide.slug, { quality: 75, width: 1200 })
-      : null,
+    image: guide.coverImage?.url ? buildMetadataImageUrl(guide.coverImage.url) : null,
     imageAlt: guide.coverImage?.alt ?? guide.title,
     openGraphType: "article",
     publishedTime: guide.publishedAt ?? guide.createdAt,
@@ -344,9 +368,7 @@ export function buildVillaDetailMetadata({
   return buildSiteSettingsPageMetadata({
     canonicalPath: `/villas/${villa.id}`,
     description: getVillaDescription(villa),
-    image: villa.coverImage
-      ? buildVillaCoverImageProxyPath(villa.id, { quality: 75, width: 1200 })
-      : null,
+    image: villa.coverImage ? buildMetadataImageUrl(villa.coverImage) : null,
     imageAlt: getVillaTitle(villa),
     keywords: uniqueKeywords([
       ...(settings.pageSeo.villaDetail.keywords.length > 0

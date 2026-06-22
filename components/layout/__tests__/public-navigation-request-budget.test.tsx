@@ -68,18 +68,18 @@ describe("public navigation request budget", () => {
     expectDocumentNavigationLink(markup, "/#recommendations");
   });
 
-  it("routes public header and footer logos through the site asset proxy", () => {
+  it("passes public header and footer logos to the AWS image loader", () => {
     const settings = publicSettingsWithRemoteLogo();
     const headerMarkup = renderToStaticMarkup(<SiteHeader settings={settings} />);
     const footerMarkup = renderToStaticMarkup(<SiteFooter settings={settings} />);
 
     expect(getFirstImageSrc(headerMarkup)).toBe(
-      "/api/site-assets/proxy?url=https%3A%2F%2Fassets.example.com%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fsite-assets%2Flogo.png&w=128&q=75",
+      "https://assets.example.com/storage/v1/object/public/site-assets/logo.png",
     );
     expect(getFirstImageSrc(footerMarkup)).toBe(
-      "/api/site-assets/proxy?url=https%3A%2F%2Fassets.example.com%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fsite-assets%2Flogo.png&w=160&q=75",
+      "https://assets.example.com/storage/v1/object/public/site-assets/logo.png",
     );
-    expect(headerMarkup).not.toContain('data-src="https://assets.example.com');
-    expect(footerMarkup).not.toContain('data-src="https://assets.example.com');
+    expect(headerMarkup).not.toContain("/api/site-assets/proxy");
+    expect(footerMarkup).not.toContain("/api/site-assets/proxy");
   });
 });

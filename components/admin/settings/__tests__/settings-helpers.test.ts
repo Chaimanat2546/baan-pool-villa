@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/site-settings/colors", () => ({
-  buildSiteThemeStyle: vi.fn(),
+  buildSiteThemeStylesheetHref: vi.fn(),
 }));
 
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";

@@ -22,7 +22,7 @@ describe("DestinationsSection", () => {
     expect(markup).not.toContain("Mock FE");
     expect(markup).toContain("สำรวจจุดหมายปลายทางของเรา");
   });
-  it("renders remote destination cover images through the public cover proxy", () => {
+  it("passes remote destination cover images to the AWS image loader", () => {
     const markup = renderToStaticMarkup(
       <DestinationsSection
         villas={[
@@ -36,8 +36,8 @@ describe("DestinationsSection", () => {
     );
 
     expect(markup).toContain(
-      'data-src="/api/houses/images/501?w=1200&amp;q=60"',
+      'data-src="https://devillegroups.com/imgs/profile_imgs_large/501-destination.jpg"',
     );
-    expect(markup).not.toContain("devillegroups.com");
+    expect(markup).not.toContain("/api/houses/images");
   });
 });

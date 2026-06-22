@@ -1,9 +1,9 @@
 "use client";
 
 import { MapPin, Menu, X } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useState } from "react";
-import { buildSiteAssetProxyUrl } from "@/lib/public-image-proxy";
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 const navItems = [
@@ -23,7 +23,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
   const bankAccount = `${settings.bank.bankName} เลขที่ ${settings.bank.accountNumber}`;
 
   const logoImageSrc =
-    buildSiteAssetProxyUrl(settings.logoImage.url, { quality: 75, width: 128 }) ??
+    normalizePublicImageSourceUrl(settings.logoImage.url) ??
     settings.logoImage.url;
 
   return (
@@ -39,6 +39,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 src={logoImageSrc}
                 alt={settings.logoImage.alt}
                 fill
+                quality={75}
                 sizes="44px"
                 className="object-cover"
                 priority

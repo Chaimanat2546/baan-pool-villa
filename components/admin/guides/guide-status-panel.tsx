@@ -9,7 +9,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useEffect, useMemo, useState } from "react";
 
 import type { GuideStatus } from "@/lib/guides/types";
@@ -186,7 +186,6 @@ export function GuideStatusPanel({
               height={600}
               loading="eager"
               src={coverPreviewUrl}
-              unoptimized
               width={960}
             />
           ) : (

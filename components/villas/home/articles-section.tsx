@@ -1,11 +1,11 @@
 import { ArrowRight, Pin } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
 import {
   toPublicGuideSummaries,
   type PublicGuideSummary,
 } from "@/lib/guides/public-dto";
-import { buildGuideCoverImageProxyPath } from "@/lib/public-image-proxy";
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { GuidePost } from "@/lib/guides/types";
 import { ScrollRail } from "@/components/ui/scroll-rail";
 
@@ -24,12 +24,7 @@ export function selectHomeGuideSummaries(
 }
 
 function getGuideImage(guide: PublicGuideSummary) {
-  return guide.hasCoverImage
-    ? buildGuideCoverImageProxyPath(guide.slug, {
-        quality: 60,
-        width: 640,
-      })
-    : null;
+  return normalizePublicImageSourceUrl(guide.coverImageUrl);
 }
 
 export function ArticlesSection({ guides }: ArticlesSectionProps) {
@@ -68,9 +63,9 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                     alt={guide.coverImageAlt ?? guide.title}
                     className="object-cover transition duration-500 group-hover:scale-105"
                     fill
+                    quality={60}
                     sizes="(max-width: 768px) 306px, 394px"
                     src={imageUrl}
-                    unoptimized
                   />
                 ) : (
                   <div className="grid h-full place-items-center text-sm font-semibold text-[var(--site-muted)]">

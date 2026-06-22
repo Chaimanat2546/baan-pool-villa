@@ -1,5 +1,5 @@
 import { ImageOff } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { buildGalleryDisplaySrc } from "./gallery-urls";
 import type { GalleryItem } from "./types";
 
@@ -42,7 +42,6 @@ export function GalleryImage({
             fill
             loading={loading}
             fetchPriority={fetchPriority}
-            unoptimized
             sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover transition duration-500 group-hover:scale-[1.03]"
             onError={() => {

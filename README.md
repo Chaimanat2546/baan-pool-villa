@@ -69,7 +69,6 @@ Optional/special-purpose keys used by helpers:
 | `IMAGE_PROXY_BASE_URL` | Override image proxy base URL in villa image helpers |
 | `BPV_PREWARM_BASE_URL` | Base URL for `scripts/prewarm-public-html.mjs` when `--url` is not passed |
 | `PLAYWRIGHT_BASE_URL` | Base URL for production smoke tests; default is `http://127.0.0.1:3100` |
-| `VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_URL` | Fallback site URL inputs in SEO helpers |
 
 ## Common Commands
 

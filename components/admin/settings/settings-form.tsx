@@ -1,6 +1,7 @@
 "use client";
 
-import type { CSSProperties, FormEvent } from "react";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import type { FormEvent } from "react";
 import {
   BadgeInfo,
   Building2,
@@ -23,7 +24,7 @@ import {
   SectionCard,
   TextControl,
 } from "./settings-form-controls";
-import { buildDraftThemeStyle } from "./settings-helpers";
+import { buildDraftThemeStylesheetHref } from "./settings-helpers";
 import type { AdminSettingsDraft } from "./types";
 
 interface SettingsFormProps {
@@ -89,10 +90,6 @@ function getPreviewImageUrl(value: string, fallback: string): string {
   return fallback;
 }
 
-function cssImageUrl(value: string): string {
-  return `url("${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}")`;
-}
-
 export function SettingsForm({
   draft,
   hasUnsavedChanges,
@@ -102,7 +99,7 @@ export function SettingsForm({
   settings,
 }: SettingsFormProps) {
   const isDesktopNavCollapsed = useAdminSidebarCollapsed();
-  const themeStyle = buildDraftThemeStyle(draft) as CSSProperties;
+  const themeHref = buildDraftThemeStylesheetHref(draft);
   const heroPreviewUrl = getPreviewImageUrl(
     settings.heroImage.url,
     "/images/BPV-66_Cover-Web.jpg",
@@ -789,10 +786,8 @@ export function SettingsForm({
           </dl>
         </section>
 
-        <section
-          className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm"
-          style={themeStyle}
-        >
+        <section className="settings-preview-theme overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+          <link href={themeHref} rel="stylesheet" />
           <div className="border-b border-[var(--site-border)] px-4 py-3">
             <h2 className="text-base font-bold text-[var(--site-text)]">
               ตัวอย่างหน้าเว็บ
@@ -800,10 +795,15 @@ export function SettingsForm({
           </div>
           <div className="grid gap-4 p-4">
             <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
-              <div
-                className="h-36 bg-cover bg-center"
-                style={{ backgroundImage: cssImageUrl(heroPreviewUrl) }}
-              />
+              <div className="relative h-36 overflow-hidden">
+                <Image
+                  alt={draft.heroImageAlt || settings.heroImage.alt}
+                  className="object-cover"
+                  fill
+                  sizes="360px"
+                  src={heroPreviewUrl}
+                />
+              </div>
               <div className="p-4">
                 <p className="text-lg font-bold text-[var(--site-text)]">
                   {draft.siteName || "Pool Villas Pattaya"}
@@ -836,10 +836,15 @@ export function SettingsForm({
             </div>
 
             <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-white">
-              <div
-                className="h-36 bg-cover bg-center"
-                style={{ backgroundImage: cssImageUrl(sharePreviewImageUrl) }}
-              />
+              <div className="relative h-36 overflow-hidden">
+                <Image
+                  alt={draft.seoOgImageAlt || settings.seo.ogImage.alt}
+                  className="object-cover"
+                  fill
+                  sizes="360px"
+                  src={sharePreviewImageUrl}
+                />
+              </div>
               <div className="p-4">
                 <p className="line-clamp-2 text-sm font-semibold text-[#050505]">
                   {draft.seoTitle || draft.siteName}

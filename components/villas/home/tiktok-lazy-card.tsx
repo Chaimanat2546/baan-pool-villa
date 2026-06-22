@@ -1,7 +1,7 @@
 "use client";
 
 import { Play } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useEffect, useState } from "react";
 import { SiTiktok } from "react-icons/si";
 
@@ -141,7 +141,6 @@ export function TikTokLazyCard({
                 referrerPolicy="no-referrer"
                 sizes="(max-width: 640px) 244px, (max-width: 1024px) 292px, 320px"
                 src={thumbnailUrl}
-                unoptimized
               />
             ) : (
               <span

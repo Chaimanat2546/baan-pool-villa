@@ -1,32 +1,14 @@
 import type { NextConfig } from "next";
 
-const isDevelopment = process.env.NODE_ENV === "development";
-const CLOUDFLARE_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
-
-const scriptSources = [
-  "'self'",
-  "'unsafe-inline'",
-  ...(isDevelopment ? ["'unsafe-eval'"] : []),
-  CLOUDFLARE_TURNSTILE_ORIGIN,
-];
+import { buildContentSecurityPolicy } from "./lib/security/csp";
 
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
-    value: [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "object-src 'none'",
-      "frame-ancestors 'none'",
-      "img-src 'self' data: blob: https:",
-      "font-src 'self' data: https://fonts.gstatic.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      `script-src ${scriptSources.join(" ")}`,
-      `connect-src 'self' https:${isDevelopment ? " ws: wss:" : ""}`,
-      `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
-      "form-action 'self'",
-      "upgrade-insecure-requests",
-    ].join("; "),
+    value: buildContentSecurityPolicy({
+      isDevelopment: process.env.NODE_ENV === "development",
+      supabaseUrl: process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL,
+    }),
   },
   {
     key: "X-Frame-Options",
@@ -86,9 +68,10 @@ const nextConfig: NextConfig = {
     deviceSizes: [390, 640, 750, 828, 1080, 1200, 1440, 1920],
     formats: ["image/avif", "image/webp"],
     imageSizes: [64, 96, 128, 160, 192, 244, 256, 292, 320, 384, 448, 512],
+    loader: "custom",
+    loaderFile: "./lib/aws-loader.ts",
     minimumCacheTTL: 60 * 60 * 24 * 365,
     qualities: [60, 75],
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",

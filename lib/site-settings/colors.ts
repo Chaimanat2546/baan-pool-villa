@@ -176,3 +176,32 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
     "--site-text": textColor,
   };
 }
+
+function normalizeCssScope(scope: string): string {
+  return /^[a-z][a-z0-9-]{0,39}$/.test(scope) ? scope : "site-theme";
+}
+
+export function buildSiteThemeCss(
+  input: ThemeColorInput,
+  scope = "site-theme",
+): string {
+  const style = buildSiteThemeStyle(input);
+  const declarations = Object.entries(style)
+    .map(([property, value]) => `${property}:${value}`)
+    .join(";");
+
+  return `.${normalizeCssScope(scope)}{${declarations}}`;
+}
+
+export function buildSiteThemeStylesheetHref(
+  input: ThemeColorInput,
+  scope = "site-theme",
+): string {
+  const params = new URLSearchParams({
+    accent: input.accentColor,
+    primary: input.primaryColor,
+    scope: normalizeCssScope(scope),
+  });
+
+  return `/api/site-theme.css?${params.toString()}`;
+}

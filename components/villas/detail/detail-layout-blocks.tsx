@@ -173,10 +173,7 @@ function renderAmenities({ content, listing }: DetailLayoutBlockContext) {
   return <AmenitiesSection amenities={amenities} compact />;
 }
 
-function renderCategorizedImages({
-  galleryCategories,
-  listing,
-}: DetailLayoutBlockContext) {
+function renderCategorizedImages({ galleryCategories }: DetailLayoutBlockContext) {
   const previewCategories = galleryCategories
     .map((category) => ({
       ...category,
@@ -194,10 +191,7 @@ function renderCategorizedImages({
       icon={<ImageIcon className="h-5 w-5" />}
       title="รูปภาพตามหมวดหมู่"
     >
-      <LazyCategorizedImages
-        listing={listing}
-        previewCategories={previewCategories}
-      />
+      <LazyCategorizedImages previewCategories={previewCategories} />
     </DetailCard>
   );
 }

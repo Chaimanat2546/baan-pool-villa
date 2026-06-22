@@ -9,15 +9,17 @@ import { GuideListPage } from "../guide-list-page";
 
 interface MockImageProps {
   alt: string;
+  loading?: string;
   preload?: boolean;
   priority?: boolean;
   src: string;
 }
 
 vi.mock("next/image", () => ({
-  default: ({ alt, preload, priority, src }: MockImageProps) => (
+  default: ({ alt, loading, preload, priority, src }: MockImageProps) => (
     <span
       aria-label={alt}
+      data-loading={loading ?? ""}
       data-preload={preload ? "true" : "false"}
       data-priority={priority ? "true" : "false"}
       data-src={src}
@@ -67,7 +69,7 @@ describe("guide detail request budget", () => {
     expect(guideAnchor?.[0]).not.toContain("data-prefetch=");
   });
 
-  it("renders guide cover images through the public guide image proxy", () => {
+  it("passes guide cover images to the AWS image loader", () => {
     const markup = renderToStaticMarkup(
       <GuideListPage
         guides={[
@@ -83,10 +85,9 @@ describe("guide detail request budget", () => {
       />,
     );
 
-    expect(markup).toContain(
-      'data-src="/api/guides/images/guide-1/cover?w=640&amp;q=60"',
-    );
-    expect(markup).not.toContain("assets.example.com");
+    expect(markup).toContain('data-src="https://assets.example.com/guide.jpg"');
+    expect(markup).toContain('data-loading="eager"');
+    expect(markup).not.toContain("/api/guides/images");
   });
 
   it("does not preload recommended villa card images in duplicate sidebar layouts", () => {
@@ -100,6 +101,6 @@ describe("guide detail request budget", () => {
 
     const sidebarMarkup = markup.slice(markup.indexOf("data-guide-sidebar"));
 
-    expect(sidebarMarkup).not.toContain('data-preload="true"');
+    expect(sidebarMarkup).not.toContain('loading="eager"');
   });
 });

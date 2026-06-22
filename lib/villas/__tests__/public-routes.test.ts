@@ -84,9 +84,8 @@ describe("GET /api/houses", () => {
     expect(body.items).toHaveLength(12);
     expect(body.items[0]).toEqual({
       ...listings[0],
-      coverImage: "/api/houses/images/1",
+      coverImage: "https://devillegroups.com/imgs/profile_imgs_large/1.jpg",
     });
-    expect(JSON.stringify(body)).not.toContain("devillegroups.com");
   });
 
   it("filters, sorts, and clamps public catalog page sizes", async () => {
@@ -154,6 +153,46 @@ describe("GET /api/houses", () => {
     ]);
   });
 
+  it("searches catalog pages by title through the id query param", async () => {
+    fetchHouseListingsMock.mockResolvedValue([
+      {
+        amenities: [],
+        bathrooms: 2,
+        bedrooms: 2,
+        coverImage: null,
+        distanceToSea: "1 km",
+        id: "1",
+        people: 4,
+        poolType: "private",
+        price: 9000,
+        title: "Sea Breeze Villa",
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+      {
+        amenities: [],
+        bathrooms: 3,
+        bedrooms: 4,
+        coverImage: null,
+        distanceToSea: "1 km",
+        id: "2",
+        people: 10,
+        poolType: "private",
+        price: 18000,
+        title: "Jomtien Party House",
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+    ]);
+
+    const { GET } = await import("../../../app/(public)/api/houses/route");
+    const response = await GET(new Request("https://example.com/api/houses?id=party"));
+    const body = await response.json();
+
+    expect(body).toMatchObject({ total: 1 });
+    expect(body.items).toEqual([expect.objectContaining({ id: "2" })]);
+  });
+
   it("returns a generic 502 error and logs backend failures", async () => {
     const rawError = new Error("secret listing backend detail");
     fetchHouseListingsMock.mockRejectedValue(rawError);
@@ -195,7 +234,7 @@ describe("GET /api/houses", () => {
 });
 
 describe("GET /api/villas/[id]", () => {
-  it("returns public detail data without raw cover image URLs", async () => {
+  it("returns public detail data with validated cover image sources", async () => {
     fetchVillaDetailMock.mockResolvedValue({
       detail: null,
       detailStatus: "missing_token",
@@ -221,8 +260,9 @@ describe("GET /api/villas/[id]", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.listing.coverImage).toBe("/api/houses/images/9");
-    expect(JSON.stringify(body)).not.toContain("devillegroups.com");
+    expect(body.listing.coverImage).toBe(
+      "https://devillegroups.com/imgs/profile_imgs_large/9.jpg",
+    );
   });
 
   it("rate limits repeated detail requests before loading villa detail", async () => {

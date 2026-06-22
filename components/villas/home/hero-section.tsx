@@ -1,6 +1,6 @@
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
-import { buildSiteAssetProxyUrl } from "@/lib/public-image-proxy";
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { SiteImageSettings } from "@/lib/site-settings/types";
 
 import { HeroSearch } from "./hero-search";
@@ -33,7 +33,7 @@ export function HeroSection({
   zones,
 }: HeroSectionProps) {
   const heroImageSrc =
-    buildSiteAssetProxyUrl(heroImage.url, { quality: 75, width: 1920 }) ??
+    normalizePublicImageSourceUrl(heroImage.url) ??
     (isSafeLocalImagePath(heroImage.url) ? heroImage.url : null);
 
   return (
@@ -45,8 +45,8 @@ export function HeroSection({
           width={1565}
           height={1043}
           preload
+          quality={75}
           sizes="100vw"
-          unoptimized
           className="h-auto w-full"
         />
       ) : (

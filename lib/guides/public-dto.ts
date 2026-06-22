@@ -2,6 +2,7 @@ import type { GuidePost } from "./types";
 
 export interface PublicGuideSummary {
   coverImageAlt: string | null;
+  coverImageUrl: string | null;
   hasCoverImage: boolean;
   excerpt: string;
   id: string;
@@ -14,6 +15,7 @@ export interface PublicGuideSummary {
 export function toPublicGuideSummary(guide: GuidePost): PublicGuideSummary {
   return {
     coverImageAlt: guide.coverImage?.alt ?? null,
+    coverImageUrl: guide.coverImage?.url ?? null,
     hasCoverImage: Boolean(guide.coverImage?.url),
     excerpt: guide.excerpt,
     id: guide.id,

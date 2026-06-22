@@ -297,6 +297,17 @@ describe("normalizeSiteSettingsRow", () => {
       }),
     ).toEqual(DEFAULT_SITE_SETTINGS);
   });
+
+  it("falls back when logo or hero image URLs are unsafe", () => {
+    const settings = normalizeSiteSettingsRow({
+      ...validRow,
+      logo_image_url: "javascript:alert(1)",
+      hero_image_url: "https://127.0.0.1/hero.webp",
+    });
+
+    expect(settings.logoImage).toEqual(DEFAULT_SITE_SETTINGS.logoImage);
+    expect(settings.heroImage).toEqual(DEFAULT_SITE_SETTINGS.heroImage);
+  });
 });
 
 describe("normalizeSiteSettingsDraft", () => {

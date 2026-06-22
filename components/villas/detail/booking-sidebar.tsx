@@ -62,7 +62,7 @@ export function BookingSidebar({
           </p>
         </div>
 
-        <div className="mt-4 rounded-xl border border-[var(--site-border)] p-3 text-sm">
+        <div className={listing.price === null ? "hidden" : "mt-4 rounded-xl border border-[var(--site-border)] p-3 text-sm"}>
           <p className="font-black text-[var(--site-text)]">
             {formatVillaPrice(listing.price)} / คืน
           </p>

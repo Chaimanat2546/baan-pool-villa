@@ -1,24 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { VillaListing } from "@/lib/villas/types";
 import type { GalleryItem } from "../types";
 import { Gallery } from "../gallery";
-
-interface MockImageProps {
-  alt?: string;
-  src?: string;
-  loading?: "eager" | "lazy";
-  fetchPriority?: "auto" | "high" | "low";
-}
-
-const imageProps: Array<MockImageProps> = [];
-
-vi.mock("next/image", () => ({
-  default: (props: MockImageProps) => {
-    imageProps.push(props);
-    return <span data-gallery-image={props.alt} data-src={props.src} />;
-  },
-}));
 
 function makeGalleryItem(key: string): GalleryItem {
   return {
@@ -36,7 +20,6 @@ function makeGalleryItem(key: string): GalleryItem {
 
 describe("Gallery", () => {
   it("uses eager loading and high fetch priority for the main image", () => {
-    imageProps.length = 0;
     const listing: VillaListing = {
       id: "66",
       zone: "jomtien",
@@ -51,7 +34,7 @@ describe("Gallery", () => {
       poolType: "private",
     };
 
-    renderToStaticMarkup(
+    const markup = renderToStaticMarkup(
       <Gallery
         items={[
           makeGalleryItem("cover"),
@@ -67,18 +50,18 @@ describe("Gallery", () => {
       />,
     );
 
-    expect(imageProps.length).toBe(4);
-    expect(imageProps[0]?.loading).toBe("eager");
-    expect(imageProps[0]?.fetchPriority).toBe("high");
-    expect("priority" in imageProps[0]!).toBe(false);
-    expect(imageProps[1]?.loading).toBe("lazy");
-    expect(imageProps[2]?.loading).toBe("lazy");
-    expect(imageProps[3]?.loading).toBe("lazy");
+    const imageTags = markup.match(/<img\b[^>]*>/g) ?? [];
+
+    expect(imageTags).toHaveLength(4);
+    expect(imageTags[0]).toContain('loading="eager"');
+    expect(imageTags[0]).toContain('fetchPriority="high"');
+    expect(imageTags[0]).not.toContain("priority=");
+    expect(imageTags[1]).toContain('loading="lazy"');
+    expect(imageTags[2]).toContain('loading="lazy"');
+    expect(imageTags[3]).toContain('loading="lazy"');
   });
 
   it("does not pass Next priority prop to gallery tiles", () => {
-    imageProps.length = 0;
-
     const listing: VillaListing = {
       id: "77",
       zone: "jomtien",
@@ -93,7 +76,7 @@ describe("Gallery", () => {
       poolType: "private",
     };
 
-    renderToStaticMarkup(
+    const markup = renderToStaticMarkup(
       <Gallery
         items={[makeGalleryItem("cover"), makeGalleryItem("outside")]}
         listing={listing}
@@ -103,14 +86,10 @@ describe("Gallery", () => {
       />,
     );
 
-    imageProps.forEach((props) => {
-      expect("priority" in props).toBe(false);
-    });
+    expect(markup).not.toContain("priority=");
   });
 
-  it("renders gallery tile images through the villa image display proxy", () => {
-    imageProps.length = 0;
-
+  it("passes gallery tile images to next/image without the villa display proxy", () => {
     const listing: VillaListing = {
       id: "88",
       zone: "jomtien",
@@ -125,7 +104,7 @@ describe("Gallery", () => {
       poolType: "private",
     };
 
-    renderToStaticMarkup(
+    const markup = renderToStaticMarkup(
       <Gallery
         items={[makeGalleryItem("cover"), makeGalleryItem("outside")]}
         listing={listing}
@@ -135,17 +114,14 @@ describe("Gallery", () => {
       />,
     );
 
-    const imageUrl = new URL(imageProps[0]?.src ?? "", "https://example.com");
+    const imageSrc = markup.match(/<img\b[^>]*\bsrc="([^"]+)"/)?.[1] ?? "";
+    const decodedImageSrc = decodeURIComponent(imageSrc.replaceAll("&amp;", "&"));
 
-    expect(imageUrl.pathname).toBe("/api/villas/88/images");
-    expect(imageUrl.searchParams.get("url")).toBe("https://cdn.test/cover.jpg");
-    expect(imageUrl.searchParams.get("w")).toBe("828");
-    expect(imageUrl.searchParams.get("q")).toBe("60");
+    expect(decodedImageSrc).toContain("https://cdn.test/cover.jpg");
+    expect(imageSrc).not.toContain("/api/villas/88/images");
   });
 
-  it("does not invoke the villa image display proxy for unsafe image URLs", () => {
-    imageProps.length = 0;
-
+  it("does not render unsafe image URLs", () => {
     const listing: VillaListing = {
       id: "89",
       zone: "jomtien",
@@ -162,7 +138,7 @@ describe("Gallery", () => {
     const unsafeItem = makeGalleryItem("cover");
     unsafeItem.url = "http://cdn.test/cover.jpg";
 
-    renderToStaticMarkup(
+    const markup = renderToStaticMarkup(
       <Gallery
         items={[unsafeItem]}
         listing={listing}
@@ -172,7 +148,8 @@ describe("Gallery", () => {
       />,
     );
 
-    expect(imageProps).toHaveLength(0);
+    expect(markup).not.toContain("/api/villas/89/images");
+    expect(markup).not.toContain("http://cdn.test/cover.jpg");
   });
 
   it("reserves side tile slots when only the cover image is available", () => {

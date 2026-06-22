@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "./guide-colors.css";
 
 :root {
   --background: #f4f7f4;
@@ -33,6 +35,43 @@ body {
     linear-gradient(180deg, #f8fbf7 0%, #eef5f1 100%);
   color: var(--foreground);
   font-family: var(--font-prompt), ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes calendar-pointer-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-90deg);
+  }
+
+  50% {
+    transform: translateY(-6px) rotate(-90deg);
+  }
+}
+
+.calendar-pointer-bob {
+  animation: calendar-pointer-bob 1.15s ease-in-out infinite;
+}
+
+@keyframes calendar-fire-flicker {
+  0%,
+  100% {
+    transform: rotate(-3deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(4deg) scale(1.12);
+  }
+}
+
+.calendar-fire-flicker {
+  animation: calendar-fire-flicker 1.25s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendar-fire-flicker,
+  .calendar-pointer-bob {
+    animation: none;
+  }
 }
 
 button,

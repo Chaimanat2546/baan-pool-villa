@@ -11,8 +11,10 @@ function getCspDirective(csp: string | undefined, name: string): string {
 }
 
 describe("Next image config", () => {
-  it("serves images directly without using the Next image optimizer", () => {
-    expect(nextConfig.images?.unoptimized).toBe(true);
+  it("uses the custom image loader", () => {
+    expect(nextConfig.images?.loader).toBe("custom");
+    expect(nextConfig.images?.loaderFile).toBe("./lib/aws-loader.ts");
+    expect(nextConfig.images?.unoptimized).toBeUndefined();
   });
 
   it("keeps the fallback image optimizer cache at one year", () => {
@@ -30,30 +32,30 @@ describe("Next image config", () => {
           key: "Content-Security-Policy",
           value: expect.stringContaining("frame-ancestors 'none'"),
         }),
+        expect.objectContaining({
+          key: "Permissions-Policy",
+          value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+        }),
         { key: "X-Frame-Options", value: "DENY" },
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-        {
-          key: "Permissions-Policy",
-          value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
-        },
       ]),
     );
   });
 
-  it("allows Cloudflare Turnstile scripts and frames through the global CSP", async () => {
+  it("allows inline styles needed by Next Image", async () => {
     const headers = await nextConfig.headers?.();
     const csp = headers
       ?.find((entry) => entry.source === "/:path*")
       ?.headers.find((header) => header.key === "Content-Security-Policy")
       ?.value;
-    const scriptSrc = getCspDirective(csp, "script-src");
+    const styleSrc = getCspDirective(csp, "style-src");
 
-    expect(scriptSrc).toContain("'self'");
-    expect(scriptSrc).toContain("https://challenges.cloudflare.com");
-    expect(scriptSrc.split(" ")).not.toContain("https:");
-    expect(csp).toContain(
-      "frame-src 'self' https://challenges.cloudflare.com",
+    expect(styleSrc).toContain("'self'");
+    expect(styleSrc).toContain("'unsafe-inline'");
+    expect(styleSrc).toContain("https://fonts.googleapis.com");
+    expect(getCspDirective(csp, "style-src-attr")).toBe(
+      "style-src-attr 'unsafe-inline'",
     );
   });
 

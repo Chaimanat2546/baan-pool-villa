@@ -323,6 +323,63 @@ describe("SearchPage", () => {
     container.remove();
   });
 
+  it("persists the submitted sort order in the URL for refreshes", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(createCatalogResponse([villa]));
+    vi.stubGlobal("fetch", fetchMock);
+    window.history.replaceState(null, "", "/search");
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 1,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    const sortButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-haspopup="listbox"]',
+    );
+
+    expect(sortButton).not.toBeNull();
+
+    await act(async () => {
+      sortButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const priceDescOption = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[role="option"]'),
+    )[2];
+
+    expect(priceDescOption).not.toBeUndefined();
+
+    await act(async () => {
+      priceDescOption?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const searchButton = findSearchSubmitButton(container);
+
+    await act(async () => {
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(window.location.search).toContain("sort=price_desc");
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it("keeps the newest submitted search when catalog requests finish out of order", async () => {
     const staleVilla = {
       ...villa,

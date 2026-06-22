@@ -1,6 +1,6 @@
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
-import { buildSiteAssetProxyUrl } from "@/lib/public-image-proxy";
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 const FALLBACK_LOGO_IMAGE_SRC = "/images/logo.jpg";
@@ -20,7 +20,7 @@ interface SiteFooterProps {
 
 export function SiteFooter({ settings }: SiteFooterProps) {
   const logoImageSrc =
-    buildSiteAssetProxyUrl(settings.logoImage.url, { quality: 75, width: 160 }) ??
+    normalizePublicImageSourceUrl(settings.logoImage.url) ??
     FALLBACK_LOGO_IMAGE_SRC;
   const contactItems = [
     ...settings.contact.phoneContacts.map(
@@ -49,6 +49,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
                 src={logoImageSrc}
                 alt={settings.logoImage.alt}
                 fill
+                quality={75}
                 sizes="64px"
                 className="object-cover"
               />

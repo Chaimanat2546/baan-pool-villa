@@ -1,23 +1,18 @@
 import { ArrowRight, FileText, Pin } from "lucide-react";
-import Image from "next/image";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
 import type { GuidePost } from "@/lib/guides/types";
-import { buildGuideCoverImageProxyPath } from "@/lib/public-image-proxy";
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 
 interface GuideListPageProps {
   guides: GuidePost[];
 }
 
 function getGuideImage(guide: GuidePost) {
-  return guide.coverImage?.url
-    ? buildGuideCoverImageProxyPath(guide.slug, {
-        quality: 60,
-        width: 640,
-      })
-    : null;
+  return normalizePublicImageSourceUrl(guide.coverImage?.url ?? null);
 }
 
-function GuideCard({ guide }: { guide: GuidePost }) {
+function GuideCard({ guide, eager }: { eager?: boolean; guide: GuidePost }) {
   const imageUrl = getGuideImage(guide);
 
   return (
@@ -31,9 +26,10 @@ function GuideCard({ guide }: { guide: GuidePost }) {
             alt={guide.coverImage?.alt ?? guide.title}
             className="object-cover transition duration-500 group-hover:scale-105"
             fill
+            loading={eager ? "eager" : "lazy"}
+            quality={60}
             sizes="(max-width: 768px) 100vw, 33vw"
             src={imageUrl}
-            unoptimized
           />
         ) : (
           <div className="grid h-full place-items-center text-sm font-semibold text-[var(--site-muted)]">
@@ -124,8 +120,8 @@ export function GuideListPage({ guides }: GuideListPageProps) {
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {guides.map((guide) => (
-                <GuideCard guide={guide} key={guide.id} />
+              {guides.map((guide, index) => (
+                <GuideCard eager={index === 0} guide={guide} key={guide.id} />
               ))}
             </div>
           )}

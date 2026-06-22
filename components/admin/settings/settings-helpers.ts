@@ -1,4 +1,4 @@
-import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
+import { buildSiteThemeStylesheetHref } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
@@ -26,14 +26,17 @@ export function isHexColor(value: string): boolean {
 
 // Keep the preview renderable while the form is mid-edit by falling back to
 // safe brand colors whenever the draft still contains an invalid hex value.
-export function buildDraftThemeStyle(draft: AdminSettingsDraft) {
+export function buildDraftThemeStylesheetHref(
+  draft: AdminSettingsDraft,
+  scope = "settings-preview-theme",
+) {
   const accentColor = draft.accentColor.trim().toLowerCase();
   const primaryColor = draft.primaryColor.trim().toLowerCase();
 
-  return buildSiteThemeStyle({
+  return buildSiteThemeStylesheetHref({
     accentColor: isHexColor(accentColor) ? accentColor : "#eab308",
     primaryColor: isHexColor(primaryColor) ? primaryColor : "#064e3b",
-  });
+  }, scope);
 }
 
 export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
