@@ -166,7 +166,7 @@ export function SearchPage({
     const sortLabel = SORT_OPTIONS.find((option) => option.value === sortKey)?.label;
 
     if (villaIdQuery.trim()) {
-      labels.push(`รหัสบ้าน ${villaIdQuery.trim()}`);
+      labels.push(`คำค้นหา ${villaIdQuery.trim()}`);
     }
 
     if (sortKey !== "recommended" && sortLabel) {
@@ -373,7 +373,7 @@ export function SearchPage({
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
               รวมบ้านพักพูลวิลล่าพัทยาสำหรับครอบครัว กลุ่มเพื่อน และทริปปาร์ตี้
-              พร้อมตัวกรองทำเล จำนวนคน ห้องนอน ราคา และรหัสบ้าน
+              พร้อมตัวกรองทำเล จำนวนคน ห้องนอน ราคา ชื่อบ้าน และรหัสบ้าน
             </p>
             <nav
               aria-label="ลิงก์ที่เกี่ยวข้องกับการค้นหาบ้านพัก"
@@ -401,7 +401,7 @@ export function SearchPage({
         {isSearchReady ? (
           <div className="grid gap-3 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_28px_rgba(6,63,53,0.05)] md:grid-cols-[minmax(0,1fr)_260px]">
             <label className="block min-w-0">
-              <span className="text-sm font-bold text-[var(--site-text)]">ค้นหาด้วยรหัสบ้าน</span>
+              <span className="text-sm font-bold text-[var(--site-text)]">ค้นหาด้วยชื่อบ้านหรือรหัสบ้าน</span>
               <span className="mt-2 flex h-11 items-center gap-2 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-[var(--site-text)]">
                 <Search className="h-4 w-4 shrink-0 text-[var(--site-primary)]" />
                 <input
@@ -410,7 +410,7 @@ export function SearchPage({
                   onChange={(event) => {
                     handleVillaIdQueryChange(event.target.value);
                   }}
-                  placeholder="เช่น 9 หรือ DV-9"
+                  placeholder="เช่น บ้านสายลม หรือ DV-9"
                   className="w-full min-w-0 bg-transparent text-sm font-semibold outline-none placeholder:text-[var(--site-muted)]"
                 />
               </span>
@@ -529,7 +529,7 @@ export function SearchPage({
                   ไม่พบบ้านพักที่ตรงกับเงื่อนไข
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">
-                  ลองล้างตัวกรอง หรือปรับรหัสบ้าน ราคา จำนวนคน และห้องนอนใหม่อีกครั้ง
+                  ลองล้างตัวกรอง หรือปรับชื่อบ้าน รหัสบ้าน ราคา จำนวนคน และห้องนอนใหม่อีกครั้ง
                 </p>
                 <button
                   type="button"

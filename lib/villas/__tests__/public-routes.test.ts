@@ -153,6 +153,46 @@ describe("GET /api/houses", () => {
     ]);
   });
 
+  it("searches catalog pages by title through the id query param", async () => {
+    fetchHouseListingsMock.mockResolvedValue([
+      {
+        amenities: [],
+        bathrooms: 2,
+        bedrooms: 2,
+        coverImage: null,
+        distanceToSea: "1 km",
+        id: "1",
+        people: 4,
+        poolType: "private",
+        price: 9000,
+        title: "Sea Breeze Villa",
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+      {
+        amenities: [],
+        bathrooms: 3,
+        bedrooms: 4,
+        coverImage: null,
+        distanceToSea: "1 km",
+        id: "2",
+        people: 10,
+        poolType: "private",
+        price: 18000,
+        title: "Jomtien Party House",
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+    ]);
+
+    const { GET } = await import("../../../app/(public)/api/houses/route");
+    const response = await GET(new Request("https://example.com/api/houses?id=party"));
+    const body = await response.json();
+
+    expect(body).toMatchObject({ total: 1 });
+    expect(body.items).toEqual([expect.objectContaining({ id: "2" })]);
+  });
+
   it("returns a generic 502 error and logs backend failures", async () => {
     const rawError = new Error("secret listing backend detail");
     fetchHouseListingsMock.mockRejectedValue(rawError);

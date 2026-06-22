@@ -51,4 +51,13 @@ describe("VillaCard navigation", () => {
     );
     expect(markup).not.toContain("/api/houses/images");
   });
+
+  it("hides the price row when a villa has no price", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard villa={{ ...villa, price: null }} />,
+    );
+
+    expect(markup).toContain("hidden");
+    expect(markup).not.toContain(">0<");
+  });
 });

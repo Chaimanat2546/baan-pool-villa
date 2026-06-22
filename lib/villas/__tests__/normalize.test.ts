@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateCommission, normalizeHouse } from "../normalize";
+import { calculateCommission, getZoneLabel, normalizeHouse } from "../normalize";
 import type { RawHouse } from "../types";
 
 const rawHouse: RawHouse = {
@@ -55,6 +55,21 @@ describe("normalizeHouse", () => {
 
   it("returns null cover image when img_name is missing", () => {
     expect(normalizeHouse({ ...rawHouse, img_name: null }).coverImage).toBeNull();
+  });
+});
+
+describe("getZoneLabel", () => {
+  it.each([
+    ["bangkok", "กรุงเทพ"],
+    ["bangsean", "บางแสน"],
+    ["pattaya", "พัทยา"],
+    ["jomtien", "จอมเทียน"],
+    ["rayong", "ระยอง"],
+    ["sattahip", "สัตหีบ"],
+    ["khaoyai", "เขาใหญ่"],
+    ["unknown-zone", "unknown-zone"],
+  ])("returns %s as %s", (zone, expected) => {
+    expect(getZoneLabel(zone)).toBe(expected);
   });
 });
 

@@ -45,6 +45,7 @@ const listingRows = [
     checkout_time: "11:00:00",
     description: "Large family villa",
     extra_beds: 500,
+    id: "listing-9",
     insurance_fee: 3000,
     listing_facilities: [
       {
@@ -79,11 +80,22 @@ const imageRows = [
   {
     caption: null,
     cover_select: 1,
-    id: "c67ed4d6-89e5-4a56-a0de-f46b1f7d4410",
+    id: 4,
     image_name: null,
     image_url: "https://example.supabase.co/storage/v1/object/public/villas/cover.jpg",
     image_zone: "cover",
     property_id: 9,
+  },
+];
+
+const listingPriceRows = [
+  {
+    deville_price: 8500,
+    listing_id: "listing-9",
+  },
+  {
+    deville_price: 8000,
+    listing_id: "listing-9",
   },
 ];
 
@@ -114,13 +126,26 @@ function imagesQuery(data = imageRows, error: unknown = null) {
   return query;
 }
 
+function listingPricesQuery(data = listingPriceRows, error: unknown = null) {
+  const query = {
+    in: vi.fn(() => Promise.resolve({ data, error })),
+    select: vi.fn(() => query),
+  };
+
+  return query;
+}
+
 function mockSupabase(options?: {
   imageRows?: typeof imageRows;
+  listingPriceRows?: typeof listingPriceRows;
   listingError?: unknown;
   listingRows?: typeof listingRows;
 }) {
   const listings = listingQuery(options?.listingRows ?? listingRows, options?.listingError);
   const images = imagesQuery(options?.imageRows ?? imageRows);
+  const listingPrices = listingPricesQuery(
+    options?.listingPriceRows ?? listingPriceRows,
+  );
   const supabase = {
     from: vi.fn((table: string) => {
       if (table === "listings") {
@@ -131,13 +156,17 @@ function mockSupabase(options?: {
         return images;
       }
 
+      if (table === "listing_prices") {
+        return listingPrices;
+      }
+
       throw new Error(`Unexpected table ${table}`);
     }),
   };
 
   createClientMock.mockReturnValue(supabase);
 
-  return { images, listings, supabase };
+  return { images, listingPrices, listings, supabase };
 }
 
 afterEach(() => {
@@ -165,7 +194,7 @@ describe("fetchHouseListings", () => {
   });
 
   it("loads active Supabase listings with facilities and cover images", async () => {
-    const { images, listings } = mockSupabase();
+    const { images, listingPrices, listings } = mockSupabase();
 
     await expect(fetchHouseListings()).resolves.toEqual([
       {
@@ -180,10 +209,10 @@ describe("fetchHouseListings", () => {
         id: "9",
         people: 12,
         poolType: "salt",
-        price: 0,
+        price: 9900,
         title: "บ้านพักสายลม 9",
         zone: "pattaya",
-        zoneLabel: "pattaya",
+        zoneLabel: "พัทยา",
       },
     ]);
     expect(createClientMock).toHaveBeenCalledWith(
@@ -199,6 +228,15 @@ describe("fetchHouseListings", () => {
     );
     expect(listings.eq).toHaveBeenCalledWith("is_active", true);
     expect(images.in).toHaveBeenCalledWith("property_id", [9]);
+    expect(listingPrices.in).toHaveBeenCalledWith("listing_id", ["listing-9"]);
+  });
+
+  it("keeps listings visible with a null price when listing_prices is empty", async () => {
+    mockSupabase({ listingPriceRows: [] });
+
+    await expect(fetchHouseListings()).resolves.toEqual([
+      expect.objectContaining({ id: "9", price: null }),
+    ]);
   });
 
   it("uses the Supabase catalog for sitemap listings too", async () => {
@@ -216,7 +254,7 @@ describe("fetchHouseListings", () => {
         {
           caption: null,
           cover_select: 9,
-          id: "ed881cf9-aaf0-4e52-ad3f-b47385eb0902",
+          id: 1,
           image_name: null,
           image_url:
             "https://example.supabase.co/storage/v1/object/public/villas/sort-first.jpg",
@@ -226,7 +264,7 @@ describe("fetchHouseListings", () => {
         {
           caption: null,
           cover_select: 0,
-          id: "355213d6-cbeb-4ce4-801c-2328d06b53d7",
+          id: 2,
           image_name: null,
           image_url:
             "https://example.supabase.co/storage/v1/object/public/villas/zone-cover.jpg",

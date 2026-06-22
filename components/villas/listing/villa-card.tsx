@@ -14,8 +14,8 @@ function getVillaTitle(villa: VillaListing): string {
   return villa.title?.trim() || `พูลวิลล่า ${villa.id}`;
 }
 
-function formatPrice(price: number): string {
-  return price.toLocaleString("th-TH");
+function formatPrice(price: number | null): string {
+  return price === null ? "" : price.toLocaleString("th-TH");
 }
 
 export function VillaCard({
@@ -91,7 +91,7 @@ export function VillaCard({
         )}
 
         <div className="flex items-end justify-between gap-3">
-          <p className="min-w-0 text-[var(--site-text)]">
+          <p className={villa.price === null ? "hidden" : "min-w-0 text-[var(--site-text)]"}>
             <span className="text-sm leading-5">เริ่มต้น</span>{" "}
             <span className="text-lg leading-7">{formatPrice(villa.price)}</span>{" "}
             <span className="text-sm leading-5">บาท / คืน</span>

@@ -154,7 +154,7 @@ function uniqueKeywords(keywords: string[]): string[] {
 }
 
 export function getVillaDescription(villa: VillaListing): string {
-  const price = villa.price.toLocaleString("th-TH");
+  const price = villa.price?.toLocaleString("th-TH") ?? "";
 
   return [
     `${getVillaTitle(villa)} บ้านพักพูลวิลล่าสระส่วนตัว รองรับ ${villa.people.toLocaleString("th-TH")} คน`,
@@ -171,7 +171,7 @@ export function getVillaSearchIntentSummary(villa: VillaListing): string {
     `รองรับ ${villa.people.toLocaleString("th-TH")} คน`,
     `${villa.bedrooms.toLocaleString("th-TH")} ห้องนอน`,
     `ทำเล ${villa.zoneLabel}`,
-    `ราคาเริ่มต้น ${villa.price.toLocaleString("th-TH")} บาทต่อคืน`,
+    `ราคาเริ่มต้น ${villa.price?.toLocaleString("th-TH") ?? ""} บาทต่อคืน`,
   ].join(" ");
 }
 

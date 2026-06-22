@@ -39,7 +39,7 @@ export type VillaListing = {
   bedrooms: number;
   bathrooms: number;
   distanceToSea: string;
-  price: number;
+  price: number | null;
   people: number;
   coverImage: string | null;
   amenities: Amenity[];

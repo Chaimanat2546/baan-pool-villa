@@ -5,6 +5,7 @@ import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { fetchVillaPreviewImages, normalizeImageRows } from "./images";
 import { AMENITY_OPTIONS } from "./amenities";
+import { calculateCommission, getZoneLabel } from "./normalize";
 import {
   toPublicVillaDetailPayload,
   toPublicVillaImages,
@@ -34,6 +35,7 @@ type SupabaseListingRow = {
   description?: string | null;
   extra_beds?: number | null;
   insurance_fee?: number | null;
+  id?: string | null;
   listing_facilities?: SupabaseFacilityJoin[] | null;
   location_zone: string | null;
   max_guests: number | null;
@@ -43,6 +45,11 @@ type SupabaseListingRow = {
   property_type: string | null;
   rating?: number | null;
   title?: string | null;
+};
+
+type SupabaseListingPriceRow = {
+  deville_price: number | null;
+  listing_id: string | null;
 };
 
 type SupabaseImageRow = {
@@ -60,8 +67,10 @@ const AMENITY_KEY_SET = new Set<AmenityKey>(
 );
 const DEFAULT_VILLA_SUPABASE_URL = "https://rqizfiayvcbozlzuvbok.supabase.co";
 const COVER_IMAGE_PROPERTY_ID_CHUNK_SIZE = 50;
+const LISTING_PRICE_ID_CHUNK_SIZE = 50;
 
 const LISTING_SELECT_COLUMNS = `
+  id,
   property_id,
   title,
   description,
@@ -129,6 +138,12 @@ function toNumber(value: number | string | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function toDisplayPrice(value: number | null): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? calculateCommission(value)
+    : null;
+}
+
 function toAmenity(item: SupabaseFacilityJoin): Amenity | null {
   const facility = Array.isArray(item.facilities)
     ? item.facilities[0]
@@ -160,6 +175,7 @@ function toVillaDetail(row: SupabaseListingRow): Record<string, unknown> {
 function toVillaListing(
   row: SupabaseListingRow,
   coverImages: Map<string, string>,
+  prices: Map<string, number>,
 ): VillaListing | null {
   const id = row.property_id === null ? "" : String(row.property_id).trim();
 
@@ -168,16 +184,17 @@ function toVillaListing(
   }
 
   const zone = row.location_zone?.trim() || "unknown";
+  const listingId = row.id?.trim();
 
   return {
     id,
     title: row.title?.trim() || undefined,
     zone,
-    zoneLabel: zone,
+    zoneLabel: getZoneLabel(zone),
     bedrooms: toNumber(row.bedrooms),
     bathrooms: toNumber(row.bathrooms),
     distanceToSea: "-",
-    price: 0,
+    price: listingId ? (prices.get(listingId) ?? null) : null,
     people: toNumber(row.max_guests),
     coverImage: coverImages.get(id) ?? null,
     amenities: (row.listing_facilities ?? [])
@@ -213,6 +230,16 @@ function chunkPropertyIds(propertyIds: number[]): number[][] {
 
   for (let index = 0; index < propertyIds.length; index += COVER_IMAGE_PROPERTY_ID_CHUNK_SIZE) {
     chunks.push(propertyIds.slice(index, index + COVER_IMAGE_PROPERTY_ID_CHUNK_SIZE));
+  }
+
+  return chunks;
+}
+
+function chunkListingIds(listingIds: string[]): string[][] {
+  const chunks: string[][] = [];
+
+  for (let index = 0; index < listingIds.length; index += LISTING_PRICE_ID_CHUNK_SIZE) {
+    chunks.push(listingIds.slice(index, index + LISTING_PRICE_ID_CHUNK_SIZE));
   }
 
   return chunks;
@@ -262,6 +289,45 @@ async function fetchCoverImages(
   return coverImages;
 }
 
+async function fetchListingPrices(
+  supabase: VillaSupabaseClient,
+  listingIds: string[],
+): Promise<Map<string, number>> {
+  if (listingIds.length === 0) {
+    return new Map();
+  }
+
+  const prices = new Map<string, number>();
+
+  for (const chunk of chunkListingIds(listingIds)) {
+    const { data, error } = await supabase
+      .from("listing_prices")
+      .select("listing_id, deville_price")
+      .in("listing_id", chunk);
+
+    if (error) {
+      throw new Error(`Supabase listing_prices query failed: ${error.message}`);
+    }
+
+    for (const row of (data ?? []) as SupabaseListingPriceRow[]) {
+      const listingId = row.listing_id?.trim();
+      const price = toDisplayPrice(row.deville_price);
+
+      if (!listingId || price === null) {
+        continue;
+      }
+
+      const currentPrice = prices.get(listingId);
+
+      if (currentPrice === undefined || price < currentPrice) {
+        prices.set(listingId, price);
+      }
+    }
+  }
+
+  return prices;
+}
+
 function selectListings(supabase: VillaSupabaseClient) {
   return supabase
     .from("listings")
@@ -303,10 +369,16 @@ async function fetchHouseListingsFromSupabase(): Promise<VillaListing[]> {
   const propertyIds = rows
     .map((row) => toNumber(row.property_id))
     .filter((id) => Number.isSafeInteger(id) && id > 0);
-  const coverImages = await fetchCoverImages(supabase, supabaseUrl, propertyIds);
+  const listingIds = rows
+    .map((row) => row.id?.trim())
+    .filter((id): id is string => Boolean(id));
+  const [coverImages, prices] = await Promise.all([
+    fetchCoverImages(supabase, supabaseUrl, propertyIds),
+    fetchListingPrices(supabase, listingIds),
+  ]);
 
   return rows
-    .map((row) => toVillaListing(row, coverImages))
+    .map((row) => toVillaListing(row, coverImages, prices))
     .filter((listing): listing is VillaListing => listing !== null);
 }
 

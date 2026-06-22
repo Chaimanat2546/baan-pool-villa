@@ -4,7 +4,18 @@ import type { RawHouse, VillaListing } from "./types";
 const PROFILE_IMAGE_BASE = "https://devillegroups.com/imgs/profile_imgs_large";
 
 const ZONE_LABELS: Record<string, string> = {
+  bangkok: "กรุงเทพ",
+  bangsaray: "บางเสร่",
+  bang_saray: "บางเสร่",
+  bangsean: "บางแสน",
+  bang_saen: "บางแสน",
+  hua_hin: "หัวหิน",
+  huahin: "หัวหิน",
+  jomtien: "จอมเทียน",
+  khaoyai: "เขาใหญ่",
   pattaya: "พัทยา",
+  rayong: "ระยอง",
+  sattahip: "สัตหีบ",
 };
 
 function toNumber(value: string | number | null | undefined): number {

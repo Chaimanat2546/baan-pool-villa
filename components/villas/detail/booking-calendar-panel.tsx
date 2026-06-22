@@ -24,7 +24,7 @@ import { useLockedBodyScroll } from "./use-locked-body-scroll";
 
 interface BookingCalendarPanelProps {
   contactLinks: { line: string; messenger: string };
-  fallbackPrice: number;
+  fallbackPrice: number | null;
   listingId: string;
   primaryPhoneContact?: { href: string; phone: string };
 }

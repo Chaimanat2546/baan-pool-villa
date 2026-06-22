@@ -85,7 +85,10 @@ export default async function Page({ params }: VillaPageProps) {
         "@type": "LocationFeatureSpecification",
         name: amenity.label,
       })),
-      priceRange: `เริ่มต้น ${listing.price.toLocaleString("th-TH")} บาท/คืน`,
+      priceRange:
+        listing.price === null
+          ? undefined
+          : `เริ่มต้น ${listing.price.toLocaleString("th-TH")} บาท/คืน`,
     },
   ];
 
