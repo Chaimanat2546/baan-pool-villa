@@ -11,7 +11,7 @@ interface VillaCardProps {
 }
 
 function getVillaTitle(villa: VillaListing): string {
-  return `พูลวิลล่า ${villa.id}`;
+  return villa.title?.trim() || `พูลวิลล่า ${villa.id}`;
 }
 
 function formatPrice(price: number): string {

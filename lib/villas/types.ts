@@ -33,6 +33,7 @@ export type RawHouse = {
 
 export type VillaListing = {
   id: string;
+  title?: string;
   zone: string;
   zoneLabel: string;
   bedrooms: number;

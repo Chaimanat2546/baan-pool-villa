@@ -307,7 +307,7 @@ export function GalleryLightbox({
               id={lightboxTitleId}
             >
 
-              {getVillaTitle(listing.id)}
+              {getVillaTitle(listing.id, listing.title)}
 
             </h2>
 
@@ -368,7 +368,7 @@ export function GalleryLightbox({
 
               src={activeImageDisplaySrc}
 
-              alt={`${getVillaTitle(listing.id)} ${activeItem.zoneLabel}`}
+              alt={`${getVillaTitle(listing.id, listing.title)} ${activeItem.zoneLabel}`}
 
               fill
 

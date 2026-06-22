@@ -7,8 +7,8 @@ import type { PublicVillaImage } from "@/lib/villas/public-dto";
 import { IMAGE_ZONE_LABELS } from "./constants";
 import type { GalleryCategory, GalleryItem } from "./types";
 
-export function getVillaTitle(id: string): string {
-  return `พูลวิลล่า ${id}`;
+export function getVillaTitle(id: string, title?: string): string {
+  return title?.trim() || `พูลวิลล่า ${id}`;
 }
 
 function getImageZoneLabel(zone: string | null): string {

@@ -26,7 +26,7 @@ export function Gallery({
     <section className="mx-auto w-full max-w-7xl px-0 sm:px-6 lg:px-8">
       <div className="grid w-full gap-2 bg-transparent lg:h-[500px] lg:grid-cols-[3fr_2fr] lg:gap-1 lg:overflow-hidden lg:rounded-xl">
         <GalleryImage
-          alt={`${getVillaTitle(listing.id)} รูปหลัก`}
+          alt={`${getVillaTitle(listing.id, listing.title)} รูปหลัก`}
           className="aspect-[16/11] rounded-none sm:rounded-2xl lg:aspect-auto lg:h-full lg:rounded-l-xl lg:rounded-r-none"
           fetchPriority="high"
           item={main}
@@ -39,7 +39,7 @@ export function Gallery({
         <div className="mx-auto grid w-[calc(100%_-_45px)] grid-cols-3 gap-2 sm:w-full lg:h-full lg:grid-cols-2 lg:grid-rows-2 lg:gap-1">
           {second ? (
             <GalleryImage
-              alt={`${getVillaTitle(listing.id)} ห้องนั่งเล่น`}
+              alt={`${getVillaTitle(listing.id, listing.title)} ห้องนั่งเล่น`}
               className="aspect-[4/3] rounded-2xl lg:aspect-auto lg:h-full lg:rounded-none"
               item={second}
               listingId={listing.id}
@@ -52,7 +52,7 @@ export function Gallery({
 
           {third ? (
             <GalleryImage
-              alt={`${getVillaTitle(listing.id)} ห้องนอน`}
+              alt={`${getVillaTitle(listing.id, listing.title)} ห้องนอน`}
               className="aspect-[4/3] rounded-2xl lg:aspect-auto lg:h-full lg:rounded-l-none lg:rounded-r-xl lg:rounded-bl-none"
               item={third}
               listingId={listing.id}
@@ -66,7 +66,7 @@ export function Gallery({
           {fourth ? (
             <div className="relative overflow-hidden rounded-2xl lg:col-span-2 lg:h-full lg:rounded-br-xl lg:rounded-t-none [&>button]:h-full [&>button]:w-full [&>button]:rounded-none">
               <GalleryImage
-                alt={`${getVillaTitle(listing.id)} รวมรูปบ้านพัก`}
+                alt={`${getVillaTitle(listing.id, listing.title)} รวมรูปบ้านพัก`}
                 className="aspect-[4/3] w-full lg:aspect-auto lg:h-full lg:rounded-none [&_img]:scale-110 [&_img]:brightness-75"
                 item={fourth}
                 listingId={listing.id}

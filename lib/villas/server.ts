@@ -1,9 +1,10 @@
 import "server-only";
 
+import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
-import { fetchVillaPreviewImages } from "./images";
-import { normalizeHouses } from "./normalize";
+import { fetchVillaPreviewImages, normalizeImageRows } from "./images";
+import { AMENITY_OPTIONS } from "./amenities";
 import {
   toPublicVillaDetailPayload,
   toPublicVillaImages,
@@ -11,44 +12,307 @@ import {
   type PublicVillaImage,
 } from "./public-dto";
 import type {
-  RawHouse,
+  Amenity,
+  AmenityKey,
   VillaDetailPayload,
   VillaListing,
 } from "./types";
 
-const HOUSE_LIST_URL = "https://www.devillegroups.com/api/json/getHouse_deville.json";
-const DETAIL_URL = "https://deville-central.com/api/getAccommodation.php";
+type SupabaseFacilityJoin = {
+  facilities:
+    | { name: string | null; title: string | null }
+    | { name: string | null; title: string | null }[]
+    | null;
+  value_boolean: boolean | null;
+};
 
-async function readJson<T>(response: Response): Promise<T> {
-  const text = await response.text();
+type SupabaseListingRow = {
+  bathrooms: number | null;
+  bedrooms: number | null;
+  checkin_time?: string | null;
+  checkout_time?: string | null;
+  description?: string | null;
+  extra_beds?: number | null;
+  insurance_fee?: number | null;
+  listing_facilities?: SupabaseFacilityJoin[] | null;
+  location_zone: string | null;
+  max_guests: number | null;
+  notes?: string | null;
+  property_id: number | string | null;
+  property_tags?: unknown;
+  property_type: string | null;
+  rating?: number | null;
+  title?: string | null;
+};
 
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error("External API returned invalid JSON");
+type SupabaseImageRow = {
+  caption: string | null;
+  cover_select: number | null;
+  id: number;
+  image_name: string | null;
+  image_url?: string | null;
+  image_zone: string | null;
+  property_id: number;
+};
+
+const AMENITY_KEY_SET = new Set<AmenityKey>(
+  AMENITY_OPTIONS.map((amenity) => amenity.key),
+);
+const DEFAULT_VILLA_SUPABASE_URL = "https://rqizfiayvcbozlzuvbok.supabase.co";
+
+const LISTING_SELECT_COLUMNS = `
+  property_id,
+  title,
+  description,
+  bedrooms,
+  bathrooms,
+  extra_beds,
+  insurance_fee,
+  checkin_time,
+  checkout_time,
+  sort_order,
+  notes,
+  location_zone,
+  property_type,
+  rating,
+  max_guests,
+  is_active,
+  property_tags,
+  listing_facilities (
+    value_boolean,
+    message,
+    facilities (
+      name,
+      title
+    )
+  )
+`;
+
+function getVillaSupabaseConfig() {
+  const supabaseUrl =
+    process.env.SUPABASE_URL ??
+    process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    DEFAULT_VILLA_SUPABASE_URL;
+  const supabaseKey =
+    process.env.SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Villa Supabase config is missing");
   }
+
+  return { supabaseUrl, supabaseKey };
 }
 
-async function fetchHouseListingsFromApi(
-  revalidate = CACHE_REVALIDATE_SECONDS.villaListings,
-): Promise<VillaListing[]> {
-  const response = await fetch(HOUSE_LIST_URL, {
-    next: {
-      revalidate,
-      tags: [CACHE_TAGS.villaListings],
-    },
-  });
+function createVillaSupabaseClient() {
+  const { supabaseUrl, supabaseKey } = getVillaSupabaseConfig();
 
-  if (!response.ok) {
-    throw new Error(`House list API failed with ${response.status}`);
+  return {
+    supabase: createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    }),
+    supabaseUrl,
+  };
+}
+
+type VillaSupabaseClient = ReturnType<typeof createVillaSupabaseClient>["supabase"];
+
+function toNumber(value: number | string | null | undefined): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toAmenity(item: SupabaseFacilityJoin): Amenity | null {
+  const facility = Array.isArray(item.facilities)
+    ? item.facilities[0]
+    : item.facilities;
+  const key = facility?.name?.trim();
+
+  if (item.value_boolean === false || !key || !AMENITY_KEY_SET.has(key as AmenityKey)) {
+    return null;
   }
 
-  const data = await readJson<RawHouse[]>(response);
-  return normalizeHouses(Array.isArray(data) ? data : []);
+  return {
+    key: key as AmenityKey,
+    label: facility?.title?.trim() || key,
+  };
+}
+
+function toVillaDetail(row: SupabaseListingRow): Record<string, unknown> {
+  return {
+    h_additional_costs: row.notes ?? null,
+    h_extra: row.extra_beds ?? null,
+    h_insurance: row.insurance_fee ?? null,
+    h_moredetail: row.description ?? null,
+    h_people_max: row.max_guests ?? null,
+    h_time_checkin: row.checkin_time ?? null,
+    h_time_checkout: row.checkout_time ?? null,
+  };
+}
+
+function toVillaListing(
+  row: SupabaseListingRow,
+  coverImages: Map<string, string>,
+): VillaListing | null {
+  const id = row.property_id === null ? "" : String(row.property_id).trim();
+
+  if (!id) {
+    return null;
+  }
+
+  const zone = row.location_zone?.trim() || "unknown";
+
+  return {
+    id,
+    title: row.title?.trim() || undefined,
+    zone,
+    zoneLabel: zone,
+    bedrooms: toNumber(row.bedrooms),
+    bathrooms: toNumber(row.bathrooms),
+    distanceToSea: "-",
+    price: 0,
+    people: toNumber(row.max_guests),
+    coverImage: coverImages.get(id) ?? null,
+    amenities: (row.listing_facilities ?? [])
+      .map(toAmenity)
+      .filter((amenity): amenity is Amenity => amenity !== null),
+    poolType: row.property_type?.trim() || "-",
+  };
+}
+
+async function fetchCoverImages(
+  supabase: VillaSupabaseClient,
+  supabaseUrl: string,
+  propertyIds: number[],
+): Promise<Map<string, string>> {
+  if (propertyIds.length === 0) {
+    return new Map();
+  }
+
+  const { data, error } = await supabase
+    .from("images")
+    .select("id, property_id, cover_select, image_name, image_url, caption, image_zone")
+    .in("property_id", propertyIds)
+    .order("cover_select", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: true });
+
+  if (error) {
+    throw new Error(`Supabase images query failed: ${error.message}`);
+  }
+
+  const coverImages = new Map<string, string>();
+
+  for (const row of (data ?? []) as SupabaseImageRow[]) {
+    const key = String(row.property_id);
+
+    if (!coverImages.has(key)) {
+      const [image] = normalizeImageRows([row], supabaseUrl);
+
+      if (image) {
+        coverImages.set(key, image.imageUrl);
+      }
+    }
+  }
+
+  return coverImages;
+}
+
+function selectListings(supabase: VillaSupabaseClient) {
+  return supabase
+    .from("listings")
+    .select(LISTING_SELECT_COLUMNS)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+}
+
+function selectListingDetail(supabase: VillaSupabaseClient, id: string) {
+  return supabase
+    .from("listings")
+    .select(LISTING_SELECT_COLUMNS)
+    .eq("is_active", true)
+    .eq("property_id", toNumber(id))
+    .maybeSingle();
+}
+
+async function fetchListingRows(): Promise<{
+  rows: SupabaseListingRow[];
+  supabase: VillaSupabaseClient;
+  supabaseUrl: string;
+}> {
+  const { supabase, supabaseUrl } = createVillaSupabaseClient();
+  const { data, error } = await selectListings(supabase);
+
+  if (error) {
+    throw new Error(`Supabase listings query failed: ${error.message}`);
+  }
+
+  return {
+    rows: (data ?? []) as unknown as SupabaseListingRow[],
+    supabase,
+    supabaseUrl,
+  };
+}
+
+async function fetchHouseListingsFromSupabase(): Promise<VillaListing[]> {
+  const { rows, supabase, supabaseUrl } = await fetchListingRows();
+  const propertyIds = rows
+    .map((row) => toNumber(row.property_id))
+    .filter((id) => Number.isSafeInteger(id) && id > 0);
+  const coverImages = await fetchCoverImages(supabase, supabaseUrl, propertyIds);
+
+  return rows
+    .map((row) => toVillaListing(row, coverImages))
+    .filter((listing): listing is VillaListing => listing !== null);
+}
+
+async function fetchVillaDetailFromSupabase(
+  id: string,
+  listing: VillaListing,
+): Promise<VillaDetailPayload> {
+  const tag = CACHE_TAGS.villaDetail(id);
+  const getCachedVillaDetail = unstable_cache(
+    async () => {
+      const { supabase } = createVillaSupabaseClient();
+      const { data, error } = await selectListingDetail(supabase, id);
+
+      if (error) {
+        throw new Error(`Supabase listing detail query failed: ${error.message}`);
+      }
+
+      return data as unknown as SupabaseListingRow | null;
+    },
+    [tag],
+    {
+      revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
+      tags: [CACHE_TAGS.villaDetails, tag],
+    },
+  );
+
+  try {
+    const data = await getCachedVillaDetail();
+
+    return {
+      listing,
+      detail: data ? toVillaDetail(data) : null,
+      detailStatus: data ? "available" : "unavailable",
+    };
+  } catch {
+    return {
+      listing,
+      detail: null,
+      detailStatus: "unavailable",
+    };
+  }
 }
 
 const fetchCachedHouseListings = unstable_cache(
-  fetchHouseListingsFromApi,
+  fetchHouseListingsFromSupabase,
   [CACHE_TAGS.villaListings],
   {
     revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
@@ -73,7 +337,7 @@ export async function fetchHouseListings(): Promise<VillaListing[]> {
  * @returns The normalized villa listings using the sitemap cache window.
  */
 export async function fetchHouseListingsForSitemap(): Promise<VillaListing[]> {
-  return fetchHouseListingsFromApi(CACHE_REVALIDATE_SECONDS.sitemap);
+  return fetchHouseListingsFromSupabase();
 }
 
 /**
@@ -88,8 +352,8 @@ export async function getListingById(id: string): Promise<VillaListing | null> {
 }
 
 /**
- * Resolves the listing first, then adds optional detail data when the upstream
- * detail API and bearer token are available.
+ * Resolves the listing first, then adds Supabase detail fields for the public
+ * detail page when the listing row is available.
  *
  * @param id - The villa id to resolve.
  * @param listings - An optional preloaded listing array to avoid a duplicate
@@ -109,50 +373,7 @@ export async function fetchVillaDetail(
     return null;
   }
 
-  const token = process.env.DEVILLE_BEARER_TOKEN;
-
-  if (!token) {
-    return {
-      listing,
-      detail: null,
-      detailStatus: "missing_token",
-    };
-  }
-
-  const url = new URL(DETAIL_URL);
-  url.searchParams.set("hid", id);
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      next: {
-        revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
-        tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail(id)],
-      },
-    });
-
-    if (!response.ok) {
-      return {
-        listing,
-        detail: null,
-        detailStatus: "unavailable",
-      };
-    }
-
-    return {
-      listing,
-      detail: await readJson<unknown>(response),
-      detailStatus: "available",
-    };
-  } catch {
-    return {
-      listing,
-      detail: null,
-      detailStatus: "unavailable",
-    };
-  }
+  return fetchVillaDetailFromSupabase(id, listing);
 }
 
 export type VillaPageData = {

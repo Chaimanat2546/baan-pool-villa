@@ -119,6 +119,12 @@ function buildSiteAssetMetadataImageUrl(
 }
 
 export function getVillaTitle(villa: VillaListing): string {
+  const customTitle = villa.title?.trim();
+
+  if (customTitle) {
+    return customTitle;
+  }
+
   const zoneLabel = villa.zoneLabel.trim();
   const titleLocation = zoneLabel.includes("พัทยา")
     ? zoneLabel
