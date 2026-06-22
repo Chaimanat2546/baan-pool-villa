@@ -608,8 +608,8 @@
             </tr>
             <tr>
               <td>Villa detail</td>
-              <td>Supabase <code>listings</code> rows matched by <code>property_id</code>.</td>
-              <td><code>lib/villas/server.ts</code>, <code>lib/villas/detail.ts</code>, detail cache tag.</td>
+              <td>Supabase <code>listings</code> rows matched by <code>property_id</code> provide the base listing, then Deville Central <code>getAccommodation.php?hid={id}</code> provides full detail fields with <code>DEVILLE_BEARER_TOKEN</code>.</td>
+              <td><code>lib/villas/server.ts</code>, <code>lib/villas/detail.ts</code>, detail cache tag. Missing tokens or Deville failures fall back to the Supabase-derived <code>toVillaDetail(row)</code> payload and set <code>detailStatus</code> to <code>missing_token</code> or <code>unavailable</code>.</td>
               <td>Villa detail route and public villa detail API.</td>
             </tr>
             <tr>

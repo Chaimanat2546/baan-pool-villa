@@ -438,6 +438,7 @@ describe("SearchPage", () => {
       searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
+    expect(container.querySelector('[data-search-pool-ripple="true"]')).not.toBeNull();
     expectCatalogFetchCall(
       fetchMock,
       1,

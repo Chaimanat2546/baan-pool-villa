@@ -66,6 +66,7 @@ const AMENITY_KEY_SET = new Set<AmenityKey>(
   AMENITY_OPTIONS.map((amenity) => amenity.key),
 );
 const DEFAULT_VILLA_SUPABASE_URL = "https://rqizfiayvcbozlzuvbok.supabase.co";
+const DETAIL_URL = "https://deville-central.com/api/getAccommodation.php";
 const COVER_IMAGE_PROPERTY_ID_CHUNK_SIZE = 50;
 const LISTING_PRICE_ID_CHUNK_SIZE = 50;
 
@@ -132,6 +133,16 @@ function createVillaSupabaseClient() {
 }
 
 type VillaSupabaseClient = ReturnType<typeof createVillaSupabaseClient>["supabase"];
+
+async function readJson<T>(response: Response): Promise<T> {
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error("External API returned invalid JSON");
+  }
+}
 
 function toNumber(value: number | string | null | undefined): number {
   const parsed = Number(value);
@@ -382,21 +393,59 @@ async function fetchHouseListingsFromSupabase(): Promise<VillaListing[]> {
     .filter((listing): listing is VillaListing => listing !== null);
 }
 
-async function fetchVillaDetailFromSupabase(
+async function fetchSupabaseDetailFallback(
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  const { supabase } = createVillaSupabaseClient();
+  const { data, error } = await selectListingDetail(supabase, id);
+
+  if (error) {
+    throw new Error(`Supabase listing detail query failed: ${error.message}`);
+  }
+
+  return data ? toVillaDetail(data as unknown as SupabaseListingRow) : null;
+}
+
+async function fetchVillaDetailFromSources(
   id: string,
   listing: VillaListing,
 ): Promise<VillaDetailPayload> {
   const tag = CACHE_TAGS.villaDetail(id);
   const getCachedVillaDetail = unstable_cache(
-    async () => {
-      const { supabase } = createVillaSupabaseClient();
-      const { data, error } = await selectListingDetail(supabase, id);
+    async (): Promise<Omit<VillaDetailPayload, "listing">> => {
+      const token = process.env.DEVILLE_BEARER_TOKEN?.trim();
 
-      if (error) {
-        throw new Error(`Supabase listing detail query failed: ${error.message}`);
+      if (!token) {
+        return {
+          detail: await fetchSupabaseDetailFallback(id),
+          detailStatus: "missing_token",
+        };
       }
 
-      return data as unknown as SupabaseListingRow | null;
+      const url = new URL(DETAIL_URL);
+      url.searchParams.set("hid", id);
+
+      try {
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          return {
+            detail: await readJson<unknown>(response),
+            detailStatus: "available",
+          };
+        }
+      } catch {
+        // fall back to the Supabase detail row below
+      }
+
+      return {
+        detail: await fetchSupabaseDetailFallback(id),
+        detailStatus: "unavailable",
+      };
     },
     [tag],
     {
@@ -406,12 +455,9 @@ async function fetchVillaDetailFromSupabase(
   );
 
   try {
-    const data = await getCachedVillaDetail();
-
     return {
       listing,
-      detail: data ? toVillaDetail(data) : null,
-      detailStatus: data ? "available" : "unavailable",
+      ...(await getCachedVillaDetail()),
     };
   } catch {
     return {
@@ -463,8 +509,8 @@ export async function getListingById(id: string): Promise<VillaListing | null> {
 }
 
 /**
- * Resolves the listing first, then adds Supabase detail fields for the public
- * detail page when the listing row is available.
+ * Resolves the listing first, then adds Deville Central detail data with the
+ * Supabase listing row as a conservative fallback.
  *
  * @param id - The villa id to resolve.
  * @param listings - An optional preloaded listing array to avoid a duplicate
@@ -484,7 +530,7 @@ export async function fetchVillaDetail(
     return null;
   }
 
-  return fetchVillaDetailFromSupabase(id, listing);
+  return fetchVillaDetailFromSources(id, listing);
 }
 
 export type VillaPageData = {

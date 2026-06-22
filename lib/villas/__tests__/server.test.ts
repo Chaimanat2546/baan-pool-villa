@@ -36,6 +36,7 @@ vi.mock("../images", async () => {
 });
 
 const unstableCacheMock = vi.mocked(unstable_cache);
+const fetchMock = vi.fn();
 
 const listingRows = [
   {
@@ -98,6 +99,14 @@ const listingPriceRows = [
     listing_id: "listing-9",
   },
 ];
+
+const devilleDetail = {
+  h_bedroom_detail: "Bedroom 1: king bed",
+  h_kitchen_ware: "Microwave\nThai kitchen equipment",
+  h_swimmingpool: "3.5 x 8 m salt pool",
+  location: "Jomtien, Pattaya",
+  sea: "900 m",
+};
 
 function listingQuery(data = listingRows, error: unknown = null) {
   const query = {
@@ -171,13 +180,16 @@ function mockSupabase(options?: {
 
 afterEach(() => {
   createClientMock.mockReset();
+  fetchMock.mockReset();
   fetchVillaPreviewImagesMock.mockReset();
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
 
 beforeEach(() => {
   vi.stubEnv("SUPABASE_URL", "https://example.supabase.co");
   vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "publishable");
+  vi.stubGlobal("fetch", fetchMock);
   fetchVillaPreviewImagesMock.mockResolvedValue([]);
 });
 
@@ -284,7 +296,7 @@ describe("fetchHouseListings", () => {
 });
 
 describe("fetchVillaDetail", () => {
-  it("returns Supabase detail fields for the requested listing", async () => {
+  it("returns Deville Central detail fields for the requested listing", async () => {
     const listing = {
       amenities: [],
       bathrooms: 5,
@@ -298,7 +310,53 @@ describe("fetchVillaDetail", () => {
       zone: "pattaya",
       zoneLabel: "pattaya",
     };
-    const { listings } = mockSupabase();
+    mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(devilleDetail), { status: 200 }),
+    );
+
+    const payload = await fetchVillaDetail("9", [listing]);
+
+    expect(payload).toEqual({
+      detail: devilleDetail,
+      detailStatus: "available",
+      listing,
+    });
+    expect(JSON.stringify(payload)).not.toContain("secret-token");
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        href: "https://deville-central.com/api/getAccommodation.php?hid=9",
+      }),
+      {
+        headers: {
+          Authorization: "Bearer secret-token",
+        },
+      },
+    );
+    expect(unstableCacheMock).toHaveBeenCalledWith(expect.any(Function), [
+      CACHE_TAGS.villaDetail("9"),
+    ], {
+      revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
+      tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail("9")],
+    });
+  });
+
+  it("falls back to Supabase detail fields when the Deville token is missing", async () => {
+    const listing = {
+      amenities: [],
+      bathrooms: 5,
+      bedrooms: 6,
+      coverImage: null,
+      distanceToSea: "-",
+      id: "9",
+      people: 12,
+      poolType: "salt",
+      price: 0,
+      zone: "pattaya",
+      zoneLabel: "pattaya",
+    };
+    mockSupabase();
 
     await expect(fetchVillaDetail("9", [listing])).resolves.toEqual({
       detail: {
@@ -310,11 +368,38 @@ describe("fetchVillaDetail", () => {
         h_time_checkin: "14:00:00",
         h_time_checkout: "11:00:00",
       },
-      detailStatus: "available",
+      detailStatus: "missing_token",
       listing,
     });
-    expect(listings.eq).toHaveBeenCalledWith("property_id", 9);
-    expect(listings.maybeSingle).toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to Supabase detail fields when Deville Central fails", async () => {
+    const listing = {
+      amenities: [],
+      bathrooms: 5,
+      bedrooms: 6,
+      coverImage: null,
+      distanceToSea: "-",
+      id: "9",
+      people: 12,
+      poolType: "salt",
+      price: 0,
+      zone: "pattaya",
+      zoneLabel: "pattaya",
+    };
+    mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    fetchMock.mockResolvedValue(new Response("upstream down", { status: 503 }));
+
+    await expect(fetchVillaDetail("9", [listing])).resolves.toMatchObject({
+      detail: {
+        h_additional_costs: "No smoking",
+        h_moredetail: "Large family villa",
+      },
+      detailStatus: "unavailable",
+      listing,
+    });
   });
 
   it("returns null when no listing exists for the requested id", async () => {
@@ -327,6 +412,10 @@ describe("fetchVillaDetail", () => {
 describe("fetchVillaPageData", () => {
   it("returns server-fetched detail payload with up to four initial gallery images", async () => {
     mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(devilleDetail), { status: 200 }),
+    );
     fetchVillaPreviewImagesMock.mockResolvedValue([
       {
         caption: null,
@@ -374,6 +463,7 @@ describe("fetchVillaPageData", () => {
 
     expect(data).toMatchObject({
       payload: {
+        detail: devilleDetail,
         listing: { id: "9" },
         detailStatus: "available",
       },
