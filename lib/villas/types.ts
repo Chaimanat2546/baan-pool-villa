@@ -12,7 +12,9 @@ export type AmenityKey =
   | "karaoke"
   | "airhockey"
   | "jacuzzi"
-  | "bath";
+  | "bath"
+  | "private_pool"
+  | "extra_bed";
 
 export type Amenity = {
   key: AmenityKey;

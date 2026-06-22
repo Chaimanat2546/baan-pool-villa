@@ -87,6 +87,23 @@ function clearSearchUrl() {
   }
 }
 
+function mergeUniqueVillas(
+  currentVillas: VillaListing[],
+  nextVillas: VillaListing[],
+): VillaListing[] {
+  const seenIds = new Set(currentVillas.map((villa) => villa.id));
+  const mergedVillas = [...currentVillas];
+
+  for (const villa of nextVillas) {
+    if (!seenIds.has(villa.id)) {
+      seenIds.add(villa.id);
+      mergedVillas.push(villa);
+    }
+  }
+
+  return mergedVillas;
+}
+
 export function getInitialCatalogComplete(
   initialMeta: SearchPageInitialMeta | undefined,
 ): boolean {
@@ -262,7 +279,7 @@ export function SearchPage({
       const nextItems = payload.items;
 
       setVillas((currentVillas) =>
-        append ? [...currentVillas, ...nextItems] : nextItems,
+        append ? mergeUniqueVillas(currentVillas, nextItems) : nextItems,
       );
       setCatalogHasMore(Boolean(payload.hasMore));
       setCatalogResultCount(

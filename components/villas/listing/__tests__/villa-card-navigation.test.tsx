@@ -60,4 +60,23 @@ describe("VillaCard navigation", () => {
     expect(markup).toContain("hidden");
     expect(markup).not.toContain(">0<");
   });
+
+  it("shows only short amenity labels on cards", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard
+        villa={{
+          ...villa,
+          amenities: [
+            { key: "private_pool", label: "สระว่ายน้ำส่วนตัว" },
+            { key: "swimming_kid", label: "สระเด็ก" },
+            { key: "grill", label: "เตาปิ้งย่าง" },
+          ],
+        }}
+      />,
+    );
+
+    expect(markup).not.toContain("สระว่ายน้ำส่วนตัว");
+    expect(markup).toContain("สระเด็ก");
+    expect(markup).toContain("เตาปิ้งย่าง");
+  });
 });

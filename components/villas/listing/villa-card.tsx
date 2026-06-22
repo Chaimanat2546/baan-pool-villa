@@ -14,8 +14,14 @@ function getVillaTitle(villa: VillaListing): string {
   return villa.title?.trim() || `พูลวิลล่า ${villa.id}`;
 }
 
+const CARD_AMENITY_LABEL_MAX_LENGTH = 12;
+
 function formatPrice(price: number | null): string {
   return price === null ? "" : price.toLocaleString("th-TH");
+}
+
+function isShortCardAmenityLabel(label: string): boolean {
+  return Array.from(label.trim()).length <= CARD_AMENITY_LABEL_MAX_LENGTH;
 }
 
 export function VillaCard({
@@ -23,7 +29,9 @@ export function VillaCard({
   titleHeadingLevel = "h2",
   preload = false,
 }: VillaCardProps) {
-  const visibleAmenities = villa.amenities.slice(0, 3);
+  const visibleAmenities = villa.amenities
+    .filter((amenity) => isShortCardAmenityLabel(amenity.label))
+    .slice(0, 3);
   const TitleTag = titleHeadingLevel;
   const coverImageSrc = normalizePublicVillaCoverImage(villa);
 
@@ -43,10 +51,12 @@ export function VillaCard({
             sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
             className="object-cover transition duration-500 group-hover:scale-105"
           />
-        ) : (
+        ) : villa.amenities.length === 0 ? (
           <div className="grid h-full place-items-center bg-[var(--site-surface-tint)] text-sm font-semibold text-[var(--site-muted)]">
             ไม่มีรูปภาพ
           </div>
+        ) : (
+          <div className="min-h-[34px] pb-3" aria-hidden="true" />
         )}
       </div>
 
@@ -84,12 +94,13 @@ export function VillaCard({
               </span>
             ))}
           </div>
-        ) : (
+        ) : villa.amenities.length === 0 ? (
           <div className="min-h-[34px] pb-3 text-xs leading-5 text-[var(--site-muted)]">
             ไม่มีข้อมูลสิ่งอำนวยความสะดวก
           </div>
+        ) : (
+          <div className="min-h-[34px] pb-3" aria-hidden="true" />
         )}
-
         <div className="flex items-end justify-between gap-3">
           <p className={villa.price === null ? "hidden" : "min-w-0 text-[var(--site-text)]"}>
             <span className="text-sm leading-5">เริ่มต้น</span>{" "}

@@ -28,7 +28,7 @@ export function VillaGrid({ villas }: VillaGridProps) {
   }
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {villas.map((villa, index) => (
         <VillaCard key={villa.id} villa={villa} preload={index === 0} />
       ))}

@@ -15,7 +15,20 @@ export const AMENITY_OPTIONS: Amenity[] = [
   { key: "airhockey", label: "แอร์ฮอกกี้" },
   { key: "jacuzzi", label: "จากุซซี่" },
   { key: "bath", label: "อ่างอาบน้ำ" },
+  { key: "private_pool", label: "สระว่ายน้ำส่วนตัว" },
+  { key: "extra_bed", label: "เตียงเสริม" },
 ];
+
+const FACILITY_AMENITY_KEY_ALIASES: Partial<Record<string, AmenityKey>> = {
+  air_hockey: "airhockey",
+  bathtub: "bath",
+  billiard: "billard",
+  disco_tech: "discotech",
+  kid_pool: "swimming_kid",
+  pets: "pet",
+  pool_float: "fancyring",
+  table_tennis: "tabletennis",
+};
 
 export const AMENITY_LABELS = Object.fromEntries(
   AMENITY_OPTIONS.map((amenity) => [amenity.key, amenity.label]),
@@ -30,4 +43,19 @@ export const AMENITY_LABELS = Object.fromEntries(
  */
 export function getHouseAmenities(house: RawHouse): Amenity[] {
   return AMENITY_OPTIONS.filter((amenity) => house[amenity.key] === "y");
+}
+
+export function normalizeAmenityKey(key: string): AmenityKey | null {
+  const normalizedKey = key.trim();
+
+  if (!normalizedKey) {
+    return null;
+  }
+
+  return (
+    FACILITY_AMENITY_KEY_ALIASES[normalizedKey] ??
+    (Object.prototype.hasOwnProperty.call(AMENITY_LABELS, normalizedKey)
+      ? (normalizedKey as AmenityKey)
+      : null)
+  );
 }

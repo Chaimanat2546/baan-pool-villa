@@ -8,12 +8,15 @@ import { selectHomeGuideSummaries } from "@/components/villas/home/articles-sect
 import { toHomePageSettings } from "@/components/villas/home/client-payload";
 import { getPublishedGuides } from "@/lib/guides/server";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
-import { getResolvedHomeSections } from "@/lib/home-sections/server";
+import {
+  getActiveHomeSectionHouseIds,
+  getResolvedHomeSections,
+} from "@/lib/home-sections/server";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
 import { getMaxVillaPrice, getUniqueZones } from "@/lib/villas/filters";
 import { getSiteSettings } from "@/lib/site-settings/server";
-import { fetchHouseListings } from "@/lib/villas/server";
+import { fetchHomeListings } from "@/lib/villas/server";
 import { toPublicVillaListing } from "@/lib/villas/public-dto";
 
 type FilterSummary = {
@@ -33,9 +36,9 @@ async function getHomePageData(): Promise<{
   filterSummary: FilterSummary;
   destinationVillas: DestinationVilla[];
 }> {
-  const [guidesResult, villasResult] = await Promise.allSettled([
+  const [guidesResult, homeSectionHouseIdsResult] = await Promise.allSettled([
     getPublishedGuides(),
-    fetchHouseListings(),
+    getActiveHomeSectionHouseIds(),
   ]);
   const guides =
     guidesResult.status === "fulfilled" ? guidesResult.value : [];
@@ -43,6 +46,15 @@ async function getHomePageData(): Promise<{
   if (guidesResult.status === "rejected") {
     console.error("Unable to load homepage guide posts", guidesResult.reason);
   }
+
+  const villasResult = await fetchHomeListings(
+    homeSectionHouseIdsResult.status === "fulfilled"
+      ? homeSectionHouseIdsResult.value
+      : [],
+  ).then(
+    (value) => ({ status: "fulfilled" as const, value }),
+    (reason) => ({ reason, status: "rejected" as const }),
+  );
 
   if (villasResult.status === "rejected") {
     console.error("Unable to load homepage villa data", villasResult.reason);

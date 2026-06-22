@@ -138,7 +138,7 @@
               <tr>
                 <td><code>app/(public)/(home)/page.tsx</code></td>
                 <td><code>/</code></td>
-                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, villa catalog, home-section, and site-settings reads come from tagged data caches. The server route still uses full site settings for metadata and JSON-LD, but the client <code>HomePage</code> receives only the rendered homepage settings fields (<code>heroImage</code>, <code>tiktok</code>, <code>contact</code>, and <code>bank</code>), public guide summaries, and public villa listing DTOs with validated image source URLs for the custom image loader; guides and TikTok videos are capped before crossing into the client payload. The homepage uses the CMS SEO title as an absolute title so the root metadata template does not duplicate the site name, and it passes non-visible degraded source data when guides, villa catalog, home sections, or site settings fall back or fail independently.</td>
+                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, bounded homepage villa listing, home-section, and site-settings reads come from tagged data caches. The server route still uses full site settings for metadata and JSON-LD, but the client <code>HomePage</code> receives only the rendered homepage settings fields (<code>heroImage</code>, <code>tiktok</code>, <code>contact</code>, and <code>bank</code>), public guide summaries, and homepage public villa listing DTOs loaded from the fallback listing window plus active configured home-section house IDs with validated image source URLs for the custom image loader; guides, villas, and TikTok videos are capped before crossing into the client payload. The homepage uses the CMS SEO title as an absolute title so the root metadata template does not duplicate the site name, and it passes non-visible degraded source data when guides, homepage villa listings, home sections, or site settings fall back or fail independently.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/(home)/loading.tsx</code></td>
@@ -148,7 +148,7 @@
               <tr>
                 <td><code>app/(public)/search/page.tsx</code></td>
                 <td><code>/search</code></td>
-                <td><code>components/villas/search/page</code>, villa listing helpers, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is intentionally not performed by the server route; the client reads the current URL, then requests bounded filtered pages from <code>/api/houses</code> when a deep link or interaction needs more results, so the public API does not expose the full catalog in one response.</td>
+                <td><code>components/villas/search/page</code>, villa listing helpers, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is applied to the first server-loaded page through bounded Supabase search helpers, and the client requests additional bounded filtered pages from <code>/api/houses</code> when an interaction needs more results, so neither the route nor the public API exposes the full catalog in one response.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/search/loading.tsx</code></td>
@@ -213,7 +213,7 @@
               <tr>
                 <td><code>app/(public)/api/houses/route.ts</code></td>
                 <td><code>/api/houses</code></td>
-                <td>Public catalog rate limiting and error boundary. Query parsing, filtering, sorting, pagination, facets, 6-hour public cache headers, Worker JSON edge-cache response shape, and public listing DTOs with validated cover image source URLs live in <code>lib/villas/public-houses-route.ts</code> and <code>lib/villas/public-dto.ts</code>.</td>
+                <td>Public catalog rate limiting and error boundary. Query parsing, Supabase-backed filtering, sorting, pagination, lightweight facets, 6-hour public cache headers, Worker JSON edge-cache response shape, and public listing DTOs with validated cover image source URLs live in <code>lib/villas/public-houses-route.ts</code>, <code>lib/villas/server.ts</code>, and <code>lib/villas/public-dto.ts</code>. Heavy amenities, max-price, and price-sort searches use the <code>search_public_villa_ids</code> Supabase RPC from the villa-search migration, then hydrate only the returned page IDs.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/houses/images/[id]/route.ts</code></td>

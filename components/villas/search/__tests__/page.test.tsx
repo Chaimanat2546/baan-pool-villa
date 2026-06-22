@@ -204,6 +204,57 @@ describe("SearchPage", () => {
     ).toBe(false);
   });
 
+  it("deduplicates appended catalog pages by villa id", async () => {
+    const nextVilla = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      createCatalogResponse([villa, nextVilla], {
+        hasMore: false,
+        page: 2,
+        total: 2,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    const loadMoreButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("ดูเพิ่มเติม"),
+    );
+
+    await act(async () => {
+      loadMoreButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelectorAll('a[href="/villas/701"]')).toHaveLength(1);
+    expect(container.querySelectorAll('a[href="/villas/702"]')).toHaveLength(1);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it("waits for the search button before loading a bounded search page", async () => {
     const matchingVilla = {
       ...villa,

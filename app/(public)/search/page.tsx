@@ -16,8 +16,29 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default async function Page() {
-  const { error, villas, meta } = await getSearchPageData({});
+type SearchPageRouteProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function toInitialSearchParams(
+  params: Record<string, string | string[] | undefined>,
+): string | undefined {
+  const searchParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") {
+      searchParams.set(key, value);
+    }
+  }
+
+  const serializedParams = searchParams.toString();
+
+  return serializedParams || undefined;
+}
+
+export default async function Page({ searchParams }: SearchPageRouteProps) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const { error, villas, meta } = await getSearchPageData(resolvedSearchParams);
 
   return (
     <Suspense fallback={null}>
@@ -25,6 +46,7 @@ export default async function Page() {
         initialLoadError={error}
         initialVillas={villas}
         initialMeta={meta}
+        initialSearchParams={toInitialSearchParams(resolvedSearchParams)}
       />
     </Suspense>
   );
