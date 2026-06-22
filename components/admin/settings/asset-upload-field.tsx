@@ -135,7 +135,6 @@ export function AssetUploadField({
                   className="object-contain"
                   fill
                   sizes="(max-width: 768px) 100vw, 320px"
-                  unoptimized
                   src={selectedPreviewUrl}
                 />
               ) : (

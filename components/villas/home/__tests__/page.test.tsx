@@ -244,12 +244,12 @@ describe("HomePage", () => {
     expect(tiktokSectionStart).toBeGreaterThan(destinationSectionStart);
 
     expect(destinationsMarkup).toContain(
-      "/api/houses/images/501?w=1200&amp;q=60",
+      'data-src="https://example.com/destination-1.jpg"',
     );
     expect(destinationsMarkup).toContain(
-      "/api/houses/images/502?w=1200&amp;q=60",
+      'data-src="https://example.com/destination-2.jpg"',
     );
-    expect(destinationsMarkup).not.toContain("example.com/destination");
+    expect(destinationsMarkup).not.toContain("/api/houses/images");
   });
 
   it("renders TikTok section from settings without server preview props and keeps guide placement after it", () => {

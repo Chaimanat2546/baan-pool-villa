@@ -141,7 +141,6 @@ export function TikTokLazyCard({
                 referrerPolicy="no-referrer"
                 sizes="(max-width: 640px) 244px, (max-width: 1024px) 292px, 320px"
                 src={thumbnailUrl}
-                unoptimized
               />
             ) : (
               <span

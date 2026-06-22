@@ -10,8 +10,7 @@ import { toPublicGuideSummaries } from "@/lib/guides/public-dto";
 import { getGuideTextColorClass } from "@/lib/guides/text-colors";
 import type { GuidePost } from "@/lib/guides/types";
 import {
-  buildGuideContentImageProxyPath,
-  buildGuideCoverImageProxyPath,
+  normalizePublicImageSourceUrl,
 } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
@@ -353,7 +352,7 @@ function isGuideBlockListType(
  * @param blocks - Array of raw guide blocks (each expected to be an object shaped like `GuideBlock`); non-object or array entries are ignored.
  * @returns A JSX element containing the rendered guide content grid.
  */
-function GuideContent({ blocks, guideSlug }: { blocks: unknown[]; guideSlug: string }) {
+function GuideContent({ blocks }: { blocks: unknown[] }) {
   const contentNodes: ReactNode[] = [];
 
   for (let index = 0; index < blocks.length; index += 1) {
@@ -448,12 +447,7 @@ function GuideContent({ blocks, guideSlug }: { blocks: unknown[]; guideSlug: str
         );
         break;
       case "image": {
-        const imageUrl = getImageUrl(guideBlock)
-          ? buildGuideContentImageProxyPath(guideSlug, index, {
-              quality: 75,
-              width: 1200,
-            })
-          : null;
+        const imageUrl = normalizePublicImageSourceUrl(getImageUrl(guideBlock));
 
         if (!imageUrl) {
           break;
@@ -468,7 +462,6 @@ function GuideContent({ blocks, guideSlug }: { blocks: unknown[]; guideSlug: str
                 fill
                 sizes="(max-width: 768px) 100vw, 768px"
                 src={imageUrl}
-                unoptimized
               />
             </div>
             <figcaption className="text-sm text-[var(--site-muted)]">
@@ -573,12 +566,7 @@ export function GuideDetailPage({
   relatedGuides,
   settings,
 }: GuideDetailPageProps) {
-  const coverImageUrl = guide.coverImage?.url
-    ? buildGuideCoverImageProxyPath(guide.slug, {
-        quality: 75,
-        width: 1200,
-      })
-    : null;
+  const coverImageUrl = normalizePublicImageSourceUrl(guide.coverImage?.url ?? null);
 
   return (
     <main className="bg-[var(--site-surface-soft)] text-[var(--site-text)]">
@@ -627,9 +615,9 @@ export function GuideDetailPage({
                 className="object-cover"
                 fill
                 preload
+                quality={75}
                 sizes="(max-width: 1024px) 100vw, 1024px"
                 src={coverImageUrl}
-                unoptimized
               />
             </div>
           ) : null}
@@ -639,7 +627,7 @@ export function GuideDetailPage({
           className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)] lg:px-8 lg:py-14"
           data-guide-detail-layout
         >
-          <GuideContent blocks={guide.contentBlocks} guideSlug={guide.slug} />
+          <GuideContent blocks={guide.contentBlocks} />
           <RecommendedVillaSidebar villas={recommendedVillas} />
         </div>
       </article>

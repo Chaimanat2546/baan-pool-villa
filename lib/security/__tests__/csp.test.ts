@@ -9,7 +9,7 @@ function getCspDirective(csp: string, name: string): string {
 }
 
 describe("content security policy", () => {
-  it("adds a request nonce for strict style CSP without allowing inline styles", () => {
+  it("adds a request nonce and allows Next Image inline styles", () => {
     const csp = buildContentSecurityPolicy({
       isDevelopment: false,
       nonce: "request-nonce",
@@ -21,15 +21,22 @@ describe("content security policy", () => {
     const connectSrc = getCspDirective(csp, "connect-src");
 
     expect(styleSrc).toContain("'self'");
+    expect(styleSrc).toContain("'unsafe-inline'");
     expect(styleSrc).toContain("https://fonts.googleapis.com");
     expect(styleSrc).toContain("'nonce-request-nonce'");
-    expect(styleSrc.split(" ")).not.toContain("'unsafe-inline'");
     expect(scriptSrc).toContain("'nonce-request-nonce'");
     expect(scriptSrc).toContain("https://challenges.cloudflare.com");
-    expect(imgSrc.split(" ")).not.toContain("https:");
+    expect(imgSrc).toContain(
+      "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws",
+    );
+    expect(imgSrc).toContain("https://devillegroups.com");
+    expect(imgSrc).toContain("https://www.devillegroups.com");
+    expect(imgSrc).toContain("https://s3.ap-southeast-1.amazonaws.com");
     expect(connectSrc).toContain("https://example.supabase.co");
     expect(connectSrc.split(" ")).not.toContain("https:");
-    expect(getCspDirective(csp, "style-src-attr")).toBe("");
+    expect(getCspDirective(csp, "style-src-attr")).toBe(
+      "style-src-attr 'unsafe-inline'",
+    );
   });
 
   it("keeps invalid public origins out of connect-src", () => {

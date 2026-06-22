@@ -397,11 +397,11 @@ describe("AdminGuidesPage", () => {
 
     const page = await mountAdminPage(<AdminGuidesPage />);
     const coverImage = page.container.querySelector(
-      "img[alt='Guide cover']",
-    ) as HTMLImageElement | null;
+      "[role='img'][aria-label='Guide cover']",
+    ) as HTMLElement | null;
 
     expect(coverImage).not.toBeNull();
-    expect(coverImage?.getAttribute("loading")).toBe("eager");
+    expect(coverImage?.getAttribute("data-loading")).toBe("eager");
 
     await page.unmount();
   });

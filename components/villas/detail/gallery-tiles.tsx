@@ -42,7 +42,6 @@ export function GalleryImage({
             fill
             loading={loading}
             fetchPriority={fetchPriority}
-            unoptimized
             sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover transition duration-500 group-hover:scale-[1.03]"
             onError={() => {

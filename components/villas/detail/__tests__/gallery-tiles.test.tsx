@@ -19,7 +19,7 @@ function galleryItem(overrides: Partial<GalleryItem> = {}): GalleryItem {
 }
 
 describe("gallery tiles", () => {
-  it("renders image tiles through the display proxy", () => {
+  it("passes image tiles to next/image without the display proxy", () => {
     const markup = renderToStaticMarkup(
       <GalleryImage
         alt="Pool"
@@ -30,10 +30,10 @@ describe("gallery tiles", () => {
     );
 
     const imageSrc = markup.match(/<img\b[^>]*\bsrc="([^"]+)"/)?.[1] ?? "";
-    const imageUrl = new URL(imageSrc.replaceAll("&amp;", "&"), "https://example.com");
+    const decodedImageSrc = decodeURIComponent(imageSrc.replaceAll("&amp;", "&"));
 
-    expect(imageUrl.pathname).toBe("/api/villas/88/images");
-    expect(imageUrl.searchParams.get("url")).toBe("https://cdn.test/pool.jpg");
+    expect(decodedImageSrc).toContain("https://cdn.test/pool.jpg");
+    expect(imageSrc).not.toContain("/api/villas/88/images");
     expect(markup).toContain('alt="Pool"');
   });
 

@@ -23,7 +23,7 @@ function galleryItem(overrides: Partial<GalleryItem> = {}): GalleryItem {
 }
 
 describe("gallery URL helpers", () => {
-  it("builds download and display proxy URLs for safe gallery images", () => {
+  it("builds download URLs and keeps safe gallery display sources raw", () => {
     const item = galleryItem();
     const downloadUrl = new URL(
       buildGalleryDownloadHref("villa 88", item),
@@ -39,10 +39,7 @@ describe("gallery URL helpers", () => {
     expect(downloadUrl.searchParams.get("url")).toBe("https://cdn.test/pool.jpg");
     expect(downloadUrl.searchParams.get("name")).toBe("pool.jpg");
     expect(downloadUrl.searchParams.get("zone")).toBe("pool-zone");
-    expect(displayUrl.pathname).toBe("/api/villas/88/images");
-    expect(displayUrl.searchParams.get("url")).toBe("https://cdn.test/pool.jpg");
-    expect(displayUrl.searchParams.get("w")).toBe("828");
-    expect(displayUrl.searchParams.get("q")).toBe("60");
+    expect(displayUrl.toString()).toBe("https://cdn.test/pool.jpg");
   });
 
   it("trims listing ids before building download paths", () => {
@@ -54,7 +51,7 @@ describe("gallery URL helpers", () => {
     expect(downloadUrl.pathname).toBe("/api/villas/88/images");
   });
 
-  it("keeps image-id gallery proxy paths free of raw URL params", () => {
+  it("keeps legacy image-id gallery proxy paths free of raw URL params", () => {
     const item = galleryItem({
       url: "/api/villas/88/images?imageId=7&url=https%3A%2F%2Fcdn.test%2Fraw.jpg&stale=1",
     });
@@ -79,7 +76,7 @@ describe("gallery URL helpers", () => {
     expect(displayUrl.searchParams.has("stale")).toBe(false);
   });
 
-  it("rejects unsafe display image URLs before proxying", () => {
+  it("rejects unsafe display image URLs before rendering", () => {
     expect(normalizeGalleryDisplayImageUrl(" https://cdn.test/pool.jpg ")).toBe(
       "https://cdn.test/pool.jpg",
     );

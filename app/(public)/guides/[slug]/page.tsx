@@ -7,9 +7,9 @@ import {
   absoluteUrl,
   buildBreadcrumbJsonLd,
   buildGuideArticleMetadata,
+  buildMetadataImageUrl,
   buildSiteSettingsPageMetadata,
 } from "@/lib/seo";
-import { buildGuideCoverImageProxyPath } from "@/lib/public-image-proxy";
 import {
   getGuideBySlug,
   getPublishedGuides,
@@ -90,11 +90,8 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
     console.error("Unable to load related guides", guidesResult.reason);
   }
 
-  const guideCoverImagePath = guide.coverImage?.url
-    ? buildGuideCoverImageProxyPath(guide.slug, {
-        quality: 75,
-        width: 1200,
-      })
+  const guideCoverImageUrl = guide.coverImage?.url
+    ? buildMetadataImageUrl(guide.coverImage.url)
     : null;
   const jsonLd = [
     buildBreadcrumbJsonLd([
@@ -107,7 +104,7 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
       "@type": "Article",
       headline: guide.title,
       description: guide.excerpt,
-      image: guideCoverImagePath ? [absoluteUrl(guideCoverImagePath)] : undefined,
+      image: guideCoverImageUrl ? [guideCoverImageUrl] : undefined,
       datePublished: guide.publishedAt ?? guide.createdAt,
       dateModified: guide.updatedAt,
       mainEntityOfPage: absoluteUrl(`/guides/${guide.slug}`),

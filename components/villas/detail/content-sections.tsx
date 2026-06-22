@@ -47,11 +47,13 @@ export function VillaIntro({
 
       </h1>
 
+      {listing.price === null ? null : (
       <p className="mt-1 text-sm font-bold text-[var(--site-accent)]">
 
         เริ่มต้น {formatVillaPrice(listing.price)} / คืน
 
       </p>
+      )}
 
       <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--site-muted)]">
         {getVillaSearchIntentSummary(listing)}

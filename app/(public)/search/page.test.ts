@@ -65,11 +65,11 @@ describe("getSearchPageData", () => {
       villas: [
         {
           ...villas[0],
-          coverImage: "/api/houses/images/901",
+          coverImage: "https://devillegroups.com/imgs/profile_imgs_large/901.jpg",
         },
         {
           ...villas[1],
-          coverImage: "/api/houses/images/902",
+          coverImage: "https://devillegroups.com/imgs/profile_imgs_large/902.jpg",
         },
       ],
       meta: {
@@ -93,7 +93,7 @@ describe("getSearchPageData", () => {
       zone: "pattaya",
     });
 
-    expect(JSON.stringify(result.villas)).not.toContain("devillegroups.com");
+    expect(JSON.stringify(result.villas)).toContain("devillegroups.com");
     expect(result.meta.resultCount).toBe(2);
   });
 

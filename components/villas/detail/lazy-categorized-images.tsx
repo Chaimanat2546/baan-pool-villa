@@ -2,17 +2,14 @@
 
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useEffect, useRef, useState } from "react";
-import { buildVillaGalleryImageProxyUrl } from "@/lib/public-image-proxy";
-import type { VillaListing } from "@/lib/villas/types";
+import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { GalleryCategory } from "./types";
 
 interface LazyCategorizedImagesProps {
-  listing: VillaListing;
   previewCategories: GalleryCategory[];
 }
 
 export function LazyCategorizedImages({
-  listing,
   previewCategories,
 }: LazyCategorizedImagesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,10 +63,7 @@ export function LazyCategorizedImages({
         const previewItem = category.items[0];
         const previewImageSrc =
           shouldRenderImages && previewItem
-            ? buildVillaGalleryImageProxyUrl(listing.id, previewItem.url, {
-                quality: 60,
-                width: 640,
-              })
+            ? normalizePublicImageSourceUrl(previewItem.url)
             : null;
 
         if (!previewItem) {
@@ -88,9 +82,9 @@ export function LazyCategorizedImages({
                   className="object-cover"
                   fill
                   loading="eager"
+                  quality={60}
                   sizes="(max-width: 1024px) 50vw, 320px"
                   src={previewImageSrc}
-                  unoptimized
                 />
               ) : (
                 <div

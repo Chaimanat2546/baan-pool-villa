@@ -1,7 +1,7 @@
 import { BedDouble, MapPin, Users } from "lucide-react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
-import { buildVillaCoverImageProxyPath } from "@/lib/public-image-proxy";
+import { normalizePublicVillaCoverImage } from "@/lib/villas/public-dto";
 import type { VillaListing } from "@/lib/villas/types";
 
 interface VillaCardProps {
@@ -11,11 +11,11 @@ interface VillaCardProps {
 }
 
 function getVillaTitle(villa: VillaListing): string {
-  return `พูลวิลล่า ${villa.id}`;
+  return villa.title?.trim() || `พูลวิลล่า ${villa.id}`;
 }
 
-function formatPrice(price: number): string {
-  return price.toLocaleString("th-TH");
+function formatPrice(price: number | null): string {
+  return price === null ? "" : price.toLocaleString("th-TH");
 }
 
 export function VillaCard({
@@ -25,12 +25,7 @@ export function VillaCard({
 }: VillaCardProps) {
   const visibleAmenities = villa.amenities.slice(0, 3);
   const TitleTag = titleHeadingLevel;
-  const coverImageSrc = villa.coverImage
-    ? buildVillaCoverImageProxyPath(villa.id, {
-        quality: 60,
-        width: 640,
-      })
-    : null;
+  const coverImageSrc = normalizePublicVillaCoverImage(villa);
 
   return (
     <a
@@ -46,7 +41,6 @@ export function VillaCard({
             preload={preload}
             quality={60}
             sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
-            unoptimized
             className="object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
@@ -97,7 +91,7 @@ export function VillaCard({
         )}
 
         <div className="flex items-end justify-between gap-3">
-          <p className="min-w-0 text-[var(--site-text)]">
+          <p className={villa.price === null ? "hidden" : "min-w-0 text-[var(--site-text)]"}>
             <span className="text-sm leading-5">เริ่มต้น</span>{" "}
             <span className="text-lg leading-7">{formatPrice(villa.price)}</span>{" "}
             <span className="text-sm leading-5">บาท / คืน</span>

@@ -238,7 +238,7 @@ export function filterVillas(
     const zoneMatches = filters.zone === "all" || villa.zone === filters.zone;
     const guestMatches = villa.people >= filters.guests;
     const bedroomMatches = villa.bedrooms >= filters.bedrooms;
-    const priceMatches = villa.price <= filters.maxPrice;
+    const priceMatches = villa.price === null || villa.price <= filters.maxPrice;
     const nearSeaMatches = !filters.nearSeaOnly || isNearSeaVilla(villa);
     const villaAmenityKeys = new Set(
       villa.amenities.map((amenity) => amenity.key),
@@ -259,29 +259,32 @@ export function filterVillas(
 }
 
 /**
- * Supports forgiving villa-id matching so search can find houses from plain
- * numeric ids or prefixed forms like `dv123`.
+ * Supports forgiving listing search by title, property id, or prefixed forms
+ * like `dv123`.
  *
  * @param villas - The source villa listings to search.
- * @param villaIdQuery - The raw villa id query entered by the user.
- * @returns The matching villa listings after id normalization.
+ * @param villaIdQuery - The raw search query entered by the user.
+ * @returns The matching villa listings after query normalization.
  */
 export function filterVillasById(
   villas: VillaListing[],
   villaIdQuery: string,
 ): VillaListing[] {
   const normalizedQuery = villaIdQuery.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  const titleQuery = villaIdQuery.trim().toLowerCase();
 
-  if (!normalizedQuery) {
+  if (!normalizedQuery && !titleQuery) {
     return villas;
   }
 
   return villas.filter((villa) => {
     const normalizedId = villa.id.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normalizedTitle = villa.title?.toLowerCase() ?? "";
 
     return (
       normalizedQuery === normalizedId ||
-      normalizedQuery === `dv${normalizedId}`
+      normalizedQuery === `dv${normalizedId}` ||
+      (titleQuery !== "" && normalizedTitle.includes(titleQuery))
     );
   });
 }
@@ -299,12 +302,33 @@ export function sortVillas(
   sortKey: VillaSortKey,
 ): VillaListing[] {
   const sortedVillas = [...villas];
+  const comparePrices = (
+    left: VillaListing,
+    right: VillaListing,
+    direction: "asc" | "desc",
+  ) => {
+    if (left.price === null && right.price === null) {
+      return 0;
+    }
+
+    if (left.price === null) {
+      return 1;
+    }
+
+    if (right.price === null) {
+      return -1;
+    }
+
+    return direction === "asc"
+      ? left.price - right.price
+      : right.price - left.price;
+  };
 
   switch (sortKey) {
     case "price_asc":
-      return sortedVillas.sort((a, b) => a.price - b.price);
+      return sortedVillas.sort((a, b) => comparePrices(a, b, "asc"));
     case "price_desc":
-      return sortedVillas.sort((a, b) => b.price - a.price);
+      return sortedVillas.sort((a, b) => comparePrices(a, b, "desc"));
     case "people_desc":
       return sortedVillas.sort((a, b) => b.people - a.people);
     case "bedrooms_desc":
@@ -323,7 +347,10 @@ export function sortVillas(
  * @returns The highest villa price in the provided list, or `0` when empty.
  */
 export function getMaxVillaPrice(villas: VillaListing[]): number {
-  return villas.reduce((max, villa) => Math.max(max, villa.price), 0);
+  return villas.reduce(
+    (max, villa) => Math.max(max, villa.price ?? 0),
+    0,
+  );
 }
 
 /**

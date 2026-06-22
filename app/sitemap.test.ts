@@ -17,6 +17,7 @@ vi.mock("@/lib/legal-pages/server", () => ({
 
 vi.mock("@/lib/seo", () => ({
   absoluteUrl: (path: string) => `https://example.com${path}`,
+  buildMetadataImageUrl: (image: string) => image,
 }));
 
 vi.mock("@/lib/villas/server", () => ({
@@ -98,12 +99,12 @@ describe("sitemap", () => {
     const legalRoute = routes.find((route) => route.url === "https://example.com/terms");
 
     expect(villaRoute).toMatchObject({
-      images: ["https://example.com/api/houses/images/101"],
+      images: ["https://example.com/villa.jpg"],
       url: "https://example.com/villas/101",
     });
     expect(villaRoute).not.toHaveProperty("lastModified");
     expect(guideRoute).toMatchObject({
-      images: ["https://example.com/api/guides/images/family-guide/cover"],
+      images: ["https://example.com/guide.jpg"],
       lastModified: new Date("2026-06-02T00:00:00.000Z"),
       url: "https://example.com/guides/family-guide",
     });
@@ -148,13 +149,13 @@ describe("sitemap", () => {
     });
   });
 
-  it("omits image sitemap entries when proxy paths cannot be built", async () => {
+  it("omits image sitemap entries when source images are unavailable", async () => {
     fetchHouseListingsForSitemapMock.mockResolvedValue([
       {
         amenities: [],
         bathrooms: 2,
         bedrooms: 3,
-        coverImage: "https://example.com/villa.jpg",
+        coverImage: null,
         distanceToSea: "500m",
         id: "bad/id",
         people: 8,
@@ -167,11 +168,7 @@ describe("sitemap", () => {
     getPublishedGuidesForSitemapMock.mockResolvedValue([
       {
         contentBlocks: [],
-        coverImage: {
-          alt: "Guide cover",
-          path: "guides/cover.jpg",
-          url: "https://example.com/guide.jpg",
-        },
+        coverImage: null,
         createdAt: "2026-06-01T00:00:00.000Z",
         excerpt: "Guide excerpt",
         id: "guide-1",
