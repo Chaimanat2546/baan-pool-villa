@@ -30,8 +30,11 @@ export function VillaCard({
   preload = false,
 }: VillaCardProps) {
   const visibleAmenities = villa.amenities
-    .filter((amenity) => isShortCardAmenityLabel(amenity.label))
-    .slice(0, 3);
+    .filter(
+      (amenity) =>
+        amenity.key !== "wifi" && isShortCardAmenityLabel(amenity.label),
+    )
+    .slice(0, 6);
   const TitleTag = titleHeadingLevel;
   const coverImageSrc = normalizePublicVillaCoverImage(villa);
 

@@ -67,6 +67,7 @@ describe("VillaCard navigation", () => {
         villa={{
           ...villa,
           amenities: [
+            { key: "wifi", label: "Wi-Fi" },
             { key: "private_pool", label: "สระว่ายน้ำส่วนตัว" },
             { key: "swimming_kid", label: "สระเด็ก" },
             { key: "grill", label: "เตาปิ้งย่าง" },
@@ -75,6 +76,7 @@ describe("VillaCard navigation", () => {
       />,
     );
 
+    expect(markup).not.toContain("Wi-Fi");
     expect(markup).not.toContain("สระว่ายน้ำส่วนตัว");
     expect(markup).toContain("สระเด็ก");
     expect(markup).toContain("เตาปิ้งย่าง");
