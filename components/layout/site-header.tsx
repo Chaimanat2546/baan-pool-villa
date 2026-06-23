@@ -2,7 +2,7 @@
 
 import { MapPin, Menu, X } from "lucide-react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
@@ -19,6 +19,9 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ settings }: SiteHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const lastScrollYRef = useRef(0);
+  const frameRef = useRef<number | null>(null);
   const bankNotice = `กรุณาโอนเงิน ชื่อบัญชี ${settings.bank.accountName} `;
   const bankAccount = `${settings.bank.bankName} เลขที่ ${settings.bank.accountNumber}`;
 
@@ -26,8 +29,52 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
     normalizePublicImageSourceUrl(settings.logoImage.url) ??
     settings.logoImage.url;
 
+  useEffect(() => {
+    lastScrollYRef.current = window.scrollY;
+
+    const updateHeaderVisibility = () => {
+      frameRef.current = null;
+      const currentScrollY = Math.max(window.scrollY, 0);
+      const distance = currentScrollY - lastScrollYRef.current;
+
+      if (currentScrollY < 24) {
+        setIsHeaderHidden(false);
+        lastScrollYRef.current = currentScrollY;
+        return;
+      }
+
+      if (Math.abs(distance) < 16) {
+        return;
+      }
+
+      setIsHeaderHidden(distance > 0);
+      lastScrollYRef.current = currentScrollY;
+    };
+
+    const onScroll = () => {
+      if (frameRef.current === null) {
+        frameRef.current = window.requestAnimationFrame(updateHeaderVisibility);
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 bg-[var(--site-primary)] text-[var(--site-on-primary)]">
+    <header
+      className={`sticky top-0 z-50 bg-[var(--site-primary)] text-[var(--site-on-primary)] transition-transform duration-300 ease-out ${
+        isHeaderHidden && !isMenuOpen ? "-translate-y-full" : "translate-y-0"
+      }`}
+      data-header-hidden={isHeaderHidden && !isMenuOpen ? "true" : "false"}
+    >
       <div className="border-b border-[color:var(--site-on-primary)] bg-[var(--site-primary)]/95 shadow-[0_1px_1px_rgba(0,0,0,0.05)] backdrop-blur-[6px]">
         <div className="relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <a

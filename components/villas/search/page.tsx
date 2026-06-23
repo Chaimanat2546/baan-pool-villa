@@ -46,6 +46,20 @@ function scrollResultsIntoView(resultsElement: HTMLDivElement | null) {
   resultsElement?.scrollIntoView?.({ behavior: "smooth", block: "start" });
 }
 
+function PoolRippleLoading() {
+  return (
+    <div
+      aria-hidden="true"
+      className="relative mx-auto grid size-14 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]"
+      data-search-pool-ripple="true"
+    >
+      <span className="absolute size-10 rounded-full border border-[var(--site-primary)]/35 animate-ping" />
+      <span className="absolute size-6 rounded-full border border-[var(--site-accent)]/45 animate-ping [animation-delay:180ms]" />
+      <span className="size-3 rounded-full bg-[var(--site-primary)] shadow-[0_0_20px_var(--site-primary)]" />
+    </div>
+  );
+}
+
 function replaceSearchUrl(
   filters: VillaFilters,
   villaIdQuery: string,
@@ -71,6 +85,23 @@ function clearSearchUrl() {
   if (typeof window !== "undefined") {
     window.history.replaceState(null, "", window.location.pathname);
   }
+}
+
+function mergeUniqueVillas(
+  currentVillas: VillaListing[],
+  nextVillas: VillaListing[],
+): VillaListing[] {
+  const seenIds = new Set(currentVillas.map((villa) => villa.id));
+  const mergedVillas = [...currentVillas];
+
+  for (const villa of nextVillas) {
+    if (!seenIds.has(villa.id)) {
+      seenIds.add(villa.id);
+      mergedVillas.push(villa);
+    }
+  }
+
+  return mergedVillas;
 }
 
 export function getInitialCatalogComplete(
@@ -248,7 +279,7 @@ export function SearchPage({
       const nextItems = payload.items;
 
       setVillas((currentVillas) =>
-        append ? [...currentVillas, ...nextItems] : nextItems,
+        append ? mergeUniqueVillas(currentVillas, nextItems) : nextItems,
       );
       setCatalogHasMore(Boolean(payload.hasMore));
       setCatalogResultCount(
@@ -508,9 +539,7 @@ export function SearchPage({
           ) : isCatalogHydrating && !isCatalogComplete ? (
             <div className="flex min-h-80 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center">
               <div className="max-w-md">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
-                  <Search className="h-6 w-6 animate-pulse" />
-                </div>
+                <PoolRippleLoading />
                 <h2 className="mt-4 text-2xl font-black text-[var(--site-text)]">
                   กำลังโหลดรายชื่อบ้านพักเพิ่มเติม
                 </h2>

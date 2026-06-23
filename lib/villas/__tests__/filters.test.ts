@@ -138,10 +138,10 @@ describe("filtersFromSearchParams", () => {
   it("keeps only supported amenities from search params", () => {
     expect(
       filtersFromSearchParams(
-        new URLSearchParams("amenities=wifi,unknown,wifi,grill"),
+        new URLSearchParams("amenities=wifi,unknown,wifi,private_pool,extra_bed"),
         61900,
       ).amenities,
-    ).toEqual(["wifi", "grill"]);
+    ).toEqual(["wifi", "private_pool", "extra_bed"]);
   });
 
   it("normalizes guest and bedroom search params to whole positive values", () => {

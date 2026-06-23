@@ -1,10 +1,10 @@
-import { fetchHouseListings } from "@/lib/villas/server";
 import {
-  getMaxVillaPrice,
-  getUniqueZones,
+  filtersFromSearchParams,
 } from "@/lib/villas/filters";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
+import { fetchVillaSearchFacets, fetchVillaSearchPage } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
+import { getSortKeyFromSearchParams } from "./search-page-helpers";
 
 const PAGE_SIZE = 12;
 
@@ -22,20 +22,33 @@ export async function getSearchPageData(
   villas: VillaListing[];
   meta: SearchPageInitialMeta;
 }> {
-  void routeSearchParams;
+  const searchParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(routeSearchParams)) {
+    if (typeof value === "string") {
+      searchParams.set(key, value);
+    }
+  }
 
   try {
-    const villas = await fetchHouseListings();
-    const maxPrice = Math.max(getMaxVillaPrice(villas), 1000);
+    const facets = await fetchVillaSearchFacets();
+    const result = await fetchVillaSearchPage({
+      facets,
+      filters: filtersFromSearchParams(searchParams, facets.maxPrice),
+      page: 1,
+      pageSize: PAGE_SIZE,
+      sortKey: getSortKeyFromSearchParams(searchParams),
+      villaIdQuery: searchParams.get("id") ?? "",
+    });
 
     return {
       error: null,
-      villas: toPublicVillaListings(villas.slice(0, PAGE_SIZE)),
+      villas: toPublicVillaListings(result.items),
       meta: {
         catalogComplete: false,
-        maxPrice,
-        resultCount: villas.length,
-        zones: getUniqueZones(villas),
+        maxPrice: facets.maxPrice,
+        resultCount: result.total,
+        zones: facets.zones,
       },
     };
   } catch {
