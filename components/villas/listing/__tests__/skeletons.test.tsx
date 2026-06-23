@@ -9,6 +9,7 @@ describe("listing skeletons", () => {
 
     expect(markup).toContain('data-villa-card-skeleton="true"');
     expect(markup).toContain("h-[216px]");
+    expect(markup).toContain("min-h-[64px]");
     expect(markup).toContain("rounded-[24px]");
   });
 

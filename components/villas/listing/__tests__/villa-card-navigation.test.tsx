@@ -81,4 +81,48 @@ describe("VillaCard navigation", () => {
     expect(markup).toContain("สระเด็ก");
     expect(markup).toContain("เตาปิ้งย่าง");
   });
+  it("reserves the amenity area for multiple visible amenities", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard
+        villa={{
+          ...villa,
+          amenities: [
+            { key: "pool", label: "Pool" },
+            { key: "grill", label: "Grill" },
+            { key: "karaoke", label: "Karaoke" },
+            { key: "pet", label: "Pet" },
+          ],
+        }}
+      />,
+    );
+
+    expect(markup).toContain("min-h-[64px]");
+  });
+
+  it("reserves the same amenity area for one visible amenity", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard
+        villa={{
+          ...villa,
+          amenities: [{ key: "pool", label: "Pool" }],
+        }}
+      />,
+    );
+
+    expect(markup).toContain("min-h-[64px]");
+  });
+
+  it("reserves the amenity area when amenities are filtered out", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard
+        villa={{
+          ...villa,
+          amenities: [{ key: "wifi", label: "Wi-Fi" }],
+        }}
+      />,
+    );
+
+    expect(markup).toContain("min-h-[64px]");
+    expect(markup).toContain('aria-hidden="true"');
+  });
 });
