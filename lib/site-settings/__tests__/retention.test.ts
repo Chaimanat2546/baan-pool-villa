@@ -5,7 +5,7 @@ import { selectAssetUploadsForCleanup } from "../validation";
 
 function upload(
   id: string,
-  assetType: "logo" | "hero",
+  assetType: SiteAssetUploadRecord["assetType"],
   day: number,
   isCurrent = false,
 ): SiteAssetUploadRecord {
@@ -49,6 +49,19 @@ describe("selectAssetUploadsForCleanup", () => {
 
     expect(selectAssetUploadsForCleanup(records).map((record) => record.id)).toEqual([
       "hero-2",
+    ]);
+  });
+
+  it("applies retention to SEO share image uploads", () => {
+    const records = [
+      upload("seo-og-1", "seo-og", 1),
+      upload("seo-og-2", "seo-og", 2),
+      upload("seo-og-3", "seo-og", 3),
+      upload("seo-og-4", "seo-og", 4, true),
+    ];
+
+    expect(selectAssetUploadsForCleanup(records).map((record) => record.id)).toEqual([
+      "seo-og-1",
     ]);
   });
 });

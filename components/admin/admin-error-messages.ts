@@ -14,6 +14,7 @@ const ADMIN_ERROR_TRANSLATIONS = new Map<string, string>([
   ["sections must be an array.", "ข้อมูลส่วนหน้าแรกต้องเป็นรายการ"],
   ["at least one section is required.", "ต้องมีส่วนหน้าแรกอย่างน้อย 1 ส่วน"],
   ["signed-in user is not listed as an active home config admin.", "บัญชีนี้ยังไม่มีสิทธิ์แอดมินสำหรับจัดการเว็บไซต์"],
+  ["token has expired or is invalid", "รหัส OTP ไม่ถูกต้องหรือหมดอายุ"],
   ["unable to create detail layout settings.", "ไม่สามารถสร้างการตั้งค่า layout หน้า Details ได้"],
   ["unable to delete guide post.", "ไม่สามารถลบบทความได้"],
   ["unable to load detail layout.", "ไม่สามารถโหลด layout หน้า Details ได้"],
@@ -119,13 +120,55 @@ export function getAdminErrorMessage(
   caughtError: unknown,
   fallback: string,
 ): string {
-  return caughtError instanceof Error
-    ? translateAdminErrorMessage(caughtError.message)
-    : fallback;
+  const message = readCaughtErrorMessage(caughtError);
+
+  return message ? translateAdminErrorMessage(message) : fallback;
 }
 
 export function translateAdminErrorMessages(errors: string[]): string[] {
   return errors.map(translateAdminErrorMessage);
+}
+
+function readCaughtErrorMessage(caughtError: unknown): string | null {
+  if (caughtError instanceof Error) {
+    return caughtError.message.trim() || null;
+  }
+
+  if (typeof caughtError === "string") {
+    return caughtError.trim() || null;
+  }
+
+  if (!caughtError || typeof caughtError !== "object") {
+    return null;
+  }
+
+  const errorRecord = caughtError as {
+    error?: unknown;
+    error_description?: unknown;
+    message?: unknown;
+  };
+
+  return readFirstString([
+    errorRecord.message,
+    errorRecord.error_description,
+    errorRecord.error,
+  ]);
+}
+
+function readFirstString(values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const trimmedValue = value.trim();
+
+    if (trimmedValue) {
+      return trimmedValue;
+    }
+  }
+
+  return null;
 }
 
 function translateAdminErrorDetail(detail: string): string {

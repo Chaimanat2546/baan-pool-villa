@@ -1105,6 +1105,81 @@ describe("admin site settings route", () => {
     expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
   });
 
+  it("uploads a global SEO share image and stores its Supabase URL", async () => {
+    const loadQuery = siteSettingsSelectQuery({ data: dbRow, error: null });
+    const historyInsertQuery = uploadHistoryInsertQuery({
+      data: { id: "new-seo-og-upload" },
+      error: null,
+    });
+    const saveQuery = siteSettingsUpsertQuery({
+      data: null,
+      error: null,
+    });
+    const reloadQuery = siteSettingsSelectQuery({
+      data: {
+        ...dbRow,
+        seo_og_image_url: "https://cdn.example.com/seo.webp",
+      },
+      error: null,
+    });
+    const historyUpdateQuery = uploadHistoryUpdateQuery({ error: null });
+    const historySelectQuery = uploadHistorySelectQuery({
+      data: [],
+      error: null,
+    });
+    const from = fromQueue({
+      site_asset_uploads: [historyInsertQuery, historyUpdateQuery, historySelectQuery],
+      site_settings: [loadQuery, saveQuery, reloadQuery],
+    });
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const getPublicUrl = vi.fn().mockReturnValue({
+      data: { publicUrl: "https://cdn.example.com/seo.webp" },
+    });
+    const remove = vi.fn().mockResolvedValue({ error: null });
+    const storageFrom = vi.fn().mockReturnValue({ getPublicUrl, remove, upload });
+
+    authSupabase({ from, storage: { from: storageFrom } });
+
+    const formData = settingsForm();
+    formData.set(
+      "seoOgImageFile",
+      new File(["seo"], "seo.webp", { type: "image/webp" }),
+    );
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/site-settings/route"
+    );
+    const response = await PUT(putRequest(formData));
+    const body = await response.json();
+    const [payload] = saveQuery.upsert.mock.calls[0];
+
+    expect(response.status).toBe(200);
+    expect(upload).toHaveBeenCalledWith(
+      expect.stringMatching(/^seo-og\/\d{4}\/\d{2}\/[0-9a-f-]+\.webp$/),
+      expect.any(File),
+      {
+        cacheControl: "31536000",
+        contentType: "image/webp",
+        upsert: false,
+      },
+    );
+    expect(historyInsertQuery.insert).toHaveBeenCalledWith({
+      asset_type: "seo-og",
+      storage_bucket: SITE_ASSETS_BUCKET,
+      storage_path: expect.stringMatching(/^seo-og\/\d{4}\/\d{2}\/[0-9a-f-]+\.webp$/),
+      public_url: "https://cdn.example.com/seo.webp",
+      is_current: true,
+    });
+    expect(payload).toMatchObject({
+      seo_og_image_url: "https://cdn.example.com/seo.webp",
+    });
+    expect(body.settings.seo.ogImage).toMatchObject({
+      path: "https://cdn.example.com/seo.webp",
+      url: "https://cdn.example.com/seo.webp",
+    });
+    expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
+  });
+
   it("returns a detailed error when storage upload fails", async () => {
     const loadQuery = siteSettingsSelectQuery({ data: dbRow, error: null });
     const from = fromQueue({ site_settings: [loadQuery] });

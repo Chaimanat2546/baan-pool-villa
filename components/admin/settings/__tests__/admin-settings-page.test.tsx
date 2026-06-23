@@ -13,6 +13,7 @@ import {
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 
 const mocks = vi.hoisted(() => ({
+  getUser: vi.fn(),
   readAdminAccessToken: vi.fn(),
   refresh: vi.fn(),
   replace: vi.fn(),
@@ -20,6 +21,10 @@ const mocks = vi.hoisted(() => ({
     refresh: vi.fn(),
     replace: vi.fn(),
   },
+  signOut: vi.fn(),
+  signInWithOtp: vi.fn(),
+  updateUser: vi.fn(),
+  verifyOtp: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -28,6 +33,18 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/components/admin/admin-auth", () => ({
   readAdminAccessToken: mocks.readAdminAccessToken,
+}));
+
+vi.mock("@/lib/home-sections/supabase", () => ({
+  createBrowserHomeConfigClient: () => ({
+    auth: {
+      getUser: mocks.getUser,
+      signOut: mocks.signOut,
+      signInWithOtp: mocks.signInWithOtp,
+      updateUser: mocks.updateUser,
+      verifyOtp: mocks.verifyOtp,
+    },
+  }),
 }));
 
 import { AdminSettingsPage } from "../admin-settings-page";
@@ -39,6 +56,28 @@ describe("AdminSettingsPage", () => {
     mocks.replace.mockReset();
     mocks.router.refresh = mocks.refresh;
     mocks.router.replace = mocks.replace;
+    mocks.getUser.mockResolvedValue({
+      data: { user: { email: "admin@example.com" } },
+      error: null,
+    });
+    mocks.signInWithOtp.mockResolvedValue({ data: {}, error: null });
+    mocks.updateUser.mockResolvedValue({
+      data: { user: { id: "admin-user" } },
+      error: null,
+    });
+    mocks.verifyOtp.mockResolvedValue({
+      data: {
+        session: { access_token: "otp-token" },
+        user: { email: "admin@example.com" },
+      },
+      error: null,
+    });
+    mocks.signOut.mockResolvedValue({ error: null });
+    mocks.getUser.mockClear();
+    mocks.signOut.mockClear();
+    mocks.signInWithOtp.mockClear();
+    mocks.updateUser.mockClear();
+    mocks.verifyOtp.mockClear();
   });
 
   afterEach(() => {
@@ -245,6 +284,67 @@ describe("AdminSettingsPage", () => {
       }),
     ).toHaveLength(0);
     expect(page.container.textContent).toContain("ต้องใส่ชื่อเว็บ");
+
+    await page.unmount();
+  });
+
+  it("changes the admin password, signs out, and does not save site settings", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { settings: DEFAULT_SITE_SETTINGS },
+        url: "/api/admin/site-settings",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminSettingsPage />);
+    await flushEffects();
+
+    await click(
+      Array.from(page.container.querySelectorAll("button")).find((button) =>
+        button.textContent?.includes("เปลี่ยนรหัสผ่าน"),
+      ) as HTMLButtonElement,
+    );
+    await click(
+      Array.from(page.container.querySelectorAll("button")).find((button) =>
+        button.textContent?.includes("ส่งรหัส OTP ไปอีเมล"),
+      ) as HTMLButtonElement,
+    );
+    await flushEffects();
+    await changeInput(
+      page.container.querySelector("#adminPasswordOtp") as HTMLInputElement,
+      "123456",
+    );
+    await changeInput(
+      page.container.querySelector("#adminNewPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await changeInput(
+      page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await click(
+      Array.from(page.container.querySelectorAll("button")).find((button) =>
+        button.textContent?.includes("ยืนยันและเปลี่ยนรหัสผ่าน"),
+      ) as HTMLButtonElement,
+    );
+    await flushEffects();
+
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      token: "123456",
+      type: "email",
+    });
+    expect(mocks.updateUser).toHaveBeenCalledWith({
+      password: "new-password-123",
+    });
+    expect(mocks.signOut).toHaveBeenCalledWith();
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/login");
+    expect(
+      fetchMock.mock.calls.filter(([url, init]) => {
+        return url === "/api/admin/site-settings" && init?.method === "PUT";
+      }),
+    ).toHaveLength(0);
 
     await page.unmount();
   });

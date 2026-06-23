@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildSiteAssetStoragePath, uploadAsset } from "../admin-asset-uploads";
+import {
+  buildSiteAssetStoragePath,
+  readSiteSettingsUploadFiles,
+  uploadAsset,
+} from "../admin-asset-uploads";
 
 describe("admin site asset uploads", () => {
   afterEach(() => {
@@ -40,5 +44,30 @@ describe("admin site asset uploads", () => {
     expect(result.asset).toBeNull();
     expect(result.error?.message).toBe("Unsupported upload MIME type");
     expect(storage.from).not.toHaveBeenCalled();
+  });
+
+  it("reads SEO share image uploads from the settings form data", () => {
+    const formData = new FormData();
+    formData.set(
+      "seoOgImageFile",
+      new File(["seo"], "seo.webp", { type: "image/webp" }),
+    );
+    formData.set(
+      "searchSeoOgImageFile",
+      new File(["search"], "search.webp", { type: "image/webp" }),
+    );
+    formData.set(
+      "guidesSeoOgImageFile",
+      new File(["guides"], "guides.webp", { type: "image/webp" }),
+    );
+
+    expect(readSiteSettingsUploadFiles(formData)).toMatchObject({
+      errors: [],
+      uploadFiles: [
+        { assetType: "seo-og" },
+        { assetType: "search-seo-og" },
+        { assetType: "guides-seo-og" },
+      ],
+    });
   });
 });

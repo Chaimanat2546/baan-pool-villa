@@ -47,7 +47,7 @@ export function CspSafeImage({
         alt={alt}
         className={className}
         fill={fill}
-        loading={shouldPreload ? undefined : loading}
+        loading={shouldPreload ? "eager" : loading}
         preload={shouldPreload}
         {...props}
       />

@@ -1,0 +1,311 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+  changeInput,
+  click,
+  flushEffects,
+  mountAdminPage,
+} from "@/components/admin/__tests__/admin-page-dom-test-utils";
+
+const mocks = vi.hoisted(() => ({
+  getUser: vi.fn(),
+  readAdminAccessToken: vi.fn(),
+  replace: vi.fn(),
+  signOut: vi.fn(),
+  signInWithOtp: vi.fn(),
+  updateUser: vi.fn(),
+  verifyOtp: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    replace: mocks.replace,
+  }),
+}));
+
+vi.mock("@/components/admin/admin-auth", () => ({
+  readAdminAccessToken: mocks.readAdminAccessToken,
+}));
+
+vi.mock("@/lib/home-sections/supabase", () => ({
+  createBrowserHomeConfigClient: () => ({
+    auth: {
+      getUser: mocks.getUser,
+      signOut: mocks.signOut,
+      signInWithOtp: mocks.signInWithOtp,
+      updateUser: mocks.updateUser,
+      verifyOtp: mocks.verifyOtp,
+    },
+  }),
+}));
+
+import { AdminPasswordSecurityCard } from "../admin-password-security-card";
+
+function findButton(container: HTMLElement, label: string): HTMLButtonElement {
+  const button = Array.from(container.querySelectorAll("button")).find((item) =>
+    item.textContent?.includes(label),
+  );
+
+  if (!(button instanceof HTMLButtonElement)) {
+    throw new Error(`Button not found: ${label}`);
+  }
+
+  return button;
+}
+
+describe("AdminPasswordSecurityCard", () => {
+  beforeEach(() => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { email: "admin@example.com" } },
+      error: null,
+    });
+    mocks.readAdminAccessToken.mockResolvedValue("admin-token");
+    mocks.signInWithOtp.mockResolvedValue({ data: {}, error: null });
+    mocks.updateUser.mockResolvedValue({
+      data: { user: { id: "admin-user" } },
+      error: null,
+    });
+    mocks.verifyOtp.mockResolvedValue({
+      data: {
+        session: { access_token: "otp-token" },
+        user: { email: "admin@example.com" },
+      },
+      error: null,
+    });
+    mocks.signOut.mockResolvedValue({ error: null });
+    mocks.getUser.mockClear();
+    mocks.replace.mockReset();
+    mocks.signOut.mockClear();
+    mocks.signInWithOtp.mockClear();
+    mocks.updateUser.mockClear();
+    mocks.verifyOtp.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sends an email OTP from the modal", async () => {
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    await click(findButton(page.container, "ส่งรหัส OTP ไปอีเมล"));
+    await flushEffects();
+
+    expect(mocks.readAdminAccessToken).toHaveBeenCalled();
+    expect(mocks.getUser).toHaveBeenCalledTimes(1);
+    expect(mocks.signInWithOtp).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      options: { shouldCreateUser: false },
+    });
+    expect(page.container.textContent).toContain("ส่งรหัส OTP แล้ว");
+
+    await page.unmount();
+  });
+
+  it("shows a Thai cooldown message when OTP sending is rate limited", async () => {
+    mocks.signInWithOtp.mockResolvedValue({
+      data: {},
+      error: new Error("429 Too Many Requests"),
+    });
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    await click(findButton(page.container, "ส่งรหัส OTP ไปอีเมล"));
+    await flushEffects();
+
+    expect(page.container.textContent).toContain("ส่ง OTP ถี่เกินไป");
+    expect(page.container.textContent).toContain("60 วินาที");
+
+    await page.unmount();
+  });
+
+  it("prevents immediate OTP resend after a successful send", async () => {
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    const sendButton = findButton(page.container, "ส่งรหัส OTP ไปอีเมล");
+
+    await click(sendButton);
+    await flushEffects();
+    await click(sendButton);
+    await flushEffects();
+
+    expect(mocks.signInWithOtp).toHaveBeenCalledTimes(1);
+    expect(page.container.textContent).toContain("ส่ง OTP อีกครั้งใน");
+
+    await page.unmount();
+  });
+
+  it("updates the password, signs out globally, and redirects to login", async () => {
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    await click(findButton(page.container, "ส่งรหัส OTP ไปอีเมล"));
+    await flushEffects();
+    await changeInput(
+      page.container.querySelector("#adminPasswordOtp") as HTMLInputElement,
+      "123456",
+    );
+    await changeInput(
+      page.container.querySelector("#adminNewPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await changeInput(
+      page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
+    await flushEffects();
+
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      token: "123456",
+      type: "email",
+    });
+    expect(mocks.updateUser).toHaveBeenCalledWith({
+      password: "new-password-123",
+    });
+    expect(mocks.signOut).toHaveBeenCalledWith();
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/login");
+
+    await page.unmount();
+  });
+
+  it("does not update the password when the email OTP is invalid", async () => {
+    mocks.verifyOtp.mockResolvedValue({
+      data: { session: null, user: null },
+      error: { message: "Token has expired or is invalid" },
+    });
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    await click(findButton(page.container, "ส่งรหัส OTP ไปอีเมล"));
+    await flushEffects();
+    await changeInput(
+      page.container.querySelector("#adminPasswordOtp") as HTMLInputElement,
+      "000000",
+    );
+    await changeInput(
+      page.container.querySelector("#adminNewPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await changeInput(
+      page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
+    await flushEffects();
+
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      token: "000000",
+      type: "email",
+    });
+    expect(mocks.updateUser).not.toHaveBeenCalled();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(mocks.replace).not.toHaveBeenCalledWith("/admin/login");
+
+    await page.unmount();
+  });
+
+  it("checks the typed OTP even when this modal did not send it first", async () => {
+    mocks.verifyOtp.mockResolvedValue({
+      data: { session: null, user: null },
+      error: { message: "Token has expired or is invalid" },
+    });
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    await changeInput(
+      page.container.querySelector("#adminPasswordOtp") as HTMLInputElement,
+      "000000",
+    );
+    await changeInput(
+      page.container.querySelector("#adminNewPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await changeInput(
+      page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
+    await flushEffects();
+
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      token: "000000",
+      type: "email",
+    });
+    expect(mocks.updateUser).not.toHaveBeenCalled();
+    expect(page.container.textContent).toContain("รหัส OTP ไม่ถูกต้องหรือหมดอายุ");
+    expect(page.container.textContent).not.toContain("กดส่งรหัส OTP ไปอีเมลก่อน");
+
+    await page.unmount();
+  });
+
+  it("blocks submit when passwords do not match", async () => {
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    await changeInput(
+      page.container.querySelector("#adminPasswordOtp") as HTMLInputElement,
+      "123456",
+    );
+    await changeInput(
+      page.container.querySelector("#adminNewPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await changeInput(
+      page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
+      "different-password",
+    );
+    await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
+    await flushEffects();
+
+    expect(mocks.updateUser).not.toHaveBeenCalled();
+    expect(page.container.textContent).toContain(
+      "รหัสผ่านใหม่ทั้งสองช่องต้องตรงกัน",
+    );
+
+    await page.unmount();
+  });
+
+  it("requires an OTP before changing the password", async () => {
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    await changeInput(
+      page.container.querySelector("#adminNewPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await changeInput(
+      page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
+      "new-password-123",
+    );
+    await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
+    await flushEffects();
+
+    expect(mocks.updateUser).not.toHaveBeenCalled();
+    expect(page.container.textContent).toContain("กรอกรหัส OTP จากอีเมล");
+
+    await page.unmount();
+  });
+
+  it("redirects to login when the browser session is missing", async () => {
+    mocks.readAdminAccessToken.mockResolvedValue(null);
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    await click(findButton(page.container, "ส่งรหัส OTP ไปอีเมล"));
+    await flushEffects();
+
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/login");
+    expect(mocks.signInWithOtp).not.toHaveBeenCalled();
+
+    await page.unmount();
+  });
+});

@@ -15,12 +15,14 @@ vi.mock("next/image", () => ({
     alt,
     fill,
     height,
+    loading,
     src,
     width,
   }: {
     alt: string;
     fill?: boolean;
     height?: number;
+    loading?: string;
     src: string;
     width?: number;
   }) => (
@@ -28,10 +30,17 @@ vi.mock("next/image", () => ({
       aria-label={alt}
       data-fill={fill ? "true" : "false"}
       data-height={height?.toString() ?? ""}
+      data-loading={loading ?? ""}
       data-src={src}
       data-width={width?.toString() ?? ""}
     />
   ),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    replace: vi.fn(),
+  }),
 }));
 
 vi.mock("@/lib/site-settings/colors", () => ({
@@ -67,6 +76,7 @@ describe("SettingsForm", () => {
       "รูปหลัก",
       "SEO และการแชร์",
       "ติดต่อและชำระเงิน",
+      "เปลี่ยนรหัสผ่าน",
     ];
 
     expectedOrder.reduce((previousIndex, label) => {
@@ -90,6 +100,34 @@ describe("SettingsForm", () => {
     expect(html).not.toContain("style=");
   });
 
+  it("marks visible site preview images as eager when they can be LCP", () => {
+    const html = renderSettingsForm({
+      ...DEFAULT_SITE_SETTINGS,
+      heroImage: {
+        alt: "Preview hero",
+        path: "/images/BPV-66_Cover-Web.jpg",
+        url: "/images/BPV-66_Cover-Web.jpg",
+      },
+      seo: {
+        ...DEFAULT_SITE_SETTINGS.seo,
+        ogImage: {
+          alt: "Preview share",
+          path: "/images/BPV-66_Cover-Web.jpg",
+          url: "/images/BPV-66_Cover-Web.jpg",
+        },
+      },
+    });
+    const previewMarkup = html.slice(html.indexOf("settings-preview-theme"));
+    const previewImages =
+      previewMarkup.match(/<span\b[^>]*data-src="\/images\/BPV-66_Cover-Web\.jpg"[^>]*>/g) ??
+      [];
+
+    expect(previewImages).toHaveLength(2);
+    for (const image of previewImages) {
+      expect(image).toContain('data-loading="eager"');
+    }
+  });
+
   it("renders per-page SEO keyword editors", () => {
     const html = renderSettingsForm();
 
@@ -97,6 +135,24 @@ describe("SettingsForm", () => {
     expect(html).toContain('id="searchSeoKeywords"');
     expect(html).toContain('id="guidesSeoKeywords"');
     expect(html).toContain('id="villaDetailSeoKeywords"');
+  });
+
+  it("uses upload controls for SEO share images instead of editable URL fields", () => {
+    const html = renderSettingsForm();
+
+    expect(html).toContain('id="seoOgImageFile"');
+    expect(html).toContain('id="searchSeoOgImageFile"');
+    expect(html).toContain('id="guidesSeoOgImageFile"');
+    expect(html).not.toContain('id="seoOgImageUrl"');
+    expect(html).not.toContain('id="searchSeoOgImageUrl"');
+    expect(html).not.toContain('id="guidesSeoOgImageUrl"');
+  });
+
+  it("renders the account security password action", () => {
+    const html = renderSettingsForm();
+
+    expect(html).toContain("เปลี่ยนรหัสผ่าน");
+    expect(html).toContain("เปลี่ยนรหัสผ่าน");
   });
 
   it("parses comma-separated multi-value SEO fields", async () => {
