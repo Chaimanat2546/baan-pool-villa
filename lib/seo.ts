@@ -51,6 +51,7 @@ export const defaultOgImage = "/images/BPV-66_Cover-Web.jpg";
 const defaultOgImageAlt = "บ้านพักพูลวิลล่าพัทยาพร้อมสระว่ายน้ำส่วนตัว";
 const openGraphImageWidth = 1200;
 const openGraphImageHeight = 630;
+const productionSiteUrl = "https://baanpartypattaya.com";
 
 interface BreadcrumbItem {
   name: string;
@@ -72,7 +73,11 @@ export function getSiteUrl(): URL {
     }
   }
 
-  return new URL("http://localhost:3000");
+  return new URL(
+    process.env.NODE_ENV === "production"
+      ? productionSiteUrl
+      : "http://localhost:3000",
+  );
 }
 
 export function absoluteUrl(pathname: string): string {

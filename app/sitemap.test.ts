@@ -17,7 +17,6 @@ vi.mock("@/lib/legal-pages/server", () => ({
 
 vi.mock("@/lib/seo", () => ({
   absoluteUrl: (path: string) => `https://example.com${path}`,
-  buildMetadataImageUrl: (image: string) => image,
 }));
 
 vi.mock("@/lib/villas/server", () => ({
@@ -99,15 +98,15 @@ describe("sitemap", () => {
     const legalRoute = routes.find((route) => route.url === "https://example.com/terms");
 
     expect(villaRoute).toMatchObject({
-      images: ["https://example.com/villa.jpg"],
       url: "https://example.com/villas/101",
     });
+    expect(villaRoute?.images).toBeUndefined();
     expect(villaRoute).not.toHaveProperty("lastModified");
     expect(guideRoute).toMatchObject({
-      images: ["https://example.com/guide.jpg"],
       lastModified: new Date("2026-06-02T00:00:00.000Z"),
       url: "https://example.com/guides/family-guide",
     });
+    expect(guideRoute?.images).toBeUndefined();
     expect(legalRoute).toMatchObject({
       changeFrequency: "monthly",
       lastModified: new Date("2026-06-03T00:00:00.000Z"),
