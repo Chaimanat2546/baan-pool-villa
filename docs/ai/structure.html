@@ -190,6 +190,11 @@
                 <td><code>/villas/:id</code> missing villa UI</td>
                 <td>Detail not-found experience.</td>
               </tr>
+              <tr>
+                <td><code>app/(public)/[...legacy]/page.tsx</code></td>
+                <td>Unmatched public legacy paths</td>
+                <td>Safe legacy villa redirect fallback. App Router only reaches this catch-all after concrete routes fail to match; the route reads the final path segment, accepts positive numeric villa ids only, verifies the villa through <code>getListingById</code>, permanently redirects existing villas to <code>/villas/:id</code>, and returns <code>notFound()</code> for non-numeric or unknown ids.</td>
+              </tr>
             </tbody>
           </table>
         </section>
