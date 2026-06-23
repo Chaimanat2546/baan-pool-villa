@@ -15,6 +15,7 @@ function getVillaTitle(villa: VillaListing): string {
 }
 
 const CARD_AMENITY_LABEL_MAX_LENGTH = 12;
+const CARD_AMENITIES_CLASS = "min-h-[64px] pb-3";
 
 function formatPrice(price: number | null): string {
   return price === null ? "" : price.toLocaleString("th-TH");
@@ -87,22 +88,22 @@ export function VillaCard({
         </div>
 
         {visibleAmenities.length > 0 ? (
-          <div className="flex min-h-[22px] flex-wrap gap-1 pb-3">
+          <div className={`flex ${CARD_AMENITIES_CLASS} flex-wrap content-start gap-1`}>
             {visibleAmenities.map((amenity) => (
               <span
                 key={amenity.key}
-                className="max-w-full truncate rounded-full bg-[var(--site-accent-soft)] px-3 py-1 text-xs font-semibold leading-4 text-[var(--site-text)]"
+                className="block truncate rounded-full bg-[var(--site-accent-soft)] px-3 py-1 text-xs font-semibold leading-4 text-[var(--site-text)]"
               >
                 {amenity.label}
               </span>
             ))}
           </div>
         ) : villa.amenities.length === 0 ? (
-          <div className="min-h-[34px] pb-3 text-xs leading-5 text-[var(--site-muted)]">
+          <div className={`${CARD_AMENITIES_CLASS} text-xs leading-5 text-[var(--site-muted)]`}>
             ไม่มีข้อมูลสิ่งอำนวยความสะดวก
           </div>
         ) : (
-          <div className="min-h-[34px] pb-3" aria-hidden="true" />
+          <div className={CARD_AMENITIES_CLASS} aria-hidden="true" />
         )}
         <div className="flex items-end justify-between gap-3">
           <p className={villa.price === null ? "hidden" : "min-w-0 text-[var(--site-text)]"}>

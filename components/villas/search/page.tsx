@@ -21,6 +21,7 @@ import {
 import type { VillaFilters, VillaListing } from "@/lib/villas/types";
 
 import { VillaGrid } from "../listing/villa-grid";
+import { VillaGridSkeleton } from "../listing/villa-grid-skeleton";
 import { MobileFilterDrawer } from "./mobile-filter-drawer";
 import { SearchBar } from "./search-bar";
 import {
@@ -30,6 +31,7 @@ import {
   isAbortError,
   isVillaSortKey,
   PAGE_SIZE,
+  parseSmartSearchQuery,
   readSearchCatalogPayload,
   SORT_OPTIONS,
   type CatalogPageRequest,
@@ -41,6 +43,16 @@ interface SearchPageProps {
   initialVillas?: VillaListing[];
   initialMeta?: SearchPageInitialMeta;
 }
+
+interface SearchPageSnapshot {
+  catalogHasMore: boolean;
+  catalogResultCount: number;
+  loadedCatalogPage: number;
+  visibleCount: number;
+  villas: VillaListing[];
+}
+
+const SEARCH_PAGE_SNAPSHOT_PREFIX = "bpv:search-page:";
 
 function scrollResultsIntoView(resultsElement: HTMLDivElement | null) {
   resultsElement?.scrollIntoView?.({ behavior: "smooth", block: "start" });
@@ -84,6 +96,83 @@ function replaceSearchUrl(
 function clearSearchUrl() {
   if (typeof window !== "undefined") {
     window.history.replaceState(null, "", window.location.pathname);
+  }
+}
+
+function getSearchPageSnapshotKey(
+  filters: VillaFilters,
+  villaIdQuery: string,
+  sortKey: VillaSortKey,
+): string {
+  const params = filtersToSearchParams(filters);
+  const trimmedVillaId = villaIdQuery.trim();
+
+  if (trimmedVillaId) {
+    params.set("id", trimmedVillaId);
+  }
+
+  params.set("sort", sortKey);
+
+  return `${SEARCH_PAGE_SNAPSHOT_PREFIX}${params.toString()}`;
+}
+
+function readSearchPageSnapshot(key: string): SearchPageSnapshot | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const rawSnapshot = window.sessionStorage.getItem(key);
+
+    if (!rawSnapshot) {
+      return null;
+    }
+
+    const snapshot = JSON.parse(rawSnapshot) as Partial<SearchPageSnapshot>;
+
+    if (
+      !Array.isArray(snapshot.villas) ||
+      typeof snapshot.catalogHasMore !== "boolean" ||
+      typeof snapshot.catalogResultCount !== "number" ||
+      typeof snapshot.loadedCatalogPage !== "number" ||
+      typeof snapshot.visibleCount !== "number"
+    ) {
+      return null;
+    }
+
+    return {
+      catalogHasMore: snapshot.catalogHasMore,
+      catalogResultCount: snapshot.catalogResultCount,
+      loadedCatalogPage: snapshot.loadedCatalogPage,
+      visibleCount: snapshot.visibleCount,
+      villas: snapshot.villas,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeSearchPageSnapshot(key: string, snapshot: SearchPageSnapshot) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify(snapshot));
+  } catch {
+    // Storage can be unavailable in private browsing or quota-limited sessions.
+  }
+}
+
+function clearSearchPageSnapshot(key: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Ignore storage failures; search still works without restoration.
   }
 }
 
@@ -146,6 +235,7 @@ export function SearchPage({
   );
   const [loadedCatalogPage, setLoadedCatalogPage] = useState(1);
   const [isCatalogHydrating, setIsCatalogHydrating] = useState(false);
+  const [isCatalogAppending, setIsCatalogAppending] = useState(false);
   const [error, setError] = useState<string | null>(
     initialLoadError ? getSearchErrorMessage(new Error(initialLoadError)) : null,
   );
@@ -171,6 +261,10 @@ export function SearchPage({
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const catalogRequestControllerRef = useRef<AbortController | null>(null);
   const catalogRequestSequenceRef = useRef(0);
+  const isCatalogAppendingRef = useRef(false);
+  const searchSnapshotKeyRef = useRef(
+    getSearchPageSnapshotKey(filters, villaIdQuery, sortKey),
+  );
 
   const maxAvailablePrice = resolvedMeta.maxPrice;
   const zones = useMemo(() => resolvedMeta.zones, [resolvedMeta.zones]);
@@ -212,6 +306,16 @@ export function SearchPage({
     resolvedMeta.zones.length > 0;
 
   useEffect(() => {
+    const snapshot = readSearchPageSnapshot(searchSnapshotKeyRef.current);
+
+    if (snapshot) {
+      setVillas(snapshot.villas);
+      setCatalogHasMore(snapshot.catalogHasMore);
+      setCatalogResultCount(snapshot.catalogResultCount);
+      setLoadedCatalogPage(snapshot.loadedCatalogPage);
+      setVisibleCount(snapshot.visibleCount);
+    }
+
     return () => {
       catalogRequestSequenceRef.current += 1;
       catalogRequestControllerRef.current?.abort();
@@ -251,6 +355,8 @@ export function SearchPage({
     catalogRequestControllerRef.current?.abort();
     const abortController = new AbortController();
     catalogRequestControllerRef.current = abortController;
+    isCatalogAppendingRef.current = append;
+    setIsCatalogAppending(append);
 
     if (!append) {
       setIsCatalogComplete(false);
@@ -277,15 +383,36 @@ export function SearchPage({
       }
 
       const nextItems = payload.items;
+      const nextCatalogHasMore = Boolean(payload.hasMore);
+      const nextCatalogResultCount =
+        typeof payload.total === "number" ? payload.total : nextItems.length;
+      const nextLoadedCatalogPage =
+        typeof payload.page === "number" ? payload.page : page;
+      const nextSnapshotKey = getSearchPageSnapshotKey(
+        nextFilters,
+        nextVillaIdQuery,
+        nextSortKey,
+      );
 
-      setVillas((currentVillas) =>
-        append ? mergeUniqueVillas(currentVillas, nextItems) : nextItems,
-      );
-      setCatalogHasMore(Boolean(payload.hasMore));
-      setCatalogResultCount(
-        typeof payload.total === "number" ? payload.total : nextItems.length,
-      );
-      setLoadedCatalogPage(typeof payload.page === "number" ? payload.page : page);
+      searchSnapshotKeyRef.current = nextSnapshotKey;
+      setVillas((currentVillas) => {
+        const nextVillas = append
+          ? mergeUniqueVillas(currentVillas, nextItems)
+          : nextItems;
+
+        writeSearchPageSnapshot(nextSnapshotKey, {
+          catalogHasMore: nextCatalogHasMore,
+          catalogResultCount: nextCatalogResultCount,
+          loadedCatalogPage: nextLoadedCatalogPage,
+          visibleCount: append ? visibleCount : PAGE_SIZE,
+          villas: nextVillas,
+        });
+
+        return nextVillas;
+      });
+      setCatalogHasMore(nextCatalogHasMore);
+      setCatalogResultCount(nextCatalogResultCount);
+      setLoadedCatalogPage(nextLoadedCatalogPage);
       setError(null);
       return true;
     } catch (hydrateError) {
@@ -307,28 +434,55 @@ export function SearchPage({
       if (!append && catalogRequestSequenceRef.current === requestSequence) {
         setIsCatalogHydrating(false);
       }
-    }
-  }, [filters, isCatalogComplete, maxAvailablePrice, sortKey, villaIdQuery]);
 
-  function handleSearch() {
-    const nextFilters = normalizeFiltersForSearch(draftFilters, maxAvailablePrice);
-    const nextVillaIdQuery = villaIdInput.trim();
+      if (catalogRequestSequenceRef.current === requestSequence) {
+        isCatalogAppendingRef.current = false;
+        setIsCatalogAppending(false);
+      }
+    }
+  }, [filters, isCatalogComplete, maxAvailablePrice, sortKey, visibleCount, villaIdQuery]);
+
+  function applySearchState(
+    nextFiltersInput: VillaFilters,
+    nextVillaIdQueryInput: string,
+    nextSortKey: VillaSortKey,
+  ) {
+    const nextFilters = normalizeFiltersForSearch(nextFiltersInput, maxAvailablePrice);
+    const nextVillaIdQuery = nextVillaIdQueryInput.trim();
 
     setDraftFilters(nextFilters);
     setFilters(nextFilters);
-    setSortKey(draftSortKey);
+    setDraftSortKey(nextSortKey);
+    setSortKey(nextSortKey);
+    setVillaIdInput(nextVillaIdQuery);
     setVillaIdQuery(nextVillaIdQuery);
-    replaceSearchUrl(nextFilters, nextVillaIdQuery, draftSortKey);
+    clearSearchPageSnapshot(searchSnapshotKeyRef.current);
+    searchSnapshotKeyRef.current = getSearchPageSnapshotKey(
+      nextFilters,
+      nextVillaIdQuery,
+      nextSortKey,
+    );
+    replaceSearchUrl(nextFilters, nextVillaIdQuery, nextSortKey);
     if (!isCatalogComplete) {
       void loadCatalogPage({
         filtersOverride: nextFilters,
         page: 1,
-        sortOverride: draftSortKey,
+        sortOverride: nextSortKey,
         villaIdOverride: nextVillaIdQuery,
       });
     }
     setVisibleCount(PAGE_SIZE);
     scrollResultsIntoView(resultsRef.current);
+  }
+
+  function handleSearch() {
+    const parsedQuery = parseSmartSearchQuery(villaIdInput, zones);
+
+    applySearchState(
+      { ...draftFilters, ...parsedQuery.filtersPatch },
+      parsedQuery.remainingQuery,
+      draftSortKey,
+    );
   }
 
   function handleFilterChange(nextFilters: VillaFilters) {
@@ -338,34 +492,35 @@ export function SearchPage({
   }
 
   function handleApplyMobileFilters(nextFilters: VillaFilters) {
-    const normalizedFilters = normalizeFiltersForSearch(nextFilters, maxAvailablePrice);
-    const nextVillaIdQuery = villaIdInput.trim();
-
-    setDraftFilters(normalizedFilters);
-    setFilters(normalizedFilters);
-    setSortKey(draftSortKey);
-    setVillaIdQuery(nextVillaIdQuery);
-    replaceSearchUrl(normalizedFilters, nextVillaIdQuery, draftSortKey);
-    if (!isCatalogComplete) {
-      void loadCatalogPage({
-        filtersOverride: normalizedFilters,
-        page: 1,
-        sortOverride: draftSortKey,
-        villaIdOverride: nextVillaIdQuery,
-      });
-    }
+    applySearchState(nextFilters, villaIdInput, draftSortKey);
     requestAnimationFrame(() => {
       scrollResultsIntoView(resultsRef.current);
     });
   }
 
   function showMoreResults() {
+    if (isCatalogAppendingRef.current) {
+      return;
+    }
+
     if (!isCatalogComplete) {
       void loadCatalogPage({ append: true, page: loadedCatalogPage + 1 });
       return;
     }
 
-    setVisibleCount((current) => current + PAGE_SIZE);
+    setVisibleCount((current) => {
+      const nextVisibleCount = current + PAGE_SIZE;
+
+      writeSearchPageSnapshot(searchSnapshotKeyRef.current, {
+        catalogHasMore,
+        catalogResultCount,
+        loadedCatalogPage,
+        visibleCount: nextVisibleCount,
+        villas,
+      });
+
+      return nextVisibleCount;
+    });
   }
 
   function handleVillaIdQueryChange(value: string) {
@@ -388,7 +543,21 @@ export function SearchPage({
     setDraftSortKey("recommended");
     setSortKey("recommended");
     setVisibleCount(PAGE_SIZE);
+    clearSearchPageSnapshot(searchSnapshotKeyRef.current);
+    searchSnapshotKeyRef.current = getSearchPageSnapshotKey(
+      nextFilters,
+      "",
+      "recommended",
+    );
     clearSearchUrl();
+    if (!isCatalogComplete) {
+      void loadCatalogPage({
+        filtersOverride: nextFilters,
+        page: 1,
+        sortOverride: "recommended",
+        villaIdOverride: "",
+      });
+    }
   }
 
   return (
@@ -573,18 +742,32 @@ export function SearchPage({
           ) : (
             <>
               <VillaGrid villas={visibleVillas} />
+              {isCatalogAppending ? (
+                <div className="mt-6">
+                  <VillaGridSkeleton
+                    count={Math.min(PAGE_SIZE, resultCount - visibleVillas.length)}
+                  />
+                </div>
+              ) : null}
               {canLoadMore ? (
                 <div className="mt-8 flex justify-center">
                   <button
                     type="button"
                     className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--site-primary)] px-6 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)]"
+                    disabled={isCatalogAppending}
                     onClick={showMoreResults}
                   >
-                    ดูเพิ่มเติมอีก{" "}
-                    {Math.min(PAGE_SIZE, resultCount - visibleVillas.length).toLocaleString(
-                      "th-TH",
-                    )}{" "}
-                    หลัง
+                    {isCatalogAppending ? (
+                      "กำลังโหลด..."
+                    ) : (
+                      <>
+                        ดูเพิ่มเติมอีก{" "}
+                        {Math.min(PAGE_SIZE, resultCount - visibleVillas.length).toLocaleString(
+                          "th-TH",
+                        )}{" "}
+                        หลัง
+                      </>
+                    )}
                   </button>
                 </div>
               ) : null}

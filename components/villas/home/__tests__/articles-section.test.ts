@@ -1,8 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 
 import type { GuidePost } from "@/lib/guides/types";
 
-import { selectHomeGuideSummaries } from "../articles-section";
+import { ArticlesSection, selectHomeGuideSummaries } from "../articles-section";
+
+interface MockImageProps {
+  alt: string;
+  src: string;
+}
+
+vi.mock("next/image", () => ({
+  default: ({ alt, src }: MockImageProps) =>
+    createElement("span", { "aria-label": alt, "data-src": src }),
+}));
 
 function makeGuide(index: number): GuidePost {
   return {
@@ -45,5 +57,23 @@ describe("selectHomeGuideSummaries", () => {
       "https://hmxuqvgyliuwbytcodwm.supabase.co/storage/v1/object/public/guide-assets/guides/guide-0.jpg",
     );
     expect(JSON.stringify(summaries)).not.toContain("contentBlocks");
+  });
+});
+
+describe("ArticlesSection", () => {
+  it("reserves article card body space so the CTA stays aligned", () => {
+    const guides = selectHomeGuideSummaries([makeGuide(0)]);
+    const markup = renderToStaticMarkup(
+      createElement(ArticlesSection, { guides }),
+    );
+
+    const guideAnchor = markup.match(/<a\b[^>]*href="\/guides\/guide-0"[^>]*>/);
+
+    expect(guideAnchor?.[0]).toContain("flex h-full");
+    expect(guideAnchor?.[0]).toContain("flex-col");
+    expect(markup).toContain("flex flex-1 flex-col p-6");
+    expect(markup).toContain("line-clamp-2 min-h-14");
+    expect(markup).toContain("line-clamp-3 min-h-18");
+    expect(markup).toContain("mt-auto inline-flex");
   });
 });

@@ -17,7 +17,7 @@ function GuideCard({ guide, eager }: { eager?: boolean; guide: GuidePost }) {
 
   return (
     <a
-      className="group block overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-px shadow-[0_10px_15px_-3px_rgba(0,0,0,0.05),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_28px_-8px_rgba(15,47,53,0.18)]"
+      className="group flex h-full flex-col overflow-hidden rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] p-px shadow-[0_10px_15px_-3px_rgba(0,0,0,0.05),0_4px_6px_-2px_rgba(0,0,0,0.05)] transition hover:-translate-y-1 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_28px_-8px_rgba(15,47,53,0.18)]"
       href={`/guides/${guide.slug}`}
     >
       <div className="relative h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]">
@@ -37,8 +37,8 @@ function GuideCard({ guide, eager }: { eager?: boolean; guide: GuidePost }) {
           </div>
         )}
       </div>
-      <article className="grid gap-3 p-4">
-        <div className="flex flex-wrap gap-2">
+      <article className="flex flex-1 flex-col gap-3 p-4">
+        <div className="flex min-h-8 flex-wrap gap-2">
           {guide.isPinned ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--site-primary)] px-2.5 py-1 text-xs font-semibold text-[var(--site-on-primary)]">
               <Pin aria-hidden="true" className="size-3" />
@@ -54,13 +54,13 @@ function GuideCard({ guide, eager }: { eager?: boolean; guide: GuidePost }) {
             </span>
           ))}
         </div>
-        <h2 className="line-clamp-2 text-xl font-semibold leading-7 text-[var(--site-text)]">
+        <h2 className="line-clamp-2 min-h-14 text-xl font-semibold leading-7 text-[var(--site-text)]">
           {guide.title}
         </h2>
-        <p className="line-clamp-3 text-sm leading-6 text-[var(--site-muted)]">
+        <p className="line-clamp-3 min-h-18 text-sm leading-6 text-[var(--site-muted)]">
           {guide.excerpt}
         </p>
-        <span className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-primary)]">
+        <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-primary)]">
           อ่านบทความ <ArrowRight aria-hidden="true" className="size-4" />
         </span>
       </article>
@@ -119,7 +119,7 @@ export function GuideListPage({ guides }: GuideListPageProps) {
               </div>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
               {guides.map((guide, index) => (
                 <GuideCard eager={index === 0} guide={guide} key={guide.id} />
               ))}
