@@ -1,14 +1,19 @@
-import { CACHE_REVALIDATE_SECONDS } from "@/lib/cache-policy";
 import { buildSiteThemeCss } from "@/lib/site-settings/colors";
 
-const HEX_COLOR_PATTERN = /^#[\da-f]{6}$/i;
+const HEX_COLOR_PATTERN = /^#?[\da-f]{6}$/i;
 const DEFAULT_PRIMARY_COLOR = "#064e3b";
 const DEFAULT_ACCENT_COLOR = "#eab308";
+
+export const dynamic = "force-dynamic";
 
 function readHexColor(value: string | null, fallback: string): string {
   const color = value?.trim().toLowerCase();
 
-  return color && HEX_COLOR_PATTERN.test(color) ? color : fallback;
+  if (!color || !HEX_COLOR_PATTERN.test(color)) {
+    return fallback;
+  }
+
+  return color.startsWith("#") ? color : `#${color}`;
 }
 
 function readCssScope(value: string | null): string {
@@ -35,7 +40,7 @@ export function GET(request: Request) {
 
   return new Response(css, {
     headers: {
-      "Cache-Control": `public, s-maxage=${CACHE_REVALIDATE_SECONDS.siteSettings}, stale-while-revalidate=${CACHE_REVALIDATE_SECONDS.siteSettings}`,
+      "Cache-Control": "no-store",
       "Content-Type": "text/css; charset=utf-8",
     },
   });

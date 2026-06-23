@@ -181,6 +181,12 @@ function normalizeCssScope(scope: string): string {
   return /^[a-z][a-z0-9-]{0,39}$/.test(scope) ? scope : "site-theme";
 }
 
+function formatThemeColorParam(color: string): string {
+  const normalized = color.trim().toLowerCase();
+
+  return normalized.startsWith("#") ? normalized.slice(1) : normalized;
+}
+
 export function buildSiteThemeCss(
   input: ThemeColorInput,
   scope = "site-theme",
@@ -198,8 +204,8 @@ export function buildSiteThemeStylesheetHref(
   scope = "site-theme",
 ): string {
   const params = new URLSearchParams({
-    accent: input.accentColor,
-    primary: input.primaryColor,
+    accent: formatThemeColorParam(input.accentColor),
+    primary: formatThemeColorParam(input.primaryColor),
     scope: normalizeCssScope(scope),
   });
 

@@ -159,7 +159,7 @@ describe("buildSiteThemeStylesheetHref", () => {
         "settings-preview-theme",
       ),
     ).toBe(
-      "/api/site-theme.css?accent=%23eab308&primary=%23064e3b&scope=settings-preview-theme",
+      "/api/site-theme.css?accent=eab308&primary=064e3b&scope=settings-preview-theme",
     );
   });
 });
