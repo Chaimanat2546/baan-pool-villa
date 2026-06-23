@@ -69,6 +69,21 @@ describe("guide detail request budget", () => {
     expect(guideAnchor?.[0]).not.toContain("data-prefetch=");
   });
 
+  it("reserves guide list card body space so the CTA stays aligned", () => {
+    const markup = renderToStaticMarkup(
+      <GuideListPage guides={[guide]} />,
+    );
+
+    const guideAnchor = markup.match(/<a\b[^>]*href="\/guides\/guide-1"[^>]*>/);
+
+    expect(guideAnchor?.[0]).toContain("flex h-full flex-col");
+    expect(markup).toContain("flex flex-1 flex-col gap-3 p-4");
+    expect(markup).toContain("flex min-h-8 flex-wrap gap-2");
+    expect(markup).toContain("line-clamp-2 min-h-14");
+    expect(markup).toContain("line-clamp-3 min-h-18");
+    expect(markup).toContain("mt-auto inline-flex");
+  });
+
   it("passes guide cover images to the AWS image loader", () => {
     const markup = renderToStaticMarkup(
       <GuideListPage

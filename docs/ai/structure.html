@@ -136,6 +136,11 @@
                 <td><code>components/layout</code>, resolved site settings, theme variables, contact config. The shell inherits root on-demand rendering and must not force <code>force-dynamic</code> because that would turn explicit data caches into no-store fetches.</td>
               </tr>
               <tr>
+                <td><code>app/(public)/not-found.tsx</code></td>
+                <td>Public 404 UI</td>
+                <td>Generic public not-found experience rendered inside the public shell with header, footer, mobile contact navigation, and shared <code>components/layout/public-not-found-page.tsx</code> actions for search, guides, and home.</td>
+              </tr>
+              <tr>
                 <td><code>app/(public)/(home)/page.tsx</code></td>
                 <td><code>/</code></td>
                 <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, bounded homepage villa listing, home-section, and site-settings reads come from tagged data caches. The server route still uses full site settings for metadata and JSON-LD, but the client <code>HomePage</code> receives only the rendered homepage settings fields (<code>heroImage</code>, <code>tiktok</code>, <code>contact</code>, and <code>bank</code>), public guide summaries, and homepage public villa listing DTOs loaded from the fallback listing window plus active configured home-section house IDs with validated image source URLs for the custom image loader; guides, villas, and TikTok videos are capped before crossing into the client payload. The homepage uses the CMS SEO title as an absolute title so the root metadata template does not duplicate the site name, and it passes non-visible degraded source data when guides, homepage villa listings, home sections, or site settings fall back or fail independently.</td>
@@ -166,6 +171,11 @@
                 <td><code>components/guides/guide-detail-page</code>, guide CMS server reads, villa listing recommendations, SEO/JSON-LD helpers, and lazy YouTube posters that mount restricted embeds after play. Guide detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from guide/villa tags, guide cover and inline images render through <code>next/image</code> with the custom image loader, the route renders Article plus breadcrumb JSON-LD with validated absolute image URLs, and admin saves invalidate guide CMS data tags only.</td>
               </tr>
               <tr>
+                <td><code>app/(public)/guides/[slug]/not-found.tsx</code></td>
+                <td><code>/guides/:slug</code> missing guide UI</td>
+                <td>Guide detail not-found experience using the shared generic public not-found layout.</td>
+              </tr>
+              <tr>
                 <td><code>app/(public)/terms/page.tsx</code> and <code>app/(public)/privacy/page.tsx</code></td>
                 <td><code>/terms</code>, <code>/privacy</code></td>
                 <td><code>components/legal/legal-page</code>, <code>lib/legal-pages/server.ts</code>, site settings, and <code>lib/seo.ts</code>. Rendered output is on demand while legal page reads use tagged data caches; missing or unavailable CMS rows fall back to safe defaults.</td>
@@ -188,12 +198,17 @@
               <tr>
                 <td><code>app/(public)/villas/[id]/not-found.tsx</code></td>
                 <td><code>/villas/:id</code> missing villa UI</td>
-                <td>Detail not-found experience.</td>
+                <td>Villa-specific not-found experience using the shared public not-found layout with search and home actions.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/[...legacy]/page.tsx</code></td>
                 <td>Unmatched public legacy paths</td>
                 <td>Safe legacy villa redirect fallback. App Router only reaches this catch-all after concrete routes fail to match; the route reads the final path segment, accepts positive numeric villa ids only, verifies the villa through <code>getListingById</code>, permanently redirects existing villas to <code>/villas/:id</code>, and returns <code>notFound()</code> for non-numeric or unknown ids.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/[...legacy]/not-found.tsx</code></td>
+                <td>Unmatched public legacy paths that do not redirect</td>
+                <td>Generic public not-found experience for invalid or unknown legacy paths.</td>
               </tr>
             </tbody>
           </table>

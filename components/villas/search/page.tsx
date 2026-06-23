@@ -31,6 +31,7 @@ import {
   isAbortError,
   isVillaSortKey,
   PAGE_SIZE,
+  parseSmartSearchQuery,
   readSearchCatalogPayload,
   SORT_OPTIONS,
   type CatalogPageRequest,
@@ -441,31 +442,47 @@ export function SearchPage({
     }
   }, [filters, isCatalogComplete, maxAvailablePrice, sortKey, visibleCount, villaIdQuery]);
 
-  function handleSearch() {
-    const nextFilters = normalizeFiltersForSearch(draftFilters, maxAvailablePrice);
-    const nextVillaIdQuery = villaIdInput.trim();
+  function applySearchState(
+    nextFiltersInput: VillaFilters,
+    nextVillaIdQueryInput: string,
+    nextSortKey: VillaSortKey,
+  ) {
+    const nextFilters = normalizeFiltersForSearch(nextFiltersInput, maxAvailablePrice);
+    const nextVillaIdQuery = nextVillaIdQueryInput.trim();
 
     setDraftFilters(nextFilters);
     setFilters(nextFilters);
-    setSortKey(draftSortKey);
+    setDraftSortKey(nextSortKey);
+    setSortKey(nextSortKey);
+    setVillaIdInput(nextVillaIdQuery);
     setVillaIdQuery(nextVillaIdQuery);
     clearSearchPageSnapshot(searchSnapshotKeyRef.current);
     searchSnapshotKeyRef.current = getSearchPageSnapshotKey(
       nextFilters,
       nextVillaIdQuery,
-      draftSortKey,
+      nextSortKey,
     );
-    replaceSearchUrl(nextFilters, nextVillaIdQuery, draftSortKey);
+    replaceSearchUrl(nextFilters, nextVillaIdQuery, nextSortKey);
     if (!isCatalogComplete) {
       void loadCatalogPage({
         filtersOverride: nextFilters,
         page: 1,
-        sortOverride: draftSortKey,
+        sortOverride: nextSortKey,
         villaIdOverride: nextVillaIdQuery,
       });
     }
     setVisibleCount(PAGE_SIZE);
     scrollResultsIntoView(resultsRef.current);
+  }
+
+  function handleSearch() {
+    const parsedQuery = parseSmartSearchQuery(villaIdInput, zones);
+
+    applySearchState(
+      { ...draftFilters, ...parsedQuery.filtersPatch },
+      parsedQuery.remainingQuery,
+      draftSortKey,
+    );
   }
 
   function handleFilterChange(nextFilters: VillaFilters) {
@@ -475,28 +492,7 @@ export function SearchPage({
   }
 
   function handleApplyMobileFilters(nextFilters: VillaFilters) {
-    const normalizedFilters = normalizeFiltersForSearch(nextFilters, maxAvailablePrice);
-    const nextVillaIdQuery = villaIdInput.trim();
-
-    setDraftFilters(normalizedFilters);
-    setFilters(normalizedFilters);
-    setSortKey(draftSortKey);
-    setVillaIdQuery(nextVillaIdQuery);
-    clearSearchPageSnapshot(searchSnapshotKeyRef.current);
-    searchSnapshotKeyRef.current = getSearchPageSnapshotKey(
-      normalizedFilters,
-      nextVillaIdQuery,
-      draftSortKey,
-    );
-    replaceSearchUrl(normalizedFilters, nextVillaIdQuery, draftSortKey);
-    if (!isCatalogComplete) {
-      void loadCatalogPage({
-        filtersOverride: normalizedFilters,
-        page: 1,
-        sortOverride: draftSortKey,
-        villaIdOverride: nextVillaIdQuery,
-      });
-    }
+    applySearchState(nextFilters, villaIdInput, draftSortKey);
     requestAnimationFrame(() => {
       scrollResultsIntoView(resultsRef.current);
     });
@@ -554,6 +550,14 @@ export function SearchPage({
       "recommended",
     );
     clearSearchUrl();
+    if (!isCatalogComplete) {
+      void loadCatalogPage({
+        filtersOverride: nextFilters,
+        page: 1,
+        sortOverride: "recommended",
+        villaIdOverride: "",
+      });
+    }
   }
 
   return (

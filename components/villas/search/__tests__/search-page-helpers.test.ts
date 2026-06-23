@@ -6,6 +6,7 @@ import {
   getSortKeyFromSearchParams,
   isAbortError,
   isVillaSortKey,
+  parseSmartSearchQuery,
   readSearchCatalogPayload,
 } from "../search-page-helpers";
 import type { VillaFilters } from "@/lib/villas/types";
@@ -20,6 +21,40 @@ const filters: VillaFilters = {
 };
 
 describe("search page helpers", () => {
+  it("parses smart search text into existing filters and remaining query", () => {
+    const zones = [{ label: "จอมเทียน", value: "jomtien" }];
+
+    expect(parseSmartSearchQuery("10 คน 5 ห้อง จอมเทียน ไม่เกิน 15000", zones)).toEqual({
+      filtersPatch: {
+        bedrooms: 5,
+        guests: 10,
+        maxPrice: 15000,
+        zone: "jomtien",
+      },
+      remainingQuery: "",
+    });
+    expect(parseSmartSearchQuery("พัก 10 ผู้ใหญ่ 12", zones).filtersPatch.guests).toBe(12);
+    expect(parseSmartSearchQuery("ราคา 15000", zones).filtersPatch.maxPrice).toBe(15000);
+    expect(parseSmartSearchQuery("15000 บาท", zones).filtersPatch.maxPrice).toBe(15000);
+  });
+
+  it("keeps villa id and free text as the remaining search query", () => {
+    const zones = [{ label: "พัทยา", value: "pattaya" }];
+
+    expect(parseSmartSearchQuery("DV-2870 พัทยา", zones)).toEqual({
+      filtersPatch: { zone: "pattaya" },
+      remainingQuery: "DV-2870",
+    });
+    expect(parseSmartSearchQuery("2870", zones)).toEqual({
+      filtersPatch: {},
+      remainingQuery: "2870",
+    });
+    expect(parseSmartSearchQuery("บ้านสายลม ไม่เกิน 12000", zones)).toEqual({
+      filtersPatch: { maxPrice: 12000 },
+      remainingQuery: "บ้านสายลม",
+    });
+  });
+
   it("normalizes errors and sort keys for the search page", async () => {
     expect(getSearchErrorMessage(new Error("Unable to load houses (500)"))).toContain(
       "ไม่สามารถโหลด",
