@@ -26,6 +26,7 @@ describe("content security policy", () => {
     expect(styleSrc).toContain("'nonce-request-nonce'");
     expect(scriptSrc).toContain("'nonce-request-nonce'");
     expect(scriptSrc).toContain("https://challenges.cloudflare.com");
+    expect(scriptSrc).toContain("https://static.cloudflareinsights.com");
     expect(imgSrc).toContain(
       "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws",
     );
@@ -33,6 +34,7 @@ describe("content security policy", () => {
     expect(imgSrc).toContain("https://www.devillegroups.com");
     expect(imgSrc).toContain("https://s3.ap-southeast-1.amazonaws.com");
     expect(connectSrc).toContain("https://example.supabase.co");
+    expect(connectSrc).toContain("https://static.cloudflareinsights.com");
     expect(connectSrc.split(" ")).not.toContain("https:");
     expect(getCspDirective(csp, "style-src-attr")).toBe(
       "style-src-attr 'unsafe-inline'",

@@ -313,7 +313,12 @@
               <tr>
                 <td><code>app/(admin)/admin/login/page.tsx</code></td>
                 <td><code>/admin/login</code></td>
-                <td><code>components/admin/login/admin-login-form</code>.</td>
+                <td><code>components/admin/login/admin-login-form</code>; the same form owns admin sign-in and forgot-password reset-email requests with Turnstile verification.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/reset-password/page.tsx</code></td>
+                <td><code>/admin/reset-password</code></td>
+                <td><code>components/admin/login/admin-reset-password-form</code>; receives Supabase recovery links, applies shared admin password validation, updates the password, signs out, and returns to login.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/login/loading.tsx</code></td>
@@ -880,9 +885,9 @@
               <td>Run lint, build, and production smoke for admin redirects.</td>
             </tr>
             <tr>
-              <td>Admin login Turnstile challenge flow</td>
+              <td>Admin login, forgot-password, reset-password, or Turnstile challenge flow</td>
               <td><code>npm.cmd test -- lib/admin components/admin/login</code></td>
-              <td>Verify production missing-key responses fail closed, development bypasses with a warning, raw Cloudflare errors are not shown to users, and Supabase login is only called after Turnstile verification succeeds outside development.</td>
+              <td>Verify production missing-key responses fail closed, development bypasses with a warning, raw Cloudflare errors are not shown to users, Supabase login/reset-email calls run only after Turnstile verification outside development, reset links require a recovery token, and password reset failures do not sign out.</td>
             </tr>
             <tr>
               <td>Admin API auth, mutation origin guard, or shared Supabase error response behavior</td>

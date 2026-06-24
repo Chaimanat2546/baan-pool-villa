@@ -2,8 +2,17 @@
 
 import { MapPin, Menu, X } from "lucide-react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useEffect, useRef, useState } from "react";
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 const navItems = [
@@ -27,6 +36,14 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
   const logoImageSrc =
     normalizePublicImageSourceUrl(settings.logoImage.url) ??
     settings.logoImage.url;
+  const siteThemeStyle = buildSiteThemeStyle({
+    accentColor: settings.accentColor,
+    primaryColor: settings.primaryColor,
+  });
+  const mobileMenuThemeStyle = {
+    ...siteThemeStyle,
+    background: `linear-gradient(180deg, ${siteThemeStyle["--site-surface"]}, ${siteThemeStyle["--site-surface-soft"]})`,
+  };
 
   useEffect(() => {
     lastScrollYRef.current = window.scrollY;
@@ -127,46 +144,58 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
             </a>
           </div>
 
-          <button
-            type="button"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/30 bg-white/10 text-[var(--site-on-primary)] shadow-[0_10px_24px_rgba(0,0,0,0.12)] lg:hidden"
-            aria-expanded={isMenuOpen}
-            aria-label={isMenuOpen ? "ปิดเมนู" : "เปิดเมนู"}
-            onClick={() => {
-              setIsMenuOpen((current) => !current);
-            }}
-          >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-
-          {isMenuOpen ? (
-            <div className="absolute left-4 right-4 top-[calc(100%-4px)] z-50 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_18px_48px_rgba(2,35,31,0.22)] lg:hidden">
-              <div className="grid divide-y divide-[var(--site-border)] text-base font-semibold">
-                {navItems.map((item) => (
-                  <a
-                    key={`mobile-${item.href}-${item.label}`}
-                    href={item.href}
-                    className="px-4 py-3"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    {item.label}
-                  </a>
-                ))}
-                <a
-                  href="/#contact"
-                  className="flex items-center gap-2 px-4 py-3 text-[var(--site-primary)]"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                  }}
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/30 bg-white/10 text-[var(--site-on-primary)] shadow-[0_10px_24px_rgba(0,0,0,0.12)] lg:hidden"
+                aria-expanded={isMenuOpen}
+                aria-label={isMenuOpen ? "ปิดเมนู" : "เปิดเมนู"}
+              >
+                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="right"
+              showCloseButton={false}
+              className="w-screen max-w-none border-[var(--site-border)] p-0 text-[var(--site-text)] shadow-none data-[state=open]:fade-in data-[state=open]:slide-in-from-right motion-reduce:transition-none sm:max-w-none lg:hidden"
+              style={mobileMenuThemeStyle}
+            >
+              <SheetHeader className="sr-only">
+                <SheetTitle>เมนูหลัก</SheetTitle>
+              </SheetHeader>
+              <SheetClose asChild>
+                <button
+                  type="button"
+                  className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[var(--site-card-shadow)] transition hover:bg-[var(--site-primary-soft)]"
+                  aria-label="ปิดเมนู"
                 >
-                  <MapPin className="h-4 w-4" />
-                  จองเลย
-                </a>
-              </div>
-            </div>
-          ) : null}
+                  <X className="h-5 w-5" />
+                </button>
+              </SheetClose>
+              <nav className="mt-20 grid divide-y divide-[var(--site-border)] border-y border-[var(--site-border)] bg-[var(--site-surface)] text-base font-semibold shadow-[var(--site-card-shadow)]">
+                {navItems.map((item) => (
+                  <SheetClose key={`mobile-${item.href}-${item.label}`} asChild>
+                    <a
+                      href={item.href}
+                      className="px-5 py-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+                    >
+                      {item.label}
+                    </a>
+                  </SheetClose>
+                ))}
+                <SheetClose asChild>
+                  <a
+                    href="/#contact"
+                    className="flex items-center gap-2 px-5 py-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    จองเลย
+                  </a>
+                </SheetClose>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

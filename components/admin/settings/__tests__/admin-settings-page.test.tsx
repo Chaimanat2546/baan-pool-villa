@@ -317,11 +317,11 @@ describe("AdminSettingsPage", () => {
     );
     await changeInput(
       page.container.querySelector("#adminNewPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await changeInput(
       page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await click(
       Array.from(page.container.querySelectorAll("button")).find((button) =>
@@ -336,7 +336,7 @@ describe("AdminSettingsPage", () => {
       type: "email",
     });
     expect(mocks.updateUser).toHaveBeenCalledWith({
-      password: "new-password-123",
+      password: "New-password-123!",
     });
     expect(mocks.signOut).toHaveBeenCalledWith();
     expect(mocks.replace).toHaveBeenCalledWith("/admin/login");

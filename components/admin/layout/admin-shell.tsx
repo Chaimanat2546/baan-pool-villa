@@ -131,7 +131,8 @@ export function AdminShell({ children, settings }: AdminShellProps) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const activeItem = getActiveAdminNavItem(pathname);
   const compactSiteMark = getCompactSiteMark(settings.siteName);
-  const isLoginPage = pathname === "/admin/login";
+  const isAuthPage =
+    pathname === "/admin/login" || pathname === "/admin/reset-password";
 
   async function handleLogout() {
     const supabase = createBrowserHomeConfigClient();
@@ -139,7 +140,7 @@ export function AdminShell({ children, settings }: AdminShellProps) {
     router.replace("/admin/login");
   }
 
-  if (isLoginPage) {
+  if (isAuthPage) {
     return (
       <main className="min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)]">
         {children}

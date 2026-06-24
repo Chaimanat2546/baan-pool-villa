@@ -15,6 +15,7 @@ import {
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   replace: vi.fn(),
+  resetPasswordForEmail: vi.fn(),
   signInWithPassword: vi.fn(),
 }));
 
@@ -38,12 +39,16 @@ vi.mock("@/lib/home-sections/supabase", () => ({
   createBrowserHomeConfigClient: () => ({
     auth: {
       getSession: mocks.getSession,
+      resetPasswordForEmail: mocks.resetPasswordForEmail,
       signInWithPassword: mocks.signInWithPassword,
     },
   }),
 }));
 
-import { AdminLoginForm } from "../admin-login-form";
+import {
+  AdminLoginForm,
+  getAdminResetPasswordRedirectUrl,
+} from "../admin-login-form";
 
 const originalNodeEnv = process.env.NODE_ENV;
 
@@ -56,7 +61,9 @@ describe("AdminLoginForm", () => {
       error: null,
     });
     mocks.replace.mockReset();
+    mocks.resetPasswordForEmail.mockReset();
     mocks.signInWithPassword.mockReset();
+    mocks.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
     vi.stubGlobal(
       "fetch",
@@ -102,6 +109,26 @@ describe("AdminLoginForm", () => {
     };
   }
 
+  function findButton(container: HTMLElement, label: string): HTMLButtonElement {
+    const button = Array.from(container.querySelectorAll("button")).find((item) =>
+      item.textContent?.includes(label),
+    );
+
+    if (!(button instanceof HTMLButtonElement)) {
+      throw new Error(`Button not found: ${label}`);
+    }
+
+    return button;
+  }
+
+  it("falls back to the current origin when the configured site URL is not https", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://www.baanpartypattaya.com");
+
+    expect(getAdminResetPasswordRedirectUrl("http://localhost:3000")).toBe(
+      "http://localhost:3000/admin/reset-password",
+    );
+  });
+
   it("redirects authenticated admins away from the login page", async () => {
     mocks.getSession.mockResolvedValue({
       data: { session: { access_token: "admin-token" } },
@@ -143,6 +170,59 @@ describe("AdminLoginForm", () => {
     );
     expect(page.container.textContent).not.toContain("Invalid login credentials");
     expect(mocks.replace).not.toHaveBeenCalled();
+
+    await page.unmount();
+  });
+
+  it("sends an admin password reset email from the forgot password form", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.baanpartypattaya.com");
+    const page = await mountAdminPage(<AdminLoginForm />);
+
+    await click(findButton(page.container, "ลืมรหัสผ่าน"));
+    await changeInput(
+      page.container.querySelector("input[name='email']") as HTMLInputElement,
+      " admin@example.com ",
+    );
+    await click(findButton(page.container, "ส่งลิงก์รีเซ็ตรหัสผ่าน"));
+    await flushEffects();
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/admin/login/turnstile",
+      expect.objectContaining({
+        body: JSON.stringify({ token: "" }),
+        method: "POST",
+      }),
+    );
+    expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith(
+      "admin@example.com",
+      { redirectTo: "https://www.baanpartypattaya.com/admin/reset-password" },
+    );
+    expect(mocks.signInWithPassword).not.toHaveBeenCalled();
+    expect(page.container.textContent).toContain(
+      "ถ้าอีเมลนี้อยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่านให้",
+    );
+
+    await page.unmount();
+  });
+
+  it("shows an error when Supabase rejects the password reset email", async () => {
+    mocks.resetPasswordForEmail.mockResolvedValue({
+      data: {},
+      error: { message: "User not found" },
+    });
+    const page = await mountAdminPage(<AdminLoginForm />);
+
+    await click(findButton(page.container, "ลืมรหัสผ่าน"));
+    await changeInput(
+      page.container.querySelector("input[name='email']") as HTMLInputElement,
+      "missing@example.com",
+    );
+    await click(findButton(page.container, "ส่งลิงก์รีเซ็ตรหัสผ่าน"));
+    await flushEffects();
+
+    expect(page.container.textContent).toContain("ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้");
+    expect(page.container.textContent).not.toContain("ถ้าอีเมลนี้อยู่ในระบบ");
+    expect(page.container.textContent).not.toContain("User not found");
 
     await page.unmount();
   });

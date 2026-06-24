@@ -184,11 +184,11 @@ describe("AdminPasswordSecurityCard", () => {
     );
     await changeInput(
       page.container.querySelector("#adminNewPassword") as HTMLInputElement,
-      "New-password-123!",
+      "Newpassword123\\",
     );
     await changeInput(
       page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
-      "New-password-123!",
+      "Newpassword123\\",
     );
     await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
     await flushEffects();
@@ -199,7 +199,7 @@ describe("AdminPasswordSecurityCard", () => {
       type: "email",
     });
     expect(mocks.updateUser).toHaveBeenCalledWith({
-      password: "New-password-123!",
+      password: "Newpassword123\\",
     });
     expect(mocks.signOut).toHaveBeenCalledWith();
     expect(mocks.replace).toHaveBeenCalledWith("/admin/login");
@@ -275,7 +275,7 @@ describe("AdminPasswordSecurityCard", () => {
       type: "email",
     });
     expect(mocks.updateUser).toHaveBeenCalledWith({ password: "ValidPass1!" });
-    expect(page.container.textContent).toContain("รหัสผ่านใหม่ยังไม่ปลอดภัยพอ");
+    expect(page.container.textContent).toContain("รหัสผ่านใหม่ยังอ่อนเกินไป");
     expect(mocks.signOut).not.toHaveBeenCalled();
     expect(mocks.replace).not.toHaveBeenCalledWith("/admin/login");
 
@@ -375,6 +375,7 @@ describe("AdminPasswordSecurityCard", () => {
     expect(page.container.textContent).toContain(
       "รหัสผ่านต้องมีอย่างน้อย 8 ตัว",
     );
+    expect(page.container.textContent).toContain("ห้ามเว้นวรรค");
     expect(page.container.textContent).toContain(
       "ตัวอักษรภาษาอังกฤษพิมพ์เล็ก เช่น a-z",
     );
@@ -412,8 +413,12 @@ describe("AdminPasswordSecurityCard", () => {
         newPassword: `Aa1!${"a".repeat(125)}`,
       },
       {
-        error: "รหัสผ่านใหม่ต้องใช้เฉพาะอักขระ ASCII ที่พิมพ์ได้",
+        error: "รหัสผ่านใหม่ใช้ได้เฉพาะตัวอักษรอังกฤษ ตัวเลข และสัญลักษณ์ ห้ามเว้นวรรค",
         newPassword: "Aa1!aaaaก",
+      },
+      {
+        error: "รหัสผ่านใหม่ใช้ได้เฉพาะตัวอักษรอังกฤษ ตัวเลข และสัญลักษณ์ ห้ามเว้นวรรค",
+        newPassword: "Valid Pass1!",
       },
       {
         error: "รหัสผ่านใหม่ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว",

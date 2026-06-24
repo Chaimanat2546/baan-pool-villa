@@ -1,5 +1,12 @@
 const WEAK_PASSWORD_ERROR_MESSAGE =
   "รหัสผ่านใหม่ยังไม่ปลอดภัยพอ กรุณาใช้รหัสผ่านที่ยาวขึ้นและผสมตัวอักษรใหญ่ ตัวอักษรเล็ก ตัวเลข และสัญลักษณ์";
+const PASSWORD_POLICY_MESSAGE_TRANSLATIONS = new Map<string, string>([
+  ["password is too weak", "รหัสผ่านใหม่ยังอ่อนเกินไป กรุณาใช้รหัสผ่านที่เดายากขึ้น"],
+  ["password is not strong enough", "รหัสผ่านใหม่ยังไม่ปลอดภัยพอ กรุณาใช้รหัสผ่านที่เดายากขึ้น"],
+  ["password should contain required characters", "รหัสผ่านใหม่ต้องมีตัวพิมพ์เล็ก ตัวพิมพ์ใหญ่ ตัวเลข และสัญลักษณ์"],
+  ["password has been leaked", "รหัสผ่านนี้อาจเคยรั่วไหล กรุณาใช้รหัสผ่านอื่น"],
+  ["password has been compromised", "รหัสผ่านนี้ไม่ปลอดภัยหรืออาจเคยถูกเปิดเผย กรุณาใช้รหัสผ่านอื่น"],
+]);
 
 const ADMIN_ERROR_TRANSLATIONS = new Map<string, string>([
   ["access denied.", "ไม่มีสิทธิ์เข้าถึงข้อมูลนี้"],
@@ -196,6 +203,12 @@ function translateAdminErrorDetail(detail: string): string {
 }
 
 function translatePasswordPolicyError(normalizedMessage: string): string | null {
+  const exactPolicyMessage = PASSWORD_POLICY_MESSAGE_TRANSLATIONS.get(normalizedMessage);
+
+  if (exactPolicyMessage) {
+    return exactPolicyMessage;
+  }
+
   const lengthMatch = normalizedMessage.match(
     /password (?:should|must) be at least (\d+) characters?/,
   );

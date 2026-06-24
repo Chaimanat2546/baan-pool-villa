@@ -4,6 +4,7 @@ import {
   HomePage,
   type HomePageDegradedSources,
 } from "@/components/villas/home/page";
+import { AdminRecoveryHashRedirect } from "@/components/admin/login/admin-recovery-hash-redirect";
 import { selectHomeGuideSummaries } from "@/components/villas/home/articles-section";
 import { toHomePageSettings } from "@/components/villas/home/client-payload";
 import { getPublishedGuides } from "@/lib/guides/server";
@@ -140,6 +141,7 @@ export default async function Page() {
 
   return (
     <>
+      <AdminRecoveryHashRedirect />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
