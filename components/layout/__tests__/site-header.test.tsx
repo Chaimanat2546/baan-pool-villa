@@ -125,4 +125,42 @@ describe("SiteHeader", () => {
       });
     }
   });
+
+  it("closes the mobile sheet when a menu link is selected", async () => {
+    const { container, root } = await renderHeader();
+
+    try {
+      const trigger = container.querySelector<HTMLButtonElement>("button");
+
+      await act(async () => {
+        trigger?.click();
+      });
+
+      expect(trigger?.getAttribute("aria-expanded")).toBe("true");
+
+      const sheetContent = document.body.querySelector<HTMLElement>(
+        '[data-slot="sheet-content"]',
+      );
+      const contactLink = document.body.querySelector<HTMLAnchorElement>(
+        '[data-slot="sheet-content"] a[href="/#contact"]',
+      );
+
+      expect(sheetContent?.className).toContain("w-screen");
+      expect(sheetContent?.style.getPropertyValue("--site-primary")).toBeTruthy();
+      expect(sheetContent?.getAttribute("style")).toContain("linear-gradient");
+      expect(contactLink).not.toBeNull();
+
+      await act(async () => {
+        contactLink?.dispatchEvent(
+          new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+      });
+
+      expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+    } finally {
+      await act(async () => {
+        root.unmount();
+      });
+    }
+  });
 });
