@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
@@ -13,6 +15,7 @@ interface ZoneOption {
 interface HeroSectionProps {
   heroImage: SiteImageSettings;
   maxAvailablePrice: number;
+  search?: ReactNode;
   zones: ZoneOption[];
 }
 
@@ -30,6 +33,7 @@ function isSafeLocalImagePath(value: string | null): value is string {
 export function HeroSection({
   heroImage,
   maxAvailablePrice,
+  search,
   zones,
 }: HeroSectionProps) {
   const heroImageSrc =
@@ -55,7 +59,9 @@ export function HeroSection({
           className="aspect-[1565/1043] w-full bg-[var(--site-surface-tint)]"
         />
       )}
-      <HeroSearch maxAvailablePrice={maxAvailablePrice} zones={zones} />
+      {search ?? (
+        <HeroSearch maxAvailablePrice={maxAvailablePrice} zones={zones} />
+      )}
     </section>
   );
 }

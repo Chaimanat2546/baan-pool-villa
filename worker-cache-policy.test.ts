@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  HTML_BROWSER_CACHE_CONTROL,
   HOUSE_JSON_EDGE_CACHE_CONTROL,
   HTML_EDGE_CACHE_CONTROL,
   HTML_EDGE_CACHE_HEADER,
@@ -197,13 +198,19 @@ describe("worker HTML edge cache policy", () => {
     ).toBeNull();
   });
 
-  it("adds a diagnostic cache header without changing the status", () => {
+  it("adds diagnostics and browser-safe cache headers to HTML responses", () => {
     const response = withHtmlEdgeCacheHeader(
-      new Response("ok", { status: 203 }),
+      new Response("<html></html>", {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+        status: 203,
+      }),
       "MISS",
     );
 
     expect(response.status).toBe(203);
+    expect(response.headers.get("Cache-Control")).toBe(
+      HTML_BROWSER_CACHE_CONTROL,
+    );
     expect(response.headers.get(HTML_EDGE_CACHE_HEADER)).toBe("MISS");
   });
 });

@@ -1172,18 +1172,26 @@ export type VillaPageData = {
 export async function fetchVillaPageData(
   id: string,
 ): Promise<VillaPageData | null> {
-  const payload = await fetchVillaDetail(id);
+  const listing = await getListingById(id);
 
-  if (!payload) {
+  if (!listing) {
     return null;
   }
 
-  const initialGalleryImages = await fetchVillaPreviewImages(id).catch(
+  const initialGalleryImagesPromise = fetchVillaPreviewImages(id).catch(
     (error: unknown) => {
       console.error("Unable to load villa detail initial gallery images", error);
       return [];
     },
   );
+  const [payload, initialGalleryImages] = await Promise.all([
+    fetchVillaDetail(id, [listing]),
+    initialGalleryImagesPromise,
+  ]);
+
+  if (!payload) {
+    return null;
+  }
 
   return {
     initialGalleryImages: toPublicVillaImages(id, initialGalleryImages.slice(0, 4)),
