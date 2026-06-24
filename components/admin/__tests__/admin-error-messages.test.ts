@@ -5,8 +5,38 @@ import { getAdminErrorMessage } from "../admin-error-messages";
 describe("getAdminErrorMessage", () => {
   it("translates Supabase weak password messages", () => {
     expect(getAdminErrorMessage({ message: "Password is too weak" }, "ไม่สามารถดำเนินการได้")).toBe(
-      "รหัสผ่านใหม่ยังไม่ปลอดภัยพอ กรุณาใช้รหัสผ่านที่ยาวขึ้นและผสมตัวอักษรใหญ่ ตัวอักษรเล็ก ตัวเลข และสัญลักษณ์",
+      "รหัสผ่านใหม่ยังอ่อนเกินไป กรุณาใช้รหัสผ่านที่เดายากขึ้น",
     );
+  });
+
+  it("translates specific Supabase password policy messages", () => {
+    expect(
+      getAdminErrorMessage(
+        { message: "Password is not strong enough" },
+        "ไม่สามารถดำเนินการได้",
+      ),
+    ).toBe("รหัสผ่านใหม่ยังไม่ปลอดภัยพอ กรุณาใช้รหัสผ่านที่เดายากขึ้น");
+
+    expect(
+      getAdminErrorMessage(
+        { message: "Password should contain required characters" },
+        "ไม่สามารถดำเนินการได้",
+      ),
+    ).toBe("รหัสผ่านใหม่ต้องมีตัวพิมพ์เล็ก ตัวพิมพ์ใหญ่ ตัวเลข และสัญลักษณ์");
+
+    expect(
+      getAdminErrorMessage(
+        { message: "Password has been leaked" },
+        "ไม่สามารถดำเนินการได้",
+      ),
+    ).toBe("รหัสผ่านนี้อาจเคยรั่วไหล กรุณาใช้รหัสผ่านอื่น");
+
+    expect(
+      getAdminErrorMessage(
+        { message: "Password has been compromised" },
+        "ไม่สามารถดำเนินการได้",
+      ),
+    ).toBe("รหัสผ่านนี้ไม่ปลอดภัยหรืออาจเคยถูกเปิดเผย กรุณาใช้รหัสผ่านอื่น");
   });
 
   it("translates Supabase weak password codes", () => {

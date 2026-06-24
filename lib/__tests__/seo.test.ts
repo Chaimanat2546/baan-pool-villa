@@ -209,7 +209,7 @@ describe("SEO helpers", () => {
     process.env.NODE_ENV = "production";
     delete process.env.NEXT_PUBLIC_SITE_URL;
 
-    expect(getSiteUrl()).toEqual(new URL("https://baanpartypattaya.com"));
+    expect(getSiteUrl()).toEqual(new URL("https://www.baanpartypattaya.com"));
   });
 
   it("uses only the https origin from NEXT_PUBLIC_SITE_URL", () => {

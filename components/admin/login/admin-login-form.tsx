@@ -16,6 +16,10 @@ const TURNSTILE_MISSING_CHALLENGE_MESSAGE =
   "กรุณายืนยันตัวตนก่อนเข้าสู่ระบบ";
 const TURNSTILE_FAILED_MESSAGE = "ยืนยันตัวตนไม่สำเร็จ กรุณาลองอีกครั้ง";
 const TURNSTILE_CONFIG_MESSAGE = "ระบบยืนยันตัวตนยังไม่พร้อมใช้งาน";
+const RESET_PASSWORD_SENT_MESSAGE =
+  "ถ้าอีเมลนี้อยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่านให้";
+
+const ADMIN_RESET_PASSWORD_PATH = "/admin/reset-password";
 
 type TurnstileWidgetId = string;
 
@@ -70,6 +74,24 @@ function getTurnstileLoginErrorMessage(status: number | undefined): string {
   return status === 503 ? TURNSTILE_CONFIG_MESSAGE : TURNSTILE_FAILED_MESSAGE;
 }
 
+export function getAdminResetPasswordRedirectUrl(currentOrigin: string): string {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+  if (configuredSiteUrl) {
+    try {
+      const siteUrl = new URL(configuredSiteUrl);
+
+      if (siteUrl.protocol === "https:") {
+        return new URL(ADMIN_RESET_PASSWORD_PATH, siteUrl.origin).toString();
+      }
+    } catch {
+      // Fall back to the current origin when local env is missing or invalid.
+    }
+  }
+
+  return `${currentOrigin}${ADMIN_RESET_PASSWORD_PATH}`;
+}
+
 export function AdminLoginForm() {
   const router = useRouter();
   const turnstileSiteKey = getTurnstileSiteKey();
@@ -80,7 +102,9 @@ export function AdminLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mode, setMode] = useState<"login" | "forgot">("login");
   const [turnstileToken, setTurnstileToken] = useState("");
   const errorId = "admin-login-error";
   const hasError = error !== null;
@@ -193,7 +217,7 @@ export function AdminLoginForm() {
     };
   }, [isTurnstileEnabled, turnstileSiteKey]);
 
-  async function verifyTurnstileBeforeLogin(): Promise<boolean> {
+  async function verifyTurnstile(): Promise<boolean> {
     if (isTurnstileEnabled && !turnstileToken) {
       setError(TURNSTILE_MISSING_CHALLENGE_MESSAGE);
       return false;
@@ -220,7 +244,7 @@ export function AdminLoginForm() {
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedEmail = email.trim();
@@ -231,10 +255,11 @@ export function AdminLoginForm() {
     }
 
     setError(null);
+    setNotice(null);
     setIsSubmitting(true);
 
     try {
-      const isTurnstileVerified = await verifyTurnstileBeforeLogin();
+      const isTurnstileVerified = await verifyTurnstile();
 
       if (!isTurnstileVerified) {
         return;
@@ -265,17 +290,57 @@ export function AdminLoginForm() {
     }
   }
 
+  async function handleForgotPasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setError("กรอกอีเมลสำหรับส่งลิงก์รีเซ็ตรหัสผ่าน");
+      setNotice(null);
+      return;
+    }
+
+    setError(null);
+    setNotice(null);
+    setIsSubmitting(true);
+
+    try {
+      const isTurnstileVerified = await verifyTurnstile();
+
+      if (!isTurnstileVerified) {
+        return;
+      }
+
+      const supabase = createBrowserHomeConfigClient();
+      await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: getAdminResetPasswordRedirectUrl(window.location.origin),
+      });
+      setNotice(RESET_PASSWORD_SENT_MESSAGE);
+      resetTurnstile();
+    } catch {
+      resetTurnstile();
+      setError("ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const isForgotMode = mode === "forgot";
+
   return (
     <form
       className="w-full max-w-sm rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5"
-      onSubmit={handleSubmit}
+      onSubmit={isForgotMode ? handleForgotPasswordSubmit : handleLoginSubmit}
     >
       <div className="mb-5">
         <h1 className="text-xl font-semibold text-[var(--site-text)]">
-          เข้าสู่ระบบหลังบ้าน
+          {isForgotMode ? "ลืมรหัสผ่าน" : "เข้าสู่ระบบหลังบ้าน"}
         </h1>
         <p className="mt-1 text-sm text-[var(--site-muted)]">
-          จัดชุดบ้านพักบนหน้าแรก
+          {isForgotMode
+            ? "กรอกอีเมลแอดมินเพื่อรับลิงก์รีเซ็ตรหัสผ่าน"
+            : "จัดชุดบ้านพักบนหน้าแรก"}
         </p>
       </div>
 
@@ -300,24 +365,26 @@ export function AdminLoginForm() {
           />
         </label>
 
-        <label className="block text-sm font-medium text-[var(--site-text)]">
-          รหัสผ่าน
-          <input
-            aria-describedby={hasError ? errorId : undefined}
-            aria-invalid={hasError}
-            autoComplete="current-password"
-            className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15 disabled:bg-[var(--site-surface-soft)]"
-            disabled={isSubmitting}
-            maxLength={128}
-            name="password"
-            onChange={(event) => {
-              setPassword(event.target.value);
-            }}
-            required
-            type="password"
-            value={password}
-          />
-        </label>
+        {isForgotMode ? null : (
+          <label className="block text-sm font-medium text-[var(--site-text)]">
+            รหัสผ่าน
+            <input
+              aria-describedby={hasError ? errorId : undefined}
+              aria-invalid={hasError}
+              autoComplete="current-password"
+              className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15 disabled:bg-[var(--site-surface-soft)]"
+              disabled={isSubmitting}
+              maxLength={128}
+              name="password"
+              onChange={(event) => {
+                setPassword(event.target.value);
+              }}
+              required
+              type="password"
+              value={password}
+            />
+          </label>
+        )}
       </div>
 
       {isTurnstileEnabled ? (
@@ -339,13 +406,41 @@ export function AdminLoginForm() {
         </p>
       ) : null}
 
+      {notice ? (
+        <p
+          className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          role="status"
+        >
+          {notice}
+        </p>
+      ) : null}
+
       <button
         className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)]"
         disabled={isSubmitting}
         type="submit"
       >
-        <LogIn aria-hidden="true" className="size-4" />
-        {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+        {isForgotMode ? null : <LogIn aria-hidden="true" className="size-4" />}
+        {isSubmitting
+          ? isForgotMode
+            ? "กำลังส่งลิงก์..."
+            : "กำลังเข้าสู่ระบบ..."
+          : isForgotMode
+            ? "ส่งลิงก์รีเซ็ตรหัสผ่าน"
+            : "เข้าสู่ระบบ"}
+      </button>
+
+      <button
+        className="mt-3 w-full text-center text-sm font-semibold text-[var(--site-primary)]"
+        disabled={isSubmitting}
+        onClick={() => {
+          setError(null);
+          setNotice(null);
+          setMode(isForgotMode ? "login" : "forgot");
+        }}
+        type="button"
+      >
+        {isForgotMode ? "กลับไปเข้าสู่ระบบ" : "ลืมรหัสผ่าน"}
       </button>
     </form>
   );
