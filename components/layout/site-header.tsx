@@ -36,12 +36,13 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
   const logoImageSrc =
     normalizePublicImageSourceUrl(settings.logoImage.url) ??
     settings.logoImage.url;
+  const siteThemeStyle = buildSiteThemeStyle({
+    accentColor: settings.accentColor,
+    primaryColor: settings.primaryColor,
+  });
   const mobileMenuThemeStyle = {
-    ...buildSiteThemeStyle({
-      accentColor: settings.accentColor,
-      primaryColor: settings.primaryColor,
-    }),
-    background: "linear-gradient(180deg,var(--site-surface),var(--site-surface-soft))",
+    ...siteThemeStyle,
+    background: `linear-gradient(180deg, ${siteThemeStyle["--site-surface"]}, ${siteThemeStyle["--site-surface-soft"]})`,
   };
 
   useEffect(() => {
