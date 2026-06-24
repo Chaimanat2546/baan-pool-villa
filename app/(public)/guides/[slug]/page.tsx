@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
-import { GuideDetailPage } from "@/components/guides/guide-detail-page";
+import {
+  GuideDetailBottomSections,
+  GuideDetailBottomSectionsSkeleton,
+  GuideDetailPage,
+  RecommendedVillaSidebar,
+  RecommendedVillaSidebarSkeleton,
+} from "@/components/guides/guide-detail-page";
 import { serializeJsonLd } from "@/lib/json-ld";
 import {
   absoluteUrl,
@@ -22,6 +29,58 @@ import type { VillaListing } from "@/lib/villas/types";
 
 interface GuidePageProps {
   params: Promise<{ slug: string }>;
+}
+
+async function GuideRecommendedVillasSection({
+  guide,
+}: {
+  guide: GuidePost;
+}) {
+  let recommendedVillas: VillaListing[] = [];
+
+  try {
+    const villas = await fetchHouseListings();
+    recommendedVillas = resolveGuideRecommendedVillas(
+      guide.recommendedHouseIds,
+      villas,
+    );
+  } catch (error) {
+    console.error("Unable to load guide villa recommendations", error);
+  }
+
+  return <RecommendedVillaSidebar villas={recommendedVillas} />;
+}
+
+async function GuideBottomSections({ guide }: { guide: GuidePost }) {
+  const [guidesResult, siteSettingsResult] = await Promise.allSettled([
+    getPublishedGuides(),
+    getSiteSettings(),
+  ]);
+
+  let relatedGuides: GuidePost[] = [];
+
+  if (guidesResult.status === "fulfilled") {
+    relatedGuides = guidesResult.value.filter(
+      (relatedGuide) => relatedGuide.id !== guide.id,
+    );
+  } else {
+    console.error("Unable to load related guides", guidesResult.reason);
+  }
+
+  if (siteSettingsResult.status === "rejected") {
+    console.error("Unable to load guide contact settings", siteSettingsResult.reason);
+  }
+
+  return (
+    <GuideDetailBottomSections
+      relatedGuides={relatedGuides}
+      settings={
+        siteSettingsResult.status === "fulfilled"
+          ? siteSettingsResult.value.settings
+          : undefined
+      }
+    />
+  );
 }
 
 export async function generateMetadata({
@@ -64,32 +123,6 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
     notFound();
   }
 
-  let recommendedVillas: VillaListing[] = [];
-  let relatedGuides: GuidePost[] = [];
-
-  const [villasResult, guidesResult, siteSettingsResult] = await Promise.allSettled([
-    fetchHouseListings(),
-    getPublishedGuides(),
-    getSiteSettings(),
-  ]);
-
-  if (villasResult.status === "fulfilled") {
-    recommendedVillas = resolveGuideRecommendedVillas(
-      guide.recommendedHouseIds,
-      villasResult.value,
-    );
-  } else {
-    console.error("Unable to load guide villa recommendations", villasResult.reason);
-  }
-
-  if (guidesResult.status === "fulfilled") {
-    relatedGuides = guidesResult.value.filter(
-      (relatedGuide) => relatedGuide.id !== guide.id,
-    );
-  } else {
-    console.error("Unable to load related guides", guidesResult.reason);
-  }
-
   const guideCoverImageUrl = guide.coverImage?.url
     ? buildMetadataImageUrl(guide.coverImage.url)
     : null;
@@ -118,13 +151,18 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <GuideDetailPage
+        bottomSections={
+          <Suspense fallback={<GuideDetailBottomSectionsSkeleton />}>
+            <GuideBottomSections guide={guide} />
+          </Suspense>
+        }
         guide={guide}
-        recommendedVillas={recommendedVillas}
-        relatedGuides={relatedGuides}
-        settings={
-          siteSettingsResult.status === "fulfilled"
-            ? siteSettingsResult.value.settings
-            : undefined
+        recommendedVillas={[]}
+        relatedGuides={[]}
+        sidebar={
+          <Suspense fallback={<RecommendedVillaSidebarSkeleton />}>
+            <GuideRecommendedVillasSection guide={guide} />
+          </Suspense>
         }
       />
     </>

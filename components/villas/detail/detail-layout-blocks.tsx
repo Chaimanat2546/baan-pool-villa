@@ -13,11 +13,17 @@ import type {
   DetailLayoutBlockType,
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
-import type { VillaDetailContent, VillaDetailSection } from "@/lib/villas/detail";
+import type {
+  VillaDetailContent,
+  VillaDetailSection,
+} from "@/lib/villas/detail";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import { BookingSidebar } from "./booking-sidebar";
 import { AmenitiesSection, VideoReviewSection } from "./content-sections";
-import { DeferredRecommendedVillas, LazyDetailBlock } from "./deferred-detail-block";
+import {
+  DeferredRecommendedVillas,
+  LazyDetailBlock,
+} from "./deferred-detail-block";
 import { findFact, findSection } from "./helpers";
 import { LazyCategorizedImages } from "./lazy-categorized-images";
 import { NearbySection } from "./nearby-section";
@@ -85,12 +91,13 @@ function DetailCard({
 function LineList({ lines }: { lines: string[] }) {
   return (
     <>
-      {lines.map((line, index) => (
-        <p key={`${index}-${line}`} className="flex gap-2">
-          <Check className="mt-1 h-4 w-4 shrink-0 text-[var(--site-primary)]" />
-          <span>{line}</span>
-        </p>
-      ))}
+      <ul className="space-y-2">
+        {lines.map((line, index) => (
+          <li key={`${index}-${line}`} className="flex gap-2">
+            <span>- {line}</span>
+          </li>
+        ))}
+      </ul>
     </>
   );
 }
@@ -117,7 +124,8 @@ function CompactLineList({
         data-detail-compact-list="true"
       >
         <summary className="cursor-pointer text-sm font-black text-[var(--site-primary)]">
-          ดูรายละเอียดเพิ่มอีก {hiddenLines.length.toLocaleString("th-TH")} รายการ
+          ดูรายละเอียดเพิ่มอีก {hiddenLines.length.toLocaleString("th-TH")}{" "}
+          รายการ
         </summary>
         <div className="mt-3 space-y-2">
           <LineList lines={hiddenLines} />
@@ -162,9 +170,8 @@ function renderKitchen({ content }: DetailLayoutBlockContext) {
 }
 
 function renderAmenities({ content, listing }: DetailLayoutBlockContext) {
-  const amenities = content.amenities.length > 0
-    ? content.amenities
-    : listing.amenities;
+  const amenities =
+    content.amenities.length > 0 ? content.amenities : listing.amenities;
 
   if (amenities.length === 0) {
     return null;
@@ -173,7 +180,9 @@ function renderAmenities({ content, listing }: DetailLayoutBlockContext) {
   return <AmenitiesSection amenities={amenities} compact />;
 }
 
-function renderCategorizedImages({ galleryCategories }: DetailLayoutBlockContext) {
+function renderCategorizedImages({
+  galleryCategories,
+}: DetailLayoutBlockContext) {
   const previewCategories = galleryCategories
     .map((category) => ({
       ...category,
@@ -231,7 +240,9 @@ function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
       ) : null}
       {groups.map((section) => (
         <div key={section.title}>
-          <h3 className="font-black text-[var(--site-text)]">{section.title}</h3>
+          <h3 className="font-black text-[var(--site-text)]">
+            {section.title}
+          </h3>
           <div className="mt-2 space-y-2">
             <CompactLineList initialCount={2} lines={section.lines} />
           </div>
@@ -257,7 +268,9 @@ function renderRulesPetPolicy({ content }: DetailLayoutBlockContext) {
     >
       {groups.map((section) => (
         <div key={section.title}>
-          <h3 className="font-black text-[var(--site-text)]">{section.title}</h3>
+          <h3 className="font-black text-[var(--site-text)]">
+            {section.title}
+          </h3>
           <div className="mt-2 space-y-2">
             <CompactLineList initialCount={4} lines={section.lines} />
           </div>
@@ -285,7 +298,9 @@ function renderMapNearby({ content }: DetailLayoutBlockContext) {
             </h2>
           </div>
           <div className="mt-4 space-y-2 text-sm leading-7 text-[var(--site-muted)]">
-            {content.location.address ? <p>{content.location.address}</p> : null}
+            {content.location.address ? (
+              <p>{content.location.address}</p>
+            ) : null}
             {content.location.seaDistance ? (
               <p>ห่างทะเล {content.location.seaDistance}</p>
             ) : null}

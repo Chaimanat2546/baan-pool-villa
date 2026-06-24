@@ -608,6 +608,30 @@ describe("fetchVillaDetail", () => {
 });
 
 describe("fetchVillaPageData", () => {
+  it("starts loading initial gallery images before villa detail finishes", async () => {
+    mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    let resolveDetailResponse: (response: Response) => void = () => {};
+    const detailResponse = new Promise<Response>((resolve) => {
+      resolveDetailResponse = resolve;
+    });
+    fetchMock.mockReturnValue(detailResponse);
+
+    const dataPromise = fetchVillaPageData("9");
+
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    expect(fetchVillaPreviewImagesMock).toHaveBeenCalledWith("9");
+
+    resolveDetailResponse(
+      new Response(JSON.stringify(devilleDetail), { status: 200 }),
+    );
+    await expect(dataPromise).resolves.toMatchObject({
+      payload: { listing: { id: "9" } },
+    });
+  });
+
   it("returns server-fetched detail payload with up to four initial gallery images", async () => {
     mockSupabase();
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
