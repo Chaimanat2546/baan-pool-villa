@@ -110,6 +110,9 @@ describe("settings helpers", () => {
       heroImageAlt: "Hero",
       logoFile: null,
       heroFile: null,
+      seoOgImageFile: null,
+      searchSeoOgImageFile: null,
+      guidesSeoOgImageFile: null,
       bankAccountName: "คุณ อาภัสรา จินดาวา",
       bankName: "ธนาคารกสิกรไทย",
       bankAccountNumber: "398-289-7482",
@@ -193,6 +196,27 @@ describe("settings helpers", () => {
     ]);
   });
 
+  it("serializes selected SEO share image files into the admin form data", () => {
+    const seoOgImageFile = new File(["seo"], "seo.webp", { type: "image/webp" });
+    const searchSeoOgImageFile = new File(["search"], "search.jpg", {
+      type: "image/jpeg",
+    });
+    const guidesSeoOgImageFile = new File(["guides"], "guides.png", {
+      type: "image/png",
+    });
+    const draft = {
+      ...mapSettingsToDraft(DEFAULT_SITE_SETTINGS),
+      seoOgImageFile,
+      searchSeoOgImageFile,
+      guidesSeoOgImageFile,
+    };
+    const formData = buildSettingsFormData(draft);
+
+    expect(formData.get("seoOgImageFile")).toBe(seoOgImageFile);
+    expect(formData.get("searchSeoOgImageFile")).toBe(searchSeoOgImageFile);
+    expect(formData.get("guidesSeoOgImageFile")).toBe(guidesSeoOgImageFile);
+  });
+
   it("does not include TikTok fields in form data produced for the settings save endpoint", () => {
     const formData = buildSettingsFormData({
       siteName: "Pool Villas Pattaya",
@@ -201,6 +225,9 @@ describe("settings helpers", () => {
       heroImageAlt: "Hero",
       logoFile: null,
       heroFile: null,
+      seoOgImageFile: null,
+      searchSeoOgImageFile: null,
+      guidesSeoOgImageFile: null,
       bankAccountName: "นายใจดี",
       bankName: "Kasikorn",
       bankAccountNumber: "398-289-7482",

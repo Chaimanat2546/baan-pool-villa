@@ -69,5 +69,38 @@ export function validateAdminSettingsDraftForClient(
     );
   }
 
+  if (draft.seoOgImageFile) {
+    errors.push(
+      ...validateUploadMetadata(
+        "seo-og",
+        draft.seoOgImageFile.type,
+        draft.seoOgImageFile.size,
+        draft.seoOgImageFile.name,
+      ),
+    );
+  }
+
+  if (draft.searchSeoOgImageFile) {
+    errors.push(
+      ...validateUploadMetadata(
+        "search-seo-og",
+        draft.searchSeoOgImageFile.type,
+        draft.searchSeoOgImageFile.size,
+        draft.searchSeoOgImageFile.name,
+      ),
+    );
+  }
+
+  if (draft.guidesSeoOgImageFile) {
+    errors.push(
+      ...validateUploadMetadata(
+        "guides-seo-og",
+        draft.guidesSeoOgImageFile.type,
+        draft.guidesSeoOgImageFile.size,
+        draft.guidesSeoOgImageFile.name,
+      ),
+    );
+  }
+
   return errors;
 }

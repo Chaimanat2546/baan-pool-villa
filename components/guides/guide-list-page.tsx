@@ -89,7 +89,7 @@ export function GuideListPage({ guides }: GuideListPageProps) {
             >
               <a
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
-                href="/search"
+                href="/search?guests=2&bedrooms=1&maxPrice=58900"
               >
                 ค้นหาบ้านพักทั้งหมด
               </a>

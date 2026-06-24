@@ -19,6 +19,7 @@ import type { SiteSettings } from "@/lib/site-settings/types";
 import { validateUploadMetadata } from "@/lib/site-settings/validation";
 
 import { AssetUploadField } from "./asset-upload-field";
+import { AdminPasswordSecurityCard } from "./admin-password-security-card";
 import {
   ColorControl,
   SectionCard,
@@ -67,6 +68,11 @@ const SECTION_NAV_ITEMS: SectionNavItem[] = [
     description: "ช่องทางติดต่อและข้อมูลชำระเงิน",
     id: "contact",
     label: "ติดต่อและชำระเงิน",
+  },
+  {
+    description: "เปลี่ยนรหัสผ่านด้วย OTP ทางอีเมล",
+    id: "security",
+    label: "เปลี่ยนรหัสผ่าน",
   },
 ];
 
@@ -407,15 +413,28 @@ export function SettingsForm({
               placeholder="https://www.facebook.com/baanpoolvillas,https://line.me/R/ti/p/@baanpoolvilla"
               value={formatDelimitedValues(draft.seoSameAsUrls)}
             />
-            <TextControl
-              id="seoOgImageUrl"
-              label="ลิงก์รูปตอนแชร์ลิงก์"
-              onChange={(seoOgImageUrl) => {
-                onChange({ seoOgImageUrl });
-              }}
-              placeholder="/images/BPV-66_Cover-Web.jpg"
-              value={draft.seoOgImageUrl}
-            />
+            <div className="lg:col-span-2">
+              <AssetUploadField
+                currentAlt={settings.seo.ogImage.alt}
+                currentLabel="รูปแชร์หน้าแรกปัจจุบัน"
+                currentUrl={settings.seo.ogImage.url}
+                description="ไฟล์ PNG / JPG / WebP สำหรับภาพที่ใช้ตอนแชร์ลิงก์หน้าแรก"
+                id="seoOgImageFile"
+                label="รูปแชร์ลิงก์หน้าแรก"
+                onFileChange={(seoOgImageFile) => {
+                  onChange({ seoOgImageFile });
+                }}
+                selectedFile={draft.seoOgImageFile}
+                validateFile={(file) => {
+                  return validateUploadMetadata(
+                    "seo-og",
+                    file.type,
+                    file.size,
+                    file.name,
+                  );
+                }}
+              />
+            </div>
             <TextControl
               id="seoOgImageAlt"
               label="คำอธิบายรูปแชร์ลิงก์"
@@ -448,15 +467,28 @@ export function SettingsForm({
                 placeholder="ค้นหาบ้านพักพูลวิลล่าพัทยา"
                 value={draft.searchSeoTitle}
               />
-              <TextControl
-                id="searchSeoOgImageUrl"
-                label="ลิงก์รูปแชร์"
-                onChange={(searchSeoOgImageUrl) => {
-                  onChange({ searchSeoOgImageUrl });
-                }}
-                placeholder="/images/BPV-66_Cover-Web.jpg"
-                value={draft.searchSeoOgImageUrl}
-              />
+              <div className="lg:col-span-2">
+                <AssetUploadField
+                  currentAlt={settings.pageSeo.search.ogImage.alt}
+                  currentLabel="รูปแชร์หน้าค้นหาปัจจุบัน"
+                  currentUrl={settings.pageSeo.search.ogImage.url}
+                  description="ไฟล์ PNG / JPG / WebP สำหรับภาพที่ใช้ตอนแชร์ลิงก์หน้าค้นหา"
+                  id="searchSeoOgImageFile"
+                  label="รูปแชร์ลิงก์หน้าค้นหา"
+                  onFileChange={(searchSeoOgImageFile) => {
+                    onChange({ searchSeoOgImageFile });
+                  }}
+                  selectedFile={draft.searchSeoOgImageFile}
+                  validateFile={(file) => {
+                    return validateUploadMetadata(
+                      "search-seo-og",
+                      file.type,
+                      file.size,
+                      file.name,
+                    );
+                  }}
+                />
+              </div>
               <TextControl
                 id="searchSeoDescription"
                 label="คำอธิบาย"
@@ -511,15 +543,28 @@ export function SettingsForm({
                 placeholder="บทความแนะนำบ้านพักพูลวิลล่าพัทยา"
                 value={draft.guidesSeoTitle}
               />
-              <TextControl
-                id="guidesSeoOgImageUrl"
-                label="ลิงก์รูปแชร์"
-                onChange={(guidesSeoOgImageUrl) => {
-                  onChange({ guidesSeoOgImageUrl });
-                }}
-                placeholder="/images/BPV-66_Cover-Web.jpg"
-                value={draft.guidesSeoOgImageUrl}
-              />
+              <div className="lg:col-span-2">
+                <AssetUploadField
+                  currentAlt={settings.pageSeo.guides.ogImage.alt}
+                  currentLabel="รูปแชร์หน้าบทความปัจจุบัน"
+                  currentUrl={settings.pageSeo.guides.ogImage.url}
+                  description="ไฟล์ PNG / JPG / WebP สำหรับภาพที่ใช้ตอนแชร์ลิงก์หน้าบทความ"
+                  id="guidesSeoOgImageFile"
+                  label="รูปแชร์ลิงก์หน้าบทความ"
+                  onFileChange={(guidesSeoOgImageFile) => {
+                    onChange({ guidesSeoOgImageFile });
+                  }}
+                  selectedFile={draft.guidesSeoOgImageFile}
+                  validateFile={(file) => {
+                    return validateUploadMetadata(
+                      "guides-seo-og",
+                      file.type,
+                      file.size,
+                      file.name,
+                    );
+                  }}
+                />
+              </div>
               <TextControl
                 id="guidesSeoDescription"
                 label="คำอธิบาย"
@@ -726,6 +771,8 @@ export function SettingsForm({
             </div>
           </div>
         </SectionCard>
+
+        <AdminPasswordSecurityCard />
       </div>
 
       <aside className="grid min-w-0 content-start gap-4 xl:sticky xl:top-36">
@@ -780,7 +827,13 @@ export function SettingsForm({
             <div className="flex items-start justify-between gap-3 rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2">
               <dt className="text-[var(--site-muted)]">ไฟล์ใหม่ที่เลือก</dt>
               <dd className="text-right font-semibold text-[var(--site-text)]">
-                {[draft.logoFile, draft.heroFile].filter(Boolean).length} ไฟล์
+                {[
+                  draft.logoFile,
+                  draft.heroFile,
+                  draft.seoOgImageFile,
+                  draft.searchSeoOgImageFile,
+                  draft.guidesSeoOgImageFile,
+                ].filter(Boolean).length} ไฟล์
               </dd>
             </div>
           </dl>
@@ -800,6 +853,7 @@ export function SettingsForm({
                   alt={draft.heroImageAlt || settings.heroImage.alt}
                   className="object-cover"
                   fill
+                  loading="eager"
                   sizes="360px"
                   src={heroPreviewUrl}
                 />
@@ -841,6 +895,7 @@ export function SettingsForm({
                   alt={draft.seoOgImageAlt || settings.seo.ogImage.alt}
                   className="object-cover"
                   fill
+                  loading="eager"
                   sizes="360px"
                   src={sharePreviewImageUrl}
                 />

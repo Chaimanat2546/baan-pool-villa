@@ -79,7 +79,7 @@ export function GenericPublicNotFoundPage() {
       title="ไม่พบหน้าที่คุณกำลังหา"
       description="ลิงก์นี้อาจถูกย้ายหรือไม่มีอยู่แล้ว ลองค้นหาบ้านพัก อ่านคู่มือ หรือกลับหน้าแรกเพื่อไปต่อ"
       actions={[
-        { href: "/search", label: "ไปหน้าค้นหา", icon: "search" },
+        { href: "/search?guests=2&bedrooms=1&maxPrice=58900", label: "ไปหน้าค้นหา", icon: "search" },
         {
           href: "/guides",
           label: "อ่านบทความ/คู่มือ",
@@ -98,7 +98,7 @@ export function VillaNotFoundPage() {
       title="ไม่พบบ้านพักนี้"
       description="บ้านพักนี้อาจถูกปิดการแสดงผลหรือไม่มีอยู่แล้ว ลองกลับไปค้นหาบ้านพักอื่นที่พร้อมจองได้เลย"
       actions={[
-        { href: "/search", label: "กลับไปค้นหาบ้านพัก", icon: "search" },
+        { href: "/search?guests=2&bedrooms=1&maxPrice=58900", label: "กลับไปค้นหาบ้านพัก", icon: "search" },
         { href: "/", label: "กลับหน้าแรก", icon: "home", variant: "secondary" },
       ]}
     />

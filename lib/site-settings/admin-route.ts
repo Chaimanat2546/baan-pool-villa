@@ -115,6 +115,15 @@ export function buildSiteSettingsSavePayload({
 }) {
   const logoUpload = uploadedAssets.find((asset) => asset.assetType === "logo");
   const heroUpload = uploadedAssets.find((asset) => asset.assetType === "hero");
+  const seoOgImageUpload = uploadedAssets.find(
+    (asset) => asset.assetType === "seo-og",
+  );
+  const searchSeoOgImageUpload = uploadedAssets.find(
+    (asset) => asset.assetType === "search-seo-og",
+  );
+  const guidesSeoOgImageUpload = uploadedAssets.find(
+    (asset) => asset.assetType === "guides-seo-og",
+  );
 
   return {
     id: SITE_SETTINGS_ID,
@@ -136,19 +145,21 @@ export function buildSiteSettingsSavePayload({
     seo_title: draft.seoTitle,
     seo_description: draft.seoDescription,
     seo_keywords: draft.seoKeywords,
-    seo_og_image_url: draft.seoOgImageUrl,
+    seo_og_image_url: seoOgImageUpload?.publicUrl ?? draft.seoOgImageUrl,
     seo_og_image_alt: draft.seoOgImageAlt,
     seo_business_name: draft.seoBusinessName,
     seo_same_as_urls: draft.seoSameAsUrls,
     search_seo_title: draft.searchSeoTitle,
     search_seo_description: draft.searchSeoDescription,
     search_seo_keywords: draft.searchSeoKeywords,
-    search_seo_og_image_url: draft.searchSeoOgImageUrl,
+    search_seo_og_image_url:
+      searchSeoOgImageUpload?.publicUrl ?? draft.searchSeoOgImageUrl,
     search_seo_og_image_alt: draft.searchSeoOgImageAlt,
     guides_seo_title: draft.guidesSeoTitle,
     guides_seo_description: draft.guidesSeoDescription,
     guides_seo_keywords: draft.guidesSeoKeywords,
-    guides_seo_og_image_url: draft.guidesSeoOgImageUrl,
+    guides_seo_og_image_url:
+      guidesSeoOgImageUpload?.publicUrl ?? draft.guidesSeoOgImageUrl,
     guides_seo_og_image_alt: draft.guidesSeoOgImageAlt,
     villa_detail_seo_keywords: draft.villaDetailSeoKeywords,
   };

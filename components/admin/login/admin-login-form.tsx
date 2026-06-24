@@ -4,9 +4,11 @@ import { LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
+import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
+const ADMIN_AFTER_LOGIN_PATH = "/admin/sections";
 const TURNSTILE_SCRIPT_ID = "admin-login-turnstile-script";
 const TURNSTILE_SCRIPT_SRC =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
@@ -82,6 +84,20 @@ export function AdminLoginForm() {
   const [turnstileToken, setTurnstileToken] = useState("");
   const errorId = "admin-login-error";
   const hasError = error !== null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void readAdminAccessToken().then((token) => {
+      if (isMounted && token) {
+        router.replace(ADMIN_AFTER_LOGIN_PATH);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   const resetTurnstile = useCallback(() => {
     setTurnstileToken("");
@@ -236,7 +252,7 @@ export function AdminLoginForm() {
         return;
       }
 
-      router.replace("/admin/sections");
+      router.replace(ADMIN_AFTER_LOGIN_PATH);
     } catch (caughtError) {
       resetTurnstile();
       setError(

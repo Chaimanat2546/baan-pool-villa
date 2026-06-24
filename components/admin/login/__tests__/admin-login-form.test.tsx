@@ -13,6 +13,7 @@ import {
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 
 const mocks = vi.hoisted(() => ({
+  getSession: vi.fn(),
   replace: vi.fn(),
   signInWithPassword: vi.fn(),
 }));
@@ -36,6 +37,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/home-sections/supabase", () => ({
   createBrowserHomeConfigClient: () => ({
     auth: {
+      getSession: mocks.getSession,
       signInWithPassword: mocks.signInWithPassword,
     },
   }),
@@ -48,6 +50,11 @@ const originalNodeEnv = process.env.NODE_ENV;
 describe("AdminLoginForm", () => {
   beforeEach(() => {
     process.env.NODE_ENV = originalNodeEnv;
+    mocks.getSession.mockReset();
+    mocks.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
     mocks.replace.mockReset();
     mocks.signInWithPassword.mockReset();
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
@@ -94,6 +101,21 @@ describe("AdminLoginForm", () => {
       turnstile,
     };
   }
+
+  it("redirects authenticated admins away from the login page", async () => {
+    mocks.getSession.mockResolvedValue({
+      data: { session: { access_token: "admin-token" } },
+      error: null,
+    });
+
+    const page = await mountAdminPage(<AdminLoginForm />);
+    await flushEffects();
+
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/sections");
+    expect(mocks.signInWithPassword).not.toHaveBeenCalled();
+
+    await page.unmount();
+  });
 
   it("shows a Thai message for invalid login credentials", async () => {
     mocks.signInWithPassword.mockResolvedValue({

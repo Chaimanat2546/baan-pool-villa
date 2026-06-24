@@ -57,17 +57,20 @@ export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
     primaryColor: settings.primaryColor,
     seoBusinessName: settings.seo.businessName,
     seoDescription: settings.seo.description,
+    seoOgImageFile: null,
     seoKeywords: [...settings.seo.keywords],
     seoOgImageAlt: settings.seo.ogImage.alt,
     seoOgImageUrl: settings.seo.ogImage.url,
     seoSameAsUrls: [...settings.seo.sameAsUrls],
     searchSeoTitle: settings.pageSeo.search.title,
     searchSeoDescription: settings.pageSeo.search.description,
+    searchSeoOgImageFile: null,
     searchSeoKeywords: [...settings.pageSeo.search.keywords],
     searchSeoOgImageUrl: settings.pageSeo.search.ogImage.url,
     searchSeoOgImageAlt: settings.pageSeo.search.ogImage.alt,
     guidesSeoTitle: settings.pageSeo.guides.title,
     guidesSeoDescription: settings.pageSeo.guides.description,
+    guidesSeoOgImageFile: null,
     guidesSeoKeywords: [...settings.pageSeo.guides.keywords],
     guidesSeoOgImageUrl: settings.pageSeo.guides.ogImage.url,
     guidesSeoOgImageAlt: settings.pageSeo.guides.ogImage.alt,
@@ -93,17 +96,20 @@ export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
     primaryColor: draft.primaryColor,
     seoBusinessName: draft.seoBusinessName,
     seoDescription: draft.seoDescription,
+    seoOgImageFile: getFileSnapshot(draft.seoOgImageFile),
     seoKeywords: draft.seoKeywords,
     seoOgImageAlt: draft.seoOgImageAlt,
     seoOgImageUrl: draft.seoOgImageUrl,
     seoSameAsUrls: draft.seoSameAsUrls,
     searchSeoTitle: draft.searchSeoTitle,
     searchSeoDescription: draft.searchSeoDescription,
+    searchSeoOgImageFile: getFileSnapshot(draft.searchSeoOgImageFile),
     searchSeoKeywords: draft.searchSeoKeywords,
     searchSeoOgImageUrl: draft.searchSeoOgImageUrl,
     searchSeoOgImageAlt: draft.searchSeoOgImageAlt,
     guidesSeoTitle: draft.guidesSeoTitle,
     guidesSeoDescription: draft.guidesSeoDescription,
+    guidesSeoOgImageFile: getFileSnapshot(draft.guidesSeoOgImageFile),
     guidesSeoKeywords: draft.guidesSeoKeywords,
     guidesSeoOgImageUrl: draft.guidesSeoOgImageUrl,
     guidesSeoOgImageAlt: draft.guidesSeoOgImageAlt,
@@ -152,6 +158,18 @@ export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
 
   if (draft.heroFile) {
     formData.set("hero", draft.heroFile);
+  }
+
+  if (draft.seoOgImageFile) {
+    formData.set("seoOgImageFile", draft.seoOgImageFile);
+  }
+
+  if (draft.searchSeoOgImageFile) {
+    formData.set("searchSeoOgImageFile", draft.searchSeoOgImageFile);
+  }
+
+  if (draft.guidesSeoOgImageFile) {
+    formData.set("guidesSeoOgImageFile", draft.guidesSeoOgImageFile);
   }
 
   return formData;

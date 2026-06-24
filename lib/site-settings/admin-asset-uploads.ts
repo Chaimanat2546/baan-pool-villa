@@ -32,7 +32,14 @@ export const ASSET_UPLOAD_FIELDS: {
 }[] = [
   { assetType: "logo", fieldName: "logo" },
   { assetType: "hero", fieldName: "hero" },
+  { assetType: "seo-og", fieldName: "seoOgImageFile" },
+  { assetType: "search-seo-og", fieldName: "searchSeoOgImageFile" },
+  { assetType: "guides-seo-og", fieldName: "guidesSeoOgImageFile" },
 ];
+
+const SITE_ASSET_TYPE_SET = new Set<SiteAssetType>(
+  ASSET_UPLOAD_FIELDS.map((field) => field.assetType),
+);
 
 interface SiteAssetUploadRow {
   id: unknown;
@@ -220,8 +227,10 @@ export function readSiteSettingsUploadFiles(formData: FormData): {
 }
 
 function mapUploadRow(row: SiteAssetUploadRow): SiteAssetUploadRecord | null {
+  const assetType = row.asset_type as SiteAssetType;
+
   if (
-    (row.asset_type !== "logo" && row.asset_type !== "hero") ||
+    !SITE_ASSET_TYPE_SET.has(assetType) ||
     typeof row.created_at !== "string" ||
     typeof row.id !== "string" ||
     typeof row.is_current !== "boolean" ||
@@ -232,7 +241,7 @@ function mapUploadRow(row: SiteAssetUploadRow): SiteAssetUploadRecord | null {
   }
 
   return {
-    assetType: row.asset_type,
+    assetType,
     createdAt: row.created_at,
     id: row.id,
     isCurrent: row.is_current,

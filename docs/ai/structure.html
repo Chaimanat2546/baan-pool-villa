@@ -323,7 +323,7 @@
               <tr>
                 <td><code>app/(admin)/admin/settings/page.tsx</code></td>
                 <td><code>/admin/settings</code></td>
-                <td><code>components/admin/settings/admin-settings-page</code>; the form uses shared controls in <code>components/admin/settings/settings-form-controls</code>.</td>
+                <td><code>components/admin/settings/admin-settings-page</code>; the form uses shared controls in <code>components/admin/settings/settings-form-controls</code> and the password OTP modal in <code>components/admin/settings/admin-password-security-card</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/settings/loading.tsx</code></td>
@@ -421,7 +421,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
-                <td>Admin auth and delegation for site settings reads and saves. Admin multipart settings parsing, draft normalization, settings validation, save-payload shaping, Supabase persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-route.ts</code>. Site asset upload-file extraction, metadata validation, upload, upload-history cleanup, inactive marking, and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
+                <td>Admin auth and delegation for site settings reads and saves. Admin multipart settings parsing, draft normalization, settings validation, save-payload shaping, Supabase persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-route.ts</code>. Site asset upload-file extraction, metadata validation, upload, upload-history cleanup, inactive marking, and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>; logo, hero, and SEO share images upload to the <code>site-assets</code> bucket with separate retained asset types. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
@@ -653,7 +653,7 @@
               <tr>
                 <td>Site settings</td>
                 <td>Supabase settings table with defaults fallback.</td>
-                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; global and section SEO templates plus page-specific keyword arrays are normalized here, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
+                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; global and section SEO templates plus page-specific keyword arrays are normalized here, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
                 <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
               </tr>
             <tr>
@@ -841,7 +841,7 @@
             </tr>
             <tr>
               <td>Site settings + TikTok settings</td>
-              <td><code>npm.cmd test -- lib/site-settings</code>, <code>npm.cmd test -- lib/tiktok</code>, and relevant <code>components/admin/settings</code>, <code>components/admin/tiktok</code>, <code>components/villas/home</code> tests.</td>
+              <td><code>npm.cmd test -- lib/site-settings</code>, <code>npm.cmd test -- lib/tiktok</code>, <code>npm.cmd test -- components/admin/settings/__tests__/admin-password-security-card.test.tsx</code>, and relevant <code>components/admin/settings</code>, <code>components/admin/tiktok</code>, <code>components/villas/home</code> tests.</td>
               <td>Add TikTok-route assertions (including /api/admin/site-settings not overwriting TikTok columns, /api/admin/tiktok normalizing URL-only payloads), oEmbed thumbnail fallback/cache assertions, and homepage first-6/click-to-load expectations; run lint and build before completion.</td>
             </tr>
             <tr>

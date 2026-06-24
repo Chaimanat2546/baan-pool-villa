@@ -1,3 +1,6 @@
+const WEAK_PASSWORD_ERROR_MESSAGE =
+  "รหัสผ่านใหม่ยังไม่ปลอดภัยพอ กรุณาใช้รหัสผ่านที่ยาวขึ้นและผสมตัวอักษรใหญ่ ตัวอักษรเล็ก ตัวเลข และสัญลักษณ์";
+
 const ADMIN_ERROR_TRANSLATIONS = new Map<string, string>([
   ["access denied.", "ไม่มีสิทธิ์เข้าถึงข้อมูลนี้"],
   ["body must be an object.", "ข้อมูลที่ส่งมาต้องเป็นออบเจ็กต์"],
@@ -11,9 +14,11 @@ const ADMIN_ERROR_TRANSLATIONS = new Map<string, string>([
   ["missing bearer token.", "กรุณาเข้าสู่ระบบอีกครั้ง"],
   ["request body must be json.", "รูปแบบข้อมูลที่ส่งไม่ถูกต้อง"],
   ["request body must be multipart/form-data.", "รูปแบบข้อมูลอัปโหลดไม่ถูกต้อง"],
+  ["reauthentication_needed", "กรุณายืนยันตัวตนอีกครั้งก่อนเปลี่ยนรหัสผ่าน"],
   ["sections must be an array.", "ข้อมูลส่วนหน้าแรกต้องเป็นรายการ"],
   ["at least one section is required.", "ต้องมีส่วนหน้าแรกอย่างน้อย 1 ส่วน"],
   ["signed-in user is not listed as an active home config admin.", "บัญชีนี้ยังไม่มีสิทธิ์แอดมินสำหรับจัดการเว็บไซต์"],
+  ["token has expired or is invalid", "รหัส OTP ไม่ถูกต้องหรือหมดอายุ"],
   ["unable to create detail layout settings.", "ไม่สามารถสร้างการตั้งค่า layout หน้า Details ได้"],
   ["unable to delete guide post.", "ไม่สามารถลบบทความได้"],
   ["unable to load detail layout.", "ไม่สามารถโหลด layout หน้า Details ได้"],
@@ -36,6 +41,8 @@ const ADMIN_ERROR_TRANSLATIONS = new Map<string, string>([
   ["unauthorized", "กรุณาเข้าสู่ระบบอีกครั้ง"],
   ["unsupported external villa cache refresh scope.", "ขอบเขตการรีเฟรชข้อมูลบ้านพักไม่ถูกต้อง"],
   ["user already registered", "อีเมลนี้ถูกใช้งานในระบบแล้ว"],
+  ["same_password", "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม"],
+  ["weak_password", WEAK_PASSWORD_ERROR_MESSAGE],
 ]);
 
 const ADMIN_ACCESS_ERROR_PREFIX = "unable to verify admin access:";
@@ -51,6 +58,12 @@ export function translateAdminErrorMessage(message: string): string {
 
   if (exactMatch) {
     return exactMatch;
+  }
+
+  const passwordPolicyError = translatePasswordPolicyError(normalizedMessage);
+
+  if (passwordPolicyError) {
+    return passwordPolicyError;
   }
 
   if (normalizedMessage.startsWith(ADMIN_ACCESS_ERROR_PREFIX)) {
@@ -119,13 +132,57 @@ export function getAdminErrorMessage(
   caughtError: unknown,
   fallback: string,
 ): string {
-  return caughtError instanceof Error
-    ? translateAdminErrorMessage(caughtError.message)
-    : fallback;
+  const message = readCaughtErrorMessage(caughtError);
+
+  return message ? translateAdminErrorMessage(message) : fallback;
 }
 
 export function translateAdminErrorMessages(errors: string[]): string[] {
   return errors.map(translateAdminErrorMessage);
+}
+
+function readCaughtErrorMessage(caughtError: unknown): string | null {
+  if (caughtError instanceof Error) {
+    return caughtError.message.trim() || null;
+  }
+
+  if (typeof caughtError === "string") {
+    return caughtError.trim() || null;
+  }
+
+  if (!caughtError || typeof caughtError !== "object") {
+    return null;
+  }
+
+  const errorRecord = caughtError as {
+    code?: unknown;
+    error?: unknown;
+    error_description?: unknown;
+    message?: unknown;
+  };
+
+  return readFirstString([
+    errorRecord.message,
+    errorRecord.error_description,
+    errorRecord.error,
+    errorRecord.code,
+  ]);
+}
+
+function readFirstString(values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const trimmedValue = value.trim();
+
+    if (trimmedValue) {
+      return trimmedValue;
+    }
+  }
+
+  return null;
 }
 
 function translateAdminErrorDetail(detail: string): string {
@@ -136,6 +193,40 @@ function translateAdminErrorDetail(detail: string): string {
   }
 
   return detail;
+}
+
+function translatePasswordPolicyError(normalizedMessage: string): string | null {
+  const lengthMatch = normalizedMessage.match(
+    /password (?:should|must) be at least (\d+) characters?/,
+  );
+
+  if (lengthMatch) {
+    return `รหัสผ่านใหม่ต้องมีอย่างน้อย ${lengthMatch[1]} ตัวอักษร`;
+  }
+
+  if (
+    normalizedMessage === "same_password" ||
+    normalizedMessage.includes("same password") ||
+    normalizedMessage.includes("different from the old password")
+  ) {
+    return "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม";
+  }
+
+  if (
+    normalizedMessage === "weak_password" ||
+    (normalizedMessage.includes("password") &&
+      (normalizedMessage.includes("weak") ||
+        normalizedMessage.includes("not strong") ||
+        normalizedMessage.includes("should contain") ||
+        normalizedMessage.includes("required characters") ||
+        normalizedMessage.includes("leaked") ||
+        normalizedMessage.includes("compromised") ||
+        normalizedMessage.includes("pwned")))
+  ) {
+    return WEAK_PASSWORD_ERROR_MESSAGE;
+  }
+
+  return null;
 }
 
 function readLeadingLabel(message: string, suffix: string): string {

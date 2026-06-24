@@ -33,6 +33,13 @@ const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
 const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
 const THAI_PHONE_PATTERN = /^0\d{9}$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
+const SITE_ASSET_TYPES: SiteAssetType[] = [
+  "hero",
+  "logo",
+  "seo-og",
+  "search-seo-og",
+  "guides-seo-og",
+];
 const SITE_SETTINGS_ALLOWED_IMAGE_EXTENSIONS = new Set([
   "jpeg",
   "jpg",
@@ -490,7 +497,7 @@ export function validateUploadMetadata(
   fileName: string,
 ): string[] {
   const errors: string[] = [];
-  const label = assetType === "logo" ? "โลโก้" : "Hero";
+  const label = getUploadAssetLabel(assetType);
   const extension = fileName.trim().split(".").pop()?.toLowerCase() ?? "";
 
   if (!SITE_SETTINGS_ALLOWED_IMAGE_MIME_TYPES.has(mimeType)) {
@@ -508,6 +515,21 @@ export function validateUploadMetadata(
   return errors;
 }
 
+function getUploadAssetLabel(assetType: SiteAssetType): string {
+  switch (assetType) {
+    case "logo":
+      return "โลโก้";
+    case "hero":
+      return "Hero";
+    case "seo-og":
+      return "รูปแชร์ SEO หน้าแรก";
+    case "search-seo-og":
+      return "รูปแชร์ SEO หน้าค้นหา";
+    case "guides-seo-og":
+      return "รูปแชร์ SEO หน้าบทความ";
+  }
+}
+
 /**
  * Chooses older non-current uploads that can be removed while keeping the most
  * recent retained uploads for each asset type.
@@ -519,9 +541,8 @@ export function selectAssetUploadsForCleanup(
   uploads: SiteAssetUploadRecord[],
 ): SiteAssetUploadRecord[] {
   const cleanupCandidates: SiteAssetUploadRecord[] = [];
-  const assetTypes: SiteAssetType[] = ["hero", "logo"];
 
-  assetTypes.forEach((assetType) => {
+  SITE_ASSET_TYPES.forEach((assetType) => {
     const sortedUploads = uploads
       .filter((upload) => upload.assetType === assetType)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt));

@@ -59,7 +59,7 @@ export default async function Page({ params }: VillaPageProps) {
   const jsonLd = [
     buildBreadcrumbJsonLd([
       { name: "หน้าแรก", path: "/" },
-      { name: "ค้นหาบ้านพัก", path: "/search" },
+      { name: "ค้นหาบ้านพัก", path: "/search?guests=2&bedrooms=1&maxPrice=58900" },
       { name: getVillaTitle(listing), path: `/villas/${listing.id}` },
     ]),
     {

@@ -7,11 +7,10 @@ const FALLBACK_LOGO_IMAGE_SRC = "/images/logo.jpg";
 
 const menuItems = [
   { href: "/", label: "หน้าแรก" },
-  { href: "/search", label: "ค้นหาบ้านพัก" },
+  { href: "/search?guests=2&bedrooms=1&maxPrice=58900", label: "ค้นหาบ้านพัก" },
   { href: "/guides", label: "บทความ" },
   { href: LEGAL_PAGE_PATHS.terms, label: "เงื่อนไขการใช้งาน" },
   { href: LEGAL_PAGE_PATHS.privacy, label: "นโยบายความเป็นส่วนตัว" },
-  { href: "/#recommendations", label: "รีวิว" },
 ];
 
 interface SiteFooterProps {

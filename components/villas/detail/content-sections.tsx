@@ -16,6 +16,7 @@ import type { Amenity, VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
 import { DEFAULT_AMENITY_PREVIEW_COUNT, getAmenityIcon } from "./content-amenities";
 import { findSection } from "./helpers";
+const DEFAULT_SEARCH_FILTER_PATH = "/search?guests=2&bedrooms=1&maxPrice=58900";
 
 export function VillaIntro({
 
@@ -65,7 +66,7 @@ export function VillaIntro({
       >
         <a
           className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
-          href="/search"
+          href={DEFAULT_SEARCH_FILTER_PATH}
         >
           ค้นหาบ้านพักเพิ่มเติม
         </a>
