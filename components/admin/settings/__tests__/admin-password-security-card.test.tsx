@@ -56,6 +56,38 @@ function findButton(container: HTMLElement, label: string): HTMLButtonElement {
   return button;
 }
 
+async function openPasswordModal(container: HTMLElement) {
+  await click(findButton(container, "เปลี่ยนรหัสผ่าน"));
+}
+
+async function submitPasswordChange(
+  container: HTMLElement,
+  {
+    confirmPassword,
+    newPassword,
+    otp = "123456",
+  }: {
+    confirmPassword?: string;
+    newPassword: string;
+    otp?: string;
+  },
+) {
+  await changeInput(
+    container.querySelector("#adminPasswordOtp") as HTMLInputElement,
+    otp,
+  );
+  await changeInput(
+    container.querySelector("#adminNewPassword") as HTMLInputElement,
+    newPassword,
+  );
+  await changeInput(
+    container.querySelector("#adminConfirmPassword") as HTMLInputElement,
+    confirmPassword ?? newPassword,
+  );
+  await click(findButton(container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
+  await flushEffects();
+}
+
 describe("AdminPasswordSecurityCard", () => {
   beforeEach(() => {
     mocks.getUser.mockResolvedValue({
@@ -152,11 +184,11 @@ describe("AdminPasswordSecurityCard", () => {
     );
     await changeInput(
       page.container.querySelector("#adminNewPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await changeInput(
       page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
     await flushEffects();
@@ -167,7 +199,7 @@ describe("AdminPasswordSecurityCard", () => {
       type: "email",
     });
     expect(mocks.updateUser).toHaveBeenCalledWith({
-      password: "new-password-123",
+      password: "New-password-123!",
     });
     expect(mocks.signOut).toHaveBeenCalledWith();
     expect(mocks.replace).toHaveBeenCalledWith("/admin/login");
@@ -191,11 +223,11 @@ describe("AdminPasswordSecurityCard", () => {
     );
     await changeInput(
       page.container.querySelector("#adminNewPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await changeInput(
       page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
     await flushEffects();
@@ -206,6 +238,44 @@ describe("AdminPasswordSecurityCard", () => {
       type: "email",
     });
     expect(mocks.updateUser).not.toHaveBeenCalled();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(mocks.replace).not.toHaveBeenCalledWith("/admin/login");
+
+    await page.unmount();
+  });
+
+  it("shows a Thai error and stays signed in when Supabase rejects a weak password", async () => {
+    mocks.updateUser.mockResolvedValue({
+      data: { user: null },
+      error: { code: "weak_password", message: "Password is too weak" },
+    });
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
+    await click(findButton(page.container, "ส่งรหัส OTP ไปอีเมล"));
+    await flushEffects();
+    await changeInput(
+      page.container.querySelector("#adminPasswordOtp") as HTMLInputElement,
+      "123456",
+    );
+    await changeInput(
+      page.container.querySelector("#adminNewPassword") as HTMLInputElement,
+      "ValidPass1!",
+    );
+    await changeInput(
+      page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
+      "ValidPass1!",
+    );
+    await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
+    await flushEffects();
+
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      token: "123456",
+      type: "email",
+    });
+    expect(mocks.updateUser).toHaveBeenCalledWith({ password: "ValidPass1!" });
+    expect(page.container.textContent).toContain("รหัสผ่านใหม่ยังไม่ปลอดภัยพอ");
     expect(mocks.signOut).not.toHaveBeenCalled();
     expect(mocks.replace).not.toHaveBeenCalledWith("/admin/login");
 
@@ -226,11 +296,11 @@ describe("AdminPasswordSecurityCard", () => {
     );
     await changeInput(
       page.container.querySelector("#adminNewPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await changeInput(
       page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
     await flushEffects();
@@ -257,7 +327,7 @@ describe("AdminPasswordSecurityCard", () => {
     );
     await changeInput(
       page.container.querySelector("#adminNewPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await changeInput(
       page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
@@ -267,6 +337,7 @@ describe("AdminPasswordSecurityCard", () => {
     await flushEffects();
 
     expect(mocks.updateUser).not.toHaveBeenCalled();
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
     expect(page.container.textContent).toContain(
       "รหัสผ่านใหม่ทั้งสองช่องต้องตรงกัน",
     );
@@ -280,19 +351,110 @@ describe("AdminPasswordSecurityCard", () => {
     await click(findButton(page.container, "เปลี่ยนรหัสผ่าน"));
     await changeInput(
       page.container.querySelector("#adminNewPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await changeInput(
       page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
-      "new-password-123",
+      "New-password-123!",
     );
     await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
     await flushEffects();
 
     expect(mocks.updateUser).not.toHaveBeenCalled();
-    expect(page.container.textContent).toContain("กรอกรหัส OTP จากอีเมล");
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+    expect(page.container.textContent).toContain("รหัส OTP ต้องเป็นตัวเลข 6 หลัก");
 
     await page.unmount();
+  });
+
+  it("shows password requirements in the modal", async () => {
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await openPasswordModal(page.container);
+
+    expect(page.container.textContent).toContain(
+      "รหัสผ่านต้องมีอย่างน้อย 8 ตัว",
+    );
+    expect(page.container.textContent).toContain(
+      "ตัวอักษรภาษาอังกฤษพิมพ์เล็ก เช่น a-z",
+    );
+    expect(page.container.textContent).toContain(
+      "ตัวอักษรภาษาอังกฤษพิมพ์ใหญ่ เช่น A-Z",
+    );
+    expect(page.container.textContent).toContain("ตัวเลข เช่น 0-9");
+    expect(page.container.textContent).toContain("สัญลักษณ์พิเศษ เช่น ! @ # $");
+
+    await page.unmount();
+  });
+
+  it("blocks invalid password submissions before calling Supabase Auth", async () => {
+    const invalidCases = [
+      {
+        error: "รหัส OTP ต้องเป็นตัวเลข 6 หลัก",
+        newPassword: "ValidPass1!",
+        otp: "12345",
+      },
+      {
+        error: "รหัส OTP ต้องเป็นตัวเลข 6 หลัก",
+        newPassword: "ValidPass1!",
+        otp: "12345a",
+      },
+      {
+        error: "กรอกรหัสผ่านใหม่",
+        newPassword: "",
+      },
+      {
+        error: "รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร",
+        newPassword: "Aa1!",
+      },
+      {
+        error: "รหัสผ่านใหม่ต้องไม่เกิน 128 ตัวอักษร",
+        newPassword: `Aa1!${"a".repeat(125)}`,
+      },
+      {
+        error: "รหัสผ่านใหม่ต้องใช้เฉพาะอักขระ ASCII ที่พิมพ์ได้",
+        newPassword: "Aa1!aaaaก",
+      },
+      {
+        error: "รหัสผ่านใหม่ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว",
+        newPassword: "AA1!AAAA",
+      },
+      {
+        error: "รหัสผ่านใหม่ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว",
+        newPassword: "aa1!aaaa",
+      },
+      {
+        error: "รหัสผ่านใหม่ต้องมีตัวเลขอย่างน้อย 1 ตัว",
+        newPassword: "Aa!!aaaa",
+      },
+      {
+        error: "รหัสผ่านใหม่ต้องมีสัญลักษณ์อย่างน้อย 1 ตัว",
+        newPassword: "Aa11aaaa",
+      },
+      {
+        confirmPassword: "",
+        error: "กรอกยืนยันรหัสผ่านใหม่",
+        newPassword: "ValidPass1!",
+      },
+    ];
+
+    for (const invalidCase of invalidCases) {
+      const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+      mocks.readAdminAccessToken.mockClear();
+      mocks.verifyOtp.mockClear();
+      mocks.updateUser.mockClear();
+
+      await openPasswordModal(page.container);
+      await submitPasswordChange(page.container, invalidCase);
+
+      expect(page.container.textContent).toContain(invalidCase.error);
+      expect(mocks.readAdminAccessToken).not.toHaveBeenCalled();
+      expect(mocks.verifyOtp).not.toHaveBeenCalled();
+      expect(mocks.updateUser).not.toHaveBeenCalled();
+
+      await page.unmount();
+    }
   });
 
   it("redirects to login when the browser session is missing", async () => {

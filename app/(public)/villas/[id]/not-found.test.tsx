@@ -9,7 +9,7 @@ describe("villa detail not-found route", () => {
 
     expect(markup).toContain("ไม่พบบ้านพักนี้");
     expect(markup).toContain("กลับไปค้นหาบ้านพัก");
-    expect(markup).toContain('href="/search"');
+    expect(markup).toContain('href="/search?guests=2&bedrooms=1&maxPrice=58900"');
     expect(markup).toContain('href="/"');
     expect(markup).not.toContain('href="/guides"');
   });

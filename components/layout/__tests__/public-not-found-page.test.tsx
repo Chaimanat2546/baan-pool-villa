@@ -19,7 +19,7 @@ describe("PublicNotFoundPage", () => {
     expect(markup).toContain("404");
     expect(markup).toContain("ไม่พบหน้าที่คุณกำลังหา");
     expect(markup).toContain("ลองค้นหาหรือกลับหน้าแรก");
-    expect(markup).toContain('href="/search"');
+    expect(markup).toContain('href="/search?guests=2&bedrooms=1&maxPrice=58900"');
     expect(markup).toContain('href="/"');
   });
 
@@ -28,7 +28,7 @@ describe("PublicNotFoundPage", () => {
       <PublicNotFoundPage
         title="ไม่พบบ้านพักนี้"
         description="ลองกลับไปค้นหาบ้านพักอื่น"
-        actions={[{ href: "/search", label: "กลับไปค้นหาบ้านพัก", icon: "search" }]}
+        actions={[{ href: "/search?guests=2&bedrooms=1&maxPrice=58900", label: "กลับไปค้นหาบ้านพัก", icon: "search" }]}
       />,
     );
 

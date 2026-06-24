@@ -9,7 +9,11 @@ import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
 const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_PATTERN = /^\d{6}$/;
+const PRINTABLE_ASCII_PATTERN = /^[\x20-\x7E]+$/;
+const PASSWORD_SYMBOLS = "!@#$%^&*()_+-=[]{};'\":|<>?,./`~";
 
 function readErrorMessage(caughtError: unknown): string {
   if (caughtError instanceof Error) {
@@ -68,12 +72,44 @@ function validatePasswordChange({
   newPassword: string;
   otp: string;
 }): string | null {
-  if (!otp.trim()) {
-    return "กรอกรหัส OTP จากอีเมล";
+  if (!OTP_PATTERN.test(otp.trim())) {
+    return "รหัส OTP ต้องเป็นตัวเลข 6 หลัก";
+  }
+
+  if (!newPassword) {
+    return "กรอกรหัสผ่านใหม่";
   }
 
   if (newPassword.length < MIN_PASSWORD_LENGTH) {
     return `รหัสผ่านใหม่ต้องมีอย่างน้อย ${MIN_PASSWORD_LENGTH} ตัวอักษร`;
+  }
+
+  if (newPassword.length > MAX_PASSWORD_LENGTH) {
+    return `รหัสผ่านใหม่ต้องไม่เกิน ${MAX_PASSWORD_LENGTH} ตัวอักษร`;
+  }
+
+  if (!PRINTABLE_ASCII_PATTERN.test(newPassword)) {
+    return "รหัสผ่านใหม่ต้องใช้เฉพาะอักขระ ASCII ที่พิมพ์ได้";
+  }
+
+  if (!/[a-z]/.test(newPassword)) {
+    return "รหัสผ่านใหม่ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว";
+  }
+
+  if (!/[A-Z]/.test(newPassword)) {
+    return "รหัสผ่านใหม่ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว";
+  }
+
+  if (!/[0-9]/.test(newPassword)) {
+    return "รหัสผ่านใหม่ต้องมีตัวเลขอย่างน้อย 1 ตัว";
+  }
+
+  if (![...newPassword].some((character) => PASSWORD_SYMBOLS.includes(character))) {
+    return "รหัสผ่านใหม่ต้องมีสัญลักษณ์อย่างน้อย 1 ตัว";
+  }
+
+  if (!confirmPassword) {
+    return "กรอกยืนยันรหัสผ่านใหม่";
   }
 
   if (newPassword !== confirmPassword) {
@@ -371,13 +407,13 @@ export function AdminPasswordSecurityCard() {
                 className="block text-sm font-semibold text-[var(--site-text)]"
                 htmlFor="adminPasswordOtp"
               >
-                รหัส OTP
+                รหัส OTP<span className=" text-red-600">*</span>
                 <input
                   autoComplete="one-time-code"
                   className="mt-2 h-11 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
                   id="adminPasswordOtp"
                   inputMode="numeric"
-                  maxLength={12}
+                  maxLength={6}
                   onChange={(event) => {
                     setOtp(event.target.value.trim());
                   }}
@@ -388,11 +424,12 @@ export function AdminPasswordSecurityCard() {
                 className="block text-sm font-semibold text-[var(--site-text)]"
                 htmlFor="adminNewPassword"
               >
-                รหัสผ่านใหม่
+                รหัสผ่านใหม่<span className=" text-red-600">*</span>
                 <input
                   autoComplete="new-password"
                   className="mt-2 h-11 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
                   id="adminNewPassword"
+                  maxLength={MAX_PASSWORD_LENGTH}
                   minLength={MIN_PASSWORD_LENGTH}
                   onChange={(event) => {
                     setNewPassword(event.target.value);
@@ -400,16 +437,26 @@ export function AdminPasswordSecurityCard() {
                   type="password"
                   value={newPassword}
                 />
+                <span className="mt-2 block text-xs font-normal leading-5 text-[var(--site-muted)]">
+                  รหัสผ่านต้องมีอย่างน้อย 8 ตัว และประกอบด้วย:
+                </span>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-xs font-normal leading-5 text-[var(--site-muted)]">
+                  <li>ตัวอักษรภาษาอังกฤษพิมพ์เล็ก เช่น a-z</li>
+                  <li>ตัวอักษรภาษาอังกฤษพิมพ์ใหญ่ เช่น A-Z</li>
+                  <li>ตัวเลข เช่น 0-9</li>
+                  <li>สัญลักษณ์พิเศษ เช่น ! @ # $</li>
+                </ul>
               </label>
               <label
                 className="block text-sm font-semibold text-[var(--site-text)]"
                 htmlFor="adminConfirmPassword"
               >
-                ยืนยันรหัสผ่านใหม่
+                ยืนยันรหัสผ่านใหม่<span className=" text-red-600">*</span>
                 <input
                   autoComplete="new-password"
                   className="mt-2 h-11 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
                   id="adminConfirmPassword"
+                  maxLength={MAX_PASSWORD_LENGTH}
                   minLength={MIN_PASSWORD_LENGTH}
                   onChange={(event) => {
                     setConfirmPassword(event.target.value);
