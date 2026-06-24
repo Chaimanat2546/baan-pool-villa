@@ -2,7 +2,7 @@ export const MIN_ADMIN_PASSWORD_LENGTH = 8;
 export const MAX_ADMIN_PASSWORD_LENGTH = 128;
 
 const PRINTABLE_ASCII_NO_SPACE_PATTERN = /^[\x21-\x7E]+$/;
-const PASSWORD_SYMBOLS = "!@#$%^&*()_+-=[]{};'\":|<>?,./`~";
+const SYMBOL_PATTERN = /[^a-zA-Z0-9]/;
 
 export function validateAdminPasswordChange({
   confirmPassword,
@@ -39,7 +39,7 @@ export function validateAdminPasswordChange({
     return "รหัสผ่านใหม่ต้องมีตัวเลขอย่างน้อย 1 ตัว";
   }
 
-  if (![...newPassword].some((character) => PASSWORD_SYMBOLS.includes(character))) {
+  if (!SYMBOL_PATTERN.test(newPassword)) {
     return "รหัสผ่านใหม่ต้องมีสัญลักษณ์อย่างน้อย 1 ตัว";
   }
 

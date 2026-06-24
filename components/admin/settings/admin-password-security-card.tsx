@@ -399,7 +399,7 @@ export function AdminPasswordSecurityCard() {
                   value={newPassword}
                 />
                 <span className="mt-2 block text-xs font-normal leading-5 text-[var(--site-muted)]">
-                  รหัสผ่านต้องมีอย่างน้อย 8 ตัว ห้ามเว้นวรรค และประกอบด้วย:
+                  รหัสผ่านต้องมีอย่างน้อย {MIN_ADMIN_PASSWORD_LENGTH} ตัว ห้ามเว้นวรรค และประกอบด้วย:
                 </span>
                 <ul className="mt-1 list-disc space-y-1 pl-5 text-xs font-normal leading-5 text-[var(--site-muted)]">
                   <li>ตัวอักษรภาษาอังกฤษพิมพ์เล็ก เช่น a-z</li>

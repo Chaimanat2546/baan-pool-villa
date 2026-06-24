@@ -205,7 +205,7 @@ describe("AdminLoginForm", () => {
     await page.unmount();
   });
 
-  it("keeps the forgot password response neutral when Supabase returns an error", async () => {
+  it("shows an error when Supabase rejects the password reset email", async () => {
     mocks.resetPasswordForEmail.mockResolvedValue({
       data: {},
       error: { message: "User not found" },
@@ -220,9 +220,8 @@ describe("AdminLoginForm", () => {
     await click(findButton(page.container, "ส่งลิงก์รีเซ็ตรหัสผ่าน"));
     await flushEffects();
 
-    expect(page.container.textContent).toContain(
-      "ถ้าอีเมลนี้อยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่านให้",
-    );
+    expect(page.container.textContent).toContain("ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้");
+    expect(page.container.textContent).not.toContain("ถ้าอีเมลนี้อยู่ในระบบ");
     expect(page.container.textContent).not.toContain("User not found");
 
     await page.unmount();

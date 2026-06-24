@@ -184,11 +184,11 @@ describe("AdminPasswordSecurityCard", () => {
     );
     await changeInput(
       page.container.querySelector("#adminNewPassword") as HTMLInputElement,
-      "New-password-123!",
+      "Newpassword123\\",
     );
     await changeInput(
       page.container.querySelector("#adminConfirmPassword") as HTMLInputElement,
-      "New-password-123!",
+      "Newpassword123\\",
     );
     await click(findButton(page.container, "ยืนยันและเปลี่ยนรหัสผ่าน"));
     await flushEffects();
@@ -199,7 +199,7 @@ describe("AdminPasswordSecurityCard", () => {
       type: "email",
     });
     expect(mocks.updateUser).toHaveBeenCalledWith({
-      password: "New-password-123!",
+      password: "Newpassword123\\",
     });
     expect(mocks.signOut).toHaveBeenCalledWith();
     expect(mocks.replace).toHaveBeenCalledWith("/admin/login");

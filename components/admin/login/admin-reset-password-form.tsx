@@ -120,6 +120,7 @@ export function AdminResetPasswordForm() {
       const { error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {
+        await supabase.auth.signOut({ scope: "local" });
         setError(getAdminErrorMessage(signOutError, "ไม่สามารถออกจากระบบได้"));
         return;
       }

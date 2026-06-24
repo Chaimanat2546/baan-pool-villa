@@ -313,13 +313,18 @@ export function AdminLoginForm() {
       }
 
       const supabase = createBrowserHomeConfigClient();
-      await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
         redirectTo: getAdminResetPasswordRedirectUrl(window.location.origin),
       });
+
+      if (resetError) {
+        setError("ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้");
+        return;
+      }
+
       setNotice(RESET_PASSWORD_SENT_MESSAGE);
       resetTurnstile();
     } catch {
-      resetTurnstile();
       setError("ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้");
     } finally {
       setIsSubmitting(false);

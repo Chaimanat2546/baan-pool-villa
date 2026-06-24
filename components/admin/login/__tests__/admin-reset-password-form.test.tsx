@@ -127,6 +127,7 @@ describe("AdminResetPasswordForm", () => {
     );
     await click(findButton(page.container, "ตั้งรหัสผ่านใหม่"));
     await flushEffects();
+    await flushEffects();
 
     expect(page.container.textContent).toContain("ห้ามเว้นวรรค");
     expect(mocks.updateUser).not.toHaveBeenCalled();
@@ -136,6 +137,33 @@ describe("AdminResetPasswordForm", () => {
   });
 
   it("updates the password, signs out, and redirects to login", async () => {
+    const page = await mountAdminPage(<AdminResetPasswordForm />);
+    await flushEffects();
+
+    await changeInput(
+      page.container.querySelector("#adminResetNewPassword") as HTMLInputElement,
+      "Newpassword123\\",
+    );
+    await changeInput(
+      page.container.querySelector("#adminResetConfirmPassword") as HTMLInputElement,
+      "Newpassword123\\",
+    );
+    await click(findButton(page.container, "ตั้งรหัสผ่านใหม่"));
+    await flushEffects();
+
+    expect(mocks.updateUser).toHaveBeenCalledWith({
+      password: "Newpassword123\\",
+    });
+    expect(mocks.signOut).toHaveBeenCalledWith();
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/login");
+
+    await page.unmount();
+  });
+
+  it("clears the local session and does not redirect when sign out fails after reset", async () => {
+    mocks.signOut
+      .mockResolvedValueOnce({ error: { message: "Sign out failed" } })
+      .mockResolvedValueOnce({ error: null });
     const page = await mountAdminPage(<AdminResetPasswordForm />);
     await flushEffects();
 
@@ -153,8 +181,10 @@ describe("AdminResetPasswordForm", () => {
     expect(mocks.updateUser).toHaveBeenCalledWith({
       password: "New-password-123!",
     });
-    expect(mocks.signOut).toHaveBeenCalledWith();
-    expect(mocks.replace).toHaveBeenCalledWith("/admin/login");
+    expect(mocks.signOut).toHaveBeenNthCalledWith(1);
+    expect(mocks.signOut).toHaveBeenNthCalledWith(2, { scope: "local" });
+    expect(page.container.textContent).toContain("Sign out failed");
+    expect(mocks.replace).not.toHaveBeenCalledWith("/admin/login");
 
     await page.unmount();
   });
