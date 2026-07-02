@@ -1,3 +1,5 @@
+import { getAdvertisementImageOrigin } from "../advertisements/image-url";
+
 export const CLOUDFLARE_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 export const CLOUDFLARE_INSIGHTS_ORIGIN = "https://static.cloudflareinsights.com";
 const AWS_IMAGE_LOADER_DEFAULT_BASE_URL =
@@ -23,12 +25,18 @@ export function buildContentSecurityPolicy({
   isDevelopment,
   nonce,
   supabaseUrl,
+  supabaseUrls = [],
 }: {
   isDevelopment: boolean;
   nonce?: string;
   supabaseUrl?: string;
+  supabaseUrls?: (string | undefined)[];
 }): string {
   const nonceSource = nonce ? `'nonce-${nonce}'` : null;
+  const supabaseOrigins = [
+    getHttpsOrigin(supabaseUrl),
+    ...supabaseUrls.map(getHttpsOrigin),
+  ].filter((source): source is string => Boolean(source));
   const scriptSources = [
     "'self'",
     nonceSource,
@@ -53,6 +61,7 @@ export function buildContentSecurityPolicy({
     "https://www.devillegroups.com",
     "https://i.ytimg.com",
     "https://s3.ap-southeast-1.amazonaws.com",
+    getAdvertisementImageOrigin(),
     "https://*.supabase.co",
     "https://*.tiktokcdn.com",
     "https://*.tiktokcdn-us.com",
@@ -62,7 +71,7 @@ export function buildContentSecurityPolicy({
     CLOUDFLARE_TURNSTILE_ORIGIN,
     CLOUDFLARE_INSIGHTS_ORIGIN,
     "https://www.tiktok.com",
-    getHttpsOrigin(supabaseUrl),
+    ...supabaseOrigins,
     ...(isDevelopment ? ["ws:", "wss:"] : []),
   ].filter((source): source is string => Boolean(source));
 

@@ -37,16 +37,18 @@ const contentWithNearbyPlaces: VillaDetailContent = {
 };
 
 describe("Detail content sections", () => {
-  it("lays nearby cards into a bounded tablet grid", () => {
+  it("keeps nearby cards in a vertical height-limited scroll area", () => {
     const markup = renderToStaticMarkup(
       <NearbySection content={contentWithNearbyPlaces} />,
     );
 
-    expect(markup).toContain("md:grid-cols-2");
-    expect(markup).toContain("md:overflow-visible");
-    expect(markup).toContain("md:w-full");
-    expect(markup).toContain("md:hidden");
-    expect(markup).not.toContain("lg:hidden");
+    expect(markup).toContain("max-h-[260px]");
+    expect(markup).toContain("overflow-y-auto");
+    expect(markup).toContain("space-y-3");
+    expect(markup).not.toContain("สถานที่ท่องเที่ยวแนะนำ");
+    expect(markup).not.toContain("overflow-x-auto");
+    expect(markup).not.toContain("snap-x");
+    expect(markup).not.toContain("grid-cols-2");
   });
 
   it("uses stable icons for each amenity key instead of list position", () => {
@@ -67,7 +69,7 @@ describe("Detail content sections", () => {
     expect(markup).toContain('data-amenity-icon="grill"');
     expect(markup).toContain("lucide-flame");
     expect(markup).toContain('data-amenity-icon="karaoke"');
-    expect(markup).toContain("lucide-music");
+    expect(markup).toContain("lucide-mic-vocal");
     expect(markup).toContain('data-amenity-icon="pet"');
     expect(markup).toContain("lucide-paw-print");
   });

@@ -7,8 +7,10 @@ import { hasEnabledBookingContact } from "./detail-page-helpers";
 import type { VillaDetailPageProps } from "./types";
 
 const EMPTY_INITIAL_GALLERY_IMAGES: PublicVillaImage[] = [];
+const EMPTY_ADVERTISEMENTS: NonNullable<VillaDetailPageProps["advertisements"]> = [];
 
 export function VillaDetailPage({
+  advertisements = EMPTY_ADVERTISEMENTS,
   id,
   initialGalleryImages = EMPTY_INITIAL_GALLERY_IMAGES,
   payload,
@@ -38,6 +40,7 @@ export function VillaDetailPage({
 
       <VillaDetailClientShell
         bookingSidebarId={bookingSidebarId}
+        advertisements={advertisements}
         content={content}
         id={id}
         initialGalleryImages={initialGalleryImages}

@@ -328,7 +328,7 @@ function sortCoverImageRows(rows: SupabaseImageRow[]): SupabaseImageRow[] {
 
     const coverDiff = (b.cover_select ?? 0) - (a.cover_select ?? 0);
 
-    return coverDiff || a.id - b.id;
+    return coverDiff || b.id - a.id;
   });
 }
 
@@ -340,6 +340,10 @@ function chunkPropertyIds(propertyIds: number[]): number[][] {
   }
 
   return chunks;
+}
+
+function toHomeListingLimit(value: number): number {
+  return Math.max(1, Math.min(HOME_LISTING_LIMIT, Math.trunc(value)));
 }
 
 function chunkListingIds(listingIds: string[]): string[][] {
@@ -656,12 +660,14 @@ async function hydrateListingsByPropertyIds(
 
 async function fetchHomeListingsFromSupabase(
   homeSectionHouseIds: readonly string[] = [],
+  listingLimit = HOME_LISTING_LIMIT,
 ): Promise<VillaListing[]> {
   const { supabase, supabaseUrl } = createVillaSupabaseClient();
+  const homeListingLimit = toHomeListingLimit(listingLimit);
   const { data, error } = await selectListings(
     supabase,
     0,
-    HOME_LISTING_LIMIT - 1,
+    homeListingLimit - 1,
   );
 
   if (error) {
@@ -1094,8 +1100,12 @@ export async function fetchHouseListings(): Promise<VillaListing[]> {
 
 export async function fetchHomeListings(
   homeSectionHouseIds: readonly string[] = [],
+  listingLimit = HOME_LISTING_LIMIT,
 ): Promise<VillaListing[]> {
-  return fetchCachedHomeListings([...homeSectionHouseIds].sort());
+  return fetchCachedHomeListings(
+    [...homeSectionHouseIds].sort(),
+    toHomeListingLimit(listingLimit),
+  );
 }
 
 export async function fetchVillaSearchFacets(): Promise<VillaSearchFacets> {

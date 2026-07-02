@@ -44,11 +44,13 @@ export function HeroSearch({ maxAvailablePrice, zones }: HeroSearchProps) {
       >
         <div className="mx-auto max-w-7xl">
           <SearchBar
+            compactMobile
             filters={filters}
             zones={zones}
             maxAvailablePrice={maxAvailablePrice}
             onChange={setFilters}
             onSearch={handleSearch}
+            searchLabel="ค้นหา"
           />
         </div>
       </div>

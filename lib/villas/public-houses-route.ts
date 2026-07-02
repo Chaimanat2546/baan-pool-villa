@@ -4,7 +4,8 @@ import {
   type VillaSortKey,
 } from "@/lib/villas/filters";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
-import { fetchVillaSearchFacets, fetchVillaSearchPage } from "@/lib/villas/server";
+import { SEARCH_FACETS } from "@/lib/villas/search-options";
+import { fetchVillaSearchPage } from "@/lib/villas/server";
 
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 24;
@@ -46,7 +47,7 @@ function parseVillaSortKey(value: string | null): VillaSortKey {
 export async function buildPublicHousesResponse(request: Request) {
   const requestUrl = new URL(request.url);
   const searchParams = requestUrl.searchParams;
-  const facets = await fetchVillaSearchFacets();
+  const facets = SEARCH_FACETS;
   const filters = filtersFromSearchParams(searchParams, facets.maxPrice);
   const sortKey = parseVillaSortKey(searchParams.get("sort"));
   const page = parseBoundedInteger(searchParams.get("page"), 1, 1, MAX_PAGE_NUMBER);

@@ -31,7 +31,7 @@ const villa: VillaListing = {
   id: "701",
   people: 12,
   poolType: "private",
-  price: 15000,
+  price: 12000,
   zone: "jomtien",
   zoneLabel: "Jomtien",
 };
@@ -128,7 +128,7 @@ describe("SearchPage", () => {
     const otherVilla: VillaListing = {
       ...villa,
       id: "702",
-      price: 20000,
+      price: 12000,
     };
 
     const markup = renderToStaticMarkup(
@@ -148,7 +148,7 @@ describe("SearchPage", () => {
     const otherVilla: VillaListing = {
       ...villa,
       id: "702",
-      price: 20000,
+      price: 12000,
     };
 
     const markup = renderToStaticMarkup(
@@ -218,7 +218,7 @@ describe("SearchPage", () => {
     const nextVilla = {
       ...villa,
       id: "702",
-      price: 20000,
+      price: 12000,
     };
     const fetchMock = vi.fn().mockResolvedValue(
       createCatalogResponse([villa, nextVilla], {
@@ -269,7 +269,7 @@ describe("SearchPage", () => {
     const nextVilla = {
       ...villa,
       id: "702",
-      price: 20000,
+      price: 12000,
     };
     const appendRequest = createDeferred<Response>();
     const fetchMock = vi.fn().mockReturnValue(appendRequest.promise);
@@ -308,7 +308,7 @@ describe("SearchPage", () => {
     expectCatalogFetchCall(
       fetchMock,
       1,
-      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&sort=recommended&page=2&limit=12",
+      "/api/houses?guests=1&bedrooms=1&maxPrice=13000&sort=recommended&page=2&limit=12",
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(loadMoreButton).toHaveProperty("disabled", true);
@@ -337,7 +337,7 @@ describe("SearchPage", () => {
     const nextVilla = {
       ...villa,
       id: "702",
-      price: 20000,
+      price: 12000,
     };
     const fetchMock = vi.fn().mockResolvedValue(
       createCatalogResponse([nextVilla], {
@@ -414,7 +414,7 @@ describe("SearchPage", () => {
     const nextVilla = {
       ...villa,
       id: "702",
-      price: 20000,
+      price: 12000,
     };
     const fetchMock = vi.fn().mockResolvedValue(
       createCatalogResponse([nextVilla], {
@@ -481,7 +481,7 @@ describe("SearchPage", () => {
     const matchingVilla = {
       ...villa,
       id: "702",
-      price: 20000,
+      price: 12000,
     };
     const fetchMock = vi.fn().mockResolvedValue(
       createCatalogResponse([matchingVilla]),
@@ -522,7 +522,7 @@ describe("SearchPage", () => {
     expectCatalogFetchCall(
       fetchMock,
       1,
-      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=702&sort=recommended&page=1&limit=12",
+      "/api/houses?guests=1&bedrooms=1&maxPrice=13000&id=702&sort=recommended&page=1&limit=12",
     );
 
     await act(async () => {
@@ -535,7 +535,7 @@ describe("SearchPage", () => {
     const matchingVilla = {
       ...villa,
       id: "702",
-      price: 20000,
+      price: 12000,
     };
     const fetchMock = vi.fn().mockResolvedValue(
       createCatalogResponse([matchingVilla]),
@@ -587,7 +587,7 @@ describe("SearchPage", () => {
     expectCatalogFetchCall(
       fetchMock,
       1,
-      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=702&sort=recommended&page=1&limit=12",
+      "/api/houses?guests=1&bedrooms=1&maxPrice=13000&id=702&sort=recommended&page=1&limit=12",
     );
 
     await act(async () => {
@@ -682,7 +682,7 @@ describe("SearchPage", () => {
     expectCatalogFetchCall(
       fetchMock,
       1,
-      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=DV-2870&sort=recommended&page=1&limit=12",
+      "/api/houses?guests=1&bedrooms=1&maxPrice=13000&id=DV-2870&sort=recommended&page=1&limit=12",
     );
 
     await act(async () => {
@@ -693,7 +693,7 @@ describe("SearchPage", () => {
     expectCatalogFetchCall(
       fetchMock,
       2,
-      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=2870&sort=recommended&page=1&limit=12",
+      "/api/houses?guests=1&bedrooms=1&maxPrice=13000&id=2870&sort=recommended&page=1&limit=12",
     );
 
     await act(async () => {
@@ -737,7 +737,7 @@ describe("SearchPage", () => {
     expectCatalogFetchCall(
       fetchMock,
       1,
-      "/api/houses?guests=2&bedrooms=1&maxPrice=20000&sort=recommended&page=1&limit=12",
+      "/api/houses?guests=2&bedrooms=1&maxPrice=13000&sort=recommended&page=1&limit=12",
     );
     expect(window.location.search).toBe("");
 
@@ -808,12 +808,12 @@ describe("SearchPage", () => {
     const staleVilla = {
       ...villa,
       id: "702",
-      price: 20000,
+      price: 12000,
     };
     const newestVilla = {
       ...villa,
       id: "703",
-      price: 21000,
+      price: 12000,
     };
     const firstRequest = createDeferred<Response>();
     const secondRequest = createDeferred<Response>();
@@ -866,7 +866,7 @@ describe("SearchPage", () => {
     expectCatalogFetchCall(
       fetchMock,
       1,
-      "/api/houses?guests=1&bedrooms=1&maxPrice=22000&id=702&sort=recommended&page=1&limit=12",
+      "/api/houses?guests=1&bedrooms=1&maxPrice=13000&id=702&sort=recommended&page=1&limit=12",
     );
     expect(signals[0]?.aborted).toBe(false);
 
@@ -878,7 +878,7 @@ describe("SearchPage", () => {
     expectCatalogFetchCall(
       fetchMock,
       2,
-      "/api/houses?guests=1&bedrooms=1&maxPrice=22000&id=703&sort=recommended&page=1&limit=12",
+      "/api/houses?guests=1&bedrooms=1&maxPrice=13000&id=703&sort=recommended&page=1&limit=12",
     );
     expect(signals[0]?.aborted).toBe(true);
     expect(signals[1]?.aborted).toBe(false);

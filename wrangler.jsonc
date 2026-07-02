@@ -1,76 +1,124 @@
 {
-	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "baan-pool-villa",
-	"main": "worker.js",
-	"compatibility_date": "2026-05-27",
-	"compatibility_flags": [
-		"nodejs_compat",
-		"global_fetch_strictly_public"
-	],
-	"assets": {
-		"directory": ".open-next/assets",
-		"binding": "ASSETS"
-	},
-	"observability": {
-		"enabled": true
-	},
-	"workers_dev": true,
-	"vars": {
-		"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com"
-	},
-	"version_metadata": {
-		"binding": "CF_VERSION_METADATA"
-	},
-	"services": [
-		{
-			"binding": "WORKER_SELF_REFERENCE",
-			"service": "baan-pool-villa"
-		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			"bucket_name": "baan-pool-villa-next-cache"
-		},
-		{
-			"bucket_name": "baan-pool-villa-next-cache",
-			"binding": "baan_pool_villa_next_cache",
-			"remote": true
-		}
-	],
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "NEXT_CACHE_DO_QUEUE",
-				"class_name": "DOQueueHandler"
-			},
-			{
-				"name": "NEXT_TAG_CACHE_DO_SHARDED",
-				"class_name": "DOShardedTagCache"
-			}
-		]
-	},
-	"migrations": [
-		{
-			"tag": "v1",
-			"new_sqlite_classes": [
-				"DOQueueHandler"
-			]
-		},
-		{
-			"tag": "v2",
-			"new_sqlite_classes": [
-				"DOShardedTagCache"
-			]
-		}
-	],
-	"images": {
-		"binding": "IMAGES"
-	},
-	"secrets": {
-		"required": [
-			"DEVILLE_BEARER_TOKEN",
-			"SUPABASE_PUBLISHABLE_KEY"
-		]
-	}
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "main": "worker.js",
+  "compatibility_date": "2026-05-27",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "workers_dev": true,
+  // ponytail: keep per-site public DB vars in Cloudflare, promote to config when deploys get scripted.
+  "keep_vars": true,
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  },
+  "images": {
+    "binding": "IMAGES"
+  },
+
+  "env": {
+    "baanparty": {
+      "name": "baan-pool-villa",
+      "version_metadata": {
+        "binding": "CF_VERSION_METADATA"
+      },
+      "images": {
+        "binding": "IMAGES"
+      },
+      "vars": {
+        "NEXT_PUBLIC_SITE_URL": "https://baanpartypattaya.com"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "baan-pool-villa"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "baan-pool-villa-next-cache"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "NEXT_CACHE_DO_QUEUE",
+            "class_name": "DOQueueHandler"
+          },
+          {
+            "name": "NEXT_TAG_CACHE_DO_SHARDED",
+            "class_name": "DOShardedTagCache"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["DOQueueHandler"]
+        },
+        {
+          "tag": "v2",
+          "new_sqlite_classes": ["DOShardedTagCache"]
+        }
+      ],
+      "secrets": {
+        "required": ["DEVILLE_BEARER_TOKEN", "SUPABASE_PUBLISHABLE_KEY"]
+      }
+    },
+
+    "baan02": {
+      "name": "baan-pool-villa02",
+      "version_metadata": {
+        "binding": "CF_VERSION_METADATA"
+      },
+      "images": {
+        "binding": "IMAGES"
+      },
+      "vars": {
+        "NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa02.poolvilla.workers.dev"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "baan-pool-villa02"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "baan-pool-villa02-next-cache"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "NEXT_CACHE_DO_QUEUE",
+            "class_name": "DOQueueHandler"
+          },
+          {
+            "name": "NEXT_TAG_CACHE_DO_SHARDED",
+            "class_name": "DOShardedTagCache"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["DOQueueHandler"]
+        },
+        {
+          "tag": "v2",
+          "new_sqlite_classes": ["DOShardedTagCache"]
+        }
+      ],
+      "secrets": {
+        "required": ["DEVILLE_BEARER_TOKEN", "SUPABASE_PUBLISHABLE_KEY"]
+      }
+    }
+  }
 }

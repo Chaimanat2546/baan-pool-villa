@@ -1,4 +1,8 @@
 import { AMENITY_OPTIONS } from "./amenities";
+import {
+  SEARCH_DEFAULT_MAX_PRICE,
+  SEARCH_MIN_PRICE,
+} from "./search-options";
 import type { AmenityKey, VillaFilters, VillaListing } from "./types";
 
 export type VillaSortKey =
@@ -8,7 +12,7 @@ export type VillaSortKey =
   | "people_desc"
   | "bedrooms_desc";
 
-const MIN_SEARCH_PRICE = 1000;
+const MIN_SEARCH_PRICE = SEARCH_MIN_PRICE;
 const MIN_GUESTS = 1;
 const MAX_GUESTS = 100;
 const MIN_BEDROOMS = 1;
@@ -22,12 +26,14 @@ const MAX_BEDROOMS = 50;
  * @returns The default filter state used by the search UI.
  */
 export function getDefaultFilters(maxPrice: number): VillaFilters {
+  const normalizedMaxPrice = Math.max(maxPrice, MIN_SEARCH_PRICE);
+
   return {
     zone: "all",
     guests: 2,
     bedrooms: 1,
     amenities: [],
-    maxPrice: Math.max(maxPrice, MIN_SEARCH_PRICE),
+    maxPrice: Math.min(SEARCH_DEFAULT_MAX_PRICE, normalizedMaxPrice),
     nearSeaOnly: false,
   };
 }

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getSearchPageData } from "@/components/villas/search/page-data";
+import { SEARCH_FACETS } from "@/lib/villas/search-options";
 import type { VillaListing } from "@/lib/villas/types";
-import { fetchVillaSearchFacets, fetchVillaSearchPage } from "@/lib/villas/server";
+import { fetchVillaSearchPage } from "@/lib/villas/server";
 
 vi.mock("@/lib/villas/server", () => ({
-  fetchVillaSearchFacets: vi.fn(),
   fetchVillaSearchPage: vi.fn(),
 }));
 
@@ -20,7 +20,6 @@ vi.mock("@/lib/site-settings/server", () => ({
   getSiteSettings: vi.fn(),
 }));
 
-const fetchVillaSearchFacetsMock = vi.mocked(fetchVillaSearchFacets);
 const fetchVillaSearchPageMock = vi.mocked(fetchVillaSearchPage);
 
 const villas: VillaListing[] = [
@@ -55,13 +54,6 @@ const villas: VillaListing[] = [
 describe("getSearchPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    fetchVillaSearchFacetsMock.mockResolvedValue({
-      maxPrice: 18000,
-      zones: [
-        { value: "jomtien", label: "Jomtien" },
-        { value: "pattaya", label: "Pattaya" },
-      ],
-    });
   });
 
   it("returns landing first-page metadata when listings load successfully", async () => {
@@ -96,12 +88,9 @@ describe("getSearchPageData", () => {
       ],
       meta: {
         catalogComplete: false,
-        maxPrice: 18000,
+        maxPrice: SEARCH_FACETS.maxPrice,
         resultCount: 2,
-        zones: [
-          { value: "jomtien", label: "Jomtien" },
-          { value: "pattaya", label: "Pattaya" },
-        ],
+        zones: SEARCH_FACETS.zones,
       },
     });
   });
@@ -139,16 +128,16 @@ describe("getSearchPageData", () => {
   });
 
   it("keeps the catalog marked incomplete when the initial server load fails", async () => {
-    fetchVillaSearchFacetsMock.mockRejectedValue(new Error("catalog offline"));
+    fetchVillaSearchPageMock.mockRejectedValue(new Error("catalog offline"));
 
     const result = await getSearchPageData({});
 
     expect(result.villas).toEqual([]);
     expect(result.meta).toEqual({
       catalogComplete: false,
-      maxPrice: 1000,
+      maxPrice: SEARCH_FACETS.maxPrice,
       resultCount: 0,
-      zones: [],
+      zones: SEARCH_FACETS.zones,
     });
     expect(result.error).toBeTruthy();
   });
@@ -157,13 +146,6 @@ describe("getSearchPageData", () => {
 describe("SearchPage route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    fetchVillaSearchFacetsMock.mockResolvedValue({
-      maxPrice: 18000,
-      zones: [
-        { value: "jomtien", label: "Jomtien" },
-        { value: "pattaya", label: "Pattaya" },
-      ],
-    });
     fetchVillaSearchPageMock.mockResolvedValue({
       facets: {
         maxPrice: 18000,

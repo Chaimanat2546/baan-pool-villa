@@ -32,6 +32,7 @@ describe("content security policy", () => {
     );
     expect(imgSrc).toContain("https://devillegroups.com");
     expect(imgSrc).toContain("https://www.devillegroups.com");
+    expect(imgSrc).toContain("https://webook-media.poolvilla.workers.dev");
     expect(imgSrc).toContain("https://s3.ap-southeast-1.amazonaws.com");
     expect(connectSrc).toContain("https://example.supabase.co");
     expect(connectSrc).toContain("https://static.cloudflareinsights.com");
@@ -45,9 +46,14 @@ describe("content security policy", () => {
     const csp = buildContentSecurityPolicy({
       isDevelopment: false,
       supabaseUrl: "javascript:alert(1)",
+      supabaseUrls: ["https://admin.supabase.co/auth/v1", "http://bad.test"],
     });
 
-    expect(getCspDirective(csp, "connect-src")).not.toContain("javascript:");
+    const connectSrc = getCspDirective(csp, "connect-src");
+
+    expect(connectSrc).toContain("https://admin.supabase.co");
+    expect(connectSrc).not.toContain("javascript:");
+    expect(connectSrc).not.toContain("http://bad.test");
   });
 
   it("allows local websocket and eval sources only in development", () => {

@@ -1,6 +1,4 @@
 import {
-  ArrowRight,
-  Check,
   ImageIcon,
   Info,
   MapPin,
@@ -8,6 +6,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import type {
   DetailLayoutBlock,
   DetailLayoutBlockType,
@@ -18,6 +17,7 @@ import type {
   VillaDetailSection,
 } from "@/lib/villas/detail";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
+import { ActivityAdvertisementsSection } from "./activity-advertisements-section";
 import { BookingSidebar } from "./booking-sidebar";
 import { AmenitiesSection, VideoReviewSection } from "./content-sections";
 import {
@@ -30,6 +30,7 @@ import { NearbySection } from "./nearby-section";
 import type { GalleryCategory } from "./types";
 
 interface DetailLayoutBlockContext {
+  advertisements: PublicAdvertisement[];
   bookingSidebarId?: string;
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
@@ -280,43 +281,37 @@ function renderRulesPetPolicy({ content }: DetailLayoutBlockContext) {
   );
 }
 
+function renderAdvertisements({
+  advertisements,
+  listing,
+}: DetailLayoutBlockContext) {
+  if (advertisements.length === 0) {
+    return null;
+  }
+
+  return (
+    <ActivityAdvertisementsSection
+      advertisements={advertisements}
+      listing={listing}
+    />
+  );
+}
+
 function renderMapNearby({ content }: DetailLayoutBlockContext) {
-  if (!content.location && content.nearbyPlaces.length === 0) {
+  if (content.nearbyPlaces.length === 0) {
     return null;
   }
 
   return (
     <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-[0_10px_30px_rgba(6,63,53,0.06)]">
-      {content.location ? (
-        <div className="mb-6">
-          <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
-              <MapPin className="h-5 w-5" />
-            </span>
-            <h2 className="text-xl font-black text-[var(--site-text)]">
-              ทำเลและสถานที่ใกล้เคียง
-            </h2>
-          </div>
-          <div className="mt-4 space-y-2 text-sm leading-7 text-[var(--site-muted)]">
-            {content.location.address ? (
-              <p>{content.location.address}</p>
-            ) : null}
-            {content.location.seaDistance ? (
-              <p>ห่างทะเล {content.location.seaDistance}</p>
-            ) : null}
-            {content.location.mapUrl ? (
-              <a
-                className="inline-flex items-center gap-1 font-black text-[var(--site-primary)] underline-offset-4 hover:underline"
-                href={content.location.mapUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                เปิดแผนที่ <ArrowRight className="h-4 w-4" />
-              </a>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <div className="mb-6 flex items-center gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+          <MapPin className="h-5 w-5" />
+        </span>
+        <h2 className="text-xl font-black text-[var(--site-text)]">
+          ทำเลและสถานที่ใกล้เคียง
+        </h2>
+      </div>
       <NearbySection content={content} />
     </section>
   );
@@ -359,6 +354,7 @@ const blockRenderers = {
   categorized_images: renderCategorizedImages,
   costs_promotions: renderCostsPromotions,
   rules_pet_policy: renderRulesPetPolicy,
+  advertisements: renderAdvertisements,
   map_nearby: renderMapNearby,
   review_videos: renderReviewVideos,
   booking_contact: renderBookingContact,

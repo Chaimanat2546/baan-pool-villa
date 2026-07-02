@@ -117,7 +117,33 @@ describe("AdminPasswordSecurityCard", () => {
   });
 
   afterEach(() => {
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
     vi.unstubAllGlobals();
+  });
+
+  it("locks page scrolling while the password modal is open", async () => {
+    document.body.style.overflow = "auto";
+    document.documentElement.style.overflow = "auto";
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await openPasswordModal(page.container);
+
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overflow).toBe("hidden");
+
+    const closeButton = page.container.querySelector(
+      "[role='dialog'] button[aria-label]",
+    );
+
+    expect(closeButton).toBeInstanceOf(HTMLButtonElement);
+
+    await click(closeButton as HTMLButtonElement);
+
+    expect(document.body.style.overflow).toBe("auto");
+    expect(document.documentElement.style.overflow).toBe("auto");
+
+    await page.unmount();
   });
 
   it("sends an email OTP from the modal", async () => {

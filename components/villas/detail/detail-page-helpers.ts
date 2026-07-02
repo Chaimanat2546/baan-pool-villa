@@ -1,6 +1,7 @@
 import type {
   AnyDetailLayoutConfig,
   DetailLayoutBlock,
+  DetailLayoutBlockType,
 } from "@/lib/detail-layout/types";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
 
@@ -46,24 +47,34 @@ export function getActiveGalleryLoadState(
   return state.villaId === villaId ? state : getInitialGalleryLoadState(villaId);
 }
 
-function hasEnabledBookingContactBlock(block: DetailLayoutBlock): boolean {
-  return block.enabled && block.type === "booking_contact";
+function hasEnabledBlockType(
+  block: DetailLayoutBlock,
+  type: DetailLayoutBlockType,
+): boolean {
+  return block.enabled && block.type === type;
 }
 
-export function hasEnabledBookingContact(layout: AnyDetailLayoutConfig): boolean {
+export function hasEnabledDetailLayoutBlock(
+  layout: AnyDetailLayoutConfig,
+  type: DetailLayoutBlockType,
+): boolean {
   if (layout.version === 2) {
     return (
       layout.mainSplit.wideRows.some((row) =>
-        row.enabled && row.blocks.some(hasEnabledBookingContactBlock),
+        row.enabled && row.blocks.some((block) => hasEnabledBlockType(block, type)),
       ) ||
       layout.mainSplit.narrowRows.some(
-        (row) => row.enabled && hasEnabledBookingContactBlock(row.block),
+        (row) => row.enabled && hasEnabledBlockType(row.block, type),
       ) ||
-      layout.lockedBottom.some(hasEnabledBookingContactBlock)
+      layout.lockedBottom.some((block) => hasEnabledBlockType(block, type))
     );
   }
 
   return layout.rows.some(
-    (row) => row.enabled && row.blocks.some(hasEnabledBookingContactBlock),
+    (row) => row.enabled && row.blocks.some((block) => hasEnabledBlockType(block, type)),
   );
+}
+
+export function hasEnabledBookingContact(layout: AnyDetailLayoutConfig): boolean {
+  return hasEnabledDetailLayoutBlock(layout, "booking_contact");
 }

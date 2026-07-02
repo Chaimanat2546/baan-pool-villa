@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import type { VillaListing } from "../../villas/types";
-import { getActiveHomeSectionHouseIds, getResolvedHomeSections } from "../server";
+import {
+  getActiveHomeSectionHouseIds,
+  getHomeSectionListingPlan,
+  getResolvedHomeSections,
+} from "../server";
 import { createHomeConfigClient } from "../supabase";
 import { unstable_cache } from "next/cache";
 
@@ -157,6 +161,37 @@ describe("getResolvedHomeSections", () => {
     });
 
     await expect(getActiveHomeSectionHouseIds()).resolves.toEqual(["1328", "55"]);
+  });
+
+  it("builds a homepage listing plan from section limits and offsets", async () => {
+    mockHomeSectionsQuery({
+      data: [
+        {
+          cta_enabled: false,
+          cta_href: null,
+          cta_label: null,
+          description: "",
+          display_order: 0,
+          fallback_mode: "none",
+          home_section_items: [
+            { house_id: "1328", is_active: true, position: 0 },
+            { house_id: "55", is_active: false, position: 1 },
+          ],
+          is_active: true,
+          limit_count: 8,
+          mode: "slice",
+          slice_offset: 20,
+          slug: "slice",
+          title: "",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(getHomeSectionListingPlan(12)).resolves.toMatchObject({
+      houseIds: ["1328"],
+      listingLimit: 28,
+    });
   });
 
   it("returns intentional fallback sections when no config rows resolve", async () => {

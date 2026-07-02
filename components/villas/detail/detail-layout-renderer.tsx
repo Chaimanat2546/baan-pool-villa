@@ -6,6 +6,7 @@ import type {
   DetailLayoutRow,
   DetailLayoutV2Config,
 } from "@/lib/detail-layout/types";
+import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
@@ -28,6 +29,7 @@ import {
 import type { GalleryCategory } from "./types";
 
 export interface DetailLayoutRendererProps {
+  advertisements: PublicAdvertisement[];
   bookingSidebarId?: string;
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
@@ -38,6 +40,7 @@ export interface DetailLayoutRendererProps {
 }
 
 interface DetailLayoutRenderContext {
+  advertisements: PublicAdvertisement[];
   bookingSidebarId?: string;
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
@@ -235,6 +238,7 @@ function renderV2Layout(
 }
 
 export function DetailLayoutRenderer({
+  advertisements,
   bookingSidebarId,
   content,
   galleryCategories,
@@ -244,6 +248,7 @@ export function DetailLayoutRenderer({
   settings,
 }: DetailLayoutRendererProps) {
   const context = {
+    advertisements,
     bookingSidebarId,
     content,
     galleryCategories,

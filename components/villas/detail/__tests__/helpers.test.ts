@@ -106,6 +106,47 @@ describe("buildGalleryItems", () => {
     expect(coverItem?.zoneKey).toBe("cover");
     expect(coverItem?.zoneLabel).toBe("รูปปก");
   });
+
+  it("uses the newest cover category image first when cover_select is not set", () => {
+    const images: VillaImage[] = [
+      {
+        caption: null,
+        id: 133301,
+        imageName: "old-cover.jpg",
+        imageUrl:
+          "https://s3.ap-southeast-1.amazonaws.com/poolvillas.co.ltd/old-cover.jpg",
+        isCover: false,
+        zone: "cover",
+      },
+      {
+        caption: null,
+        id: 144650,
+        imageName: "parking.webp",
+        imageUrl:
+          "https://webook-media.poolvilla.workers.dev/houses/999/parking.webp",
+        isCover: false,
+        zone: "parking",
+      },
+      {
+        caption: null,
+        id: 144651,
+        imageName: "new-cover.webp",
+        imageUrl:
+          "https://webook-media.poolvilla.workers.dev/houses/999/new-cover.webp",
+        isCover: false,
+        zone: "cover",
+      },
+    ];
+
+    const items = buildGalleryItems(images);
+
+    expect(items.map((item) => item.url)).toEqual([
+      "https://webook-media.poolvilla.workers.dev/houses/999/new-cover.webp",
+      "https://s3.ap-southeast-1.amazonaws.com/poolvillas.co.ltd/old-cover.jpg",
+      "https://webook-media.poolvilla.workers.dev/houses/999/parking.webp",
+    ]);
+    expect(items[2]?.zoneKey).toBe("parking");
+  });
 });
 
 describe("getGalleryItemDescription", () => {

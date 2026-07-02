@@ -12,12 +12,11 @@ import {
   filtersFromSearchParams,
   filtersToSearchParams,
   getDefaultFilters,
-  getMaxVillaPrice,
-  getUniqueZones,
   normalizeFiltersForSearch,
   sortVillas,
   type VillaSortKey,
 } from "@/lib/villas/filters";
+import { SEARCH_FACETS } from "@/lib/villas/search-options";
 import type { VillaFilters, VillaListing } from "@/lib/villas/types";
 
 import { VillaGrid } from "../listing/villa-grid";
@@ -209,13 +208,10 @@ export function SearchPage({
   const resolvedInitialSearchParams =
     initialSearchParams ?? browserSearchParams.toString();
   const resolvedMeta = useMemo(() => {
-    const fallbackZones = getUniqueZones(initialVillas);
-    const fallbackMaxPrice = Math.max(getMaxVillaPrice(initialVillas), 1000);
-
     return {
-      maxPrice: Math.max(initialMeta?.maxPrice ?? fallbackMaxPrice, 1000),
+      maxPrice: Math.max(initialMeta?.maxPrice ?? SEARCH_FACETS.maxPrice, 1000),
       resultCount: initialMeta?.resultCount ?? initialVillas.length,
-      zones: initialMeta?.zones?.length ? initialMeta.zones : fallbackZones,
+      zones: initialMeta?.zones?.length ? initialMeta.zones : SEARCH_FACETS.zones,
     };
   }, [initialMeta, initialVillas]);
 
