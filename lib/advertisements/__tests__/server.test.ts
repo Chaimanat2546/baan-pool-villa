@@ -34,7 +34,8 @@ afterEach(() => {
 
 function mockAdvertisementQuery(result: { data: unknown; error: unknown }) {
   const order = vi.fn().mockResolvedValue(result);
-  const eq = vi.fn().mockReturnValue({ order });
+  const inFilter = vi.fn().mockReturnValue({ order });
+  const eq = vi.fn().mockReturnValue({ in: inFilter, order });
   const select = vi.fn().mockReturnValue({ eq });
   const from = vi.fn().mockReturnValue({ select });
 
@@ -42,7 +43,7 @@ function mockAdvertisementQuery(result: { data: unknown; error: unknown }) {
     from,
   } as ReturnType<typeof createClient>);
 
-  return { eq, from, order, select };
+  return { eq, from, inFilter, order, select };
 }
 
 describe("advertisement image URLs", () => {
@@ -72,10 +73,11 @@ describe("advertisement image URLs", () => {
 
 describe("getActiveAdvertisements", () => {
   it("wraps the public advertisement read in a tagged cache", async () => {
-    mockAdvertisementQuery({ data: [], error: null });
+    const query = mockAdvertisementQuery({ data: [], error: null });
 
     await getActiveAdvertisements();
 
+    expect(query.inFilter).not.toHaveBeenCalled();
     expect(unstableCacheMock).toHaveBeenCalledWith(
       expect.any(Function),
       [CACHE_TAGS.advertisements],
@@ -110,7 +112,7 @@ describe("getActiveAdvertisements", () => {
       error: null,
     });
 
-    await expect(getActiveAdvertisements()).resolves.toEqual([
+    await expect(getActiveAdvertisements(" Pattaya ")).resolves.toEqual([
       {
         id: "ad-1",
         imageUrl:
@@ -124,6 +126,7 @@ describe("getActiveAdvertisements", () => {
     ]);
     expect(query.from).toHaveBeenCalledWith("advertisements");
     expect(query.eq).toHaveBeenCalledWith("is_active", true);
+    expect(query.inFilter).toHaveBeenCalledWith("zone", ["pattaya", "all"]);
     expect(query.order).toHaveBeenCalledWith("created_at", {
       ascending: false,
     });

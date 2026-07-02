@@ -566,7 +566,7 @@
             </tr>
             <tr>
               <td><code>lib/advertisements</code></td>
-              <td>Public advertisement/activity reads from Supabase <code>advertisements</code> plus <code>advertisement_images</code>, image-name validation, R2 Worker image URL construction, and detail public advertisement DTOs.</td>
+              <td>Public advertisement/activity reads from Supabase <code>advertisements</code> plus <code>advertisement_images</code>, villa-zone/all-zone filtering, image-name validation, R2 Worker image URL construction, and detail public advertisement DTOs.</td>
               <td><code>lib/advertisements/__tests__</code> plus villa detail layout renderer tests.</td>
             </tr>
             <tr>
@@ -674,7 +674,7 @@
             </tr>
               <tr>
                 <td>Advertisement activities</td>
-                <td>Supabase <code>advertisements</code> rows joined with <code>advertisement_images</code>; images are stored as R2 object names and rendered through the configured Worker URL pattern using the advertisement id plus image name.</td>
+                <td>Supabase <code>advertisements</code> rows filtered by the current villa <code>location_zone</code> plus <code>all</code> and joined with <code>advertisement_images</code>; images are stored as R2 object names and rendered through the configured Worker URL pattern using the advertisement id plus image name.</td>
                 <td><code>lib/advertisements/server.ts</code>, advertisement cache tag, and <code>lib/advertisements/image-url.ts</code> for validated advertisement-id/image-name to Worker URL construction.</td>
                 <td>CMS-managed villa detail advertisement block with up to three activity cards and an in-page gallery popup.</td>
               </tr>

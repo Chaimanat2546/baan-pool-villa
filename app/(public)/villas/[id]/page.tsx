@@ -25,12 +25,13 @@ interface VillaPageProps {
 
 async function getDetailAdvertisements(
   layout: AnyDetailLayoutConfig,
+  villaZone: string,
 ): Promise<PublicAdvertisement[]> {
   if (!hasEnabledDetailLayoutBlock(layout, "advertisements")) {
     return [];
   }
 
-  return getActiveAdvertisements().catch((reason) => {
+  return getActiveAdvertisements(villaZone).catch((reason) => {
     console.error("Unable to load villa detail advertisements", reason);
     return [];
   });
@@ -69,10 +70,11 @@ export default async function Page({ params }: VillaPageProps) {
     notFound();
   }
 
+  const listing = data.payload.listing;
   const advertisements = await getDetailAdvertisements(
     siteSettingsResult.settings.detailLayout,
+    listing.zone,
   );
-  const listing = data.payload.listing;
   const coverImageUrl = listing.coverImage
     ? buildMetadataImageUrl(listing.coverImage)
     : null;

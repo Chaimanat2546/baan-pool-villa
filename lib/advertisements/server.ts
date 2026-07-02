@@ -26,6 +26,11 @@ const ADVERTISEMENT_LIMIT = 8;
 const ADVERTISEMENT_SELECT =
   "id,title,is_active,advertisement_images(image_name,image_order,created_at)";
 
+function normalizeAdvertisementZone(value: string | null | undefined) {
+  const zone = value?.trim().toLowerCase();
+  return zone || null;
+}
+
 function getAdvertisementSupabaseConfig() {
   const supabaseUrl =
     process.env.SUPABASE_URL ??
@@ -123,12 +128,22 @@ export function toPublicAdvertisement(
   };
 }
 
-async function fetchActiveAdvertisements(): Promise<PublicAdvertisement[]> {
-  const { data, error } = await createAdvertisementSupabaseClient()
+async function fetchActiveAdvertisements(
+  villaZone?: string,
+): Promise<PublicAdvertisement[]> {
+  const zone = normalizeAdvertisementZone(villaZone);
+  let query = createAdvertisementSupabaseClient()
     .from("advertisements")
     .select(ADVERTISEMENT_SELECT)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+    .eq("is_active", true);
+
+  if (zone) {
+    query = query.in("zone", [zone, "all"]);
+  }
+
+  const { data, error } = await query.order("created_at", {
+    ascending: false,
+  });
 
   if (error || !Array.isArray(data)) {
     throw new Error("Advertisements are unavailable");
@@ -149,6 +164,8 @@ const fetchCachedActiveAdvertisements = unstable_cache(
   },
 );
 
-export async function getActiveAdvertisements(): Promise<PublicAdvertisement[]> {
-  return fetchCachedActiveAdvertisements();
+export async function getActiveAdvertisements(
+  villaZone?: string,
+): Promise<PublicAdvertisement[]> {
+  return fetchCachedActiveAdvertisements(villaZone);
 }
