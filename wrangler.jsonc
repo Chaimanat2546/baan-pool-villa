@@ -1,87 +1,66 @@
 {
-	"$schema": "./node_modules/wrangler/config-schema.json",
-	// The name of your Worker. It can be anything, but it must be unique across all Workers in your account.
-	// "name": "baan-pool-villa02",
-	"name": "baan-pool-villa",
-	"main": "worker.js",
-	"compatibility_date": "2026-05-27",
-	"compatibility_flags": [
-		"nodejs_compat",
-		"global_fetch_strictly_public"
-	],
-	"assets": {
-		"directory": ".open-next/assets",
-		"binding": "ASSETS"
-	},
-	"observability": {
-		"enabled": true
-	},
-	"workers_dev": true,
-	"vars": {
-		// The URL of your deployed site. This is used for generating absolute URLs in the Worker.
-		// "NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa02.poolvilla.workers.dev"
-		"NEXT_PUBLIC_SITE_URL": "https://baanpartypattaya.com"
-	},
-	"version_metadata": {
-		"binding": "CF_VERSION_METADATA"
-	},
-	"services": [
-		{
-			"binding": "WORKER_SELF_REFERENCE",
-			// The name of the Worker that this Worker will call. This is used for making requests to the same Worker.
-			// "service": "baan-pool-villa02",
-			"service": "baan-pool-villa",
-		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			// The name of the R2 bucket used for caching.
-			// "bucket_name": "baan-pool-villa02-next-cache"
-			"bucket_name": "baan-pool-villa-next-cache"
-		},
-		{
-			// The name of the R2 bucket used for caching, with remote access enabled.
-			// "bucket_name": "baan-pool-villa02-next-cache",
-			// "binding": "baan_pool_villa02_next_cache",
-			"bucket_name": "baan-pool-villa-next-cache",
-			"binding": "baan_pool_villa_next_cache",
-			"remote": true
-		}
-	],
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "NEXT_CACHE_DO_QUEUE",
-				"class_name": "DOQueueHandler"
-			},
-			{
-				"name": "NEXT_TAG_CACHE_DO_SHARDED",
-				"class_name": "DOShardedTagCache"
-			}
-		]
-	},
-	"migrations": [
-		{
-			"tag": "v1",
-			"new_sqlite_classes": [
-				"DOQueueHandler"
-			]
-		},
-		{
-			"tag": "v2",
-			"new_sqlite_classes": [
-				"DOShardedTagCache"
-			]
-		}
-	],
-	"images": {
-		"binding": "IMAGES"
-	},
-	"secrets": {
-		"required": [
-			"DEVILLE_BEARER_TOKEN",
-			"SUPABASE_PUBLISHABLE_KEY"
-		]
-	}
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "main": "worker.js",
+  "compatibility_date": "2026-05-27",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "workers_dev": true,
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  },
+  "images": {
+    "binding": "IMAGES"
+  },
+
+  "env": {
+    ".env.baanparty": {
+      "name": "baan-pool-villa",
+      "vars": {
+        "NEXT_PUBLIC_SITE_URL": "https://baanpartypattaya.com"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "baan-pool-villa"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "baan-pool-villa-next-cache"
+        }
+      ],
+      "secrets": {
+        "required": ["DEVILLE_BEARER_TOKEN", "SUPABASE_PUBLISHABLE_KEY"]
+      }
+    },
+
+    "baan02": {
+      "name": "baan-pool-villa02",
+      "vars": {
+        "NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa02.poolvilla.workers.dev"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "baan-pool-villa02"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "baan-pool-villa02-next-cache"
+        }
+      ],
+      "secrets": {
+        "required": ["DEVILLE_BEARER_TOKEN", "SUPABASE_PUBLISHABLE_KEY"]
+      }
+    }
+  }
 }
