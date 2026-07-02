@@ -11,6 +11,8 @@
     "enabled": true
   },
   "workers_dev": true,
+  // ponytail: keep per-site public DB vars in Cloudflare, promote to config when deploys get scripted.
+  "keep_vars": true,
   "version_metadata": {
     "binding": "CF_VERSION_METADATA"
   },
@@ -19,8 +21,14 @@
   },
 
   "env": {
-    ".env.baanparty": {
+    "baanparty": {
       "name": "baan-pool-villa",
+      "version_metadata": {
+        "binding": "CF_VERSION_METADATA"
+      },
+      "images": {
+        "binding": "IMAGES"
+      },
       "vars": {
         "NEXT_PUBLIC_SITE_URL": "https://baanpartypattaya.com"
       },
@@ -36,6 +44,28 @@
           "bucket_name": "baan-pool-villa-next-cache"
         }
       ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "NEXT_CACHE_DO_QUEUE",
+            "class_name": "DOQueueHandler"
+          },
+          {
+            "name": "NEXT_TAG_CACHE_DO_SHARDED",
+            "class_name": "DOShardedTagCache"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["DOQueueHandler"]
+        },
+        {
+          "tag": "v2",
+          "new_sqlite_classes": ["DOShardedTagCache"]
+        }
+      ],
       "secrets": {
         "required": ["DEVILLE_BEARER_TOKEN", "SUPABASE_PUBLISHABLE_KEY"]
       }
@@ -43,6 +73,12 @@
 
     "baan02": {
       "name": "baan-pool-villa02",
+      "version_metadata": {
+        "binding": "CF_VERSION_METADATA"
+      },
+      "images": {
+        "binding": "IMAGES"
+      },
       "vars": {
         "NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa02.poolvilla.workers.dev"
       },
@@ -56,6 +92,28 @@
         {
           "binding": "NEXT_INC_CACHE_R2_BUCKET",
           "bucket_name": "baan-pool-villa02-next-cache"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "NEXT_CACHE_DO_QUEUE",
+            "class_name": "DOQueueHandler"
+          },
+          {
+            "name": "NEXT_TAG_CACHE_DO_SHARDED",
+            "class_name": "DOShardedTagCache"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["DOQueueHandler"]
+        },
+        {
+          "tag": "v2",
+          "new_sqlite_classes": ["DOShardedTagCache"]
         }
       ],
       "secrets": {
