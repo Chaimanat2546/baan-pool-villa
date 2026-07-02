@@ -15,8 +15,6 @@ import {
 import { HeroSearchSkeleton } from "@/components/villas/home/hero-section-skeleton";
 import { HeroSearch } from "@/components/villas/home/hero-search";
 import { VillaRailSkeleton } from "@/components/villas/home/villa-rail-skeleton";
-import { getActiveAdvertisements } from "@/lib/advertisements/server";
-import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import { getPublishedGuides } from "@/lib/guides/server";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
 import {
@@ -43,7 +41,6 @@ type DestinationVilla = {
 const HOME_DESTINATION_LIMIT = 12;
 
 type HomePageData = {
-  advertisements: PublicAdvertisement[];
   degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
   guides: PublicGuideSummary[];
   homeSections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"];
@@ -66,7 +63,6 @@ function HomeDeferredDegradedMarker({
   degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
 }) {
   const degradedSourceNames = [
-    degradedSources.advertisements ? "advertisements" : null,
     degradedSources.guidePosts ? "guidePosts" : null,
     degradedSources.villaCatalog ? "villaCatalog" : null,
     degradedSources.homeSections ? "homeSections" : null,
@@ -100,7 +96,6 @@ async function HomeDeferredContent({
         degradedSources={homePageData.degradedSources}
       />
       <HomePageContent
-        initialAdvertisements={homePageData.advertisements}
         initialGuides={homePageData.guides}
         initialHomeSections={homePageData.homeSections}
         destinationVillas={homePageData.destinationVillas}
@@ -126,10 +121,6 @@ async function HomeHeroSearch({
 }
 
 async function getHomePageData(): Promise<HomePageData> {
-  const advertisementsResultPromise = getActiveAdvertisements().then(
-    (value) => ({ status: "fulfilled" as const, value }),
-    (reason) => ({ reason, status: "rejected" as const }),
-  );
   const guidesResultPromise = getPublishedGuides().then(
     (value) => ({ status: "fulfilled" as const, value }),
     (reason) => ({ reason, status: "rejected" as const }),
@@ -153,20 +144,8 @@ async function getHomePageData(): Promise<HomePageData> {
     (reason) => ({ reason, status: "rejected" as const }),
   );
   const guidesResult = await guidesResultPromise;
-  const advertisementsResult = await advertisementsResultPromise;
   const guides =
     guidesResult.status === "fulfilled" ? guidesResult.value : [];
-  const advertisements =
-    advertisementsResult.status === "fulfilled"
-      ? advertisementsResult.value
-      : [];
-
-  if (advertisementsResult.status === "rejected") {
-    console.error(
-      "Unable to load homepage advertisements",
-      advertisementsResult.reason,
-    );
-  }
 
   if (guidesResult.status === "rejected") {
     console.error("Unable to load homepage guide posts", guidesResult.reason);
@@ -176,9 +155,7 @@ async function getHomePageData(): Promise<HomePageData> {
     console.error("Unable to load homepage villa data", villasResult.reason);
 
     return {
-      advertisements,
       degradedSources: {
-        advertisements: advertisementsResult.status === "rejected",
         guidePosts: guidesResult.status === "rejected",
         homeSections: false,
         villaCatalog: true,
@@ -209,9 +186,7 @@ async function getHomePageData(): Promise<HomePageData> {
   }
 
   return {
-    advertisements,
     degradedSources: {
-      advertisements: advertisementsResult.status === "rejected",
       guidePosts: guidesResult.status === "rejected",
       homeSections: homeSectionsResult.degraded,
       villaCatalog: false,
@@ -271,7 +246,6 @@ export default async function Page() {
       />
       <HomePage
         degradedSources={{
-          advertisements: false,
           guidePosts: false,
           homeSections: false,
           siteSettings: settingsResult.degraded,

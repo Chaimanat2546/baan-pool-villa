@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { VillaDetailPage } from "@/components/villas/detail/page";
+import { hasEnabledDetailLayoutBlock } from "@/components/villas/detail/detail-page-helpers";
+import { getActiveAdvertisements } from "@/lib/advertisements/server";
+import type { PublicAdvertisement } from "@/lib/advertisements/types";
+import type { AnyDetailLayoutConfig } from "@/lib/detail-layout/types";
 import { serializeJsonLd } from "@/lib/json-ld";
 import {
   absoluteUrl,
@@ -17,6 +21,19 @@ import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
 interface VillaPageProps {
   params: Promise<{ id: string }>;
+}
+
+async function getDetailAdvertisements(
+  layout: AnyDetailLayoutConfig,
+): Promise<PublicAdvertisement[]> {
+  if (!hasEnabledDetailLayoutBlock(layout, "advertisements")) {
+    return [];
+  }
+
+  return getActiveAdvertisements().catch((reason) => {
+    console.error("Unable to load villa detail advertisements", reason);
+    return [];
+  });
 }
 
 export async function generateMetadata({
@@ -52,6 +69,9 @@ export default async function Page({ params }: VillaPageProps) {
     notFound();
   }
 
+  const advertisements = await getDetailAdvertisements(
+    siteSettingsResult.settings.detailLayout,
+  );
   const listing = data.payload.listing;
   const coverImageUrl = listing.coverImage
     ? buildMetadataImageUrl(listing.coverImage)
@@ -99,6 +119,7 @@ export default async function Page({ params }: VillaPageProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <VillaDetailPage
+        advertisements={advertisements}
         id={id}
         initialGalleryImages={data.initialGalleryImages}
         payload={data.payload}

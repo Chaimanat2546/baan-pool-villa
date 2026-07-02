@@ -46,9 +46,14 @@ describe("content security policy", () => {
     const csp = buildContentSecurityPolicy({
       isDevelopment: false,
       supabaseUrl: "javascript:alert(1)",
+      supabaseUrls: ["https://admin.supabase.co/auth/v1", "http://bad.test"],
     });
 
-    expect(getCspDirective(csp, "connect-src")).not.toContain("javascript:");
+    const connectSrc = getCspDirective(csp, "connect-src");
+
+    expect(connectSrc).toContain("https://admin.supabase.co");
+    expect(connectSrc).not.toContain("javascript:");
+    expect(connectSrc).not.toContain("http://bad.test");
   });
 
   it("allows local websocket and eval sources only in development", () => {

@@ -86,7 +86,7 @@ describe("getActiveAdvertisements", () => {
     );
   });
 
-  it("returns active advertisements with the first ordered image", async () => {
+  it("returns active advertisements with ordered images", async () => {
     const query = mockAdvertisementQuery({
       data: [
         {
@@ -115,6 +115,10 @@ describe("getActiveAdvertisements", () => {
         id: "ad-1",
         imageUrl:
           "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/first.webp",
+        imageUrls: [
+          "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/first.webp",
+          "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/second.webp",
+        ],
         title: "Activity",
       },
     ]);

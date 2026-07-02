@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getActiveAdvertisements } from "@/lib/advertisements/server";
 import { getPublishedGuides } from "@/lib/guides/server";
 import {
   getHomeSectionListingPlan,
@@ -32,10 +31,6 @@ vi.mock("@/lib/guides/server", () => ({
   getPublishedGuides: vi.fn(),
 }));
 
-vi.mock("@/lib/advertisements/server", () => ({
-  getActiveAdvertisements: vi.fn(),
-}));
-
 vi.mock("@/lib/home-sections/server", () => ({
   getHomeSectionListingPlan: vi.fn(),
   getResolvedHomeSections: vi.fn(),
@@ -62,7 +57,6 @@ vi.mock("@/lib/villas/server", () => ({
   fetchHomeListings: vi.fn(),
 }));
 
-const getActiveAdvertisementsMock = vi.mocked(getActiveAdvertisements);
 const getPublishedGuidesMock = vi.mocked(getPublishedGuides);
 const getHomeSectionListingPlanMock = vi.mocked(getHomeSectionListingPlan);
 const getResolvedHomeSectionsMock = vi.mocked(getResolvedHomeSections);
@@ -71,7 +65,6 @@ const fetchHomeListingsMock = vi.mocked(fetchHomeListings);
 
 describe("HomePageRoute", () => {
   beforeEach(() => {
-    getActiveAdvertisementsMock.mockReset();
     getPublishedGuidesMock.mockReset();
     getHomeSectionListingPlanMock.mockReset();
     getResolvedHomeSectionsMock.mockReset();
@@ -85,7 +78,6 @@ describe("HomePageRoute", () => {
       houseIds: string[];
       listingLimit: number;
     }) => void = () => {};
-    getActiveAdvertisementsMock.mockResolvedValue([]);
     getPublishedGuidesMock.mockResolvedValue([]);
     getHomeSectionListingPlanMock.mockReturnValue(
       new Promise((resolve) => {
@@ -125,7 +117,6 @@ describe("HomePageRoute", () => {
     const guidesPromise = new Promise<[]>((resolve) => {
       resolveGuides = resolve;
     });
-    getActiveAdvertisementsMock.mockResolvedValue([]);
     getPublishedGuidesMock.mockReturnValue(guidesPromise);
     getHomeSectionListingPlanMock.mockResolvedValue({
       configs: [],

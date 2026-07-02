@@ -66,10 +66,10 @@ function toImageRows(value: unknown): AdvertisementImageRow[] {
   return Array.isArray(value) ? (value as AdvertisementImageRow[]) : [];
 }
 
-function pickImageUrl(
+function getImageUrls(
   advertisementId: string,
   images: AdvertisementImageRow[],
-): string | null {
+): string[] {
   const sortedImages = [...images].sort((a, b) => {
     const orderDiff = toOrder(a.image_order) - toOrder(b.image_order);
 
@@ -80,18 +80,20 @@ function pickImageUrl(
     return String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
   });
 
+  const imageUrls: string[] = [];
+
   for (const image of sortedImages) {
     const imageUrl = buildAdvertisementImageUrl({
       advertisementId,
       imageName: image.image_name,
     });
 
-    if (imageUrl) {
-      return imageUrl;
+    if (imageUrl && !imageUrls.includes(imageUrl)) {
+      imageUrls.push(imageUrl);
     }
   }
 
-  return null;
+  return imageUrls;
 }
 
 export function toPublicAdvertisement(
@@ -106,7 +108,8 @@ export function toPublicAdvertisement(
   }
 
   const title = row.title.trim();
-  const imageUrl = pickImageUrl(row.id, toImageRows(row.advertisement_images));
+  const imageUrls = getImageUrls(row.id, toImageRows(row.advertisement_images));
+  const imageUrl = imageUrls[0];
 
   if (!title || !imageUrl) {
     return null;
@@ -115,6 +118,7 @@ export function toPublicAdvertisement(
   return {
     id: row.id,
     imageUrl,
+    imageUrls,
     title,
   };
 }

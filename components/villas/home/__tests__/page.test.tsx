@@ -191,7 +191,6 @@ describe("HomePage", () => {
         destinationVillas={destinationVillas}
         settings={DEFAULT_SITE_SETTINGS}
         degradedSources={{
-          advertisements: false,
           guidePosts: false,
           homeSections: true,
           siteSettings: true,

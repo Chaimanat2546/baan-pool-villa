@@ -47,6 +47,7 @@ const securityHeaders = [
     value: buildContentSecurityPolicy({
       isDevelopment: process.env.NODE_ENV === "development",
       supabaseUrl: process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL,
+      supabaseUrls: [process.env.NEXT_PUBLIC_SUPABASE_URL],
     }),
   },
   {

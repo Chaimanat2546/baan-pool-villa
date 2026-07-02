@@ -51,6 +51,7 @@ describe("BlockLibrary", () => {
           "categorized_images",
           "costs_promotions",
           "rules_pet_policy",
+          "advertisements",
           "map_nearby",
           "review_videos",
           "booking_contact",

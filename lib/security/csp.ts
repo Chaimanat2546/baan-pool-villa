@@ -25,12 +25,18 @@ export function buildContentSecurityPolicy({
   isDevelopment,
   nonce,
   supabaseUrl,
+  supabaseUrls = [],
 }: {
   isDevelopment: boolean;
   nonce?: string;
   supabaseUrl?: string;
+  supabaseUrls?: (string | undefined)[];
 }): string {
   const nonceSource = nonce ? `'nonce-${nonce}'` : null;
+  const supabaseOrigins = [
+    getHttpsOrigin(supabaseUrl),
+    ...supabaseUrls.map(getHttpsOrigin),
+  ].filter((source): source is string => Boolean(source));
   const scriptSources = [
     "'self'",
     nonceSource,
@@ -65,7 +71,7 @@ export function buildContentSecurityPolicy({
     CLOUDFLARE_TURNSTILE_ORIGIN,
     CLOUDFLARE_INSIGHTS_ORIGIN,
     "https://www.tiktok.com",
-    getHttpsOrigin(supabaseUrl),
+    ...supabaseOrigins,
     ...(isDevelopment ? ["ws:", "wss:"] : []),
   ].filter((source): source is string => Boolean(source));
 

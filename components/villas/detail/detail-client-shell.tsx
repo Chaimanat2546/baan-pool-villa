@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type {
@@ -19,6 +20,7 @@ import { GalleryLightbox } from "./gallery";
 import { useVillaGallery } from "./use-villa-gallery";
 
 interface VillaDetailClientShellProps {
+  advertisements: PublicAdvertisement[];
   bookingSidebarId: string;
   children: ReactNode;
   content: VillaDetailContent;
@@ -30,6 +32,7 @@ interface VillaDetailClientShellProps {
 }
 
 export function VillaDetailClientShell({
+  advertisements,
   bookingSidebarId,
   children,
   content,
@@ -73,6 +76,7 @@ export function VillaDetailClientShell({
       {children}
 
       <DetailLayoutRenderer
+        advertisements={advertisements}
         bookingSidebarId={bookingSidebarId}
         content={content}
         galleryCategories={galleryCategories}

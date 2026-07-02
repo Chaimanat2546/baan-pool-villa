@@ -5,6 +5,7 @@ import {
   DEFAULT_DETAIL_LAYOUT_V2,
   DETAIL_LAYOUT_BLOCK_LABELS,
 } from "../../../../lib/detail-layout/defaults";
+import type { PublicAdvertisement } from "../../../../lib/advertisements/types";
 import type {
   AnyDetailLayoutConfig,
   DetailLayoutBlockType,
@@ -51,6 +52,46 @@ const recommendedSection: RecommendedVillaSection = {
   title: "Homepage featured",
   villas: [recommendedVilla],
 };
+
+const advertisements: PublicAdvertisement[] = [
+  {
+    id: "ad-1",
+    imageUrl:
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/activity.webp",
+    imageUrls: [
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/activity.webp",
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/activity-2.webp",
+    ],
+    title: "Island day pass",
+  },
+  {
+    id: "ad-2",
+    imageUrl:
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-2/activity.webp",
+    imageUrls: [
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-2/activity.webp",
+    ],
+    title: "Private yacht",
+  },
+  {
+    id: "ad-3",
+    imageUrl:
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-3/activity.webp",
+    imageUrls: [
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-3/activity.webp",
+    ],
+    title: "Seafood set",
+  },
+  {
+    id: "ad-4",
+    imageUrl:
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-4/activity.webp",
+    imageUrls: [
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-4/activity.webp",
+    ],
+    title: "Hidden extra",
+  },
+];
 
 const content: VillaDetailContent = {
   amenities: [],
@@ -176,6 +217,7 @@ function render(
 
   return renderToStaticMarkup(
     <DetailLayoutRenderer
+      advertisements={advertisements}
       content={{ ...content, ...overrides }}
       galleryCategories={galleryCategories}
       layout={layout}
@@ -327,6 +369,22 @@ describe("DetailLayoutRenderer", () => {
 
     expect(amenitiesBlockMarkup).toContain("Pet Friendly");
     expect(amenitiesBlockMarkup).not.toContain("Wi-Fi");
+  });
+
+  it("hides the nearby block when only villa location text exists", () => {
+    const markup = render(DEFAULT_DETAIL_LAYOUT, { nearbyPlaces: [] });
+
+    expect(markup).not.toContain('data-detail-layout-block="map_nearby"');
+    expect(markup).not.toContain("บ้านพักติดเขาพระตำหนัก");
+    expect(markup).not.toContain("ห่างทะเล 1 กม.");
+  });
+
+  it("does not show villa address or sea distance in the nearby block", () => {
+    const markup = render(DEFAULT_DETAIL_LAYOUT);
+
+    expect(markup).toContain('data-detail-layout-block="map_nearby"');
+    expect(markup).not.toContain("บ้านพักติดเขาพระตำหนัก");
+    expect(markup).not.toContain("ห่างทะเล 1 กม.");
   });
 
   it("defers grouped price details before they dominate initial render", () => {
@@ -613,6 +671,69 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).toContain('data-detail-layout-area="narrow"');
     expect(markup).toContain('data-detail-layout-area="lockedBottom"');
     expect(markup).toContain('data-detail-layout-block="recommended_villas"');
+  });
+
+  it("renders three CMS advertisement cards in either 70 or 30 detail columns", () => {
+    const wideLayout: DetailLayoutV2Config = {
+      ...DEFAULT_DETAIL_LAYOUT_V2,
+      mainSplit: {
+        ...DEFAULT_DETAIL_LAYOUT_V2.mainSplit,
+        wideRows: [
+          {
+            id: "wide_ad",
+            columns: 1,
+            enabled: true,
+            blocks: [block("advertisements")],
+          },
+        ],
+        narrowRows: [],
+      },
+      lockedBottom: [block("recommended_villas")],
+    };
+    const narrowLayout: DetailLayoutV2Config = {
+      ...DEFAULT_DETAIL_LAYOUT_V2,
+      mainSplit: {
+        ...DEFAULT_DETAIL_LAYOUT_V2.mainSplit,
+        wideRows: [
+          {
+            id: "wide_details",
+            columns: 1,
+            enabled: true,
+            blocks: [block("details")],
+          },
+        ],
+        narrowRows: [
+          {
+            id: "narrow_ad",
+            enabled: true,
+            block: block("advertisements"),
+          },
+        ],
+      },
+      lockedBottom: [block("recommended_villas")],
+    };
+
+    const wideMarkup = render(wideLayout);
+    const narrowMarkup = render(narrowLayout);
+
+    expect(wideMarkup).toContain('data-detail-layout-block="advertisements"');
+    expect(
+      wideMarkup.match(/data-detail-advertisement-card="true"/g) ?? [],
+    ).toHaveLength(3);
+    expect(wideMarkup).toContain(
+      'data-detail-advertisements-section="true"',
+    );
+    expect(wideMarkup).toContain("Island day pass");
+    expect(wideMarkup).toContain("Private yacht");
+    expect(wideMarkup).toContain("Seafood set");
+    expect(wideMarkup).not.toContain("Hidden extra");
+    expect(wideMarkup).not.toContain('target="_blank"');
+    expect(wideMarkup).toContain(
+      "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/activity.webp",
+    );
+    expect(narrowMarkup).toContain('data-detail-layout-area="narrow"');
+    expect(narrowMarkup).toContain('data-detail-layout-block="advertisements"');
+    expect(narrowMarkup).toContain('data-detail-advertisement-card="true"');
   });
 
   it("renders V2 swapped 30/70 with the narrow area before the wide area", () => {
