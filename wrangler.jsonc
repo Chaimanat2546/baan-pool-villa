@@ -1,6 +1,7 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "baan-pool-villa",
+	// The name of your Worker. It can be anything, but it must be unique across all Workers in your account.
+	"name": "baan-pool-villa02",
 	"main": "worker.js",
 	"compatibility_date": "2026-05-27",
 	"compatibility_flags": [
@@ -16,7 +17,8 @@
 	},
 	"workers_dev": true,
 	"vars": {
-		"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com"
+		// The URL of your deployed site. This is used for generating absolute URLs in the Worker.
+		"NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa02.poolvilla.workers.dev"
 	},
 	"version_metadata": {
 		"binding": "CF_VERSION_METADATA"
@@ -24,17 +26,20 @@
 	"services": [
 		{
 			"binding": "WORKER_SELF_REFERENCE",
-			"service": "baan-pool-villa"
+			// The name of the Worker that this Worker will call. This is used for making requests to the same Worker.
+			"service": "baan-pool-villa02",
 		}
 	],
 	"r2_buckets": [
 		{
 			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			"bucket_name": "baan-pool-villa-next-cache"
+			// The name of the R2 bucket used for caching.
+			"bucket_name": "baan-pool-villa02-next-cache"
 		},
 		{
-			"bucket_name": "baan-pool-villa-next-cache",
-			"binding": "baan_pool_villa_next_cache",
+			// The name of the R2 bucket used for caching, with remote access enabled.
+			"bucket_name": "baan-pool-villa02-next-cache",
+			"binding": "baan_pool_villa02_next_cache",
 			"remote": true
 		}
 	],

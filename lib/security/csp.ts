@@ -1,3 +1,5 @@
+import { getAdvertisementImageOrigin } from "../advertisements/image-url";
+
 export const CLOUDFLARE_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 export const CLOUDFLARE_INSIGHTS_ORIGIN = "https://static.cloudflareinsights.com";
 const AWS_IMAGE_LOADER_DEFAULT_BASE_URL =
@@ -53,6 +55,7 @@ export function buildContentSecurityPolicy({
     "https://www.devillegroups.com",
     "https://i.ytimg.com",
     "https://s3.ap-southeast-1.amazonaws.com",
+    getAdvertisementImageOrigin(),
     "https://*.supabase.co",
     "https://*.tiktokcdn.com",
     "https://*.tiktokcdn-us.com",

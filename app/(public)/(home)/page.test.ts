@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getActiveAdvertisements } from "@/lib/advertisements/server";
 import { getPublishedGuides } from "@/lib/guides/server";
 import {
-  getActiveHomeSectionHouseIds,
+  getHomeSectionListingPlan,
   getResolvedHomeSections,
 } from "@/lib/home-sections/server";
 import { getSiteSettings } from "@/lib/site-settings/server";
@@ -31,8 +32,12 @@ vi.mock("@/lib/guides/server", () => ({
   getPublishedGuides: vi.fn(),
 }));
 
+vi.mock("@/lib/advertisements/server", () => ({
+  getActiveAdvertisements: vi.fn(),
+}));
+
 vi.mock("@/lib/home-sections/server", () => ({
-  getActiveHomeSectionHouseIds: vi.fn(),
+  getHomeSectionListingPlan: vi.fn(),
   getResolvedHomeSections: vi.fn(),
 }));
 
@@ -49,11 +54,6 @@ vi.mock("@/lib/site-settings/server", () => ({
   getSiteSettings: vi.fn(),
 }));
 
-vi.mock("@/lib/villas/filters", () => ({
-  getMaxVillaPrice: vi.fn(() => 0),
-  getUniqueZones: vi.fn(() => []),
-}));
-
 vi.mock("@/lib/villas/public-dto", () => ({
   toPublicVillaListing: vi.fn((villa: unknown) => villa),
 }));
@@ -62,27 +62,34 @@ vi.mock("@/lib/villas/server", () => ({
   fetchHomeListings: vi.fn(),
 }));
 
+const getActiveAdvertisementsMock = vi.mocked(getActiveAdvertisements);
 const getPublishedGuidesMock = vi.mocked(getPublishedGuides);
-const getActiveHomeSectionHouseIdsMock = vi.mocked(getActiveHomeSectionHouseIds);
+const getHomeSectionListingPlanMock = vi.mocked(getHomeSectionListingPlan);
 const getResolvedHomeSectionsMock = vi.mocked(getResolvedHomeSections);
 const getSiteSettingsMock = vi.mocked(getSiteSettings);
 const fetchHomeListingsMock = vi.mocked(fetchHomeListings);
 
 describe("HomePageRoute", () => {
   beforeEach(() => {
+    getActiveAdvertisementsMock.mockReset();
     getPublishedGuidesMock.mockReset();
-    getActiveHomeSectionHouseIdsMock.mockReset();
+    getHomeSectionListingPlanMock.mockReset();
     getResolvedHomeSectionsMock.mockReset();
     getSiteSettingsMock.mockReset();
     fetchHomeListingsMock.mockReset();
   });
 
   it("returns the homepage shell before homepage data finishes", async () => {
-    let resolveHouseIds: (houseIds: string[]) => void = () => {};
+    let resolveListingPlan: (plan: {
+      configs: [];
+      houseIds: string[];
+      listingLimit: number;
+    }) => void = () => {};
+    getActiveAdvertisementsMock.mockResolvedValue([]);
     getPublishedGuidesMock.mockResolvedValue([]);
-    getActiveHomeSectionHouseIdsMock.mockReturnValue(
-      new Promise<string[]>((resolve) => {
-        resolveHouseIds = resolve;
+    getHomeSectionListingPlanMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveListingPlan = resolve;
       }),
     );
     fetchHomeListingsMock.mockResolvedValue([]);
@@ -107,7 +114,7 @@ describe("HomePageRoute", () => {
       }),
     ]);
 
-    resolveHouseIds([]);
+    resolveListingPlan({ configs: [], houseIds: [], listingLimit: 12 });
 
     expect(pageResult).toBe("resolved");
     expect(fetchHomeListingsMock).not.toHaveBeenCalled();
@@ -118,8 +125,13 @@ describe("HomePageRoute", () => {
     const guidesPromise = new Promise<[]>((resolve) => {
       resolveGuides = resolve;
     });
+    getActiveAdvertisementsMock.mockResolvedValue([]);
     getPublishedGuidesMock.mockReturnValue(guidesPromise);
-    getActiveHomeSectionHouseIdsMock.mockResolvedValue(["1328"]);
+    getHomeSectionListingPlanMock.mockResolvedValue({
+      configs: [],
+      houseIds: ["1328"],
+      listingLimit: 12,
+    });
     fetchHomeListingsMock.mockResolvedValue([]);
     getResolvedHomeSectionsMock.mockResolvedValue({
       degraded: false,
@@ -138,7 +150,7 @@ describe("HomePageRoute", () => {
     try {
       await vi.waitFor(
         () => {
-          expect(fetchHomeListingsMock).toHaveBeenCalledWith(["1328"]);
+          expect(fetchHomeListingsMock).toHaveBeenCalledWith(["1328"], 12);
         },
         { timeout: 100 },
       );

@@ -49,8 +49,12 @@ function isCoverZone(zone: string | null): boolean {
   );
 }
 
-function isPreviewCoverImage(image: VillaImage): boolean {
-  return image.isCover || isCoverZone(image.zone);
+function getPreviewCoverPriority(image: VillaImage): number {
+  if (image.isCover) {
+    return 2;
+  }
+
+  return isCoverZone(image.zone) ? 1 : 0;
 }
 
 function getBentoZonePriority(zone: string | null): number {
@@ -74,14 +78,14 @@ function getBentoZonePriority(zone: string | null): number {
 function selectPreviewImages(images: VillaImage[]): VillaImage[] {
   const seenUrls = new Set<string>();
   const sortedImages = [...images].sort((a, b) => {
-    const aIsCover = isPreviewCoverImage(a);
-    const bIsCover = isPreviewCoverImage(b);
+    const aCoverPriority = getPreviewCoverPriority(a);
+    const bCoverPriority = getPreviewCoverPriority(b);
 
-    if (aIsCover === bIsCover) {
-      return a.id - b.id;
+    if (aCoverPriority === bCoverPriority) {
+      return aCoverPriority > 0 ? b.id - a.id : a.id - b.id;
     }
 
-    return aIsCover ? -1 : 1;
+    return bCoverPriority - aCoverPriority;
   });
   const uniqueImages = sortedImages.filter((image) => {
     if (seenUrls.has(image.imageUrl)) {

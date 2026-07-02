@@ -34,17 +34,25 @@ function isCoverZone(zone: string | null): boolean {
   return zoneKey === "cover" || zoneKey === "รูปปก" || zoneKey === "ภาพปก";
 }
 
+function getCoverPriority(image: PublicVillaImage): number {
+  if (image.isCover) {
+    return 2;
+  }
+
+  return isCoverZone(image.zone) ? 1 : 0;
+}
+
 export function buildGalleryItems(images: PublicVillaImage[]): GalleryItem[] {
   const seenUrls = new Set<string>();
   const items: GalleryItem[] = [];
   const sortedImages = [...images].sort((a, b) => {
-    const aIsCover = a.isCover || isCoverZone(a.zone);
-    const bIsCover = b.isCover || isCoverZone(b.zone);
+    const aCoverPriority = getCoverPriority(a);
+    const bCoverPriority = getCoverPriority(b);
 
-    if (aIsCover === bIsCover) {
-      return a.id - b.id;
+    if (aCoverPriority === bCoverPriority) {
+      return aCoverPriority > 0 ? b.id - a.id : a.id - b.id;
     }
-    return aIsCover ? -1 : 1;
+    return bCoverPriority - aCoverPriority;
   });
   for (const image of sortedImages) {
     if (image.imageUrl && !seenUrls.has(image.imageUrl)) {

@@ -32,6 +32,7 @@ describe("content security policy", () => {
     );
     expect(imgSrc).toContain("https://devillegroups.com");
     expect(imgSrc).toContain("https://www.devillegroups.com");
+    expect(imgSrc).toContain("https://webook-media.poolvilla.workers.dev");
     expect(imgSrc).toContain("https://s3.ap-southeast-1.amazonaws.com");
     expect(connectSrc).toContain("https://example.supabase.co");
     expect(connectSrc).toContain("https://static.cloudflareinsights.com");

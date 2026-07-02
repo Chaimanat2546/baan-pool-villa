@@ -24,6 +24,12 @@ export interface ResolvedHomeSectionsResult {
   source: HomeSectionsSource;
 }
 
+export interface HomeSectionListingPlan {
+  configs: HomeSectionConfig[];
+  houseIds: string[];
+  listingLimit: number;
+}
+
 interface HomeSectionItemRow {
   house_id: unknown;
   position: unknown;
@@ -173,8 +179,7 @@ const fetchCachedHomeSectionConfigs = unstable_cache(
   },
 );
 
-export async function getActiveHomeSectionHouseIds(): Promise<string[]> {
-  const configs = await fetchCachedHomeSectionConfigs();
+function getHomeSectionHouseIds(configs: HomeSectionConfig[]): string[] {
   const ids = new Set<string>();
 
   for (const section of configs) {
@@ -190,6 +195,42 @@ export async function getActiveHomeSectionHouseIds(): Promise<string[]> {
   }
 
   return [...ids];
+}
+
+export function getHomeSectionListingLimit(
+  configs: HomeSectionConfig[],
+  minimumListingLimit = 0,
+): number {
+  let listingLimit = Math.max(0, Math.trunc(minimumListingLimit));
+
+  for (const section of configs) {
+    if (!section.isActive) {
+      continue;
+    }
+
+    const sliceOffset = Math.max(0, Math.trunc(section.sliceOffset));
+    const limitCount = Math.max(1, Math.trunc(section.limitCount));
+    listingLimit = Math.max(listingLimit, sliceOffset + limitCount);
+  }
+
+  return listingLimit;
+}
+
+export async function getHomeSectionListingPlan(
+  minimumListingLimit = 0,
+): Promise<HomeSectionListingPlan> {
+  const configs = await fetchCachedHomeSectionConfigs();
+
+  return {
+    configs,
+    houseIds: getHomeSectionHouseIds(configs),
+    listingLimit: getHomeSectionListingLimit(configs, minimumListingLimit),
+  };
+}
+
+export async function getActiveHomeSectionHouseIds(): Promise<string[]> {
+  const configs = await fetchCachedHomeSectionConfigs();
+  return getHomeSectionHouseIds(configs);
 }
 
 type ConfiguredHomeSectionsResult =
@@ -208,13 +249,7 @@ async function fetchConfiguredHomeSections(
 ): Promise<ConfiguredHomeSectionsResult> {
   try {
     const configs = await fetchCachedHomeSectionConfigs();
-    const sections = resolveHomeSections(configs, villas);
-
-    if (sections.length > 0) {
-      return { sections, status: "config" };
-    }
-
-    return { degraded: false, reason: "empty_config", status: "fallback" };
+    return resolveConfiguredHomeSections(configs, villas);
   } catch (error) {
     // Treat config failures as a degraded fallback path so the homepage can
     // still render curated default sections instead of failing closed.
@@ -232,6 +267,19 @@ async function fetchConfiguredHomeSections(
   }
 }
 
+function resolveConfiguredHomeSections(
+  configs: HomeSectionConfig[],
+  villas: VillaListing[],
+): ConfiguredHomeSectionsResult {
+  const sections = resolveHomeSections(configs, villas);
+
+  if (sections.length > 0) {
+    return { sections, status: "config" };
+  }
+
+  return { degraded: false, reason: "empty_config", status: "fallback" };
+}
+
 /**
  * Resolves homepage villa sections from CMS config and falls back to built-in
  * sections when config is empty or unavailable.
@@ -243,8 +291,11 @@ async function fetchConfiguredHomeSections(
  */
 export async function getResolvedHomeSections(
   villas: VillaListing[],
+  configs?: HomeSectionConfig[],
 ): Promise<ResolvedHomeSectionsResult> {
-  const sections = await fetchConfiguredHomeSections(villas);
+  const sections = configs
+    ? resolveConfiguredHomeSections(configs, villas)
+    : await fetchConfiguredHomeSections(villas);
 
   if (sections.status === "config") {
     return { degraded: false, sections: sections.sections, source: "config" };

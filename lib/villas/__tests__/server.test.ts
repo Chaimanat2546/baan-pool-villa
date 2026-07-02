@@ -314,6 +314,15 @@ describe("fetchHouseListings", () => {
     expect(listings.range).toHaveBeenCalledWith(0, 95);
   });
 
+  it("uses the computed homepage listing window", async () => {
+    const { listings } = mockSupabase();
+
+    await expect(fetchHomeListings([], 28)).resolves.toEqual([
+      expect.objectContaining({ id: "9" }),
+    ]);
+    expect(listings.range).toHaveBeenCalledWith(0, 27);
+  });
+
   it("also loads configured homepage section houses outside the homepage window", async () => {
     const { listings } = mockSupabase();
     listings.in.mockResolvedValueOnce({
@@ -489,6 +498,40 @@ describe("fetchHouseListings", () => {
       expect.objectContaining({
         coverImage:
           "https://example.supabase.co/storage/v1/object/public/villas/zone-cover.jpg",
+      }),
+    ]);
+  });
+
+  it("uses the newest cover-zone row when cover_select values tie", async () => {
+    mockSupabase({
+      imageRows: [
+        {
+          caption: null,
+          cover_select: 0,
+          id: 133301,
+          image_name: "old-cover.jpg",
+          image_url:
+            "https://s3.ap-southeast-1.amazonaws.com/poolvillas.co.ltd/old-cover.jpg",
+          image_zone: "cover",
+          property_id: 9,
+        },
+        {
+          caption: null,
+          cover_select: 0,
+          id: 144651,
+          image_name: "new-cover.webp",
+          image_url:
+            "https://webook-media.poolvilla.workers.dev/houses/9/new-cover.webp",
+          image_zone: "cover",
+          property_id: 9,
+        },
+      ],
+    });
+
+    await expect(fetchHouseListings()).resolves.toEqual([
+      expect.objectContaining({
+        coverImage:
+          "https://webook-media.poolvilla.workers.dev/houses/9/new-cover.webp",
       }),
     ]);
   });

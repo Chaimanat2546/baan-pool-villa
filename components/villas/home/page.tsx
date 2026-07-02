@@ -1,10 +1,13 @@
 import { Fragment, type ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
+import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import type { HomePageSettings } from "@/components/villas/home/client-payload";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
+import { SEARCH_FACETS } from "@/lib/villas/search-options";
 
+import { ActivitiesSection } from "./activities-section";
 import { ArticlesSection } from "./articles-section";
 import { DestinationsSection } from "./destinations-section";
 import { FaqSection } from "./faq-section";
@@ -24,6 +27,7 @@ type DestinationVilla = {
 };
 
 export interface HomePageDegradedSources {
+  advertisements: boolean;
   guidePosts: boolean;
   homeSections: boolean;
   siteSettings: boolean;
@@ -34,6 +38,7 @@ interface HomePageProps {
   children?: ReactNode;
   degradedSources?: HomePageDegradedSources;
   heroSearch?: ReactNode;
+  initialAdvertisements?: PublicAdvertisement[];
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   filterSummary?: FilterSummary;
@@ -43,12 +48,14 @@ interface HomePageProps {
 
 interface HomePageContentProps {
   destinationVillas?: DestinationVilla[];
+  initialAdvertisements?: PublicAdvertisement[];
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   settings: HomePageSettings;
 }
 
 export function HomePageContent({
+  initialAdvertisements = [],
   destinationVillas = [],
   initialGuides = [],
   initialHomeSections = [],
@@ -79,6 +86,7 @@ export function HomePageContent({
 
       <DestinationsSection villas={destinationVillas} />
       <TikTokSection tiktok={settings.tiktok} />
+      <ActivitiesSection advertisements={initialAdvertisements} />
       <ArticlesSection guides={initialGuides} />
       <FaqSection />
       <ContactSection settings={settings} />
@@ -104,17 +112,19 @@ export function HomePage({
   children,
   degradedSources,
   heroSearch,
+  initialAdvertisements = [],
   initialGuides = [],
   initialHomeSections = [],
   filterSummary,
   destinationVillas = [],
   settings,
 }: HomePageProps) {
-  const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? 0;
-  const zones = filterSummary?.zones ?? [];
+  const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? SEARCH_FACETS.maxPrice;
+  const zones = filterSummary?.zones ?? SEARCH_FACETS.zones;
 
   const degradedSourceNames = [
     degradedSources?.siteSettings ? "siteSettings" : null,
+    degradedSources?.advertisements ? "advertisements" : null,
     degradedSources?.guidePosts ? "guidePosts" : null,
     degradedSources?.villaCatalog ? "villaCatalog" : null,
     degradedSources?.homeSections ? "homeSections" : null,
@@ -139,6 +149,7 @@ export function HomePage({
         {children ?? (
           <HomePageContent
             destinationVillas={destinationVillas}
+            initialAdvertisements={initialAdvertisements}
             initialGuides={initialGuides}
             initialHomeSections={initialHomeSections}
             settings={settings}
