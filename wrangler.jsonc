@@ -1,8 +1,8 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	// The name of your Worker. It can be anything, but it must be unique across all Workers in your account.
-	"name": "baan-pool-villa02",
-	// "name": "baan-pool-villa",
+	// "name": "baan-pool-villa02",
+	"name": "baan-pool-villa",
 	"main": "worker.js",
 	"compatibility_date": "2026-05-27",
 	"compatibility_flags": [
@@ -19,8 +19,8 @@
 	"workers_dev": true,
 	"vars": {
 		// The URL of your deployed site. This is used for generating absolute URLs in the Worker.
-		"NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa02.poolvilla.workers.dev"
-		// "NEXT_PUBLIC_SITE_URL": "https://baanpartypattaya.com"
+		// "NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa02.poolvilla.workers.dev"
+		"NEXT_PUBLIC_SITE_URL": "https://baanpartypattaya.com"
 	},
 	"version_metadata": {
 		"binding": "CF_VERSION_METADATA"
@@ -29,23 +29,23 @@
 		{
 			"binding": "WORKER_SELF_REFERENCE",
 			// The name of the Worker that this Worker will call. This is used for making requests to the same Worker.
-			"service": "baan-pool-villa02",
-			// "service": "baan-pool-villa",
+			// "service": "baan-pool-villa02",
+			"service": "baan-pool-villa",
 		}
 	],
 	"r2_buckets": [
 		{
 			"binding": "NEXT_INC_CACHE_R2_BUCKET",
 			// The name of the R2 bucket used for caching.
-			"bucket_name": "baan-pool-villa02-next-cache"
-			// "bucket_name": "baan-pool-villa-next-cache"
+			// "bucket_name": "baan-pool-villa02-next-cache"
+			"bucket_name": "baan-pool-villa-next-cache"
 		},
 		{
 			// The name of the R2 bucket used for caching, with remote access enabled.
-			"bucket_name": "baan-pool-villa02-next-cache",
-			"binding": "baan_pool_villa02_next_cache",
-			// "bucket_name": "baan-pool-villa-next-cache",
-			// "binding": "baan_pool_villa_next_cache",
+			// "bucket_name": "baan-pool-villa02-next-cache",
+			// "binding": "baan_pool_villa02_next_cache",
+			"bucket_name": "baan-pool-villa-next-cache",
+			"binding": "baan_pool_villa_next_cache",
 			"remote": true
 		}
 	],

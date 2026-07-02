@@ -18,8 +18,11 @@ const TURNSTILE_FAILED_MESSAGE = "ยืนยันตัวตนไม่ส�
 const TURNSTILE_CONFIG_MESSAGE = "ระบบยืนยันตัวตนยังไม่พร้อมใช้งาน";
 const RESET_PASSWORD_SENT_MESSAGE =
   "ถ้าอีเมลนี้อยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่านให้";
+const ADMIN_ACCESS_REDIRECT_MESSAGE =
+  "เซสชันหมดอายุหรือบัญชีนี้ยังไม่มีสิทธิ์แอดมิน กรุณาเข้าสู่ระบบอีกครั้ง";
 
 const ADMIN_RESET_PASSWORD_PATH = "/admin/reset-password";
+const ADMIN_ACCESS_ERROR_QUERY_VALUE = "admin-access";
 
 type TurnstileWidgetId = string;
 
@@ -111,6 +114,17 @@ export function AdminLoginForm() {
 
   useEffect(() => {
     let isMounted = true;
+    const hasAdminAccessError =
+      new URLSearchParams(window.location.search).get("error") ===
+      ADMIN_ACCESS_ERROR_QUERY_VALUE;
+
+    if (hasAdminAccessError) {
+      void Promise.resolve().then(() => {
+        if (isMounted) {
+          setError(ADMIN_ACCESS_REDIRECT_MESSAGE);
+        }
+      });
+    }
 
     void readAdminAccessToken().then((token) => {
       if (isMounted && token) {
