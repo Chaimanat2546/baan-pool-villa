@@ -5,11 +5,19 @@ const DEFAULT_CONCURRENCY = 2;
 const DEFAULT_VERIFY_DELAY_MS = 750;
 const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
 const HTML_CACHE_HEADER = "x-bpv-html-cache";
+const SEARCH_FILTER_PREWARM_PATH = "/search?guests=2&bedrooms=1&maxPrice=58900";
 const PREWARM_HEADERS = {
   Accept: "text/html,application/xhtml+xml",
   "User-Agent": "baan-pool-villa-cache-prewarm/1.0",
 };
-const FIXED_PUBLIC_HTML_PATHS = ["/", "/search", "/guides", "/terms", "/privacy"];
+const FIXED_PUBLIC_HTML_PATHS = [
+  "/",
+  "/search",
+  SEARCH_FILTER_PREWARM_PATH,
+  "/guides",
+  "/terms",
+  "/privacy",
+];
 
 function stripXmlComments(xml) {
   let result = "";
@@ -128,12 +136,17 @@ async function fetchWithTimeout(
 function normalizePath(value, baseUrl) {
   const url = new URL(value, baseUrl);
   const base = new URL(baseUrl);
+  const path = `${url.pathname || "/"}${url.search}`;
 
-  if (url.origin !== base.origin || url.search || url.hash) {
+  if (url.origin !== base.origin || url.hash) {
     return null;
   }
 
-  return url.pathname || "/";
+  if (url.search && !FIXED_PUBLIC_HTML_PATHS.includes(path)) {
+    return null;
+  }
+
+  return path;
 }
 
 function isGuideDetailPath(pathname) {

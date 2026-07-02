@@ -30,6 +30,8 @@ const IMAGE_TRANSFORM_QUALITIES = new Set([60, 75]);
 
 export const HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${HTML_EDGE_CACHE_SECONDS}`;
 export const VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS}`;
+export const HTML_BROWSER_CACHE_CONTROL =
+  "private, no-cache, max-age=0, must-revalidate";
 export const HTML_EDGE_CACHE_HEADER = "x-bpv-html-cache";
 export const HTML_EDGE_CACHE_VERSION_PARAM = "__bpv_html_v";
 export const IMAGE_EDGE_CACHE_CONTROL = `public, max-age=${IMAGE_EDGE_CACHE_SECONDS}, s-maxage=${IMAGE_EDGE_CACHE_SECONDS}, stale-while-revalidate=${IMAGE_EDGE_STALE_SECONDS}`;
@@ -603,6 +605,12 @@ export function getJsonEdgeCacheDecision(request) {
 
 export function withHtmlEdgeCacheHeader(response, value) {
   const headers = new Headers(response.headers);
+  const contentType = headers.get("Content-Type")?.toLowerCase() ?? "";
+
+  if (contentType.includes("text/html")) {
+    headers.set("Cache-Control", HTML_BROWSER_CACHE_CONTROL);
+  }
+
   headers.set(HTML_EDGE_CACHE_HEADER, value);
 
   return new Response(response.body, {

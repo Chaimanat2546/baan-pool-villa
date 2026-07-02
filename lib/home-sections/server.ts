@@ -173,6 +173,25 @@ const fetchCachedHomeSectionConfigs = unstable_cache(
   },
 );
 
+export async function getActiveHomeSectionHouseIds(): Promise<string[]> {
+  const configs = await fetchCachedHomeSectionConfigs();
+  const ids = new Set<string>();
+
+  for (const section of configs) {
+    if (!section.isActive) {
+      continue;
+    }
+
+    for (const item of section.items) {
+      if (item.isActive) {
+        ids.add(item.houseId);
+      }
+    }
+  }
+
+  return [...ids];
+}
+
 type ConfiguredHomeSectionsResult =
   | {
       sections: ResolvedHomeSection[];

@@ -2,9 +2,11 @@ import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import type { ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
+import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeEmbed } from "@/components/ui/youtube-embed";
 import { ArticlesSection } from "@/components/villas/home/articles-section";
 import { ScrollRail } from "@/components/ui/scroll-rail";
+import { VillaCardSkeleton } from "@/components/villas/listing/villa-card-skeleton";
 import { VillaCard } from "@/components/villas/listing/villa-card";
 import { toPublicGuideSummaries } from "@/lib/guides/public-dto";
 import { getGuideTextColorClass } from "@/lib/guides/text-colors";
@@ -16,10 +18,12 @@ import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 
 interface GuideDetailPageProps {
+  bottomSections?: ReactNode;
   guide: GuidePost;
   recommendedVillas: VillaListing[];
   relatedGuides: GuidePost[];
   settings?: SiteSettings;
+  sidebar?: ReactNode;
 }
 
 interface GuideBlock {
@@ -512,7 +516,7 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
  * @param villas - Array of villa listings to show; only the first six items are displayed
  * @returns A sidebar JSX element containing the recommended villa cards, or `null` when `villas` is empty
  */
-function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
+export function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
   if (villas.length === 0) {
     return null;
   }
@@ -552,6 +556,71 @@ function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
   );
 }
 
+export function RecommendedVillaSidebarSkeleton() {
+  return (
+    <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start" data-guide-sidebar>
+      <div className="mb-4 grid gap-2">
+        <Skeleton className="h-7 w-56 bg-[var(--site-surface-tint)]" />
+        <Skeleton className="h-5 w-full bg-[var(--site-surface-tint)]" />
+        <Skeleton className="h-5 w-4/5 bg-[var(--site-surface-tint)]" />
+      </div>
+      <div className="lg:hidden">
+        <div className="-mx-4 mt-4 flex gap-5 overflow-hidden px-4 py-4 sm:-mx-6 sm:px-6">
+          <VillaCardSkeleton className="w-[290px] shrink-0" />
+        </div>
+      </div>
+      <div className="hidden gap-4 lg:grid lg:grid-cols-1">
+        <VillaCardSkeleton />
+        <VillaCardSkeleton />
+      </div>
+    </aside>
+  );
+}
+
+export function GuideDetailBottomSections({
+  relatedGuides,
+  settings,
+}: {
+  relatedGuides: GuidePost[];
+  settings?: SiteSettings;
+}) {
+  return (
+    <>
+      {settings ? <ContactSection settings={settings} /> : null}
+      <ArticlesSection guides={toPublicGuideSummaries(relatedGuides)} />
+    </>
+  );
+}
+
+export function GuideDetailBottomSectionsSkeleton() {
+  return (
+    <>
+      <section className="bg-[var(--site-surface)] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto grid w-full max-w-6xl gap-4 md:grid-cols-[minmax(0,1fr)_260px]">
+          <div>
+            <Skeleton className="h-8 w-64 bg-[var(--site-surface-tint)]" />
+            <Skeleton className="mt-3 h-5 w-full max-w-xl bg-[var(--site-surface-tint)]" />
+          </div>
+          <Skeleton className="h-12 rounded-xl bg-[var(--site-primary-soft)]" />
+        </div>
+      </section>
+      <section className="bg-[var(--site-surface-soft)] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-7xl">
+          <Skeleton className="mx-auto h-8 w-64 bg-[var(--site-surface-tint)]" />
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton
+                className="h-[360px] rounded-[24px] bg-[var(--site-surface)]"
+                key={index}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 /**
  * Render the guide detail page including the guide header, article content blocks, a recommended-villas sidebar, and a related-articles section.
  *
@@ -562,9 +631,11 @@ function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
  */
 export function GuideDetailPage({
   guide,
+  bottomSections,
   recommendedVillas,
   relatedGuides,
   settings,
+  sidebar,
 }: GuideDetailPageProps) {
   const coverImageUrl = normalizePublicImageSourceUrl(guide.coverImage?.url ?? null);
 
@@ -595,7 +666,7 @@ export function GuideDetailPage({
             >
               <a
                 className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
-                href="/search"
+                href="/search?guests=2&bedrooms=1&maxPrice=58900"
               >
                 ค้นหาบ้านพักพูลวิลล่า
               </a>
@@ -628,11 +699,15 @@ export function GuideDetailPage({
           data-guide-detail-layout
         >
           <GuideContent blocks={guide.contentBlocks} />
-          <RecommendedVillaSidebar villas={recommendedVillas} />
+          {sidebar ?? <RecommendedVillaSidebar villas={recommendedVillas} />}
         </div>
       </article>
-      {settings ? <ContactSection settings={settings} /> : null}
-      <ArticlesSection guides={toPublicGuideSummaries(relatedGuides)} />
+      {bottomSections ?? (
+        <GuideDetailBottomSections
+          relatedGuides={relatedGuides}
+          settings={settings}
+        />
+      )}
     </main>
   );
 }

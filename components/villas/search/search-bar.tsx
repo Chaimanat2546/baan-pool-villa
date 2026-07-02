@@ -164,7 +164,7 @@ export function SearchBar({
                   className="w-full min-w-0 border-0 bg-transparent text-sm text-[var(--site-text)] outline-none placeholder:text-[var(--site-muted)]"
                 />
               </div>
-              <div role="listbox" aria-label="ทำเลที่พัก" className="mt-2 max-h-56 overflow-y-auto">
+              <div role="listbox" aria-label="ทำเลที่พัก" className="mt-2 max-h-56 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {filteredLocations.map((zone) => (
                   <button
                     type="button"
@@ -253,7 +253,7 @@ export function SearchBar({
               aria-label="เลือกสิ่งอำนวยความสะดวก"
               className="absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)] md:min-w-80"
             >
-              <div role="group" aria-label="สิ่งอำนวยความสะดวก" className="grid max-h-72 gap-1 overflow-y-auto">
+              <div role="group" aria-label="สิ่งอำนวยความสะดวก" className="grid max-h-72 gap-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {AMENITY_OPTIONS.map((amenity) => {
                   const isSelected = filters.amenities.includes(amenity.key);
 

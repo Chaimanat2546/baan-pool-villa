@@ -14,8 +14,15 @@ function getVillaTitle(villa: VillaListing): string {
   return villa.title?.trim() || `พูลวิลล่า ${villa.id}`;
 }
 
+const CARD_AMENITY_LABEL_MAX_LENGTH = 12;
+const CARD_AMENITIES_CLASS = "min-h-[64px] pb-3";
+
 function formatPrice(price: number | null): string {
   return price === null ? "" : price.toLocaleString("th-TH");
+}
+
+function isShortCardAmenityLabel(label: string): boolean {
+  return Array.from(label.trim()).length <= CARD_AMENITY_LABEL_MAX_LENGTH;
 }
 
 export function VillaCard({
@@ -23,7 +30,12 @@ export function VillaCard({
   titleHeadingLevel = "h2",
   preload = false,
 }: VillaCardProps) {
-  const visibleAmenities = villa.amenities.slice(0, 3);
+  const visibleAmenities = villa.amenities
+    .filter(
+      (amenity) =>
+        amenity.key !== "wifi" && isShortCardAmenityLabel(amenity.label),
+    )
+    .slice(0, 6);
   const TitleTag = titleHeadingLevel;
   const coverImageSrc = normalizePublicVillaCoverImage(villa);
 
@@ -43,10 +55,12 @@ export function VillaCard({
             sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
             className="object-cover transition duration-500 group-hover:scale-105"
           />
-        ) : (
+        ) : villa.amenities.length === 0 ? (
           <div className="grid h-full place-items-center bg-[var(--site-surface-tint)] text-sm font-semibold text-[var(--site-muted)]">
             ไม่มีรูปภาพ
           </div>
+        ) : (
+          <div className="min-h-[34px] pb-3" aria-hidden="true" />
         )}
       </div>
 
@@ -74,22 +88,23 @@ export function VillaCard({
         </div>
 
         {visibleAmenities.length > 0 ? (
-          <div className="flex min-h-[22px] flex-wrap gap-1 pb-3">
+          <div className={`flex ${CARD_AMENITIES_CLASS} flex-wrap content-start gap-1`}>
             {visibleAmenities.map((amenity) => (
               <span
                 key={amenity.key}
-                className="max-w-full truncate rounded-full bg-[var(--site-accent-soft)] px-3 py-1 text-xs font-semibold leading-4 text-[var(--site-text)]"
+                className="block truncate rounded-full bg-[var(--site-accent-soft)] px-3 py-1 text-xs font-semibold leading-4 text-[var(--site-text)]"
               >
                 {amenity.label}
               </span>
             ))}
           </div>
-        ) : (
-          <div className="min-h-[34px] pb-3 text-xs leading-5 text-[var(--site-muted)]">
+        ) : villa.amenities.length === 0 ? (
+          <div className={`${CARD_AMENITIES_CLASS} text-xs leading-5 text-[var(--site-muted)]`}>
             ไม่มีข้อมูลสิ่งอำนวยความสะดวก
           </div>
+        ) : (
+          <div className={CARD_AMENITIES_CLASS} aria-hidden="true" />
         )}
-
         <div className="flex items-end justify-between gap-3">
           <p className={villa.price === null ? "hidden" : "min-w-0 text-[var(--site-text)]"}>
             <span className="text-sm leading-5">เริ่มต้น</span>{" "}

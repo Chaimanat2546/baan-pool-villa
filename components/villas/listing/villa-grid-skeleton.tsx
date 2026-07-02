@@ -6,7 +6,7 @@ interface VillaGridSkeletonProps {
 
 export function VillaGridSkeleton({ count = 6 }: VillaGridSkeletonProps) {
   return (
-    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3" data-villa-grid-skeleton="true">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-villa-grid-skeleton="true">
       {Array.from({ length: count }).map((_, index) => (
         <VillaCardSkeleton key={index} />
       ))}

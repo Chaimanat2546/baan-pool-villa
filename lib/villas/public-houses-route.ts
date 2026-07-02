@@ -1,15 +1,10 @@
 import { CACHE_HEADERS } from "@/lib/cache-policy";
 import {
-  filterVillas,
-  filterVillasById,
   filtersFromSearchParams,
-  getMaxVillaPrice,
-  getUniqueZones,
-  sortVillas,
   type VillaSortKey,
 } from "@/lib/villas/filters";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
-import { fetchHouseListings } from "@/lib/villas/server";
+import { fetchVillaSearchFacets, fetchVillaSearchPage } from "@/lib/villas/server";
 
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 24;
@@ -51,9 +46,8 @@ function parseVillaSortKey(value: string | null): VillaSortKey {
 export async function buildPublicHousesResponse(request: Request) {
   const requestUrl = new URL(request.url);
   const searchParams = requestUrl.searchParams;
-  const villas = await fetchHouseListings();
-  const maxPrice = Math.max(getMaxVillaPrice(villas), 1000);
-  const filters = filtersFromSearchParams(searchParams, maxPrice);
+  const facets = await fetchVillaSearchFacets();
+  const filters = filtersFromSearchParams(searchParams, facets.maxPrice);
   const sortKey = parseVillaSortKey(searchParams.get("sort"));
   const page = parseBoundedInteger(searchParams.get("page"), 1, 1, MAX_PAGE_NUMBER);
   const pageSize = parseBoundedInteger(
@@ -62,23 +56,25 @@ export async function buildPublicHousesResponse(request: Request) {
     1,
     MAX_PAGE_SIZE,
   );
-  const filteredItems = sortVillas(
-    filterVillasById(filterVillas(villas, filters), searchParams.get("id") ?? ""),
+  const result = await fetchVillaSearchPage({
+    facets,
+    filters,
+    page,
+    pageSize,
     sortKey,
-  );
-  const offset = (page - 1) * pageSize;
-  const items = filteredItems.slice(offset, offset + pageSize);
+    villaIdQuery: searchParams.get("id") ?? "",
+  });
 
   return Response.json(
     {
-      hasMore: offset + items.length < filteredItems.length,
-      items: toPublicVillaListings(items),
+      hasMore: result.hasMore,
+      items: toPublicVillaListings(result.items),
       page,
       pageSize,
-      total: filteredItems.length,
+      total: result.total,
       facets: {
-        maxPrice,
-        zones: getUniqueZones(villas),
+        maxPrice: facets.maxPrice,
+        zones: facets.zones,
       },
     },
     {

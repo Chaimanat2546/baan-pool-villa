@@ -53,7 +53,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
 
           return (
             <a
-              className="group w-[306px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_34px_rgba(6,63,53,0.07)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_36px_rgba(15,47,53,0.14)] md:w-[394px]"
+              className="group flex h-full w-[306px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_34px_rgba(6,63,53,0.07)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_18px_36px_rgba(15,47,53,0.14)] md:w-[394px]"
               href={`/guides/${guide.slug}`}
               key={guide.id}
             >
@@ -89,14 +89,14 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                   ))}
                 </div>
               </div>
-              <div className="p-6">
-                <h2 className="line-clamp-2 text-xl font-semibold leading-7 text-[var(--site-text)]">
+              <div className="flex flex-1 flex-col p-6">
+                <h2 className="line-clamp-2 min-h-14 text-xl font-semibold leading-7 text-[var(--site-text)]">
                   {guide.title}
                 </h2>
-                <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--site-muted)]">
+                <p className="mt-3 line-clamp-3 min-h-18 text-sm leading-6 text-[var(--site-muted)]">
                   {guide.excerpt}
                 </p>
-                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-primary)]">
+                <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-semibold text-[var(--site-primary)]">
                   อ่านบทความ <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </span>
               </div>

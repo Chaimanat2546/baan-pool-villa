@@ -6,6 +6,9 @@ export interface AdminSettingsDraft {
   heroImageAlt: string;
   logoFile: File | null;
   primaryColor: string;
+  seoOgImageFile: File | null;
+  searchSeoOgImageFile: File | null;
+  guidesSeoOgImageFile: File | null;
   siteName: string;
   bankAccountName: string;
   bankName: string;

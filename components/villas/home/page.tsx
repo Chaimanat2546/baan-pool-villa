@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
 import type { HomePageSettings } from "@/components/villas/home/client-payload";
@@ -31,12 +31,59 @@ export interface HomePageDegradedSources {
 }
 
 interface HomePageProps {
+  children?: ReactNode;
   degradedSources?: HomePageDegradedSources;
+  heroSearch?: ReactNode;
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   filterSummary?: FilterSummary;
   destinationVillas?: DestinationVilla[];
   settings: HomePageSettings;
+}
+
+interface HomePageContentProps {
+  destinationVillas?: DestinationVilla[];
+  initialGuides?: PublicGuideSummary[];
+  initialHomeSections?: ResolvedHomeSection[];
+  settings: HomePageSettings;
+}
+
+export function HomePageContent({
+  destinationVillas = [],
+  initialGuides = [],
+  initialHomeSections = [],
+  settings,
+}: HomePageContentProps) {
+  const railSections = initialHomeSections.filter(
+    (section) => section.villas.length > 0,
+  );
+
+  return (
+    <>
+      {railSections.length > 0 ? (
+        railSections.map((section, index) => (
+          <Fragment key={section.slug}>
+            <VillaRail
+              cta={section.cta}
+              id={section.slug}
+              title={section.title}
+              description={section.description}
+              villas={section.villas}
+            />
+            {index === 0 ? <WhyChooseSection /> : null}
+          </Fragment>
+        ))
+      ) : (
+        <WhyChooseSection />
+      )}
+
+      <DestinationsSection villas={destinationVillas} />
+      <TikTokSection tiktok={settings.tiktok} />
+      <ArticlesSection guides={initialGuides} />
+      <FaqSection />
+      <ContactSection settings={settings} />
+    </>
+  );
 }
 
 /**
@@ -54,7 +101,9 @@ interface HomePageProps {
  * @returns The React element tree for the homepage
  */
 export function HomePage({
+  children,
   degradedSources,
+  heroSearch,
   initialGuides = [],
   initialHomeSections = [],
   filterSummary,
@@ -63,9 +112,6 @@ export function HomePage({
 }: HomePageProps) {
   const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? 0;
   const zones = filterSummary?.zones ?? [];
-  const railSections = initialHomeSections.filter(
-    (section) => section.villas.length > 0,
-  );
 
   const degradedSourceNames = [
     degradedSources?.siteSettings ? "siteSettings" : null,
@@ -86,31 +132,18 @@ export function HomePage({
         heroImage={settings.heroImage}
         zones={zones}
         maxAvailablePrice={maxAvailablePrice}
+        search={heroSearch}
       />
 
       <div>
-        {railSections.length > 0 ? (
-          railSections.map((section, index) => (
-            <Fragment key={section.slug}>
-              <VillaRail
-                cta={section.cta}
-                id={section.slug}
-                title={section.title}
-                description={section.description}
-                villas={section.villas}
-              />
-              {index === 0 ? <WhyChooseSection /> : null}
-            </Fragment>
-          ))
-        ) : (
-          <WhyChooseSection />
+        {children ?? (
+          <HomePageContent
+            destinationVillas={destinationVillas}
+            initialGuides={initialGuides}
+            initialHomeSections={initialHomeSections}
+            settings={settings}
+          />
         )}
-
-        <DestinationsSection villas={destinationVillas} />
-        <TikTokSection tiktok={settings.tiktok} />
-        <ArticlesSection guides={initialGuides} />
-        <FaqSection />
-        <ContactSection settings={settings} />
       </div>
     </main>
   );

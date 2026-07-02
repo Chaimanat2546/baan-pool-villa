@@ -22,6 +22,7 @@ import type { LegalPage } from "../legal-pages/types";
 import type { VillaListing } from "../villas/types";
 
 const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const originalNodeEnv = process.env.NODE_ENV;
 
 function localMetadataImageUrl(
   pathname: string,
@@ -180,10 +181,15 @@ const sampleLegalPage: LegalPage = {
 afterEach(() => {
   if (originalSiteUrl === undefined) {
     delete process.env.NEXT_PUBLIC_SITE_URL;
-    return;
+  } else {
+    process.env.NEXT_PUBLIC_SITE_URL = originalSiteUrl;
   }
 
-  process.env.NEXT_PUBLIC_SITE_URL = originalSiteUrl;
+  if (originalNodeEnv === undefined) {
+    delete process.env.NODE_ENV;
+  } else {
+    process.env.NODE_ENV = originalNodeEnv;
+  }
 });
 
 describe("SEO helpers", () => {
@@ -197,6 +203,13 @@ describe("SEO helpers", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "http://example.com";
 
     expect(getSiteUrl()).toEqual(new URL("http://localhost:3000"));
+  });
+
+  it("falls back to the production domain during production builds", () => {
+    process.env.NODE_ENV = "production";
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+
+    expect(getSiteUrl()).toEqual(new URL("https://www.baanpartypattaya.com"));
   });
 
   it("uses only the https origin from NEXT_PUBLIC_SITE_URL", () => {

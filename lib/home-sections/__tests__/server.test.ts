@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import type { VillaListing } from "../../villas/types";
-import { getResolvedHomeSections } from "../server";
+import { getActiveHomeSectionHouseIds, getResolvedHomeSections } from "../server";
 import { createHomeConfigClient } from "../supabase";
 import { unstable_cache } from "next/cache";
 
@@ -110,6 +110,53 @@ describe("getResolvedHomeSections", () => {
       ],
       source: "config",
     });
+  });
+
+  it("returns active configured house ids for homepage listing fetches", async () => {
+    mockHomeSectionsQuery({
+      data: [
+        {
+          cta_enabled: false,
+          cta_href: null,
+          cta_label: null,
+          description: "",
+          display_order: 0,
+          fallback_mode: "none",
+          home_section_items: [
+            { house_id: "1328", is_active: true, position: 0 },
+            { house_id: "55", is_active: true, position: 1 },
+            { house_id: "55", is_active: true, position: 2 },
+            { house_id: "999", is_active: false, position: 3 },
+          ],
+          is_active: true,
+          limit_count: 6,
+          mode: "manual",
+          slice_offset: 0,
+          slug: "featured",
+          title: "",
+        },
+        {
+          cta_enabled: false,
+          cta_href: null,
+          cta_label: null,
+          description: "",
+          display_order: 1,
+          fallback_mode: "none",
+          home_section_items: [
+            { house_id: "777", is_active: true, position: 0 },
+          ],
+          is_active: false,
+          limit_count: 6,
+          mode: "manual",
+          slice_offset: 0,
+          slug: "hidden",
+          title: "",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(getActiveHomeSectionHouseIds()).resolves.toEqual(["1328", "55"]);
   });
 
   it("returns intentional fallback sections when no config rows resolve", async () => {

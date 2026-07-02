@@ -136,9 +136,14 @@
                 <td><code>components/layout</code>, resolved site settings, theme variables, contact config. The shell inherits root on-demand rendering and must not force <code>force-dynamic</code> because that would turn explicit data caches into no-store fetches.</td>
               </tr>
               <tr>
+                <td><code>app/(public)/not-found.tsx</code></td>
+                <td>Public 404 UI</td>
+                <td>Generic public not-found experience rendered inside the public shell with header, footer, mobile contact navigation, and shared <code>components/layout/public-not-found-page.tsx</code> actions for search, guides, and home.</td>
+              </tr>
+              <tr>
                 <td><code>app/(public)/(home)/page.tsx</code></td>
                 <td><code>/</code></td>
-                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, villa catalog, home-section, and site-settings reads come from tagged data caches. The server route still uses full site settings for metadata and JSON-LD, but the client <code>HomePage</code> receives only the rendered homepage settings fields (<code>heroImage</code>, <code>tiktok</code>, <code>contact</code>, and <code>bank</code>), public guide summaries, and public villa listing DTOs with validated image source URLs for the custom image loader; guides and TikTok videos are capped before crossing into the client payload. The homepage uses the CMS SEO title as an absolute title so the root metadata template does not duplicate the site name, and it passes non-visible degraded source data when guides, villa catalog, home sections, or site settings fall back or fail independently.</td>
+                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, bounded homepage villa listing, home-section, and site-settings reads come from tagged data caches. The route starts homepage data before awaiting site settings, then streams the settings-backed hero shell first while the hero search and deferred homepage content resolve behind <code>Suspense</code> from the shared homepage data promise; guide loading no longer blocks the bounded villa catalog read. The server route still uses full site settings for metadata and JSON-LD, but the client <code>HomePage</code> receives only the rendered homepage settings fields (<code>heroImage</code>, <code>tiktok</code>, <code>contact</code>, and <code>bank</code>), public guide summaries, and homepage public villa listing DTOs loaded from the fallback listing window plus active configured home-section house IDs with validated image source URLs for the custom image loader; guides, villas, and TikTok videos are capped before crossing into the client payload. The homepage uses the CMS SEO title as an absolute title so the root metadata template does not duplicate the site name, and it passes non-visible degraded source data when guides, homepage villa listings, home sections, or site settings fall back or fail independently, with non-settings degraded sources emitted by the deferred content stream.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/(home)/loading.tsx</code></td>
@@ -148,7 +153,7 @@
               <tr>
                 <td><code>app/(public)/search/page.tsx</code></td>
                 <td><code>/search</code></td>
-                <td><code>components/villas/search/page</code>, villa listing helpers, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is intentionally not performed by the server route; the client reads the current URL, then requests bounded filtered pages from <code>/api/houses</code> when a deep link or interaction needs more results, so the public API does not expose the full catalog in one response.</td>
+                <td><code>components/villas/search/page</code>, villa listing helpers, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is applied to the first server-loaded page through bounded Supabase search helpers, and the client requests additional bounded filtered pages from <code>/api/houses</code> when an interaction needs more results, so neither the route nor the public API exposes the full catalog in one response.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/search/loading.tsx</code></td>
@@ -164,6 +169,11 @@
                 <td><code>app/(public)/guides/[slug]/page.tsx</code></td>
                 <td><code>/guides/:slug</code></td>
                 <td><code>components/guides/guide-detail-page</code>, guide CMS server reads, villa listing recommendations, SEO/JSON-LD helpers, and lazy YouTube posters that mount restricted embeds after play. Guide detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached data comes from guide/villa tags, guide cover and inline images render through <code>next/image</code> with the custom image loader, the route renders Article plus breadcrumb JSON-LD with validated absolute image URLs, and admin saves invalidate guide CMS data tags only.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/guides/[slug]/not-found.tsx</code></td>
+                <td><code>/guides/:slug</code> missing guide UI</td>
+                <td>Guide detail not-found experience using the shared generic public not-found layout.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/terms/page.tsx</code> and <code>app/(public)/privacy/page.tsx</code></td>
@@ -188,7 +198,17 @@
               <tr>
                 <td><code>app/(public)/villas/[id]/not-found.tsx</code></td>
                 <td><code>/villas/:id</code> missing villa UI</td>
-                <td>Detail not-found experience.</td>
+                <td>Villa-specific not-found experience using the shared public not-found layout with search and home actions.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/[...legacy]/page.tsx</code></td>
+                <td>Unmatched public legacy paths</td>
+                <td>Safe legacy villa redirect fallback. App Router only reaches this catch-all after concrete routes fail to match; the route reads the final path segment, accepts positive numeric villa ids only, verifies the villa through <code>getListingById</code>, permanently redirects existing villas to <code>/villas/:id</code>, and returns <code>notFound()</code> for non-numeric or unknown ids.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/[...legacy]/not-found.tsx</code></td>
+                <td>Unmatched public legacy paths that do not redirect</td>
+                <td>Generic public not-found experience for invalid or unknown legacy paths.</td>
               </tr>
             </tbody>
           </table>
@@ -213,7 +233,7 @@
               <tr>
                 <td><code>app/(public)/api/houses/route.ts</code></td>
                 <td><code>/api/houses</code></td>
-                <td>Public catalog rate limiting and error boundary. Query parsing, filtering, sorting, pagination, facets, 6-hour public cache headers, Worker JSON edge-cache response shape, and public listing DTOs with validated cover image source URLs live in <code>lib/villas/public-houses-route.ts</code> and <code>lib/villas/public-dto.ts</code>.</td>
+                <td>Public catalog rate limiting and error boundary. Query parsing, Supabase-backed filtering, sorting, pagination, lightweight facets, 6-hour public cache headers, Worker JSON edge-cache response shape, and public listing DTOs with validated cover image source URLs live in <code>lib/villas/public-houses-route.ts</code>, <code>lib/villas/server.ts</code>, and <code>lib/villas/public-dto.ts</code>. Heavy amenities, max-price, and price-sort searches use the <code>search_public_villa_ids</code> Supabase RPC from the villa-search migration, then hydrate only the returned page IDs.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/houses/images/[id]/route.ts</code></td>
@@ -233,7 +253,7 @@
               <tr>
                 <td><code>app/(public)/api/site-theme.css/route.ts</code></td>
                 <td><code>/api/site-theme.css</code></td>
-                <td>Same-origin stylesheet route for scoped site theme CSS variables. Public and admin preview shells use <code>lib/site-settings/colors.ts</code> to build validated stylesheet URLs instead of inline React style attributes, keeping style CSP narrow.</td>
+                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. Public and admin preview shells use <code>lib/site-settings/colors.ts</code> to build validated query-driven stylesheet URLs with hashless hex color params instead of inline React style attributes, keeping style CSP narrow and preventing stale or fallback edge CSS across color changes.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/guides/images/proxy/route.ts</code></td>
@@ -293,7 +313,12 @@
               <tr>
                 <td><code>app/(admin)/admin/login/page.tsx</code></td>
                 <td><code>/admin/login</code></td>
-                <td><code>components/admin/login/admin-login-form</code>.</td>
+                <td><code>components/admin/login/admin-login-form</code>; the same form owns admin sign-in and forgot-password reset-email requests with Turnstile verification.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/reset-password/page.tsx</code></td>
+                <td><code>/admin/reset-password</code></td>
+                <td><code>components/admin/login/admin-reset-password-form</code>; receives Supabase recovery links, applies shared admin password validation, updates the password, signs out, and returns to login.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/login/loading.tsx</code></td>
@@ -303,7 +328,7 @@
               <tr>
                 <td><code>app/(admin)/admin/settings/page.tsx</code></td>
                 <td><code>/admin/settings</code></td>
-                <td><code>components/admin/settings/admin-settings-page</code>; the form uses shared controls in <code>components/admin/settings/settings-form-controls</code>.</td>
+                <td><code>components/admin/settings/admin-settings-page</code>; the form uses shared controls in <code>components/admin/settings/settings-form-controls</code> and the password OTP modal in <code>components/admin/settings/admin-password-security-card</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/settings/loading.tsx</code></td>
@@ -401,7 +426,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
-                <td>Admin auth and delegation for site settings reads and saves. Admin multipart settings parsing, draft normalization, settings validation, save-payload shaping, Supabase persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-route.ts</code>. Site asset upload-file extraction, metadata validation, upload, upload-history cleanup, inactive marking, and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
+                <td>Admin auth and delegation for site settings reads and saves. Admin multipart settings parsing, draft normalization, settings validation, save-payload shaping, Supabase persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-route.ts</code>. Site asset upload-file extraction, metadata validation, upload, upload-history cleanup, inactive marking, and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>; logo, hero, and SEO share images upload to the <code>site-assets</code> bucket with separate retained asset types. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
@@ -561,7 +586,7 @@
             </tr>
             <tr>
               <td><code>worker.js</code>, <code>worker-cache-policy.js</code>, <code>worker-html-cache-version.js</code>, and <code>scripts/prewarm-public-html.mjs</code></td>
-              <td>Cloudflare Worker wrapper around OpenNext output. A conservative 6-hour public HTML micro-cache uses Cloudflare Cache API for allowlisted cookie-free, query-free HTML requests only: <code>/</code>, <code>/search</code>, <code>/guides</code>, <code>/guides/:slug</code>, <code>/terms</code>, and <code>/privacy</code>; <code>/villas/:id</code> uses the same allowlist rules with a 24-hour HTML cache. It bypasses admin, API, <code>/_next</code>, RSC/prefetch variant headers, cookies, query strings, non-HTML requests, and responses with <code>Set-Cookie</code>. Cache keys include the Cloudflare Worker <code>CF_VERSION_METADATA</code> deployment id plus CMS/data version groups such as <code>site-settings</code>, <code>home-sections</code>, <code>guides</code>, <code>legal-pages</code>, <code>detail-layout</code>, <code>villa-details</code>, and <code>villa-images</code>; the Worker reads CMS versions from a future <code>BPV_HTML_CACHE_VERSIONS</code> KV binding when present and falls back to <code>NEXT_INC_CACHE_R2_BUCKET</code> under the <code>html-cache-versions/</code> prefix. The post-deploy prewarm script fetches the same allowlisted HTML routes with document Accept headers, requires an explicit target host from <code>--url</code>, <code>BPV_PREWARM_BASE_URL</code>, or <code>NEXT_PUBLIC_SITE_URL</code>, keeps fixed public pages first, reads bounded dynamic villa/guide paths from <code>/sitemap.xml</code>, applies bounded fetch timeouts, and can verify <code>MISS</code> responses with a follow-up <code>HIT</code> request. Hashed Next static assets under <code>/_next/static/</code> receive a 1-year immutable browser cache header from the Worker. Legacy image display proxy routes remain available for compatibility and Worker image-cache coverage, but normal public image rendering uses <code>next/image</code> with the custom loader and should not request public display proxy routes or <code>/_next/image</code>. Public image URL builders, the custom loader, and proxy route allowlists canonicalize HTTPS URLs and reject credentials, localhost, loopback, private, and link-local literal hosts; AWS-origin and poolvilla S3 image sources receive width/quality transform params while other validated HTTPS sources load directly with width/quality query params. A JSON edge cache handles cookie-free public JSON APIs for <code>/api/houses</code>, <code>/api/home-sections</code>, <code>/api/villas/:id</code>, <code>/api/villas/:id/booking-calendar?month=YYYY-MM</code>, and query-free <code>/api/villas/:id/images</code> responses when they are successful <code>application/json</code>; <code>/api/houses</code> uses a 6-hour JSON cache while the other allowlisted public JSON APIs keep the default 12-hour JSON cache. Booking calendar cache keys preserve the validated <code>month</code> query; other query variants bypass. Keys include the Worker deployment version plus <code>home-sections</code>, <code>villa-listings</code>, <code>villa-details</code>, or <code>villa-images</code> version groups as relevant.</td>
+              <td>Cloudflare Worker wrapper around OpenNext output. A conservative 6-hour public HTML micro-cache uses Cloudflare Cache API for allowlisted cookie-free, query-free HTML requests only: <code>/</code>, <code>/search</code>, <code>/guides</code>, <code>/guides/:slug</code>, <code>/terms</code>, and <code>/privacy</code>; <code>/villas/:id</code> uses the same allowlist rules with a 24-hour HTML cache, while browser-facing HTML responses stay private/no-cache so deploys do not leave browsers holding stale asset hashes. It bypasses admin, API, <code>/_next</code>, RSC/prefetch variant headers, cookies, query strings, non-HTML requests, and responses with <code>Set-Cookie</code>. Cache keys include the Cloudflare Worker <code>CF_VERSION_METADATA</code> deployment id plus CMS/data version groups such as <code>site-settings</code>, <code>home-sections</code>, <code>guides</code>, <code>legal-pages</code>, <code>detail-layout</code>, <code>villa-details</code>, and <code>villa-images</code>; the Worker reads CMS versions from a future <code>BPV_HTML_CACHE_VERSIONS</code> KV binding when present and falls back to <code>NEXT_INC_CACHE_R2_BUCKET</code> under the <code>html-cache-versions/</code> prefix. The post-deploy prewarm script fetches the same allowlisted HTML routes with document Accept headers, requires an explicit target host from <code>--url</code>, <code>BPV_PREWARM_BASE_URL</code>, or <code>NEXT_PUBLIC_SITE_URL</code>, keeps fixed public pages first, reads bounded dynamic villa/guide paths from <code>/sitemap.xml</code>, applies bounded fetch timeouts, and can verify <code>MISS</code> responses with a follow-up <code>HIT</code> request. Hashed Next static assets under <code>/_next/static/</code> receive a 1-year immutable browser cache header from the Worker. Legacy image display proxy routes remain available for compatibility and Worker image-cache coverage, but normal public image rendering uses <code>next/image</code> with the custom loader and should not request public display proxy routes or <code>/_next/image</code>. Public image URL builders, the custom loader, and proxy route allowlists canonicalize HTTPS URLs and reject credentials, localhost, loopback, private, and link-local literal hosts; AWS-origin and poolvilla S3 image sources receive width/quality transform params while other validated HTTPS sources load directly with width/quality query params. A JSON edge cache handles cookie-free public JSON APIs for <code>/api/houses</code>, <code>/api/home-sections</code>, <code>/api/villas/:id</code>, <code>/api/villas/:id/booking-calendar?month=YYYY-MM</code>, and query-free <code>/api/villas/:id/images</code> responses when they are successful <code>application/json</code>; <code>/api/houses</code> uses a 6-hour JSON cache while the other allowlisted public JSON APIs keep the default 12-hour JSON cache. Booking calendar cache keys preserve the validated <code>month</code> query; other query variants bypass. Keys include the Worker deployment version plus <code>home-sections</code>, <code>villa-listings</code>, <code>villa-details</code>, or <code>villa-images</code> version groups as relevant.</td>
               <td>Run <code>worker-cache-policy.test.ts</code>, <code>worker-html-cache-version.test.ts</code>, <code>scripts/prewarm-public-html.test.ts</code>, <code>lib/cache-revalidation.test.ts</code>, <code>lib/__tests__/aws-loader.test.ts</code>, <code>lib/__tests__/public-image-proxy.test.ts</code>, <code>lib/villas/__tests__/image-proxy.test.ts</code>, <code>lib/villas/__tests__/cover-image-proxy.test.ts</code>, <code>lib/site-settings/__tests__/asset-proxy.test.ts</code>, <code>lib/guides/__tests__/image-proxy.test.ts</code>, <code>components/villas/detail/__tests__/gallery.test.tsx</code>, <code>components/villas/listing/__tests__/villa-card-navigation.test.tsx</code>, <code>components/villas/home/__tests__/hero-section.test.tsx</code>, <code>components/villas/home/__tests__/destinations-section.test.tsx</code>, <code>components/villas/home/__tests__/page.test.tsx</code>, <code>components/guides/__tests__/guide-request-budget.test.tsx</code>, <code>components/guides/__tests__/guide-detail-page.test.tsx</code>, <code>lib/__tests__/next-config.test.ts</code>, and production network checks that public pages do not request <code>/_next/image</code> or public display proxy routes. After Worker deploy, verify <code>x-bpv-html-cache</code> transitions from <code>MISS</code> to <code>HIT</code> for allowlisted pages and stays <code>BYPASS</code> for RSC, cookie, query, admin, and API requests; verify legacy display proxy image cache behavior only when those compatibility routes are intentionally exercised; verify <code>x-bpv-json-cache</code> transitions from <code>MISS</code> to <code>HIT</code> for allowlisted public JSON APIs and stays <code>BYPASS</code> for cookie, query, or non-JSON variants.</td>
             </tr>
             <tr>
@@ -608,8 +633,8 @@
             </tr>
             <tr>
               <td>Villa detail</td>
-              <td>Supabase <code>listings</code> rows matched by <code>property_id</code>.</td>
-              <td><code>lib/villas/server.ts</code>, <code>lib/villas/detail.ts</code>, detail cache tag.</td>
+              <td>Supabase <code>listings</code> rows matched by <code>property_id</code> provide the base listing, then Deville Central <code>getAccommodation.php?hid={id}</code> provides full detail fields with <code>DEVILLE_BEARER_TOKEN</code>.</td>
+              <td><code>lib/villas/server.ts</code>, <code>lib/villas/detail.ts</code>, detail cache tag. Missing tokens or Deville failures fall back to the Supabase-derived <code>toVillaDetail(row)</code> payload and set <code>detailStatus</code> to <code>missing_token</code> or <code>unavailable</code>.</td>
               <td>Villa detail route and public villa detail API.</td>
             </tr>
             <tr>
@@ -633,7 +658,7 @@
               <tr>
                 <td>Site settings</td>
                 <td>Supabase settings table with defaults fallback.</td>
-                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; global and section SEO templates plus page-specific keyword arrays are normalized here, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
+                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; global and section SEO templates plus page-specific keyword arrays are normalized here, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
                 <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
               </tr>
             <tr>
@@ -821,7 +846,7 @@
             </tr>
             <tr>
               <td>Site settings + TikTok settings</td>
-              <td><code>npm.cmd test -- lib/site-settings</code>, <code>npm.cmd test -- lib/tiktok</code>, and relevant <code>components/admin/settings</code>, <code>components/admin/tiktok</code>, <code>components/villas/home</code> tests.</td>
+              <td><code>npm.cmd test -- lib/site-settings</code>, <code>npm.cmd test -- lib/tiktok</code>, <code>npm.cmd test -- components/admin/settings/__tests__/admin-password-security-card.test.tsx</code>, and relevant <code>components/admin/settings</code>, <code>components/admin/tiktok</code>, <code>components/villas/home</code> tests.</td>
               <td>Add TikTok-route assertions (including /api/admin/site-settings not overwriting TikTok columns, /api/admin/tiktok normalizing URL-only payloads), oEmbed thumbnail fallback/cache assertions, and homepage first-6/click-to-load expectations; run lint and build before completion.</td>
             </tr>
             <tr>
@@ -860,9 +885,9 @@
               <td>Run lint, build, and production smoke for admin redirects.</td>
             </tr>
             <tr>
-              <td>Admin login Turnstile challenge flow</td>
+              <td>Admin login, forgot-password, reset-password, or Turnstile challenge flow</td>
               <td><code>npm.cmd test -- lib/admin components/admin/login</code></td>
-              <td>Verify production missing-key responses fail closed, development bypasses with a warning, raw Cloudflare errors are not shown to users, and Supabase login is only called after Turnstile verification succeeds outside development.</td>
+              <td>Verify production missing-key responses fail closed, development bypasses with a warning, raw Cloudflare errors are not shown to users, Supabase login/reset-email calls run only after Turnstile verification outside development, reset links require a recovery token, and password reset failures do not sign out.</td>
             </tr>
             <tr>
               <td>Admin API auth, mutation origin guard, or shared Supabase error response behavior</td>

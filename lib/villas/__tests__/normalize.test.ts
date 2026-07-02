@@ -23,6 +23,8 @@ const rawHouse: RawHouse = {
   airhockey: "n",
   jacuzzi: "n",
   bath: "n",
+  private_pool: "n",
+  extra_bed: "n",
   img_name: "cover.jpg",
   price: "8000",
   people: "9",

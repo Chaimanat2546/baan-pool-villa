@@ -20,7 +20,7 @@ export function VillaCardSkeleton({ className = "" }: VillaCardSkeletonProps) {
           <Skeleton className="h-4 w-24 bg-[var(--site-surface-tint)]" />
           <Skeleton className="h-4 w-24 bg-[var(--site-surface-tint)]" />
         </div>
-        <div className="flex min-h-[34px] gap-1 pb-3">
+        <div className="flex min-h-[64px] content-start gap-1 pb-3">
           <Skeleton className="h-6 w-20 rounded-full bg-[var(--site-accent-soft)]" />
           <Skeleton className="h-6 w-24 rounded-full bg-[var(--site-accent-soft)]" />
         </div>

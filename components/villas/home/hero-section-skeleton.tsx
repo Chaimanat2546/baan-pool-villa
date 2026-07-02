@@ -1,9 +1,8 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function HeroSectionSkeleton() {
+export function HeroSearchSkeleton() {
   return (
-    <section className="relative lg:pb-20" data-hero-section-skeleton="true">
-      <Skeleton className="aspect-[1565/1043] w-full rounded-none bg-[var(--site-surface-tint)]" />
+    <>
       <div
         className="relative z-10 -mt-8 px-4 sm:px-6 lg:hidden"
         data-home-mobile-search-skeleton="true"
@@ -31,6 +30,15 @@ export function HeroSectionSkeleton() {
           </div>
         </div>
       </div>
+    </>
+  );
+}
+
+export function HeroSectionSkeleton() {
+  return (
+    <section className="relative lg:pb-20" data-hero-section-skeleton="true">
+      <Skeleton className="aspect-[1565/1043] w-full rounded-none bg-[var(--site-surface-tint)]" />
+      <HeroSearchSkeleton />
     </section>
   );
 }

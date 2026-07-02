@@ -1,6 +1,11 @@
 import type { AnyDetailLayoutConfig } from "../detail-layout/types";
 
-export type SiteAssetType = "logo" | "hero";
+export type SiteAssetType =
+  | "logo"
+  | "hero"
+  | "seo-og"
+  | "search-seo-og"
+  | "guides-seo-og";
 
 export interface SiteAssetUploadRecord {
   assetType: SiteAssetType;

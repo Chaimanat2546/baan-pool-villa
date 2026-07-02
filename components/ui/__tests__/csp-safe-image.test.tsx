@@ -4,6 +4,20 @@ import { describe, expect, it } from "vitest";
 import { CspSafeImage } from "../csp-safe-image";
 
 describe("CspSafeImage", () => {
+  it("marks preloaded Next images as eager for above-the-fold LCP images", () => {
+    const markup = renderToStaticMarkup(
+      <CspSafeImage
+        alt="Hero image"
+        height={1043}
+        preload
+        src="/images/BPV-66_Cover-Web.jpg"
+        width={1565}
+      />,
+    );
+
+    expect(markup).toContain('loading="eager"');
+  });
+
   it("renders TikTok CDN thumbnails without the Next image loader", () => {
     const markup = renderToStaticMarkup(
       <CspSafeImage

@@ -21,18 +21,18 @@ export function CalendarDayDetailDialog({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center overflow-y-auto px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-4 bg-[var(--site-surface-soft)]/40 backdrop-blur-xs md:items-center md:p-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center overflow-y-auto px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-4 bg-[var(--site-surface-soft)]/40 backdrop-blur-xs animate-in fade-in duration-200 motion-reduce:animate-none md:items-center md:p-4"
       role="presentation"
     >
       <div
         aria-labelledby="calendar-day-detail-title"
         aria-modal="true"
-        className="w-full max-w-sm rounded-[1.5rem] border border-[var(--site-border)] bg-[linear-gradient(145deg,var(--site-surface),var(--site-surface-soft))] p-4 text-[var(--site-text)] shadow-[var(--site-card-shadow)] ring-1 ring-[var(--site-primary)]/10"
+        className="w-full max-w-sm rounded-[1.5rem] border border-[var(--site-border)] bg-[linear-gradient(145deg,var(--site-surface),var(--site-surface-soft))] p-4 text-[var(--site-text)] shadow-[var(--site-card-shadow)] ring-1 ring-[var(--site-primary)]/10 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] fill-mode-both motion-reduce:animate-none"
         data-date-detail-dialog="true"
         role="dialog"
       >
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="animate-in fade-in slide-in-from-top-1 duration-200 fill-mode-both motion-reduce:animate-none">
             <p id="calendar-day-detail-title" className="text-base font-black">
               รายละเอียดวันที่
             </p>
@@ -42,7 +42,7 @@ export function CalendarDayDetailDialog({
           </div>
           <button
             aria-label="ปิดรายละเอียดวัน"
-            className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1 text-sm font-black text-[var(--site-muted)] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-[var(--site-primary)] hover:text-[var(--site-primary)]"
+            className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1 text-sm font-black text-[var(--site-muted)] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:scale-105 hover:border-[var(--site-primary)] hover:text-[var(--site-primary)] active:translate-y-0 active:scale-95 animate-in fade-in zoom-in-95 delay-100 fill-mode-both motion-reduce:animate-none"
             onClick={onClose}
             type="button"
           >
@@ -51,7 +51,7 @@ export function CalendarDayDetailDialog({
         </div>
 
         <div
-          className="mt-4 overflow-hidden rounded-[1.25rem] border border-[var(--site-border)] bg-[var(--site-primary-soft)] shadow-[0_18px_42px_rgba(6,63,53,0.12)]"
+          className="mt-4 overflow-hidden rounded-[1.25rem] border border-[var(--site-border)] bg-[var(--site-primary-soft)] shadow-[0_18px_42px_rgba(6,63,53,0.12)] animate-in fade-in slide-in-from-bottom-2 duration-300 delay-150 fill-mode-both motion-reduce:animate-none"
           data-date-detail-panel="true"
         >
           <div className="bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">

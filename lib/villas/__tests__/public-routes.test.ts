@@ -9,10 +9,14 @@ import {
 
 const {
   fetchHouseListingsMock,
+  fetchVillaSearchFacetsMock,
+  fetchVillaSearchPageMock,
   fetchVillaBookingCalendarMock,
   fetchVillaDetailMock,
 } = vi.hoisted(() => ({
   fetchHouseListingsMock: vi.fn(),
+  fetchVillaSearchFacetsMock: vi.fn(),
+  fetchVillaSearchPageMock: vi.fn(),
   fetchVillaBookingCalendarMock: vi.fn(),
   fetchVillaDetailMock: vi.fn(),
 }));
@@ -25,6 +29,8 @@ vi.mock("@/lib/villas/booking-calendar", () => ({
 
 vi.mock("@/lib/villas/server", () => ({
   fetchHouseListings: fetchHouseListingsMock,
+  fetchVillaSearchFacets: fetchVillaSearchFacetsMock,
+  fetchVillaSearchPage: fetchVillaSearchPageMock,
   fetchVillaDetail: fetchVillaDetailMock,
 }));
 
@@ -34,6 +40,8 @@ beforeEach(() => {
   resetPublicRateLimitForTests();
   fetchVillaBookingCalendarMock.mockReset();
   fetchHouseListingsMock.mockReset();
+  fetchVillaSearchFacetsMock.mockReset();
+  fetchVillaSearchPageMock.mockReset();
   fetchVillaDetailMock.mockReset();
 });
 
@@ -65,7 +73,18 @@ describe("GET /api/houses", () => {
       zone: "jomtien",
       zoneLabel: "Jomtien",
     }));
-    fetchHouseListingsMock.mockResolvedValue(listings);
+    fetchVillaSearchFacetsMock.mockResolvedValue({
+      maxPrice: 11000,
+      zones: [{ label: "Jomtien", value: "jomtien" }],
+    });
+    fetchVillaSearchPageMock.mockResolvedValue({
+      facets: { maxPrice: 11000, zones: [{ label: "Jomtien", value: "jomtien" }] },
+      hasMore: true,
+      items: listings.slice(0, 12),
+      page: 1,
+      pageSize: 12,
+      total: 30,
+    });
 
     const { GET } = await import("../../../app/(public)/api/houses/route");
     const response = await GET(new Request("https://example.com/api/houses"));
@@ -89,7 +108,7 @@ describe("GET /api/houses", () => {
   });
 
   it("filters, sorts, and clamps public catalog page sizes", async () => {
-    fetchHouseListingsMock.mockResolvedValue([
+    const items = [
       {
         amenities: [],
         bathrooms: 2,
@@ -129,7 +148,19 @@ describe("GET /api/houses", () => {
         zone: "pattaya",
         zoneLabel: "Pattaya",
       },
-    ]);
+    ];
+    fetchVillaSearchFacetsMock.mockResolvedValue({
+      maxPrice: 18000,
+      zones: [{ label: "Jomtien", value: "jomtien" }],
+    });
+    fetchVillaSearchPageMock.mockResolvedValue({
+      facets: { maxPrice: 18000, zones: [{ label: "Jomtien", value: "jomtien" }] },
+      hasMore: false,
+      items: [items[1]],
+      page: 1,
+      pageSize: 24,
+      total: 1,
+    });
 
     const { GET } = await import("../../../app/(public)/api/houses/route");
     const response = await GET(
@@ -151,39 +182,46 @@ describe("GET /api/houses", () => {
         price: 18000,
       }),
     ]);
+    expect(fetchVillaSearchPageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expect.objectContaining({
+          bedrooms: 3,
+          guests: 8,
+          zone: "jomtien",
+        }),
+        pageSize: 24,
+        sortKey: "price_desc",
+      }),
+    );
   });
 
   it("searches catalog pages by title through the id query param", async () => {
-    fetchHouseListingsMock.mockResolvedValue([
-      {
-        amenities: [],
-        bathrooms: 2,
-        bedrooms: 2,
-        coverImage: null,
-        distanceToSea: "1 km",
-        id: "1",
-        people: 4,
-        poolType: "private",
-        price: 9000,
-        title: "Sea Breeze Villa",
-        zone: "jomtien",
-        zoneLabel: "Jomtien",
-      },
-      {
-        amenities: [],
-        bathrooms: 3,
-        bedrooms: 4,
-        coverImage: null,
-        distanceToSea: "1 km",
-        id: "2",
-        people: 10,
-        poolType: "private",
-        price: 18000,
-        title: "Jomtien Party House",
-        zone: "jomtien",
-        zoneLabel: "Jomtien",
-      },
-    ]);
+    const partyListing = {
+      amenities: [],
+      bathrooms: 3,
+      bedrooms: 4,
+      coverImage: null,
+      distanceToSea: "1 km",
+      id: "2",
+      people: 10,
+      poolType: "private",
+      price: 18000,
+      title: "Jomtien Party House",
+      zone: "jomtien",
+      zoneLabel: "Jomtien",
+    };
+    fetchVillaSearchFacetsMock.mockResolvedValue({
+      maxPrice: 18000,
+      zones: [{ label: "Jomtien", value: "jomtien" }],
+    });
+    fetchVillaSearchPageMock.mockResolvedValue({
+      facets: { maxPrice: 18000, zones: [{ label: "Jomtien", value: "jomtien" }] },
+      hasMore: false,
+      items: [partyListing],
+      page: 1,
+      pageSize: 12,
+      total: 1,
+    });
 
     const { GET } = await import("../../../app/(public)/api/houses/route");
     const response = await GET(new Request("https://example.com/api/houses?id=party"));
@@ -191,11 +229,14 @@ describe("GET /api/houses", () => {
 
     expect(body).toMatchObject({ total: 1 });
     expect(body.items).toEqual([expect.objectContaining({ id: "2" })]);
+    expect(fetchVillaSearchPageMock).toHaveBeenCalledWith(
+      expect.objectContaining({ villaIdQuery: "party" }),
+    );
   });
 
   it("returns a generic 502 error and logs backend failures", async () => {
     const rawError = new Error("secret listing backend detail");
-    fetchHouseListingsMock.mockRejectedValue(rawError);
+    fetchVillaSearchFacetsMock.mockRejectedValue(rawError);
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const { GET } = await import("../../../app/(public)/api/houses/route");
@@ -209,6 +250,18 @@ describe("GET /api/houses", () => {
   });
 
   it("rate limits repeated catalog requests before loading listings", async () => {
+    fetchVillaSearchFacetsMock.mockResolvedValue({
+      maxPrice: 1000,
+      zones: [],
+    });
+    fetchVillaSearchPageMock.mockResolvedValue({
+      facets: { maxPrice: 1000, zones: [] },
+      hasMore: false,
+      items: [],
+      page: 1,
+      pageSize: 12,
+      total: 0,
+    });
     const { GET } = await import("../../../app/(public)/api/houses/route");
     const request = new Request("https://example.com/api/houses", {
       headers: { "CF-Connecting-IP": "203.0.113.70" },
@@ -224,12 +277,16 @@ describe("GET /api/houses", () => {
     }
 
     fetchHouseListingsMock.mockClear();
+    fetchVillaSearchFacetsMock.mockClear();
+    fetchVillaSearchPageMock.mockClear();
     const blocked = await GET(request);
 
     expect(blocked.status).toBe(429);
     await expectRateLimitResponse(blocked);
     expect(blocked.headers.get("Cache-Control")).toBe("no-store");
     expect(fetchHouseListingsMock).not.toHaveBeenCalled();
+    expect(fetchVillaSearchFacetsMock).not.toHaveBeenCalled();
+    expect(fetchVillaSearchPageMock).not.toHaveBeenCalled();
   });
 });
 

@@ -1,19 +1,31 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import {
   HomePage,
+  HomePageContent,
   type HomePageDegradedSources,
 } from "@/components/villas/home/page";
+import { AdminRecoveryHashRedirect } from "@/components/admin/login/admin-recovery-hash-redirect";
 import { selectHomeGuideSummaries } from "@/components/villas/home/articles-section";
-import { toHomePageSettings } from "@/components/villas/home/client-payload";
+import {
+  toHomePageSettings,
+  type HomePageSettings,
+} from "@/components/villas/home/client-payload";
+import { HeroSearchSkeleton } from "@/components/villas/home/hero-section-skeleton";
+import { HeroSearch } from "@/components/villas/home/hero-search";
+import { VillaRailSkeleton } from "@/components/villas/home/villa-rail-skeleton";
 import { getPublishedGuides } from "@/lib/guides/server";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
-import { getResolvedHomeSections } from "@/lib/home-sections/server";
+import {
+  getActiveHomeSectionHouseIds,
+  getResolvedHomeSections,
+} from "@/lib/home-sections/server";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
 import { getMaxVillaPrice, getUniqueZones } from "@/lib/villas/filters";
 import { getSiteSettings } from "@/lib/site-settings/server";
-import { fetchHouseListings } from "@/lib/villas/server";
+import { fetchHomeListings } from "@/lib/villas/server";
 import { toPublicVillaListing } from "@/lib/villas/public-dto";
 
 type FilterSummary = {
@@ -26,17 +38,105 @@ type DestinationVilla = {
   id: string;
 };
 
-async function getHomePageData(): Promise<{
+type HomePageData = {
   degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
   guides: PublicGuideSummary[];
   homeSections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"];
   filterSummary: FilterSummary;
   destinationVillas: DestinationVilla[];
-}> {
-  const [guidesResult, villasResult] = await Promise.allSettled([
-    getPublishedGuides(),
-    fetchHouseListings(),
-  ]);
+};
+
+function HomeDeferredContentSkeleton() {
+  return (
+    <div className="pt-0 lg:pt-20">
+      <VillaRailSkeleton />
+      <VillaRailSkeleton cardCount={4} withCta={false} />
+    </div>
+  );
+}
+
+function HomeDeferredDegradedMarker({
+  degradedSources,
+}: {
+  degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
+}) {
+  const degradedSourceNames = [
+    degradedSources.guidePosts ? "guidePosts" : null,
+    degradedSources.villaCatalog ? "villaCatalog" : null,
+    degradedSources.homeSections ? "homeSections" : null,
+  ].filter((source): source is string => source !== null);
+
+  if (degradedSourceNames.length === 0) {
+    return null;
+  }
+
+  return (
+    <span
+      hidden
+      data-home-deferred-degraded="true"
+      data-home-deferred-degraded-sources={degradedSourceNames.join(",")}
+    />
+  );
+}
+
+async function HomeDeferredContent({
+  homePageDataPromise,
+  settings,
+}: {
+  homePageDataPromise: Promise<HomePageData>;
+  settings: HomePageSettings;
+}) {
+  const homePageData = await homePageDataPromise;
+
+  return (
+    <>
+      <HomeDeferredDegradedMarker
+        degradedSources={homePageData.degradedSources}
+      />
+      <HomePageContent
+        initialGuides={homePageData.guides}
+        initialHomeSections={homePageData.homeSections}
+        destinationVillas={homePageData.destinationVillas}
+        settings={settings}
+      />
+    </>
+  );
+}
+
+async function HomeHeroSearch({
+  homePageDataPromise,
+}: {
+  homePageDataPromise: Promise<HomePageData>;
+}) {
+  const homePageData = await homePageDataPromise;
+
+  return (
+    <HeroSearch
+      maxAvailablePrice={homePageData.filterSummary.maxAvailablePrice}
+      zones={homePageData.filterSummary.zones}
+    />
+  );
+}
+
+async function getHomePageData(): Promise<HomePageData> {
+  const guidesResultPromise = getPublishedGuides().then(
+    (value) => ({ status: "fulfilled" as const, value }),
+    (reason) => ({ reason, status: "rejected" as const }),
+  );
+  const homeSectionHouseIdsResult = await getActiveHomeSectionHouseIds().then(
+    (value) => ({ status: "fulfilled" as const, value }),
+    (reason) => ({ reason, status: "rejected" as const }),
+  );
+
+  const villasResult = await fetchHomeListings(
+    homeSectionHouseIdsResult.status === "fulfilled"
+      ? homeSectionHouseIdsResult.value
+      : [],
+  ).then(
+    (value) => ({ status: "fulfilled" as const, value }),
+    (reason) => ({ reason, status: "rejected" as const }),
+  );
+  const guidesResult = await guidesResultPromise;
   const guides =
     guidesResult.status === "fulfilled" ? guidesResult.value : [];
 
@@ -118,31 +218,41 @@ export async function generateMetadata(): Promise<Metadata> {
  * @returns A React element for the homepage containing the injected JSON-LD script and the HomePage component initialized with fetched data and settings.
  */
 export default async function Page() {
-  const [settingsResult, homePageData] = await Promise.all([
-    getSiteSettings(),
-    getHomePageData(),
-  ]);
+  const homePageDataPromise = getHomePageData();
+  const settingsResult = await getSiteSettings();
   const { settings } = settingsResult;
+  const homePageSettings = toHomePageSettings(settings);
 
   const jsonLd = buildHomeJsonLd(settings);
 
   return (
     <>
+      <AdminRecoveryHashRedirect />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <HomePage
-        initialGuides={homePageData.guides}
-        initialHomeSections={homePageData.homeSections}
-        filterSummary={homePageData.filterSummary}
-        destinationVillas={homePageData.destinationVillas}
         degradedSources={{
-          ...homePageData.degradedSources,
+          guidePosts: false,
+          homeSections: false,
           siteSettings: settingsResult.degraded,
+          villaCatalog: false,
         }}
-        settings={toHomePageSettings(settings)}
-      />
+        heroSearch={
+          <Suspense fallback={<HeroSearchSkeleton />}>
+            <HomeHeroSearch homePageDataPromise={homePageDataPromise} />
+          </Suspense>
+        }
+        settings={homePageSettings}
+      >
+        <Suspense fallback={<HomeDeferredContentSkeleton />}>
+          <HomeDeferredContent
+            homePageDataPromise={homePageDataPromise}
+            settings={homePageSettings}
+          />
+        </Suspense>
+      </HomePage>
     </>
   );
 }

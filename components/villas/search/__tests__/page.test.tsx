@@ -23,7 +23,7 @@ import type { VillaListing } from "../../../../lib/villas/types";
 import { getInitialCatalogComplete, SearchPage } from "../page";
 
 const villa: VillaListing = {
-  amenities: [],
+  amenities: [{ key: "private_pool", label: "สระว่ายน้ำส่วนตัว" }],
   bathrooms: 4,
   bedrooms: 5,
   coverImage: "https://devillegroups.com/imgs/profile_imgs_large/701.jpg",
@@ -34,6 +34,15 @@ const villa: VillaListing = {
   price: 15000,
   zone: "jomtien",
   zoneLabel: "Jomtien",
+};
+
+const cheapVilla: VillaListing = {
+  ...villa,
+  amenities: [],
+  bedrooms: 3,
+  id: "2870",
+  people: 6,
+  price: 9000,
 };
 
 function setSearchInputValue(input: HTMLInputElement, value: string) {
@@ -100,6 +109,7 @@ function expectCatalogFetchCall(
 describe("SearchPage", () => {
   afterEach(() => {
     navigationMock.searchParams = new URLSearchParams();
+    window.sessionStorage.clear();
     vi.unstubAllGlobals();
   });
 
@@ -202,6 +212,269 @@ describe("SearchPage", () => {
         zones: [{ value: "jomtien", label: "Jomtien" }],
       }),
     ).toBe(false);
+  });
+
+  it("deduplicates appended catalog pages by villa id", async () => {
+    const nextVilla = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      createCatalogResponse([villa, nextVilla], {
+        hasMore: false,
+        page: 2,
+        total: 2,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    const loadMoreButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("ดูเพิ่มเติม"),
+    );
+
+    await act(async () => {
+      loadMoreButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelectorAll('a[href="/villas/701"]')).toHaveLength(1);
+    expect(container.querySelectorAll('a[href="/villas/702"]')).toHaveLength(1);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("loads one additional bounded catalog page at a time", async () => {
+    const nextVilla = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
+    const appendRequest = createDeferred<Response>();
+    const fetchMock = vi.fn().mockReturnValue(appendRequest.promise);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    const loadMoreButton = Array.from(container.querySelectorAll("button")).find(
+      (button) =>
+        button.textContent?.includes("ดูเพิ่มเติม") ||
+        button.textContent?.includes("à¸”à¸¹à¹€à¸žà¸´à¹ˆà¸¡à¹€à¸•à¸´à¸¡"),
+    );
+
+    await act(async () => {
+      loadMoreButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      loadMoreButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expectCatalogFetchCall(
+      fetchMock,
+      1,
+      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&sort=recommended&page=2&limit=12",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(loadMoreButton).toHaveProperty("disabled", true);
+    expect(container.querySelector('[data-villa-grid-skeleton="true"]')).not.toBeNull();
+
+    await act(async () => {
+      appendRequest.resolve(
+        createCatalogResponse([nextVilla], {
+          hasMore: false,
+          page: 2,
+          total: 2,
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.querySelectorAll('a[href="/villas/702"]')).toHaveLength(1);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("restores appended catalog pages from session storage on remount", async () => {
+    const nextVilla = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      createCatalogResponse([nextVilla], {
+        hasMore: false,
+        page: 2,
+        total: 2,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    const loadMoreButton = Array.from(container.querySelectorAll("button")).at(-1);
+
+    await act(async () => {
+      loadMoreButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(Array.from({ length: window.sessionStorage.length }, (_, index) =>
+      window.sessionStorage.key(index),
+    )).toEqual([expect.stringContaining("bpv:search-page:")]);
+    expect(window.sessionStorage.getItem(window.sessionStorage.key(0) ?? "")).toContain(
+      '"loadedCatalogPage":2',
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+
+    const nextRoot = createRoot(container);
+
+    await act(async () => {
+      nextRoot.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.querySelectorAll('a[href="/villas/701"]')).toHaveLength(1);
+    expect(container.querySelectorAll('a[href="/villas/702"]')).toHaveLength(1);
+
+    await act(async () => {
+      nextRoot.unmount();
+    });
+    container.remove();
+  });
+
+  it("does not restore a saved catalog page for a different query", async () => {
+    const nextVilla = {
+      ...villa,
+      id: "702",
+      price: 20000,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      createCatalogResponse([nextVilla], {
+        hasMore: false,
+        page: 2,
+        total: 2,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 2,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+    });
+
+    const loadMoreButton = Array.from(container.querySelectorAll("button")).at(-1);
+
+    await act(async () => {
+      loadMoreButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+      root.unmount();
+    });
+
+    const nextRoot = createRoot(container);
+
+    await act(async () => {
+      nextRoot.render(
+        <SearchPage
+          initialSearchParams="id=999"
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 0,
+            zones: [{ value: "jomtien", label: "Jomtien" }],
+          }}
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    expect(container.querySelectorAll('a[href="/villas/702"]')).toHaveLength(0);
+
+    await act(async () => {
+      nextRoot.unmount();
+    });
+    container.remove();
   });
 
   it("waits for the search button before loading a bounded search page", async () => {
@@ -316,6 +589,157 @@ describe("SearchPage", () => {
       1,
       "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=702&sort=recommended&page=1&limit=12",
     );
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("applies smart search text through the existing bounded search request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(createCatalogResponse([villa]));
+    vi.stubGlobal("fetch", fetchMock);
+    window.history.replaceState(null, "", "/search");
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 1,
+            zones: [{ value: "jomtien", label: "จอมเทียน" }],
+          }}
+        />,
+      );
+    });
+
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[type="search"]',
+    );
+    const searchButton = findSearchSubmitButton(container);
+
+    await act(async () => {
+      setSearchInputValue(
+        searchInput as HTMLInputElement,
+        "10 คน 5 ห้อง จอมเทียน ไม่เกิน 15000",
+      );
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expectCatalogFetchCall(
+      fetchMock,
+      1,
+      "/api/houses?zone=jomtien&guests=10&bedrooms=5&maxPrice=15000&sort=recommended&page=1&limit=12",
+    );
+    expect(window.location.search).toBe(
+      "?zone=jomtien&guests=10&bedrooms=5&maxPrice=15000&sort=recommended",
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("keeps numeric and DV id smart searches as id queries", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(createCatalogResponse([cheapVilla]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialVillas={[villa]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 1,
+            zones: [{ value: "jomtien", label: "จอมเทียน" }],
+          }}
+        />,
+      );
+    });
+
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[type="search"]',
+    );
+    const searchButton = findSearchSubmitButton(container);
+
+    await act(async () => {
+      setSearchInputValue(searchInput as HTMLInputElement, "DV-2870");
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expectCatalogFetchCall(
+      fetchMock,
+      1,
+      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=DV-2870&sort=recommended&page=1&limit=12",
+    );
+
+    await act(async () => {
+      setSearchInputValue(searchInput as HTMLInputElement, "2870");
+      searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expectCatalogFetchCall(
+      fetchMock,
+      2,
+      "/api/houses?guests=1&bedrooms=1&maxPrice=20000&id=2870&sort=recommended&page=1&limit=12",
+    );
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("clears filters and reloads the default bounded search", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(createCatalogResponse([villa]));
+    vi.stubGlobal("fetch", fetchMock);
+    window.history.replaceState(null, "", "/search?zone=jomtien&guests=12");
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <SearchPage
+          initialSearchParams="zone=jomtien&guests=12"
+          initialVillas={[]}
+          initialMeta={{
+            catalogComplete: false,
+            maxPrice: 20000,
+            resultCount: 0,
+            zones: [{ value: "jomtien", label: "จอมเทียน" }],
+          }}
+        />,
+      );
+    });
+
+    const clearButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("ล้างตัวกรอง"),
+    );
+
+    await act(async () => {
+      clearButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expectCatalogFetchCall(
+      fetchMock,
+      1,
+      "/api/houses?guests=2&bedrooms=1&maxPrice=20000&sort=recommended&page=1&limit=12",
+    );
+    expect(window.location.search).toBe("");
 
     await act(async () => {
       root.unmount();
@@ -438,6 +862,7 @@ describe("SearchPage", () => {
       searchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
+    expect(container.querySelector('[data-search-pool-ripple="true"]')).not.toBeNull();
     expectCatalogFetchCall(
       fetchMock,
       1,

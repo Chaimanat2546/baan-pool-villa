@@ -119,4 +119,22 @@ describe("AdminShell", () => {
 
     await page.unmount();
   });
+
+  it("renders the reset password page without the admin navigation shell", async () => {
+    mocks.pathname = "/admin/reset-password";
+
+    const page = await mountAdminPage(
+      <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+        <div>reset form</div>
+      </AdminShell>,
+    );
+
+    expect(page.container.textContent).toContain("reset form");
+    expect(page.container.querySelector("nav")).toBeNull();
+    expect(
+      page.container.querySelector('[data-admin-sidebar-state]'),
+    ).toBeNull();
+
+    await page.unmount();
+  });
 });

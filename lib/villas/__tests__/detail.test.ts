@@ -23,6 +23,8 @@ describe("buildVillaDetailContent", () => {
         karaoke: "y",
         swimming_pool: "y",
         pets: "y",
+        private_pool: "y",
+        extra_bed: "y",
         pet_detail: "à¸™à¹‰à¸­à¸‡à¸«à¸¡à¸²à¹à¸¡à¸§à¹„à¸¡à¹ˆà¹€à¸à¸´à¸™ 5 à¸à¸´à¹‚à¸¥à¸à¸£à¸±à¸¡ à¸•à¸±à¸§à¸¥à¸° 500 / à¸„à¸·à¸™",
         swim_type: "salt",
       },
@@ -52,6 +54,8 @@ describe("buildVillaDetailContent", () => {
     expect(content.amenities).toEqual([
       { key: "wifi", label: "Wi-Fi" },
       { key: "karaoke", label: "คาราโอเกะ" },
+      { key: "private_pool", label: "สระว่ายน้ำส่วนตัว" },
+      { key: "extra_bed", label: "เตียงเสริม" },
       { key: "pet", label: "นำสัตว์เลี้ยงได้" },
     ]);
     expect(content.sections.map((section) => section.title)).toEqual(

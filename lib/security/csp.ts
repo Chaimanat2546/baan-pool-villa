@@ -1,4 +1,5 @@
 export const CLOUDFLARE_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+export const CLOUDFLARE_INSIGHTS_ORIGIN = "https://static.cloudflareinsights.com";
 const AWS_IMAGE_LOADER_DEFAULT_BASE_URL =
   "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws";
 
@@ -34,6 +35,7 @@ export function buildContentSecurityPolicy({
     "'unsafe-inline'",
     ...(isDevelopment ? ["'unsafe-eval'"] : []),
     CLOUDFLARE_TURNSTILE_ORIGIN,
+    CLOUDFLARE_INSIGHTS_ORIGIN,
   ].filter((source): source is string => Boolean(source));
   const styleSources = [
     "'self'",
@@ -58,6 +60,7 @@ export function buildContentSecurityPolicy({
   const connectSources = [
     "'self'",
     CLOUDFLARE_TURNSTILE_ORIGIN,
+    CLOUDFLARE_INSIGHTS_ORIGIN,
     "https://www.tiktok.com",
     getHttpsOrigin(supabaseUrl),
     ...(isDevelopment ? ["ws:", "wss:"] : []),

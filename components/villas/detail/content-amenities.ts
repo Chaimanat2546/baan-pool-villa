@@ -1,11 +1,20 @@
 import {
   Bath,
+  BedDouble,
+  Bubbles,
   CircleDot,
+  CircleDotDashed,
+  Disc3,
   Flame,
-  Music,
+  Goal,
+  LifeBuoy,
+  MicVocal,
   PawPrint,
+  Table2,
   Star,
   Waves,
+  WavesArrowDown,
+  WavesLadder,
   Wifi,
 } from "lucide-react";
 import type { Amenity, AmenityKey } from "@/lib/villas/types";
@@ -13,19 +22,21 @@ import type { Amenity, AmenityKey } from "@/lib/villas/types";
 export const DEFAULT_AMENITY_PREVIEW_COUNT = 12;
 
 const AMENITY_ICONS: Record<AmenityKey, typeof Wifi> = {
-  airhockey: CircleDot,
+  airhockey: Goal,
   bath: Bath,
   billard: CircleDot,
-  discotech: Music,
-  fancyring: Waves,
+  discotech: Disc3,
+  fancyring: LifeBuoy,
+  extra_bed: BedDouble,
   grill: Flame,
-  jacuzzi: Bath,
-  karaoke: Music,
+  jacuzzi: Bubbles,
+  karaoke: MicVocal,
   pet: PawPrint,
-  slider: Waves,
-  snooker: CircleDot,
+  private_pool: WavesLadder,
+  slider: WavesArrowDown,
+  snooker: CircleDotDashed,
   swimming_kid: Waves,
-  tabletennis: CircleDot,
+  tabletennis: Table2,
   wifi: Wifi,
 };
 
