@@ -6,6 +6,7 @@ export const SITEMAP_REVALIDATE_SECONDS = TWENTY_FOUR_HOURS_SECONDS;
 export type SitemapRevalidateSeconds = typeof SITEMAP_REVALIDATE_SECONDS;
 
 export const CACHE_REVALIDATE_SECONDS = {
+  advertisements: TWELVE_HOURS_SECONDS,
   guides: TWELVE_HOURS_SECONDS,
   legalPages: TWELVE_HOURS_SECONDS,
   homeSections: TWELVE_HOURS_SECONDS,
@@ -18,6 +19,7 @@ export const CACHE_REVALIDATE_SECONDS = {
 } as const;
 
 export const CACHE_TAGS = {
+  advertisements: "advertisements",
   guide: (slug: string) => `guide:${slug}`,
   guides: "guides",
   legalPage: (slug: string) => `legal-page:${slug}`,

@@ -10,6 +10,7 @@ import {
   getInitialGalleryLoadState,
   getPreviewGalleryLoadState,
   hasEnabledBookingContact,
+  hasEnabledDetailLayoutBlock,
 } from "../detail-page-helpers";
 
 const image: VillaImage = {
@@ -21,12 +22,15 @@ const image: VillaImage = {
   zone: "outside",
 };
 
-function detailBlock(enabled: boolean): DetailLayoutBlock {
+function detailBlock(
+  enabled: boolean,
+  type: DetailLayoutBlock["type"] = "booking_contact",
+): DetailLayoutBlock {
   return {
     enabled,
     hideWhenEmpty: false,
     title: "Booking",
-    type: "booking_contact",
+    type,
   };
 }
 
@@ -77,5 +81,22 @@ describe("detail page helpers", () => {
 
     expect(hasEnabledBookingContact(v1Layout)).toBe(false);
     expect(hasEnabledBookingContact(v2Layout)).toBe(true);
+  });
+
+  it("finds enabled advertisement blocks before loading detail ads", () => {
+    const layout: AnyDetailLayoutConfig = {
+      ...DEFAULT_DETAIL_LAYOUT,
+      rows: [
+        {
+          blocks: [detailBlock(true, "advertisements")],
+          columns: 1,
+          enabled: true,
+          id: "ads",
+        },
+      ],
+    };
+
+    expect(hasEnabledDetailLayoutBlock(layout, "advertisements")).toBe(true);
+    expect(hasEnabledDetailLayoutBlock(layout, "map_nearby")).toBe(false);
   });
 });

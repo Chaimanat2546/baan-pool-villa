@@ -7,6 +7,7 @@ export const DETAIL_LAYOUT_BLOCK_TYPES = [
   "categorized_images",
   "costs_promotions",
   "rules_pet_policy",
+  "advertisements",
   "map_nearby",
   "review_videos",
   "booking_contact",

@@ -12,6 +12,7 @@ import {
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { AMENITY_OPTIONS } from "@/lib/villas/amenities";
+import { cn } from "@/lib/utils";
 import type { AmenityKey, VillaFilters } from "@/lib/villas/types";
 
 interface ZoneOption {
@@ -25,6 +26,7 @@ interface SearchBarProps {
   maxAvailablePrice: number;
   onChange: (filters: VillaFilters) => void;
   onSearch: () => void;
+  compactMobile?: boolean;
   searchLabel?: string;
 };
 
@@ -50,6 +52,7 @@ export function SearchBar({
   maxAvailablePrice,
   onChange,
   onSearch,
+  compactMobile = false,
   searchLabel = "ค้นหาบ้านพัก",
 }: SearchBarProps) {
   const containerRef = useRef<HTMLElement | null>(null);
@@ -125,10 +128,19 @@ export function SearchBar({
   return (
     <section
       ref={containerRef}
-      className="rounded-[20px] bg-[var(--site-surface)] px-6 pb-10 pt-6 shadow-[0_12px_16px_rgba(15,47,53,0.14)]"
+      className={cn(
+        "rounded-[20px] bg-[var(--site-surface)] px-6 pb-10 pt-6 shadow-[0_12px_16px_rgba(15,47,53,0.14)]",
+        compactMobile &&
+          "px-4 pb-4 pt-4 shadow-[0_10px_18px_rgba(15,47,53,0.12)] [&_.truncate]:text-base [&_button]:min-h-9 [&_input]:text-base [&_label]:text-xs [&_svg]:h-4 [&_svg]:w-4 [&>div]:gap-2 [&>div>button]:h-10",
+      )}
     >
-      <div className="grid gap-3 md:grid-cols-2 md:items-end xl:grid-cols-[227px_155px_155px_230px_178px_auto]">
-        <div className="relative min-w-0">
+      <div
+        className={cn(
+          "grid gap-3 md:grid-cols-2 md:items-end xl:grid-cols-[227px_155px_155px_230px_178px_auto]",
+          compactMobile && "grid-cols-2 gap-2",
+        )}
+      >
+        <div className={cn("relative min-w-0", compactMobile && "col-span-2")}>
           <label className="text-sm font-medium leading-5 text-[var(--site-text)]">ทำเลที่พัก</label>
           <button
             type="button"
@@ -151,7 +163,10 @@ export function SearchBar({
               id={locationMenuId}
               role="dialog"
               aria-label="เลือกทำเลที่พัก"
-              className="absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)]"
+              className={cn(
+                "absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)]",
+                compactMobile && "top-[4.25rem]",
+              )}
             >
               <div className="flex h-10 items-center gap-2 rounded-xl border border-[var(--site-border)] px-3">
                 <Search className="h-4 w-4 text-[var(--site-muted)]" />
@@ -228,7 +243,7 @@ export function SearchBar({
           </div>
         </div>
 
-        <div className="relative min-w-0">
+        <div className={cn("relative min-w-0", compactMobile && "col-span-2")}>
           <label className="text-sm font-medium leading-5 text-[var(--site-text)]">สิ่งอำนวยความสะดวก</label>
           <button
             type="button"
@@ -251,7 +266,10 @@ export function SearchBar({
               id={amenitiesMenuId}
               role="dialog"
               aria-label="เลือกสิ่งอำนวยความสะดวก"
-              className="absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)] md:min-w-80"
+              className={cn(
+                "absolute left-0 right-0 top-[4.75rem] z-30 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-[0_18px_54px_rgba(6,63,53,0.16)] md:min-w-80",
+                compactMobile && "top-[4.25rem]",
+              )}
             >
               <div role="group" aria-label="สิ่งอำนวยความสะดวก" className="grid max-h-72 gap-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {AMENITY_OPTIONS.map((amenity) => {
@@ -286,7 +304,7 @@ export function SearchBar({
           ) : null}
         </div>
 
-        <div className="min-w-0">
+        <div className={cn("min-w-0", compactMobile && "col-span-2")}>
           <div className="flex items-start justify-between gap-2">
             <label className="text-sm font-normal leading-[21px] text-[var(--site-text)]">ราคาสูงสุด</label>
             <span className="text-sm leading-[21px] text-[var(--site-text)]">
@@ -314,7 +332,10 @@ export function SearchBar({
         <button
           type="button"
           onClick={onSearch}
-          className="flex h-11 items-center justify-center gap-2 self-end rounded-full bg-[var(--site-primary)] px-4 text-base font-medium leading-6 text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--site-accent)] focus:ring-offset-2"
+          className={cn(
+            "flex h-11 items-center justify-center gap-2 self-end rounded-full bg-[var(--site-primary)] px-4 text-base font-medium leading-6 text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--site-accent)] focus:ring-offset-2",
+            compactMobile && "col-span-2 h-10 text-sm",
+          )}
         >
           <Search className="h-5 w-5" />
           <span className="whitespace-nowrap">{searchLabel}</span>

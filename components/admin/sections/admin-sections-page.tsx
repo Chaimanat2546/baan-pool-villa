@@ -30,11 +30,13 @@ import {
 import {
   extractAdminErrors as extractErrors,
   readJsonPayload,
+  shouldRedirectToLogin,
 } from "@/components/admin/admin-api-client";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import { AdminSectionsSkeleton } from "@/components/admin/loading/admin-sections-skeleton";
+import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
 import type {
   AdminHomeSectionsResponse,
@@ -63,6 +65,8 @@ import {
   parseManualIds,
   toHomeSectionDraft,
 } from "./section-draft-helpers";
+
+type LoginRedirectReason = "admin-access";
 
 function SectionEditorGroup({
   children,
@@ -154,8 +158,21 @@ export function AdminSectionsPage() {
   const hasValidatedManualIds =
     activeSection?.mode === "manual" && activePreview !== null;
 
-  const redirectToLogin = useCallback(() => {
-    router.replace("/admin/login");
+  const redirectToLogin = useCallback((reason?: LoginRedirectReason) => {
+    const loginPath =
+      reason === "admin-access"
+        ? "/admin/login?error=admin-access"
+        : "/admin/login";
+
+    try {
+      void createBrowserHomeConfigClient()
+        .auth.signOut({ scope: "local" })
+        .finally(() => {
+          router.replace(loginPath);
+        });
+    } catch {
+      router.replace(loginPath);
+    }
   }, [router]);
 
   const getAccessToken = useCallback(async () => {
@@ -188,14 +205,16 @@ export function AdminSectionsPage() {
           },
         });
 
-        if (response.status === 401 || response.status === 403) {
-          redirectToLogin();
+        const payload = (await readJsonPayload(
+          response,
+        )) as AdminHomeSectionsResponse | null;
+
+        if (shouldRedirectToLogin(response.status, payload)) {
+          redirectToLogin("admin-access");
           return;
         }
 
-        const payload = (await response.json()) as AdminHomeSectionsResponse;
-
-        if (!response.ok) {
+        if (!response.ok || !payload) {
           setErrors(extractErrors(payload, "ไม่สามารถโหลดการจัดหน้าแรกได้"));
           return;
         }
@@ -385,8 +404,8 @@ export function AdminSectionsPage() {
       });
       const payload = await readJsonPayload(response);
 
-      if (response.status === 401) {
-        redirectToLogin();
+      if (shouldRedirectToLogin(response.status, payload)) {
+        redirectToLogin("admin-access");
         return null;
       }
 
@@ -589,8 +608,8 @@ export function AdminSectionsPage() {
       });
       const payload = await readJsonPayload(response);
 
-      if (response.status === 401) {
-        redirectToLogin();
+      if (shouldRedirectToLogin(response.status, payload)) {
+        redirectToLogin("admin-access");
         return;
       }
 

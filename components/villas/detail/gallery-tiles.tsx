@@ -1,4 +1,5 @@
 import { ImageOff } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { buildGalleryDisplaySrc } from "./gallery-urls";
 import type { GalleryItem } from "./types";
@@ -25,9 +26,44 @@ export function GalleryImage({
   loading = "lazy",
 }: GalleryImageProps) {
   const displaySrc = item.url ? buildGalleryDisplaySrc(listingId, item) : null;
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const reportedBrokenSrcRef = useRef<string | null>(null);
+
+  const reportImageError = () => {
+    if (!displaySrc || reportedBrokenSrcRef.current === displaySrc) {
+      return;
+    }
+
+    reportedBrokenSrcRef.current = displaySrc;
+    onError(item.url);
+  };
+
+  useEffect(() => {
+    if (!displaySrc) {
+      reportedBrokenSrcRef.current = null;
+      return;
+    }
+
+    const checkLoadedImage = () => {
+      const image = buttonRef.current?.querySelector("img");
+
+      if (image?.complete && image.naturalWidth === 0) {
+        reportImageError();
+      }
+    };
+
+    checkLoadedImage();
+
+    const timeout = globalThis.setTimeout(checkLoadedImage, 1000);
+
+    return () => {
+      globalThis.clearTimeout(timeout);
+    };
+  });
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       className={`group relative block w-full overflow-hidden bg-[var(--site-surface-tint)] text-left ${className}`}
       onClick={() => {
@@ -45,7 +81,7 @@ export function GalleryImage({
             sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover transition duration-500 group-hover:scale-[1.03]"
             onError={() => {
-              onError(item.url);
+              reportImageError();
             }}
           />
           <span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-black text-[var(--site-on-primary)] opacity-0 backdrop-blur transition group-hover:opacity-100">

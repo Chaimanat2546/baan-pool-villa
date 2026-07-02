@@ -55,6 +55,7 @@ const originalNodeEnv = process.env.NODE_ENV;
 describe("AdminLoginForm", () => {
   beforeEach(() => {
     process.env.NODE_ENV = originalNodeEnv;
+    window.history.replaceState(null, "", "/admin/login");
     mocks.getSession.mockReset();
     mocks.getSession.mockResolvedValue({
       data: { session: null },
@@ -140,6 +141,24 @@ describe("AdminLoginForm", () => {
 
     expect(mocks.replace).toHaveBeenCalledWith("/admin/sections");
     expect(mocks.signInWithPassword).not.toHaveBeenCalled();
+
+    await page.unmount();
+  });
+
+  it("shows the admin access error passed from an auth redirect", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/admin/login?error=admin-access",
+    );
+
+    const page = await mountAdminPage(<AdminLoginForm />);
+    await flushEffects();
+
+    expect(page.container.textContent).toContain(
+      "เซสชันหมดอายุหรือบัญชีนี้ยังไม่มีสิทธิ์แอดมิน กรุณาเข้าสู่ระบบอีกครั้ง",
+    );
+    expect(mocks.replace).not.toHaveBeenCalled();
 
     await page.unmount();
   });

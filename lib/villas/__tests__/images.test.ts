@@ -443,6 +443,55 @@ describe("fetchVillaPreviewImages", () => {
     expect(query.order).toHaveBeenNthCalledWith(2, "id", { ascending: true });
     expect(query.limit).not.toHaveBeenCalled();
   });
+
+  it("uses the newest cover-zone image first when cover_select values tie", async () => {
+    mockImagesQuery({
+      data: [
+        {
+          id: 133301,
+          property_id: 999,
+          cover_select: 0,
+          image_name: "old-cover.jpg",
+          image_url:
+            "https://s3.ap-southeast-1.amazonaws.com/poolvillas.co.ltd/old-cover.jpg",
+          caption: null,
+          image_zone: "cover",
+        },
+        {
+          id: 144651,
+          property_id: 999,
+          cover_select: 0,
+          image_name: "new-cover.webp",
+          image_url:
+            "https://webook-media.poolvilla.workers.dev/houses/999/new-cover.webp",
+          caption: null,
+          image_zone: "cover",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(fetchVillaPreviewImages("999")).resolves.toEqual([
+      {
+        id: 144651,
+        imageUrl:
+          "https://webook-media.poolvilla.workers.dev/houses/999/new-cover.webp",
+        imageName: "new-cover.webp",
+        caption: null,
+        isCover: false,
+        zone: "cover",
+      },
+      {
+        id: 133301,
+        imageUrl:
+          "https://s3.ap-southeast-1.amazonaws.com/poolvillas.co.ltd/old-cover.jpg",
+        imageName: "old-cover.jpg",
+        caption: null,
+        isCover: false,
+        zone: "cover",
+      },
+    ]);
+  });
 });
 
 describe("GET /api/villas/[id]/images", () => {

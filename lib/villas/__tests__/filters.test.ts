@@ -59,6 +59,10 @@ const villas: VillaListing[] = [
 ];
 
 describe("getDefaultFilters", () => {
+  it("uses the configured starter price when the range allows it", () => {
+    expect(getDefaultFilters(100000).maxPrice).toBe(13000);
+  });
+
   it("uses the minimum searchable price when the available maximum is lower", () => {
     expect(getDefaultFilters(0).maxPrice).toBe(1000);
   });
@@ -70,11 +74,21 @@ describe("normalizeFiltersForSearch", () => {
   });
 
   it("keeps a user-selected price under the available maximum", () => {
-    expect(normalizeFiltersForSearch(getDefaultFilters(25000), 61900).maxPrice).toBe(25000);
+    expect(
+      normalizeFiltersForSearch(
+        { ...getDefaultFilters(61900), maxPrice: 25000 },
+        61900,
+      ).maxPrice,
+    ).toBe(25000);
   });
 
   it("clamps a user-selected price above the available maximum", () => {
-    expect(normalizeFiltersForSearch(getDefaultFilters(90000), 61900).maxPrice).toBe(61900);
+    expect(
+      normalizeFiltersForSearch(
+        { ...getDefaultFilters(61900), maxPrice: 90000 },
+        61900,
+      ).maxPrice,
+    ).toBe(61900);
   });
 
   it("normalizes guest and bedroom counts to whole positive values", () => {
@@ -111,8 +125,8 @@ describe("normalizeFiltersForSearch", () => {
 });
 
 describe("filtersFromSearchParams", () => {
-  it("uses the available maximum when maxPrice is missing", () => {
-    expect(filtersFromSearchParams(new URLSearchParams(), 61900).maxPrice).toBe(61900);
+  it("uses the configured starter price when maxPrice is missing", () => {
+    expect(filtersFromSearchParams(new URLSearchParams(), 61900).maxPrice).toBe(13000);
   });
 
   it("uses the minimum searchable price when available maximum is lower", () => {

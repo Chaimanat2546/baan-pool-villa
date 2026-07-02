@@ -21,6 +21,18 @@ describe("Next image config", () => {
     expect(nextConfig.images?.minimumCacheTTL).toBe(60 * 60 * 24 * 365);
   });
 
+  it("allows advertisement images from the R2 worker", () => {
+    expect(nextConfig.images?.remotePatterns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          hostname: "webook-media.poolvilla.workers.dev",
+          pathname: "/advertisements/**",
+          protocol: "https",
+        }),
+      ]),
+    );
+  });
+
   it("sets global browser security headers", async () => {
     const headers = await nextConfig.headers?.();
     const globalHeaders = headers?.find((entry) => entry.source === "/:path*")

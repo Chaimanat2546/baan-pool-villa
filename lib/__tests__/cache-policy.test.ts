@@ -30,6 +30,7 @@ describe("cache policy", () => {
     expect(CACHE_REVALIDATE_SECONDS.homeSections).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.villaImages).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.guides).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.advertisements).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.tiktokOEmbed).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.legalPages).toBe(TWELVE_HOURS_SECONDS);
   });
@@ -39,6 +40,7 @@ describe("cache policy", () => {
       "guide:family-pool-villa",
     );
     expect(CACHE_TAGS.guides).toBe("guides");
+    expect(CACHE_TAGS.advertisements).toBe("advertisements");
     expect(CACHE_TAGS.villaListings).toBe("villa-listings");
     expect(CACHE_TAGS.villaDetails).toBe("villa-details");
     expect(CACHE_TAGS.villaDetail("42")).toBe("villa-detail:42");

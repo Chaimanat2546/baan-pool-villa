@@ -32,26 +32,23 @@ export function NearbySection({
 
   return (
     <section className="min-w-0">
-      <h2 className="text-left text-2xl font-black text-[var(--site-text)] lg:text-center">
-        สถานที่ท่องเที่ยวแนะนำ
-      </h2>
-      <div className="mt-5 lg:max-h-[720px] lg:overflow-y-auto lg:overflow-x-hidden lg:pr-2">
+      <div className="mt-5 max-h-[260px] overflow-y-auto overflow-x-hidden pr-2">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-sm font-black text-[var(--site-text)]">
             จุดหมายจาก Google Maps
           </h3>
-          <span className="text-xs font-bold text-[var(--site-muted)] md:hidden">
+          <span className="text-xs font-bold text-[var(--site-muted)]">
             เลื่อนได้
           </span>
         </div>
-        <div className="-mx-0.5 flex snap-x gap-4 overflow-x-auto px-0.5 pb-3 sm:-mx-6 sm:px-6 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 lg:block lg:space-y-3">
+        <div className="space-y-3">
           {cards.map((card) => (
             <a
               key={card.key}
               href={card.href ?? "#"}
               target={card.href ? "_blank" : undefined}
               rel={card.href ? "noreferrer" : undefined}
-              className="block w-[299px] shrink-0 snap-start rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_30px_rgba(6,63,53,0.06)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_16px_34px_rgba(6,63,53,0.11)] sm:w-[56%] md:w-full"
+              className="block rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_30px_rgba(6,63,53,0.06)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_16px_34px_rgba(6,63,53,0.11)]"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-black text-[var(--site-primary)]">

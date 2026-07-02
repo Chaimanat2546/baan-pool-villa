@@ -4,6 +4,7 @@ import { ContactSection } from "@/components/layout/contact-section";
 import type { HomePageSettings } from "@/components/villas/home/client-payload";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
+import { SEARCH_FACETS } from "@/lib/villas/search-options";
 
 import { ArticlesSection } from "./articles-section";
 import { DestinationsSection } from "./destinations-section";
@@ -110,8 +111,8 @@ export function HomePage({
   destinationVillas = [],
   settings,
 }: HomePageProps) {
-  const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? 0;
-  const zones = filterSummary?.zones ?? [];
+  const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? SEARCH_FACETS.maxPrice;
+  const zones = filterSummary?.zones ?? SEARCH_FACETS.zones;
 
   const degradedSourceNames = [
     degradedSources?.siteSettings ? "siteSettings" : null,

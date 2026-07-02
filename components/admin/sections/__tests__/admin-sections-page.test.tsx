@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
     refresh: vi.fn(),
     replace: vi.fn(),
   },
+  signOut: vi.fn(),
 }));
 
 const savedSection = {
@@ -54,6 +55,14 @@ vi.mock("@/components/admin/admin-auth", () => ({
   readAdminAccessToken: mocks.readAdminAccessToken,
 }));
 
+vi.mock("@/lib/home-sections/supabase", () => ({
+  createBrowserHomeConfigClient: () => ({
+    auth: {
+      signOut: mocks.signOut,
+    },
+  }),
+}));
+
 import { AdminSectionsPage } from "../admin-sections-page";
 
 describe("AdminSectionsPage", () => {
@@ -61,12 +70,40 @@ describe("AdminSectionsPage", () => {
     mocks.readAdminAccessToken.mockResolvedValue("admin-token");
     mocks.refresh.mockReset();
     mocks.replace.mockReset();
+    mocks.signOut.mockReset();
+    mocks.signOut.mockResolvedValue({ error: null });
     mocks.router.refresh = mocks.refresh;
     mocks.router.replace = mocks.replace;
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("signs out before redirecting when the session is not an active admin", async () => {
+    vi.stubGlobal(
+      "fetch",
+      makeFetchMock([
+        {
+          body: {
+            error:
+              "Signed-in user is not listed as an active home config admin.",
+          },
+          status: 403,
+          url: "/api/admin/home-sections",
+        },
+      ]),
+    );
+
+    const page = await mountAdminPage(<AdminSectionsPage />);
+    await flushEffects();
+
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(mocks.replace).toHaveBeenCalledWith(
+      "/admin/login?error=admin-access",
+    );
+
+    await page.unmount();
   });
 
   it("saves section changes without reloading the route", async () => {

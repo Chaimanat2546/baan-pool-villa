@@ -3,9 +3,11 @@ import type {
   PublicVillaDetailPayload,
   PublicVillaImage,
 } from "@/lib/villas/public-dto";
+import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 export interface VillaDetailPageProps {
+  advertisements?: PublicAdvertisement[];
   id: string;
   initialGalleryImages?: PublicVillaImage[];
   payload: PublicVillaDetailPayload;

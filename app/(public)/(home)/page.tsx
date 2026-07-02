@@ -18,12 +18,12 @@ import { VillaRailSkeleton } from "@/components/villas/home/villa-rail-skeleton"
 import { getPublishedGuides } from "@/lib/guides/server";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
 import {
-  getActiveHomeSectionHouseIds,
+  getHomeSectionListingPlan,
   getResolvedHomeSections,
 } from "@/lib/home-sections/server";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
-import { getMaxVillaPrice, getUniqueZones } from "@/lib/villas/filters";
+import { SEARCH_FACETS } from "@/lib/villas/search-options";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { fetchHomeListings } from "@/lib/villas/server";
 import { toPublicVillaListing } from "@/lib/villas/public-dto";
@@ -37,6 +37,8 @@ type DestinationVilla = {
   coverImage: string | null;
   id: string;
 };
+
+const HOME_DESTINATION_LIMIT = 12;
 
 type HomePageData = {
   degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
@@ -123,15 +125,20 @@ async function getHomePageData(): Promise<HomePageData> {
     (value) => ({ status: "fulfilled" as const, value }),
     (reason) => ({ reason, status: "rejected" as const }),
   );
-  const homeSectionHouseIdsResult = await getActiveHomeSectionHouseIds().then(
+  const homeSectionListingPlanResult = await getHomeSectionListingPlan(
+    HOME_DESTINATION_LIMIT,
+  ).then(
     (value) => ({ status: "fulfilled" as const, value }),
     (reason) => ({ reason, status: "rejected" as const }),
   );
 
   const villasResult = await fetchHomeListings(
-    homeSectionHouseIdsResult.status === "fulfilled"
-      ? homeSectionHouseIdsResult.value
+    homeSectionListingPlanResult.status === "fulfilled"
+      ? homeSectionListingPlanResult.value.houseIds
       : [],
+    homeSectionListingPlanResult.status === "fulfilled"
+      ? homeSectionListingPlanResult.value.listingLimit
+      : HOME_DESTINATION_LIMIT,
   ).then(
     (value) => ({ status: "fulfilled" as const, value }),
     (reason) => ({ reason, status: "rejected" as const }),
@@ -156,15 +163,20 @@ async function getHomePageData(): Promise<HomePageData> {
       guides: selectHomeGuideSummaries(guides),
       homeSections: [],
       filterSummary: {
-        maxAvailablePrice: 0,
-        zones: [],
+        maxAvailablePrice: SEARCH_FACETS.maxPrice,
+        zones: SEARCH_FACETS.zones,
       },
       destinationVillas: [],
     };
   }
 
   const villas = villasResult.value;
-  const homeSectionsResult = await getResolvedHomeSections(villas);
+  const homeSectionsResult = await getResolvedHomeSections(
+    villas,
+    homeSectionListingPlanResult.status === "fulfilled"
+      ? homeSectionListingPlanResult.value.configs
+      : undefined,
+  );
 
   if (homeSectionsResult.degraded) {
     console.error(
@@ -185,10 +197,10 @@ async function getHomePageData(): Promise<HomePageData> {
       villas: section.villas.map(toPublicVillaListing),
     })),
     filterSummary: {
-      maxAvailablePrice: getMaxVillaPrice(villas),
-      zones: getUniqueZones(villas),
+      maxAvailablePrice: SEARCH_FACETS.maxPrice,
+      zones: SEARCH_FACETS.zones,
     },
-    destinationVillas: villas.slice(0, 12).map((villa) => {
+    destinationVillas: villas.slice(0, HOME_DESTINATION_LIMIT).map((villa) => {
       const publicVilla = toPublicVillaListing(villa);
 
       return {

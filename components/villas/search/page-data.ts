@@ -2,7 +2,8 @@ import {
   filtersFromSearchParams,
 } from "@/lib/villas/filters";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
-import { fetchVillaSearchFacets, fetchVillaSearchPage } from "@/lib/villas/server";
+import { SEARCH_FACETS } from "@/lib/villas/search-options";
+import { fetchVillaSearchPage } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
 import { getSortKeyFromSearchParams } from "./search-page-helpers";
 
@@ -31,7 +32,7 @@ export async function getSearchPageData(
   }
 
   try {
-    const facets = await fetchVillaSearchFacets();
+    const facets = SEARCH_FACETS;
     const result = await fetchVillaSearchPage({
       facets,
       filters: filtersFromSearchParams(searchParams, facets.maxPrice),
@@ -57,9 +58,9 @@ export async function getSearchPageData(
       villas: [],
       meta: {
         catalogComplete: false,
-        maxPrice: 1000,
+        maxPrice: SEARCH_FACETS.maxPrice,
         resultCount: 0,
-        zones: [],
+        zones: SEARCH_FACETS.zones,
       },
     };
   }

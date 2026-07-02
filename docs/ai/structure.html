@@ -143,7 +143,7 @@
               <tr>
                 <td><code>app/(public)/(home)/page.tsx</code></td>
                 <td><code>/</code></td>
-                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, bounded homepage villa listing, home-section, and site-settings reads come from tagged data caches. The route starts homepage data before awaiting site settings, then streams the settings-backed hero shell first while the hero search and deferred homepage content resolve behind <code>Suspense</code> from the shared homepage data promise; guide loading no longer blocks the bounded villa catalog read. The server route still uses full site settings for metadata and JSON-LD, but the client <code>HomePage</code> receives only the rendered homepage settings fields (<code>heroImage</code>, <code>tiktok</code>, <code>contact</code>, and <code>bank</code>), public guide summaries, and homepage public villa listing DTOs loaded from the fallback listing window plus active configured home-section house IDs with validated image source URLs for the custom image loader; guides, villas, and TikTok videos are capped before crossing into the client payload. The homepage uses the CMS SEO title as an absolute title so the root metadata template does not duplicate the site name, and it passes non-visible degraded source data when guides, homepage villa listings, home sections, or site settings fall back or fail independently, with non-settings degraded sources emitted by the deferred content stream.</td>
+                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, bounded homepage villa listing, home-section, and site-settings reads come from tagged data caches. The route starts homepage data before awaiting site settings, then streams the settings-backed hero shell first while the hero search and deferred homepage content resolve behind <code>Suspense</code> from the shared homepage data promise; guide loading no longer blocks the bounded villa catalog read, and hero search price/zone controls use static options from <code>lib/villas/search-options.ts</code> instead of deriving facets from the fetched villa window. The server route still uses full site settings for metadata and JSON-LD, but the client <code>HomePage</code> receives only the rendered homepage settings fields (<code>heroImage</code>, <code>tiktok</code>, <code>contact</code>, and <code>bank</code>), public guide summaries, and homepage public villa listing DTOs loaded from the home-section-config-sized listing window plus active configured home-section house IDs with validated image source URLs for the custom image loader; guides, villas, and TikTok videos are capped before crossing into the client payload. The homepage uses the CMS SEO title as an absolute title so the root metadata template does not duplicate the site name, and it passes non-visible degraded source data when guide posts, homepage villa listings, home sections, or site settings fall back or fail independently, with non-settings degraded sources emitted by the deferred content stream.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/(home)/loading.tsx</code></td>
@@ -153,7 +153,7 @@
               <tr>
                 <td><code>app/(public)/search/page.tsx</code></td>
                 <td><code>/search</code></td>
-                <td><code>components/villas/search/page</code>, villa listing helpers, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is applied to the first server-loaded page through bounded Supabase search helpers, and the client requests additional bounded filtered pages from <code>/api/houses</code> when an interaction needs more results, so neither the route nor the public API exposes the full catalog in one response.</td>
+                <td><code>components/villas/search/page</code>, villa listing helpers, static search options, landing first-page search metadata, and site-settings-backed public SEO defaults. The route resolves metadata through the <code>search</code> section SEO template before falling back to global SEO. Query-string filtering is applied to the first server-loaded page through bounded Supabase search helpers, while price max/default and zone options come from <code>lib/villas/search-options.ts</code>; the client requests additional bounded filtered pages from <code>/api/houses</code> when an interaction needs more results, so neither the route nor the public API exposes the full catalog in one response.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/search/loading.tsx</code></td>
@@ -188,7 +188,7 @@
               <tr>
                 <td><code>app/(public)/villas/[id]/page.tsx</code></td>
                 <td><code>/villas/:id</code></td>
-                <td><code>components/villas/detail/page</code>, listing/detail API data, SEO/JSON-LD helpers, up to four display-prioritized SSR Supabase gallery preview images, and a client gallery loader backed by <code>/api/villas/:id/images</code>. Villa detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached initial data comes from villa listing/detail and villa-image tags, SSR preloads only the above-the-fold gallery preview images selected with the same main/side priority used by the rendered gallery, the client defers the full gallery image-set request until browser idle or user gallery interaction, lower detail blocks defer rendering until they approach the viewport, recommended villas load client-side from <code>/api/home-sections</code> after the recommendation block approaches the viewport, categorized image previews render placeholder tiles until their block approaches the viewport, public detail payloads pass validated listing cover and gallery source URLs to <code>next/image</code> with the custom image loader, gallery downloads use <code>/api/villas/:id/images?download=1</code>, and the route renders VacationRental plus breadcrumb JSON-LD.</td>
+                <td><code>components/villas/detail/page</code>, listing/detail API data, SEO/JSON-LD helpers, up to four display-prioritized SSR Supabase gallery preview images, and a client gallery loader backed by <code>/api/villas/:id/images</code>. Villa detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached initial data comes from villa listing/detail and villa-image tags, SSR preloads only the above-the-fold gallery preview images selected with the same main/side priority used by the rendered gallery, the client defers the full gallery image-set request until browser idle or user gallery interaction, lower detail blocks defer rendering until they approach the viewport, recommended villas load client-side from <code>/api/home-sections</code> after the recommendation block approaches the viewport, cached advertisements load only when the CMS detail layout contains the advertisement block, categorized image previews render placeholder tiles until their block approaches the viewport, public detail payloads pass validated listing cover and gallery source URLs to <code>next/image</code> with the custom image loader, gallery downloads use <code>/api/villas/:id/images?download=1</code>, and the route renders VacationRental plus breadcrumb JSON-LD.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/villas/[id]/loading.tsx</code></td>
@@ -233,7 +233,7 @@
               <tr>
                 <td><code>app/(public)/api/houses/route.ts</code></td>
                 <td><code>/api/houses</code></td>
-                <td>Public catalog rate limiting and error boundary. Query parsing, Supabase-backed filtering, sorting, pagination, lightweight facets, 6-hour public cache headers, Worker JSON edge-cache response shape, and public listing DTOs with validated cover image source URLs live in <code>lib/villas/public-houses-route.ts</code>, <code>lib/villas/server.ts</code>, and <code>lib/villas/public-dto.ts</code>. Heavy amenities, max-price, and price-sort searches use the <code>search_public_villa_ids</code> Supabase RPC from the villa-search migration, then hydrate only the returned page IDs.</td>
+                <td>Public catalog rate limiting and error boundary. Query parsing, Supabase-backed filtering, sorting, pagination, static search facets, 6-hour public cache headers, Worker JSON edge-cache response shape, and public listing DTOs with validated cover image source URLs live in <code>lib/villas/public-houses-route.ts</code>, <code>lib/villas/search-options.ts</code>, <code>lib/villas/server.ts</code>, and <code>lib/villas/public-dto.ts</code>. Heavy amenities, max-price, and price-sort searches use the <code>search_public_villa_ids</code> Supabase RPC from the villa-search migration, then hydrate only the returned page IDs.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/houses/images/[id]/route.ts</code></td>
@@ -476,8 +476,8 @@
           <tbody>
             <tr>
               <td><code>components/villas/home</code></td>
-              <td>Home page sections, CMS-driven home assembly, hero/articles/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), villa rails, home skeletons, and minimal homepage client payloads.</td>
-              <td>Use <code>VillaRail</code>, home shared helpers, <code>components/ui/scroll-rail</code>, and section header patterns before creating new section UI. The homepage server may use the full villa catalog to resolve sections, but client islands receive only the fields they render.</td>
+              <td>Home page sections, CMS-driven home assembly, hero/articles/activity/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), villa rails, home skeletons, and minimal homepage client payloads.</td>
+              <td>Use <code>VillaRail</code>, home shared helpers, <code>components/ui/scroll-rail</code>, and section header patterns before creating new section UI. The homepage server sizes its villa listing window from home-section config before resolving sections, and client islands receive only the fields they render.</td>
             </tr>
             <tr>
               <td><code>components/admin/tiktok</code></td>
@@ -491,7 +491,7 @@
             </tr>
             <tr>
               <td><code>components/villas/detail</code></td>
-              <td>Villa detail page/helpers/gallery shell, gallery grid, gallery lightbox, gallery tile components, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI/visual helpers, recommendations, layout renderer/helpers/parts, detail skeletons, and review videos backed by <code>lib/villas/detail</code> embed URLs.</td>
+              <td>Villa detail page/helpers/gallery shell, gallery grid, gallery lightbox, gallery tile components, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI/visual helpers, recommendations, layout renderer/helpers/parts, CMS-managed advertisement cards, detail skeletons, and review videos backed by <code>lib/villas/detail</code> embed URLs.</td>
               <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Review videos should use the shared lazy YouTube poster/embed UI so guide and villa video rendering stay aligned.</td>
             </tr>
             <tr>
@@ -541,7 +541,7 @@
           <tbody>
             <tr>
               <td><code>lib/villas</code></td>
-              <td>External villa listings/detail fetches, booking calendar normalization/fetches, tagged normalized catalog caching, filtering, amenities, Supabase image reads, admin refresh route helpers, villa types, and public listing DTOs that normalize and validate image source URLs before they cross into public API/client payloads for the custom image loader.</td>
+              <td>External villa listings/detail fetches, booking calendar normalization/fetches, tagged normalized catalog caching, filtering, static search options, amenities, Supabase image reads, admin refresh route helpers, villa types, and public listing DTOs that normalize and validate image source URLs before they cross into public API/client payloads for the custom image loader.</td>
               <td><code>lib/villas/__tests__</code></td>
             </tr>
             <tr>
@@ -563,6 +563,11 @@
               <td><code>lib/detail-layout</code></td>
               <td>Admin-managed detail layout types, defaults, validation, compatibility, route helpers, versioned layout definitions.</td>
               <td><code>lib/detail-layout/__tests__</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/advertisements</code></td>
+              <td>Public advertisement/activity reads from Supabase <code>advertisements</code> plus <code>advertisement_images</code>, villa-zone/all-zone filtering, image-name validation, R2 Worker image URL construction, and detail public advertisement DTOs.</td>
+              <td><code>lib/advertisements/__tests__</code> plus villa detail layout renderer tests.</td>
             </tr>
             <tr>
               <td><code>lib/guides</code></td>
@@ -667,6 +672,12 @@
               <td><code>lib/detail-layout</code>, admin detail layout API, detail layout cache revalidation.</td>
               <td>Villa detail renderer and admin detail layout builder.</td>
             </tr>
+              <tr>
+                <td>Advertisement activities</td>
+                <td>Supabase <code>advertisements</code> rows filtered by the current villa <code>location_zone</code> plus <code>all</code> and joined with <code>advertisement_images</code>; images are stored as R2 object names and rendered through the configured Worker URL pattern using the advertisement id plus image name.</td>
+                <td><code>lib/advertisements/server.ts</code>, advertisement cache tag, and <code>lib/advertisements/image-url.ts</code> for validated advertisement-id/image-name to Worker URL construction.</td>
+                <td>CMS-managed villa detail advertisement block with up to three activity cards and an in-page gallery popup.</td>
+              </tr>
               <tr>
                 <td>Guide CMS</td>
                 <td>Supabase <code>guide_posts</code>, <code>guide_asset_uploads</code>, and public <code>guide-assets</code> storage bucket.</td>
@@ -854,6 +865,11 @@
               <td><code>npm.cmd test -- lib/detail-layout</code> and relevant detail/admin detail-layout tests</td>
               <td>Run lint and build before completion.</td>
             </tr>
+              <tr>
+                <td>Advertisement activities, image URL construction, or villa detail advertisement block</td>
+                <td><code>npm.cmd test -- lib/advertisements components/villas/detail/__tests__/detail-layout-renderer.test.tsx components/villas/detail/__tests__/gallery-lightbox.test.tsx lib/__tests__/next-config.test.ts lib/security/__tests__/csp.test.ts</code></td>
+                <td>Run lint, build, and browser verification for <code>/</code> or <code>/villas/:id</code> when UI changes.</td>
+              </tr>
               <tr>
                 <td>Guide CMS, guide routes, guide validation, uploads, or guide admin UI</td>
                 <td><code>npm.cmd test -- lib/guides</code> plus guide-related cache tests when cache behavior changes</td>

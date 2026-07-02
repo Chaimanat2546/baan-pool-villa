@@ -5,6 +5,8 @@ type CspSafeImageProps = ImageProps & {
   priority?: boolean;
 };
 
+const RAW_IMAGE_HOSTNAMES = new Set(["webook-media.poolvilla.workers.dev"]);
+
 function isRawPreviewSource(src: ImageProps["src"]): src is string {
   if (typeof src !== "string") {
     return false;
@@ -22,6 +24,7 @@ function isRawPreviewSource(src: ImageProps["src"]): src is string {
     const hostname = new URL(src).hostname.toLowerCase();
 
     return (
+      RAW_IMAGE_HOSTNAMES.has(hostname) ||
       hostname.endsWith(".tiktokcdn.com") ||
       hostname.endsWith(".tiktokcdn-us.com")
     );

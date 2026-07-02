@@ -191,17 +191,25 @@ function useActiveThumbnailScroll(
 export function GalleryLightbox({
   activeItem,
   categories,
+  eyebrow = "แกลเลอรีรูปบ้าน",
   listing,
   onClose,
   onImageError,
   onSelect,
+  showCategorySelector = true,
+  showDownload = true,
+  title,
 }: {
   activeItem: GalleryItem | null;
   categories: GalleryCategory[];
+  eyebrow?: string;
   listing: VillaListing;
   onClose: () => void;
   onImageError: (url: string) => void;
   onSelect: (item: GalleryItem) => void;
+  showCategorySelector?: boolean;
+  showDownload?: boolean;
+  title?: string;
 }) {
 
   const [loadedImageKey, setLoadedImageKey] = useState<string | null>(null);
@@ -254,7 +262,9 @@ export function GalleryLightbox({
 
   const { activeIndex, activeItems, nextItem, previousItem } =
     getGalleryNavigation(categories, activeItem);
-  const activeImageDownloadHref = buildGalleryDownloadHref(listing.id, activeItem);
+  const activeImageDownloadHref = showDownload
+    ? buildGalleryDownloadHref(listing.id, activeItem)
+    : null;
   const activeImageDisplaySrc = buildGalleryDisplaySrc(
     listing.id,
     activeItem,
@@ -262,6 +272,9 @@ export function GalleryLightbox({
     75,
   );
   const lightboxTitleId = `gallery-lightbox-title-${listing.id}`;
+  const lightboxTitle = title ?? getVillaTitle(listing.id, listing.title);
+  const detailLabel = showCategorySelector ? "หมวดรูป" : "กิจกรรม";
+  const detailTitle = showCategorySelector ? activeItem.zoneLabel : lightboxTitle;
   const isActiveImageLoading =
     Boolean(activeImageDisplaySrc) && loadedImageKey !== activeItem.key;
   const handleImageTouchStart = (event: TouchEvent<HTMLDivElement>) => {
@@ -302,19 +315,19 @@ export function GalleryLightbox({
 
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
 
             <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[var(--site-on-primary)] opacity-60 sm:text-xs sm:tracking-[0.18em]">
-              แกลเลอรีรูปบ้าน
+              {eyebrow}
 
             </p>
 
             <h2
-              className="truncate text-lg font-black sm:text-2xl"
+              className="line-clamp-2 break-words text-lg font-black leading-6 sm:text-2xl sm:leading-8"
               id={lightboxTitleId}
             >
 
-              {getVillaTitle(listing.id, listing.title)}
+              {lightboxTitle}
 
             </h2>
 
@@ -337,6 +350,7 @@ export function GalleryLightbox({
 
         </header>
 
+        {showCategorySelector ? (
         <div className="shrink-0 border-b border-white/10 px-4 py-3 sm:px-6 lg:hidden">
 
           <div className="mb-2 flex items-center justify-between gap-3">
@@ -360,6 +374,7 @@ export function GalleryLightbox({
           </div>
 
         </div>
+        ) : null}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden px-3 pb-8 pt-3 sm:gap-3 sm:px-6 sm:py-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-5 lg:px-6 lg:pb-6 lg:pt-5">
 
@@ -375,7 +390,7 @@ export function GalleryLightbox({
 
               src={activeImageDisplaySrc}
 
-              alt={`${getVillaTitle(listing.id, listing.title)} ${activeItem.zoneLabel}`}
+              alt={`${lightboxTitle} ${activeItem.zoneLabel}`}
 
               fill
 
@@ -409,20 +424,24 @@ export function GalleryLightbox({
               </div>
             ) : null}
 
-            <div className="absolute left-2 top-2 z-20 max-w-[calc(100%_-_4.5rem)] rounded-full bg-black/50 px-3 py-1.5 text-xs font-black text-[var(--site-on-primary)] backdrop-blur sm:hidden">
+            {showCategorySelector ? (
+            <div className="absolute left-2 top-2 z-20 max-w-[calc(100%_-_4.5rem)] truncate rounded-full bg-black/50 px-3 py-1.5 text-xs font-black text-[var(--site-on-primary)] backdrop-blur sm:hidden">
               {activeItem.zoneLabel}
               <span className="ml-2 opacity-70">
                 {activeIndex + 1}/{activeItems.length}
               </span>
             </div>
+            ) : null}
 
-            <div className="absolute left-4 top-4 z-20 hidden max-w-[calc(100%_-_5.5rem)] items-center rounded-full bg-black/50 px-4 py-2 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(0,0,0,0.2)] backdrop-blur lg:inline-flex">
+            {showCategorySelector ? (
+            <div className="absolute left-4 top-4 z-20 hidden max-w-[calc(100%_-_5.5rem)] truncate rounded-full bg-black/50 px-4 py-2 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(0,0,0,0.2)] backdrop-blur lg:inline-flex">
               {activeItem.zoneLabel}
               <span className="mx-2 opacity-50">•</span>
               <span className="opacity-80">
                 {activeIndex + 1}/{activeItems.length}
               </span>
             </div>
+            ) : null}
 
             {activeImageDownloadHref ? (
               <a
@@ -482,6 +501,7 @@ export function GalleryLightbox({
 
           <aside className="min-h-0 min-w-0 max-w-full shrink-0 lg:flex lg:h-full lg:flex-col lg:overflow-hidden">
 
+            {showCategorySelector ? (
             <div className="hidden shrink-0 rounded-2xl bg-white/10 p-3 lg:block">
               <p className="text-xs font-black text-[var(--site-on-primary)] opacity-60">เลือกหมวดหมู่</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
@@ -497,17 +517,20 @@ export function GalleryLightbox({
                 ))}
               </div>
             </div>
+            ) : null}
 
+            {showCategorySelector ? (
             <div className="rounded-2xl bg-white/10 p-3 sm:p-4 lg:mt-3 lg:shrink-0">
-              <p className="text-xs font-black text-[var(--site-on-primary)] opacity-60">หมวดรูป</p>
-              <h3 className="mt-1 text-xl font-black">{activeItem.zoneLabel}</h3>
+              <p className="text-xs font-black text-[var(--site-on-primary)] opacity-60">{detailLabel}</p>
+              <h3 className="mt-1 line-clamp-3 break-words text-xl font-black leading-7">{detailTitle}</h3>
 
-              <p className="mt-2 text-sm leading-6 text-[var(--site-on-primary)] opacity-70">
+              <p className="mt-2 break-words text-sm leading-6 text-[var(--site-on-primary)] opacity-70">
                 {getGalleryItemDescription(activeItem)}
 
               </p>
 
             </div>
+            ) : null}
 
             <div ref={thumbnailStripRef} className="mt-2 flex max-w-full snap-x gap-2 overflow-x-auto overflow-y-hidden pb-1 sm:mt-3 sm:pb-2 lg:min-h-0 lg:flex-1 lg:grid lg:auto-rows-[112px] lg:grid-cols-2 lg:content-start lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1">
 

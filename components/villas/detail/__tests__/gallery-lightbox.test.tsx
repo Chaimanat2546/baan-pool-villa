@@ -85,6 +85,35 @@ describe("GalleryLightbox", () => {
     expect(activeMarkup).toContain('aria-labelledby="gallery-lightbox-title-88"');
     expect(activeMarkup).toContain('id="gallery-lightbox-title-88"');
     expect(activeMarkup).toContain('data-active-thumbnail="true"');
+    expect(activeMarkup).toContain("line-clamp-3 break-words");
+    expect(activeMarkup).toContain("แกลเลอรีรูปบ้าน");
+    expect(activeMarkup).toContain("ดาวน์โหลดรูปนี้");
+  });
+
+  it("supports an activity popup without a villa image download action", () => {
+    const markup = renderToStaticMarkup(
+      <GalleryLightbox
+        activeItem={item}
+        categories={categories}
+        eyebrow="แกลเลอรีกิจกรรม"
+        listing={listing}
+        onClose={() => undefined}
+        onImageError={() => undefined}
+        onSelect={() => undefined}
+        showCategorySelector={false}
+        showDownload={false}
+        title="Island day pass"
+      />,
+    );
+
+    expect(markup).toContain("แกลเลอรีกิจกรรม");
+    expect(markup).toContain("Island day pass");
+    expect(markup).toContain("กิจกรรม");
+    expect(markup).toContain("line-clamp-2 break-words");
+    expect(markup).not.toContain("line-clamp-3 break-words");
+    expect(markup).not.toContain("เลือกหมวดหมู่");
+    expect(markup).not.toContain("หมวดรูป");
+    expect(markup).not.toContain("ดาวน์โหลดรูปนี้");
   });
 
   it("does not select an empty category", async () => {

@@ -35,6 +35,7 @@ export const DETAIL_LAYOUT_BLOCK_LABELS: Record<DetailLayoutBlockType, string> =
   categorized_images: "รูปภาพตามหมวดหมู่",
   costs_promotions: "ค่าใช้จ่ายและโปรโมชัน",
   rules_pet_policy: "กฎและสัตว์เลี้ยง",
+  advertisements: "กิจกรรมที่น่าสนใจ",
   map_nearby: "แผนที่และสถานที่ใกล้เคียง",
   review_videos: "รีวิวและวิดีโอ",
   booking_contact: "จอง / ติดต่อ",
