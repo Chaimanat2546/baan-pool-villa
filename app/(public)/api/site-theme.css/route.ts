@@ -36,6 +36,18 @@ export function GET(request: Request) {
         url.searchParams.get("bankHighlight"),
         DEFAULT_HIGHLIGHT_COLOR,
       ),
+      bankAccountHighlightColor: readHexColor(
+        url.searchParams.get("bankAccountHighlight"),
+        readHexColor(url.searchParams.get("bankHighlight"), DEFAULT_HIGHLIGHT_COLOR),
+      ),
+      bankNameHighlightColor: readHexColor(
+        url.searchParams.get("bankNameHighlight"),
+        readHexColor(url.searchParams.get("bankHighlight"), DEFAULT_HIGHLIGHT_COLOR),
+      ),
+      bankNumberHighlightColor: readHexColor(
+        url.searchParams.get("bankNumberHighlight"),
+        readHexColor(url.searchParams.get("bankHighlight"), DEFAULT_HIGHLIGHT_COLOR),
+      ),
       footerLinkColor: readHexColor(
         url.searchParams.get("footerLink"),
         DEFAULT_LINK_COLOR,

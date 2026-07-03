@@ -112,11 +112,19 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   footerLinkColor: "#ffffff",
   footerLinkHoverColor: "#eab308",
   bankHighlightColor: "#eab308",
+  bankAccountHighlightColor: "#eab308",
+  bankNameHighlightColor: "#eab308",
+  bankNumberHighlightColor: "#eab308",
   logoBackground: "white",
   logoImage: {
     path: "/images/logo.jpg",
     url: "/images/logo.jpg",
     alt: "Baan Pool Villa logo",
+  },
+  faviconImage: {
+    path: "/site-icons/icon.png",
+    url: "/site-icons/icon.png",
+    alt: "Pool Villas Pattaya icon",
   },
   heroImage: {
     path: "/images/BPV-66_Cover-Web.jpg",

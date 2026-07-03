@@ -38,6 +38,7 @@ const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
 const THAI_PHONE_PATTERN = /^0\d{9}$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
 const SITE_ASSET_TYPES: SiteAssetType[] = [
+  "favicon",
   "hero",
   "logo",
   "seo-og",
@@ -111,6 +112,18 @@ export function normalizeSiteSettingsRow(
     row.bank_highlight_color,
     DEFAULT_SITE_SETTINGS.bankHighlightColor,
   );
+  const bankAccountHighlightColor = normalizeColor(
+    row.bank_account_highlight_color,
+    bankHighlightColor,
+  );
+  const bankNameHighlightColor = normalizeColor(
+    row.bank_name_highlight_color,
+    bankHighlightColor,
+  );
+  const bankNumberHighlightColor = normalizeColor(
+    row.bank_number_highlight_color,
+    bankHighlightColor,
+  );
   const logoBackground = normalizeSiteLogoBackground(
     row.logo_background,
     DEFAULT_SITE_SETTINGS.logoBackground,
@@ -128,12 +141,21 @@ export function normalizeSiteSettingsRow(
     footerLinkColor,
     footerLinkHoverColor,
     bankHighlightColor,
+    bankAccountHighlightColor,
+    bankNameHighlightColor,
+    bankNumberHighlightColor,
     logoBackground,
     logoImage: normalizeImage(
       row.logo_image_path,
       row.logo_image_url,
       `${siteName} logo`,
       DEFAULT_SITE_SETTINGS.logoImage,
+    ),
+    faviconImage: normalizeImage(
+      row.favicon_image_path ?? null,
+      row.favicon_image_url ?? null,
+      `${siteName} icon`,
+      DEFAULT_SITE_SETTINGS.faviconImage,
     ),
     heroImage: normalizeImage(
       row.hero_image_path,
@@ -257,6 +279,9 @@ export function normalizeSiteSettingsDraft(
     footerLinkColor: draft.footerLinkColor.trim().toLowerCase(),
     footerLinkHoverColor: draft.footerLinkHoverColor.trim().toLowerCase(),
     bankHighlightColor: draft.bankHighlightColor.trim().toLowerCase(),
+    bankAccountHighlightColor: draft.bankAccountHighlightColor.trim().toLowerCase(),
+    bankNameHighlightColor: draft.bankNameHighlightColor.trim().toLowerCase(),
+    bankNumberHighlightColor: draft.bankNumberHighlightColor.trim().toLowerCase(),
     logoBackground: normalizeSiteLogoBackground(
       draft.logoBackground,
       DEFAULT_SITE_SETTINGS.logoBackground,
@@ -409,6 +434,18 @@ export function validateSiteSettingsDraft(
 
   if (!isHexColor(draft.bankHighlightColor)) {
     errors.push("สีไฮไลท์บัญชีต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.bankAccountHighlightColor)) {
+    errors.push("สีชื่อบัญชีต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.bankNameHighlightColor)) {
+    errors.push("สีชื่อธนาคารต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.bankNumberHighlightColor)) {
+    errors.push("สีเลขบัญชีต้องเป็นค่าสีแบบ #RRGGBB");
   }
 
   if (!isSiteLogoBackground(draft.logoBackground)) {
@@ -586,6 +623,8 @@ function getUploadAssetLabel(assetType: SiteAssetType): string {
   switch (assetType) {
     case "logo":
       return "โลโก้";
+    case "favicon":
+      return "ไอคอนเว็บไซต์";
     case "hero":
       return "Hero";
     case "seo-og":

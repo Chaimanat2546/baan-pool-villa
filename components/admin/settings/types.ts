@@ -3,6 +3,7 @@ import type { SitePhoneContact, SiteSettings } from "@/lib/site-settings/types";
 
 export interface AdminSettingsDraft {
   accentColor: string;
+  faviconFile: File | null;
   heroFile: File | null;
   heroImageAlt: string;
   logoFile: File | null;
@@ -12,6 +13,9 @@ export interface AdminSettingsDraft {
   footerLinkColor: string;
   footerLinkHoverColor: string;
   bankHighlightColor: string;
+  bankAccountHighlightColor: string;
+  bankNameHighlightColor: string;
+  bankNumberHighlightColor: string;
   logoBackground: SiteLogoBackground;
   seoOgImageFile: File | null;
   searchSeoOgImageFile: File | null;

@@ -2,6 +2,7 @@ import type { AnyDetailLayoutConfig } from "../detail-layout/types";
 import type { SiteLogoBackground } from "./logo-background";
 
 export type SiteAssetType =
+  | "favicon"
   | "logo"
   | "hero"
   | "seo-og"
@@ -76,8 +77,12 @@ export interface SiteSettings {
   footerLinkColor: string;
   footerLinkHoverColor: string;
   bankHighlightColor: string;
+  bankAccountHighlightColor: string;
+  bankNameHighlightColor: string;
+  bankNumberHighlightColor: string;
   logoBackground: SiteLogoBackground;
   logoImage: SiteImageSettings;
+  faviconImage: SiteImageSettings;
   heroImage: SiteImageSettings;
   bank: SiteBankSettings;
   contact: SiteContactSettings;
@@ -103,9 +108,14 @@ export interface SiteSettingsRow {
   footer_link_color?: string | null;
   footer_link_hover_color?: string | null;
   bank_highlight_color?: string | null;
+  bank_account_highlight_color?: string | null;
+  bank_name_highlight_color?: string | null;
+  bank_number_highlight_color?: string | null;
   logo_background?: string | null;
   logo_image_path: string | null;
   logo_image_url: string | null;
+  favicon_image_path?: string | null;
+  favicon_image_url?: string | null;
   hero_image_path: string | null;
   hero_image_url: string | null;
   hero_image_alt: string | null;
@@ -148,6 +158,9 @@ export interface SiteSettingsDraft {
   footerLinkColor: string;
   footerLinkHoverColor: string;
   bankHighlightColor: string;
+  bankAccountHighlightColor: string;
+  bankNameHighlightColor: string;
+  bankNumberHighlightColor: string;
   logoBackground: string;
   heroImageAlt: string;
   bankAccountName: string;

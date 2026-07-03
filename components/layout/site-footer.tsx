@@ -64,10 +64,16 @@ export function SiteFooter({ settings }: SiteFooterProps) {
                 {settings.siteName}
               </h2>
               <p className="mt-[7px] text-sm leading-5 text-[var(--site-on-primary)]">
-                กรุณาโอนเงิน ชื่อบัญชี {settings.bank.accountName}{" "}
+                กรุณาโอนเงิน{" "}
+                <span className="inline-flex rounded-full font-medium text-[var(--site-bank-account-highlight)]">
+                  ชื่อบัญชี {settings.bank.accountName}
+                </span>{" "}
                 <br className="sm:hidden" />
-                <span className="font-medium text-[var(--site-bank-highlight)]">
-                  {settings.bank.bankName} เลขที่ {settings.bank.accountNumber}
+                <span className="inline-flex rounded-full font-medium text-[var(--site-bank-name-highlight)]">
+                  {settings.bank.bankName}
+                </span>{" "}
+                <span className="inline-flex rounded-full font-medium text-[var(--site-bank-number-highlight)]">
+                  เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
                 เท่านั้น
               </p>

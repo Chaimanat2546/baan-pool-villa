@@ -84,9 +84,20 @@ describe("SiteHeader", () => {
       <SiteHeader settings={DEFAULT_SITE_SETTINGS} />,
     );
 
+    expect(markup).toContain("ชื่อบัญชี");
+    expect(markup).toContain("ธนาคาร");
+    expect(markup).toContain("เลขที่");
+    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountName);
+    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.bankName);
     expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountNumber);
+    expect(markup).not.toContain(
+      `${DEFAULT_SITE_SETTINGS.bank.bankName} เลขที่ ${DEFAULT_SITE_SETTINGS.bank.accountNumber}`,
+    );
     expect(markup).toContain("text-[var(--site-on-primary)]");
-    expect(markup).toContain("text-[var(--site-bank-highlight)]");
+    expect(markup).toContain("text-[var(--site-bank-account-highlight)]");
+    expect(markup).toContain("text-[var(--site-bank-name-highlight)]");
+    expect(markup).toContain("text-[var(--site-bank-number-highlight)]");
+    expect(markup).not.toContain("text-[var(--site-bank-highlight)]");
     expect(markup).toContain("text-[var(--site-header-link)]");
     expect(markup).toContain("hover:text-[var(--site-header-link-hover)]");
   });

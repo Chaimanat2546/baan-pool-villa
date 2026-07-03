@@ -291,6 +291,9 @@ create table if not exists public.site_settings (
   footer_link_color text not null default '#ffffff',
   footer_link_hover_color text not null default '#eab308',
   bank_highlight_color text not null default '#eab308',
+  bank_account_highlight_color text not null default '#eab308',
+  bank_name_highlight_color text not null default '#eab308',
+  bank_number_highlight_color text not null default '#eab308',
   logo_background text not null default 'white',
   logo_image_path text,
   logo_image_url text,
@@ -307,6 +310,9 @@ create table if not exists public.site_settings (
   constraint site_settings_footer_link_color_hex check (footer_link_color ~ '^#[0-9A-Fa-f]{6}$'),
   constraint site_settings_footer_link_hover_color_hex check (footer_link_hover_color ~ '^#[0-9A-Fa-f]{6}$'),
   constraint site_settings_bank_highlight_color_hex check (bank_highlight_color ~ '^#[0-9A-Fa-f]{6}$'),
+  constraint site_settings_bank_account_highlight_color_hex check (bank_account_highlight_color ~ '^#[0-9A-Fa-f]{6}$'),
+  constraint site_settings_bank_name_highlight_color_hex check (bank_name_highlight_color ~ '^#[0-9A-Fa-f]{6}$'),
+  constraint site_settings_bank_number_highlight_color_hex check (bank_number_highlight_color ~ '^#[0-9A-Fa-f]{6}$'),
   constraint site_settings_logo_background_allowed check (logo_background in ('white', 'transparent', 'primary', 'soft'))
 );
 
@@ -513,6 +519,9 @@ insert into public.site_settings (
   footer_link_color,
   footer_link_hover_color,
   bank_highlight_color,
+  bank_account_highlight_color,
+  bank_name_highlight_color,
+  bank_number_highlight_color,
   logo_background,
   logo_image_path,
   logo_image_url,
@@ -528,6 +537,9 @@ values (
   '#ffffff',
   '#eab308',
   '#ffffff',
+  '#eab308',
+  '#eab308',
+  '#eab308',
   '#eab308',
   '#eab308',
   'white',
@@ -1600,3 +1612,141 @@ create policy "Authenticated admins can delete site assets"
 notify pgrst, 'reload schema';
 
 -- END supabase/migrations/20260623010000_add_site_seo_share_asset_uploads.sql
+
+-- BEGIN supabase/migrations/20260703002000_add_site_favicon_setting.sql
+alter table public.site_settings
+  add column if not exists favicon_image_path text,
+  add column if not exists favicon_image_url text;
+
+alter table public.site_asset_uploads
+  drop constraint if exists site_asset_uploads_asset_type_check;
+
+alter table public.site_asset_uploads
+  add constraint site_asset_uploads_asset_type_check
+  check (
+    asset_type in (
+      'favicon',
+      'logo',
+      'hero',
+      'seo-og',
+      'search-seo-og',
+      'guides-seo-og'
+    )
+  );
+
+drop policy if exists "Authenticated admins can insert site asset uploads"
+  on public.site_asset_uploads;
+
+create policy "Authenticated admins can insert site asset uploads"
+  on public.site_asset_uploads
+  for insert
+  to authenticated
+  with check (
+    private.is_home_config_admin()
+    and storage_bucket = 'site-assets'
+    and (
+      storage_path like 'favicon/%'
+      or storage_path like 'hero/%'
+      or storage_path like 'logo/%'
+      or storage_path like 'seo-og/%'
+      or storage_path like 'search-seo-og/%'
+      or storage_path like 'guides-seo-og/%'
+    )
+  );
+
+drop policy if exists "Authenticated admins can update site asset uploads"
+  on public.site_asset_uploads;
+
+create policy "Authenticated admins can update site asset uploads"
+  on public.site_asset_uploads
+  for update
+  to authenticated
+  using (private.is_home_config_admin())
+  with check (
+    private.is_home_config_admin()
+    and storage_bucket = 'site-assets'
+    and (
+      storage_path like 'favicon/%'
+      or storage_path like 'hero/%'
+      or storage_path like 'logo/%'
+      or storage_path like 'seo-og/%'
+      or storage_path like 'search-seo-og/%'
+      or storage_path like 'guides-seo-og/%'
+    )
+  );
+
+drop policy if exists "Authenticated admins can insert site assets"
+  on storage.objects;
+
+create policy "Authenticated admins can insert site assets"
+  on storage.objects
+  for insert
+  to authenticated
+  with check (
+    bucket_id = 'site-assets'
+    and private.is_home_config_admin()
+    and (
+      name like 'favicon/%'
+      or name like 'hero/%'
+      or name like 'logo/%'
+      or name like 'seo-og/%'
+      or name like 'search-seo-og/%'
+      or name like 'guides-seo-og/%'
+    )
+  );
+
+drop policy if exists "Authenticated admins can update site assets"
+  on storage.objects;
+
+create policy "Authenticated admins can update site assets"
+  on storage.objects
+  for update
+  to authenticated
+  using (
+    bucket_id = 'site-assets'
+    and private.is_home_config_admin()
+    and (
+      name like 'favicon/%'
+      or name like 'hero/%'
+      or name like 'logo/%'
+      or name like 'seo-og/%'
+      or name like 'search-seo-og/%'
+      or name like 'guides-seo-og/%'
+    )
+  )
+  with check (
+    bucket_id = 'site-assets'
+    and private.is_home_config_admin()
+    and (
+      name like 'favicon/%'
+      or name like 'hero/%'
+      or name like 'logo/%'
+      or name like 'seo-og/%'
+      or name like 'search-seo-og/%'
+      or name like 'guides-seo-og/%'
+    )
+  );
+
+drop policy if exists "Authenticated admins can delete site assets"
+  on storage.objects;
+
+create policy "Authenticated admins can delete site assets"
+  on storage.objects
+  for delete
+  to authenticated
+  using (
+    bucket_id = 'site-assets'
+    and private.is_home_config_admin()
+    and (
+      name like 'favicon/%'
+      or name like 'hero/%'
+      or name like 'logo/%'
+      or name like 'seo-og/%'
+      or name like 'search-seo-og/%'
+      or name like 'guides-seo-og/%'
+    )
+  );
+
+notify pgrst, 'reload schema';
+
+-- END supabase/migrations/20260703002000_add_site_favicon_setting.sql

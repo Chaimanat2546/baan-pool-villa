@@ -7,6 +7,10 @@ vi.mock("next/font/google", () => ({
   }),
 }));
 
+vi.mock("@/lib/site-settings/server", () => ({
+  getSiteSettings: vi.fn(),
+}));
+
 import RootLayout from "../layout";
 
 describe("RootLayout", () => {

@@ -31,13 +31,13 @@ import type {
 } from "./types";
 
 const SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,logo_background,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords,detail_layout,tiktok_account_url,tiktok_video_urls";
+  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS =
-  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,logo_background,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_og_image_url,guides_seo_og_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
+  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_og_image_url,guides_seo_og_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO =
-  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,logo_background,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout,tiktok_account_url,tiktok_video_urls";
+  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
-  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,logo_background,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
+  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,detail_layout";
 const SITE_SETTINGS_GENERAL_SELECT =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls";
 const SITE_SETTINGS_SELECTS: readonly string[] = [
@@ -73,6 +73,9 @@ export function readSiteSettingsDraft(formData: FormData):
       footerLinkColor: readStringField(formData, "footerLinkColor"),
       footerLinkHoverColor: readStringField(formData, "footerLinkHoverColor"),
       bankHighlightColor: readStringField(formData, "bankHighlightColor"),
+      bankAccountHighlightColor: readStringField(formData, "bankAccountHighlightColor"),
+      bankNameHighlightColor: readStringField(formData, "bankNameHighlightColor"),
+      bankNumberHighlightColor: readStringField(formData, "bankNumberHighlightColor"),
       logoBackground: readStringField(formData, "logoBackground"),
       heroImageAlt: readStringField(formData, "heroImageAlt"),
       bankAccountName: readStringField(formData, "bankAccountName"),
@@ -120,6 +123,9 @@ export function buildSiteSettingsSavePayload({
   uploadedAssets: UploadedAsset[];
 }) {
   const logoUpload = uploadedAssets.find((asset) => asset.assetType === "logo");
+  const faviconUpload = uploadedAssets.find(
+    (asset) => asset.assetType === "favicon",
+  );
   const heroUpload = uploadedAssets.find((asset) => asset.assetType === "hero");
   const seoOgImageUpload = uploadedAssets.find(
     (asset) => asset.assetType === "seo-og",
@@ -141,9 +147,14 @@ export function buildSiteSettingsSavePayload({
     footer_link_color: draft.footerLinkColor,
     footer_link_hover_color: draft.footerLinkHoverColor,
     bank_highlight_color: draft.bankHighlightColor,
+    bank_account_highlight_color: draft.bankAccountHighlightColor,
+    bank_name_highlight_color: draft.bankNameHighlightColor,
+    bank_number_highlight_color: draft.bankNumberHighlightColor,
     logo_background: draft.logoBackground,
     logo_image_path: logoUpload?.path ?? currentSettings.logoImage.path,
     logo_image_url: logoUpload?.publicUrl ?? currentSettings.logoImage.url,
+    favicon_image_path: faviconUpload?.path ?? currentSettings.faviconImage.path,
+    favicon_image_url: faviconUpload?.publicUrl ?? currentSettings.faviconImage.url,
     hero_image_path: heroUpload?.path ?? currentSettings.heroImage.path,
     hero_image_url: heroUpload?.publicUrl ?? currentSettings.heroImage.url,
     hero_image_alt: draft.heroImageAlt,

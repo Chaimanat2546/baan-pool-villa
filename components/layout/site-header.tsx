@@ -31,8 +31,6 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const lastScrollYRef = useRef(0);
   const frameRef = useRef<number | null>(null);
-  const bankNotice = `กรุณาโอนเงิน ชื่อบัญชี ${settings.bank.accountName} `;
-  const bankAccount = `${settings.bank.bankName} เลขที่ ${settings.bank.accountNumber}`;
 
   const logoImageSrc =
     normalizePublicImageSourceUrl(settings.logoImage.url) ??
@@ -42,6 +40,9 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
   const siteThemeStyle = buildSiteThemeStyle({
     accentColor: settings.accentColor,
     bankHighlightColor: settings.bankHighlightColor,
+    bankAccountHighlightColor: settings.bankAccountHighlightColor,
+    bankNameHighlightColor: settings.bankNameHighlightColor,
+    bankNumberHighlightColor: settings.bankNumberHighlightColor,
     footerLinkColor: settings.footerLinkColor,
     footerLinkHoverColor: settings.footerLinkHoverColor,
     headerLinkColor: settings.headerLinkColor,
@@ -121,10 +122,16 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 {settings.siteName}
               </span>
               <span className="block text-[11px] leading-4 text-[var(--site-on-primary)] sm:text-sm sm:leading-5">
-                {bankNotice}{" "}
+                กรุณาโอนเงิน{" "}
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-account-highlight)]">
+                  ชื่อบัญชี {settings.bank.accountName}
+                </span>{" "}
                 <br className="sm:hidden" />
-                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-highlight)]">
-                  {bankAccount}
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)]">
+                  {settings.bank.bankName}
+                </span>{" "}
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)]">
+                  เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
                 เท่านั้น
               </span>

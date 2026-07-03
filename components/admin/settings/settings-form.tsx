@@ -136,9 +136,10 @@ export function SettingsForm({
     draft.searchSeoKeywords.length +
     draft.guidesSeoKeywords.length +
     draft.villaDetailSeoKeywords.length;
-  const bankPreviewText = `${draft.bankName || "ธนาคารกสิกรไทย"} เลขที่ ${
-    draft.bankAccountNumber || "398-289-7482"
-  }`;
+  const bankPreviewAccountName =
+    draft.bankAccountName || "คุณ อาภัสรา จินดาวา";
+  const bankPreviewName = draft.bankName || "ธนาคารกสิกรไทย";
+  const bankPreviewNumber = draft.bankAccountNumber || "398-289-7482";
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") {
@@ -329,6 +330,12 @@ export function SettingsForm({
                     {draft.logoFile ? draft.logoFile.name : "ยังไม่ได้เลือก"}
                   </dd>
                 </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-[var(--site-muted)]">ไอคอนใหม่</dt>
+                  <dd className="text-right font-semibold text-[var(--site-text)]">
+                    {draft.faviconFile ? draft.faviconFile.name : "ยังไม่ได้เลือก"}
+                  </dd>
+                </div>
               </dl>
             </div>
           </div>
@@ -345,6 +352,21 @@ export function SettingsForm({
             selectedFile={draft.logoFile}
             validateFile={(file) => {
               return validateUploadMetadata("logo", file.type, file.size, file.name);
+            }}
+          />
+          <AssetUploadField
+            currentAlt={settings.faviconImage.alt}
+            currentLabel="ไอคอนปัจจุบัน"
+            currentUrl={settings.faviconImage.url}
+            description="ไฟล์ PNG / JPG / WebP สำหรับไอคอนแท็บเบราว์เซอร์และไอคอนบนมือถือ"
+            id="faviconFile"
+            label="ไอคอนเว็บไซต์"
+            onFileChange={(faviconFile) => {
+              onChange({ faviconFile });
+            }}
+            selectedFile={draft.faviconFile}
+            validateFile={(file) => {
+              return validateUploadMetadata("favicon", file.type, file.size, file.name);
             }}
           />
           <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
@@ -457,6 +479,33 @@ export function SettingsForm({
                 }}
                 value={draft.bankHighlightColor}
               />
+              <ColorControl
+                description="ใช้กับข้อความชื่อบัญชีใน Header และ Footer"
+                id="bankAccountHighlightColor"
+                label="สีชื่อบัญชี"
+                onChange={(bankAccountHighlightColor) => {
+                  onChange({ bankAccountHighlightColor });
+                }}
+                value={draft.bankAccountHighlightColor}
+              />
+              <ColorControl
+                description="ใช้กับข้อความชื่อธนาคารใน Header และ Footer"
+                id="bankNameHighlightColor"
+                label="สีชื่อธนาคาร"
+                onChange={(bankNameHighlightColor) => {
+                  onChange({ bankNameHighlightColor });
+                }}
+                value={draft.bankNameHighlightColor}
+              />
+              <ColorControl
+                description="ใช้กับข้อความเลขบัญชีใน Header และ Footer"
+                id="bankNumberHighlightColor"
+                label="สีเลขบัญชี"
+                onChange={(bankNumberHighlightColor) => {
+                  onChange({ bankNumberHighlightColor });
+                }}
+                value={draft.bankNumberHighlightColor}
+              />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-3">
@@ -494,8 +543,15 @@ export function SettingsForm({
                       </span>
                       <span className="block text-xs leading-5">
                         กรุณาโอนเงิน{" "}
-                        <span className="font-semibold text-[var(--site-bank-highlight)]">
-                          {bankPreviewText}
+                        <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-account-highlight)]">
+                          ชื่อบัญชี {bankPreviewAccountName}
+                        </span>{" "}
+                        <br className="sm:hidden" />
+                        <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)]">
+                          {bankPreviewName}
+                        </span>{" "}
+                        <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)]">
+                          เลขที่ {bankPreviewNumber}
                         </span>{" "}
                         เท่านั้น
                       </span>
@@ -1072,6 +1128,7 @@ export function SettingsForm({
               <dd className="text-right font-semibold text-[var(--site-text)]">
                 {[
                   draft.logoFile,
+                  draft.faviconFile,
                   draft.heroFile,
                   draft.seoOgImageFile,
                   draft.searchSeoOgImageFile,

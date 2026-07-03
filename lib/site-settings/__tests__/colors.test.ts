@@ -47,7 +47,10 @@ describe("buildSiteThemeStyle", () => {
     });
 
     expect(style).toMatchObject({
+      "--site-bank-account-highlight": "#eab308",
       "--site-bank-highlight": "#eab308",
+      "--site-bank-name-highlight": "#eab308",
+      "--site-bank-number-highlight": "#eab308",
       "--site-footer-link": "#ffffff",
       "--site-footer-link-hover": "#eab308",
       "--site-header-link": "#ffffff",
@@ -84,6 +87,24 @@ describe("buildSiteThemeStyle", () => {
     expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
     expectContrast(style["--site-text"], style["--site-surface"]);
     expectContrast(style["--site-muted"], style["--site-surface"]);
+  });
+
+  it("builds separate bank highlight variables when configured", () => {
+    const style = buildSiteThemeStyle({
+      primaryColor: "#064e3b",
+      accentColor: "#eab308",
+      bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
+    });
+
+    expect(style).toMatchObject({
+      "--site-bank-highlight": "#fde047",
+      "--site-bank-account-highlight": "#1d4ed8",
+      "--site-bank-name-highlight": "#7c3aed",
+      "--site-bank-number-highlight": "#be123c",
+    });
   });
 
   it("keeps hover and soft tokens readable across saturated brand colors", () => {
@@ -140,6 +161,9 @@ describe("buildSiteThemeCss", () => {
     expect(css).toContain("--site-accent:");
     expect(css).toContain("--site-header-link:#ffffff");
     expect(css).toContain("--site-bank-highlight:#eab308");
+    expect(css).toContain("--site-bank-account-highlight:#eab308");
+    expect(css).toContain("--site-bank-name-highlight:#eab308");
+    expect(css).toContain("--site-bank-number-highlight:#eab308");
   });
 
   it("falls back to the public theme scope for invalid selectors", () => {
@@ -152,6 +176,22 @@ describe("buildSiteThemeCss", () => {
     );
 
     expect(css.startsWith(".site-theme{")).toBe(true);
+  });
+
+  it("serializes separate bank highlight variables", () => {
+    const css = buildSiteThemeCss({
+      primaryColor: "#064e3b",
+      accentColor: "#eab308",
+      bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
+    });
+
+    expect(css).toContain("--site-bank-highlight:#fde047");
+    expect(css).toContain("--site-bank-account-highlight:#1d4ed8");
+    expect(css).toContain("--site-bank-name-highlight:#7c3aed");
+    expect(css).toContain("--site-bank-number-highlight:#be123c");
   });
 });
 
@@ -167,11 +207,14 @@ describe("buildSiteThemeStylesheetHref", () => {
           footerLinkColor: "#e2e8f0",
           footerLinkHoverColor: "#facc15",
           bankHighlightColor: "#fde047",
+          bankAccountHighlightColor: "#1d4ed8",
+          bankNameHighlightColor: "#7c3aed",
+          bankNumberHighlightColor: "#be123c",
         },
         "settings-preview-theme",
       ),
     ).toBe(
-      "/api/site-theme.css?accent=eab308&bankHighlight=fde047&footerLink=e2e8f0&footerLinkHover=facc15&headerLink=f8fafc&headerLinkHover=fde68a&primary=064e3b&scope=settings-preview-theme",
+      "/api/site-theme.css?accent=eab308&bankHighlight=fde047&bankAccountHighlight=1d4ed8&bankNameHighlight=7c3aed&bankNumberHighlight=be123c&footerLink=e2e8f0&footerLinkHover=facc15&headerLink=f8fafc&headerLinkHover=fde68a&primary=064e3b&scope=settings-preview-theme",
     );
   });
 });

@@ -45,6 +45,9 @@ const dbRow = {
   footer_link_color: "#e2e8f0",
   footer_link_hover_color: "#facc15",
   bank_highlight_color: "#fde047",
+  bank_account_highlight_color: "#1d4ed8",
+  bank_name_highlight_color: "#7c3aed",
+  bank_number_highlight_color: "#be123c",
   logo_background: "soft",
   logo_image_path: "logo/2026/05/logo.webp",
   logo_image_url: "https://example.com/logo.webp",
@@ -181,6 +184,18 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
   formData.set("footerLinkColor", overrides.footerLinkColor ?? " #E2E8F0 ");
   formData.set("footerLinkHoverColor", overrides.footerLinkHoverColor ?? " #FACC15 ");
   formData.set("bankHighlightColor", overrides.bankHighlightColor ?? " #FDE047 ");
+  formData.set(
+    "bankAccountHighlightColor",
+    overrides.bankAccountHighlightColor ?? " #1D4ED8 ",
+  );
+  formData.set(
+    "bankNameHighlightColor",
+    overrides.bankNameHighlightColor ?? " #7C3AED ",
+  );
+  formData.set(
+    "bankNumberHighlightColor",
+    overrides.bankNumberHighlightColor ?? " #BE123C ",
+  );
   formData.set("logoBackground", overrides.logoBackground ?? " primary ");
   formData.set("heroImageAlt", overrides.heroImageAlt ?? " Updated hero ");
   formData.set(
@@ -662,6 +677,9 @@ describe("admin site settings route", () => {
         footer_link_color: "#e2e8f0",
         footer_link_hover_color: "#facc15",
         bank_highlight_color: "#fde047",
+        bank_account_highlight_color: "#1d4ed8",
+        bank_name_highlight_color: "#7c3aed",
+        bank_number_highlight_color: "#be123c",
         logo_background: "primary",
         hero_image_alt: "Updated hero",
         phone_contacts: [
@@ -702,6 +720,9 @@ describe("admin site settings route", () => {
         footer_link_color: "#e2e8f0",
         footer_link_hover_color: "#facc15",
         bank_highlight_color: "#fde047",
+        bank_account_highlight_color: "#1d4ed8",
+        bank_name_highlight_color: "#7c3aed",
+        bank_number_highlight_color: "#be123c",
         logo_background: "primary",
         logo_image_path: "logo/2026/05/logo.webp",
         logo_image_url: "https://example.com/logo.webp",
@@ -747,6 +768,9 @@ describe("admin site settings route", () => {
         footerLinkColor: "#e2e8f0",
         footerLinkHoverColor: "#facc15",
         bankHighlightColor: "#fde047",
+        bankAccountHighlightColor: "#1d4ed8",
+        bankNameHighlightColor: "#7c3aed",
+        bankNumberHighlightColor: "#be123c",
         logoBackground: "primary",
         heroImage: {
           alt: "Updated hero",

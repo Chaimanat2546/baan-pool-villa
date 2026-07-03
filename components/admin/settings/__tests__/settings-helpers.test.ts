@@ -5,8 +5,10 @@ vi.mock("@/lib/site-settings/colors", () => ({
 }));
 
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
+import { buildSiteThemeStylesheetHref } from "../../../../lib/site-settings/colors";
 
 import {
+  buildDraftThemeStylesheetHref,
   buildSettingsFormData,
   extractErrors,
   makeSettingsSnapshot,
@@ -26,11 +28,19 @@ describe("settings helpers", () => {
       footerLinkColor: "#e2e8f0",
       footerLinkHoverColor: "#facc15",
       bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
       logoBackground: "soft",
       logoImage: {
         path: "/images/logo.jpg",
         url: "/images/logo.jpg",
         alt: "Logo",
+      },
+      faviconImage: {
+        path: "/icon.png",
+        url: "/icon.png",
+        alt: "Site icon",
       },
       heroImage: {
         path: "/images/hero.jpg",
@@ -80,6 +90,9 @@ describe("settings helpers", () => {
       footerLinkColor: "#e2e8f0",
       footerLinkHoverColor: "#facc15",
       bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
       logoBackground: "soft",
       phoneContacts: [
         {
@@ -125,6 +138,9 @@ describe("settings helpers", () => {
       footerLinkColor: "#e2e8f0",
       footerLinkHoverColor: "#facc15",
       bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
       logoBackground: "primary",
       heroImageAlt: "Hero",
       logoFile: null,
@@ -132,6 +148,7 @@ describe("settings helpers", () => {
       seoOgImageFile: null,
       searchSeoOgImageFile: null,
       guidesSeoOgImageFile: null,
+      faviconFile: null,
       bankAccountName: "คุณ อาภัสรา จินดาวา",
       bankName: "ธนาคารกสิกรไทย",
       bankAccountNumber: "398-289-7482",
@@ -176,6 +193,9 @@ describe("settings helpers", () => {
     expect(formData.get("footerLinkColor")).toBe("#e2e8f0");
     expect(formData.get("footerLinkHoverColor")).toBe("#facc15");
     expect(formData.get("bankHighlightColor")).toBe("#fde047");
+    expect(formData.get("bankAccountHighlightColor")).toBe("#1d4ed8");
+    expect(formData.get("bankNameHighlightColor")).toBe("#7c3aed");
+    expect(formData.get("bankNumberHighlightColor")).toBe("#be123c");
     expect(formData.get("logoBackground")).toBe("primary");
     expect(formData.get("messengerUrl")).toBe(
       "https://www.facebook.com/baanpoolvillas",
@@ -222,6 +242,7 @@ describe("settings helpers", () => {
   });
 
   it("serializes selected SEO share image files into the admin form data", () => {
+    const faviconFile = new File(["icon"], "icon.png", { type: "image/png" });
     const seoOgImageFile = new File(["seo"], "seo.webp", { type: "image/webp" });
     const searchSeoOgImageFile = new File(["search"], "search.jpg", {
       type: "image/jpeg",
@@ -231,12 +252,14 @@ describe("settings helpers", () => {
     });
     const draft = {
       ...mapSettingsToDraft(DEFAULT_SITE_SETTINGS),
+      faviconFile,
       seoOgImageFile,
       searchSeoOgImageFile,
       guidesSeoOgImageFile,
     };
     const formData = buildSettingsFormData(draft);
 
+    expect(formData.get("faviconFile")).toBe(faviconFile);
     expect(formData.get("seoOgImageFile")).toBe(seoOgImageFile);
     expect(formData.get("searchSeoOgImageFile")).toBe(searchSeoOgImageFile);
     expect(formData.get("guidesSeoOgImageFile")).toBe(guidesSeoOgImageFile);
@@ -250,6 +273,31 @@ describe("settings helpers", () => {
     ).not.toBe(
       makeSettingsSnapshot({ ...draft, bankHighlightColor: "#eab308" }),
     );
+    expect(
+      makeSettingsSnapshot({ ...draft, bankAccountHighlightColor: "#fde047" }),
+    ).not.toBe(
+      makeSettingsSnapshot({ ...draft, bankAccountHighlightColor: "#eab308" }),
+    );
+  });
+
+  it("passes separate bank highlight colors into the preview theme URL", () => {
+    const draft = {
+      ...mapSettingsToDraft(DEFAULT_SITE_SETTINGS),
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
+    };
+
+    buildDraftThemeStylesheetHref(draft);
+
+    expect(buildSiteThemeStylesheetHref).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bankAccountHighlightColor: "#1d4ed8",
+        bankNameHighlightColor: "#7c3aed",
+        bankNumberHighlightColor: "#be123c",
+      }),
+      "settings-preview-theme",
+    );
   });
 
   it("does not include TikTok fields in form data produced for the settings save endpoint", () => {
@@ -262,6 +310,9 @@ describe("settings helpers", () => {
       footerLinkColor: "#e2e8f0",
       footerLinkHoverColor: "#facc15",
       bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
       logoBackground: "soft",
       heroImageAlt: "Hero",
       logoFile: null,
@@ -269,6 +320,7 @@ describe("settings helpers", () => {
       seoOgImageFile: null,
       searchSeoOgImageFile: null,
       guidesSeoOgImageFile: null,
+      faviconFile: null,
       bankAccountName: "นายใจดี",
       bankName: "Kasikorn",
       bankAccountNumber: "398-289-7482",

@@ -38,6 +38,15 @@ export function buildDraftThemeStylesheetHref(
     bankHighlightColor: isHexColor(draft.bankHighlightColor.trim())
       ? draft.bankHighlightColor.trim().toLowerCase()
       : "#eab308",
+    bankAccountHighlightColor: isHexColor(draft.bankAccountHighlightColor.trim())
+      ? draft.bankAccountHighlightColor.trim().toLowerCase()
+      : "#eab308",
+    bankNameHighlightColor: isHexColor(draft.bankNameHighlightColor.trim())
+      ? draft.bankNameHighlightColor.trim().toLowerCase()
+      : "#eab308",
+    bankNumberHighlightColor: isHexColor(draft.bankNumberHighlightColor.trim())
+      ? draft.bankNumberHighlightColor.trim().toLowerCase()
+      : "#eab308",
     footerLinkColor: isHexColor(draft.footerLinkColor.trim())
       ? draft.footerLinkColor.trim().toLowerCase()
       : "#ffffff",
@@ -58,6 +67,9 @@ export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
   return {
     accentColor: settings.accentColor,
     bankHighlightColor: settings.bankHighlightColor,
+    bankAccountHighlightColor: settings.bankAccountHighlightColor,
+    bankNameHighlightColor: settings.bankNameHighlightColor,
+    bankNumberHighlightColor: settings.bankNumberHighlightColor,
     bankAccountName: settings.bank.accountName,
     bankAccountNumber: settings.bank.accountNumber,
     bankName: settings.bank.bankName,
@@ -66,6 +78,7 @@ export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
     headerLinkColor: settings.headerLinkColor,
     headerLinkHoverColor: settings.headerLinkHoverColor,
     logoBackground: settings.logoBackground,
+    faviconFile: null,
     heroFile: null,
     heroImageAlt: settings.heroImage.alt,
     lineId: settings.contact.lineId,
@@ -105,6 +118,9 @@ export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
   return JSON.stringify({
     accentColor: draft.accentColor,
     bankHighlightColor: draft.bankHighlightColor,
+    bankAccountHighlightColor: draft.bankAccountHighlightColor,
+    bankNameHighlightColor: draft.bankNameHighlightColor,
+    bankNumberHighlightColor: draft.bankNumberHighlightColor,
     bankAccountName: draft.bankAccountName,
     bankAccountNumber: draft.bankAccountNumber,
     bankName: draft.bankName,
@@ -113,6 +129,7 @@ export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
     headerLinkColor: draft.headerLinkColor,
     headerLinkHoverColor: draft.headerLinkHoverColor,
     logoBackground: draft.logoBackground,
+    faviconFile: getFileSnapshot(draft.faviconFile),
     heroFile: getFileSnapshot(draft.heroFile),
     heroImageAlt: draft.heroImageAlt,
     lineId: draft.lineId,
@@ -157,6 +174,9 @@ export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
   formData.set("footerLinkColor", draft.footerLinkColor);
   formData.set("footerLinkHoverColor", draft.footerLinkHoverColor);
   formData.set("bankHighlightColor", draft.bankHighlightColor);
+  formData.set("bankAccountHighlightColor", draft.bankAccountHighlightColor);
+  formData.set("bankNameHighlightColor", draft.bankNameHighlightColor);
+  formData.set("bankNumberHighlightColor", draft.bankNumberHighlightColor);
   formData.set("logoBackground", draft.logoBackground);
   formData.set("heroImageAlt", draft.heroImageAlt);
   formData.set("bankAccountName", draft.bankAccountName);
@@ -187,6 +207,10 @@ export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
 
   if (draft.logoFile) {
     formData.set("logo", draft.logoFile);
+  }
+
+  if (draft.faviconFile) {
+    formData.set("faviconFile", draft.faviconFile);
   }
 
   if (draft.heroFile) {

@@ -98,7 +98,7 @@
               <tr>
                 <td><code>app/layout.tsx</code></td>
                 <td>All routes</td>
-                <td>Root HTML/body shell, global metadata base, global CSS/font wiring, and <code>revalidate = 0</code> so rendered App Router pages are produced on demand while explicit data caches remain tagged and time-based.</td>
+                <td>Root HTML/body shell, site-settings-backed global metadata and icon links, global CSS/font wiring, and <code>revalidate = 0</code> so rendered App Router pages are produced on demand while explicit data caches remain tagged and time-based.</td>
               </tr>
               <tr>
                 <td><code>app/sitemap.ts</code></td>
@@ -253,7 +253,7 @@
               <tr>
                 <td><code>app/(public)/api/site-theme.css/route.ts</code></td>
                 <td><code>/api/site-theme.css</code></td>
-                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. Public and admin preview shells use <code>lib/site-settings/colors.ts</code> to build validated query-driven stylesheet URLs with hashless hex color params, including primary/accent, header/footer link and hover colors, and the shared bank highlight color, instead of inline React style attributes, keeping style CSP narrow and preventing stale or fallback edge CSS across color changes.</td>
+                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. Public and admin preview shells use <code>lib/site-settings/colors.ts</code> to build validated query-driven stylesheet URLs with hashless hex color params, including primary/accent, header/footer link and hover colors, shared bank highlight color, and separate bank account/name/number highlight colors, instead of inline React style attributes, keeping style CSP narrow and preventing stale or fallback edge CSS across color changes.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/guides/images/proxy/route.ts</code></td>
@@ -426,7 +426,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
                 <td><code>/api/admin/site-settings</code></td>
-                <td>Admin auth and delegation for site settings reads and saves. Admin multipart settings parsing, draft normalization, settings validation, save-payload shaping, Supabase persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-route.ts</code>. Site asset upload-file extraction, metadata validation, upload, upload-history cleanup, inactive marking, and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>; logo, hero, and SEO share images upload to the <code>site-assets</code> bucket with separate retained asset types. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
+                <td>Admin auth and delegation for site settings reads and saves. Admin multipart settings parsing, draft normalization, settings validation, save-payload shaping, Supabase persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-route.ts</code>. Site asset upload-file extraction, metadata validation, upload, upload-history cleanup, inactive marking, and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>; favicon, logo, hero, and SEO share images upload to the <code>site-assets</code> bucket with separate retained asset types. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
@@ -551,7 +551,7 @@
             </tr>
             <tr>
               <td><code>lib/site-settings</code></td>
-              <td>Site identity, theme colors, header/footer link hover colors, shared bank highlight color, logo background mode, logo/hero assets, global SEO, section SEO templates, contact/TikTok settings, admin route helpers, admin multipart form parsing, admin asset upload/history cleanup, defaults, validation, Supabase reads, retention.</td>
+              <td>Site identity, theme colors, header/footer link hover colors, shared and separate bank highlight colors, logo background mode, favicon/logo/hero assets, global SEO, section SEO templates, contact/TikTok settings, admin route helpers, admin multipart form parsing, admin asset upload/history cleanup, defaults, validation, Supabase reads, retention.</td>
               <td><code>lib/site-settings/__tests__</code></td>
             </tr>
             <tr>
@@ -601,7 +601,7 @@
             </tr>
             <tr>
               <td><code>lib/seo.ts</code> and <code>lib/json-ld.ts</code></td>
-              <td>Metadata, canonical URL support, site-settings-backed public metadata defaults, admin-managed meta keywords, villa-detail keyword derivation from listing data, legal page metadata, absolute-title handling, breadcrumb/home JSON-LD builders, and safe JSON-LD serialization.</td>
+              <td>Metadata, canonical URL support, site-settings-backed public metadata defaults and app icon links, admin-managed meta keywords, villa-detail keyword derivation from listing data, legal page metadata, absolute-title handling, breadcrumb/home JSON-LD builders, and safe JSON-LD serialization.</td>
               <td><code>lib/__tests__/seo.test.ts</code>, <code>lib/__tests__/json-ld.test.ts</code></td>
             </tr>
             <tr>
@@ -663,7 +663,7 @@
               <tr>
                 <td>Site settings</td>
                 <td>Supabase settings table with defaults fallback.</td>
-                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, logo background options, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; global and section SEO templates plus page-specific keyword arrays are normalized here, header/footer link colors, hover colors, the bank highlight color, and the logo background mode are normalized for public/admin rendering, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
+                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, logo background options, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; favicon, global and section SEO templates plus page-specific keyword arrays are normalized here, header/footer link colors, hover colors, shared and separate bank highlight colors, and the logo background mode are normalized for public/admin rendering, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
                 <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
               </tr>
             <tr>
