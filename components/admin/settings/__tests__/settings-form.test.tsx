@@ -89,6 +89,76 @@ describe("SettingsForm", () => {
     }, -1);
   });
 
+  it("highlights the rail item for the section currently in view", async () => {
+    const originalIntersectionObserver = globalThis.IntersectionObserver;
+    let observerCallback: IntersectionObserverCallback | null = null;
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "";
+      readonly thresholds = [];
+
+      constructor(callback: IntersectionObserverCallback) {
+        observerCallback = callback;
+      }
+
+      disconnect() {}
+
+      observe() {}
+
+      takeRecords() {
+        return [];
+      }
+
+      unobserve() {}
+    }
+
+    globalThis.IntersectionObserver =
+      MockIntersectionObserver as typeof IntersectionObserver;
+
+    let unmountPage: (() => Promise<void>) | null = null;
+
+    try {
+      const page = await mountAdminPage(
+        <SettingsForm
+          draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+          hasUnsavedChanges={false}
+          isSaving={false}
+          onChange={vi.fn()}
+          onSave={vi.fn()}
+          settings={DEFAULT_SITE_SETTINGS}
+        />,
+      );
+      unmountPage = page.unmount;
+      const themeSection = page.container.querySelector("#theme");
+      const themeRailLink = page.container.querySelector('a[href="#theme"]');
+
+      expect(themeSection).not.toBeNull();
+      expect(themeRailLink).not.toBeNull();
+
+      act(() => {
+        observerCallback?.(
+          [
+            {
+              boundingClientRect: { top: 12 } as DOMRectReadOnly,
+              isIntersecting: true,
+              target: themeSection as Element,
+            } as IntersectionObserverEntry,
+          ],
+          {} as IntersectionObserver,
+        );
+      });
+      await flushEffects();
+
+      expect(themeRailLink?.getAttribute("aria-current")).toBe("location");
+      expect(themeRailLink?.className).toContain("bg-[var(--site-primary)]");
+      expect(themeRailLink?.className).toContain("text-[var(--site-on-primary)]");
+    } finally {
+      await unmountPage?.();
+      globalThis.IntersectionObserver = originalIntersectionObserver;
+    }
+  });
+
   it("shows status plus live site, Google, and share previews beside the form", () => {
     const html = renderSettingsForm();
 
@@ -136,6 +206,47 @@ describe("SettingsForm", () => {
     expect(html).toContain('id="searchSeoKeywords"');
     expect(html).toContain('id="guidesSeoKeywords"');
     expect(html).toContain('id="villaDetailSeoKeywords"');
+  });
+
+  it("renders link and bank highlight color controls", () => {
+    const html = renderSettingsForm();
+
+    expect(html).toContain('id="headerLinkColor"');
+    expect(html).toContain("สีเมนูใน Header");
+    expect(html).toContain('id="headerLinkHoverColor"');
+    expect(html).toContain("สี Hover เมนูใน Header");
+    expect(html).toContain('id="footerLinkColor"');
+    expect(html).toContain("สีเมนูใน Footer");
+    expect(html).toContain('id="footerLinkHoverColor"');
+    expect(html).toContain("สี Hover เมนูใน Footer");
+    expect(html).toContain('id="bankHighlightColor"');
+    expect(html).toContain("สีไฮไลท์บัญชี");
+    expect(html).toContain("พื้นหลังโลโก้");
+    expect(html).toContain('value="white"');
+    expect(html).toContain('value="transparent"');
+    expect(html).toContain('value="primary"');
+    expect(html).toContain('value="soft"');
+  });
+
+  it("renders a hoverable header and bank color example without navigation links", () => {
+    const html = renderSettingsForm();
+    const headerPreview = html.slice(
+      html.indexOf('aria-label="ตัวอย่าง Header สีเมนู"'),
+      html.indexOf('id="hero"'),
+    );
+
+    expect(html).toContain("หน้าแรก");
+    expect(html).toContain("ค้นหาบ้านพัก");
+    expect(html).toContain("บทความ");
+    expect(html).toContain("ธนาคารกสิกรไทย เลขที่ 398-289-7482");
+    expect(headerPreview).toContain("<button");
+    expect(headerPreview).toContain("hover:text-[var(--site-header-link-hover)]");
+    expect(headerPreview).not.toContain("<a ");
+    expect(headerPreview).not.toContain("href=");
+    expect(html).not.toContain('aria-label="ตัวอย่าง Footer สีเมนู"');
+    expect(html).not.toContain("Header hover");
+    expect(html).not.toContain("Footer link");
+    expect(html).not.toContain("Footer hover");
   });
 
   it("uses upload controls for SEO share images instead of editable URL fields", () => {

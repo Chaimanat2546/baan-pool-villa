@@ -9,6 +9,7 @@ import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import {
   buildSettingsFormData,
   extractErrors,
+  makeSettingsSnapshot,
   mapSettingsToDraft,
   shouldRedirectToLogin,
 } from "../settings-helpers";
@@ -20,6 +21,12 @@ describe("settings helpers", () => {
       siteName: "Pool Villas Pattaya",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
+      headerLinkColor: "#f8fafc",
+      headerLinkHoverColor: "#fde68a",
+      footerLinkColor: "#e2e8f0",
+      footerLinkHoverColor: "#facc15",
+      bankHighlightColor: "#fde047",
+      logoBackground: "soft",
       logoImage: {
         path: "/images/logo.jpg",
         url: "/images/logo.jpg",
@@ -68,6 +75,12 @@ describe("settings helpers", () => {
       bankAccountName: "คุณ อาภัสรา จินดาวา",
       bankName: "ธนาคารกสิกรไทย",
       bankAccountNumber: "398-289-7482",
+      headerLinkColor: "#f8fafc",
+      headerLinkHoverColor: "#fde68a",
+      footerLinkColor: "#e2e8f0",
+      footerLinkHoverColor: "#facc15",
+      bankHighlightColor: "#fde047",
+      logoBackground: "soft",
       phoneContacts: [
         {
           name: "คุณเกม",
@@ -107,6 +120,12 @@ describe("settings helpers", () => {
       siteName: "Pool Villas Pattaya",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
+      headerLinkColor: "#f8fafc",
+      headerLinkHoverColor: "#fde68a",
+      footerLinkColor: "#e2e8f0",
+      footerLinkHoverColor: "#facc15",
+      bankHighlightColor: "#fde047",
+      logoBackground: "primary",
       heroImageAlt: "Hero",
       logoFile: null,
       heroFile: null,
@@ -152,6 +171,12 @@ describe("settings helpers", () => {
     expect(formData.get("bankAccountName")).toBe("คุณ อาภัสรา จินดาวา");
     expect(formData.get("bankName")).toBe("ธนาคารกสิกรไทย");
     expect(formData.get("bankAccountNumber")).toBe("398-289-7482");
+    expect(formData.get("headerLinkColor")).toBe("#f8fafc");
+    expect(formData.get("headerLinkHoverColor")).toBe("#fde68a");
+    expect(formData.get("footerLinkColor")).toBe("#e2e8f0");
+    expect(formData.get("footerLinkHoverColor")).toBe("#facc15");
+    expect(formData.get("bankHighlightColor")).toBe("#fde047");
+    expect(formData.get("logoBackground")).toBe("primary");
     expect(formData.get("messengerUrl")).toBe(
       "https://www.facebook.com/baanpoolvillas",
     );
@@ -217,11 +242,27 @@ describe("settings helpers", () => {
     expect(formData.get("guidesSeoOgImageFile")).toBe(guidesSeoOgImageFile);
   });
 
+  it("tracks bank highlight color changes in the draft snapshot", () => {
+    const draft = mapSettingsToDraft(DEFAULT_SITE_SETTINGS);
+
+    expect(
+      makeSettingsSnapshot({ ...draft, bankHighlightColor: "#fde047" }),
+    ).not.toBe(
+      makeSettingsSnapshot({ ...draft, bankHighlightColor: "#eab308" }),
+    );
+  });
+
   it("does not include TikTok fields in form data produced for the settings save endpoint", () => {
     const formData = buildSettingsFormData({
       siteName: "Pool Villas Pattaya",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
+      headerLinkColor: "#f8fafc",
+      headerLinkHoverColor: "#fde68a",
+      footerLinkColor: "#e2e8f0",
+      footerLinkHoverColor: "#facc15",
+      bankHighlightColor: "#fde047",
+      logoBackground: "soft",
       heroImageAlt: "Hero",
       logoFile: null,
       heroFile: null,

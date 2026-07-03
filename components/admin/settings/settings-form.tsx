@@ -1,7 +1,7 @@
 "use client";
 
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
-import type { FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   BadgeInfo,
   Building2,
@@ -17,6 +17,11 @@ import {
 } from "lucide-react";
 
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
+import {
+  SITE_LOGO_BACKGROUND_CLASSES,
+  SITE_LOGO_BACKGROUND_LABELS,
+  SITE_LOGO_BACKGROUNDS,
+} from "@/lib/site-settings/logo-background";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import { validateUploadMetadata } from "@/lib/site-settings/validation";
 
@@ -107,6 +112,9 @@ export function SettingsForm({
   settings,
 }: SettingsFormProps) {
   const isDesktopNavCollapsed = useAdminSidebarCollapsed();
+  const [activeSectionId, setActiveSectionId] = useState(
+    SECTION_NAV_ITEMS[0]?.id ?? "",
+  );
   const themeHref = buildDraftThemeStylesheetHref(draft);
   const heroPreviewUrl = getPreviewImageUrl(
     settings.heroImage.url,
@@ -128,6 +136,48 @@ export function SettingsForm({
     draft.searchSeoKeywords.length +
     draft.guidesSeoKeywords.length +
     draft.villaDetailSeoKeywords.length;
+  const bankPreviewText = `${draft.bankName || "ธนาคารกสิกรไทย"} เลขที่ ${
+    draft.bankAccountNumber || "398-289-7482"
+  }`;
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const activeEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((firstEntry, secondEntry) => {
+            return (
+              Math.abs(firstEntry.boundingClientRect.top) -
+              Math.abs(secondEntry.boundingClientRect.top)
+            );
+          })[0];
+
+        if (activeEntry?.target.id) {
+          setActiveSectionId(activeEntry.target.id);
+        }
+      },
+      {
+        rootMargin: "-30% 0px -55% 0px",
+        threshold: [0, 0.2, 0.6],
+      },
+    );
+
+    for (const item of SECTION_NAV_ITEMS) {
+      const section = document.getElementById(item.id);
+
+      if (section) {
+        observer.observe(section);
+      }
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -203,20 +253,41 @@ export function SettingsForm({
             ส่วนการตั้งค่า
           </p>
           <nav aria-label="เมนูส่วนการตั้งค่า" className="grid gap-1">
-            {SECTION_NAV_ITEMS.map((item) => (
-              <a
-                className="rounded-md px-3 py-3 transition hover:bg-[var(--site-primary-soft)]"
-                href={`#${item.id}`}
-                key={item.id}
-              >
-                <p className="text-sm font-semibold text-[var(--site-text)]">
-                  {item.label}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
-                  {item.description}
-                </p>
-              </a>
-            ))}
+            {SECTION_NAV_ITEMS.map((item) => {
+              const isActive = item.id === activeSectionId;
+
+              return (
+                <a
+                  aria-current={isActive ? "location" : undefined}
+                  className={`rounded-md px-3 py-3 transition ${
+                    isActive
+                      ? "bg-[var(--site-primary)] text-[var(--site-on-primary)] shadow-sm"
+                      : "hover:bg-[var(--site-primary-soft)]"
+                  }`}
+                  href={`#${item.id}`}
+                  key={item.id}
+                >
+                  <p
+                    className={`text-sm font-semibold ${
+                      isActive
+                        ? "text-[var(--site-on-primary)]"
+                        : "text-[var(--site-text)]"
+                    }`}
+                  >
+                    {item.label}
+                  </p>
+                  <p
+                    className={`mt-1 text-xs leading-5 ${
+                      isActive
+                        ? "text-[var(--site-on-primary)] opacity-80"
+                        : "text-[var(--site-muted)]"
+                    }`}
+                  >
+                    {item.description}
+                  </p>
+                </a>
+              );
+            })}
           </nav>
         </div>
       </aside>
@@ -276,6 +347,43 @@ export function SettingsForm({
               return validateUploadMetadata("logo", file.type, file.size, file.name);
             }}
           />
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
+            <div>
+              <p className="text-sm font-semibold text-[var(--site-text)]">
+                พื้นหลังโลโก้
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
+                ใช้กับโลโก้ใน Header และ Footer เมื่อไฟล์โลโก้ไม่มีพื้นหลัง
+              </p>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-4">
+              {SITE_LOGO_BACKGROUNDS.map((background) => {
+                const isActive = draft.logoBackground === background;
+
+                return (
+                  <button
+                    aria-pressed={isActive}
+                    className={`rounded-md border px-3 py-2 text-left text-sm font-semibold transition ${
+                      isActive
+                        ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)] text-[var(--site-primary)]"
+                        : "border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-text)] hover:border-[var(--site-border-strong)]"
+                    }`}
+                    key={background}
+                    onClick={() => {
+                      onChange({ logoBackground: background });
+                    }}
+                    type="button"
+                    value={background}
+                  >
+                    <span
+                      className={`mb-2 block h-8 rounded border border-[var(--site-border-strong)] ${SITE_LOGO_BACKGROUND_CLASSES[background]}`}
+                    />
+                    {SITE_LOGO_BACKGROUND_LABELS[background]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </SectionCard>
 
         <SectionCard
@@ -304,6 +412,51 @@ export function SettingsForm({
                 }}
                 value={draft.accentColor}
               />
+              <ColorControl
+                description="สีข้อความลิงก์ใน Header"
+                id="headerLinkColor"
+                label="สีเมนูใน Header"
+                onChange={(headerLinkColor) => {
+                  onChange({ headerLinkColor });
+                }}
+                value={draft.headerLinkColor}
+              />
+              <ColorControl
+                description="สีข้อความลิงก์ใน Header เมื่อชี้เมาส์"
+                id="headerLinkHoverColor"
+                label="สี Hover เมนูใน Header"
+                onChange={(headerLinkHoverColor) => {
+                  onChange({ headerLinkHoverColor });
+                }}
+                value={draft.headerLinkHoverColor}
+              />
+              <ColorControl
+                description="สีข้อความลิงก์ใน Footer"
+                id="footerLinkColor"
+                label="สีเมนูใน Footer"
+                onChange={(footerLinkColor) => {
+                  onChange({ footerLinkColor });
+                }}
+                value={draft.footerLinkColor}
+              />
+              <ColorControl
+                description="สีข้อความลิงก์ใน Footer เมื่อชี้เมาส์"
+                id="footerLinkHoverColor"
+                label="สี Hover เมนูใน Footer"
+                onChange={(footerLinkHoverColor) => {
+                  onChange({ footerLinkHoverColor });
+                }}
+                value={draft.footerLinkHoverColor}
+              />
+              <ColorControl
+                description="ใช้ร่วมกับชื่อบัญชี ชื่อธนาคาร และเลขบัญชี"
+                id="bankHighlightColor"
+                label="สีไฮไลท์บัญชี"
+                onChange={(bankHighlightColor) => {
+                  onChange({ bankHighlightColor });
+                }}
+                value={draft.bankHighlightColor}
+              />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-3">
@@ -323,6 +476,46 @@ export function SettingsForm({
                 <p className="mt-2 text-xs font-semibold text-[var(--site-text)]">
                   สีรอง
                 </p>
+              </div>
+            </div>
+            <div className="grid gap-3 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-sm">
+              <div
+                aria-label="ตัวอย่าง Header สีเมนู"
+                className="overflow-hidden rounded-md bg-[var(--site-primary)] text-[var(--site-on-primary)]"
+              >
+                <div className="flex min-h-[82px] items-center justify-between gap-4 border-b border-[color:var(--site-on-primary)] px-4 py-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border-4 border-white bg-white/10 text-xs font-black">
+                      PV
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-lg font-semibold leading-7">
+                        {draft.siteName || "Pool Villas Pattaya"}
+                      </span>
+                      <span className="block text-xs leading-5">
+                        กรุณาโอนเงิน{" "}
+                        <span className="font-semibold text-[var(--site-bank-highlight)]">
+                          {bankPreviewText}
+                        </span>{" "}
+                        เท่านั้น
+                      </span>
+                    </span>
+                  </div>
+                  <nav
+                    aria-label="เมนู Header ตัวอย่าง"
+                    className="hidden shrink-0 items-center gap-5 font-semibold lg:flex"
+                  >
+                    {["หน้าแรก", "ค้นหาบ้านพัก", "บทความ"].map((label) => (
+                      <button
+                        className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]"
+                        key={`header-preview-${label}`}
+                        type="button"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </nav>
+                </div>
               </div>
             </div>
           </div>

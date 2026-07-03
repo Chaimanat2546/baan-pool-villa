@@ -253,7 +253,7 @@
               <tr>
                 <td><code>app/(public)/api/site-theme.css/route.ts</code></td>
                 <td><code>/api/site-theme.css</code></td>
-                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. Public and admin preview shells use <code>lib/site-settings/colors.ts</code> to build validated query-driven stylesheet URLs with hashless hex color params instead of inline React style attributes, keeping style CSP narrow and preventing stale or fallback edge CSS across color changes.</td>
+                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. Public and admin preview shells use <code>lib/site-settings/colors.ts</code> to build validated query-driven stylesheet URLs with hashless hex color params, including primary/accent, header/footer link and hover colors, and the shared bank highlight color, instead of inline React style attributes, keeping style CSP narrow and preventing stale or fallback edge CSS across color changes.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/guides/images/proxy/route.ts</code></td>
@@ -551,7 +551,7 @@
             </tr>
             <tr>
               <td><code>lib/site-settings</code></td>
-              <td>Site identity, theme colors, logo/hero assets, global SEO, section SEO templates, contact/TikTok settings, admin route helpers, admin multipart form parsing, admin asset upload/history cleanup, defaults, validation, Supabase reads, retention.</td>
+              <td>Site identity, theme colors, header/footer link hover colors, shared bank highlight color, logo background mode, logo/hero assets, global SEO, section SEO templates, contact/TikTok settings, admin route helpers, admin multipart form parsing, admin asset upload/history cleanup, defaults, validation, Supabase reads, retention.</td>
               <td><code>lib/site-settings/__tests__</code></td>
             </tr>
             <tr>
@@ -663,7 +663,7 @@
               <tr>
                 <td>Site settings</td>
                 <td>Supabase settings table with defaults fallback.</td>
-                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; global and section SEO templates plus page-specific keyword arrays are normalized here, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
+                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, logo background options, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; global and section SEO templates plus page-specific keyword arrays are normalized here, header/footer link colors, hover colors, the bank highlight color, and the logo background mode are normalized for public/admin rendering, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
                 <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
               </tr>
             <tr>

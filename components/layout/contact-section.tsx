@@ -91,7 +91,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   className="grid gap-1 py-3 text-sm sm:grid-cols-[160px_1fr] sm:items-center sm:text-base"
                 >
                   <dt>{row.label}</dt>
-                  <dd className="font-black text-[var(--site-text)] sm:text-right">{row.value}</dd>
+                  <dd className="font-black text-[var(--site-bank-highlight)] sm:text-right">{row.value}</dd>
                 </div>
               ))}
             </dl>

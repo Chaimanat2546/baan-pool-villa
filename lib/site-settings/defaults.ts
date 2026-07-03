@@ -107,6 +107,12 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "Pool Villas Pattaya",
   primaryColor: "#064e3b",
   accentColor: "#eab308",
+  headerLinkColor: "#ffffff",
+  headerLinkHoverColor: "#eab308",
+  footerLinkColor: "#ffffff",
+  footerLinkHoverColor: "#eab308",
+  bankHighlightColor: "#eab308",
+  logoBackground: "white",
   logoImage: {
     path: "/images/logo.jpg",
     url: "/images/logo.jpg",

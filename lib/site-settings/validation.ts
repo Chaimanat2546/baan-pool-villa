@@ -3,6 +3,10 @@ import {
   SITE_SETTINGS_ALLOWED_IMAGE_MIME_TYPES,
   SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
 } from "./defaults";
+import {
+  isSiteLogoBackground,
+  normalizeSiteLogoBackground,
+} from "./logo-background";
 import { isAllowedPublicImageHostname } from "@/lib/public-image-proxy";
 import { normalizeAnyDetailLayout } from "../detail-layout/compat";
 import type {
@@ -87,6 +91,30 @@ export function normalizeSiteSettingsRow(
     row.accent_color,
     DEFAULT_SITE_SETTINGS.accentColor,
   );
+  const headerLinkColor = normalizeColor(
+    row.header_link_color,
+    DEFAULT_SITE_SETTINGS.headerLinkColor,
+  );
+  const headerLinkHoverColor = normalizeColor(
+    row.header_link_hover_color,
+    DEFAULT_SITE_SETTINGS.headerLinkHoverColor,
+  );
+  const footerLinkColor = normalizeColor(
+    row.footer_link_color,
+    DEFAULT_SITE_SETTINGS.footerLinkColor,
+  );
+  const footerLinkHoverColor = normalizeColor(
+    row.footer_link_hover_color,
+    DEFAULT_SITE_SETTINGS.footerLinkHoverColor,
+  );
+  const bankHighlightColor = normalizeColor(
+    row.bank_highlight_color,
+    DEFAULT_SITE_SETTINGS.bankHighlightColor,
+  );
+  const logoBackground = normalizeSiteLogoBackground(
+    row.logo_background,
+    DEFAULT_SITE_SETTINGS.logoBackground,
+  );
   const tiktokAccountUrl = normalizeTikTokAccountUrl(
     row.tiktok_account_url,
   );
@@ -95,6 +123,12 @@ export function normalizeSiteSettingsRow(
     siteName,
     primaryColor,
     accentColor,
+    headerLinkColor,
+    headerLinkHoverColor,
+    footerLinkColor,
+    footerLinkHoverColor,
+    bankHighlightColor,
+    logoBackground,
     logoImage: normalizeImage(
       row.logo_image_path,
       row.logo_image_url,
@@ -218,6 +252,15 @@ export function normalizeSiteSettingsDraft(
     siteName: draft.siteName.trim(),
     primaryColor: draft.primaryColor.trim().toLowerCase(),
     accentColor: draft.accentColor.trim().toLowerCase(),
+    headerLinkColor: draft.headerLinkColor.trim().toLowerCase(),
+    headerLinkHoverColor: draft.headerLinkHoverColor.trim().toLowerCase(),
+    footerLinkColor: draft.footerLinkColor.trim().toLowerCase(),
+    footerLinkHoverColor: draft.footerLinkHoverColor.trim().toLowerCase(),
+    bankHighlightColor: draft.bankHighlightColor.trim().toLowerCase(),
+    logoBackground: normalizeSiteLogoBackground(
+      draft.logoBackground,
+      DEFAULT_SITE_SETTINGS.logoBackground,
+    ),
     heroImageAlt: draft.heroImageAlt.trim(),
     bankAccountName: draft.bankAccountName.trim(),
     bankName: draft.bankName.trim(),
@@ -346,6 +389,30 @@ export function validateSiteSettingsDraft(
 
   if (!isHexColor(draft.accentColor)) {
     errors.push("สีเน้นต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.headerLinkColor)) {
+    errors.push("สีเมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.headerLinkHoverColor)) {
+    errors.push("สี Hover เมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.footerLinkColor)) {
+    errors.push("สีเมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.footerLinkHoverColor)) {
+    errors.push("สี Hover เมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.bankHighlightColor)) {
+    errors.push("สีไฮไลท์บัญชีต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isSiteLogoBackground(draft.logoBackground)) {
+    errors.push("พื้นหลังโลโก้ต้องเป็น ขาว, โปร่งใส, สีหลัก หรือสีอ่อน");
   }
 
   if (draft.heroImageAlt.length > HERO_IMAGE_ALT_MAX_LENGTH) {
@@ -572,10 +639,10 @@ function normalizeRequiredText(
   return trimmedValue.length > 0 ? trimmedValue : fallback;
 }
 
-function normalizeColor(value: string | null, fallback: string): string {
+function normalizeColor(value: string | null | undefined, fallback: string): string {
   const trimmedValue = value?.trim() ?? "";
 
-  return isHexColor(trimmedValue) ? trimmedValue : fallback;
+  return isHexColor(trimmedValue) ? trimmedValue.toLowerCase() : fallback;
 }
 
 function normalizeImage(

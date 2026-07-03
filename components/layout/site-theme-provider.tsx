@@ -12,6 +12,11 @@ export function SiteThemeProvider({
 }: SiteThemeProviderProps) {
   const themeHref = buildSiteThemeStylesheetHref({
     accentColor: settings.accentColor,
+    bankHighlightColor: settings.bankHighlightColor,
+    footerLinkColor: settings.footerLinkColor,
+    footerLinkHoverColor: settings.footerLinkHoverColor,
+    headerLinkColor: settings.headerLinkColor,
+    headerLinkHoverColor: settings.headerLinkHoverColor,
     primaryColor: settings.primaryColor,
   });
 

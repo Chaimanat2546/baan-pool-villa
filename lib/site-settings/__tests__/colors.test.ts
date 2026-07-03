@@ -47,6 +47,11 @@ describe("buildSiteThemeStyle", () => {
     });
 
     expect(style).toMatchObject({
+      "--site-bank-highlight": "#eab308",
+      "--site-footer-link": "#ffffff",
+      "--site-footer-link-hover": "#eab308",
+      "--site-header-link": "#ffffff",
+      "--site-header-link-hover": "#eab308",
       "--site-on-primary": "#ffffff",
       "--site-primary": "#064e3b",
       "--site-surface": "#ffffff",
@@ -133,6 +138,8 @@ describe("buildSiteThemeCss", () => {
     expect(css).toContain(".settings-preview-theme{");
     expect(css).toContain("--site-primary:#064e3b");
     expect(css).toContain("--site-accent:");
+    expect(css).toContain("--site-header-link:#ffffff");
+    expect(css).toContain("--site-bank-highlight:#eab308");
   });
 
   it("falls back to the public theme scope for invalid selectors", () => {
@@ -155,11 +162,16 @@ describe("buildSiteThemeStylesheetHref", () => {
         {
           primaryColor: "#064e3b",
           accentColor: "#eab308",
+          headerLinkColor: "#f8fafc",
+          headerLinkHoverColor: "#fde68a",
+          footerLinkColor: "#e2e8f0",
+          footerLinkHoverColor: "#facc15",
+          bankHighlightColor: "#fde047",
         },
         "settings-preview-theme",
       ),
     ).toBe(
-      "/api/site-theme.css?accent=eab308&primary=064e3b&scope=settings-preview-theme",
+      "/api/site-theme.css?accent=eab308&bankHighlight=fde047&footerLink=e2e8f0&footerLinkHover=facc15&headerLink=f8fafc&headerLinkHover=fde68a&primary=064e3b&scope=settings-preview-theme",
     );
   });
 });

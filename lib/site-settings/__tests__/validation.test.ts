@@ -24,6 +24,12 @@ const validRow = {
   site_name: " Baan Pool Villa ",
   primary_color: "#123456",
   accent_color: "#abcdef",
+  header_link_color: "#ffffff",
+  header_link_hover_color: "#eab308",
+  footer_link_color: "#ffffff",
+  footer_link_hover_color: "#eab308",
+  bank_highlight_color: "#eab308",
+  logo_background: "soft",
   logo_image_path: "logo/2026/05/logo.webp",
   logo_image_url:
     "https://example.supabase.co/storage/v1/object/public/site-assets/logo/2026/05/logo.webp",
@@ -93,6 +99,12 @@ const validDraft: SiteSettingsDraft = {
   siteName: "Baan Pool Villa",
   primaryColor: "#064e3b",
   accentColor: "#eab308",
+  headerLinkColor: "#ffffff",
+  headerLinkHoverColor: "#eab308",
+  footerLinkColor: "#ffffff",
+  footerLinkHoverColor: "#eab308",
+  bankHighlightColor: "#eab308",
+  logoBackground: "white",
   heroImageAlt: "Hero image for validation",
   bankAccountName: "Account Name",
   bankName: "Bank Name",
@@ -135,6 +147,12 @@ describe("normalizeSiteSettingsRow", () => {
       siteName: "Baan Pool Villa",
       primaryColor: "#123456",
       accentColor: "#abcdef",
+      headerLinkColor: "#ffffff",
+      headerLinkHoverColor: "#eab308",
+      footerLinkColor: "#ffffff",
+      footerLinkHoverColor: "#eab308",
+      bankHighlightColor: "#eab308",
+      logoBackground: "soft",
       logoImage: {
         path: "logo/2026/05/logo.webp",
         url: "https://example.supabase.co/storage/v1/object/public/site-assets/logo/2026/05/logo.webp",
@@ -230,6 +248,25 @@ describe("normalizeSiteSettingsRow", () => {
     expect(settings.detailLayout).not.toBe(DEFAULT_DETAIL_LAYOUT_V2);
   });
 
+  it("normalizes link and bank highlight colors from the database row", () => {
+    expect(
+      normalizeSiteSettingsRow({
+        ...validRow,
+        header_link_color: " #ABCDEF ",
+        header_link_hover_color: "#123456",
+        footer_link_color: "#654321",
+        footer_link_hover_color: "#fedcba",
+        bank_highlight_color: "#0f172a",
+      }),
+    ).toMatchObject({
+      headerLinkColor: "#abcdef",
+      headerLinkHoverColor: "#123456",
+      footerLinkColor: "#654321",
+      footerLinkHoverColor: "#fedcba",
+      bankHighlightColor: "#0f172a",
+    });
+  });
+
   it("rewrites the legacy WordPress OG image to the local default image", () => {
     const settings = normalizeSiteSettingsRow({
       ...validRow,
@@ -318,6 +355,12 @@ describe("normalizeSiteSettingsDraft", () => {
         siteName: " Baan Pool Villa ",
         primaryColor: " #064E3B ",
         accentColor: " #EAB308 ",
+        headerLinkColor: " #FFFFFF ",
+        headerLinkHoverColor: " #EAB308 ",
+        footerLinkColor: " #FFFFFF ",
+        footerLinkHoverColor: " #EAB308 ",
+        bankHighlightColor: " #EAB308 ",
+        logoBackground: " primary ",
         heroImageAlt: " Pool villas in Pattaya ",
         bankAccountName: " Account Name ",
         bankName: " Bank Name ",
@@ -365,6 +408,12 @@ describe("normalizeSiteSettingsDraft", () => {
       siteName: "Baan Pool Villa",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
+      headerLinkColor: "#ffffff",
+      headerLinkHoverColor: "#eab308",
+      footerLinkColor: "#ffffff",
+      footerLinkHoverColor: "#eab308",
+      bankHighlightColor: "#eab308",
+      logoBackground: "primary",
       heroImageAlt: "Pool villas in Pattaya",
       bankAccountName: "Account Name",
       bankName: "Bank Name",
@@ -413,6 +462,25 @@ describe("normalizeSiteSettingsDraft", () => {
       seoOgImageUrl: DEFAULT_SITE_SETTINGS.seo.ogImage.url,
       searchSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.url,
       guidesSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.url,
+    });
+  });
+
+  it("trims and lowercases link and bank highlight color drafts", () => {
+    expect(
+      normalizeSiteSettingsDraft({
+        ...validDraft,
+        headerLinkColor: " #ABCDEF ",
+        headerLinkHoverColor: " #123456 ",
+        footerLinkColor: " #654321 ",
+        footerLinkHoverColor: " #FEDCBA ",
+        bankHighlightColor: " #0F172A ",
+      }),
+    ).toMatchObject({
+      headerLinkColor: "#abcdef",
+      headerLinkHoverColor: "#123456",
+      footerLinkColor: "#654321",
+      footerLinkHoverColor: "#fedcba",
+      bankHighlightColor: "#0f172a",
     });
   });
 });
@@ -523,6 +591,12 @@ describe("validateSiteSettingsDraft", () => {
         siteName: " ",
         primaryColor: "064e3b",
         accentColor: "#gggggg",
+        headerLinkColor: "red",
+        headerLinkHoverColor: "#12345",
+        footerLinkColor: "javascript:alert(1)",
+        footerLinkHoverColor: "#xyzxyz",
+        bankHighlightColor: "",
+        logoBackground: "checkerboard",
         heroImageAlt: "x".repeat(161),
         bankAccountName: "",
         bankName: "",
@@ -542,6 +616,12 @@ describe("validateSiteSettingsDraft", () => {
       "ต้องใส่ชื่อเว็บ",
       "สีหลักต้องเป็นค่าสีแบบ #RRGGBB",
       "สีเน้นต้องเป็นค่าสีแบบ #RRGGBB",
+      "สีเมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB",
+      "สี Hover เมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB",
+      "สีเมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB",
+      "สี Hover เมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB",
+      "สีไฮไลท์บัญชีต้องเป็นค่าสีแบบ #RRGGBB",
+      "พื้นหลังโลโก้ต้องเป็น ขาว, โปร่งใส, สีหลัก หรือสีอ่อน",
       "คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร",
       "ต้องใส่ชื่อบัญชีธนาคาร",
       "ต้องใส่ชื่อธนาคาร",
