@@ -78,6 +78,7 @@ export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
     headerLinkColor: settings.headerLinkColor,
     headerLinkHoverColor: settings.headerLinkHoverColor,
     logoBackground: settings.logoBackground,
+    villaCardStyle: settings.villaCardStyle,
     faviconFile: null,
     heroFile: null,
     heroImageAlt: settings.heroImage.alt,
@@ -129,6 +130,7 @@ export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
     headerLinkColor: draft.headerLinkColor,
     headerLinkHoverColor: draft.headerLinkHoverColor,
     logoBackground: draft.logoBackground,
+    villaCardStyle: draft.villaCardStyle,
     faviconFile: getFileSnapshot(draft.faviconFile),
     heroFile: getFileSnapshot(draft.heroFile),
     heroImageAlt: draft.heroImageAlt,
@@ -178,6 +180,7 @@ export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
   formData.set("bankNameHighlightColor", draft.bankNameHighlightColor);
   formData.set("bankNumberHighlightColor", draft.bankNumberHighlightColor);
   formData.set("logoBackground", draft.logoBackground);
+  formData.set("villaCardStyle", draft.villaCardStyle);
   formData.set("heroImageAlt", draft.heroImageAlt);
   formData.set("bankAccountName", draft.bankAccountName);
   formData.set("bankName", draft.bankName);

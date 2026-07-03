@@ -20,6 +20,7 @@ function toSiteSettingsDraft(draft: AdminSettingsDraft): SiteSettingsDraft {
     bankNameHighlightColor: draft.bankNameHighlightColor,
     bankNumberHighlightColor: draft.bankNumberHighlightColor,
     logoBackground: draft.logoBackground,
+    villaCardStyle: draft.villaCardStyle,
     heroImageAlt: draft.heroImageAlt,
     bankAccountName: draft.bankAccountName,
     bankName: draft.bankName,

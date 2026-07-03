@@ -17,6 +17,7 @@ export interface AdminSettingsDraft {
   bankNameHighlightColor: string;
   bankNumberHighlightColor: string;
   logoBackground: SiteLogoBackground;
+  villaCardStyle: SiteSettings["villaCardStyle"];
   seoOgImageFile: File | null;
   searchSeoOgImageFile: File | null;
   guidesSeoOgImageFile: File | null;

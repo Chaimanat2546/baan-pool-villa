@@ -31,7 +31,7 @@ import type {
 } from "./types";
 
 const SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords,detail_layout,tiktok_account_url,tiktok_video_urls";
+  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,villa_card_style,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS =
   "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_og_image_url,guides_seo_og_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_PAGE_SEO =
@@ -77,6 +77,7 @@ export function readSiteSettingsDraft(formData: FormData):
       bankNameHighlightColor: readStringField(formData, "bankNameHighlightColor"),
       bankNumberHighlightColor: readStringField(formData, "bankNumberHighlightColor"),
       logoBackground: readStringField(formData, "logoBackground"),
+      villaCardStyle: readStringField(formData, "villaCardStyle"),
       heroImageAlt: readStringField(formData, "heroImageAlt"),
       bankAccountName: readStringField(formData, "bankAccountName"),
       bankName: readStringField(formData, "bankName"),
@@ -151,6 +152,7 @@ export function buildSiteSettingsSavePayload({
     bank_name_highlight_color: draft.bankNameHighlightColor,
     bank_number_highlight_color: draft.bankNumberHighlightColor,
     logo_background: draft.logoBackground,
+    villa_card_style: draft.villaCardStyle,
     logo_image_path: logoUpload?.path ?? currentSettings.logoImage.path,
     logo_image_url: logoUpload?.publicUrl ?? currentSettings.logoImage.url,
     favicon_image_path: faviconUpload?.path ?? currentSettings.faviconImage.path,

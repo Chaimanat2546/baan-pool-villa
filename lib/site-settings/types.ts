@@ -68,6 +68,8 @@ export interface SiteTikTokSettings {
   videos: SiteTikTokVideoSettings[];
 }
 
+export type SiteVillaCardStyle = "classic" | "gallery";
+
 export interface SiteSettings {
   siteName: string;
   primaryColor: string;
@@ -81,6 +83,7 @@ export interface SiteSettings {
   bankNameHighlightColor: string;
   bankNumberHighlightColor: string;
   logoBackground: SiteLogoBackground;
+  villaCardStyle: SiteVillaCardStyle;
   logoImage: SiteImageSettings;
   faviconImage: SiteImageSettings;
   heroImage: SiteImageSettings;
@@ -112,6 +115,7 @@ export interface SiteSettingsRow {
   bank_name_highlight_color?: string | null;
   bank_number_highlight_color?: string | null;
   logo_background?: string | null;
+  villa_card_style?: string | null;
   logo_image_path: string | null;
   logo_image_url: string | null;
   favicon_image_path?: string | null;
@@ -162,6 +166,7 @@ export interface SiteSettingsDraft {
   bankNameHighlightColor: string;
   bankNumberHighlightColor: string;
   logoBackground: string;
+  villaCardStyle: string;
   heroImageAlt: string;
   bankAccountName: string;
   bankName: string;

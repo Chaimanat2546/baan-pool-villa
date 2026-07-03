@@ -32,6 +32,7 @@ describe("settings helpers", () => {
       bankNameHighlightColor: "#7c3aed",
       bankNumberHighlightColor: "#be123c",
       logoBackground: "soft",
+      villaCardStyle: "gallery",
       logoImage: {
         path: "/images/logo.jpg",
         url: "/images/logo.jpg",
@@ -94,6 +95,7 @@ describe("settings helpers", () => {
       bankNameHighlightColor: "#7c3aed",
       bankNumberHighlightColor: "#be123c",
       logoBackground: "soft",
+      villaCardStyle: "gallery",
       phoneContacts: [
         {
           name: "คุณเกม",
@@ -142,6 +144,7 @@ describe("settings helpers", () => {
       bankNameHighlightColor: "#7c3aed",
       bankNumberHighlightColor: "#be123c",
       logoBackground: "primary",
+      villaCardStyle: "gallery",
       heroImageAlt: "Hero",
       logoFile: null,
       heroFile: null,
@@ -197,6 +200,7 @@ describe("settings helpers", () => {
     expect(formData.get("bankNameHighlightColor")).toBe("#7c3aed");
     expect(formData.get("bankNumberHighlightColor")).toBe("#be123c");
     expect(formData.get("logoBackground")).toBe("primary");
+    expect(formData.get("villaCardStyle")).toBe("gallery");
     expect(formData.get("messengerUrl")).toBe(
       "https://www.facebook.com/baanpoolvillas",
     );
@@ -280,6 +284,16 @@ describe("settings helpers", () => {
     );
   });
 
+  it("tracks villa card style changes in the draft snapshot", () => {
+    const draft = mapSettingsToDraft(DEFAULT_SITE_SETTINGS);
+
+    expect(
+      makeSettingsSnapshot({ ...draft, villaCardStyle: "gallery" }),
+    ).not.toBe(
+      makeSettingsSnapshot({ ...draft, villaCardStyle: "classic" }),
+    );
+  });
+
   it("passes separate bank highlight colors into the preview theme URL", () => {
     const draft = {
       ...mapSettingsToDraft(DEFAULT_SITE_SETTINGS),
@@ -314,6 +328,7 @@ describe("settings helpers", () => {
       bankNameHighlightColor: "#7c3aed",
       bankNumberHighlightColor: "#be123c",
       logoBackground: "soft",
+      villaCardStyle: "classic",
       heroImageAlt: "Hero",
       logoFile: null,
       heroFile: null,

@@ -37,6 +37,7 @@ const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
 const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
 const THAI_PHONE_PATTERN = /^0\d{9}$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
+const VILLA_CARD_STYLES = new Set(["classic", "gallery"]);
 const SITE_ASSET_TYPES: SiteAssetType[] = [
   "favicon",
   "hero",
@@ -128,6 +129,10 @@ export function normalizeSiteSettingsRow(
     row.logo_background,
     DEFAULT_SITE_SETTINGS.logoBackground,
   );
+  const villaCardStyle = normalizeVillaCardStyle(
+    row.villa_card_style,
+    DEFAULT_SITE_SETTINGS.villaCardStyle,
+  );
   const tiktokAccountUrl = normalizeTikTokAccountUrl(
     row.tiktok_account_url,
   );
@@ -145,6 +150,7 @@ export function normalizeSiteSettingsRow(
     bankNameHighlightColor,
     bankNumberHighlightColor,
     logoBackground,
+    villaCardStyle,
     logoImage: normalizeImage(
       row.logo_image_path,
       row.logo_image_url,
@@ -285,6 +291,10 @@ export function normalizeSiteSettingsDraft(
     logoBackground: normalizeSiteLogoBackground(
       draft.logoBackground,
       DEFAULT_SITE_SETTINGS.logoBackground,
+    ),
+    villaCardStyle: normalizeVillaCardStyle(
+      draft.villaCardStyle,
+      DEFAULT_SITE_SETTINGS.villaCardStyle,
     ),
     heroImageAlt: draft.heroImageAlt.trim(),
     bankAccountName: draft.bankAccountName.trim(),
@@ -450,6 +460,10 @@ export function validateSiteSettingsDraft(
 
   if (!isSiteLogoBackground(draft.logoBackground)) {
     errors.push("พื้นหลังโลโก้ต้องเป็น ขาว, โปร่งใส, สีหลัก หรือสีอ่อน");
+  }
+
+  if (!isVillaCardStyle(draft.villaCardStyle)) {
+    errors.push("รูปแบบการ์ดบ้านต้องเป็น แบบเก่า หรือ แบบใหม่");
   }
 
   if (draft.heroImageAlt.length > HERO_IMAGE_ALT_MAX_LENGTH) {
@@ -676,6 +690,21 @@ function normalizeRequiredText(
   const trimmedValue = value?.trim() ?? "";
 
   return trimmedValue.length > 0 ? trimmedValue : fallback;
+}
+
+function isVillaCardStyle(value: string | null | undefined): boolean {
+  return VILLA_CARD_STYLES.has(value?.trim() ?? "");
+}
+
+function normalizeVillaCardStyle(
+  value: string | null | undefined,
+  fallback: SiteSettings["villaCardStyle"],
+): SiteSettings["villaCardStyle"] {
+  const trimmedValue = value?.trim() ?? "";
+
+  return isVillaCardStyle(trimmedValue)
+    ? (trimmedValue as SiteSettings["villaCardStyle"])
+    : fallback;
 }
 
 function normalizeColor(value: string | null | undefined, fallback: string): string {

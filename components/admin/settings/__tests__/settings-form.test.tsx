@@ -74,6 +74,7 @@ describe("SettingsForm", () => {
     const expectedOrder = [
       "ข้อมูลแบรนด์",
       "สีและธีม",
+      "การ์ดบ้าน",
       "รูปหลัก",
       "SEO และการแชร์",
       "ติดต่อและชำระเงิน",
@@ -168,7 +169,7 @@ describe("SettingsForm", () => {
     expect(html).toContain("ตัวอย่างตอนแชร์ลิงก์");
     expect(html).toContain("ดูบ้านพัก");
     expect(html).toContain('rel="stylesheet"');
-    expect(html).not.toContain("style=");
+    expect(html).not.toMatch(/\sstyle="/);
   });
 
   it("marks visible site preview images as eager when they can be LCP", () => {
@@ -238,7 +239,7 @@ describe("SettingsForm", () => {
     const html = renderSettingsForm();
     const headerPreview = html.slice(
       html.indexOf('aria-label="ตัวอย่าง Header สีเมนู"'),
-      html.indexOf('id="hero"'),
+      html.indexOf('id="villa-card"'),
     );
 
     expect(html).toContain("หน้าแรก");
@@ -263,6 +264,71 @@ describe("SettingsForm", () => {
     expect(html).not.toContain("Header hover");
     expect(html).not.toContain("Footer link");
     expect(html).not.toContain("Footer hover");
+  });
+
+  it("renders villa card style controls and preview", () => {
+    const html = renderSettingsForm({
+      ...DEFAULT_SITE_SETTINGS,
+      villaCardStyle: "gallery",
+    });
+
+    expect(html).toContain("รูปแบบการ์ดบ้าน");
+    expect(html).toContain("แบบเก่า");
+    expect(html).toContain("แบบใหม่");
+    expect(html).toContain("การ์ดบ้าน");
+
+    const villaCardSection = html.slice(
+      html.indexOf('id="villa-card"'),
+      html.indexOf('id="hero"'),
+    );
+
+    expect(villaCardSection).toContain("การ์ดบ้าน");
+    expect(villaCardSection).toContain("แบบเก่า");
+    expect(villaCardSection).toContain("แบบใหม่");
+    expect(villaCardSection).not.toContain("ตัวอย่าง");
+    expect(villaCardSection).toContain('data-villa-card-preview-option="classic"');
+    expect(villaCardSection).toContain('data-villa-card-preview-option="gallery"');
+    expect(villaCardSection).toContain("กำลังเลือก");
+    expect(villaCardSection.match(/>การ์ดบ้าน</g) ?? []).toHaveLength(1);
+    expect(villaCardSection).not.toContain('rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4');
+    expect(villaCardSection).toContain("/images/villa-card-preview-cover.png");
+    expect(villaCardSection).toContain("/images/villa-card-preview-1.jpg");
+    expect(villaCardSection).toContain('data-villa-card-style="classic"');
+    expect(villaCardSection).toContain('data-villa-card-style="gallery"');
+    expect(villaCardSection).toContain('data-villa-card-gallery-status="ready"');
+    expect(villaCardSection).toContain("แสดงรูปที่ 3");
+    expect(villaCardSection).toContain("Preview Pool Villa");
+    expect(villaCardSection).not.toContain("/api/villas/501/images");
+    expect(villaCardSection).not.toContain('href="/villas/501"');
+    expect(villaCardSection).not.toContain('value="classic"');
+    expect(villaCardSection).not.toContain('value="gallery"');
+    expect(villaCardSection).not.toContain("รูปปกเดี่ยวและข้อมูลบ้านเหมือนหน้าปัจจุบัน");
+    expect(villaCardSection).not.toContain("รูปใหญ่พร้อมรูปย่อยเลื่อนได้จากแกลเลอรีบ้าน");
+  });
+
+  it("selects the villa card style when an admin clicks the static preview", async () => {
+    const onChange = vi.fn();
+    const page = await mountAdminPage(
+      <SettingsForm
+        draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+        hasUnsavedChanges={false}
+        isSaving={false}
+        onChange={onChange}
+        onSave={vi.fn()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    const galleryPreview = page.container.querySelector(
+      '[data-villa-card-preview-option="gallery"]',
+    ) as HTMLElement | null;
+
+    expect(galleryPreview).not.toBeNull();
+
+    await click(galleryPreview as HTMLElement);
+
+    expect(onChange).toHaveBeenCalledWith({ villaCardStyle: "gallery" });
+
+    await page.unmount();
   });
 
   it("uses upload controls for SEO share images instead of editable URL fields", () => {

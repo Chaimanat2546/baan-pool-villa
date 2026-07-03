@@ -49,6 +49,7 @@ const dbRow = {
   bank_name_highlight_color: "#7c3aed",
   bank_number_highlight_color: "#be123c",
   logo_background: "soft",
+  villa_card_style: "gallery",
   logo_image_path: "logo/2026/05/logo.webp",
   logo_image_url: "https://example.com/logo.webp",
   hero_image_path: "hero/2026/05/hero.webp",
@@ -197,6 +198,7 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
     overrides.bankNumberHighlightColor ?? " #BE123C ",
   );
   formData.set("logoBackground", overrides.logoBackground ?? " primary ");
+  formData.set("villaCardStyle", overrides.villaCardStyle ?? " gallery ");
   formData.set("heroImageAlt", overrides.heroImageAlt ?? " Updated hero ");
   formData.set(
     "phoneContacts",
@@ -681,6 +683,7 @@ describe("admin site settings route", () => {
         bank_name_highlight_color: "#7c3aed",
         bank_number_highlight_color: "#be123c",
         logo_background: "primary",
+        villa_card_style: "gallery",
         hero_image_alt: "Updated hero",
         phone_contacts: [
           {
@@ -724,6 +727,7 @@ describe("admin site settings route", () => {
         bank_name_highlight_color: "#7c3aed",
         bank_number_highlight_color: "#be123c",
         logo_background: "primary",
+        villa_card_style: "gallery",
         logo_image_path: "logo/2026/05/logo.webp",
         logo_image_url: "https://example.com/logo.webp",
         hero_image_path: "hero/2026/05/hero.webp",
@@ -772,6 +776,7 @@ describe("admin site settings route", () => {
         bankNameHighlightColor: "#7c3aed",
         bankNumberHighlightColor: "#be123c",
         logoBackground: "primary",
+        villaCardStyle: "gallery",
         heroImage: {
           alt: "Updated hero",
           path: "hero/2026/05/hero.webp",
