@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  click,
   flushEffects,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
@@ -190,6 +191,75 @@ describe("SettingsForm", () => {
     });
 
     await page.unmount();
+  });
+
+  it("adds a blank phone contact row", async () => {
+    const onChange = vi.fn();
+    const page = await mountAdminPage(
+      <SettingsForm
+        draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+        hasUnsavedChanges={false}
+        isSaving={false}
+        onChange={onChange}
+        onSave={vi.fn()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    const addButton = Array.from(page.container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("เพิ่มผู้ติดต่อ"),
+    ) as HTMLButtonElement | undefined;
+
+    expect(addButton).toBeDefined();
+
+    await click(addButton);
+
+    expect(onChange).toHaveBeenCalledWith({
+      phoneContacts: [
+        ...DEFAULT_SITE_SETTINGS.contact.phoneContacts,
+        { name: "", phone: "", time: "" },
+      ],
+    });
+
+    await page.unmount();
+  });
+
+  it("removes one phone contact while keeping at least one row", async () => {
+    const onChange = vi.fn();
+    const page = await mountAdminPage(
+      <SettingsForm
+        draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+        hasUnsavedChanges={false}
+        isSaving={false}
+        onChange={onChange}
+        onSave={vi.fn()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    const removeButtons = Array.from(
+      page.container.querySelectorAll("button"),
+    ).filter((button) => button.textContent?.includes("ลบผู้ติดต่อ"));
+
+    expect(removeButtons).toHaveLength(2);
+
+    await click(removeButtons[0] as HTMLButtonElement);
+
+    expect(onChange).toHaveBeenCalledWith({
+      phoneContacts: [DEFAULT_SITE_SETTINGS.contact.phoneContacts[1]],
+    });
+
+    await page.unmount();
+  });
+
+  it("does not allow removing the only phone contact row", () => {
+    const html = renderSettingsForm({
+      ...DEFAULT_SITE_SETTINGS,
+      contact: {
+        ...DEFAULT_SITE_SETTINGS.contact,
+        phoneContacts: [DEFAULT_SITE_SETTINGS.contact.phoneContacts[0]],
+      },
+    });
+
+    expect(html).not.toContain("ลบผู้ติดต่อ");
   });
 
   it("does not render TikTok controls in general settings form", () => {

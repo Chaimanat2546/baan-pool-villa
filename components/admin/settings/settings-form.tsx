@@ -10,8 +10,10 @@ import {
   Link2,
   MessageCircleMore,
   Palette,
+  Plus,
   Search,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
@@ -139,6 +141,27 @@ export function SettingsForm({
     onChange({
       phoneContacts: draft.phoneContacts.map((contact, contactIndex) =>
         contactIndex === index ? { ...contact, ...changes } : contact,
+      ),
+    });
+  }
+
+  function addPhoneContact() {
+    onChange({
+      phoneContacts: [
+        ...draft.phoneContacts,
+        { name: "", phone: "", time: "" },
+      ],
+    });
+  }
+
+  function removePhoneContact(index: number) {
+    if (draft.phoneContacts.length <= 1) {
+      return;
+    }
+
+    onChange({
+      phoneContacts: draft.phoneContacts.filter(
+        (_contact, contactIndex) => contactIndex !== index,
       ),
     });
   }
@@ -690,39 +713,66 @@ export function SettingsForm({
             <div className="mt-4 grid gap-4">
               {draft.phoneContacts.map((contact, index) => (
                 <div
-                  className="grid gap-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 lg:grid-cols-3"
+                  className="grid gap-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4"
                   key={index}
                 >
-                  <TextControl
-                    id={`phoneContactName-${index}`}
-                    label={`ชื่อผู้ติดต่อ ${index + 1}`}
-                    onChange={(name) => {
-                      updatePhoneContact(index, { name });
-                    }}
-                    placeholder="คุณเกม"
-                    value={contact.name}
-                  />
-                  <TextControl
-                    id={`phoneContactPhone-${index}`}
-                    inputMode="tel"
-                    label={`เบอร์โทร ${index + 1}`}
-                    onChange={(phone) => {
-                      updatePhoneContact(index, { phone });
-                    }}
-                    placeholder="0617485213"
-                    value={contact.phone}
-                  />
-                  <TextControl
-                    id={`phoneContactTime-${index}`}
-                    label={`ช่วงเวลา ${index + 1}`}
-                    onChange={(time) => {
-                      updatePhoneContact(index, { time });
-                    }}
-                    placeholder="ช่วง 07.00-15.00"
-                    value={contact.time}
-                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-[var(--site-text)]">
+                      ผู้ติดต่อ {index + 1}
+                    </p>
+                    {draft.phoneContacts.length > 1 ? (
+                      <button
+                        className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200"
+                        onClick={() => {
+                          removePhoneContact(index);
+                        }}
+                        type="button"
+                      >
+                        <Trash2 aria-hidden="true" className="size-3.5" />
+                        ลบผู้ติดต่อ
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="grid gap-4 lg:grid-cols-3">
+                    <TextControl
+                      id={`phoneContactName-${index}`}
+                      label={`ชื่อผู้ติดต่อ ${index + 1}`}
+                      onChange={(name) => {
+                        updatePhoneContact(index, { name });
+                      }}
+                      placeholder="คุณเกม"
+                      value={contact.name}
+                    />
+                    <TextControl
+                      id={`phoneContactPhone-${index}`}
+                      inputMode="tel"
+                      label={`เบอร์โทร ${index + 1}`}
+                      onChange={(phone) => {
+                        updatePhoneContact(index, { phone });
+                      }}
+                      placeholder="0617485213"
+                      value={contact.phone}
+                    />
+                    <TextControl
+                      id={`phoneContactTime-${index}`}
+                      label={`ช่วงเวลา ${index + 1}`}
+                      onChange={(time) => {
+                        updatePhoneContact(index, { time });
+                      }}
+                      placeholder="ช่วง 07.00-15.00"
+                      value={contact.time}
+                    />
+                  </div>
                 </div>
               ))}
+              <button
+                className="inline-flex h-10 w-fit items-center gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)] hover:bg-[var(--site-primary-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--site-primary)]/20"
+                onClick={addPhoneContact}
+                type="button"
+              >
+                <Plus aria-hidden="true" className="size-4" />
+                เพิ่มผู้ติดต่อ
+              </button>
             </div>
           </div>
 

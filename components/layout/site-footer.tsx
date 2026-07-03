@@ -23,17 +23,20 @@ export function SiteFooter({ settings }: SiteFooterProps) {
     FALLBACK_LOGO_IMAGE_SRC;
   const contactItems = [
     ...settings.contact.phoneContacts.map(
-      (contact) => ({
+      (contact, index) => ({
         href: null,
+        key: `phone-${index}-${contact.name}-${contact.phone}-${contact.time}`,
         text: `${contact.name} : ${contact.phone} ${contact.time}`,
       }),
     ),
     {
       href: settings.contact.lineUrl,
+      key: "line",
       text: `LINE : ${settings.contact.lineId}`,
     },
     {
       href: settings.contact.messengerUrl,
+      key: "messenger",
       text: "Messenger",
     },
   ];
@@ -101,7 +104,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
                 <a
                   className="text-[var(--site-on-primary)] opacity-60 transition hover:opacity-100"
                   href={item.href}
-                  key={item.text}
+                  key={item.key}
                   rel="noreferrer"
                   target="_blank"
                 >
@@ -109,7 +112,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
                 </a>
               ) : (
                 <p
-                  key={item.text}
+                  key={item.key}
                   className="text-[var(--site-on-primary)] opacity-60"
                 >
                   {item.text}
