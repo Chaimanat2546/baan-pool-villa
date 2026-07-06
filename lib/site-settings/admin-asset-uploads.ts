@@ -30,6 +30,7 @@ export const ASSET_UPLOAD_FIELDS: {
   assetType: SiteAssetType;
   fieldName: string;
 }[] = [
+  { assetType: "favicon", fieldName: "faviconFile" },
   { assetType: "logo", fieldName: "logo" },
   { assetType: "hero", fieldName: "hero" },
   { assetType: "seo-og", fieldName: "seoOgImageFile" },

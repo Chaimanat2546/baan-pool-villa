@@ -3,6 +3,8 @@ import { buildSiteThemeCss } from "@/lib/site-settings/colors";
 const HEX_COLOR_PATTERN = /^#?[\da-f]{6}$/i;
 const DEFAULT_PRIMARY_COLOR = "#064e3b";
 const DEFAULT_ACCENT_COLOR = "#eab308";
+const DEFAULT_LINK_COLOR = "#ffffff";
+const DEFAULT_HIGHLIGHT_COLOR = "#eab308";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,38 @@ export function GET(request: Request) {
       accentColor: readHexColor(
         url.searchParams.get("accent"),
         DEFAULT_ACCENT_COLOR,
+      ),
+      bankHighlightColor: readHexColor(
+        url.searchParams.get("bankHighlight"),
+        DEFAULT_HIGHLIGHT_COLOR,
+      ),
+      bankAccountHighlightColor: readHexColor(
+        url.searchParams.get("bankAccountHighlight"),
+        readHexColor(url.searchParams.get("bankHighlight"), DEFAULT_HIGHLIGHT_COLOR),
+      ),
+      bankNameHighlightColor: readHexColor(
+        url.searchParams.get("bankNameHighlight"),
+        readHexColor(url.searchParams.get("bankHighlight"), DEFAULT_HIGHLIGHT_COLOR),
+      ),
+      bankNumberHighlightColor: readHexColor(
+        url.searchParams.get("bankNumberHighlight"),
+        readHexColor(url.searchParams.get("bankHighlight"), DEFAULT_HIGHLIGHT_COLOR),
+      ),
+      footerLinkColor: readHexColor(
+        url.searchParams.get("footerLink"),
+        DEFAULT_LINK_COLOR,
+      ),
+      footerLinkHoverColor: readHexColor(
+        url.searchParams.get("footerLinkHover"),
+        DEFAULT_HIGHLIGHT_COLOR,
+      ),
+      headerLinkColor: readHexColor(
+        url.searchParams.get("headerLink"),
+        DEFAULT_LINK_COLOR,
+      ),
+      headerLinkHoverColor: readHexColor(
+        url.searchParams.get("headerLinkHover"),
+        DEFAULT_HIGHLIGHT_COLOR,
       ),
       primaryColor: readHexColor(
         url.searchParams.get("primary"),

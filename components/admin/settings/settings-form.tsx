@@ -1,7 +1,9 @@
 "use client";
 
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
-import type { FormEvent } from "react";
+import { VillaCard } from "@/components/villas/listing/villa-card";
+import { VillaCardStyleProvider } from "@/components/villas/listing/villa-card-style-context";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   BadgeInfo,
   Building2,
@@ -10,13 +12,21 @@ import {
   Link2,
   MessageCircleMore,
   Palette,
+  Plus,
   Search,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
+import {
+  SITE_LOGO_BACKGROUND_CLASSES,
+  SITE_LOGO_BACKGROUND_LABELS,
+  SITE_LOGO_BACKGROUNDS,
+} from "@/lib/site-settings/logo-background";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import { validateUploadMetadata } from "@/lib/site-settings/validation";
+import type { VillaListing } from "@/lib/villas/types";
 
 import { AssetUploadField } from "./asset-upload-field";
 import { AdminPasswordSecurityCard } from "./admin-password-security-card";
@@ -55,6 +65,11 @@ const SECTION_NAV_ITEMS: SectionNavItem[] = [
     label: "สีและธีม",
   },
   {
+    description: "เลือกรูปแบบการ์ดบ้านที่แสดงหน้าสาธารณะ",
+    id: "villa-card",
+    label: "การ์ดบ้าน",
+  },
+  {
     description: "ภาพหลักและคำอธิบายหน้าแรก",
     id: "hero",
     label: "รูปหลัก",
@@ -76,6 +91,53 @@ const SECTION_NAV_ITEMS: SectionNavItem[] = [
   },
 ];
 
+const VILLA_CARD_STYLE_OPTIONS: Array<{
+  description: string;
+  label: string;
+  value: AdminSettingsDraft["villaCardStyle"];
+}> = [
+  {
+    description: "รูปปกเดี่ยวและข้อมูลบ้านเหมือนหน้าปัจจุบัน",
+    label: "แบบเก่า",
+    value: "classic",
+  },
+  {
+    description: "รูปใหญ่พร้อมรูปย่อยเลื่อนได้จากแกลเลอรีบ้าน",
+    label: "แบบใหม่",
+    value: "gallery",
+  },
+];
+
+const VILLA_CARD_PREVIEW_COVER_IMAGE_URL =
+  "/images/villa-card-preview-cover.png";
+
+const VILLA_CARD_PREVIEW_IMAGE_URLS = [
+  "/images/villa-card-preview-1.jpg",
+  "/images/villa-card-preview-2.jpg",
+  "/images/villa-card-preview-3.jpg",
+  "/images/villa-card-preview-4.jpg",
+];
+
+const VILLA_CARD_PREVIEW_VILLA: VillaListing = {
+  amenities: [
+    { key: "grill", label: "เตาปิ้งย่าง" },
+    { key: "karaoke", label: "คาราโอเกะ" },
+    { key: "slider", label: "สไลด์เดอร์" },
+    { key: "fancyring", label: "ห่วงยางแฟนซี" },
+  ],
+  bathrooms: 4,
+  bedrooms: 5,
+  coverImage: null,
+  distanceToSea: "500m",
+  id: "501",
+  people: 12,
+  poolType: "private",
+  price: 12000,
+  title: "Preview Pool Villa",
+  zone: "pattaya",
+  zoneLabel: "พัทยา",
+};
+
 function getPreviewImageUrl(value: string, fallback: string): string {
   const trimmedValue = value.trim();
 
@@ -96,6 +158,24 @@ function getPreviewImageUrl(value: string, fallback: string): string {
   return fallback;
 }
 
+function VillaCardStylePreview({
+  previewStyle,
+}: {
+  previewStyle: AdminSettingsDraft["villaCardStyle"];
+}) {
+  return (
+    <VillaCardStyleProvider value={previewStyle}>
+      <VillaCard
+        coverImageSrcOverride={VILLA_CARD_PREVIEW_COVER_IMAGE_URL}
+        galleryImageUrls={VILLA_CARD_PREVIEW_IMAGE_URLS}
+        navigationMode="static"
+        titleHeadingLevel="h3"
+        villa={VILLA_CARD_PREVIEW_VILLA}
+      />
+    </VillaCardStyleProvider>
+  );
+}
+
 export function SettingsForm({
   draft,
   hasUnsavedChanges,
@@ -105,6 +185,9 @@ export function SettingsForm({
   settings,
 }: SettingsFormProps) {
   const isDesktopNavCollapsed = useAdminSidebarCollapsed();
+  const [activeSectionId, setActiveSectionId] = useState(
+    SECTION_NAV_ITEMS[0]?.id ?? "",
+  );
   const themeHref = buildDraftThemeStylesheetHref(draft);
   const heroPreviewUrl = getPreviewImageUrl(
     settings.heroImage.url,
@@ -126,6 +209,49 @@ export function SettingsForm({
     draft.searchSeoKeywords.length +
     draft.guidesSeoKeywords.length +
     draft.villaDetailSeoKeywords.length;
+  const bankPreviewAccountName =
+    draft.bankAccountName || "คุณ อาภัสรา จินดาวา";
+  const bankPreviewName = draft.bankName || "ธนาคารกสิกรไทย";
+  const bankPreviewNumber = draft.bankAccountNumber || "398-289-7482";
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const activeEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((firstEntry, secondEntry) => {
+            return (
+              Math.abs(firstEntry.boundingClientRect.top) -
+              Math.abs(secondEntry.boundingClientRect.top)
+            );
+          })[0];
+
+        if (activeEntry?.target.id) {
+          setActiveSectionId(activeEntry.target.id);
+        }
+      },
+      {
+        rootMargin: "-30% 0px -55% 0px",
+        threshold: [0, 0.2, 0.6],
+      },
+    );
+
+    for (const item of SECTION_NAV_ITEMS) {
+      const section = document.getElementById(item.id);
+
+      if (section) {
+        observer.observe(section);
+      }
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -139,6 +265,27 @@ export function SettingsForm({
     onChange({
       phoneContacts: draft.phoneContacts.map((contact, contactIndex) =>
         contactIndex === index ? { ...contact, ...changes } : contact,
+      ),
+    });
+  }
+
+  function addPhoneContact() {
+    onChange({
+      phoneContacts: [
+        ...draft.phoneContacts,
+        { name: "", phone: "", time: "" },
+      ],
+    });
+  }
+
+  function removePhoneContact(index: number) {
+    if (draft.phoneContacts.length <= 1) {
+      return;
+    }
+
+    onChange({
+      phoneContacts: draft.phoneContacts.filter(
+        (_contact, contactIndex) => contactIndex !== index,
       ),
     });
   }
@@ -180,20 +327,41 @@ export function SettingsForm({
             ส่วนการตั้งค่า
           </p>
           <nav aria-label="เมนูส่วนการตั้งค่า" className="grid gap-1">
-            {SECTION_NAV_ITEMS.map((item) => (
-              <a
-                className="rounded-md px-3 py-3 transition hover:bg-[var(--site-primary-soft)]"
-                href={`#${item.id}`}
-                key={item.id}
-              >
-                <p className="text-sm font-semibold text-[var(--site-text)]">
-                  {item.label}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
-                  {item.description}
-                </p>
-              </a>
-            ))}
+            {SECTION_NAV_ITEMS.map((item) => {
+              const isActive = item.id === activeSectionId;
+
+              return (
+                <a
+                  aria-current={isActive ? "location" : undefined}
+                  className={`rounded-md px-3 py-3 transition ${
+                    isActive
+                      ? "bg-[var(--site-primary)] text-[var(--site-on-primary)] shadow-sm"
+                      : "hover:bg-[var(--site-primary-soft)]"
+                  }`}
+                  href={`#${item.id}`}
+                  key={item.id}
+                >
+                  <p
+                    className={`text-sm font-semibold ${
+                      isActive
+                        ? "text-[var(--site-on-primary)]"
+                        : "text-[var(--site-text)]"
+                    }`}
+                  >
+                    {item.label}
+                  </p>
+                  <p
+                    className={`mt-1 text-xs leading-5 ${
+                      isActive
+                        ? "text-[var(--site-on-primary)] opacity-80"
+                        : "text-[var(--site-muted)]"
+                    }`}
+                  >
+                    {item.description}
+                  </p>
+                </a>
+              );
+            })}
           </nav>
         </div>
       </aside>
@@ -235,6 +403,12 @@ export function SettingsForm({
                     {draft.logoFile ? draft.logoFile.name : "ยังไม่ได้เลือก"}
                   </dd>
                 </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-[var(--site-muted)]">ไอคอนใหม่</dt>
+                  <dd className="text-right font-semibold text-[var(--site-text)]">
+                    {draft.faviconFile ? draft.faviconFile.name : "ยังไม่ได้เลือก"}
+                  </dd>
+                </div>
               </dl>
             </div>
           </div>
@@ -253,6 +427,58 @@ export function SettingsForm({
               return validateUploadMetadata("logo", file.type, file.size, file.name);
             }}
           />
+          <AssetUploadField
+            currentAlt={settings.faviconImage.alt}
+            currentLabel="ไอคอนปัจจุบัน"
+            currentUrl={settings.faviconImage.url}
+            description="ไฟล์ PNG / JPG / WebP สำหรับไอคอนแท็บเบราว์เซอร์และไอคอนบนมือถือ"
+            id="faviconFile"
+            label="ไอคอนเว็บไซต์"
+            onFileChange={(faviconFile) => {
+              onChange({ faviconFile });
+            }}
+            selectedFile={draft.faviconFile}
+            validateFile={(file) => {
+              return validateUploadMetadata("favicon", file.type, file.size, file.name);
+            }}
+          />
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
+            <div>
+              <p className="text-sm font-semibold text-[var(--site-text)]">
+                พื้นหลังโลโก้
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
+                ใช้กับโลโก้ใน Header และ Footer เมื่อไฟล์โลโก้ไม่มีพื้นหลัง
+              </p>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-4">
+              {SITE_LOGO_BACKGROUNDS.map((background) => {
+                const isActive = draft.logoBackground === background;
+
+                return (
+                  <button
+                    aria-pressed={isActive}
+                    className={`rounded-md border px-3 py-2 text-left text-sm font-semibold transition ${
+                      isActive
+                        ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)] text-[var(--site-primary)]"
+                        : "border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-text)] hover:border-[var(--site-border-strong)]"
+                    }`}
+                    key={background}
+                    onClick={() => {
+                      onChange({ logoBackground: background });
+                    }}
+                    type="button"
+                    value={background}
+                  >
+                    <span
+                      className={`mb-2 block h-8 rounded border border-[var(--site-border-strong)] ${SITE_LOGO_BACKGROUND_CLASSES[background]}`}
+                    />
+                    {SITE_LOGO_BACKGROUND_LABELS[background]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </SectionCard>
 
         <SectionCard
@@ -281,6 +507,78 @@ export function SettingsForm({
                 }}
                 value={draft.accentColor}
               />
+              <ColorControl
+                description="สีข้อความลิงก์ใน Header"
+                id="headerLinkColor"
+                label="สีเมนูใน Header"
+                onChange={(headerLinkColor) => {
+                  onChange({ headerLinkColor });
+                }}
+                value={draft.headerLinkColor}
+              />
+              <ColorControl
+                description="สีข้อความลิงก์ใน Header เมื่อชี้เมาส์"
+                id="headerLinkHoverColor"
+                label="สี Hover เมนูใน Header"
+                onChange={(headerLinkHoverColor) => {
+                  onChange({ headerLinkHoverColor });
+                }}
+                value={draft.headerLinkHoverColor}
+              />
+              <ColorControl
+                description="สีข้อความลิงก์ใน Footer"
+                id="footerLinkColor"
+                label="สีเมนูใน Footer"
+                onChange={(footerLinkColor) => {
+                  onChange({ footerLinkColor });
+                }}
+                value={draft.footerLinkColor}
+              />
+              <ColorControl
+                description="สีข้อความลิงก์ใน Footer เมื่อชี้เมาส์"
+                id="footerLinkHoverColor"
+                label="สี Hover เมนูใน Footer"
+                onChange={(footerLinkHoverColor) => {
+                  onChange({ footerLinkHoverColor });
+                }}
+                value={draft.footerLinkHoverColor}
+              />
+              <ColorControl
+                description="ใช้ร่วมกับชื่อบัญชี ชื่อธนาคาร และเลขบัญชี"
+                id="bankHighlightColor"
+                label="สีไฮไลท์บัญชี"
+                onChange={(bankHighlightColor) => {
+                  onChange({ bankHighlightColor });
+                }}
+                value={draft.bankHighlightColor}
+              />
+              <ColorControl
+                description="ใช้กับข้อความชื่อบัญชีใน Header และ Footer"
+                id="bankAccountHighlightColor"
+                label="สีชื่อบัญชี"
+                onChange={(bankAccountHighlightColor) => {
+                  onChange({ bankAccountHighlightColor });
+                }}
+                value={draft.bankAccountHighlightColor}
+              />
+              <ColorControl
+                description="ใช้กับข้อความชื่อธนาคารใน Header และ Footer"
+                id="bankNameHighlightColor"
+                label="สีชื่อธนาคาร"
+                onChange={(bankNameHighlightColor) => {
+                  onChange({ bankNameHighlightColor });
+                }}
+                value={draft.bankNameHighlightColor}
+              />
+              <ColorControl
+                description="ใช้กับข้อความเลขบัญชีใน Header และ Footer"
+                id="bankNumberHighlightColor"
+                label="สีเลขบัญชี"
+                onChange={(bankNumberHighlightColor) => {
+                  onChange({ bankNumberHighlightColor });
+                }}
+                value={draft.bankNumberHighlightColor}
+              />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-3">
@@ -301,6 +599,112 @@ export function SettingsForm({
                   สีรอง
                 </p>
               </div>
+            </div>
+            <div className="grid gap-3 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-sm">
+              <div
+                aria-label="ตัวอย่าง Header สีเมนู"
+                className="overflow-hidden rounded-md bg-[var(--site-primary)] text-[var(--site-on-primary)]"
+              >
+                <div className="flex min-h-[82px] items-center justify-between gap-4 border-b border-[color:var(--site-on-primary)] px-4 py-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border-4 border-white bg-white/10 text-xs font-black">
+                      PV
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-lg font-semibold leading-7">
+                        {draft.siteName || "Pool Villas Pattaya"}
+                      </span>
+                      <span className="block text-xs leading-5">
+                        กรุณาโอนเงิน{" "}
+                        <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-account-highlight)]">
+                          ชื่อบัญชี {bankPreviewAccountName}
+                        </span>{" "}
+                        <br className="sm:hidden" />
+                        <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)]">
+                          {bankPreviewName}
+                        </span>{" "}
+                        <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)]">
+                          เลขที่ {bankPreviewNumber}
+                        </span>{" "}
+                        เท่านั้น
+                      </span>
+                    </span>
+                  </div>
+                  <nav
+                    aria-label="เมนู Header ตัวอย่าง"
+                    className="hidden shrink-0 items-center gap-5 font-semibold lg:flex"
+                  >
+                    {["หน้าแรก", "ค้นหาบ้านพัก", "บทความ"].map((label) => (
+                      <button
+                        className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]"
+                        key={`header-preview-${label}`}
+                        type="button"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </nav>
+                </div>
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          description="เลือกหน้าตาการ์ดบ้านที่ใช้ในหน้าแรก หน้าค้นหา และบ้านแนะนำ"
+          icon={<LayoutTemplate aria-hidden="true" className="size-5" />}
+          id="villa-card"
+          title="การ์ดบ้าน"
+        >
+          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
+            <div>
+              <p className="text-sm font-semibold text-[var(--site-text)]">
+                รูปแบบการ์ดบ้าน
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
+                กดรูปแบบด้านล่างเพื่อเลือกการ์ดบ้านทุกจุดในหน้าเว็บสาธารณะ
+              </p>
+            </div>
+            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+              {VILLA_CARD_STYLE_OPTIONS.map((option) => {
+                const isSelected = draft.villaCardStyle === option.value;
+
+                return (
+                  <div
+                    aria-pressed={isSelected}
+                    className={`cursor-pointer rounded-lg border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-[var(--site-primary)]/25 ${
+                      isSelected
+                        ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
+                        : "border-[var(--site-border)] bg-[var(--site-surface)] hover:border-[var(--site-border-strong)]"
+                    }`}
+                    data-villa-card-preview-option={option.value}
+                    key={`villa-card-preview-${option.value}`}
+                    onClick={() => {
+                      onChange({ villaCardStyle: option.value });
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onChange({ villaCardStyle: option.value });
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <p className="text-sm font-bold text-[var(--site-text)]">
+                        {option.label}
+                      </p>
+                      {isSelected ? (
+                        <span className="rounded-md bg-[var(--site-primary)] px-2 py-1 text-xs font-semibold text-[var(--site-on-primary)]">
+                          กำลังเลือก
+                        </span>
+                      ) : null}
+                    </div>
+                    <VillaCardStylePreview previewStyle={option.value} />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </SectionCard>
@@ -690,39 +1094,66 @@ export function SettingsForm({
             <div className="mt-4 grid gap-4">
               {draft.phoneContacts.map((contact, index) => (
                 <div
-                  className="grid gap-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 lg:grid-cols-3"
+                  className="grid gap-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4"
                   key={index}
                 >
-                  <TextControl
-                    id={`phoneContactName-${index}`}
-                    label={`ชื่อผู้ติดต่อ ${index + 1}`}
-                    onChange={(name) => {
-                      updatePhoneContact(index, { name });
-                    }}
-                    placeholder="คุณเกม"
-                    value={contact.name}
-                  />
-                  <TextControl
-                    id={`phoneContactPhone-${index}`}
-                    inputMode="tel"
-                    label={`เบอร์โทร ${index + 1}`}
-                    onChange={(phone) => {
-                      updatePhoneContact(index, { phone });
-                    }}
-                    placeholder="0617485213"
-                    value={contact.phone}
-                  />
-                  <TextControl
-                    id={`phoneContactTime-${index}`}
-                    label={`ช่วงเวลา ${index + 1}`}
-                    onChange={(time) => {
-                      updatePhoneContact(index, { time });
-                    }}
-                    placeholder="ช่วง 07.00-15.00"
-                    value={contact.time}
-                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-[var(--site-text)]">
+                      ผู้ติดต่อ {index + 1}
+                    </p>
+                    {draft.phoneContacts.length > 1 ? (
+                      <button
+                        className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200"
+                        onClick={() => {
+                          removePhoneContact(index);
+                        }}
+                        type="button"
+                      >
+                        <Trash2 aria-hidden="true" className="size-3.5" />
+                        ลบผู้ติดต่อ
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="grid gap-4 lg:grid-cols-3">
+                    <TextControl
+                      id={`phoneContactName-${index}`}
+                      label={`ชื่อผู้ติดต่อ ${index + 1}`}
+                      onChange={(name) => {
+                        updatePhoneContact(index, { name });
+                      }}
+                      placeholder="คุณเกม"
+                      value={contact.name}
+                    />
+                    <TextControl
+                      id={`phoneContactPhone-${index}`}
+                      inputMode="tel"
+                      label={`เบอร์โทร ${index + 1}`}
+                      onChange={(phone) => {
+                        updatePhoneContact(index, { phone });
+                      }}
+                      placeholder="0617485213"
+                      value={contact.phone}
+                    />
+                    <TextControl
+                      id={`phoneContactTime-${index}`}
+                      label={`ช่วงเวลา ${index + 1}`}
+                      onChange={(time) => {
+                        updatePhoneContact(index, { time });
+                      }}
+                      placeholder="ช่วง 07.00-15.00"
+                      value={contact.time}
+                    />
+                  </div>
                 </div>
               ))}
+              <button
+                className="inline-flex h-10 w-fit items-center gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)] hover:bg-[var(--site-primary-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--site-primary)]/20"
+                onClick={addPhoneContact}
+                type="button"
+              >
+                <Plus aria-hidden="true" className="size-4" />
+                เพิ่มผู้ติดต่อ
+              </button>
             </div>
           </div>
 
@@ -829,6 +1260,7 @@ export function SettingsForm({
               <dd className="text-right font-semibold text-[var(--site-text)]">
                 {[
                   draft.logoFile,
+                  draft.faviconFile,
                   draft.heroFile,
                   draft.seoOgImageFile,
                   draft.searchSeoOgImageFile,
@@ -873,6 +1305,19 @@ export function SettingsForm({
                     ติดต่อเรา
                   </span>
                 </div>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
+              <div className="border-b border-[var(--site-border)] px-4 py-3">
+                <p className="text-sm font-bold text-[var(--site-text)]">
+                  การ์ดบ้าน
+                </p>
+              </div>
+              <div className="p-4">
+                <VillaCardStylePreview
+                  previewStyle={draft.villaCardStyle}
+                />
               </div>
             </div>
 

@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  click,
   flushEffects,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
@@ -73,6 +74,7 @@ describe("SettingsForm", () => {
     const expectedOrder = [
       "ข้อมูลแบรนด์",
       "สีและธีม",
+      "การ์ดบ้าน",
       "รูปหลัก",
       "SEO และการแชร์",
       "ติดต่อและชำระเงิน",
@@ -88,6 +90,76 @@ describe("SettingsForm", () => {
     }, -1);
   });
 
+  it("highlights the rail item for the section currently in view", async () => {
+    const originalIntersectionObserver = globalThis.IntersectionObserver;
+    let observerCallback: IntersectionObserverCallback | null = null;
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "";
+      readonly thresholds = [];
+
+      constructor(callback: IntersectionObserverCallback) {
+        observerCallback = callback;
+      }
+
+      disconnect() {}
+
+      observe() {}
+
+      takeRecords() {
+        return [];
+      }
+
+      unobserve() {}
+    }
+
+    globalThis.IntersectionObserver =
+      MockIntersectionObserver as typeof IntersectionObserver;
+
+    let unmountPage: (() => Promise<void>) | null = null;
+
+    try {
+      const page = await mountAdminPage(
+        <SettingsForm
+          draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+          hasUnsavedChanges={false}
+          isSaving={false}
+          onChange={vi.fn()}
+          onSave={vi.fn()}
+          settings={DEFAULT_SITE_SETTINGS}
+        />,
+      );
+      unmountPage = page.unmount;
+      const themeSection = page.container.querySelector("#theme");
+      const themeRailLink = page.container.querySelector('a[href="#theme"]');
+
+      expect(themeSection).not.toBeNull();
+      expect(themeRailLink).not.toBeNull();
+
+      act(() => {
+        observerCallback?.(
+          [
+            {
+              boundingClientRect: { top: 12 } as DOMRectReadOnly,
+              isIntersecting: true,
+              target: themeSection as Element,
+            } as IntersectionObserverEntry,
+          ],
+          {} as IntersectionObserver,
+        );
+      });
+      await flushEffects();
+
+      expect(themeRailLink?.getAttribute("aria-current")).toBe("location");
+      expect(themeRailLink?.className).toContain("bg-[var(--site-primary)]");
+      expect(themeRailLink?.className).toContain("text-[var(--site-on-primary)]");
+    } finally {
+      await unmountPage?.();
+      globalThis.IntersectionObserver = originalIntersectionObserver;
+    }
+  });
+
   it("shows status plus live site, Google, and share previews beside the form", () => {
     const html = renderSettingsForm();
 
@@ -97,7 +169,7 @@ describe("SettingsForm", () => {
     expect(html).toContain("ตัวอย่างตอนแชร์ลิงก์");
     expect(html).toContain("ดูบ้านพัก");
     expect(html).toContain('rel="stylesheet"');
-    expect(html).not.toContain("style=");
+    expect(html).not.toMatch(/\sstyle="/);
   });
 
   it("marks visible site preview images as eager when they can be LCP", () => {
@@ -135,6 +207,128 @@ describe("SettingsForm", () => {
     expect(html).toContain('id="searchSeoKeywords"');
     expect(html).toContain('id="guidesSeoKeywords"');
     expect(html).toContain('id="villaDetailSeoKeywords"');
+  });
+
+  it("renders link and bank highlight color controls", () => {
+    const html = renderSettingsForm();
+
+    expect(html).toContain('id="headerLinkColor"');
+    expect(html).toContain("สีเมนูใน Header");
+    expect(html).toContain('id="headerLinkHoverColor"');
+    expect(html).toContain("สี Hover เมนูใน Header");
+    expect(html).toContain('id="footerLinkColor"');
+    expect(html).toContain("สีเมนูใน Footer");
+    expect(html).toContain('id="footerLinkHoverColor"');
+    expect(html).toContain("สี Hover เมนูใน Footer");
+    expect(html).toContain('id="bankHighlightColor"');
+    expect(html).toContain("สีไฮไลท์บัญชี");
+    expect(html).toContain('id="bankAccountHighlightColor"');
+    expect(html).toContain("สีชื่อบัญชี");
+    expect(html).toContain('id="bankNameHighlightColor"');
+    expect(html).toContain("สีชื่อธนาคาร");
+    expect(html).toContain('id="bankNumberHighlightColor"');
+    expect(html).toContain("สีเลขบัญชี");
+    expect(html).toContain("พื้นหลังโลโก้");
+    expect(html).toContain('value="white"');
+    expect(html).toContain('value="transparent"');
+    expect(html).toContain('value="primary"');
+    expect(html).toContain('value="soft"');
+  });
+
+  it("renders a hoverable header and bank color example without navigation links", () => {
+    const html = renderSettingsForm();
+    const headerPreview = html.slice(
+      html.indexOf('aria-label="ตัวอย่าง Header สีเมนู"'),
+      html.indexOf('id="villa-card"'),
+    );
+
+    expect(html).toContain("หน้าแรก");
+    expect(html).toContain("ค้นหาบ้านพัก");
+    expect(html).toContain("บทความ");
+    expect(headerPreview).toContain("ชื่อบัญชี");
+    expect(headerPreview).toContain("ธนาคาร");
+    expect(headerPreview).toContain("เลขที่");
+    expect(headerPreview).toContain(DEFAULT_SITE_SETTINGS.bank.accountName);
+    expect(headerPreview).toContain("ธนาคารกสิกรไทย");
+    expect(headerPreview).toContain("398-289-7482");
+    expect(headerPreview).not.toContain("ธนาคารกสิกรไทย เลขที่ 398-289-7482");
+    expect(headerPreview).toContain("text-[var(--site-bank-account-highlight)]");
+    expect(headerPreview).toContain("text-[var(--site-bank-name-highlight)]");
+    expect(headerPreview).toContain("text-[var(--site-bank-number-highlight)]");
+    expect(headerPreview).not.toContain("text-[var(--site-bank-highlight)]");
+    expect(headerPreview).toContain("<button");
+    expect(headerPreview).toContain("hover:text-[var(--site-header-link-hover)]");
+    expect(headerPreview).not.toContain("<a ");
+    expect(headerPreview).not.toContain("href=");
+    expect(html).not.toContain('aria-label="ตัวอย่าง Footer สีเมนู"');
+    expect(html).not.toContain("Header hover");
+    expect(html).not.toContain("Footer link");
+    expect(html).not.toContain("Footer hover");
+  });
+
+  it("renders villa card style controls and preview", () => {
+    const html = renderSettingsForm({
+      ...DEFAULT_SITE_SETTINGS,
+      villaCardStyle: "gallery",
+    });
+
+    expect(html).toContain("รูปแบบการ์ดบ้าน");
+    expect(html).toContain("แบบเก่า");
+    expect(html).toContain("แบบใหม่");
+    expect(html).toContain("การ์ดบ้าน");
+
+    const villaCardSection = html.slice(
+      html.indexOf('id="villa-card"'),
+      html.indexOf('id="hero"'),
+    );
+
+    expect(villaCardSection).toContain("การ์ดบ้าน");
+    expect(villaCardSection).toContain("แบบเก่า");
+    expect(villaCardSection).toContain("แบบใหม่");
+    expect(villaCardSection).not.toContain("ตัวอย่าง");
+    expect(villaCardSection).toContain('data-villa-card-preview-option="classic"');
+    expect(villaCardSection).toContain('data-villa-card-preview-option="gallery"');
+    expect(villaCardSection).toContain("กำลังเลือก");
+    expect(villaCardSection.match(/>การ์ดบ้าน</g) ?? []).toHaveLength(1);
+    expect(villaCardSection).not.toContain('rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4');
+    expect(villaCardSection).toContain("/images/villa-card-preview-cover.png");
+    expect(villaCardSection).toContain("/images/villa-card-preview-1.jpg");
+    expect(villaCardSection).toContain('data-villa-card-style="classic"');
+    expect(villaCardSection).toContain('data-villa-card-style="gallery"');
+    expect(villaCardSection).toContain('data-villa-card-gallery-status="ready"');
+    expect(villaCardSection).toContain("แสดงรูปที่ 3");
+    expect(villaCardSection).toContain("Preview Pool Villa");
+    expect(villaCardSection).not.toContain("/api/villas/501/images");
+    expect(villaCardSection).not.toContain('href="/villas/501"');
+    expect(villaCardSection).not.toContain('value="classic"');
+    expect(villaCardSection).not.toContain('value="gallery"');
+    expect(villaCardSection).not.toContain("รูปปกเดี่ยวและข้อมูลบ้านเหมือนหน้าปัจจุบัน");
+    expect(villaCardSection).not.toContain("รูปใหญ่พร้อมรูปย่อยเลื่อนได้จากแกลเลอรีบ้าน");
+  });
+
+  it("selects the villa card style when an admin clicks the static preview", async () => {
+    const onChange = vi.fn();
+    const page = await mountAdminPage(
+      <SettingsForm
+        draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+        hasUnsavedChanges={false}
+        isSaving={false}
+        onChange={onChange}
+        onSave={vi.fn()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    const galleryPreview = page.container.querySelector(
+      '[data-villa-card-preview-option="gallery"]',
+    ) as HTMLElement | null;
+
+    expect(galleryPreview).not.toBeNull();
+
+    await click(galleryPreview as HTMLElement);
+
+    expect(onChange).toHaveBeenCalledWith({ villaCardStyle: "gallery" });
+
+    await page.unmount();
   });
 
   it("uses upload controls for SEO share images instead of editable URL fields", () => {
@@ -190,6 +384,75 @@ describe("SettingsForm", () => {
     });
 
     await page.unmount();
+  });
+
+  it("adds a blank phone contact row", async () => {
+    const onChange = vi.fn();
+    const page = await mountAdminPage(
+      <SettingsForm
+        draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+        hasUnsavedChanges={false}
+        isSaving={false}
+        onChange={onChange}
+        onSave={vi.fn()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    const addButton = Array.from(page.container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("เพิ่มผู้ติดต่อ"),
+    ) as HTMLButtonElement | undefined;
+
+    expect(addButton).toBeDefined();
+
+    await click(addButton);
+
+    expect(onChange).toHaveBeenCalledWith({
+      phoneContacts: [
+        ...DEFAULT_SITE_SETTINGS.contact.phoneContacts,
+        { name: "", phone: "", time: "" },
+      ],
+    });
+
+    await page.unmount();
+  });
+
+  it("removes one phone contact while keeping at least one row", async () => {
+    const onChange = vi.fn();
+    const page = await mountAdminPage(
+      <SettingsForm
+        draft={mapSettingsToDraft(DEFAULT_SITE_SETTINGS)}
+        hasUnsavedChanges={false}
+        isSaving={false}
+        onChange={onChange}
+        onSave={vi.fn()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    const removeButtons = Array.from(
+      page.container.querySelectorAll("button"),
+    ).filter((button) => button.textContent?.includes("ลบผู้ติดต่อ"));
+
+    expect(removeButtons).toHaveLength(2);
+
+    await click(removeButtons[0] as HTMLButtonElement);
+
+    expect(onChange).toHaveBeenCalledWith({
+      phoneContacts: [DEFAULT_SITE_SETTINGS.contact.phoneContacts[1]],
+    });
+
+    await page.unmount();
+  });
+
+  it("does not allow removing the only phone contact row", () => {
+    const html = renderSettingsForm({
+      ...DEFAULT_SITE_SETTINGS,
+      contact: {
+        ...DEFAULT_SITE_SETTINGS.contact,
+        phoneContacts: [DEFAULT_SITE_SETTINGS.contact.phoneContacts[0]],
+      },
+    });
+
+    expect(html).not.toContain("ลบผู้ติดต่อ");
   });
 
   it("does not render TikTok controls in general settings form", () => {

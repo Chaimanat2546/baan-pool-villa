@@ -13,8 +13,16 @@ import { SiteHeader } from "../site-header";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 vi.mock("next/image", () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    <span aria-label={alt} data-src={src} />
+  default: ({
+    alt,
+    className,
+    src,
+  }: {
+    alt: string;
+    className?: string;
+    src: string;
+  }) => (
+    <span aria-label={alt} className={className} data-src={src} />
   ),
 }));
 
@@ -76,9 +84,50 @@ describe("SiteHeader", () => {
       <SiteHeader settings={DEFAULT_SITE_SETTINGS} />,
     );
 
+    expect(markup).toContain("ชื่อบัญชี");
+    expect(markup).toContain("ธนาคาร");
+    expect(markup).toContain("เลขที่");
+    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountName);
+    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.bankName);
     expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountNumber);
+    expect(markup).not.toContain(
+      `${DEFAULT_SITE_SETTINGS.bank.bankName} เลขที่ ${DEFAULT_SITE_SETTINGS.bank.accountNumber}`,
+    );
     expect(markup).toContain("text-[var(--site-on-primary)]");
-    expect(markup).toContain("text-[var(--site-accent-on-dark)]");
+    expect(markup).toContain("text-[var(--site-bank-account-highlight)]");
+    expect(markup).toContain("text-[var(--site-bank-name-highlight)]");
+    expect(markup).toContain("text-[var(--site-bank-number-highlight)]");
+    expect(markup).not.toContain("text-[var(--site-bank-highlight)]");
+    expect(markup).toContain("text-[var(--site-header-link)]");
+    expect(markup).toContain("hover:text-[var(--site-header-link-hover)]");
+  });
+
+  it("renders uploaded logos with the selected background and containment", () => {
+    const markup = renderToStaticMarkup(
+      <SiteHeader
+        settings={{
+          ...DEFAULT_SITE_SETTINGS,
+          logoBackground: "soft",
+        }}
+      />,
+    );
+
+    expect(markup).toContain("bg-[var(--site-primary-soft)]");
+    expect(markup).toContain("object-contain");
+  });
+
+  it("falls back to a white logo background for cached settings without a logo background", () => {
+    const markup = renderToStaticMarkup(
+      <SiteHeader
+        settings={{
+          ...DEFAULT_SITE_SETTINGS,
+          logoBackground: undefined,
+        } as unknown as typeof DEFAULT_SITE_SETTINGS}
+      />,
+    );
+
+    expect(markup).toContain("bg-white");
+    expect(markup).not.toContain("undefined");
   });
 
   it("hides when scrolling down and shows when scrolling up", async () => {

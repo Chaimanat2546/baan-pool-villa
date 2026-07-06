@@ -1,6 +1,8 @@
 import type { AnyDetailLayoutConfig } from "../detail-layout/types";
+import type { SiteLogoBackground } from "./logo-background";
 
 export type SiteAssetType =
+  | "favicon"
   | "logo"
   | "hero"
   | "seo-og"
@@ -66,11 +68,24 @@ export interface SiteTikTokSettings {
   videos: SiteTikTokVideoSettings[];
 }
 
+export type SiteVillaCardStyle = "classic" | "gallery";
+
 export interface SiteSettings {
   siteName: string;
   primaryColor: string;
   accentColor: string;
+  headerLinkColor: string;
+  headerLinkHoverColor: string;
+  footerLinkColor: string;
+  footerLinkHoverColor: string;
+  bankHighlightColor: string;
+  bankAccountHighlightColor: string;
+  bankNameHighlightColor: string;
+  bankNumberHighlightColor: string;
+  logoBackground: SiteLogoBackground;
+  villaCardStyle: SiteVillaCardStyle;
   logoImage: SiteImageSettings;
+  faviconImage: SiteImageSettings;
   heroImage: SiteImageSettings;
   bank: SiteBankSettings;
   contact: SiteContactSettings;
@@ -91,8 +106,20 @@ export interface SiteSettingsRow {
   site_name: string | null;
   primary_color: string | null;
   accent_color: string | null;
+  header_link_color?: string | null;
+  header_link_hover_color?: string | null;
+  footer_link_color?: string | null;
+  footer_link_hover_color?: string | null;
+  bank_highlight_color?: string | null;
+  bank_account_highlight_color?: string | null;
+  bank_name_highlight_color?: string | null;
+  bank_number_highlight_color?: string | null;
+  logo_background?: string | null;
+  villa_card_style?: string | null;
   logo_image_path: string | null;
   logo_image_url: string | null;
+  favicon_image_path?: string | null;
+  favicon_image_url?: string | null;
   hero_image_path: string | null;
   hero_image_url: string | null;
   hero_image_alt: string | null;
@@ -130,6 +157,16 @@ export interface SiteSettingsDraft {
   siteName: string;
   primaryColor: string;
   accentColor: string;
+  headerLinkColor: string;
+  headerLinkHoverColor: string;
+  footerLinkColor: string;
+  footerLinkHoverColor: string;
+  bankHighlightColor: string;
+  bankAccountHighlightColor: string;
+  bankNameHighlightColor: string;
+  bankNumberHighlightColor: string;
+  logoBackground: string;
+  villaCardStyle: string;
   heroImageAlt: string;
   bankAccountName: string;
   bankName: string;

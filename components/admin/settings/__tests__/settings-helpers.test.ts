@@ -5,10 +5,13 @@ vi.mock("@/lib/site-settings/colors", () => ({
 }));
 
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
+import { buildSiteThemeStylesheetHref } from "../../../../lib/site-settings/colors";
 
 import {
+  buildDraftThemeStylesheetHref,
   buildSettingsFormData,
   extractErrors,
+  makeSettingsSnapshot,
   mapSettingsToDraft,
   shouldRedirectToLogin,
 } from "../settings-helpers";
@@ -20,10 +23,25 @@ describe("settings helpers", () => {
       siteName: "Pool Villas Pattaya",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
+      headerLinkColor: "#f8fafc",
+      headerLinkHoverColor: "#fde68a",
+      footerLinkColor: "#e2e8f0",
+      footerLinkHoverColor: "#facc15",
+      bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
+      logoBackground: "soft",
+      villaCardStyle: "gallery",
       logoImage: {
         path: "/images/logo.jpg",
         url: "/images/logo.jpg",
         alt: "Logo",
+      },
+      faviconImage: {
+        path: "/icon.png",
+        url: "/icon.png",
+        alt: "Site icon",
       },
       heroImage: {
         path: "/images/hero.jpg",
@@ -68,6 +86,16 @@ describe("settings helpers", () => {
       bankAccountName: "คุณ อาภัสรา จินดาวา",
       bankName: "ธนาคารกสิกรไทย",
       bankAccountNumber: "398-289-7482",
+      headerLinkColor: "#f8fafc",
+      headerLinkHoverColor: "#fde68a",
+      footerLinkColor: "#e2e8f0",
+      footerLinkHoverColor: "#facc15",
+      bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
+      logoBackground: "soft",
+      villaCardStyle: "gallery",
       phoneContacts: [
         {
           name: "คุณเกม",
@@ -107,12 +135,23 @@ describe("settings helpers", () => {
       siteName: "Pool Villas Pattaya",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
+      headerLinkColor: "#f8fafc",
+      headerLinkHoverColor: "#fde68a",
+      footerLinkColor: "#e2e8f0",
+      footerLinkHoverColor: "#facc15",
+      bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
+      logoBackground: "primary",
+      villaCardStyle: "gallery",
       heroImageAlt: "Hero",
       logoFile: null,
       heroFile: null,
       seoOgImageFile: null,
       searchSeoOgImageFile: null,
       guidesSeoOgImageFile: null,
+      faviconFile: null,
       bankAccountName: "คุณ อาภัสรา จินดาวา",
       bankName: "ธนาคารกสิกรไทย",
       bankAccountNumber: "398-289-7482",
@@ -152,6 +191,16 @@ describe("settings helpers", () => {
     expect(formData.get("bankAccountName")).toBe("คุณ อาภัสรา จินดาวา");
     expect(formData.get("bankName")).toBe("ธนาคารกสิกรไทย");
     expect(formData.get("bankAccountNumber")).toBe("398-289-7482");
+    expect(formData.get("headerLinkColor")).toBe("#f8fafc");
+    expect(formData.get("headerLinkHoverColor")).toBe("#fde68a");
+    expect(formData.get("footerLinkColor")).toBe("#e2e8f0");
+    expect(formData.get("footerLinkHoverColor")).toBe("#facc15");
+    expect(formData.get("bankHighlightColor")).toBe("#fde047");
+    expect(formData.get("bankAccountHighlightColor")).toBe("#1d4ed8");
+    expect(formData.get("bankNameHighlightColor")).toBe("#7c3aed");
+    expect(formData.get("bankNumberHighlightColor")).toBe("#be123c");
+    expect(formData.get("logoBackground")).toBe("primary");
+    expect(formData.get("villaCardStyle")).toBe("gallery");
     expect(formData.get("messengerUrl")).toBe(
       "https://www.facebook.com/baanpoolvillas",
     );
@@ -197,6 +246,7 @@ describe("settings helpers", () => {
   });
 
   it("serializes selected SEO share image files into the admin form data", () => {
+    const faviconFile = new File(["icon"], "icon.png", { type: "image/png" });
     const seoOgImageFile = new File(["seo"], "seo.webp", { type: "image/webp" });
     const searchSeoOgImageFile = new File(["search"], "search.jpg", {
       type: "image/jpeg",
@@ -206,15 +256,62 @@ describe("settings helpers", () => {
     });
     const draft = {
       ...mapSettingsToDraft(DEFAULT_SITE_SETTINGS),
+      faviconFile,
       seoOgImageFile,
       searchSeoOgImageFile,
       guidesSeoOgImageFile,
     };
     const formData = buildSettingsFormData(draft);
 
+    expect(formData.get("faviconFile")).toBe(faviconFile);
     expect(formData.get("seoOgImageFile")).toBe(seoOgImageFile);
     expect(formData.get("searchSeoOgImageFile")).toBe(searchSeoOgImageFile);
     expect(formData.get("guidesSeoOgImageFile")).toBe(guidesSeoOgImageFile);
+  });
+
+  it("tracks bank highlight color changes in the draft snapshot", () => {
+    const draft = mapSettingsToDraft(DEFAULT_SITE_SETTINGS);
+
+    expect(
+      makeSettingsSnapshot({ ...draft, bankHighlightColor: "#fde047" }),
+    ).not.toBe(
+      makeSettingsSnapshot({ ...draft, bankHighlightColor: "#eab308" }),
+    );
+    expect(
+      makeSettingsSnapshot({ ...draft, bankAccountHighlightColor: "#fde047" }),
+    ).not.toBe(
+      makeSettingsSnapshot({ ...draft, bankAccountHighlightColor: "#eab308" }),
+    );
+  });
+
+  it("tracks villa card style changes in the draft snapshot", () => {
+    const draft = mapSettingsToDraft(DEFAULT_SITE_SETTINGS);
+
+    expect(
+      makeSettingsSnapshot({ ...draft, villaCardStyle: "gallery" }),
+    ).not.toBe(
+      makeSettingsSnapshot({ ...draft, villaCardStyle: "classic" }),
+    );
+  });
+
+  it("passes separate bank highlight colors into the preview theme URL", () => {
+    const draft = {
+      ...mapSettingsToDraft(DEFAULT_SITE_SETTINGS),
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
+    };
+
+    buildDraftThemeStylesheetHref(draft);
+
+    expect(buildSiteThemeStylesheetHref).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bankAccountHighlightColor: "#1d4ed8",
+        bankNameHighlightColor: "#7c3aed",
+        bankNumberHighlightColor: "#be123c",
+      }),
+      "settings-preview-theme",
+    );
   });
 
   it("does not include TikTok fields in form data produced for the settings save endpoint", () => {
@@ -222,12 +319,23 @@ describe("settings helpers", () => {
       siteName: "Pool Villas Pattaya",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
+      headerLinkColor: "#f8fafc",
+      headerLinkHoverColor: "#fde68a",
+      footerLinkColor: "#e2e8f0",
+      footerLinkHoverColor: "#facc15",
+      bankHighlightColor: "#fde047",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
+      logoBackground: "soft",
+      villaCardStyle: "classic",
       heroImageAlt: "Hero",
       logoFile: null,
       heroFile: null,
       seoOgImageFile: null,
       searchSeoOgImageFile: null,
       guidesSeoOgImageFile: null,
+      faviconFile: null,
       bankAccountName: "นายใจดี",
       bankName: "Kasikorn",
       bankAccountNumber: "398-289-7482",

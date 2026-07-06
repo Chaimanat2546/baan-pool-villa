@@ -12,6 +12,14 @@ export function SiteThemeProvider({
 }: SiteThemeProviderProps) {
   const themeHref = buildSiteThemeStylesheetHref({
     accentColor: settings.accentColor,
+    bankHighlightColor: settings.bankHighlightColor,
+    bankAccountHighlightColor: settings.bankAccountHighlightColor,
+    bankNameHighlightColor: settings.bankNameHighlightColor,
+    bankNumberHighlightColor: settings.bankNumberHighlightColor,
+    footerLinkColor: settings.footerLinkColor,
+    footerLinkHoverColor: settings.footerLinkHoverColor,
+    headerLinkColor: settings.headerLinkColor,
+    headerLinkHoverColor: settings.headerLinkHoverColor,
     primaryColor: settings.primaryColor,
   });
 

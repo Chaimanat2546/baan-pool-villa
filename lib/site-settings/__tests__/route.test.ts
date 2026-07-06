@@ -40,6 +40,16 @@ const dbRow = {
   site_name: " Baan Pool Villa ",
   primary_color: "#064e3b",
   accent_color: "#eab308",
+  header_link_color: "#f8fafc",
+  header_link_hover_color: "#fde68a",
+  footer_link_color: "#e2e8f0",
+  footer_link_hover_color: "#facc15",
+  bank_highlight_color: "#fde047",
+  bank_account_highlight_color: "#1d4ed8",
+  bank_name_highlight_color: "#7c3aed",
+  bank_number_highlight_color: "#be123c",
+  logo_background: "soft",
+  villa_card_style: "gallery",
   logo_image_path: "logo/2026/05/logo.webp",
   logo_image_url: "https://example.com/logo.webp",
   hero_image_path: "hero/2026/05/hero.webp",
@@ -170,6 +180,25 @@ function settingsForm(overrides: Partial<Record<string, string>> = {}) {
   formData.set("siteName", overrides.siteName ?? " Updated Villas ");
   formData.set("primaryColor", overrides.primaryColor ?? " #123ABC ");
   formData.set("accentColor", overrides.accentColor ?? " #FEDCBA ");
+  formData.set("headerLinkColor", overrides.headerLinkColor ?? " #F8FAFC ");
+  formData.set("headerLinkHoverColor", overrides.headerLinkHoverColor ?? " #FDE68A ");
+  formData.set("footerLinkColor", overrides.footerLinkColor ?? " #E2E8F0 ");
+  formData.set("footerLinkHoverColor", overrides.footerLinkHoverColor ?? " #FACC15 ");
+  formData.set("bankHighlightColor", overrides.bankHighlightColor ?? " #FDE047 ");
+  formData.set(
+    "bankAccountHighlightColor",
+    overrides.bankAccountHighlightColor ?? " #1D4ED8 ",
+  );
+  formData.set(
+    "bankNameHighlightColor",
+    overrides.bankNameHighlightColor ?? " #7C3AED ",
+  );
+  formData.set(
+    "bankNumberHighlightColor",
+    overrides.bankNumberHighlightColor ?? " #BE123C ",
+  );
+  formData.set("logoBackground", overrides.logoBackground ?? " primary ");
+  formData.set("villaCardStyle", overrides.villaCardStyle ?? " gallery ");
   formData.set("heroImageAlt", overrides.heroImageAlt ?? " Updated hero ");
   formData.set(
     "phoneContacts",
@@ -645,6 +674,16 @@ describe("admin site settings route", () => {
         site_name: "Updated Villas",
         primary_color: "#123abc",
         accent_color: "#fedcba",
+        header_link_color: "#f8fafc",
+        header_link_hover_color: "#fde68a",
+        footer_link_color: "#e2e8f0",
+        footer_link_hover_color: "#facc15",
+        bank_highlight_color: "#fde047",
+        bank_account_highlight_color: "#1d4ed8",
+        bank_name_highlight_color: "#7c3aed",
+        bank_number_highlight_color: "#be123c",
+        logo_background: "primary",
+        villa_card_style: "gallery",
         hero_image_alt: "Updated hero",
         phone_contacts: [
           {
@@ -679,6 +718,16 @@ describe("admin site settings route", () => {
         site_name: "Updated Villas",
         primary_color: "#123abc",
         accent_color: "#fedcba",
+        header_link_color: "#f8fafc",
+        header_link_hover_color: "#fde68a",
+        footer_link_color: "#e2e8f0",
+        footer_link_hover_color: "#facc15",
+        bank_highlight_color: "#fde047",
+        bank_account_highlight_color: "#1d4ed8",
+        bank_name_highlight_color: "#7c3aed",
+        bank_number_highlight_color: "#be123c",
+        logo_background: "primary",
+        villa_card_style: "gallery",
         logo_image_path: "logo/2026/05/logo.webp",
         logo_image_url: "https://example.com/logo.webp",
         hero_image_path: "hero/2026/05/hero.webp",
@@ -718,6 +767,16 @@ describe("admin site settings route", () => {
         siteName: "Updated Villas",
         primaryColor: "#123abc",
         accentColor: "#fedcba",
+        headerLinkColor: "#f8fafc",
+        headerLinkHoverColor: "#fde68a",
+        footerLinkColor: "#e2e8f0",
+        footerLinkHoverColor: "#facc15",
+        bankHighlightColor: "#fde047",
+        bankAccountHighlightColor: "#1d4ed8",
+        bankNameHighlightColor: "#7c3aed",
+        bankNumberHighlightColor: "#be123c",
+        logoBackground: "primary",
+        villaCardStyle: "gallery",
         heroImage: {
           alt: "Updated hero",
           path: "hero/2026/05/hero.webp",

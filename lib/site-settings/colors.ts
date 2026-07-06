@@ -2,6 +2,14 @@ import type { CSSProperties } from "react";
 
 interface ThemeColorInput {
   accentColor: string;
+  bankAccountHighlightColor?: string;
+  bankHighlightColor?: string;
+  bankNameHighlightColor?: string;
+  bankNumberHighlightColor?: string;
+  footerLinkColor?: string;
+  footerLinkHoverColor?: string;
+  headerLinkColor?: string;
+  headerLinkHoverColor?: string;
   primaryColor: string;
 }
 
@@ -149,6 +157,20 @@ function ensureReadableOnBackground(
 export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
   const primaryColor = ensureReadableOnSurface(input.primaryColor.toLowerCase());
   const accentColor = ensureReadableOnSurface(input.accentColor.toLowerCase());
+  const bankHighlightColor = (input.bankHighlightColor ?? "#eab308").toLowerCase();
+  const bankAccountHighlightColor = (
+    input.bankAccountHighlightColor ?? bankHighlightColor
+  ).toLowerCase();
+  const bankNameHighlightColor = (
+    input.bankNameHighlightColor ?? bankHighlightColor
+  ).toLowerCase();
+  const bankNumberHighlightColor = (
+    input.bankNumberHighlightColor ?? bankHighlightColor
+  ).toLowerCase();
+  const footerLinkColor = (input.footerLinkColor ?? "#ffffff").toLowerCase();
+  const footerLinkHoverColor = (input.footerLinkHoverColor ?? "#eab308").toLowerCase();
+  const headerLinkColor = (input.headerLinkColor ?? "#ffffff").toLowerCase();
+  const headerLinkHoverColor = (input.headerLinkHoverColor ?? "#eab308").toLowerCase();
   const [shadowRed, shadowGreen, shadowBlue] = hexToRgb(primaryColor);
   const accentOnDarkColor = ensureReadableOnBackground(
     accentColor,
@@ -161,9 +183,17 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
     "--site-accent-hover": mixHexColors(accentColor, "#040000", 0.08),
     "--site-accent-on-dark": accentOnDarkColor,
     "--site-accent-soft": mixHexColors(accentColor, "#ffffff", 0.901),
+    "--site-bank-account-highlight": bankAccountHighlightColor,
+    "--site-bank-highlight": bankHighlightColor,
+    "--site-bank-name-highlight": bankNameHighlightColor,
+    "--site-bank-number-highlight": bankNumberHighlightColor,
     "--site-border": mixHexColors(primaryColor, "#e2e8f0", 0.85),
     "--site-border-strong": mixHexColors(primaryColor, "#94a3b8", 0.58),
     "--site-card-shadow": `0 14px 42px rgba(${shadowRed}, ${shadowGreen}, ${shadowBlue}, 0.09)`,
+    "--site-footer-link": footerLinkColor,
+    "--site-footer-link-hover": footerLinkHoverColor,
+    "--site-header-link": headerLinkColor,
+    "--site-header-link-hover": headerLinkHoverColor,
     "--site-muted": mixHexColors(textColor, "#64748b", 0.58),
     "--site-on-accent": getReadableTextColor(accentColor),
     "--site-on-primary": getReadableTextColor(primaryColor),
@@ -205,6 +235,20 @@ export function buildSiteThemeStylesheetHref(
 ): string {
   const params = new URLSearchParams({
     accent: formatThemeColorParam(input.accentColor),
+    bankHighlight: formatThemeColorParam(input.bankHighlightColor ?? "#eab308"),
+    bankAccountHighlight: formatThemeColorParam(
+      input.bankAccountHighlightColor ?? input.bankHighlightColor ?? "#eab308",
+    ),
+    bankNameHighlight: formatThemeColorParam(
+      input.bankNameHighlightColor ?? input.bankHighlightColor ?? "#eab308",
+    ),
+    bankNumberHighlight: formatThemeColorParam(
+      input.bankNumberHighlightColor ?? input.bankHighlightColor ?? "#eab308",
+    ),
+    footerLink: formatThemeColorParam(input.footerLinkColor ?? "#ffffff"),
+    footerLinkHover: formatThemeColorParam(input.footerLinkHoverColor ?? "#eab308"),
+    headerLink: formatThemeColorParam(input.headerLinkColor ?? "#ffffff"),
+    headerLinkHover: formatThemeColorParam(input.headerLinkHoverColor ?? "#eab308"),
     primary: formatThemeColorParam(input.primaryColor),
     scope: normalizeCssScope(scope),
   });
