@@ -295,6 +295,7 @@ create table if not exists public.site_settings (
   bank_name_highlight_color text not null default '#eab308',
   bank_number_highlight_color text not null default '#eab308',
   logo_background text not null default 'white',
+  villa_card_style text not null default 'classic',
   logo_image_path text,
   logo_image_url text,
   hero_image_path text,
@@ -313,7 +314,8 @@ create table if not exists public.site_settings (
   constraint site_settings_bank_account_highlight_color_hex check (bank_account_highlight_color ~ '^#[0-9A-Fa-f]{6}$'),
   constraint site_settings_bank_name_highlight_color_hex check (bank_name_highlight_color ~ '^#[0-9A-Fa-f]{6}$'),
   constraint site_settings_bank_number_highlight_color_hex check (bank_number_highlight_color ~ '^#[0-9A-Fa-f]{6}$'),
-  constraint site_settings_logo_background_allowed check (logo_background in ('white', 'transparent', 'primary', 'soft'))
+  constraint site_settings_logo_background_allowed check (logo_background in ('white', 'transparent', 'primary', 'soft')),
+  constraint site_settings_villa_card_style_allowed check (villa_card_style in ('classic', 'gallery'))
 );
 
 create table if not exists public.site_asset_uploads (
@@ -523,6 +525,7 @@ insert into public.site_settings (
   bank_name_highlight_color,
   bank_number_highlight_color,
   logo_background,
+  villa_card_style,
   logo_image_path,
   logo_image_url,
   hero_image_path,
@@ -543,6 +546,7 @@ values (
   '#eab308',
   '#eab308',
   'white',
+  'classic',
   '/images/logo.jpg',
   '/images/logo.jpg',
   '/images/BPV-66_Cover-Web.jpg',

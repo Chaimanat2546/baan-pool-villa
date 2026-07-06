@@ -144,6 +144,47 @@ describe("VillaCardGalleryImages", () => {
     container.remove();
   });
 
+  it("keeps the cover image when there are not enough gallery thumbnails", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <VillaCardGalleryImages
+          alt="Sparse Demo Villa"
+          coverImageSrc="https://images.example.com/cover.jpg"
+          staticImageUrls={["https://images.example.com/pool.jpg"]}
+          villaId="501"
+        />,
+      );
+    });
+    await flushEffects();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(
+      container
+        .querySelector("[data-villa-card-gallery-status]")
+        ?.getAttribute("data-villa-card-gallery-status"),
+    ).toBe("empty");
+    expect(
+      container
+        .querySelector('[aria-label="Sparse Demo Villa"]')
+        ?.getAttribute("data-src"),
+    ).toBe("https://images.example.com/cover.jpg");
+    expect(
+      container.querySelector("[data-villa-card-thumbnail-strip]"),
+    ).toBeNull();
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it("updates the main image when the thumbnail scroll buttons are clicked", async () => {
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     const originalScrollTo = HTMLElement.prototype.scrollTo;

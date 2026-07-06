@@ -488,6 +488,21 @@ describe("admin site settings route", () => {
     expect(fallbackQuery.select).toHaveBeenCalledWith(
       expect.stringContaining("detail_layout"),
     );
+    for (const fallbackSelectQuery of [
+      withoutKeywordsQuery,
+      withoutPageSeoQuery,
+      fallbackQuery,
+    ]) {
+      expect(fallbackSelectQuery.select).toHaveBeenCalledWith(
+        expect.stringContaining("villa_card_style"),
+      );
+      expect(fallbackSelectQuery.select).toHaveBeenCalledWith(
+        expect.stringContaining("favicon_image_path"),
+      );
+      expect(fallbackSelectQuery.select).toHaveBeenCalledWith(
+        expect.stringContaining("favicon_image_url"),
+      );
+    }
   });
 
   it("falls back to a general schema for GET when feature columns are missing", async () => {

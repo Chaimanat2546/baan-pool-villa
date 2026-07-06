@@ -1,4 +1,5 @@
 import { buildSiteThemeStylesheetHref } from "@/lib/site-settings/colors";
+import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
@@ -24,42 +25,60 @@ export function isHexColor(value: string): boolean {
   return HEX_COLOR_PATTERN.test(value.trim());
 }
 
+function readDraftHexColor(value: string, fallback: string): string {
+  const normalizedColor = value.trim().toLowerCase();
+
+  return isHexColor(normalizedColor) ? normalizedColor : fallback;
+}
+
 // Keep the preview renderable while the form is mid-edit by falling back to
-// safe brand colors whenever the draft still contains an invalid hex value.
+// the public site defaults whenever the draft still contains an invalid hex
+// value.
 export function buildDraftThemeStylesheetHref(
   draft: AdminSettingsDraft,
   scope = "settings-preview-theme",
 ) {
-  const accentColor = draft.accentColor.trim().toLowerCase();
-  const primaryColor = draft.primaryColor.trim().toLowerCase();
-
   return buildSiteThemeStylesheetHref({
-    accentColor: isHexColor(accentColor) ? accentColor : "#eab308",
-    bankHighlightColor: isHexColor(draft.bankHighlightColor.trim())
-      ? draft.bankHighlightColor.trim().toLowerCase()
-      : "#eab308",
-    bankAccountHighlightColor: isHexColor(draft.bankAccountHighlightColor.trim())
-      ? draft.bankAccountHighlightColor.trim().toLowerCase()
-      : "#eab308",
-    bankNameHighlightColor: isHexColor(draft.bankNameHighlightColor.trim())
-      ? draft.bankNameHighlightColor.trim().toLowerCase()
-      : "#eab308",
-    bankNumberHighlightColor: isHexColor(draft.bankNumberHighlightColor.trim())
-      ? draft.bankNumberHighlightColor.trim().toLowerCase()
-      : "#eab308",
-    footerLinkColor: isHexColor(draft.footerLinkColor.trim())
-      ? draft.footerLinkColor.trim().toLowerCase()
-      : "#ffffff",
-    footerLinkHoverColor: isHexColor(draft.footerLinkHoverColor.trim())
-      ? draft.footerLinkHoverColor.trim().toLowerCase()
-      : "#eab308",
-    headerLinkColor: isHexColor(draft.headerLinkColor.trim())
-      ? draft.headerLinkColor.trim().toLowerCase()
-      : "#ffffff",
-    headerLinkHoverColor: isHexColor(draft.headerLinkHoverColor.trim())
-      ? draft.headerLinkHoverColor.trim().toLowerCase()
-      : "#eab308",
-    primaryColor: isHexColor(primaryColor) ? primaryColor : "#064e3b",
+    accentColor: readDraftHexColor(
+      draft.accentColor,
+      DEFAULT_SITE_SETTINGS.accentColor,
+    ),
+    bankHighlightColor: readDraftHexColor(
+      draft.bankHighlightColor,
+      DEFAULT_SITE_SETTINGS.bankHighlightColor,
+    ),
+    bankAccountHighlightColor: readDraftHexColor(
+      draft.bankAccountHighlightColor,
+      DEFAULT_SITE_SETTINGS.bankAccountHighlightColor,
+    ),
+    bankNameHighlightColor: readDraftHexColor(
+      draft.bankNameHighlightColor,
+      DEFAULT_SITE_SETTINGS.bankNameHighlightColor,
+    ),
+    bankNumberHighlightColor: readDraftHexColor(
+      draft.bankNumberHighlightColor,
+      DEFAULT_SITE_SETTINGS.bankNumberHighlightColor,
+    ),
+    footerLinkColor: readDraftHexColor(
+      draft.footerLinkColor,
+      DEFAULT_SITE_SETTINGS.footerLinkColor,
+    ),
+    footerLinkHoverColor: readDraftHexColor(
+      draft.footerLinkHoverColor,
+      DEFAULT_SITE_SETTINGS.footerLinkHoverColor,
+    ),
+    headerLinkColor: readDraftHexColor(
+      draft.headerLinkColor,
+      DEFAULT_SITE_SETTINGS.headerLinkColor,
+    ),
+    headerLinkHoverColor: readDraftHexColor(
+      draft.headerLinkHoverColor,
+      DEFAULT_SITE_SETTINGS.headerLinkHoverColor,
+    ),
+    primaryColor: readDraftHexColor(
+      draft.primaryColor,
+      DEFAULT_SITE_SETTINGS.primaryColor,
+    ),
   }, scope);
 }
 

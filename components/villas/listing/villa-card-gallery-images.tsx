@@ -12,6 +12,7 @@ const MIN_GALLERY_CARD_IMAGES = 3;
 interface VillaCardGalleryImagesProps {
   alt: string;
   coverImageSrc: string | null;
+  href?: string;
   preload?: boolean;
   staticImageUrls?: string[];
   villaId: string;
@@ -59,6 +60,7 @@ export function selectVillaCardGalleryImages(
 export function VillaCardGalleryImages({
   alt,
   coverImageSrc,
+  href,
   preload = false,
   staticImageUrls,
   villaId,
@@ -219,7 +221,7 @@ export function VillaCardGalleryImages({
     thumbnailRail.scrollLeft = targetLeft;
   }, [galleryStatus, selectedIndex]);
 
-  if (!coverImageSrc || galleryStatus === "empty") {
+  if (!coverImageSrc) {
     return (
       <div
         ref={rootRef}
@@ -233,6 +235,17 @@ export function VillaCardGalleryImages({
   }
 
   const selectedImage = galleryImages[selectedIndex] ?? coverImageSrc;
+  const mainImage = (
+    <Image
+      src={selectedImage}
+      alt={alt}
+      fill
+      preload={preload && selectedIndex === 0}
+      quality={60}
+      sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
+      className="object-cover transition duration-500"
+    />
+  );
 
   return (
     <div
@@ -241,17 +254,20 @@ export function VillaCardGalleryImages({
       data-villa-card-gallery-status={galleryStatus}
       data-villa-card-style="gallery"
     >
-      <div className="relative h-[216px] w-full overflow-hidden">
-        <Image
-          src={selectedImage}
-          alt={alt}
-          fill
-          preload={preload && selectedIndex === 0}
-          quality={60}
-          sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
-          className="object-cover transition duration-500"
-        />
-      </div>
+      {href ? (
+        <a
+          aria-label={`ดูรายละเอียด ${alt}`}
+          className="relative block h-[216px] w-full overflow-hidden"
+          data-villa-card-gallery-main-link="true"
+          href={href}
+        >
+          {mainImage}
+        </a>
+      ) : (
+        <div className="relative h-[216px] w-full overflow-hidden">
+          {mainImage}
+        </div>
+      )}
 
       {galleryStatus === "ready" ? (
         <div
