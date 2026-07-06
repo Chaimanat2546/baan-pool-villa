@@ -63,6 +63,7 @@ describe("VillaCard navigation", () => {
 
     expect(markup).toContain('data-villa-card-style="gallery"');
     expect(markup).toContain('data-villa-card-gallery-status="loading"');
+    expect(markup).toContain('data-villa-card-gallery-main-link="true"');
     expect(markup).toContain('href="/villas/501"');
   });
 

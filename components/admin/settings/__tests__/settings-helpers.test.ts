@@ -314,6 +314,41 @@ describe("settings helpers", () => {
     );
   });
 
+  it("uses site defaults for invalid preview theme colors", () => {
+    const draft = {
+      ...mapSettingsToDraft(DEFAULT_SITE_SETTINGS),
+      accentColor: "gold",
+      bankHighlightColor: "yellow",
+      bankAccountHighlightColor: "blue",
+      bankNameHighlightColor: "purple",
+      bankNumberHighlightColor: "red",
+      footerLinkColor: "white",
+      footerLinkHoverColor: "gold",
+      headerLinkColor: "white",
+      headerLinkHoverColor: "gold",
+      primaryColor: "green",
+    };
+
+    vi.mocked(buildSiteThemeStylesheetHref).mockClear();
+    buildDraftThemeStylesheetHref(draft);
+
+    expect(buildSiteThemeStylesheetHref).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accentColor: DEFAULT_SITE_SETTINGS.accentColor,
+        bankHighlightColor: DEFAULT_SITE_SETTINGS.bankHighlightColor,
+        bankAccountHighlightColor: DEFAULT_SITE_SETTINGS.bankAccountHighlightColor,
+        bankNameHighlightColor: DEFAULT_SITE_SETTINGS.bankNameHighlightColor,
+        bankNumberHighlightColor: DEFAULT_SITE_SETTINGS.bankNumberHighlightColor,
+        footerLinkColor: DEFAULT_SITE_SETTINGS.footerLinkColor,
+        footerLinkHoverColor: DEFAULT_SITE_SETTINGS.footerLinkHoverColor,
+        headerLinkColor: DEFAULT_SITE_SETTINGS.headerLinkColor,
+        headerLinkHoverColor: DEFAULT_SITE_SETTINGS.headerLinkHoverColor,
+        primaryColor: DEFAULT_SITE_SETTINGS.primaryColor,
+      }),
+      "settings-preview-theme",
+    );
+  });
+
   it("does not include TikTok fields in form data produced for the settings save endpoint", () => {
     const formData = buildSettingsFormData({
       siteName: "Pool Villas Pattaya",

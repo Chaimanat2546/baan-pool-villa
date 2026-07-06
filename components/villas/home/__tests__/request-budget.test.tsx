@@ -90,13 +90,15 @@ describe("homepage request budget", () => {
       />,
     );
 
-    const renderedVillaLinks = markup.match(/href="\/villas\//g) ?? [];
+    const renderedVillaCards = markup.match(
+      /<article[^>]*data-villa-card-style=/g,
+    ) ?? [];
     const renderedImages =
       markup.match(
         /data-src="https:\/\/devillegroups\.com\/imgs\/profile_imgs_large\/\d+\.jpg"/g,
       ) ?? [];
 
-    expect(renderedVillaLinks).toHaveLength(12);
+    expect(renderedVillaCards).toHaveLength(12);
     expect(renderedImages).toHaveLength(12);
     expect(markup).not.toContain("/api/houses/images");
     expect(markup).toContain('href="/villas/11"');

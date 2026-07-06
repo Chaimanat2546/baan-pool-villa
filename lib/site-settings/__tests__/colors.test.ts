@@ -4,10 +4,15 @@ import {
   buildSiteThemeCss,
   buildSiteThemeStylesheetHref,
   buildSiteThemeStyle,
+  DEFAULT_ACCENT_COLOR,
+  DEFAULT_HIGHLIGHT_COLOR,
+  DEFAULT_LINK_COLOR,
+  DEFAULT_PRIMARY_COLOR,
   getContrastRatio,
   getReadableTextColor,
   mixHexColors,
 } from "../colors";
+import { DEFAULT_SITE_SETTINGS } from "../defaults";
 
 function expectContrast(
   foreground: string,
@@ -22,6 +27,33 @@ function expectContrast(
 describe("mixHexColors", () => {
   it("mixes two hex colors", () => {
     expect(mixHexColors("#000000", "#ffffff", 0.5)).toBe("#808080");
+  });
+});
+
+describe("theme fallback constants", () => {
+  it("match production-safe site setting defaults", () => {
+    expect(DEFAULT_PRIMARY_COLOR).toBe(DEFAULT_SITE_SETTINGS.primaryColor);
+    expect(DEFAULT_ACCENT_COLOR).toBe(DEFAULT_SITE_SETTINGS.accentColor);
+    expect(DEFAULT_LINK_COLOR).toBe(DEFAULT_SITE_SETTINGS.headerLinkColor);
+    expect(DEFAULT_LINK_COLOR).toBe(DEFAULT_SITE_SETTINGS.footerLinkColor);
+    expect(DEFAULT_HIGHLIGHT_COLOR).toBe(
+      DEFAULT_SITE_SETTINGS.headerLinkHoverColor,
+    );
+    expect(DEFAULT_HIGHLIGHT_COLOR).toBe(
+      DEFAULT_SITE_SETTINGS.footerLinkHoverColor,
+    );
+    expect(DEFAULT_HIGHLIGHT_COLOR).toBe(
+      DEFAULT_SITE_SETTINGS.bankHighlightColor,
+    );
+    expect(DEFAULT_HIGHLIGHT_COLOR).toBe(
+      DEFAULT_SITE_SETTINGS.bankAccountHighlightColor,
+    );
+    expect(DEFAULT_HIGHLIGHT_COLOR).toBe(
+      DEFAULT_SITE_SETTINGS.bankNameHighlightColor,
+    );
+    expect(DEFAULT_HIGHLIGHT_COLOR).toBe(
+      DEFAULT_SITE_SETTINGS.bankNumberHighlightColor,
+    );
   });
 });
 

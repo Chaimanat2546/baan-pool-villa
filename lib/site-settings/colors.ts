@@ -15,6 +15,11 @@ interface ThemeColorInput {
 
 type SiteThemeStyle = CSSProperties & Record<`--site-${string}`, string>;
 
+export const DEFAULT_PRIMARY_COLOR = "#064e3b";
+export const DEFAULT_ACCENT_COLOR = "#eab308";
+export const DEFAULT_LINK_COLOR = "#ffffff";
+export const DEFAULT_HIGHLIGHT_COLOR = "#eab308";
+
 function clampChannel(value: number): number {
   return Math.min(255, Math.max(0, Math.round(value)));
 }
@@ -157,7 +162,9 @@ function ensureReadableOnBackground(
 export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
   const primaryColor = ensureReadableOnSurface(input.primaryColor.toLowerCase());
   const accentColor = ensureReadableOnSurface(input.accentColor.toLowerCase());
-  const bankHighlightColor = (input.bankHighlightColor ?? "#eab308").toLowerCase();
+  const bankHighlightColor = (
+    input.bankHighlightColor ?? DEFAULT_HIGHLIGHT_COLOR
+  ).toLowerCase();
   const bankAccountHighlightColor = (
     input.bankAccountHighlightColor ?? bankHighlightColor
   ).toLowerCase();
@@ -167,10 +174,14 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
   const bankNumberHighlightColor = (
     input.bankNumberHighlightColor ?? bankHighlightColor
   ).toLowerCase();
-  const footerLinkColor = (input.footerLinkColor ?? "#ffffff").toLowerCase();
-  const footerLinkHoverColor = (input.footerLinkHoverColor ?? "#eab308").toLowerCase();
-  const headerLinkColor = (input.headerLinkColor ?? "#ffffff").toLowerCase();
-  const headerLinkHoverColor = (input.headerLinkHoverColor ?? "#eab308").toLowerCase();
+  const footerLinkColor = (input.footerLinkColor ?? DEFAULT_LINK_COLOR).toLowerCase();
+  const footerLinkHoverColor = (
+    input.footerLinkHoverColor ?? DEFAULT_HIGHLIGHT_COLOR
+  ).toLowerCase();
+  const headerLinkColor = (input.headerLinkColor ?? DEFAULT_LINK_COLOR).toLowerCase();
+  const headerLinkHoverColor = (
+    input.headerLinkHoverColor ?? DEFAULT_HIGHLIGHT_COLOR
+  ).toLowerCase();
   const [shadowRed, shadowGreen, shadowBlue] = hexToRgb(primaryColor);
   const accentOnDarkColor = ensureReadableOnBackground(
     accentColor,
@@ -235,20 +246,32 @@ export function buildSiteThemeStylesheetHref(
 ): string {
   const params = new URLSearchParams({
     accent: formatThemeColorParam(input.accentColor),
-    bankHighlight: formatThemeColorParam(input.bankHighlightColor ?? "#eab308"),
+    bankHighlight: formatThemeColorParam(
+      input.bankHighlightColor ?? DEFAULT_HIGHLIGHT_COLOR,
+    ),
     bankAccountHighlight: formatThemeColorParam(
-      input.bankAccountHighlightColor ?? input.bankHighlightColor ?? "#eab308",
+      input.bankAccountHighlightColor ??
+        input.bankHighlightColor ??
+        DEFAULT_HIGHLIGHT_COLOR,
     ),
     bankNameHighlight: formatThemeColorParam(
-      input.bankNameHighlightColor ?? input.bankHighlightColor ?? "#eab308",
+      input.bankNameHighlightColor ??
+        input.bankHighlightColor ??
+        DEFAULT_HIGHLIGHT_COLOR,
     ),
     bankNumberHighlight: formatThemeColorParam(
-      input.bankNumberHighlightColor ?? input.bankHighlightColor ?? "#eab308",
+      input.bankNumberHighlightColor ??
+        input.bankHighlightColor ??
+        DEFAULT_HIGHLIGHT_COLOR,
     ),
-    footerLink: formatThemeColorParam(input.footerLinkColor ?? "#ffffff"),
-    footerLinkHover: formatThemeColorParam(input.footerLinkHoverColor ?? "#eab308"),
-    headerLink: formatThemeColorParam(input.headerLinkColor ?? "#ffffff"),
-    headerLinkHover: formatThemeColorParam(input.headerLinkHoverColor ?? "#eab308"),
+    footerLink: formatThemeColorParam(input.footerLinkColor ?? DEFAULT_LINK_COLOR),
+    footerLinkHover: formatThemeColorParam(
+      input.footerLinkHoverColor ?? DEFAULT_HIGHLIGHT_COLOR,
+    ),
+    headerLink: formatThemeColorParam(input.headerLinkColor ?? DEFAULT_LINK_COLOR),
+    headerLinkHover: formatThemeColorParam(
+      input.headerLinkHoverColor ?? DEFAULT_HIGHLIGHT_COLOR,
+    ),
     primary: formatThemeColorParam(input.primaryColor),
     scope: normalizeCssScope(scope),
   });
