@@ -16,6 +16,11 @@ describe("SiteThemeProvider", () => {
     expect(markup).toContain('class="site-theme min-h-full"');
     expect(markup).toContain('rel="stylesheet"');
     expect(markup).toContain("/api/site-theme.css?");
+    expect(markup).toContain("headerLink=ffffff");
+    expect(markup).toContain("headerLinkHover=eab308");
+    expect(markup).toContain("footerLink=ffffff");
+    expect(markup).toContain("footerLinkHover=eab308");
+    expect(markup).toContain("bankHighlight=eab308");
     expect(markup).not.toContain("style=");
   });
 });

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
 
-import { buildGlobalMetadata } from "@/lib/seo";
+import { buildSiteSettingsGlobalMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings/server";
 
 import "./globals.css";
 
@@ -16,7 +17,11 @@ const prompt = Prompt({
 // Render routes per request while preserving explicit tagged data caches.
 export const revalidate = 0;
 
-export const metadata: Metadata = buildGlobalMetadata();
+export async function generateMetadata(): Promise<Metadata> {
+  const { settings } = await getSiteSettings();
+
+  return buildSiteSettingsGlobalMetadata(settings);
+}
 
 /**
  * Root layout component that provides the document <html> and <body> wrapper with global styles and font variable.

@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { VillaListing } from "@/lib/villas/types";
 
+import { VillaCardStyleProvider } from "../villa-card-style-context";
+import { selectVillaCardGalleryImages } from "../villa-card-gallery-images";
 import { VillaCard } from "../villa-card";
 
 interface MockImageProps {
@@ -50,6 +52,60 @@ describe("VillaCard navigation", () => {
       'data-src="https://devillegroups.com/imgs/profile_imgs_large/501.jpg"',
     );
     expect(markup).not.toContain("/api/houses/images");
+  });
+
+  it("renders the gallery card image shell when the site setting selects the new style", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCardStyleProvider value="gallery">
+        <VillaCard villa={villa} />
+      </VillaCardStyleProvider>,
+    );
+
+    expect(markup).toContain('data-villa-card-style="gallery"');
+    expect(markup).toContain('data-villa-card-gallery-status="loading"');
+    expect(markup).toContain('data-villa-card-gallery-main-link="true"');
+    expect(markup).toContain('href="/villas/501"');
+  });
+
+  it("shows the no-image placeholder when a card has no cover image", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard villa={{ ...villa, coverImage: null }} />,
+    );
+
+    expect(markup).toContain("ไม่มีรูปภาพ");
+  });
+
+  it("keeps the cover image first and caps gallery card images at ten", () => {
+    const images = selectVillaCardGalleryImages(
+      "https://images.example.com/cover.jpg",
+      Array.from({ length: 12 }, (_, index) => ({
+        caption: null,
+        id: index + 1,
+        imageName: `image-${index + 1}.jpg`,
+        imageUrl: `https://images.example.com/image-${index + 1}.jpg`,
+        isCover: false,
+        zone: "outside",
+      })),
+    );
+
+    expect(images).toHaveLength(10);
+    expect(images[0]).toBe("https://images.example.com/cover.jpg");
+    expect(images[9]).toBe("https://images.example.com/image-9.jpg");
+  });
+
+  it("returns no gallery card images when there are fewer than three usable images", () => {
+    expect(
+      selectVillaCardGalleryImages("https://images.example.com/cover.jpg", [
+        {
+          caption: null,
+          id: 1,
+          imageName: "pool.jpg",
+          imageUrl: "https://images.example.com/pool.jpg",
+          isCover: false,
+          zone: "outside",
+        },
+      ]),
+    ).toEqual([]);
   });
 
   it("hides the price row when a villa has no price", () => {

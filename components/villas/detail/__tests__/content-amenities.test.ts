@@ -1,4 +1,4 @@
-import { Flame, Music, PawPrint, Star, Wifi } from "lucide-react";
+import { Flame, MicVocal, PawPrint, Star, Wifi } from "lucide-react";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -11,7 +11,7 @@ describe("detail content amenity helpers", () => {
     expect(DEFAULT_AMENITY_PREVIEW_COUNT).toBe(12);
     expect(getAmenityIcon("wifi")).toBe(Wifi);
     expect(getAmenityIcon("grill")).toBe(Flame);
-    expect(getAmenityIcon("karaoke")).toBe(Music);
+    expect(getAmenityIcon("karaoke")).toBe(MicVocal);
     expect(getAmenityIcon("pet")).toBe(PawPrint);
     expect(getAmenityIcon("unknown")).toBe(Star);
     expect(getAmenityIcon("__proto__")).toBe(Star);

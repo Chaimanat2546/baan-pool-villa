@@ -24,9 +24,22 @@ const validRow = {
   site_name: " Baan Pool Villa ",
   primary_color: "#123456",
   accent_color: "#abcdef",
+  header_link_color: "#ffffff",
+  header_link_hover_color: "#eab308",
+  footer_link_color: "#ffffff",
+  footer_link_hover_color: "#eab308",
+  bank_highlight_color: "#eab308",
+  bank_account_highlight_color: "#fde047",
+  bank_name_highlight_color: "#facc15",
+  bank_number_highlight_color: "#fef08a",
+  logo_background: "soft",
+  villa_card_style: "gallery",
   logo_image_path: "logo/2026/05/logo.webp",
   logo_image_url:
     "https://example.supabase.co/storage/v1/object/public/site-assets/logo/2026/05/logo.webp",
+  favicon_image_path: "favicon/2026/05/icon.png",
+  favicon_image_url:
+    "https://example.supabase.co/storage/v1/object/public/site-assets/favicon/2026/05/icon.png",
   hero_image_path: "hero/2026/05/hero.webp",
   hero_image_url:
     "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
@@ -93,6 +106,16 @@ const validDraft: SiteSettingsDraft = {
   siteName: "Baan Pool Villa",
   primaryColor: "#064e3b",
   accentColor: "#eab308",
+  headerLinkColor: "#ffffff",
+  headerLinkHoverColor: "#eab308",
+  footerLinkColor: "#ffffff",
+  footerLinkHoverColor: "#eab308",
+  bankHighlightColor: "#eab308",
+  bankAccountHighlightColor: "#fde047",
+  bankNameHighlightColor: "#facc15",
+  bankNumberHighlightColor: "#fef08a",
+  logoBackground: "white",
+  villaCardStyle: "gallery",
   heroImageAlt: "Hero image for validation",
   bankAccountName: "Account Name",
   bankName: "Bank Name",
@@ -135,10 +158,25 @@ describe("normalizeSiteSettingsRow", () => {
       siteName: "Baan Pool Villa",
       primaryColor: "#123456",
       accentColor: "#abcdef",
+      headerLinkColor: "#ffffff",
+      headerLinkHoverColor: "#eab308",
+      footerLinkColor: "#ffffff",
+      footerLinkHoverColor: "#eab308",
+      bankHighlightColor: "#eab308",
+      bankAccountHighlightColor: "#fde047",
+      bankNameHighlightColor: "#facc15",
+      bankNumberHighlightColor: "#fef08a",
+      logoBackground: "soft",
+      villaCardStyle: "gallery",
       logoImage: {
         path: "logo/2026/05/logo.webp",
         url: "https://example.supabase.co/storage/v1/object/public/site-assets/logo/2026/05/logo.webp",
         alt: "Baan Pool Villa logo",
+      },
+      faviconImage: {
+        path: "favicon/2026/05/icon.png",
+        url: "https://example.supabase.co/storage/v1/object/public/site-assets/favicon/2026/05/icon.png",
+        alt: "Baan Pool Villa icon",
       },
       heroImage: {
         path: "hero/2026/05/hero.webp",
@@ -230,6 +268,64 @@ describe("normalizeSiteSettingsRow", () => {
     expect(settings.detailLayout).not.toBe(DEFAULT_DETAIL_LAYOUT_V2);
   });
 
+  it("normalizes link and bank highlight colors from the database row", () => {
+    expect(
+      normalizeSiteSettingsRow({
+        ...validRow,
+        header_link_color: " #ABCDEF ",
+        header_link_hover_color: "#123456",
+        footer_link_color: "#654321",
+        footer_link_hover_color: "#fedcba",
+        bank_highlight_color: "#0f172a",
+        bank_account_highlight_color: "#1d4ed8",
+        bank_name_highlight_color: "#7c3aed",
+        bank_number_highlight_color: "#be123c",
+      }),
+    ).toMatchObject({
+      headerLinkColor: "#abcdef",
+      headerLinkHoverColor: "#123456",
+      footerLinkColor: "#654321",
+      footerLinkHoverColor: "#fedcba",
+      bankHighlightColor: "#0f172a",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
+    });
+  });
+
+  it("falls back to the classic villa card style when the database value is missing or invalid", () => {
+    expect(
+      normalizeSiteSettingsRow({
+        ...validRow,
+        villa_card_style: undefined,
+      }).villaCardStyle,
+    ).toBe("classic");
+
+    expect(
+      normalizeSiteSettingsRow({
+        ...validRow,
+        villa_card_style: "carousel",
+      }).villaCardStyle,
+    ).toBe("classic");
+  });
+
+  it("falls back separate bank highlight colors to the shared bank highlight", () => {
+    expect(
+      normalizeSiteSettingsRow({
+        ...validRow,
+        bank_highlight_color: "#0f172a",
+        bank_account_highlight_color: "not-a-color",
+        bank_name_highlight_color: null,
+        bank_number_highlight_color: undefined,
+      }),
+    ).toMatchObject({
+      bankHighlightColor: "#0f172a",
+      bankAccountHighlightColor: "#0f172a",
+      bankNameHighlightColor: "#0f172a",
+      bankNumberHighlightColor: "#0f172a",
+    });
+  });
+
   it("rewrites the legacy WordPress OG image to the local default image", () => {
     const settings = normalizeSiteSettingsRow({
       ...validRow,
@@ -261,6 +357,8 @@ describe("normalizeSiteSettingsRow", () => {
         accent_color: "#12345",
         logo_image_path: null,
         logo_image_url: null,
+        favicon_image_path: null,
+        favicon_image_url: null,
         hero_image_path: null,
         hero_image_url: null,
         hero_image_alt: "",
@@ -302,10 +400,12 @@ describe("normalizeSiteSettingsRow", () => {
     const settings = normalizeSiteSettingsRow({
       ...validRow,
       logo_image_url: "javascript:alert(1)",
+      favicon_image_url: "https://127.0.0.1/favicon.png",
       hero_image_url: "https://127.0.0.1/hero.webp",
     });
 
     expect(settings.logoImage).toEqual(DEFAULT_SITE_SETTINGS.logoImage);
+    expect(settings.faviconImage).toEqual(DEFAULT_SITE_SETTINGS.faviconImage);
     expect(settings.heroImage).toEqual(DEFAULT_SITE_SETTINGS.heroImage);
   });
 });
@@ -318,6 +418,16 @@ describe("normalizeSiteSettingsDraft", () => {
         siteName: " Baan Pool Villa ",
         primaryColor: " #064E3B ",
         accentColor: " #EAB308 ",
+        headerLinkColor: " #FFFFFF ",
+        headerLinkHoverColor: " #EAB308 ",
+        footerLinkColor: " #FFFFFF ",
+        footerLinkHoverColor: " #EAB308 ",
+        bankHighlightColor: " #EAB308 ",
+        bankAccountHighlightColor: " #FDE047 ",
+        bankNameHighlightColor: " #FACC15 ",
+        bankNumberHighlightColor: " #FEF08A ",
+        logoBackground: " primary ",
+        villaCardStyle: " gallery ",
         heroImageAlt: " Pool villas in Pattaya ",
         bankAccountName: " Account Name ",
         bankName: " Bank Name ",
@@ -365,6 +475,16 @@ describe("normalizeSiteSettingsDraft", () => {
       siteName: "Baan Pool Villa",
       primaryColor: "#064e3b",
       accentColor: "#eab308",
+      headerLinkColor: "#ffffff",
+      headerLinkHoverColor: "#eab308",
+        footerLinkColor: "#ffffff",
+        footerLinkHoverColor: "#eab308",
+        bankHighlightColor: "#eab308",
+        bankAccountHighlightColor: "#fde047",
+        bankNameHighlightColor: "#facc15",
+        bankNumberHighlightColor: "#fef08a",
+        logoBackground: "primary",
+        villaCardStyle: "gallery",
       heroImageAlt: "Pool villas in Pattaya",
       bankAccountName: "Account Name",
       bankName: "Bank Name",
@@ -413,6 +533,31 @@ describe("normalizeSiteSettingsDraft", () => {
       seoOgImageUrl: DEFAULT_SITE_SETTINGS.seo.ogImage.url,
       searchSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.search.ogImage.url,
       guidesSeoOgImageUrl: DEFAULT_SITE_SETTINGS.pageSeo.guides.ogImage.url,
+    });
+  });
+
+  it("trims and lowercases link and bank highlight color drafts", () => {
+    expect(
+      normalizeSiteSettingsDraft({
+        ...validDraft,
+        headerLinkColor: " #ABCDEF ",
+        headerLinkHoverColor: " #123456 ",
+        footerLinkColor: " #654321 ",
+        footerLinkHoverColor: " #FEDCBA ",
+        bankHighlightColor: " #0F172A ",
+        bankAccountHighlightColor: " #1D4ED8 ",
+        bankNameHighlightColor: " #7C3AED ",
+        bankNumberHighlightColor: " #BE123C ",
+      }),
+    ).toMatchObject({
+      headerLinkColor: "#abcdef",
+      headerLinkHoverColor: "#123456",
+      footerLinkColor: "#654321",
+      footerLinkHoverColor: "#fedcba",
+      bankHighlightColor: "#0f172a",
+      bankAccountHighlightColor: "#1d4ed8",
+      bankNameHighlightColor: "#7c3aed",
+      bankNumberHighlightColor: "#be123c",
     });
   });
 });
@@ -523,6 +668,15 @@ describe("validateSiteSettingsDraft", () => {
         siteName: " ",
         primaryColor: "064e3b",
         accentColor: "#gggggg",
+        headerLinkColor: "red",
+        headerLinkHoverColor: "#12345",
+        footerLinkColor: "javascript:alert(1)",
+        footerLinkHoverColor: "#xyzxyz",
+        bankHighlightColor: "",
+        bankAccountHighlightColor: "gold",
+        bankNameHighlightColor: "#12345",
+        bankNumberHighlightColor: "123456",
+        logoBackground: "checkerboard",
         heroImageAlt: "x".repeat(161),
         bankAccountName: "",
         bankName: "",
@@ -542,6 +696,15 @@ describe("validateSiteSettingsDraft", () => {
       "ต้องใส่ชื่อเว็บ",
       "สีหลักต้องเป็นค่าสีแบบ #RRGGBB",
       "สีเน้นต้องเป็นค่าสีแบบ #RRGGBB",
+      "สีเมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB",
+      "สี Hover เมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB",
+      "สีเมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB",
+      "สี Hover เมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB",
+      "สีไฮไลท์บัญชีต้องเป็นค่าสีแบบ #RRGGBB",
+      "สีชื่อบัญชีต้องเป็นค่าสีแบบ #RRGGBB",
+      "สีชื่อธนาคารต้องเป็นค่าสีแบบ #RRGGBB",
+      "สีเลขบัญชีต้องเป็นค่าสีแบบ #RRGGBB",
+      "พื้นหลังโลโก้ต้องเป็น ขาว, โปร่งใส, สีหลัก หรือสีอ่อน",
       "คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร",
       "ต้องใส่ชื่อบัญชีธนาคาร",
       "ต้องใส่ชื่อธนาคาร",
@@ -605,5 +768,31 @@ describe("validateUploadMetadata", () => {
         "hero.txt",
       ),
     ).toEqual(["นามสกุลไฟล์Heroต้องเป็น .jpg, .jpeg, .png หรือ .webp"]);
+  });
+
+  it("uses a Thai favicon label for favicon upload validation errors", () => {
+    expect(
+      validateUploadMetadata(
+        "favicon",
+        "image/svg+xml",
+        SITE_SETTINGS_UPLOAD_LIMIT_BYTES + 1,
+        "icon.svg",
+      ),
+    ).toEqual([
+      "ไฟล์ไอคอนเว็บไซต์ต้องเป็น JPG, PNG หรือ WebP",
+      "นามสกุลไฟล์ไอคอนเว็บไซต์ต้องเป็น .jpg, .jpeg, .png หรือ .webp",
+      "ไฟล์ไอคอนเว็บไซต์ต้องมีขนาดไม่เกิน 6MB",
+    ]);
+  });
+
+  it("normalizes invalid villa card style drafts back to classic", () => {
+    expect(
+      normalizeSiteSettingsDraft({
+        ...validDraft,
+        villaCardStyle: " carousel ",
+      }),
+    ).toMatchObject({
+      villaCardStyle: "classic",
+    });
   });
 });

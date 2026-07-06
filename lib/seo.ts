@@ -281,6 +281,74 @@ export function buildGlobalMetadata(): Metadata {
   };
 }
 
+function getIconContentType(iconUrl: string): string | undefined {
+  const pathname = (() => {
+    try {
+      return new URL(iconUrl, getSiteUrl()).pathname;
+    } catch {
+      return iconUrl;
+    }
+  })().toLowerCase();
+
+  if (pathname.endsWith(".png")) {
+    return "image/png";
+  }
+
+  if (pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+
+  if (pathname.endsWith(".webp")) {
+    return "image/webp";
+  }
+
+  if (pathname.endsWith(".ico")) {
+    return "image/x-icon";
+  }
+
+  return undefined;
+}
+
+export function buildSiteSettingsGlobalMetadata(
+  settings: SiteSettings,
+): Metadata {
+  const faviconUrl = settings.faviconImage.url;
+  const faviconType = getIconContentType(faviconUrl);
+
+  return {
+    ...buildSiteSettingsPageMetadata({
+      absoluteTitle: true,
+      canonicalPath: "/",
+      settings,
+      title: settings.seo.title,
+    }),
+    applicationName: settings.siteName,
+    icons: {
+      icon: [
+        {
+          url: faviconUrl,
+          ...(faviconType ? { type: faviconType } : {}),
+        },
+      ],
+      apple: [
+        {
+          url: faviconUrl,
+          ...(faviconType ? { type: faviconType } : {}),
+        },
+      ],
+    },
+    metadataBase: getSiteUrl(),
+    robots: {
+      follow: true,
+      index: true,
+    },
+    title: {
+      default: settings.seo.title,
+      template: `%s | ${settings.siteName}`,
+    },
+  };
+}
+
 export function buildSiteSettingsPageMetadata({
   absoluteTitle = false,
   canonicalPath,

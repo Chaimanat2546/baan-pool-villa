@@ -3,6 +3,10 @@ import {
   SITE_SETTINGS_ALLOWED_IMAGE_MIME_TYPES,
   SITE_SETTINGS_UPLOAD_LIMIT_BYTES,
 } from "./defaults";
+import {
+  isSiteLogoBackground,
+  normalizeSiteLogoBackground,
+} from "./logo-background";
 import { isAllowedPublicImageHostname } from "@/lib/public-image-proxy";
 import { normalizeAnyDetailLayout } from "../detail-layout/compat";
 import type {
@@ -33,7 +37,9 @@ const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
 const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
 const THAI_PHONE_PATTERN = /^0\d{9}$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
+const VILLA_CARD_STYLES = new Set(["classic", "gallery"]);
 const SITE_ASSET_TYPES: SiteAssetType[] = [
+  "favicon",
   "hero",
   "logo",
   "seo-og",
@@ -87,6 +93,46 @@ export function normalizeSiteSettingsRow(
     row.accent_color,
     DEFAULT_SITE_SETTINGS.accentColor,
   );
+  const headerLinkColor = normalizeColor(
+    row.header_link_color,
+    DEFAULT_SITE_SETTINGS.headerLinkColor,
+  );
+  const headerLinkHoverColor = normalizeColor(
+    row.header_link_hover_color,
+    DEFAULT_SITE_SETTINGS.headerLinkHoverColor,
+  );
+  const footerLinkColor = normalizeColor(
+    row.footer_link_color,
+    DEFAULT_SITE_SETTINGS.footerLinkColor,
+  );
+  const footerLinkHoverColor = normalizeColor(
+    row.footer_link_hover_color,
+    DEFAULT_SITE_SETTINGS.footerLinkHoverColor,
+  );
+  const bankHighlightColor = normalizeColor(
+    row.bank_highlight_color,
+    DEFAULT_SITE_SETTINGS.bankHighlightColor,
+  );
+  const bankAccountHighlightColor = normalizeColor(
+    row.bank_account_highlight_color,
+    bankHighlightColor,
+  );
+  const bankNameHighlightColor = normalizeColor(
+    row.bank_name_highlight_color,
+    bankHighlightColor,
+  );
+  const bankNumberHighlightColor = normalizeColor(
+    row.bank_number_highlight_color,
+    bankHighlightColor,
+  );
+  const logoBackground = normalizeSiteLogoBackground(
+    row.logo_background,
+    DEFAULT_SITE_SETTINGS.logoBackground,
+  );
+  const villaCardStyle = normalizeVillaCardStyle(
+    row.villa_card_style,
+    DEFAULT_SITE_SETTINGS.villaCardStyle,
+  );
   const tiktokAccountUrl = normalizeTikTokAccountUrl(
     row.tiktok_account_url,
   );
@@ -95,11 +141,27 @@ export function normalizeSiteSettingsRow(
     siteName,
     primaryColor,
     accentColor,
+    headerLinkColor,
+    headerLinkHoverColor,
+    footerLinkColor,
+    footerLinkHoverColor,
+    bankHighlightColor,
+    bankAccountHighlightColor,
+    bankNameHighlightColor,
+    bankNumberHighlightColor,
+    logoBackground,
+    villaCardStyle,
     logoImage: normalizeImage(
       row.logo_image_path,
       row.logo_image_url,
       `${siteName} logo`,
       DEFAULT_SITE_SETTINGS.logoImage,
+    ),
+    faviconImage: normalizeImage(
+      row.favicon_image_path ?? null,
+      row.favicon_image_url ?? null,
+      `${siteName} icon`,
+      DEFAULT_SITE_SETTINGS.faviconImage,
     ),
     heroImage: normalizeImage(
       row.hero_image_path,
@@ -218,6 +280,22 @@ export function normalizeSiteSettingsDraft(
     siteName: draft.siteName.trim(),
     primaryColor: draft.primaryColor.trim().toLowerCase(),
     accentColor: draft.accentColor.trim().toLowerCase(),
+    headerLinkColor: draft.headerLinkColor.trim().toLowerCase(),
+    headerLinkHoverColor: draft.headerLinkHoverColor.trim().toLowerCase(),
+    footerLinkColor: draft.footerLinkColor.trim().toLowerCase(),
+    footerLinkHoverColor: draft.footerLinkHoverColor.trim().toLowerCase(),
+    bankHighlightColor: draft.bankHighlightColor.trim().toLowerCase(),
+    bankAccountHighlightColor: draft.bankAccountHighlightColor.trim().toLowerCase(),
+    bankNameHighlightColor: draft.bankNameHighlightColor.trim().toLowerCase(),
+    bankNumberHighlightColor: draft.bankNumberHighlightColor.trim().toLowerCase(),
+    logoBackground: normalizeSiteLogoBackground(
+      draft.logoBackground,
+      DEFAULT_SITE_SETTINGS.logoBackground,
+    ),
+    villaCardStyle: normalizeVillaCardStyle(
+      draft.villaCardStyle,
+      DEFAULT_SITE_SETTINGS.villaCardStyle,
+    ),
     heroImageAlt: draft.heroImageAlt.trim(),
     bankAccountName: draft.bankAccountName.trim(),
     bankName: draft.bankName.trim(),
@@ -346,6 +424,46 @@ export function validateSiteSettingsDraft(
 
   if (!isHexColor(draft.accentColor)) {
     errors.push("สีเน้นต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.headerLinkColor)) {
+    errors.push("สีเมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.headerLinkHoverColor)) {
+    errors.push("สี Hover เมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.footerLinkColor)) {
+    errors.push("สีเมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.footerLinkHoverColor)) {
+    errors.push("สี Hover เมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.bankHighlightColor)) {
+    errors.push("สีไฮไลท์บัญชีต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.bankAccountHighlightColor)) {
+    errors.push("สีชื่อบัญชีต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.bankNameHighlightColor)) {
+    errors.push("สีชื่อธนาคารต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isHexColor(draft.bankNumberHighlightColor)) {
+    errors.push("สีเลขบัญชีต้องเป็นค่าสีแบบ #RRGGBB");
+  }
+
+  if (!isSiteLogoBackground(draft.logoBackground)) {
+    errors.push("พื้นหลังโลโก้ต้องเป็น ขาว, โปร่งใส, สีหลัก หรือสีอ่อน");
+  }
+
+  if (!isVillaCardStyle(draft.villaCardStyle)) {
+    errors.push("รูปแบบการ์ดบ้านต้องเป็น แบบเก่า หรือ แบบใหม่");
   }
 
   if (draft.heroImageAlt.length > HERO_IMAGE_ALT_MAX_LENGTH) {
@@ -519,6 +637,8 @@ function getUploadAssetLabel(assetType: SiteAssetType): string {
   switch (assetType) {
     case "logo":
       return "โลโก้";
+    case "favicon":
+      return "ไอคอนเว็บไซต์";
     case "hero":
       return "Hero";
     case "seo-og":
@@ -572,10 +692,25 @@ function normalizeRequiredText(
   return trimmedValue.length > 0 ? trimmedValue : fallback;
 }
 
-function normalizeColor(value: string | null, fallback: string): string {
+function isVillaCardStyle(value: string | null | undefined): boolean {
+  return VILLA_CARD_STYLES.has(value?.trim() ?? "");
+}
+
+function normalizeVillaCardStyle(
+  value: string | null | undefined,
+  fallback: SiteSettings["villaCardStyle"],
+): SiteSettings["villaCardStyle"] {
   const trimmedValue = value?.trim() ?? "";
 
-  return isHexColor(trimmedValue) ? trimmedValue : fallback;
+  return isVillaCardStyle(trimmedValue)
+    ? (trimmedValue as SiteSettings["villaCardStyle"])
+    : fallback;
+}
+
+function normalizeColor(value: string | null | undefined, fallback: string): string {
+  const trimmedValue = value?.trim() ?? "";
+
+  return isHexColor(trimmedValue) ? trimmedValue.toLowerCase() : fallback;
 }
 
 function normalizeImage(

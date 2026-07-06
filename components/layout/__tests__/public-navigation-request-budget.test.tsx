@@ -19,10 +19,11 @@ vi.mock("next/image", () => ({
 }));
 
 function expectDocumentNavigationLink(markup: string, href: string) {
-  const escapedHref = href.replace("/", "\\/");
+  const escapedAttributeHref = href.replaceAll("&", "&amp;");
+  const escapedHref = escapedAttributeHref.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const anchor = markup.match(new RegExp(`<a\\b[^>]*href="${escapedHref}"[^>]*>`));
 
-  expect(anchor?.[0]).toContain(`href="${href}"`);
+  expect(anchor?.[0]).toContain(`href="${escapedAttributeHref}"`);
   expect(anchor?.[0]).not.toContain("data-prefetch=");
 }
 
@@ -51,9 +52,8 @@ describe("public navigation request budget", () => {
     );
 
     expectDocumentNavigationLink(markup, "/");
-    expectDocumentNavigationLink(markup, "/search");
+    expectDocumentNavigationLink(markup, "/search?guests=2&bedrooms=1&maxPrice=58900");
     expectDocumentNavigationLink(markup, "/guides");
-    expectDocumentNavigationLink(markup, "/#recommendations");
     expectDocumentNavigationLink(markup, "/#contact");
   });
 
@@ -63,9 +63,10 @@ describe("public navigation request budget", () => {
     );
 
     expectDocumentNavigationLink(markup, "/");
-    expectDocumentNavigationLink(markup, "/search");
+    expectDocumentNavigationLink(markup, "/search?guests=2&bedrooms=1&maxPrice=58900");
     expectDocumentNavigationLink(markup, "/guides");
-    expectDocumentNavigationLink(markup, "/#recommendations");
+    expectDocumentNavigationLink(markup, "/terms");
+    expectDocumentNavigationLink(markup, "/privacy");
   });
 
   it("passes public header and footer logos to the AWS image loader", () => {

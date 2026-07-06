@@ -1,6 +1,7 @@
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import { SITE_LOGO_BACKGROUND_CLASSES } from "@/lib/site-settings/logo-background";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 const FALLBACK_LOGO_IMAGE_SRC = "/images/logo.jpg";
@@ -21,19 +22,24 @@ export function SiteFooter({ settings }: SiteFooterProps) {
   const logoImageSrc =
     normalizePublicImageSourceUrl(settings.logoImage.url) ??
     FALLBACK_LOGO_IMAGE_SRC;
+  const logoBackgroundClass =
+    SITE_LOGO_BACKGROUND_CLASSES[settings.logoBackground ?? "white"];
   const contactItems = [
     ...settings.contact.phoneContacts.map(
-      (contact) => ({
+      (contact, index) => ({
         href: null,
+        key: `phone-${index}-${contact.name}-${contact.phone}-${contact.time}`,
         text: `${contact.name} : ${contact.phone} ${contact.time}`,
       }),
     ),
     {
       href: settings.contact.lineUrl,
+      key: "line",
       text: `LINE : ${settings.contact.lineId}`,
     },
     {
       href: settings.contact.messengerUrl,
+      key: "messenger",
       text: "Messenger",
     },
   ];
@@ -43,14 +49,14 @@ export function SiteFooter({ settings }: SiteFooterProps) {
       <div className="mx-auto grid max-w-[1292px] gap-10 px-6 pb-16 pt-14 sm:px-8 lg:grid-cols-[1.45fr_0.7fr_0.9fr] lg:gap-20 lg:px-6 lg:pb-16 lg:pt-[60px]">
         <div>
           <div className="flex items-center gap-3">
-            <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] border-4 border-white bg-white/10">
+            <span className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] border-4 border-white p-2 ${logoBackgroundClass}`}>
               <Image
                 src={logoImageSrc}
                 alt={settings.logoImage.alt}
                 fill
                 quality={75}
                 sizes="64px"
-                className="object-cover"
+                className="object-contain"
               />
             </span>
             <div className="min-w-0">
@@ -58,10 +64,16 @@ export function SiteFooter({ settings }: SiteFooterProps) {
                 {settings.siteName}
               </h2>
               <p className="mt-[7px] text-sm leading-5 text-[var(--site-on-primary)]">
-                กรุณาโอนเงิน ชื่อบัญชี {settings.bank.accountName}{" "}
+                กรุณาโอนเงิน{" "}
+                <span className="inline-flex rounded-full font-medium text-[var(--site-bank-account-highlight)]">
+                  ชื่อบัญชี {settings.bank.accountName}
+                </span>{" "}
                 <br className="sm:hidden" />
-                <span className="font-medium text-[var(--site-accent-on-dark)]">
-                  {settings.bank.bankName} เลขที่ {settings.bank.accountNumber}
+                <span className="inline-flex rounded-full font-medium text-[var(--site-bank-name-highlight)]">
+                  {settings.bank.bankName}
+                </span>{" "}
+                <span className="inline-flex rounded-full font-medium text-[var(--site-bank-number-highlight)]">
+                  เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
                 เท่านั้น
               </p>
@@ -83,7 +95,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
               <a
                 key={item.href}
                 href={item.href}
-                className="text-[var(--site-on-primary)] opacity-60 transition hover:opacity-100"
+                className="text-[var(--site-footer-link)] opacity-80 transition hover:text-[var(--site-footer-link-hover)] hover:opacity-100"
               >
                 {item.label}
               </a>
@@ -99,9 +111,9 @@ export function SiteFooter({ settings }: SiteFooterProps) {
             {contactItems.map((item) =>
               item.href ? (
                 <a
-                  className="text-[var(--site-on-primary)] opacity-60 transition hover:opacity-100"
+                  className="text-[var(--site-footer-link)] opacity-80 transition hover:text-[var(--site-footer-link-hover)] hover:opacity-100"
                   href={item.href}
-                  key={item.text}
+                  key={item.key}
                   rel="noreferrer"
                   target="_blank"
                 >
@@ -109,8 +121,8 @@ export function SiteFooter({ settings }: SiteFooterProps) {
                 </a>
               ) : (
                 <p
-                  key={item.text}
-                  className="text-[var(--site-on-primary)] opacity-60"
+                  key={item.key}
+                  className="text-[var(--site-footer-link)] opacity-80"
                 >
                   {item.text}
                 </p>

@@ -8,9 +8,10 @@ interface ContactSectionProps {
 
 export function ContactSection({ settings }: ContactSectionProps) {
   const contactCards = [
-    ...settings.contact.phoneContacts.map((contact) => ({
+    ...settings.contact.phoneContacts.map((contact, index) => ({
       detail: contact.phone,
       icon: Phone,
+      key: `phone-${index}-${contact.name}-${contact.phone}-${contact.time}`,
       label: `${contact.name} :`,
       title: contact.time,
       href: buildPhoneHref(contact.phone),
@@ -18,15 +19,28 @@ export function ContactSection({ settings }: ContactSectionProps) {
     {
       detail: settings.contact.lineId,
       icon: MessageCircle,
+      key: "line",
       label: "LINE ID:",
       title: "LINE Official",
       href: settings.contact.lineUrl,
     },
   ];
   const bankRows = [
-    { label: "ธนาคาร", value: settings.bank.bankName },
-    { label: "เลขบัญชี", value: settings.bank.accountNumber },
-    { label: "ชื่อบัญชี", value: settings.bank.accountName },
+    {
+      label: "ธนาคาร",
+      value: settings.bank.bankName,
+      valueClassName: "text-[var(--site-bank-name-highlight)]",
+    },
+    {
+      label: "เลขบัญชี",
+      value: settings.bank.accountNumber,
+      valueClassName: "text-[var(--site-bank-number-highlight)]",
+    },
+    {
+      label: "ชื่อบัญชี",
+      value: settings.bank.accountName,
+      valueClassName: "text-[var(--site-bank-account-highlight)]",
+    },
   ];
 
   return (
@@ -48,7 +62,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                 href={card.href}
                 target={card.href.startsWith("http") ? "_blank" : undefined}
                 rel={card.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                key={card.title}
+                key={card.key}
                 className="block rounded-[20px] border border-[var(--site-border)] bg-[var(--site-surface)] p-7 shadow-[0_8px_24px_rgba(15,47,53,0.08)] transition-all hover:-translate-y-1 hover:border-[var(--site-border-strong)] hover:shadow-[0_12px_32px_rgba(15,47,53,0.12)] active:translate-y-0 sm:p-8"
               >
                 <div className="flex items-center gap-4">
@@ -89,7 +103,9 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   className="grid gap-1 py-3 text-sm sm:grid-cols-[160px_1fr] sm:items-center sm:text-base"
                 >
                   <dt>{row.label}</dt>
-                  <dd className="font-black text-[var(--site-text)] sm:text-right">{row.value}</dd>
+                  <dd className={`font-black ${row.valueClassName} sm:text-right`}>
+                    {row.value}
+                  </dd>
                 </div>
               ))}
             </dl>

@@ -1,11 +1,23 @@
+import type { SiteLogoBackground } from "@/lib/site-settings/logo-background";
 import type { SitePhoneContact, SiteSettings } from "@/lib/site-settings/types";
 
 export interface AdminSettingsDraft {
   accentColor: string;
+  faviconFile: File | null;
   heroFile: File | null;
   heroImageAlt: string;
   logoFile: File | null;
   primaryColor: string;
+  headerLinkColor: string;
+  headerLinkHoverColor: string;
+  footerLinkColor: string;
+  footerLinkHoverColor: string;
+  bankHighlightColor: string;
+  bankAccountHighlightColor: string;
+  bankNameHighlightColor: string;
+  bankNumberHighlightColor: string;
+  logoBackground: SiteLogoBackground;
+  villaCardStyle: SiteSettings["villaCardStyle"];
   seoOgImageFile: File | null;
   searchSeoOgImageFile: File | null;
   guidesSeoOgImageFile: File | null;

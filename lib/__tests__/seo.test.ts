@@ -6,6 +6,7 @@ import {
   buildGuideArticleMetadata,
   buildHomeJsonLd,
   buildPageMetadata,
+  buildSiteSettingsGlobalMetadata,
   buildLegalPageMetadata,
   buildSiteSettingsPageMetadata,
   buildVillaDetailMetadata,
@@ -48,6 +49,7 @@ function remoteMetadataImageUrl(src: string, width = 1200, quality = 75): string
 
 function cmsSettings(): SiteSettings {
   return {
+    ...DEFAULT_SITE_SETTINGS,
     siteName: "Baan Pool Villa",
     primaryColor: "#064e3b",
     accentColor: "#eab308",
@@ -55,6 +57,11 @@ function cmsSettings(): SiteSettings {
       path: "/images/logo.jpg",
       url: "/images/logo.jpg",
       alt: "Logo",
+    },
+    faviconImage: {
+      path: "/icons/site-icon.png",
+      url: "/icons/site-icon.png",
+      alt: "Site icon",
     },
     heroImage: {
       path: "/images/hero.jpg",
@@ -259,6 +266,34 @@ describe("SEO helpers", () => {
         description: expect.any(String),
         images: [localMetadataImageUrl("/images/BPV-66_Cover-Web.jpg")],
         title: expect.any(String),
+      },
+    });
+  });
+
+  it("builds global metadata icons from resolved site settings", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+
+    const metadata = buildSiteSettingsGlobalMetadata(cmsSettings());
+
+    expect(metadata).toMatchObject({
+      applicationName: "Baan Pool Villa",
+      icons: {
+        icon: [
+          {
+            url: "/icons/site-icon.png",
+            type: "image/png",
+          },
+        ],
+        apple: [
+          {
+            url: "/icons/site-icon.png",
+            type: "image/png",
+          },
+        ],
+      },
+      title: {
+        default: "Baan Pool Villa Pattaya | Private Pool Villas",
+        template: "%s | Baan Pool Villa",
       },
     });
   });

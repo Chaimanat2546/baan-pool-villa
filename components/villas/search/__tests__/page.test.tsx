@@ -106,6 +106,12 @@ function expectCatalogFetchCall(
   });
 }
 
+function countVillaCards(container: HTMLElement, villaId: string): number {
+  return Array.from(container.querySelectorAll("article")).filter((article) =>
+    article.querySelector(`a[href="/villas/${villaId}"]`),
+  ).length;
+}
+
 describe("SearchPage", () => {
   afterEach(() => {
     navigationMock.searchParams = new URLSearchParams();
@@ -256,8 +262,8 @@ describe("SearchPage", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelectorAll('a[href="/villas/701"]')).toHaveLength(1);
-    expect(container.querySelectorAll('a[href="/villas/702"]')).toHaveLength(1);
+    expect(countVillaCards(container, "701")).toBe(1);
+    expect(countVillaCards(container, "702")).toBe(1);
 
     await act(async () => {
       root.unmount();
@@ -325,7 +331,7 @@ describe("SearchPage", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelectorAll('a[href="/villas/702"]')).toHaveLength(1);
+    expect(countVillaCards(container, "702")).toBe(1);
 
     await act(async () => {
       root.unmount();
@@ -401,8 +407,8 @@ describe("SearchPage", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelectorAll('a[href="/villas/701"]')).toHaveLength(1);
-    expect(container.querySelectorAll('a[href="/villas/702"]')).toHaveLength(1);
+    expect(countVillaCards(container, "701")).toBe(1);
+    expect(countVillaCards(container, "702")).toBe(1);
 
     await act(async () => {
       nextRoot.unmount();

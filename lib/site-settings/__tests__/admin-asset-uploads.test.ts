@@ -25,6 +25,9 @@ describe("admin site asset uploads", () => {
     expect(buildSiteAssetStoragePath("logo", "image/jpeg")).toBe(
       "logo/2026/06/11111111-1111-4111-8111-111111111111.jpg",
     );
+    expect(buildSiteAssetStoragePath("favicon", "image/png")).toBe(
+      "favicon/2026/06/11111111-1111-4111-8111-111111111111.png",
+    );
     expect(() => buildSiteAssetStoragePath("logo", "image/gif")).toThrow(
       "Unsupported upload MIME type",
     );
@@ -46,8 +49,12 @@ describe("admin site asset uploads", () => {
     expect(storage.from).not.toHaveBeenCalled();
   });
 
-  it("reads SEO share image uploads from the settings form data", () => {
+  it("reads favicon and SEO share image uploads from the settings form data", () => {
     const formData = new FormData();
+    formData.set(
+      "faviconFile",
+      new File(["icon"], "icon.png", { type: "image/png" }),
+    );
     formData.set(
       "seoOgImageFile",
       new File(["seo"], "seo.webp", { type: "image/webp" }),
@@ -64,6 +71,7 @@ describe("admin site asset uploads", () => {
     expect(readSiteSettingsUploadFiles(formData)).toMatchObject({
       errors: [],
       uploadFiles: [
+        { assetType: "favicon" },
         { assetType: "seo-og" },
         { assetType: "search-seo-og" },
         { assetType: "guides-seo-og" },

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { useEffect, useRef, useState } from "react";
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import { SITE_LOGO_BACKGROUND_CLASSES } from "@/lib/site-settings/logo-background";
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
@@ -30,14 +31,22 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const lastScrollYRef = useRef(0);
   const frameRef = useRef<number | null>(null);
-  const bankNotice = `กรุณาโอนเงิน ชื่อบัญชี ${settings.bank.accountName} `;
-  const bankAccount = `${settings.bank.bankName} เลขที่ ${settings.bank.accountNumber}`;
 
   const logoImageSrc =
     normalizePublicImageSourceUrl(settings.logoImage.url) ??
     settings.logoImage.url;
+  const logoBackgroundClass =
+    SITE_LOGO_BACKGROUND_CLASSES[settings.logoBackground ?? "white"];
   const siteThemeStyle = buildSiteThemeStyle({
     accentColor: settings.accentColor,
+    bankHighlightColor: settings.bankHighlightColor,
+    bankAccountHighlightColor: settings.bankAccountHighlightColor,
+    bankNameHighlightColor: settings.bankNameHighlightColor,
+    bankNumberHighlightColor: settings.bankNumberHighlightColor,
+    footerLinkColor: settings.footerLinkColor,
+    footerLinkHoverColor: settings.footerLinkHoverColor,
+    headerLinkColor: settings.headerLinkColor,
+    headerLinkHoverColor: settings.headerLinkHoverColor,
     primaryColor: settings.primaryColor,
   });
   const mobileMenuThemeStyle = {
@@ -97,14 +106,14 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
             href="/"
             className="flex min-w-0 flex-1 items-center gap-3"
           >
-            <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-white/10">
+            <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 border-white p-1.5 ${logoBackgroundClass}`}>
               <Image
                 src={logoImageSrc}
                 alt={settings.logoImage.alt}
                 fill
                 quality={75}
                 sizes="44px"
-                className="object-cover"
+                className="object-contain"
                 priority
               />
             </span>
@@ -113,10 +122,16 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 {settings.siteName}
               </span>
               <span className="block text-[11px] leading-4 text-[var(--site-on-primary)] sm:text-sm sm:leading-5">
-                {bankNotice}{" "}
+                กรุณาโอนเงิน{" "}
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-account-highlight)]">
+                  ชื่อบัญชี {settings.bank.accountName}
+                </span>{" "}
                 <br className="sm:hidden" />
-                <span className="inline-flex rounded-full font-semibold text-[var(--site-accent-on-dark)]">
-                  {bankAccount}
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)]">
+                  {settings.bank.bankName}
+                </span>{" "}
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)]">
+                  เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
                 เท่านั้น
               </span>
@@ -129,7 +144,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 <a
                   key={`${item.href}-${item.label}`}
                   href={item.href}
-                  className="whitespace-nowrap transition hover:text-[var(--site-accent)]"
+                  className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]"
                 >
                   {item.label}
                 </a>
@@ -178,7 +193,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                   <SheetClose key={`mobile-${item.href}-${item.label}`} asChild>
                     <a
                       href={item.href}
-                      className="px-5 py-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+                      className="px-5 py-4 text-[var(--site-header-link)] transition hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-header-link-hover)]"
                     >
                       {item.label}
                     </a>
@@ -187,7 +202,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 <SheetClose asChild>
                   <a
                     href="/#contact"
-                    className="flex items-center gap-2 px-5 py-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+                    className="flex items-center gap-2 px-5 py-4 text-[var(--site-header-link)] transition hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-header-link-hover)]"
                   >
                     <MapPin className="h-4 w-4" />
                     จองเลย

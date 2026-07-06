@@ -8,7 +8,9 @@ describe("legacy public not-found route", () => {
     const markup = renderToStaticMarkup(<NotFound />);
 
     expect(markup).toContain("ไม่พบหน้าที่คุณกำลังหา");
-    expect(markup).toContain('href="/search"');
+    expect(markup).toContain(
+      'href="/search?guests=2&amp;bedrooms=1&amp;maxPrice=58900"',
+    );
     expect(markup).toContain('href="/guides"');
     expect(markup).toContain('href="/"');
   });
