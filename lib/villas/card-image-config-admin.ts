@@ -7,7 +7,7 @@ import { revalidateVillaCardImagesCache } from "@/lib/cache-revalidation";
 import { validateCustomDisplayImageIds } from "@/lib/villas/images";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
 import {
-  fetchVillaListingPage,
+  fetchVillaCardHouseOptionPage,
   getListingById,
 } from "@/lib/villas/server";
 
@@ -226,10 +226,10 @@ async function mapVillaCardHouseOptions(request?: Request): Promise<{
   );
   const pageSize = toHousePageSize(url?.searchParams.get("pageSize") ?? null);
   const search = url?.searchParams.get("search")?.trim() ?? "";
-  const result = await fetchVillaListingPage({ page, pageSize, search });
+  const result = await fetchVillaCardHouseOptionPage({ page, pageSize, search });
 
   return {
-    houses: toPublicVillaListings(result.items).map(toHouseOption),
+    houses: result.items,
     pagination: {
       hasMore: result.hasMore,
       page: result.page,

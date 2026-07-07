@@ -363,17 +363,17 @@
               <tr>
                 <td><code>app/(admin)/admin/card-images/houses/page.tsx</code></td>
                 <td><code>/admin/card-images/houses</code></td>
-                <td>Server-paginated house list for custom card-image overrides with search, compact pagination, and per-house custom status badges.</td>
+                <td>Server-paginated house list for custom card-image overrides with URL-backed search/page state, compact pagination, and per-house custom status badges.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/card-images/houses/[houseId]/page.tsx</code></td>
                 <td><code>/admin/card-images/houses/:houseId</code></td>
-                <td>One-house custom image editor with zone filters, thumbnail click selection, and confirm-modal drag ordering before save.</td>
+                <td>One-house custom image editor with zone filters, thumbnail click selection, return-to-list query preservation, and confirm-modal drag ordering before save.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/guides/page.tsx</code></td>
                 <td><code>/admin/guides</code></td>
-                <td>Guide article table/list page before opening article config.</td>
+                <td>Guide article list before opening article config, using a desktop table, mobile card list, search, and seven-item pagination.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/guides/[guideId]/page.tsx</code></td>
@@ -683,7 +683,7 @@
               <td>Villa card image config</td>
               <td>Supabase home-section CMS project tables <code>villa_card_image_configs</code> and <code>villa_card_image_items</code>.</td>
               <td><code>lib/villas/card-image-config-admin.ts</code>, <code>lib/villas/images.ts</code>, and the villa card image cache tag.</td>
-              <td>Admin <code>/admin/card-images</code> saves the public villa card style through site settings, then <code>/admin/card-images/houses</code> and <code>/admin/card-images/houses/:houseId</code> manage optional per-house custom image ids. Public cards do not store or read a manual mode: custom wins when present, <code>images.cover_select</code> acts as recommendation data when present, and default outside/inside ordering is the fallback.</td>
+              <td>Admin <code>/admin/card-images</code> saves the public villa card style through site settings, then <code>/admin/card-images/houses</code> and <code>/admin/card-images/houses/:houseId</code> manage optional per-house custom image ids. The house list keeps search/page state in the URL so detail back-links return to the same page, and uses a cached lean picker query for house id, title, zone, and cover image instead of hydrating the full public listing card data. Public cards do not store or read a manual mode: custom wins when present, <code>images.cover_select</code> acts as recommendation data when present, and default outside/inside ordering is the fallback.</td>
             </tr>
               <tr>
                 <td>Home sections</td>

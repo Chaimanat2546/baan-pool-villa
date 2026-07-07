@@ -162,7 +162,69 @@ describe("AdminGuidesPage", () => {
     await page.unmount();
   });
 
-  it("shows a top-centered empty state when no guide articles match", async () => {
+  it("shows mobile guide cards with the same seven-item pagination", async () => {
+    const guides = Array.from({ length: 9 }, (_, index) => {
+      const id = `guide-${index + 1}`;
+
+      return {
+        ...guidePost,
+        id,
+        slug: `guide-${index + 1}`,
+        title: `Guide ${index + 1}`,
+      } satisfies GuidePost;
+    });
+    const fetchMock = makeFetchMock([
+      {
+        body: { guides },
+        url: "/api/admin/guides",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage />);
+
+    expect(page.container.querySelector("[data-admin-guides-card-list]")).not.toBeNull();
+    expect(
+      page.container.querySelector(
+        "[data-admin-guides-card-list] a[href='/admin/guides/guide-1']",
+      ),
+    ).not.toBeNull();
+    expect(
+      page.container.querySelector(
+        "[data-admin-guides-card-list] a[href='/admin/guides/guide-8']",
+      ),
+    ).toBeNull();
+    expect(
+      page.container.querySelector("[data-admin-guides-pagination]"),
+    ).not.toBeNull();
+    expect(
+      page.container
+        .querySelector('[data-admin-guides-page-button="1"]')
+        ?.getAttribute("aria-current"),
+    ).toBe("page");
+
+    await click(
+      page.container.querySelector(
+        '[data-admin-guides-page-button="2"]',
+      ) as HTMLButtonElement,
+    );
+    await flushEffects();
+
+    expect(
+      page.container.querySelector(
+        "[data-admin-guides-card-list] a[href='/admin/guides/guide-1']",
+      ),
+    ).toBeNull();
+    expect(
+      page.container.querySelector(
+        "[data-admin-guides-card-list] a[href='/admin/guides/guide-8']",
+      ),
+    ).not.toBeNull();
+
+    await page.unmount();
+  });
+
+  it("shows a centered empty state when no guide articles match", async () => {
     const fetchMock = makeFetchMock([
       {
         body: { guides: [] },
@@ -177,8 +239,9 @@ describe("AdminGuidesPage", () => {
     const emptyState = page.container.querySelector("[data-admin-guides-empty]");
 
     expect(emptyState).not.toBeNull();
+    expect(emptyState?.className).toContain("min-h-full");
     expect(emptyState?.className).toContain("items-center");
-    expect(emptyState?.className).toContain("justify-start");
+    expect(emptyState?.className).toContain("justify-center");
     expect(emptyState?.querySelector("svg")).not.toBeNull();
     expect(emptyState?.textContent).toContain("ไม่พบบทความ");
     expect(page.container.querySelector("[data-testid='mock-editor']")).toBeNull();
@@ -622,6 +685,64 @@ describe("AdminGuidesPage", () => {
     expect(page.container.textContent).not.toContain("Family Pool Villa");
     expect(page.container.textContent).not.toContain("รายการบทความ");
     expect(page.container.querySelector("[data-guide-save='true']")).not.toBeNull();
+
+    await page.unmount();
+  });
+
+  it("shows new guide validation errors at their fields and allows empty recommended villas", async () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    const fetchMock = makeFetchMock([
+      {
+        body: { guides: [] },
+        url: "/api/admin/guides",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage guideId="new" />);
+    await flushEffects();
+
+    const titleField = page.container.querySelector(
+      '[aria-label="ชื่อบทความ"]',
+    ) as HTMLElement | null;
+
+    expect(titleField).not.toBeNull();
+    act(() => {
+      if (titleField) {
+        titleField.textContent = "";
+        titleField.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+    await flushEffects();
+
+    await click(
+      page.container.querySelector("[data-guide-save='true']") as HTMLButtonElement,
+    );
+
+    const titleError = page.container.querySelector(
+      '[data-guide-error-field="title"]',
+    );
+    const tagsError = page.container.querySelector(
+      '[data-guide-error-field="tags"]',
+    );
+    const recommendedError = page.container.querySelector(
+      '[data-guide-error-field="recommendedHouseIds"]',
+    );
+
+    expect(titleError?.textContent).toContain("ต้องใส่ชื่อบทความ");
+    expect(tagsError?.textContent).toContain("ควรใส่แท็กอย่างน้อย 1 แท็ก");
+    expect(recommendedError?.textContent).not.toContain(
+      "ควรเลือกบ้านพักแนะนำอย่างน้อย 1 หลัง",
+    );
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "center",
+    });
+    expect(scrollIntoView.mock.instances[0]).toBe(titleError);
 
     await page.unmount();
   });

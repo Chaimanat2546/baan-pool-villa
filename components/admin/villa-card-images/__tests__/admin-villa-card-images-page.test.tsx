@@ -8,6 +8,7 @@ import {
   click,
   flushEffects,
   makeFetchMock,
+  makeJsonResponse,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
@@ -51,6 +52,7 @@ import {
 
 describe("AdminVillaCardImagesPage", () => {
   beforeEach(() => {
+    window.history.replaceState(null, "", "/");
     mocks.readAdminAccessToken.mockResolvedValue("admin-token");
     mocks.replace.mockReset();
     mocks.router.replace = mocks.replace;
@@ -139,7 +141,17 @@ describe("AdminVillaCardImagesPage", () => {
       };
     });
     const pageBody = (pageNumber: number) => ({
-      configs: [],
+      configs: pageNumber === 1
+        ? [
+            {
+              houseId: "1",
+              id: "config-1",
+              imageIds: [1, 2, 3],
+              isActive: true,
+              pageKey: "global",
+            },
+          ]
+        : [],
       houses: houses.slice((pageNumber - 1) * 7, pageNumber * 7),
       pagination: {
         hasMore: pageNumber < 9,
@@ -174,9 +186,43 @@ describe("AdminVillaCardImagesPage", () => {
         .querySelector("[data-villa-card-back-link]")
         ?.getAttribute("href"),
     ).toBe("/admin/card-images");
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      "/admin/card-images/houses",
+    );
     expect(
       page.container.querySelector('[data-villa-card-house-option="1"]'),
     ).not.toBeNull();
+    expect(
+      page.container.querySelector("[data-villa-card-house-card-list]"),
+    ).not.toBeNull();
+    expect(
+      page.container.querySelector("[data-villa-card-house-card-list]")
+        ?.className,
+    ).toContain("grid-cols-2");
+    expect(
+      page.container.querySelector("[data-villa-card-house-card-list]")
+        ?.className,
+    ).toContain("sm:grid-cols-1");
+    expect(
+      page.container.querySelector('[data-villa-card-house-option="1"]')
+        ?.className,
+    ).toContain("grid");
+    expect(
+      page.container.querySelector('[data-villa-card-house-option="1"]')
+        ?.className,
+    ).toContain("sm:flex");
+    expect(
+      page.container.querySelector('[data-villa-card-house-option="1"] [data-villa-card-house-thumb]')
+        ?.className,
+    ).toContain("h-24");
+    expect(
+      page.container.querySelector('[data-villa-card-house-option="1"]')
+        ?.textContent,
+    ).toContain("ตั้งค่าแล้ว");
+    expect(
+      page.container.querySelector('[data-villa-card-house-option="1"]')
+        ?.textContent,
+    ).not.toContain("custom");
     expect(
       page.container.querySelector('[data-villa-card-house-option="8"]'),
     ).toBeNull();
@@ -223,6 +269,14 @@ describe("AdminVillaCardImagesPage", () => {
     expect(
       page.container.querySelector('[data-villa-card-house-option="8"]'),
     ).not.toBeNull();
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      "/admin/card-images/houses?page=2",
+    );
+    expect(
+      page.container
+        .querySelector('[data-villa-card-house-option="8"]')
+        ?.getAttribute("href"),
+    ).toBe("/admin/card-images/houses/8?page=2");
     expect(
       page.container
         .querySelector('[data-villa-card-house-page-button="2"]')
@@ -242,11 +296,140 @@ describe("AdminVillaCardImagesPage", () => {
     expect(
       page.container.querySelector('[data-villa-card-house-option="15"]'),
     ).not.toBeNull();
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      "/admin/card-images/houses?page=3",
+    );
     expect(
       page.container
         .querySelector('[data-villa-card-house-page-button="3"]')
         ?.getAttribute("aria-current"),
     ).toBe("page");
+
+    await page.unmount();
+  });
+
+  it("disables custom house pagination while a new page is loading", async () => {
+    const houses = Array.from({ length: 14 }, (_, index) => {
+      const id = String(index + 1);
+
+      return {
+        id,
+        title: `บ้านพัก ${id}`,
+        zoneLabel: "พัทยา",
+      };
+    });
+    const pageBody = (pageNumber: number) => ({
+      configs: [],
+      houses: houses.slice((pageNumber - 1) * 7, pageNumber * 7),
+      pagination: {
+        hasMore: pageNumber < 2,
+        page: pageNumber,
+        pageCount: 2,
+        pageSize: 7,
+        search: "",
+        total: 14,
+      },
+    });
+    let resolvePageTwo: (response: Response) => void = () => undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const requestUrl = input instanceof Request ? input.url : String(input);
+
+      if (requestUrl === "/api/admin/villa-card-images?page=1&pageSize=7") {
+        return Promise.resolve(makeJsonResponse({ body: pageBody(1) }));
+      }
+
+      if (requestUrl === "/api/admin/villa-card-images?page=2&pageSize=7") {
+        return new Promise<Response>((resolve) => {
+          resolvePageTwo = resolve;
+        });
+      }
+
+      return Promise.resolve(
+        makeJsonResponse({
+          body: { error: `Unhandled ${requestUrl}` },
+          status: 500,
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminVillaCardHouseListPage />);
+    await flushEffects();
+
+    const pageTwoButton = page.container.querySelector(
+      '[data-villa-card-house-page-button="2"]',
+    ) as HTMLButtonElement;
+    await click(pageTwoButton);
+    await flushEffects();
+
+    expect(pageTwoButton.disabled).toBe(true);
+    expect(
+      (
+        page.container.querySelector(
+          "[data-villa-card-house-page-prev]",
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        page.container.querySelector(
+          "[data-villa-card-house-page-next]",
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+
+    resolvePageTwo(makeJsonResponse({ body: pageBody(2) }));
+    await flushEffects();
+
+    expect(
+      page.container.querySelector('[data-villa-card-house-option="8"]'),
+    ).not.toBeNull();
+
+    await page.unmount();
+  });
+
+  it("restores the custom house list page from URL state", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: {
+          configs: [],
+          houses: [
+            {
+              id: "9",
+              title: "House 9",
+              zoneLabel: "Pattaya",
+            },
+          ],
+          pagination: {
+            hasMore: true,
+            page: 2,
+            pageCount: 3,
+            pageSize: 7,
+            search: "9",
+            total: 15,
+          },
+        },
+        url: "/api/admin/villa-card-images?page=2&pageSize=7&search=9",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(
+      <AdminVillaCardHouseListPage initialPage="2" initialSearch="9" />,
+    );
+    await flushEffects();
+
+    expect(
+      page.container.querySelector('[data-villa-card-house-option="9"]'),
+    ).not.toBeNull();
+    expect(
+      page.container
+        .querySelector('[data-villa-card-house-option="9"]')
+        ?.getAttribute("href"),
+    ).toBe("/admin/card-images/houses/9?page=2&search=9");
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      "/admin/card-images/houses?page=2&search=9",
+    );
 
     await page.unmount();
   });
@@ -263,10 +446,29 @@ describe("AdminVillaCardImagesPage", () => {
       page.container.querySelector("[data-villa-card-house-list-skeleton]"),
     ).not.toBeNull();
     expect(
+      page.container.querySelector("[data-villa-card-house-list-skeleton]")
+        ?.className,
+    ).toContain("col-span-full");
+    expect(
+      page.container.querySelector("[data-villa-card-house-list-skeleton]")
+        ?.className,
+    ).toContain("grid-cols-2");
+    expect(
+      page.container.querySelector("[data-villa-card-house-list-skeleton]")
+        ?.className,
+    ).toContain("sm:grid-cols-1");
+    expect(
       page.container.querySelectorAll(
         "[data-villa-card-house-list-skeleton-row]",
       ),
     ).toHaveLength(7);
+    expect(
+      page.container.querySelector("[data-villa-card-house-list-skeleton-row]")
+        ?.className,
+    ).toContain("grid");
+    expect(
+      page.container.querySelector("[data-villa-card-house-skeleton-badge]"),
+    ).not.toBeNull();
     expect(
       page.container.querySelector("[data-villa-card-house-list]")?.className,
     ).toContain("content-start");
@@ -277,7 +479,7 @@ describe("AdminVillaCardImagesPage", () => {
     await page.unmount();
   });
 
-  it("shows a top-centered empty state when no houses match", async () => {
+  it("shows a centered empty state when no houses match", async () => {
     const fetchMock = makeFetchMock([
       {
         body: {
@@ -303,12 +505,78 @@ describe("AdminVillaCardImagesPage", () => {
     const emptyState = page.container.querySelector(
       "[data-villa-card-house-empty]",
     );
+    const listPanel = page.container.querySelector(
+      "[data-villa-card-house-list]",
+    );
 
     expect(emptyState).not.toBeNull();
+    expect(listPanel?.className).toContain("flex");
+    expect(listPanel?.className).toContain("items-center");
+    expect(listPanel?.className).toContain("justify-center");
+    expect(listPanel?.className).toContain("rounded-xl");
+    expect(listPanel?.className).toContain("border");
+    expect(listPanel?.className).toContain("bg-[var(--site-surface-soft)]");
     expect(emptyState?.className).toContain("items-center");
-    expect(emptyState?.className).toContain("justify-start");
     expect(emptyState?.querySelector("svg")).not.toBeNull();
     expect(emptyState?.textContent).toContain("ไม่พบบ้านพัก");
+
+    await page.unmount();
+  });
+
+  it("shows image picker skeleton while house images load", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const requestUrl = input instanceof Request ? input.url : String(input);
+
+      if (requestUrl === "/api/admin/villa-card-images?houseId=9") {
+        return Promise.resolve(
+          makeJsonResponse({
+            body: {
+              configs: [],
+              houses: [
+                {
+                  id: "9",
+                  title: "House 9",
+                  zoneLabel: "Pattaya",
+                },
+              ],
+              pagination: {
+                hasMore: false,
+                page: 1,
+                pageCount: 1,
+                pageSize: 1,
+                search: "",
+                total: 1,
+              },
+            },
+          }),
+        );
+      }
+
+      if (requestUrl === "/api/villas/9/images") {
+        return new Promise<Response>(() => undefined);
+      }
+
+      return Promise.resolve(
+        makeJsonResponse({
+          body: { error: `Unhandled ${requestUrl}` },
+          status: 500,
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(
+      <AdminVillaCardHouseCustomPage houseId="9" />,
+    );
+    await flushEffects();
+
+    expect(
+      page.container.querySelector("[data-villa-card-image-picker-skeleton]"),
+    ).not.toBeNull();
+    expect(
+      page.container.querySelector("[data-villa-card-image-grid-skeleton]"),
+    ).not.toBeNull();
+    expect(page.container.textContent).not.toContain("กำลังโหลดรูป");
 
     await page.unmount();
   });
@@ -341,7 +609,7 @@ describe("AdminVillaCardImagesPage", () => {
           images: [
             {
               id: 10,
-              imageName: "cover.jpg",
+              imageName: "cover-with-a-very-long-file-name-that-should-truncate.jpg",
               imageUrl: "https://images.example.com/cover.jpg",
               zone: "outside",
             },
@@ -378,19 +646,42 @@ describe("AdminVillaCardImagesPage", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const page = await mountAdminPage(
-      <AdminVillaCardHouseCustomPage houseId="9" />,
+      <AdminVillaCardHouseCustomPage
+        houseId="9"
+        returnPage="2"
+        returnSearch="9"
+      />,
     );
     await flushEffects();
 
     expect(
       page.container.querySelector("[data-villa-card-house-id-input]"),
     ).toBeNull();
+    expect(
+      page.container
+        .querySelector("[data-villa-card-back-link]")
+        ?.getAttribute("href"),
+    ).toBe("/admin/card-images/houses?page=2&search=9");
 
     const coverButton = page.container.querySelector(
       '[data-villa-card-image-option="10"]',
     ) as HTMLButtonElement | null;
 
     expect(coverButton).not.toBeNull();
+    expect(
+      coverButton
+        ?.querySelector("[data-villa-card-image-name]")
+        ?.className,
+    ).toContain("truncate");
+    expect(
+      coverButton?.querySelector("[data-villa-card-image-name]")?.textContent,
+    ).toContain("cover-with-a-very-long-file-name");
+    expect(
+      coverButton?.querySelector("[data-villa-card-image-zone]")?.textContent,
+    ).toContain("ภายนอกบ้าน");
+    expect(
+      coverButton?.querySelector("[data-villa-card-image-zone]")?.textContent,
+    ).not.toContain("outside");
     await click(coverButton as HTMLButtonElement);
     await click(
       page.container.querySelector(
@@ -434,7 +725,7 @@ describe("AdminVillaCardImagesPage", () => {
     expect(page.container.textContent).not.toContain("Custom ที่บันทึกไว้");
 
     await click(
-      page.container.querySelector("[data-villa-card-save-custom]") as HTMLButtonElement,
+      page.container.querySelector("[data-villa-card-sort-images]") as HTMLButtonElement,
     );
 
     const confirmDialog = page.container.querySelector(
@@ -462,10 +753,19 @@ describe("AdminVillaCardImagesPage", () => {
         ?.getAttribute("data-villa-card-confirm-order"),
     ).toBe("30,10,20");
 
+    // Close sort dialog with "เสร็จสิ้น"
     await click(
       page.container.querySelector(
-        "[data-villa-card-confirm-save]",
+        "[data-villa-card-confirm-done]",
       ) as HTMLButtonElement,
+    );
+    expect(
+      page.container.querySelector("[data-villa-card-confirm-dialog]"),
+    ).toBeNull();
+
+    // Now save — should fire PUT with reordered IDs
+    await click(
+      page.container.querySelector("[data-villa-card-save-custom]") as HTMLButtonElement,
     );
 
     const saveCall = fetchMock.mock.calls.find(

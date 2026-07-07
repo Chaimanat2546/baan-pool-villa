@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { revalidateVillaCardImagesCache } from "@/lib/cache-revalidation";
-import { fetchVillaListingPage } from "@/lib/villas/server";
+import { fetchVillaCardHouseOptionPage } from "@/lib/villas/server";
 import {
   buildAdminVillaCardImageConfigsResponse,
   parseVillaCardImageConfigPayload,
@@ -16,21 +16,22 @@ vi.mock("@/lib/cache-revalidation", () => ({
 }));
 
 vi.mock("@/lib/villas/server", () => ({
-  fetchVillaListingPage: vi.fn((query: { page: number; pageSize: number }) =>
-    Promise.resolve({
-      hasMore: false,
-      items: [
-        {
-          coverImage: null,
-          id: "9",
-          title: "Villa 9",
-          zoneLabel: "outside",
-        },
-      ],
-      page: query.page,
-      pageSize: query.pageSize,
-      total: 1,
-    }),
+  fetchVillaCardHouseOptionPage: vi.fn(
+    (query: { page: number; pageSize: number }) =>
+      Promise.resolve({
+        hasMore: false,
+        items: [
+          {
+            coverImage: null,
+            id: "9",
+            title: "Villa 9",
+            zoneLabel: "outside",
+          },
+        ],
+        page: query.page,
+        pageSize: query.pageSize,
+        total: 1,
+      }),
   ),
   getListingById: vi.fn().mockResolvedValue({
     coverImage: null,
@@ -62,7 +63,9 @@ vi.mock("@/lib/villas/public-dto", () => ({
 const revalidateVillaCardImagesCacheMock = vi.mocked(
   revalidateVillaCardImagesCache,
 );
-const fetchVillaListingPageMock = vi.mocked(fetchVillaListingPage);
+const fetchVillaCardHouseOptionPageMock = vi.mocked(
+  fetchVillaCardHouseOptionPage,
+);
 
 function request(body: unknown) {
   return new Request("https://example.com/api/admin/villa-card-images", {
@@ -147,7 +150,7 @@ describe("admin villa card image config route helpers", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(fetchVillaListingPageMock).toHaveBeenCalledWith({
+    expect(fetchVillaCardHouseOptionPageMock).toHaveBeenCalledWith({
       page: 1,
       pageSize: 10,
       search: "",
@@ -190,7 +193,7 @@ describe("admin villa card image config route helpers", () => {
   });
 
   it("loads configs for only the requested house page", async () => {
-    fetchVillaListingPageMock.mockResolvedValueOnce({
+    fetchVillaCardHouseOptionPageMock.mockResolvedValueOnce({
       hasMore: true,
       items: [
         {
@@ -221,7 +224,7 @@ describe("admin villa card image config route helpers", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(fetchVillaListingPageMock).toHaveBeenCalledWith({
+    expect(fetchVillaCardHouseOptionPageMock).toHaveBeenCalledWith({
       page: 3,
       pageSize: 25,
       search: "pool",

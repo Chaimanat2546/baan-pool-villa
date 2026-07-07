@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { unstable_cache } from "next/cache";
 import {
+  fetchVillaCardHouseOptionPage,
   fetchHouseListings,
   fetchHouseListingsForSitemap,
   fetchHomeListings,
@@ -345,6 +346,38 @@ describe("fetchHouseListings", () => {
       zones: [{ label: "พัทยา", value: "pattaya" }],
     });
     expect(images.in).not.toHaveBeenCalled();
+  });
+
+  it("loads the admin card house picker page with lean listing columns", async () => {
+    const { images, listingPrices, listings } = mockSupabase();
+
+    await expect(
+      fetchVillaCardHouseOptionPage({ page: 1, pageSize: 7, search: "9" }),
+    ).resolves.toMatchObject({
+      hasMore: false,
+      items: [
+        {
+          coverImage:
+            "https://example.supabase.co/storage/v1/object/public/villas/cover.jpg",
+          id: "9",
+          title: listingRows[0].title,
+        },
+      ],
+      page: 1,
+      pageSize: 7,
+      total: 1,
+    });
+
+    const selectCall = listings.select.mock.calls.find(([columns]) =>
+      String(columns).includes("property_id"),
+    );
+    expect(selectCall?.[0]).not.toContain("listing_facilities");
+    expect(selectCall?.[0]).not.toContain("bedrooms");
+    expect(selectCall?.[1]).toEqual({ count: "exact" });
+    expect(listings.eq).toHaveBeenCalledWith("property_id", 9);
+    expect(listings.range).toHaveBeenCalledWith(0, 6);
+    expect(images.in).toHaveBeenCalledWith("property_id", [9]);
+    expect(listingPrices.in).not.toHaveBeenCalled();
   });
 
   it("loads a bounded search page with database filters", async () => {

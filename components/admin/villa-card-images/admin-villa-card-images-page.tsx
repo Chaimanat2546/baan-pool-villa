@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowDownUp,
   ArrowLeft,
   ArrowRight,
   Images,
@@ -8,7 +9,7 @@ import {
   Save,
   Search,
   SearchX,
-  X,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -137,6 +138,44 @@ function getHousePageItems(
   return [1, "ellipsis", currentPage, "ellipsis", pageCount];
 }
 
+function parseHousePage(value: string | undefined): number {
+  const page = Number(value);
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+function getHouseListQueryString(page: number, search: string): string {
+  const params = new URLSearchParams();
+  const trimmedSearch = search.trim();
+
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+
+  if (trimmedSearch) {
+    params.set("search", trimmedSearch);
+  }
+
+  return params.toString();
+}
+
+function getHouseListHref(page: number, search: string): string {
+  const queryString = getHouseListQueryString(page, search);
+  return queryString
+    ? `/admin/card-images/houses?${queryString}`
+    : "/admin/card-images/houses";
+}
+
+function getHouseDetailHref(
+  houseId: string,
+  page: number,
+  search: string,
+): string {
+  const queryString = getHouseListQueryString(page, search);
+  const baseHref = `/admin/card-images/houses/${encodeURIComponent(houseId)}`;
+
+  return queryString ? `${baseHref}?${queryString}` : baseHref;
+}
+
 function getImageZoneKey(image: PublicVillaImage): string {
   return image.zone?.trim().toLowerCase() || "uncategorized";
 }
@@ -162,6 +201,33 @@ function moveId(ids: number[], fromIndex: number, toIndex: number): number[] {
 
 function isUsableImage(image: PublicVillaImage): boolean {
   return typeof image.id === "number" && image.id > 0 && Boolean(image.imageUrl);
+}
+
+function VillaCardStyleSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="grid gap-4 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm"
+      data-villa-card-style-skeleton
+    >
+      <span className="h-4 w-40 max-w-full animate-pulse rounded-full bg-[var(--site-border)]" />
+      <span className="h-3 w-64 max-w-full animate-pulse rounded-full bg-[var(--site-surface-tint)]" />
+      <div className="grid gap-3 md:grid-cols-2">
+        {Array.from({ length: 2 }, (_, index) => (
+          <div
+            className="grid min-w-0 gap-3 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3"
+            key={index}
+          >
+            <span className="h-4 w-24 max-w-full animate-pulse rounded-full bg-[var(--site-border)]" />
+            <div className="mx-auto w-full max-w-[300px]">
+              <span className="block aspect-[3/4] w-full animate-pulse rounded-xl bg-[var(--site-surface-tint)]" />
+            </div>
+            <span className="h-10 w-full animate-pulse rounded-md bg-[var(--site-surface-tint)]" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function VillaCardStylePreview({ style }: { style: SiteVillaCardStyle }) {
@@ -353,35 +419,38 @@ export function AdminVillaCardImagesPage() {
             <h2 className="text-base font-semibold text-[var(--site-text)]">
               รูปแบบการ์ดบ้าน
             </h2>
-            {isLoading ? (
-              <p className="mt-1 text-sm text-[var(--site-muted)]">
-                กำลังโหลด...
-              </p>
-            ) : null}
           </div>
 
+          {isLoading ? (
+            <VillaCardStyleSkeleton />
+          ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {VILLA_CARD_STYLE_OPTIONS.map((option) => {
               const isSelected = style === option.value;
 
               return (
                 <div
-                  className={`grid min-w-0 content-start gap-3 rounded-xl border p-3 text-left transition ${
+                  aria-pressed={isSelected}
+                  className={`grid min-w-0 cursor-pointer content-start gap-3 rounded-xl border p-3 text-left transition ${
                     isSelected
                       ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
                       : "border-[var(--site-border)] bg-[var(--site-surface-soft)]"
                   }`}
+                  data-villa-card-preview-option={option.value}
                   key={option.value}
-                >
-                  <button
-                    aria-pressed={isSelected}
-                    className="flex min-w-0 items-center justify-between gap-3 text-left"
-                    data-villa-card-preview-option={option.value}
-                    type="button"
-                    onClick={() => {
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setStyle(option.value);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
                       setStyle(option.value);
-                    }}
-                  >
+                    }
+                  }}
+                >
+                  <span className="flex min-w-0 items-center justify-between gap-3">
                     <span className="text-sm font-bold text-[var(--site-text)]">
                       {option.label}
                     </span>
@@ -390,7 +459,7 @@ export function AdminVillaCardImagesPage() {
                         กำลังเลือก
                       </span>
                     ) : null}
-                  </button>
+                  </span>
                   <VillaCardStylePreview style={option.value} />
                   {option.value === "gallery" ? (
                     <Link
@@ -398,7 +467,8 @@ export function AdminVillaCardImagesPage() {
                       data-villa-card-house-list-link
                       href="/admin/card-images/houses"
                       prefetch={false}
-                      onClick={() => {
+                      onClick={(event) => {
+                        event.stopPropagation();
                         setStyle("gallery");
                       }}
                     >
@@ -410,6 +480,7 @@ export function AdminVillaCardImagesPage() {
               );
             })}
           </div>
+          )}
         </section>
       </div>
     </div>
@@ -434,16 +505,33 @@ function useVillaCardConfigs(
     useState<AdminVillaCardHousePagination | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const activeRequestIdRef = useRef(0);
+  const activeAbortControllerRef = useRef<AbortController | null>(null);
 
   const loadConfigs = useCallback(async () => {
-    const token = await getAccessToken();
-
-    if (!token) {
-      return;
-    }
+    const requestId = activeRequestIdRef.current + 1;
+    activeRequestIdRef.current = requestId;
+    activeAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    activeAbortControllerRef.current = abortController;
+    const isActiveRequest = () => activeRequestIdRef.current === requestId;
 
     setIsLoading(true);
     setErrors([]);
+
+    const token = await getAccessToken();
+
+    if (!token) {
+      if (isActiveRequest()) {
+        setIsLoading(false);
+      }
+
+      return;
+    }
+
+    if (!isActiveRequest()) {
+      return;
+    }
 
     try {
       const requestParams = new URLSearchParams();
@@ -466,9 +554,14 @@ function useVillaCardConfigs(
 
       const response = await fetch(`/api/admin/villa-card-images?${requestParams}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: abortController.signal,
       });
       const payload =
         (await readJsonPayload(response)) as AdminVillaCardImagesResponse | null;
+
+      if (!isActiveRequest()) {
+        return;
+      }
 
       if (shouldRedirectToLogin(response.status, payload)) {
         redirectToLogin();
@@ -490,10 +583,17 @@ function useVillaCardConfigs(
       setHouses(payload.houses);
       setPagination(payload.pagination);
       onLoaded?.(payload.configs);
-    } catch {
+    } catch (error) {
+      if (!isActiveRequest() || (error instanceof Error && error.name === "AbortError")) {
+        return;
+      }
+
       setErrors(["ไม่สามารถโหลด config รูปการ์ดได้"]);
     } finally {
-      setIsLoading(false);
+      if (isActiveRequest()) {
+        activeAbortControllerRef.current = null;
+        setIsLoading(false);
+      }
     }
   }, [
     getAccessToken,
@@ -506,12 +606,18 @@ function useVillaCardConfigs(
   ]);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadConfigs();
-    }, 0);
+    let shouldLoad = true;
+
+    queueMicrotask(() => {
+      if (shouldLoad) {
+        void loadConfigs();
+      }
+    });
 
     return () => {
-      window.clearTimeout(timeoutId);
+      shouldLoad = false;
+      activeRequestIdRef.current += 1;
+      activeAbortControllerRef.current?.abort();
     };
   }, [loadConfigs]);
 
@@ -533,30 +639,77 @@ function VillaCardHouseListSkeleton() {
   return (
     <div
       aria-hidden="true"
-      className="grid content-start gap-2"
+      className="col-span-full grid grid-cols-2 content-start gap-2 sm:grid-cols-1"
       data-villa-card-house-list-skeleton
     >
       {Array.from({ length: HOUSE_PICKER_PAGE_SIZE }, (_, index) => (
         <div
-          className="flex min-w-0 items-center gap-3 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-2"
+          className="grid min-w-0 gap-3 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3 sm:flex sm:items-center sm:p-2"
           data-villa-card-house-list-skeleton-row
           key={index}
         >
-          <span className="block h-14 w-20 shrink-0 animate-pulse rounded-lg bg-[var(--site-surface-tint)]" />
+          <span className="block h-24 w-full shrink-0 animate-pulse rounded-lg bg-[var(--site-surface-tint)] sm:h-14 sm:w-20" />
           <span className="grid min-w-0 flex-1 gap-2">
-            <span className="h-3 w-36 max-w-full animate-pulse rounded-full bg-[var(--site-border)]" />
-            <span className="h-2.5 w-24 max-w-full animate-pulse rounded-full bg-[var(--site-border)]" />
+            <span className="h-3 w-24 max-w-full animate-pulse rounded-full bg-[var(--site-border)] sm:w-36" />
+            <span className="h-2.5 w-20 max-w-full animate-pulse rounded-full bg-[var(--site-border)] sm:w-24" />
           </span>
-          <span className="h-6 w-14 shrink-0 animate-pulse rounded-full bg-[var(--site-border)]" />
+          <span
+            className="h-5 w-24 max-w-full animate-pulse rounded-full bg-[var(--site-border)] sm:w-14 sm:shrink-0"
+            data-villa-card-house-skeleton-badge
+          />
         </div>
       ))}
     </div>
   );
 }
 
-export function AdminVillaCardHouseListPage() {
-  const [houseSearch, setHouseSearch] = useState("");
-  const [housePage, setHousePage] = useState(1);
+function VillaCardImagePickerSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="grid h-full min-h-0 min-w-0 gap-3 overflow-hidden lg:grid-cols-[180px_minmax(0,1fr)]"
+      data-villa-card-image-picker-skeleton
+    >
+      <div className="flex gap-2 overflow-hidden rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-2 lg:block lg:space-y-2">
+        {Array.from({ length: 4 }, (_, index) => (
+          <span
+            className="block h-9 min-w-32 animate-pulse rounded-lg bg-[var(--site-border)] lg:w-full"
+            key={index}
+          />
+        ))}
+      </div>
+      <div
+        className="grid min-h-0 min-w-0 auto-rows-max grid-cols-2 gap-3 overflow-y-auto pr-1 md:grid-cols-3 xl:grid-cols-4"
+        data-villa-card-image-grid-skeleton
+      >
+        {Array.from({ length: 8 }, (_, index) => (
+          <div
+            className="grid min-w-0 gap-2 overflow-hidden rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-2"
+            key={index}
+          >
+            <span className="block aspect-[4/3] animate-pulse rounded-lg bg-[var(--site-surface-tint)]" />
+            <span className="h-3 w-28 max-w-full animate-pulse rounded-full bg-[var(--site-border)]" />
+            <span className="h-3 w-16 max-w-full animate-pulse rounded-full bg-[var(--site-border)]" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface AdminVillaCardHouseListPageProps {
+  initialPage?: string;
+  initialSearch?: string;
+}
+
+export function AdminVillaCardHouseListPage({
+  initialPage,
+  initialSearch,
+}: AdminVillaCardHouseListPageProps = {}) {
+  const [houseSearch, setHouseSearch] = useState(initialSearch ?? "");
+  const [housePage, setHousePage] = useState(() =>
+    parseHousePage(initialPage),
+  );
   const { configs, errors, houses, isLoading, loadConfigs, pagination } =
     useVillaCardConfigs(undefined, {
       page: housePage,
@@ -573,6 +726,15 @@ export function AdminVillaCardHouseListPage() {
     Math.max(1, Math.ceil(totalHouses / HOUSE_PICKER_PAGE_SIZE));
   const currentHousePage = Math.min(housePage, housePageCount);
   const housePageItems = getHousePageItems(currentHousePage, housePageCount);
+  const houseListHref = getHouseListHref(housePage, houseSearch);
+
+  useEffect(() => {
+    const currentHref = `${window.location.pathname}${window.location.search}`;
+
+    if (currentHref !== houseListHref) {
+      window.history.replaceState(null, "", houseListHref);
+    }
+  }, [houseListHref]);
 
   return (
     <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
@@ -583,10 +745,10 @@ export function AdminVillaCardHouseListPage() {
               Card images
             </p>
             <h1 className="mt-2 text-3xl font-bold tracking-normal text-[var(--site-text)]">
-              เลือกบ้านสำหรับ custom
+              เลือกบ้านสำหรับจัดเรียงรูป
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
-              เลือกบ้านที่ต้องการจัดรูป card แบบใหม่
+              เลือกบ้านที่ต้องการจัดรูป Card แบบใหม่
             </p>
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
@@ -636,14 +798,19 @@ export function AdminVillaCardHouseListPage() {
           </label>
 
           <div
-            className="grid min-h-0 auto-rows-max content-start gap-2 overflow-y-auto pr-1"
+            className={
+              !isLoading && houses.length === 0
+                ? "flex h-full min-h-0 items-center justify-center overflow-y-auto rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-2"
+                : "grid min-h-0 grid-cols-2 auto-rows-max content-start gap-2 overflow-y-auto pr-1 sm:grid-cols-1"
+            }
+            data-villa-card-house-card-list
             data-villa-card-house-list
           >
             {isLoading ? (
               <VillaCardHouseListSkeleton />
             ) : houses.length === 0 ? (
               <div
-                className="flex min-h-40 flex-col items-center justify-start gap-3 rounded-xl bg-[var(--site-surface-soft)] px-4 py-10 text-center text-sm text-[var(--site-muted)]"
+                className="flex flex-col items-center gap-3 px-4 py-10 text-center text-sm text-[var(--site-muted)]"
                 data-villa-card-house-empty
               >
                 <SearchX
@@ -658,13 +825,16 @@ export function AdminVillaCardHouseListPage() {
 
                 return (
                   <Link
-                    className="flex min-w-0 items-center gap-3 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-2 text-left transition hover:border-[var(--site-border-strong)]"
+                    className="grid min-w-0 gap-3 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3 text-left transition hover:border-[var(--site-border-strong)] sm:flex sm:items-center sm:p-2"
                     data-villa-card-house-option={house.id}
-                    href={`/admin/card-images/houses/${house.id}`}
+                    href={getHouseDetailHref(house.id, housePage, houseSearch)}
                     key={house.id}
                     prefetch={false}
                   >
-                    <span className="relative block h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-[var(--site-surface-tint)]">
+                    <span
+                      className="relative block h-24 w-full shrink-0 overflow-hidden rounded-lg bg-[var(--site-surface-tint)] sm:h-14 sm:w-20"
+                      data-villa-card-house-thumb
+                    >
                       {house.coverImage ? (
                         <Image
                           alt=""
@@ -682,12 +852,12 @@ export function AdminVillaCardHouseListPage() {
                         {house.title}
                       </span>
                       <span className="mt-0.5 block truncate text-xs text-[var(--site-muted)]">
-                        #{house.id} · {house.zoneLabel}
+                        DV-{house.id} · {house.zoneLabel}
                       </span>
                     </span>
                     {hasCustom ? (
                       <span className="shrink-0 rounded-full bg-[var(--site-primary)] px-2 py-0.5 text-xs font-bold text-[var(--site-on-primary)]">
-                        custom
+                        ตั้งค่าแล้ว
                       </span>
                     ) : null}
                   </Link>
@@ -708,7 +878,7 @@ export function AdminVillaCardHouseListPage() {
                   aria-label="หน้าก่อนหน้า"
                   className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-sm font-semibold text-[var(--site-text)] disabled:cursor-not-allowed disabled:opacity-40"
                   data-villa-card-house-page-prev
-                  disabled={currentHousePage <= 1}
+                  disabled={isLoading || currentHousePage <= 1}
                   type="button"
                   onClick={() => {
                     setHousePage((page) => Math.max(1, page - 1));
@@ -746,8 +916,9 @@ export function AdminVillaCardHouseListPage() {
                         isCurrentPage
                           ? "border-[var(--site-primary)] bg-[var(--site-primary)] text-[var(--site-on-primary)]"
                           : "border-[var(--site-border)] bg-[var(--site-surface-soft)] text-[var(--site-text)]"
-                      }`}
+                      } disabled:cursor-not-allowed disabled:opacity-40`}
                       data-villa-card-house-page-button={pageNumber}
+                      disabled={isLoading || isCurrentPage}
                       type="button"
                       onClick={() => {
                         setHousePage(pageNumber);
@@ -763,7 +934,7 @@ export function AdminVillaCardHouseListPage() {
                   aria-label="หน้าถัดไป"
                   className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-sm font-semibold text-[var(--site-text)] disabled:cursor-not-allowed disabled:opacity-40"
                   data-villa-card-house-page-next
-                  disabled={currentHousePage >= housePageCount}
+                  disabled={isLoading || currentHousePage >= housePageCount}
                   type="button"
                   onClick={() => {
                     setHousePage((page) => Math.min(housePageCount, page + 1));
@@ -782,8 +953,22 @@ export function AdminVillaCardHouseListPage() {
   );
 }
 
-export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) {
+interface AdminVillaCardHouseCustomPageProps {
+  houseId: string;
+  returnPage?: string;
+  returnSearch?: string;
+}
+
+export function AdminVillaCardHouseCustomPage({
+  houseId,
+  returnPage,
+  returnSearch,
+}: AdminVillaCardHouseCustomPageProps) {
   const [selectedImageIds, setSelectedImageIds] = useState<number[]>([]);
+  const houseListHref = getHouseListHref(
+    parseHousePage(returnPage),
+    returnSearch ?? "",
+  );
   const handleConfigsLoaded = useCallback(
     (nextConfigs: AdminVillaCardImageConfig[]) => {
       setSelectedImageIds(
@@ -807,6 +992,7 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
   const [selectedZone, setSelectedZone] = useState(ALL_ZONE_KEY);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const draggedSelectedImageIdRef = useRef<number | null>(null);
+  const activeZoneButtonRef = useRef<HTMLButtonElement | null>(null);
   const [images, setImages] = useState<PublicVillaImage[]>([]);
   const selectedHouse =
     houses.find((house) => house.id === houseId) ??
@@ -845,6 +1031,24 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
         : images.filter((image) => getImageZoneKey(image) === selectedZone),
     [images, selectedZone],
   );
+
+  useEffect(() => {
+    const button = activeZoneButtonRef.current;
+
+    if (!button) {
+      return;
+    }
+
+    const container = button.parentElement;
+
+    if (!container || !("scrollLeft" in container)) {
+      return;
+    }
+
+    // On mobile the zone nav is a horizontal scroll strip. Move the selected
+    // zone to the start so it stays visible without changing the sort order.
+    container.scrollLeft = button.offsetLeft - container.offsetLeft;
+  }, [selectedZone, imageZoneOptions.length]);
 
   useEffect(() => {
     async function loadHouseImages() {
@@ -901,7 +1105,7 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
     });
   }
 
-  function requestSaveConfig() {
+  function openSortDialog() {
     if (selectedImageIds.length < 3) {
       setErrors(["custom ควรมีอย่างน้อย 3 รูป"]);
       setNotice(null);
@@ -913,12 +1117,17 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
     setIsConfirmDialogOpen(true);
   }
 
-  async function saveConfig() {
+  function requestSaveConfig() {
     if (selectedImageIds.length < 3) {
-      requestSaveConfig();
+      setErrors(["custom ควรมีอย่างน้อย 3 รูป"]);
+      setNotice(null);
       return;
     }
 
+    void saveConfig();
+  }
+
+  async function saveConfig() {
     const token = await getAccessToken();
 
     if (!token) {
@@ -977,32 +1186,47 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
           <div>
             <Link
               className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-primary)]"
-              href="/admin/card-images/houses"
+              data-villa-card-back-link
+              href={houseListHref}
               prefetch={false}
             >
               <ArrowLeft className="h-4 w-4" />
               กลับไปรายการบ้าน
             </Link>
-            <h1 className="mt-2 text-2xl font-bold text-[var(--site-text)]">
-              {selectedHouse.title}
+            <h1 className="text-2xl font-bold text-[var(--site-text)]">
+              จัดเรียงรูปบ้านพัก {selectedHouse.title}
             </h1>
             <p className="mt-1 text-sm text-[var(--site-muted)]">
-              #{selectedHouse.id}
+              DV-{selectedHouse.id}
               {selectedHouse.zoneLabel ? ` · ${selectedHouse.zoneLabel}` : ""}
             </p>
           </div>
-          <button
-            type="button"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
-            data-villa-card-save-custom
-            disabled={isSaving || isLoading || isLoadingImages}
-            onClick={() => {
-              requestSaveConfig();
-            }}
-          >
-            <Save className="h-4 w-4" />
-            {isSaving ? "กำลังบันทึก..." : "บันทึก custom"}
-          </button>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <button
+              type="button"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-40"
+              data-villa-card-sort-images
+              disabled={isSaving || isLoading || isLoadingImages || selectedImageIds.length < 1}
+              onClick={() => {
+                openSortDialog();
+              }}
+            >
+              <ArrowDownUp className="h-4 w-4" />
+              เรียงรูป
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
+              data-villa-card-save-custom
+              disabled={isSaving || isLoading || isLoadingImages}
+              onClick={() => {
+                requestSaveConfig();
+              }}
+            >
+              <Save className="h-4 w-4" />
+              {isSaving ? "กำลังบันทึก..." : "บันทึก custom"}
+            </button>
+          </div>
         </header>
       </div>
 
@@ -1015,9 +1239,7 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
 
       <section className="grid h-[calc(100dvh-14rem)] min-h-[32rem] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
         {isLoadingImages ? (
-          <p className="rounded-xl bg-[var(--site-surface-soft)] p-4 text-sm text-[var(--site-muted)]">
-            กำลังโหลดรูป...
-          </p>
+          <VillaCardImagePickerSkeleton />
         ) : images.length === 0 ? (
           <p className="rounded-xl bg-[var(--site-surface-soft)] p-4 text-sm text-[var(--site-muted)]">
             ไม่พบรูปบ้านนี้
@@ -1032,7 +1254,7 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
                 const isActive = option.zone === selectedZone;
 
                 return (
-                  <button
+                    <button
                     className={`flex min-w-32 items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition lg:w-full ${
                       isActive
                         ? "bg-[var(--site-primary)] text-[var(--site-on-primary)]"
@@ -1040,6 +1262,7 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
                     }`}
                     data-villa-card-zone-option={option.zone}
                     key={option.zone}
+                    ref={isActive ? activeZoneButtonRef : undefined}
                     type="button"
                     onClick={() => {
                       setSelectedZone(option.zone);
@@ -1062,7 +1285,7 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
 
                 return (
                   <button
-                    className={`grid min-w-0 overflow-hidden rounded-xl border p-2 text-left transition ${
+                    className={`grid min-w-0 gap-2 overflow-hidden rounded-xl border p-2 text-left transition ${
                       isSelected
                         ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
                         : "border-[var(--site-border)] bg-[var(--site-surface-soft)]"
@@ -1096,11 +1319,17 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
                         </span>
                       ) : null}
                     </span>
-                    <span className="min-w-0 text-xs font-semibold text-[var(--site-text)]">
-                      <span className="truncate">{image.imageName ?? image.id}</span>
+                    <span
+                      className="block min-w-0 truncate text-xs font-semibold text-[var(--site-text)]"
+                      data-villa-card-image-name
+                    >
+                      {image.imageName ?? image.id}
                     </span>
-                    <span className="text-xs text-[var(--site-muted)]">
-                      {getImageZoneKey(image)}
+                    <span
+                      className="block min-w-0 truncate text-xs text-[var(--site-muted)]"
+                      data-villa-card-image-zone
+                    >
+                      {getZoneLabel(getImageZoneKey(image))}
                     </span>
                   </button>
                 );
@@ -1121,10 +1350,10 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
           <div className="grid max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-xl">
             <header className="border-b border-[var(--site-border)] px-4 py-3">
               <h2 className="text-lg font-bold text-[var(--site-text)]">
-                ยืนยันรูปที่เลือก
+                เรียงลำดับรูป
               </h2>
               <p className="mt-1 text-sm text-[var(--site-muted)]">
-                ลากเพื่อจัดลำดับ หรือใช้ปุ่มซ้าย/ขวาก่อนบันทึกจริง
+                ลากหรือใช้ปุ่มลูกศรจัดลำดับ จากนั้นกด เสร็จสิ้น
               </p>
             </header>
 
@@ -1135,7 +1364,7 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
               >
                 {selectedImages.map((image, index) => (
                   <div
-                    className="grid min-w-0 gap-2 overflow-hidden rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-2"
+                    className="relative grid min-w-0 cursor-grab gap-2 overflow-hidden rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-2 transition-transform duration-150 ease-out active:cursor-grabbing"
                     data-villa-card-confirm-image={image.id}
                     draggable
                     key={image.id}
@@ -1153,10 +1382,32 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
                         moveSelectedImageById(draggedImageId, image.id);
                       }
                     }}
-                    onDragStart={() => {
+                    onDragStart={(event) => {
                       draggedSelectedImageIdRef.current = image.id;
+                      const card = event.currentTarget;
+
+                      // Use the whole card as the drag preview so the browser
+                      // shows the card, not just the image inside it.
+                      if (event.dataTransfer && card) {
+                        event.dataTransfer.setDragImage(
+                          card,
+                          card.offsetWidth / 2,
+                          20,
+                        );
+                      }
                     }}
                   >
+                    <button
+                      aria-label="เอารูปออก"
+                      className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] shadow-sm transition hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                      data-villa-card-confirm-remove
+                      type="button"
+                      onClick={() => {
+                        toggleImage(image.id);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                     <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-[var(--site-surface-tint)]">
                       <Image
                         alt={image.imageName ?? `image ${image.id}`}
@@ -1172,17 +1423,23 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
                       <p className="text-sm font-bold text-[var(--site-text)]">
                         #{index + 1}
                       </p>
-                      <p className="truncate text-xs text-[var(--site-muted)]">
+                      <p
+                        className="truncate text-xs text-[var(--site-muted)]"
+                        data-villa-card-confirm-image-name
+                      >
                         {image.imageName ?? image.id}
                       </p>
-                      <p className="truncate text-xs text-[var(--site-muted)]">
-                        {getImageZoneKey(image)}
+                      <p
+                        className="truncate text-xs text-[var(--site-muted)]"
+                        data-villa-card-confirm-image-zone
+                      >
+                        {getZoneLabel(getImageZoneKey(image))}
                       </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-1">
+                    <div className="grid grid-cols-2 gap-1">
                       <button
                         aria-label="เลื่อนไปซ้าย"
-                        className="grid h-8 place-items-center rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] disabled:opacity-40"
+                        className="grid h-8 place-items-center rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] transition disabled:opacity-40"
                         disabled={index === 0}
                         type="button"
                         onClick={() => {
@@ -1194,18 +1451,8 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
                         <ArrowLeft className="h-4 w-4" />
                       </button>
                       <button
-                        aria-label="เอารูปออก"
-                        className="grid h-8 place-items-center rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]"
-                        type="button"
-                        onClick={() => {
-                          toggleImage(image.id);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                      <button
                         aria-label="เลื่อนไปขวา"
-                        className="grid h-8 place-items-center rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] disabled:opacity-40"
+                        className="grid h-8 place-items-center rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] transition disabled:opacity-40"
                         disabled={index === selectedImages.length - 1}
                         type="button"
                         onClick={() => {
@@ -1224,26 +1471,14 @@ export function AdminVillaCardHouseCustomPage({ houseId }: { houseId: string }) 
 
             <footer className="flex flex-wrap justify-end gap-2 border-t border-[var(--site-border)] px-4 py-3">
               <button
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-text)]"
-                disabled={isSaving}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--site-primary)] px-4 text-sm font-bold text-[var(--site-on-primary)]"
+                data-villa-card-confirm-done
                 type="button"
                 onClick={() => {
                   setIsConfirmDialogOpen(false);
                 }}
               >
-                ยกเลิก
-              </button>
-              <button
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-4 text-sm font-bold text-[var(--site-on-primary)] disabled:cursor-not-allowed disabled:opacity-60"
-                data-villa-card-confirm-save
-                disabled={isSaving || selectedImageIds.length < 3}
-                type="button"
-                onClick={() => {
-                  void saveConfig();
-                }}
-              >
-                <Save className="h-4 w-4" />
-                {isSaving ? "กำลังบันทึก..." : "ยืนยันบันทึก"}
+                เสร็จสิ้น
               </button>
             </footer>
           </div>

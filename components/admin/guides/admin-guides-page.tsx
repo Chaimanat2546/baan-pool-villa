@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   Eye,
   LayoutPanelLeft,
@@ -16,6 +17,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -39,8 +41,9 @@ import type {
 } from "@/lib/guides/types";
 import {
   createSlugFromTitle,
-  validateGuideDraft,
+  validateGuideDraftDetailed,
   validateGuideUploadMetadata,
+  type GuideDraftValidationField,
 } from "@/lib/guides/validation";
 import type { AdminGuideDraft } from "./admin-guide-types";
 import {
@@ -64,6 +67,45 @@ interface AdminGuideResponse {
 
 interface AdminGuidesPageProps {
   guideId?: string;
+}
+
+const GUIDE_LIST_PAGE_SIZE = 7;
+type GuideFieldErrors = Partial<Record<GuideDraftValidationField, string[]>>;
+
+const GUIDE_FIELD_BY_DRAFT_KEY: Partial<
+  Record<keyof AdminGuideDraft, GuideDraftValidationField>
+> = {
+  contentBlocks: "contentBlocks",
+  coverImage: "coverImage",
+  excerpt: "excerpt",
+  recommendedHouseIds: "recommendedHouseIds",
+  status: "status",
+  tags: "tags",
+  title: "title",
+};
+
+function toGuideFieldErrors(errors: ReturnType<typeof validateGuideDraftDetailed>) {
+  const fieldErrors: GuideFieldErrors = {};
+
+  for (const error of errors) {
+    fieldErrors[error.field] = [...(fieldErrors[error.field] ?? []), error.message];
+  }
+
+  return fieldErrors;
+}
+
+function FieldErrors({ errors }: { errors?: string[] }) {
+  if (!errors || errors.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+      {errors.map((error) => (
+        <p key={error}>{error}</p>
+      ))}
+    </div>
+  );
 }
 
 function toAdminGuide(post: GuidePost): AdminGuideDraft {
@@ -117,6 +159,25 @@ function getGuideConfigHref(guide: AdminGuideDraft) {
   )}`;
 }
 
+function getGuidePageItems(
+  currentPage: number,
+  pageCount: number,
+): Array<"ellipsis" | number> {
+  if (pageCount <= 4) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, "ellipsis", pageCount];
+  }
+
+  if (currentPage >= pageCount - 2) {
+    return [1, "ellipsis", pageCount - 2, pageCount - 1, pageCount];
+  }
+
+  return [1, "ellipsis", currentPage, "ellipsis", pageCount];
+}
+
 export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
   const isListPage = guideId === undefined;
   const isNewGuidePage = guideId === "new";
@@ -125,8 +186,11 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
   const [guides, setGuides] = useState<AdminGuideDraft[]>([]);
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
   const [guideSearch, setGuideSearch] = useState("");
+  const [guidePage, setGuidePage] = useState(1);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [validationFieldErrors, setValidationFieldErrors] =
+    useState<GuideFieldErrors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -137,6 +201,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
     file: File;
     image: GuideImage;
   } | null>(null);
+  const pendingScrollFieldRef = useRef<GuideDraftValidationField | null>(null);
 
   const activeGuide = useMemo(
     () =>
@@ -166,6 +231,16 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
       });
     });
   }, [guideSearch, guides]);
+  const guidePageCount = Math.max(
+    1,
+    Math.ceil(visibleGuides.length / GUIDE_LIST_PAGE_SIZE),
+  );
+  const currentGuidePage = Math.min(guidePage, guidePageCount);
+  const pagedGuides = visibleGuides.slice(
+    (currentGuidePage - 1) * GUIDE_LIST_PAGE_SIZE,
+    currentGuidePage * GUIDE_LIST_PAGE_SIZE,
+  );
+  const guidePageItems = getGuidePageItems(currentGuidePage, guidePageCount);
   const currentSnapshot = useMemo(() => makeSnapshot(guides), [guides]);
   const hasUnsavedChanges =
     savedSnapshot !== null &&
@@ -189,6 +264,19 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
     return token;
   }, [redirectToLogin]);
 
+  useEffect(() => {
+    const field = pendingScrollFieldRef.current;
+
+    if (!field) {
+      return;
+    }
+
+    pendingScrollFieldRef.current = null;
+    document
+      .querySelector(`[data-guide-error-field="${field}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [validationFieldErrors]);
+
   const loadGuides = useCallback(
     async (token: string, showLoading: boolean) => {
       if (showLoading) {
@@ -196,6 +284,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
       }
 
       setErrors([]);
+      setValidationFieldErrors({});
 
       try {
         const response = await fetch("/api/admin/guides", {
@@ -286,6 +375,23 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
     }
 
     setErrors([]);
+    setValidationFieldErrors((currentErrors) => {
+      const nextErrors = { ...currentErrors };
+
+      for (const key of Object.keys(changes) as Array<keyof AdminGuideDraft>) {
+        const field = GUIDE_FIELD_BY_DRAFT_KEY[key];
+
+        if (field) {
+          delete nextErrors[field];
+        }
+
+        if (field === "coverImage") {
+          delete nextErrors.coverImageAlt;
+        }
+      }
+
+      return nextErrors;
+    });
     setNotice(null);
     setGuides((currentGuides) =>
       currentGuides.map((guide) =>
@@ -301,6 +407,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
 
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
+      setValidationFieldErrors({});
       setNotice(null);
       return null;
     }
@@ -341,6 +448,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
 
       if (!response.ok) {
         setErrors(extractErrors(payload, "อัปโหลดรูปบทความไม่ได้"));
+        setValidationFieldErrors({});
         return null;
       }
 
@@ -355,11 +463,13 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
 
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
+      setValidationFieldErrors({});
       setNotice(null);
       return;
     }
 
     setErrors([]);
+    setValidationFieldErrors({});
     setNotice(null);
     setPendingCoverFile(file);
     setPendingUploadedCover(null);
@@ -410,12 +520,14 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
       isPinned: activeGuide.isPinned,
       publishedAt: activeGuide.publishedAt,
     };
-    const validationErrors = validateGuideDraft(guideDraft);
+    const validationErrors = validateGuideDraftDetailed(guideDraft);
 
-    setErrors(validationErrors);
+    setErrors([]);
+    setValidationFieldErrors(toGuideFieldErrors(validationErrors));
     setNotice(null);
 
     if (validationErrors.length > 0) {
+      pendingScrollFieldRef.current = validationErrors[0].field;
       return;
     }
 
@@ -451,6 +563,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
 
       if (!response.ok) {
         setErrors(extractErrors(payload, "บันทึกบทความไม่ได้"));
+        setValidationFieldErrors({});
         return;
       }
 
@@ -469,9 +582,11 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
       setActiveDraftId(savedGuide.id ?? activeGuide.draftId);
       setPendingCoverFile(null);
       setPendingUploadedCover(null);
+      setValidationFieldErrors({});
       setNotice("บันทึกบทความแล้ว");
     } catch (caughtError) {
       setErrors([getAdminErrorMessage(caughtError, "บันทึกบทความไม่ได้")]);
+      setValidationFieldErrors({});
     } finally {
       setIsSaving(false);
     }
@@ -523,6 +638,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
 
       if (!response.ok) {
         setErrors(extractErrors(payload, "ลบบทความไม่ได้"));
+        setValidationFieldErrors({});
         return;
       }
 
@@ -539,6 +655,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
       });
     } catch {
       setErrors(extractErrors(null, "ลบบทความไม่ได้"));
+      setValidationFieldErrors({});
       return;
     }
     setNotice("ลบบทความแล้ว");
@@ -589,7 +706,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
             notice={notice}
           />
 
-          <section className="grid h-[calc(100dvh-14rem)] min-h-[32rem] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <section className="grid h-[calc(100dvh-14rem)] min-h-[32rem] min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
             <label className="relative block">
               <span className="sr-only">ค้นหาบทความ</span>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--site-muted)]" />
@@ -597,6 +714,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                 className="h-11 w-full rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] pl-9 pr-3 text-sm"
                 onChange={(event) => {
                   setGuideSearch(event.target.value);
+                  setGuidePage(1);
                 }}
                 placeholder="ค้นหาชื่อบทความ, slug, tag หรือบ้านพักแนะนำ"
                 value={guideSearch}
@@ -625,7 +743,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                 </div>
               ) : visibleGuides.length === 0 ? (
                 <div
-                  className="flex min-h-40 flex-col items-center justify-start gap-3 px-4 py-10 text-center text-sm text-[var(--site-muted)]"
+                  className="flex min-h-full flex-col items-center justify-center gap-3 px-4 py-10 text-center text-sm text-[var(--site-muted)]"
                   data-admin-guides-empty
                 >
                   <SearchX
@@ -635,7 +753,45 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                   <p className="font-semibold">ไม่พบบทความ</p>
                 </div>
               ) : (
-                <table className="min-w-full border-collapse text-left text-sm">
+                <>
+                <div
+                  className="grid gap-2 p-2 md:hidden"
+                  data-admin-guides-card-list
+                >
+                  {pagedGuides.map((guide) => (
+                    <Link
+                      className="grid gap-3 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-left shadow-sm transition hover:border-[var(--site-primary)]/35 hover:bg-[var(--site-primary-soft)]"
+                      href={getGuideConfigHref(guide)}
+                      key={guide.draftId}
+                      prefetch={false}
+                    >
+                      <span className="flex min-w-0 items-center justify-between gap-3">
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-bold text-[var(--site-text)]">
+                            {guide.title || "ยังไม่ได้ตั้งชื่อ"}
+                          </span>
+                          <span className="mt-1 block truncate text-xs text-[var(--site-muted)]">
+                            /guides/{createSlugFromTitle(guide.title)}
+                          </span>
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+                            guide.status === "published"
+                              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                              : "bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+                          }`}
+                        >
+                          {getStatusLabel(guide.status)}
+                        </span>
+                      </span>
+                      <span className="flex items-center justify-between gap-3 text-xs text-[var(--site-muted)]">
+                        <span>{guide.recommendedHouseIds.length} บ้านพัก</span>
+                        <span>{guide.tags.length} แท็ก</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+                <table className="hidden min-w-full border-collapse text-left text-sm md:table">
                   <thead className="sticky top-0 z-10 bg-[var(--site-surface)] text-xs font-bold uppercase tracking-[0.12em] text-[var(--site-muted)]">
                     <tr>
                       <th className="px-4 py-3">บทความ</th>
@@ -646,7 +802,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--site-border)] bg-[var(--site-surface-soft)]">
-                    {visibleGuides.map((guide) => (
+                    {pagedGuides.map((guide) => (
                       <tr
                         className="transition hover:bg-[var(--site-primary-soft)]/55"
                         key={guide.draftId}
@@ -698,8 +854,90 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                     ))}
                   </tbody>
                 </table>
+                </>
               )}
             </div>
+
+            {visibleGuides.length > GUIDE_LIST_PAGE_SIZE ? (
+              <nav
+                aria-label="pagination"
+                className="border-t border-[var(--site-border)] pt-3"
+                data-admin-guides-pagination
+              >
+                <ul className="flex flex-wrap items-center justify-center gap-1">
+                  <li>
+                    <button
+                      aria-label="หน้าก่อนหน้า"
+                      className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-sm font-semibold text-[var(--site-text)] disabled:cursor-not-allowed disabled:opacity-40"
+                      data-admin-guides-page-prev
+                      disabled={currentGuidePage <= 1}
+                      onClick={() => {
+                        setGuidePage((page) => Math.max(1, page - 1));
+                      }}
+                      type="button"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span className="hidden sm:inline">ก่อนหน้า</span>
+                    </button>
+                  </li>
+                  {guidePageItems.map((item, index) => {
+                    if (item === "ellipsis") {
+                      return (
+                        <li key={`ellipsis-${index}`}>
+                          <span
+                            aria-hidden="true"
+                            className="grid h-9 min-w-9 place-items-center text-sm font-bold text-[var(--site-muted)]"
+                            data-admin-guides-page-ellipsis
+                          >
+                            ...
+                          </span>
+                          <span className="sr-only">More pages</span>
+                        </li>
+                      );
+                    }
+
+                    const pageNumber = item;
+                    const isCurrentPage = pageNumber === currentGuidePage;
+
+                    return (
+                      <li key={pageNumber}>
+                        <button
+                          aria-current={isCurrentPage ? "page" : undefined}
+                          aria-label={`ไปหน้า ${pageNumber}`}
+                          className={`grid h-9 min-w-9 place-items-center rounded-lg border px-3 text-sm font-semibold ${
+                            isCurrentPage
+                              ? "border-[var(--site-primary)] bg-[var(--site-primary)] text-[var(--site-on-primary)]"
+                              : "border-[var(--site-border)] bg-[var(--site-surface-soft)] text-[var(--site-text)]"
+                          }`}
+                          data-admin-guides-page-button={pageNumber}
+                          onClick={() => {
+                            setGuidePage(pageNumber);
+                          }}
+                          type="button"
+                        >
+                          {pageNumber}
+                        </button>
+                      </li>
+                    );
+                  })}
+                  <li>
+                    <button
+                      aria-label="หน้าถัดไป"
+                      className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-sm font-semibold text-[var(--site-text)] disabled:cursor-not-allowed disabled:opacity-40"
+                      data-admin-guides-page-next
+                      disabled={currentGuidePage >= guidePageCount}
+                      onClick={() => {
+                        setGuidePage((page) => Math.min(guidePageCount, page + 1));
+                      }}
+                      type="button"
+                    >
+                      <span className="hidden sm:inline">ถัดไป</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            ) : null}
           </section>
         </div>
       </div>
@@ -807,7 +1045,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
         >
           {activeGuide ? (
             <>
-              <main className="min-w-0">
+              <main className="min-w-0" data-guide-error-field="contentBlocks">
                 <BlockEditor
                   key={activeGuide.draftId}
                   blocks={normalizeBlocks(activeGuide.contentBlocks)}
@@ -825,7 +1063,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-4">
+                      <div className="mt-4" data-guide-error-field="title">
                         <EditablePlainTextField
                           ariaLabel="ชื่อบทความ"
                           className="min-h-[2.75rem] w-full break-words text-3xl font-semibold leading-tight text-[var(--site-text)] outline-none sm:text-4xl"
@@ -835,8 +1073,9 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                           placeholder="ชื่อบทความ"
                           value={activeGuide.title}
                         />
+                        <FieldErrors errors={validationFieldErrors.title} />
                       </div>
-                      <div className="mt-3">
+                      <div className="mt-3" data-guide-error-field="excerpt">
                         <EditablePlainTextField
                           ariaLabel="คำโปรยบทความ"
                           className="min-h-[2rem] w-full break-words text-lg leading-8 text-[var(--site-muted)] outline-none focus:text-[var(--site-text)]"
@@ -846,6 +1085,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                           placeholder="คำโปรยสั้น ๆ ที่ทำให้คนอยากดูบ้านพักต่อ"
                           value={activeGuide.excerpt}
                         />
+                        <FieldErrors errors={validationFieldErrors.excerpt} />
                       </div>
                     </div>
                   }
@@ -855,6 +1095,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                   }}
                   onUploadImage={handleInlineImageUpload}
                 />
+                <FieldErrors errors={validationFieldErrors.contentBlocks} />
               </main>
 
               <div className="min-w-0 xl:sticky xl:top-36 xl:self-start">
@@ -870,6 +1111,7 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
                   onUpdate={updateActiveGuide}
                   pendingCoverFile={pendingCoverFile}
                   statusLabel={getStatusLabel(activeGuide.status)}
+                  validationErrors={validationFieldErrors}
                 />
               </div>
             </>
