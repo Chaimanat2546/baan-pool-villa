@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { VillaImage } from "./types";
 
 type SupabaseImageRow = {
@@ -22,6 +23,23 @@ const IMAGE_SELECT_COLUMNS =
   "id, property_id, cover_select, image_name, image_url, caption, image_zone";
 const LEGACY_IMAGE_SELECT_COLUMNS =
   "id, property_id, cover_select, image_name, caption, image_zone";
+export const VILLA_CARD_DISPLAY_IMAGE_MIN = 3;
+export const VILLA_CARD_DISPLAY_IMAGE_MAX = 10;
+
+type VillaCardImageConfigRow = {
+  villa_card_image_items?: unknown;
+};
+
+type VillaCardImageItemRow = {
+  image_id: unknown;
+  sort_order: unknown;
+};
+
+type VillaCardImageConfig = {
+  imageIds: number[];
+};
+
+const VILLA_CARD_IMAGE_CONFIG_PAGE_KEY = "default";
 
 function normalizeNullableText(value: string | null): string | null {
   const trimmedValue = value?.trim();
@@ -33,10 +51,18 @@ function normalizeNullableText(value: string | null): string | null {
   return trimmedValue;
 }
 
+function normalizeCoverSelectValue(value: number | null): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
 function getPreviewZoneKey(zone: string | null): string {
   const zoneKey = zone?.trim().toLowerCase();
 
   return zoneKey ? zoneKey : "uncategorized";
+}
+
+function isImageZone(image: VillaImage, zone: string): boolean {
+  return getPreviewZoneKey(image.zone) === zone;
 }
 
 function isCoverZone(zone: string | null): boolean {
@@ -116,6 +142,64 @@ function selectPreviewImages(images: VillaImage[]): VillaImage[] {
   ];
 }
 
+function dedupeImagesById(images: VillaImage[]): VillaImage[] {
+  const seenIds = new Set<number>();
+  const selectedImages: VillaImage[] = [];
+
+  for (const image of images) {
+    if (seenIds.has(image.id)) {
+      continue;
+    }
+
+    seenIds.add(image.id);
+    selectedImages.push(image);
+  }
+
+  return selectedImages;
+}
+
+export function selectDefaultDisplayImages(images: VillaImage[]): VillaImage[] {
+  const outsideImages = images
+    .filter((image) => isImageZone(image, "outside"))
+    .sort((a, b) => a.id - b.id)
+    .slice(0, 5);
+  const insideImages = images
+    .filter((image) => isImageZone(image, "inside"))
+    .sort((a, b) => a.id - b.id)
+    .slice(0, 5);
+
+  return dedupeImagesById([...outsideImages, ...insideImages]).slice(
+    0,
+    VILLA_CARD_DISPLAY_IMAGE_MAX,
+  );
+}
+
+export function validateCustomDisplayImageIds(imageIds: number[]): number[] {
+  if (imageIds.length < VILLA_CARD_DISPLAY_IMAGE_MIN) {
+    throw new Error(`Select at least ${VILLA_CARD_DISPLAY_IMAGE_MIN} images`);
+  }
+
+  if (imageIds.length > VILLA_CARD_DISPLAY_IMAGE_MAX) {
+    throw new Error(`Select at most ${VILLA_CARD_DISPLAY_IMAGE_MAX} images`);
+  }
+
+  const seenIds = new Set<number>();
+
+  for (const id of imageIds) {
+    if (!Number.isInteger(id) || id < 1) {
+      throw new Error("Invalid image id");
+    }
+
+    if (seenIds.has(id)) {
+      throw new Error("Duplicate image id");
+    }
+
+    seenIds.add(id);
+  }
+
+  return imageIds;
+}
+
 function getSupabaseConfig() {
   const supabaseUrl =
     process.env.SUPABASE_URL ??
@@ -140,6 +224,47 @@ function getSupabaseErrorText(error: unknown): string {
   }
 
   return error instanceof Error ? error.message : "";
+}
+
+function getConfiguredImageIds(items: unknown): number[] {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  const sortedItems = [...items]
+    .map((item) => {
+      const row = item as VillaCardImageItemRow;
+      return {
+        imageId: typeof row.image_id === "number" ? row.image_id : 0,
+        sortOrder: typeof row.sort_order === "number" ? row.sort_order : 0,
+      };
+    })
+    .filter(
+      (item) =>
+        Number.isInteger(item.imageId) &&
+        item.imageId > 0 &&
+        Number.isInteger(item.sortOrder) &&
+        item.sortOrder >= 1 &&
+        item.sortOrder <= VILLA_CARD_DISPLAY_IMAGE_MAX,
+    )
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+
+  return [...new Set(sortedItems.map((item) => item.imageId))].slice(
+    0,
+    VILLA_CARD_DISPLAY_IMAGE_MAX,
+  );
+}
+
+function mapVillaCardImageConfig(
+  row: VillaCardImageConfigRow | null,
+): VillaCardImageConfig {
+  if (!row) {
+    return { imageIds: [] };
+  }
+
+  return {
+    imageIds: getConfiguredImageIds(row.villa_card_image_items),
+  };
 }
 
 function isMissingImageUrlColumnError(error: unknown): boolean {
@@ -305,6 +430,119 @@ async function fetchVillaImagesFromSupabase(
   return normalizeImageRows((data ?? []) as unknown as SupabaseImageRow[], supabaseUrl);
 }
 
+async function fetchVillaCardImageConfig(id: string): Promise<VillaCardImageConfig> {
+  try {
+    const { data, error } = await createHomeConfigClient()
+      .from("villa_card_image_configs")
+      .select("villa_card_image_items(image_id,sort_order)")
+      .eq("page_key", VILLA_CARD_IMAGE_CONFIG_PAGE_KEY)
+      .eq("house_id", id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (error) {
+      return { imageIds: [] };
+    }
+
+    return mapVillaCardImageConfig(data as VillaCardImageConfigRow | null);
+  } catch {
+    return { imageIds: [] };
+  }
+}
+
+async function fetchVillaCardImageRowsFromSupabase(
+  villaId: number,
+): Promise<{ rows: SupabaseImageRow[]; supabaseUrl: string }> {
+  const { supabaseUrl, supabaseKey } = getSupabaseConfig();
+
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+  const queryImages = async (columns: string) =>
+    supabase
+      .from("images")
+      .select(columns)
+      .eq("property_id", villaId)
+      .order("id", { ascending: true });
+
+  let { data, error } = await queryImages(IMAGE_SELECT_COLUMNS);
+
+  if (error && isMissingImageUrlColumnError(error)) {
+    const legacyResponse = await queryImages(LEGACY_IMAGE_SELECT_COLUMNS);
+    data = legacyResponse.data;
+    error = legacyResponse.error;
+  }
+
+  if (error) {
+    throw new Error(getSupabaseErrorText(error));
+  }
+
+  return {
+    rows: (data ?? []) as unknown as SupabaseImageRow[],
+    supabaseUrl,
+  };
+}
+
+function selectRecommendedDisplayRows(rows: SupabaseImageRow[]): SupabaseImageRow[] {
+  return rows
+    .filter((row) => {
+      const coverSelect = normalizeCoverSelectValue(row.cover_select);
+      return coverSelect >= 1 && coverSelect <= VILLA_CARD_DISPLAY_IMAGE_MAX;
+    })
+    .sort((a, b) => {
+      const coverDiff =
+        normalizeCoverSelectValue(a.cover_select) -
+        normalizeCoverSelectValue(b.cover_select);
+
+      return coverDiff || a.id - b.id;
+    })
+    .slice(0, VILLA_CARD_DISPLAY_IMAGE_MAX);
+}
+
+function selectCustomDisplayImages(
+  images: VillaImage[],
+  imageIds: number[],
+): VillaImage[] {
+  const imagesById = new Map(images.map((image) => [image.id, image]));
+
+  return imageIds
+    .map((imageId) => imagesById.get(imageId))
+    .filter((image): image is VillaImage => image !== undefined)
+    .slice(0, VILLA_CARD_DISPLAY_IMAGE_MAX);
+}
+
+async function resolveDisplayImagesFromSupabase(
+  id: string,
+): Promise<VillaImage[]> {
+  const villaId = parseVillaId(id);
+  const [{ rows, supabaseUrl }, config] = await Promise.all([
+    fetchVillaCardImageRowsFromSupabase(villaId),
+    fetchVillaCardImageConfig(id),
+  ]);
+  const defaultImages = selectDefaultDisplayImages(
+    normalizeImageRows(rows, supabaseUrl),
+  );
+  const recommendedImages = normalizeImageRows(
+    selectRecommendedDisplayRows(rows),
+    supabaseUrl,
+  );
+
+  const customImages = selectCustomDisplayImages(
+    normalizeImageRows(rows, supabaseUrl),
+    config.imageIds,
+  );
+
+  if (customImages.length >= VILLA_CARD_DISPLAY_IMAGE_MIN) {
+    return customImages;
+  }
+
+  return recommendedImages.length > 0 ? recommendedImages : defaultImages;
+}
+
 /**
  * Loads and caches the Supabase gallery rows for a single villa.
  *
@@ -346,4 +584,20 @@ export async function fetchVillaPreviewImages(id: string): Promise<VillaImage[]>
   );
 
   return getCachedVillaPreviewImages();
+}
+
+export async function resolveDisplayImages(id: string): Promise<VillaImage[]> {
+  parseVillaId(id);
+  const tag = CACHE_TAGS.villaImage(id);
+  const cardTag = CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id);
+  const getCachedVillaCardImages = unstable_cache(
+    () => resolveDisplayImagesFromSupabase(id),
+    [cardTag],
+    {
+      revalidate: CACHE_REVALIDATE_SECONDS.villaCardImages,
+      tags: [CACHE_TAGS.villaCardImages, CACHE_TAGS.villaImages, tag, cardTag],
+    },
+  );
+
+  return getCachedVillaCardImages();
 }

@@ -189,6 +189,20 @@ export type VillaSearchPageResult = {
   total: number;
 };
 
+export type VillaListingPageQuery = {
+  page: number;
+  pageSize: number;
+  search?: string;
+};
+
+export type VillaListingPageResult = {
+  hasMore: boolean;
+  items: VillaListing[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
 type SelectedListingQuery = ReturnType<
   ReturnType<VillaSupabaseClient["from"]>["select"]
 >;
@@ -531,6 +545,29 @@ function selectSearchListings(
     ),
     sortKey,
   );
+}
+
+function selectListingPage(
+  supabase: VillaSupabaseClient,
+  search: string,
+) {
+  let query = supabase
+    .from("listings")
+    .select(LISTING_SELECT_COLUMNS, { count: "exact" })
+    .eq("is_active", true);
+  const trimmedSearch = search.trim();
+
+  if (trimmedSearch) {
+    const propertyId = toSearchPropertyId(trimmedSearch);
+    query =
+      propertyId === null
+        ? query.ilike("title", toTitleSearchPattern(trimmedSearch))
+        : query.eq("property_id", propertyId);
+  }
+
+  return query
+    .order("sort_order", { ascending: true })
+    .order("property_id", { ascending: true });
 }
 
 function selectSearchListingCandidates(
@@ -950,6 +987,38 @@ async function fetchVillaSearchPageFromSupabase({
   };
 }
 
+async function fetchVillaListingPageFromSupabase({
+  page,
+  pageSize,
+  search = "",
+}: VillaListingPageQuery): Promise<VillaListingPageResult> {
+  const { supabase, supabaseUrl } = createVillaSupabaseClient();
+  const offset = (page - 1) * pageSize;
+  const { count, data, error } = await selectListingPage(
+    supabase,
+    search,
+  ).range(offset, offset + pageSize - 1);
+
+  if (error) {
+    throw new Error(`Supabase listing page query failed: ${error.message}`);
+  }
+
+  const items = await hydrateListingRows(
+    supabase,
+    supabaseUrl,
+    (data ?? []) as unknown as SupabaseListingRow[],
+  );
+  const total = count ?? offset + items.length;
+
+  return {
+    hasMore: offset + items.length < total,
+    items,
+    page,
+    pageSize,
+    total,
+  };
+}
+
 async function fetchListingByIdFromSupabase(
   id: string,
 ): Promise<VillaListing | null> {
@@ -1088,6 +1157,15 @@ const fetchCachedVillaSearchPage = unstable_cache(
   },
 );
 
+const fetchCachedVillaListingPage = unstable_cache(
+  fetchVillaListingPageFromSupabase,
+  [`${CACHE_TAGS.villaListings}:listing-page`],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
+    tags: [CACHE_TAGS.villaListings],
+  },
+);
+
 /**
  * Returns the cached public villa catalog used by home, search, guides, and
  * other listing consumers.
@@ -1118,6 +1196,15 @@ export async function fetchVillaSearchPage(
   return fetchCachedVillaSearchPage({
     ...query,
     villaIdQuery: query.villaIdQuery.trim(),
+  });
+}
+
+export async function fetchVillaListingPage(
+  query: VillaListingPageQuery,
+): Promise<VillaListingPageResult> {
+  return fetchCachedVillaListingPage({
+    ...query,
+    search: query.search?.trim() ?? "",
   });
 }
 

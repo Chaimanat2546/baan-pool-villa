@@ -374,6 +374,18 @@ function isValidBookingCalendarMonth(value) {
   return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
 
+function hasOnlyVillaCardImagesQuery(url) {
+  if (!isVillaImagesApiPath(url.pathname)) {
+    return false;
+  }
+
+  if (url.searchParams.get("view") !== "card") {
+    return false;
+  }
+
+  return Array.from(url.searchParams.keys()).every((key) => key === "view");
+}
+
 function getJsonCacheVersionGroups(pathname) {
   if (pathname === "/api/houses") {
     return [HTML_CACHE_VERSION_GROUPS.villaListings];
@@ -450,12 +462,17 @@ export function createJsonEdgeCacheKey(request, versionToken = "") {
   const month = isVillaBookingCalendarApiPath(url.pathname)
     ? url.searchParams.get("month")
     : null;
+  const isVillaCardImagesQuery = hasOnlyVillaCardImagesQuery(url);
 
   url.search = "";
   url.hash = "";
 
   if (isValidBookingCalendarMonth(month)) {
     url.searchParams.set("month", month);
+  }
+
+  if (isVillaCardImagesQuery) {
+    url.searchParams.set("view", "card");
   }
 
   if (versionToken) {
@@ -579,6 +596,10 @@ export function getJsonEdgeCacheDecision(request) {
       searchParamCount === 1 && isValidBookingCalendarMonth(month);
 
     if (!hasOnlyMonth) {
+      return { cacheable: false, candidate: true, reason: "query" };
+    }
+  } else if (isVillaImagesApiPath(url.pathname)) {
+    if (url.search.length > 0 && !hasOnlyVillaCardImagesQuery(url)) {
       return { cacheable: false, candidate: true, reason: "query" };
     }
   } else if (url.search.length > 0) {

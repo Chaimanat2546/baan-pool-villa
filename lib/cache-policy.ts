@@ -13,6 +13,7 @@ export const CACHE_REVALIDATE_SECONDS = {
   siteSettings: TWELVE_HOURS_SECONDS,
   tiktokOEmbed: TWELVE_HOURS_SECONDS,
   villaDetail: TWELVE_HOURS_SECONDS,
+  villaCardImages: TWELVE_HOURS_SECONDS,
   villaImages: TWELVE_HOURS_SECONDS,
   villaListings: SIX_HOURS_SECONDS,
   sitemap: SITEMAP_REVALIDATE_SECONDS,
@@ -29,6 +30,8 @@ export const CACHE_TAGS = {
   tiktokOEmbed: "tiktok-oembed",
   villaDetail: (id: string) => `villa-detail:${id}`,
   villaDetails: "villa-details",
+  villaCardImage: (pageKey: string, id: string) => `villa-card-images:${pageKey}:${id}`,
+  villaCardImages: "villa-card-images",
   villaImage: (id: string) => `villa-images:${id}`,
   villaImages: "villa-images",
   villaListings: "villa-listings",
@@ -37,6 +40,7 @@ export const CACHE_TAGS = {
 export const CACHE_HEADERS = {
   homeSections: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaDetail: "public, s-maxage=43200, stale-while-revalidate=43200",
+  villaCardImages: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaImages: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaListings: "public, s-maxage=21600, stale-while-revalidate=21600",
 } as const;

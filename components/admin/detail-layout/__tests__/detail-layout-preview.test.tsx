@@ -21,11 +21,11 @@ describe("DetailLayoutPreview", () => {
     );
 
     expect(markup).toContain("ตัวอย่างย่อ");
-    expect(markup).toContain("Gallery");
-    expect(markup).toContain("ชื่อบ้าน / ราคา");
+    expect(markup).not.toContain("Gallery");
+    expect(markup).not.toContain("ชื่อบ้าน / ราคา");
     expect(markup).toContain("ฝั่ง 70");
     expect(markup).toContain("ฝั่ง 30");
     expect(markup).toContain("รายละเอียดบ้านพัก");
-    expect(markup).toContain("บ้านพักแนะนำ");
+    expect(markup).not.toContain("บ้านพักแนะนำ");
   });
 });

@@ -17,6 +17,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -49,7 +50,6 @@ import { SectionConfigForm } from "./section-config-form";
 import { SectionHomePreview } from "./section-home-preview";
 import { SectionList } from "./section-list";
 import {
-  getFallbackExplanation,
   getFallbackModeLabel,
   getManualIdStatus,
   getPreviewForSection,
@@ -67,6 +67,119 @@ import {
 } from "./section-draft-helpers";
 
 type LoginRedirectReason = "admin-access";
+type SectionFieldKey = "title" | "description" | "limitCount" | "manualIds";
+type SectionFieldErrors = Partial<Record<SectionFieldKey, string[]>>;
+type SectionFieldErrorsByDraftId = Record<string, SectionFieldErrors>;
+type SectionErrorTarget = {
+  draftId: string;
+  field: SectionFieldKey;
+};
+
+function addFieldError(
+  fieldErrors: SectionFieldErrorsByDraftId,
+  firstTarget: SectionErrorTarget | null,
+  draftId: string,
+  field: SectionFieldKey,
+  message: string,
+): SectionErrorTarget {
+  const sectionErrors = fieldErrors[draftId] ?? {};
+  sectionErrors[field] = [...(sectionErrors[field] ?? []), message];
+  fieldErrors[draftId] = sectionErrors;
+
+  return firstTarget ?? { draftId, field };
+}
+
+function getSectionFieldErrors(sections: AdminSectionDraft[]): {
+  fieldErrors: SectionFieldErrorsByDraftId;
+  firstTarget: SectionErrorTarget | null;
+} {
+  const fieldErrors: SectionFieldErrorsByDraftId = {};
+  let firstTarget: SectionErrorTarget | null = null;
+
+  for (const section of sections) {
+    if (!section.title.trim()) {
+      firstTarget = addFieldError(
+        fieldErrors,
+        firstTarget,
+        section.draftId,
+        "title",
+        "ต้องมีชื่อชุดบ้านพัก",
+      );
+    }
+
+    if (!section.description.trim()) {
+      firstTarget = addFieldError(
+        fieldErrors,
+        firstTarget,
+        section.draftId,
+        "description",
+        "ต้องมีคำอธิบาย",
+      );
+    }
+
+    if (!Number.isSafeInteger(section.limitCount) || section.limitCount < 1) {
+      firstTarget = addFieldError(
+        fieldErrors,
+        firstTarget,
+        section.draftId,
+        "limitCount",
+        "จำนวนบ้านสูงสุดที่แสดงต้องเป็นเลขตั้งแต่ 1 ขึ้นไป",
+      );
+    }
+
+    if (section.mode === "manual") {
+      const manualStatus = getManualIdStatus(section);
+
+      if (manualStatus.invalidIds.length > 0) {
+        firstTarget = addFieldError(
+          fieldErrors,
+          firstTarget,
+          section.draftId,
+          "manualIds",
+          `รูปแบบเลขบ้านไม่ถูกต้อง: ${manualStatus.invalidIds.join(", ")}`,
+        );
+      }
+
+      if (manualStatus.duplicateIds.length > 0) {
+        firstTarget = addFieldError(
+          fieldErrors,
+          firstTarget,
+          section.draftId,
+          "manualIds",
+          `มีเลขบ้านซ้ำ: ${manualStatus.duplicateIds.join(", ")}`,
+        );
+      }
+    }
+  }
+
+  return { fieldErrors, firstTarget };
+}
+
+function FieldErrors({
+  errors,
+  field,
+  id,
+}: {
+  errors?: string[];
+  field: SectionFieldKey;
+  id: string;
+}) {
+  if (!errors || errors.length === 0) {
+    return null;
+  }
+
+  return (
+    <ul
+      className="mt-2 list-disc space-y-1 pl-5 text-xs font-semibold leading-5 text-red-700"
+      data-admin-section-field-error={field}
+      id={id}
+    >
+      {errors.map((error) => (
+        <li key={error}>{error}</li>
+      ))}
+    </ul>
+  );
+}
 
 function SectionEditorGroup({
   children,
@@ -95,6 +208,10 @@ function SectionEditorGroup({
 export function AdminSectionsPage() {
   const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();
+  const titleErrorTargetRef = useRef<HTMLLabelElement | null>(null);
+  const descriptionErrorTargetRef = useRef<HTMLLabelElement | null>(null);
+  const limitCountErrorTargetRef = useRef<HTMLDivElement | null>(null);
+  const manualIdsErrorTargetRef = useRef<HTMLDivElement | null>(null);
   const [sections, setSections] = useState<AdminSectionDraft[]>([]);
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
   const [draggedDraftId, setDraggedDraftId] = useState<string | null>(null);
@@ -102,6 +219,10 @@ export function AdminSectionsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] =
+    useState<SectionFieldErrorsByDraftId>({});
+  const [pendingErrorTarget, setPendingErrorTarget] =
+    useState<SectionErrorTarget | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [manualIdTexts, setManualIdTexts] = useState<Record<string, string>>(
     {},
@@ -157,6 +278,43 @@ export function AdminSectionsPage() {
   const invalidManualIds = activeManualStatus?.invalidIds.length ?? 0;
   const hasValidatedManualIds =
     activeSection?.mode === "manual" && activePreview !== null;
+  const activeFieldErrors = activeSection
+    ? (fieldErrors[activeSection.draftId] ?? {})
+    : {};
+
+  useEffect(() => {
+    if (
+      !pendingErrorTarget ||
+      activeSection?.draftId !== pendingErrorTarget.draftId
+    ) {
+      return;
+    }
+
+    const targetElement =
+      pendingErrorTarget.field === "title"
+        ? titleErrorTargetRef.current
+        : pendingErrorTarget.field === "description"
+          ? descriptionErrorTargetRef.current
+          : pendingErrorTarget.field === "limitCount"
+            ? limitCountErrorTargetRef.current
+            : manualIdsErrorTargetRef.current;
+
+    if (!targetElement) {
+      return;
+    }
+
+    targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+    targetElement
+      .querySelector<HTMLElement>("input, textarea, button, select")
+      ?.focus({ preventScroll: true });
+    setPendingErrorTarget(null);
+  }, [activeSection?.draftId, pendingErrorTarget]);
+
+  function clearValidationFeedback() {
+    setErrors([]);
+    setFieldErrors({});
+    setPendingErrorTarget(null);
+  }
 
   const redirectToLogin = useCallback((reason?: LoginRedirectReason) => {
     const loginPath =
@@ -197,6 +355,8 @@ export function AdminSectionsPage() {
       }
 
       setErrors([]);
+      setFieldErrors({});
+      setPendingErrorTarget(null);
 
       try {
         const response = await fetch("/api/admin/home-sections", {
@@ -230,6 +390,8 @@ export function AdminSectionsPage() {
         setSections(mappedSections);
         setSavedSnapshot(makeSectionsSnapshot(mappedSections));
         setManualIdTexts({});
+        setFieldErrors({});
+        setPendingErrorTarget(null);
         setActiveDraftId(nextActiveDraftId);
         setPreview(null);
         setPreviewDraftId(null);
@@ -286,7 +448,7 @@ export function AdminSectionsPage() {
     changes: Partial<Omit<AdminSectionDraft, "draftId">>,
   ) {
     setNotice(null);
-    setErrors([]);
+    clearValidationFeedback();
     setPendingDeleteDraftId(null);
     if ("items" in changes || "mode" in changes) {
       setPreview(null);
@@ -301,7 +463,7 @@ export function AdminSectionsPage() {
 
   function addSection() {
     setNotice(null);
-    setErrors([]);
+    clearValidationFeedback();
     setPendingDeleteDraftId(null);
     setSections((currentSections) => {
       const nextSection = makeNewSection(currentSections);
@@ -313,7 +475,7 @@ export function AdminSectionsPage() {
 
   function deleteSection(draftId: string) {
     setNotice(null);
-    setErrors([]);
+    clearValidationFeedback();
     setPendingDeleteDraftId(null);
     setSections((currentSections) => {
       const nextSections = normalizeDisplayOrder(
@@ -330,7 +492,7 @@ export function AdminSectionsPage() {
 
   function moveSection(fromIndex: number, toIndex: number) {
     setNotice(null);
-    setErrors([]);
+    clearValidationFeedback();
     setPendingDeleteDraftId(null);
     setSections((currentSections) => {
       const activeId = currentSections[activeIndex]?.draftId ?? activeDraftId;
@@ -387,7 +549,7 @@ export function AdminSectionsPage() {
     }
 
     setNotice(null);
-    setErrors([]);
+    clearValidationFeedback();
     setPendingDeleteDraftId(draftId);
   }
 
@@ -444,6 +606,8 @@ export function AdminSectionsPage() {
       }
 
       setErrors([]);
+      setFieldErrors({});
+      setPendingErrorTarget(null);
       setNotice(null);
       setIsPreviewing(true);
 
@@ -511,34 +675,45 @@ export function AdminSectionsPage() {
       return false;
     }
 
-    const previewErrors: string[] = [];
-    const firstProblem = manualSections
-      .map(({ section, sectionIndex }) => {
-        const sectionPreview = getPreviewForSection(section, combinedPreview);
-        const issueCount =
-          sectionPreview.missingIds.length + sectionPreview.invalidIds.length;
+    const previewFieldErrors: SectionFieldErrorsByDraftId = {};
+    let firstPreviewTarget: SectionErrorTarget | null = null;
+    let firstProblem: {
+      section: AdminSectionDraft;
+      sectionPreview: AdminManualPreviewResponse;
+    } | null = null;
 
-        if (issueCount === 0) {
-          return null;
-        }
+    for (const { section, sectionIndex } of manualSections) {
+      const sectionPreview = getPreviewForSection(section, combinedPreview);
+      const issueCount =
+        sectionPreview.missingIds.length + sectionPreview.invalidIds.length;
 
-        const sectionLabel = getSectionLabel(section, sectionIndex);
+      if (issueCount === 0) {
+        continue;
+      }
 
-        if (sectionPreview.missingIds.length > 0) {
-          previewErrors.push(
-            `${sectionLabel} มีเลขบ้านที่ไม่พบในรายการบ้าน: ${sectionPreview.missingIds.join(", ")}`,
-          );
-        }
+      firstProblem ??= { section, sectionPreview };
+      const sectionLabel = getSectionLabel(section, sectionIndex);
 
-        if (sectionPreview.invalidIds.length > 0) {
-          previewErrors.push(
-            `${sectionLabel} มีเลขบ้านที่รูปแบบไม่ถูกต้อง: ${sectionPreview.invalidIds.join(", ")}`,
-          );
-        }
+      if (sectionPreview.missingIds.length > 0) {
+        firstPreviewTarget = addFieldError(
+          previewFieldErrors,
+          firstPreviewTarget,
+          section.draftId,
+          "manualIds",
+          `${sectionLabel} มีเลขบ้านที่ไม่พบในรายการบ้าน: ${sectionPreview.missingIds.join(", ")}`,
+        );
+      }
 
-        return { section, sectionPreview };
-      })
-      .find((result) => result !== null);
+      if (sectionPreview.invalidIds.length > 0) {
+        firstPreviewTarget = addFieldError(
+          previewFieldErrors,
+          firstPreviewTarget,
+          section.draftId,
+          "manualIds",
+          `${sectionLabel} มีเลขบ้านที่รูปแบบไม่ถูกต้อง: ${sectionPreview.invalidIds.join(", ")}`,
+        );
+      }
+    }
 
     const activeManualSection =
       activeSection?.mode === "manual" && activeSection.items.length > 0
@@ -555,11 +730,11 @@ export function AdminSectionsPage() {
       setActiveDraftId(firstProblem.section.draftId);
     }
 
-    if (previewErrors.length > 0) {
-      setErrors([
-        "เช็กบ้านแล้วพบเลขที่ยังใช้ไม่ได้ แก้รายการเหล่านี้ก่อนบันทึก:",
-        ...previewErrors,
-      ]);
+    if (firstPreviewTarget) {
+      setErrors([]);
+      setFieldErrors(previewFieldErrors);
+      setActiveDraftId(firstPreviewTarget.draftId);
+      setPendingErrorTarget(firstPreviewTarget);
       return false;
     }
 
@@ -574,11 +749,17 @@ export function AdminSectionsPage() {
 
     const sectionDrafts = sections.map(toHomeSectionDraft);
     const validationErrors = validateHomeSectionDrafts(sectionDrafts);
+    const sectionFieldErrors = getSectionFieldErrors(sections);
 
     setNotice(null);
-    setErrors(validationErrors);
+    setErrors(sectionFieldErrors.firstTarget ? [] : validationErrors);
+    setFieldErrors(sectionFieldErrors.fieldErrors);
 
     if (validationErrors.length > 0) {
+      if (sectionFieldErrors.firstTarget) {
+        setActiveDraftId(sectionFieldErrors.firstTarget.draftId);
+        setPendingErrorTarget(sectionFieldErrors.firstTarget);
+      }
       return;
     }
 
@@ -623,6 +804,8 @@ export function AdminSectionsPage() {
       }
 
       setNotice("บันทึกการจัดหน้าแรกแล้ว");
+      setFieldErrors({});
+      setPendingErrorTarget(null);
       const mappedSections = mapResponseSections(
         payload as AdminHomeSectionsResponse,
         sections,
@@ -640,6 +823,8 @@ export function AdminSectionsPage() {
       setPreviewDraftId(null);
       setPendingDeleteDraftId(null);
     } catch (caughtError) {
+      setFieldErrors({});
+      setPendingErrorTarget(null);
       setErrors([
         getAdminErrorMessage(caughtError, "ไม่สามารถบันทึกการจัดหน้าแรกได้"),
       ]);
@@ -857,59 +1042,29 @@ export function AdminSectionsPage() {
                 </div>
 
                 <div className="grid gap-4 px-4 py-4 sm:px-5">
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
-                        สถานะ
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-[var(--site-text)]">
-                        {activeSection.isActive
-                          ? "พร้อมแสดงผล"
-                          : "ปิดการแสดงผล"}
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--site-muted)]">
-                        {activeSection.isActive
-                          ? "ชุดนี้จะถูกนำไปแสดงตามลำดับที่ตั้งไว้"
-                          : "เก็บร่างไว้ก่อน ยังไม่ขึ้นบนหน้าแรก"}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
-                        วิธีคัดบ้าน
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-[var(--site-text)]">
-                        {activeModeLabel}
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--site-muted)]">
-                        {getFallbackExplanation(activeSection)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
-                        ปุ่มลิงก์
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-[var(--site-text)]">
-                        {activeSection.ctaEnabled
-                          ? "เปิดใช้งาน"
-                          : "ไม่แสดงปุ่ม"}
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--site-muted)]">
-                        {activeSection.ctaEnabled
-                          ? activeSection.ctaLabel.trim() || "ดูเพิ่มเติม"
-                          : "หน้าแรกจะแสดงเฉพาะรายการบ้านในชุดนี้"}
-                      </p>
-                    </div>
-                  </div>
-
                   <SectionEditorGroup
                     description="ข้อความส่วนนี้คือหัวข้อและคำโปรยที่ลูกค้าเห็นบนหน้าแรก"
                     title="รายละเอียดชุดบ้านพัก"
                   >
                     <div className="grid gap-3 md:grid-cols-2">
-                      <label className="block text-sm font-medium text-[var(--site-text)]">
+                      <label
+                        className="scroll-mt-52 block text-sm font-medium text-[var(--site-text)] lg:scroll-mt-48"
+                        data-admin-section-error-target="title"
+                        ref={titleErrorTargetRef}
+                      >
                         ชื่อชุดบ้านพัก
                         <input
-                          className="mt-1 h-11 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+                          aria-describedby={
+                            activeFieldErrors.title
+                              ? "admin-section-title-error"
+                              : undefined
+                          }
+                          aria-invalid={Boolean(activeFieldErrors.title)}
+                          className={`mt-1 h-11 w-full rounded-md border bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition ${
+                            activeFieldErrors.title
+                              ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                              : "border-[var(--site-border)] focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+                          }`}
                           onChange={(event) => {
                             updateSection(activeSection.draftId, {
                               title: event.target.value,
@@ -918,12 +1073,31 @@ export function AdminSectionsPage() {
                           placeholder="เช่น บ้านพักแนะนำ"
                           value={activeSection.title}
                         />
+                        <FieldErrors
+                          errors={activeFieldErrors.title}
+                          field="title"
+                          id="admin-section-title-error"
+                        />
                       </label>
 
-                      <label className="block text-sm font-medium text-[var(--site-text)] md:row-span-2">
+                      <label
+                        className="scroll-mt-52 block text-sm font-medium text-[var(--site-text)] md:row-span-2 lg:scroll-mt-48"
+                        data-admin-section-error-target="description"
+                        ref={descriptionErrorTargetRef}
+                      >
                         คำอธิบาย
                         <textarea
-                          className="mt-1 min-h-28 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+                          aria-describedby={
+                            activeFieldErrors.description
+                              ? "admin-section-description-error"
+                              : undefined
+                          }
+                          aria-invalid={Boolean(activeFieldErrors.description)}
+                          className={`mt-1 min-h-28 w-full rounded-md border bg-[var(--site-surface)] px-3 py-2 text-sm text-[var(--site-text)] outline-none transition ${
+                            activeFieldErrors.description
+                              ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                              : "border-[var(--site-border)] focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+                          }`}
                           onChange={(event) => {
                             updateSection(activeSection.draftId, {
                               description: event.target.value,
@@ -931,6 +1105,11 @@ export function AdminSectionsPage() {
                           }}
                           placeholder="ข้อความสั้น ๆ ที่แสดงใต้หัวข้อชุดบ้านพัก"
                           value={activeSection.description}
+                        />
+                        <FieldErrors
+                          errors={activeFieldErrors.description}
+                          field="description"
+                          id="admin-section-description-error"
                         />
                       </label>
                     </div>
@@ -940,12 +1119,21 @@ export function AdminSectionsPage() {
                     description="กำหนดว่าจะให้ระบบเลือกบ้านแบบไหน จำนวนกี่หลัง และจะเติมบ้านเพิ่มหรือไม่"
                     title="วิธีเลือกและจำนวนบ้าน"
                   >
-                    <SectionConfigForm
-                      onChange={(changes) => {
-                        updateSection(activeSection.draftId, changes);
-                      }}
-                      section={activeSection}
-                    />
+                    <div
+                      className="scroll-mt-52 lg:scroll-mt-48"
+                      data-admin-section-error-target="limitCount"
+                      ref={limitCountErrorTargetRef}
+                    >
+                      <SectionConfigForm
+                        errors={{
+                          limitCount: activeFieldErrors.limitCount,
+                        }}
+                        onChange={(changes) => {
+                          updateSection(activeSection.draftId, changes);
+                        }}
+                        section={activeSection}
+                      />
+                    </div>
                   </SectionEditorGroup>
 
                   <SectionEditorGroup
@@ -961,8 +1149,13 @@ export function AdminSectionsPage() {
                     }
                   >
                     {activeSection.mode === "manual" ? (
-                      <div className="grid gap-3">
+                      <div
+                        className="scroll-mt-52 grid gap-3 lg:scroll-mt-48"
+                        data-admin-section-error-target="manualIds"
+                        ref={manualIdsErrorTargetRef}
+                      >
                         <ManualIdsEditor
+                          errors={activeFieldErrors.manualIds}
                           manualIdText={
                             manualIdTexts[activeSection.draftId] ??
                             activeSection.items

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 
 import { AdminShell } from "@/components/admin/layout/admin-shell";
 import { SiteThemeProvider } from "@/components/layout/site-theme-provider";
@@ -16,11 +17,21 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { settings } = await getSiteSettings();
+  const [{ settings }, cookieStore] = await Promise.all([
+    getSiteSettings(),
+    cookies(),
+  ]);
+  const initialDesktopNavCollapsed =
+    cookieStore.get("admin-sidebar-collapsed")?.value === "true";
 
   return (
     <SiteThemeProvider settings={settings}>
-      <AdminShell settings={settings}>{children}</AdminShell>
+      <AdminShell
+        initialDesktopNavCollapsed={initialDesktopNavCollapsed}
+        settings={settings}
+      >
+        {children}
+      </AdminShell>
     </SiteThemeProvider>
   );
 }

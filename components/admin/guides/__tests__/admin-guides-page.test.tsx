@@ -124,7 +124,7 @@ describe("AdminGuidesPage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads guide drafts and lets admins add a local draft", async () => {
+  it("loads guide drafts as a table before opening article config", async () => {
     const fetchMock = makeFetchMock([
       {
         body: { guides: [guidePost] },
@@ -143,20 +143,45 @@ describe("AdminGuidesPage", () => {
     );
     expect(page.container.querySelector("#guidesPageHeader")).not.toBeNull();
     expect(page.container.textContent).toContain("Family Pool Villa");
+    expect(page.container.querySelector("[data-admin-guides-table]")).not.toBeNull();
+    expect(page.container.querySelector("[data-testid='mock-editor']")).toBeNull();
 
-    const addButton = page.container.querySelector(
-      "#guidesPageHeader button",
-    ) as HTMLButtonElement | null;
-    expect(addButton).not.toBeNull();
+    const editLink = page.container.querySelector(
+      "a[href='/admin/guides/guide-1']",
+    );
+    const addLink = page.container.querySelector("a[href='/admin/guides/new']");
 
-    await click(addButton as HTMLButtonElement);
-
-    expect(page.container.textContent).toContain("2");
+    expect(editLink).not.toBeNull();
+    expect(addLink).not.toBeNull();
     expect(
       fetchMock.mock.calls.every(([url, init]) => {
         return url === "/api/admin/guides" && init?.method === undefined;
       }),
     ).toBe(true);
+
+    await page.unmount();
+  });
+
+  it("shows a top-centered empty state when no guide articles match", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { guides: [] },
+        url: "/api/admin/guides",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminGuidesPage />);
+    await flushEffects();
+
+    const emptyState = page.container.querySelector("[data-admin-guides-empty]");
+
+    expect(emptyState).not.toBeNull();
+    expect(emptyState?.className).toContain("items-center");
+    expect(emptyState?.className).toContain("justify-start");
+    expect(emptyState?.querySelector("svg")).not.toBeNull();
+    expect(emptyState?.textContent).toContain("ไม่พบบทความ");
+    expect(page.container.querySelector("[data-testid='mock-editor']")).toBeNull();
 
     await page.unmount();
   });
@@ -173,7 +198,7 @@ describe("AdminGuidesPage", () => {
     ]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
+    const page = await mountAdminPage(<AdminGuidesPage guideId="guide-1" />);
 
     expect(mocks.replace).toHaveBeenCalledWith("/admin/login");
 
@@ -198,7 +223,7 @@ describe("AdminGuidesPage", () => {
     ]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
+    const page = await mountAdminPage(<AdminGuidesPage guideId="guide-1" />);
     const pinnedCheckbox = page.container.querySelector(
       "input[type='checkbox']",
     ) as HTMLInputElement | null;
@@ -244,7 +269,7 @@ describe("AdminGuidesPage", () => {
     ]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
+    const page = await mountAdminPage(<AdminGuidesPage guideId="guide-1" />);
 
     expect(mocks.starterKit.configure).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -267,7 +292,7 @@ describe("AdminGuidesPage", () => {
     ]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
+    const page = await mountAdminPage(<AdminGuidesPage guideId="guide-1" />);
     const editorOptions = mocks.editorOptions[0] as {
       extensions?: { name?: string }[];
     };
@@ -314,7 +339,7 @@ describe("AdminGuidesPage", () => {
     ]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
+    const page = await mountAdminPage(<AdminGuidesPage guideId="guide-1" />);
     const colorButton = page.container.querySelector(
       "[data-guide-mark-type='textColor']",
     ) as HTMLButtonElement | null;
@@ -395,7 +420,7 @@ describe("AdminGuidesPage", () => {
     ]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
+    const page = await mountAdminPage(<AdminGuidesPage guideId="guide-1" />);
     const coverImage = page.container.querySelector(
       "[role='img'][aria-label='Guide cover']",
     ) as HTMLElement | null;
@@ -434,7 +459,7 @@ describe("AdminGuidesPage", () => {
     ]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
+    const page = await mountAdminPage(<AdminGuidesPage guideId="guide-1" />);
     const coverInput = page.container.querySelector(
       "input[data-guide-cover-input]",
     ) as HTMLInputElement | null;
@@ -538,7 +563,7 @@ describe("AdminGuidesPage", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
+    const page = await mountAdminPage(<AdminGuidesPage guideId="guide-1" />);
     const altInput = Array.from(
       page.container.querySelectorAll<HTMLInputElement>("input"),
     ).find((input) => input.value === "Original cover");
@@ -582,58 +607,21 @@ describe("AdminGuidesPage", () => {
     await page.unmount();
   });
 
-  it("clears a pending cover image when admins select another guide", async () => {
-    const secondGuide = {
-      ...guidePost,
-      id: "guide-2",
-      slug: "second-family-guide",
-      title: "Second Family Guide",
-    };
+  it("does not show the article list inside the new guide config page", async () => {
     const fetchMock = makeFetchMock([
       {
-        body: { guides: [guidePost, secondGuide] },
+        body: { guides: [guidePost] },
         url: "/api/admin/guides",
       },
     ]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
-    const coverInput = page.container.querySelector(
-      "input[data-guide-cover-input]",
-    ) as HTMLInputElement | null;
-
-    expect(coverInput).not.toBeNull();
-
-    Object.defineProperty(coverInput, "files", {
-      configurable: true,
-      value: [new File(["cover"], "cover.webp", { type: "image/webp" })],
-    });
-
-    act(() => {
-      coverInput?.dispatchEvent(new Event("change", { bubbles: true }));
-    });
+    const page = await mountAdminPage(<AdminGuidesPage guideId="new" />);
     await flushEffects();
 
-    const saveButton = page.container.querySelector(
-      "[data-guide-save='true']",
-    ) as HTMLButtonElement | null;
-
-    expect(saveButton?.disabled).toBe(false);
-
-    const secondGuideButton = Array.from(
-      page.container.querySelectorAll<HTMLButtonElement>("aside button"),
-    ).find((button) => {
-      return button.textContent?.includes("Second Family Guide");
-    });
-
-    expect(secondGuideButton).not.toBeNull();
-
-    await click(secondGuideButton as HTMLButtonElement);
-
-    expect(saveButton?.disabled).toBe(true);
-    expect(
-      fetchMock.mock.calls.filter(([url]) => url === "/api/admin/guides/assets"),
-    ).toHaveLength(0);
+    expect(page.container.textContent).not.toContain("Family Pool Villa");
+    expect(page.container.textContent).not.toContain("รายการบทความ");
+    expect(page.container.querySelector("[data-guide-save='true']")).not.toBeNull();
 
     await page.unmount();
   });
@@ -647,7 +635,7 @@ describe("AdminGuidesPage", () => {
     ]);
     vi.stubGlobal("fetch", fetchMock);
 
-    const page = await mountAdminPage(<AdminGuidesPage />);
+    const page = await mountAdminPage(<AdminGuidesPage guideId="guide-1" />);
     const coverInput = page.container.querySelector(
       "input[data-guide-cover-input]",
     ) as HTMLInputElement | null;

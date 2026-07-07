@@ -241,6 +241,68 @@ describe("AdminSectionsPage", () => {
     await page.unmount();
   });
 
+  it("shows validation errors beside the first invalid field and scrolls there", async () => {
+    const scrolledElements: Element[] = [];
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      value(this: Element) {
+        scrolledElements.push(this);
+      },
+    });
+    const fetchMock = makeFetchMock([
+      {
+        body: {
+          sections: [
+            { ...savedSection, slug: "first", title: "First" },
+            {
+              ...savedSection,
+              displayOrder: 1,
+              slug: "second",
+              title: "",
+            },
+          ],
+        },
+        url: "/api/admin/home-sections",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminSectionsPage />);
+    const titleInput = page.container.querySelector(
+      "input[placeholder='เช่น บ้านพักแนะนำ']",
+    ) as HTMLInputElement | null;
+
+    expect(titleInput).not.toBeNull();
+
+    await changeInput(titleInput as HTMLInputElement, "First updated");
+
+    const saveButton = Array.from(page.container.querySelectorAll("button")).find(
+      (button) => {
+        return button.textContent?.includes("บันทึก");
+      },
+    );
+
+    expect(saveButton).not.toBeNull();
+
+    await click(saveButton as HTMLButtonElement);
+    await flushEffects();
+
+    const selectedTitleInput = page.container.querySelector(
+      "input[placeholder='เช่น บ้านพักแนะนำ']",
+    ) as HTMLInputElement | null;
+    const titleError = page.container.querySelector(
+      "[data-admin-section-field-error='title']",
+    );
+
+    expect(selectedTitleInput?.value).toBe("");
+    expect(titleError?.textContent).toContain("ต้องมีชื่อชุดบ้านพัก");
+    expect(scrolledElements[0]?.getAttribute("data-admin-section-error-target")).toBe(
+      "title",
+    );
+
+    await page.unmount();
+  });
+
   it("does not auto-preview manual house IDs while editing", async () => {
     vi.useFakeTimers();
     const fetchMock = makeFetchMock([

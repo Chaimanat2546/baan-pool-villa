@@ -22,6 +22,11 @@ import type {
 
 const DEFAULT_WIDE_ROW_RATIO: DetailLayoutWideRatio = "50/50";
 
+export interface DetailLayoutV2DraftSaveError {
+  message: string;
+  target?: string;
+}
+
 let v2RowIdFallbackCounter = 0;
 
 function makeV2DraftRowId(prefix: "narrow" | "wide"): string {
@@ -226,10 +231,10 @@ export function toDetailLayoutV2Config(
   });
 }
 
-export function validateDetailLayoutV2DraftForSave(
+export function validateDetailLayoutV2DraftForSaveDetails(
   draft: DetailLayoutV2Draft,
-): string[] {
-  const errors: string[] = [];
+): DetailLayoutV2DraftSaveError[] {
+  const errors: DetailLayoutV2DraftSaveError[] = [];
 
   draft.mainSplit.wideRows.forEach((row, rowIndex) => {
     const rowNumber = rowIndex + 1;
@@ -241,31 +246,53 @@ export function validateDetailLayoutV2DraftForSave(
         block !== null &&
         row.blocks.slice(0, blockIndex).some((slot) => slot === null),
     );
+    const firstGapIndex =
+      firstBlockAfterGapIndex >= 0
+        ? row.blocks.findIndex(
+            (block, blockIndex) =>
+              blockIndex < firstBlockAfterGapIndex && block === null,
+          )
+        : -1;
 
     if (filledBlocks.length === 0) {
-      errors.push(`ฝั่ง 70 แถวที่ ${rowNumber} ต้องมี block อย่างน้อย 1 รายการ`);
+      errors.push({
+        message: `ฝั่ง 70 แถวที่ ${rowNumber} ต้องมี block อย่างน้อย 1 รายการ`,
+        target: `${row.id}:row`,
+      });
     }
 
     if (firstBlockAfterGapIndex >= 0) {
-      errors.push(
-        `ฝั่ง 70 แถวที่ ${rowNumber} มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง`,
-      );
+      errors.push({
+        message: `ฝั่ง 70 แถวที่ ${rowNumber} มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง`,
+        target: `${row.id}:slot:${firstGapIndex}`,
+      });
     }
   });
 
   draft.mainSplit.narrowRows.forEach((row, rowIndex) => {
     if (row.block === null) {
-      errors.push(`ฝั่ง 30 ลำดับที่ ${rowIndex + 1} ต้องมี block`);
+      errors.push({
+        message: `ฝั่ง 30 ลำดับที่ ${rowIndex + 1} ต้องมี block`,
+        target: `${row.id}:row`,
+      });
     }
   });
 
   if (
     !draft.lockedBottom.some((block) => block.type === "recommended_villas")
   ) {
-    errors.push("บ้านพักแนะนำต้องถูกล็อกไว้ด้านล่าง");
+    errors.push({ message: "ส่วนแนะนำต้องอยู่ด้านล่าง" });
   }
 
   return errors;
+}
+
+export function validateDetailLayoutV2DraftForSave(
+  draft: DetailLayoutV2Draft,
+): string[] {
+  return validateDetailLayoutV2DraftForSaveDetails(draft).map(
+    (error) => error.message,
+  );
 }
 
 export function updateDetailLayoutV2OuterRatio(
@@ -363,6 +390,138 @@ export function removeDetailLayoutV2WideBlock(
       index === blockIndex ? null : block,
     ),
   }));
+}
+
+export function moveDetailLayoutV2WideBlock(
+  draft: DetailLayoutV2Draft,
+  fromRowId: string,
+  fromBlockIndex: number,
+  toRowId: string,
+  toBlockIndex: number,
+): DetailLayoutV2Draft {
+  if (fromRowId === toRowId && fromBlockIndex === toBlockIndex) {
+    return draft;
+  }
+
+  const clonedDraft = cloneDetailLayoutV2Draft(draft);
+  const fromRow = clonedDraft.mainSplit.wideRows.find(
+    (row) => row.id === fromRowId,
+  );
+  const toRow = clonedDraft.mainSplit.wideRows.find(
+    (row) => row.id === toRowId,
+  );
+  const block = fromRow?.blocks[fromBlockIndex] ?? null;
+
+  if (
+    !fromRow ||
+    !toRow ||
+    !block ||
+    fromBlockIndex < 0 ||
+    fromBlockIndex >= fromRow.blocks.length ||
+    toBlockIndex < 0 ||
+    toBlockIndex >= toRow.columns
+  ) {
+    return draft;
+  }
+
+  const targetBlock = toRow.blocks[toBlockIndex] ?? null;
+  fromRow.blocks[fromBlockIndex] = cloneSlot(targetBlock);
+  toRow.blocks[toBlockIndex] = cloneBlock(block);
+
+  return clonedDraft;
+}
+
+export function moveDetailLayoutV2WideBlockToNarrowRow(
+  draft: DetailLayoutV2Draft,
+  fromRowId: string,
+  fromBlockIndex: number,
+  toRowId: string,
+): DetailLayoutV2Draft {
+  const clonedDraft = cloneDetailLayoutV2Draft(draft);
+  const fromRow = clonedDraft.mainSplit.wideRows.find(
+    (row) => row.id === fromRowId,
+  );
+  const toRow = clonedDraft.mainSplit.narrowRows.find(
+    (row) => row.id === toRowId,
+  );
+  const block = fromRow?.blocks[fromBlockIndex] ?? null;
+
+  if (
+    !fromRow ||
+    !toRow ||
+    !block ||
+    fromBlockIndex < 0 ||
+    fromBlockIndex >= fromRow.blocks.length
+  ) {
+    return draft;
+  }
+
+  const targetBlock = toRow.block;
+  fromRow.blocks[fromBlockIndex] = cloneSlot(targetBlock);
+  toRow.block = cloneBlock(block);
+
+  return clonedDraft;
+}
+
+export function moveDetailLayoutV2NarrowBlockToWideSlot(
+  draft: DetailLayoutV2Draft,
+  fromRowId: string,
+  toRowId: string,
+  toBlockIndex: number,
+): DetailLayoutV2Draft {
+  const clonedDraft = cloneDetailLayoutV2Draft(draft);
+  const fromRow = clonedDraft.mainSplit.narrowRows.find(
+    (row) => row.id === fromRowId,
+  );
+  const toRow = clonedDraft.mainSplit.wideRows.find(
+    (row) => row.id === toRowId,
+  );
+  const block = fromRow?.block ?? null;
+
+  if (
+    !fromRow ||
+    !toRow ||
+    !block ||
+    toBlockIndex < 0 ||
+    toBlockIndex >= toRow.columns
+  ) {
+    return draft;
+  }
+
+  const targetBlock = toRow.blocks[toBlockIndex] ?? null;
+  fromRow.block = cloneSlot(targetBlock);
+  toRow.blocks[toBlockIndex] = cloneBlock(block);
+
+  return clonedDraft;
+}
+
+export function moveDetailLayoutV2NarrowBlock(
+  draft: DetailLayoutV2Draft,
+  fromRowId: string,
+  toRowId: string,
+): DetailLayoutV2Draft {
+  if (fromRowId === toRowId) {
+    return draft;
+  }
+
+  const clonedDraft = cloneDetailLayoutV2Draft(draft);
+  const fromRow = clonedDraft.mainSplit.narrowRows.find(
+    (row) => row.id === fromRowId,
+  );
+  const toRow = clonedDraft.mainSplit.narrowRows.find(
+    (row) => row.id === toRowId,
+  );
+  const block = fromRow?.block ?? null;
+
+  if (!fromRow || !toRow || !block) {
+    return draft;
+  }
+
+  const targetBlock = toRow.block;
+  fromRow.block = cloneSlot(targetBlock);
+  toRow.block = cloneBlock(block);
+
+  return clonedDraft;
 }
 export function compactDetailLayoutV2WideRowBlocks(
   draft: DetailLayoutV2Draft,

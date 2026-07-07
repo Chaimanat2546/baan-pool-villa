@@ -34,7 +34,11 @@ import {
   deleteDetailLayoutV2NarrowRow,
   deleteDetailLayoutV2WideRow,
   makeDetailLayoutV2Snapshot,
+  moveDetailLayoutV2NarrowBlock,
+  moveDetailLayoutV2NarrowBlockToWideSlot,
   moveDetailLayoutV2NarrowRow,
+  moveDetailLayoutV2WideBlock,
+  moveDetailLayoutV2WideBlockToNarrowRow,
   moveDetailLayoutV2WideRow,
   putDetailLayoutV2NarrowBlock,
   putDetailLayoutV2WideBlockInSlot,
@@ -48,7 +52,8 @@ import {
   updateDetailLayoutV2WideBlock,
   updateDetailLayoutV2WideRow,
   updateDetailLayoutV2WideRowColumns,
-  validateDetailLayoutV2DraftForSave,
+  validateDetailLayoutV2DraftForSaveDetails,
+  type DetailLayoutV2DraftSaveError,
 } from "./detail-layout-v2-helpers";
 import { LayoutCanvas, type DetailLayoutCanvasSelection } from "./layout-canvas";
 import { RowSettingsPanel } from "./row-settings-panel";
@@ -61,6 +66,44 @@ import type {
 } from "./types";
 
 const DETAIL_LAYOUT_PREVIEW_HREF = "/villas/2938";
+
+function splitDetailLayoutErrors(errors: DetailLayoutV2DraftSaveError[]) {
+  const errorMessagesByTarget: Record<string, string[]> = {};
+  const globalErrors: string[] = [];
+
+  errors.forEach((error) => {
+    if (!error.target) {
+      globalErrors.push(error.message);
+      return;
+    }
+
+    errorMessagesByTarget[error.target] = [
+      ...(errorMessagesByTarget[error.target] ?? []),
+      error.message,
+    ];
+  });
+
+  return { errorMessagesByTarget, globalErrors };
+}
+
+function scrollToFirstDetailLayoutError() {
+  window.setTimeout(() => {
+    const errorElements = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-detail-layout-error="true"]'),
+    );
+    const firstErrorElement = errorElements
+      .map((element, index) => ({
+        element,
+        index,
+        top: element.getBoundingClientRect().top + window.scrollY,
+      }))
+      .sort((left, right) => left.top - right.top || left.index - right.index)[0]
+      ?.element;
+
+    firstErrorElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+    firstErrorElement?.focus({ preventScroll: true });
+  }, 0);
+}
 
 function findWideRow(layout: DetailLayoutV2Draft | null, rowId: string | null) {
   if (!layout || !rowId) {
@@ -155,7 +198,7 @@ function getPlacementLabel(
   }
 
   if (selection.zone === "lockedBottom") {
-    return "บ้านพักแนะนำ / ล็อกเต็มความกว้าง";
+    return "เลือกพื้นที่ก่อน";
   }
 
   if (selection.zone === "wide") {
@@ -181,48 +224,6 @@ function getPlacementLabel(
   return rowIndex >= 0 ? `ฝั่ง 30 / ลำดับ ${rowIndex + 1}` : "เลือกพื้นที่ก่อน";
 }
 
-function moveWideBlock(
-  layout: DetailLayoutV2Draft,
-  fromRowId: string,
-  fromBlockIndex: number,
-  toRowId: string,
-  toBlockIndex: number,
-) {
-  const fromRow = findWideRow(layout, fromRowId);
-  const block = fromRow?.blocks[fromBlockIndex] ?? null;
-
-  if (!fromRow || !block) {
-    return layout;
-  }
-
-  if (fromRowId === toRowId && fromBlockIndex === toBlockIndex) {
-    return layout;
-  }
-
-  const toRow = findWideRow(layout, toRowId);
-  const targetBlock = toRow?.blocks[toBlockIndex] ?? null;
-  const clearedLayout = removeDetailLayoutV2WideBlock(
-    layout,
-    fromRowId,
-    fromBlockIndex,
-  );
-  const swappedLayout = targetBlock
-    ? putDetailLayoutV2WideBlockInSlot(
-        clearedLayout,
-        fromRowId,
-        fromBlockIndex,
-        targetBlock,
-      )
-    : clearedLayout;
-
-  return putDetailLayoutV2WideBlockInSlot(
-    swappedLayout,
-    toRowId,
-    toBlockIndex,
-    block,
-  );
-}
-
 export function AdminDetailLayoutPage() {
   const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();
@@ -233,6 +234,9 @@ export function AdminDetailLayoutPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [errorMessagesByTarget, setErrorMessagesByTarget] = useState<
+    Record<string, string[]>
+  >({});
   const [notice, setNotice] = useState<string | null>(null);
 
   const normalizedActiveSelection = useMemo(
@@ -292,6 +296,7 @@ export function AdminDetailLayoutPage() {
       }
 
       setErrors([]);
+      setErrorMessagesByTarget({});
       setNotice(null);
 
       try {
@@ -310,6 +315,7 @@ export function AdminDetailLayoutPage() {
         }
 
         if (!response.ok || !payload?.layout) {
+          setErrorMessagesByTarget({});
           setErrors(extractErrors(payload, "โหลด layout หน้า Details ไม่ได้"));
           return false;
         }
@@ -321,6 +327,7 @@ export function AdminDetailLayoutPage() {
         setActiveSelection(getDefaultSelection(nextLayout));
         return true;
       } catch (caughtError) {
+        setErrorMessagesByTarget({});
         setErrors([
           getAdminErrorMessage(caughtError, "โหลด layout หน้า Details ไม่ได้"),
         ]);
@@ -371,6 +378,7 @@ export function AdminDetailLayoutPage() {
   ) {
     setNotice(null);
     setErrors([]);
+    setErrorMessagesByTarget({});
     setLayout((currentLayout) => {
       if (!currentLayout) {
         return currentLayout;
@@ -397,6 +405,7 @@ export function AdminDetailLayoutPage() {
 
     setNotice(null);
     setErrors([]);
+    setErrorMessagesByTarget({});
     setLayout(nextLayout);
     setActiveSelection(
       nextRow
@@ -415,6 +424,7 @@ export function AdminDetailLayoutPage() {
 
     setNotice(null);
     setErrors([]);
+    setErrorMessagesByTarget({});
     setLayout(nextLayout);
     setActiveSelection(
       nextRow
@@ -428,21 +438,22 @@ export function AdminDetailLayoutPage() {
 
     setNotice(null);
     setErrors([]);
+    setErrorMessagesByTarget({});
     setLayout(nextLayout);
     setActiveSelection(getDefaultSelection(nextLayout));
   }
 
   function putBlockInActiveSelection(type: DetailLayoutBlockType) {
     if (!layout || !normalizedActiveSelection) {
+      setErrorMessagesByTarget({});
       setErrors(["เลือกพื้นที่ก่อนเพิ่ม block"]);
       setNotice(null);
       return;
     }
 
     if (normalizedActiveSelection.zone === "lockedBottom") {
-      setErrors([
-        "บ้านพักแนะนำเป็นส่วนที่ล็อกไว้ ไม่สามารถเพิ่ม block ตรงนี้ได้",
-      ]);
+      setErrorMessagesByTarget({});
+      setErrors(["เลือกฝั่ง 70 หรือฝั่ง 30 ก่อนเพิ่ม block"]);
       setNotice(null);
       return;
     }
@@ -480,12 +491,18 @@ export function AdminDetailLayoutPage() {
       return;
     }
 
-    const draftErrors = validateDetailLayoutV2DraftForSave(layout);
+    const draftErrors = validateDetailLayoutV2DraftForSaveDetails(layout);
+    const { errorMessagesByTarget: draftErrorsByTarget, globalErrors } =
+      splitDetailLayoutErrors(draftErrors);
 
     setNotice(null);
-    setErrors(draftErrors);
+    setErrors(globalErrors);
+    setErrorMessagesByTarget(draftErrorsByTarget);
 
     if (draftErrors.length > 0) {
+      if (Object.keys(draftErrorsByTarget).length > 0) {
+        scrollToFirstDetailLayoutError();
+      }
       return;
     }
 
@@ -493,6 +510,7 @@ export function AdminDetailLayoutPage() {
     const validation = validateAnyDetailLayout(compactLayout);
 
     setNotice(null);
+    setErrorMessagesByTarget({});
     setErrors(validation.errors);
 
     if (!validation.ok) {
@@ -526,6 +544,7 @@ export function AdminDetailLayoutPage() {
       }
 
       if (!response.ok || !payload?.layout) {
+        setErrorMessagesByTarget({});
         setErrors(extractErrors(payload, "บันทึก layout หน้า Details ไม่ได้"));
         return;
       }
@@ -539,6 +558,7 @@ export function AdminDetailLayoutPage() {
       );
       setNotice("บันทึก layout หน้า Details แล้ว");
     } catch (caughtError) {
+      setErrorMessagesByTarget({});
       setErrors([
         getAdminErrorMessage(caughtError, "บันทึก layout หน้า Details ไม่ได้"),
       ]);
@@ -685,6 +705,7 @@ export function AdminDetailLayoutPage() {
                 <div className={isDesktopNavCollapsed ? "" : "mx-auto max-w-5xl"}>
                   <LayoutCanvas
                     activeSelection={normalizedActiveSelection}
+                    errorMessagesByTarget={errorMessagesByTarget}
                     layout={layout}
                     onAddNarrowRow={handleAddNarrowRow}
                     onAddWideRow={handleAddWideRow}
@@ -716,10 +737,37 @@ export function AdminDetailLayoutPage() {
                         moveDetailLayoutV2NarrowRow(currentLayout, fromIndex, toIndex),
                       );
                     }}
+                    onMoveNarrowBlock={(fromRowId, toRowId) => {
+                      updateLayout(
+                        (currentLayout) =>
+                          moveDetailLayoutV2NarrowBlock(
+                            currentLayout,
+                            fromRowId,
+                            toRowId,
+                          ),
+                        { zone: "narrow", rowId: toRowId },
+                      );
+                    }}
+                    onMoveNarrowBlockToWide={(fromRowId, toRowId, toBlockIndex) => {
+                      updateLayout(
+                        (currentLayout) =>
+                          moveDetailLayoutV2NarrowBlockToWideSlot(
+                            currentLayout,
+                            fromRowId,
+                            toRowId,
+                            toBlockIndex,
+                          ),
+                        {
+                          zone: "wide",
+                          rowId: toRowId,
+                          blockIndex: toBlockIndex,
+                        },
+                      );
+                    }}
                     onMoveWideBlock={(fromRowId, fromBlockIndex, toRowId, toBlockIndex) => {
                       updateLayout(
                         (currentLayout) =>
-                          moveWideBlock(
+                          moveDetailLayoutV2WideBlock(
                             currentLayout,
                             fromRowId,
                             fromBlockIndex,
@@ -727,6 +775,18 @@ export function AdminDetailLayoutPage() {
                             toBlockIndex,
                           ),
                         { zone: "wide", rowId: toRowId, blockIndex: toBlockIndex },
+                      );
+                    }}
+                    onMoveWideBlockToNarrow={(fromRowId, fromBlockIndex, toRowId) => {
+                      updateLayout(
+                        (currentLayout) =>
+                          moveDetailLayoutV2WideBlockToNarrowRow(
+                            currentLayout,
+                            fromRowId,
+                            fromBlockIndex,
+                            toRowId,
+                          ),
+                        { zone: "narrow", rowId: toRowId },
                       );
                     }}
                     onMoveWideRow={(fromIndex, toIndex) => {
@@ -766,9 +826,6 @@ export function AdminDetailLayoutPage() {
                       updateLayout((currentLayout) =>
                         deleteDetailLayoutV2WideRow(currentLayout, rowId),
                       );
-                    }}
-                    onSelectLockedBottomBlock={(blockIndex) => {
-                      setActiveSelection({ zone: "lockedBottom", blockIndex });
                     }}
                     onSelectNarrowRow={(rowId) => {
                       setActiveSelection({ zone: "narrow", rowId });

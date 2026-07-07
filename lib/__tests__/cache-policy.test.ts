@@ -28,6 +28,7 @@ describe("cache policy", () => {
   it("keeps public Supabase and third-party reads on twelve-hour TTLs", () => {
     expect(CACHE_REVALIDATE_SECONDS.siteSettings).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.homeSections).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.villaCardImages).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.villaImages).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.guides).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.advertisements).toBe(TWELVE_HOURS_SECONDS);
@@ -46,6 +47,10 @@ describe("cache policy", () => {
     expect(CACHE_TAGS.villaDetail("42")).toBe("villa-detail:42");
     expect(CACHE_TAGS.villaImages).toBe("villa-images");
     expect(CACHE_TAGS.villaImage("42")).toBe("villa-images:42");
+    expect(CACHE_TAGS.villaCardImages).toBe("villa-card-images");
+    expect(CACHE_TAGS.villaCardImage("home", "42")).toBe(
+      "villa-card-images:home:42",
+    );
     expect(CACHE_TAGS.siteSettings).toBe("site-settings");
     expect(CACHE_TAGS.tiktokOEmbed).toBe("tiktok-oembed");
     expect(CACHE_TAGS.homeSections).toBe("home-sections");
@@ -70,6 +75,9 @@ describe("cache policy", () => {
       "public, s-maxage=43200, stale-while-revalidate=43200",
     );
     expect(CACHE_HEADERS.villaImages).toBe(
+      "public, s-maxage=43200, stale-while-revalidate=43200",
+    );
+    expect(CACHE_HEADERS.villaCardImages).toBe(
       "public, s-maxage=43200, stale-while-revalidate=43200",
     );
   });

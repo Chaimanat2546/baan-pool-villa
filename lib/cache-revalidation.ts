@@ -8,6 +8,7 @@ import {
 } from "./html-edge-cache-version";
 
 const IMMEDIATE_REVALIDATION = { expire: 0 } as const;
+const VILLA_CARD_IMAGE_CONFIG_PAGE_KEY = "default";
 
 function revalidateTags(tags: string[]) {
   tags.forEach((tag) => {
@@ -23,6 +24,16 @@ export async function revalidateSiteSettingsCache() {
 export async function revalidateHomeSectionsCache() {
   revalidateTags([CACHE_TAGS.homeSections]);
   await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.homeSections]);
+}
+
+export async function revalidateVillaCardImagesCache(id?: string | null) {
+  revalidateTags([
+    CACHE_TAGS.villaCardImages,
+    ...(id
+      ? [CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id)]
+      : []),
+  ]);
+  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.villaImages]);
 }
 
 export async function revalidateGuideCache(slug?: string | null) {
@@ -50,6 +61,7 @@ export async function revalidateExternalVillaCache() {
   revalidateTags([
     CACHE_TAGS.villaListings,
     CACHE_TAGS.villaDetails,
+    CACHE_TAGS.villaCardImages,
     CACHE_TAGS.villaImages,
   ]);
   await bumpHtmlEdgeCacheVersions([

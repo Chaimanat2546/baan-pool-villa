@@ -1,5 +1,3 @@
-import { DETAIL_LAYOUT_BLOCK_LABELS } from "@/lib/detail-layout/defaults";
-
 import type { DetailLayoutCanvasSelection } from "./layout-canvas";
 import type {
   DetailLayoutBlock,
@@ -107,15 +105,6 @@ export function DetailLayoutPreview({
       </div>
 
       <div className="grid gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-2">
-        <div className="grid grid-cols-[1.2fr_0.8fr] gap-1">
-          <div className="h-12 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-2 py-1.5 text-[10px] font-semibold text-[var(--site-text)]">
-            Gallery
-          </div>
-          <div className="h-12 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-2 py-1.5 text-[10px] font-semibold text-[var(--site-text)]">
-            ชื่อบ้าน / ราคา
-          </div>
-        </div>
-
         <div
           className={`grid gap-2 ${
             isWideLeft
@@ -135,20 +124,6 @@ export function DetailLayoutPreview({
             </>
           )}
         </div>
-
-        {layout.lockedBottom.map((block, blockIndex) => (
-          <div
-            className={`rounded-md border px-2 py-2 text-[10px] font-semibold ${
-              activeSelection?.zone === "lockedBottom" &&
-              activeSelection.blockIndex === blockIndex
-                ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)] text-[var(--site-primary)]"
-                : "border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)]"
-            }`}
-            key={`${block.type}-${blockIndex}`}
-          >
-            {DETAIL_LAYOUT_BLOCK_LABELS[block.type]}
-          </div>
-        ))}
       </div>
     </section>
   );

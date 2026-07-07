@@ -39,6 +39,7 @@ describe("VillaCardGalleryImages", () => {
               images: [
                 { imageUrl: "https://images.example.com/pool.jpg" },
                 { imageUrl: "https://images.example.com/bedroom.jpg" },
+                { imageUrl: "https://images.example.com/kitchen.jpg" },
               ],
             }),
             { headers: { "Content-Type": "application/json" } },
@@ -62,15 +63,19 @@ describe("VillaCardGalleryImages", () => {
     });
     await flushEffects();
 
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/villas/501/images?view=card",
+      { signal: expect.any(AbortSignal) },
+    );
     expect(
       container
         .querySelector('[aria-label="Demo Villa"]')
         ?.getAttribute("data-src"),
     ).toBe("https://images.example.com/cover.jpg");
 
-    const thirdThumbnail = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.getAttribute("aria-label")?.includes("รูปที่ 3"),
-    );
+    const thirdThumbnail = Array.from(
+      container.querySelectorAll("[aria-pressed]"),
+    )[2];
 
     expect(thirdThumbnail).not.toBeNull();
 

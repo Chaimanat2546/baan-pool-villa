@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, SlidersHorizontal, Trash2 } from "lucide-react";
+import { SlidersHorizontal, Trash2 } from "lucide-react";
 
 import type { DetailLayoutCanvasSelection } from "./layout-canvas";
 import type {
@@ -126,7 +126,7 @@ function EmptyPanel() {
         ตั้งค่าพื้นที่
       </h2>
       <p className="mt-3 rounded-lg border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface-soft)] px-3 py-5 text-sm leading-6 text-[var(--site-muted)]">
-        เลือกฝั่ง 70, ฝั่ง 30 หรือส่วนบ้านพักแนะนำในผังเพื่อแก้การแสดงผล
+        เลือกฝั่ง 70 หรือฝั่ง 30 ในผังเพื่อแก้การแสดงผล
       </p>
     </section>
   );
@@ -149,28 +149,7 @@ export function RowSettingsPanel({
   }
 
   if (selection.zone === "lockedBottom") {
-    const block = layout.lockedBottom[selection.blockIndex] ?? null;
-
-    return (
-      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--site-text)]">
-          <Lock
-            aria-hidden="true"
-            className="size-4 text-[var(--site-primary)]"
-          />
-          บ้านพักแนะนำ: ล็อกเต็มความกว้าง
-        </h2>
-        <div className="mt-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-3 text-sm leading-6">
-          <p className="font-semibold text-[var(--site-text)]">
-            {block?.title ?? "บ้านพักแนะนำ"}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
-            ส่วนนี้ถูกล็อกไว้ด้านล่างของหน้าเพื่อให้คำแนะนำบ้านพักแสดงเต็มความกว้าง
-            จึงไม่มีการแก้แถวหรือเพิ่ม block จากแผงนี้
-          </p>
-        </div>
-      </section>
-    );
+    return <EmptyPanel />;
   }
 
   if (selection.zone === "narrow") {
