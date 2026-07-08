@@ -71,6 +71,27 @@ describe("Next image config", () => {
     );
   });
 
+  it("allows Google tags under the global content security policy", async () => {
+    const headers = await nextConfig.headers?.();
+    const csp = headers
+      ?.find((entry) => entry.source === "/:path*")
+      ?.headers.find((header) => header.key === "Content-Security-Policy")
+      ?.value;
+
+    expect(getCspDirective(csp, "script-src")).toContain(
+      "https://www.googletagmanager.com",
+    );
+    expect(getCspDirective(csp, "connect-src")).toContain(
+      "https://www.google-analytics.com",
+    );
+    expect(getCspDirective(csp, "connect-src")).toContain(
+      "https://www.google.com",
+    );
+    expect(getCspDirective(csp, "frame-src")).toContain(
+      "https://www.googletagmanager.com",
+    );
+  });
+
   it("sets route-specific cache headers for sitemap and admin surfaces", async () => {
     const headers = await nextConfig.headers?.();
 

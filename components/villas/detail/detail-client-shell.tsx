@@ -1,8 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useRef } from "react";
 
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
+import { pushVillaDetailView } from "@/lib/marketing-data-layer";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type {
@@ -42,6 +44,7 @@ export function VillaDetailClientShell({
   recommendedSection,
   settings,
 }: VillaDetailClientShellProps) {
+  const pushedViewItemIdRef = useRef<string | null>(null);
   const {
     activeGalleryItem,
     galleryCategories,
@@ -55,6 +58,15 @@ export function VillaDetailClientShell({
     shouldShowGallerySkeleton,
     visibleGalleryItemCount,
   } = useVillaGallery({ id, initialGalleryImages });
+
+  useEffect(() => {
+    if (pushedViewItemIdRef.current === listing.id) {
+      return;
+    }
+
+    pushedViewItemIdRef.current = listing.id;
+    pushVillaDetailView(listing);
+  }, [listing]);
 
   return (
     <>

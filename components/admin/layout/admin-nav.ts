@@ -6,6 +6,7 @@ import {
   Newspaper,
   ScrollText,
   Settings,
+  Tags,
   Users,
   Video,
   Warehouse,
@@ -79,6 +80,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Video,
     label: "TikTok",
     pageTitle: "TikTok",
+  },
+  {
+    description: "ตั้งค่า GTM ID และดูจุดส่ง DataLayer สำหรับวัดผล Google Ads",
+    href: "/admin/marketing-tags",
+    icon: Tags,
+    label: "Marketing Tags",
+    pageTitle: "Marketing Tags",
   },
   {
     description: "แก้ไขเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว",

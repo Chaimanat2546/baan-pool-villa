@@ -98,7 +98,7 @@
               <tr>
                 <td><code>app/layout.tsx</code></td>
                 <td>All routes</td>
-                <td>Root HTML/body shell, site-settings-backed global metadata and icon links, global CSS/font wiring, and <code>revalidate = 0</code> so rendered App Router pages are produced on demand while explicit data caches remain tagged and time-based.</td>
+                <td>Root HTML/body shell, site-settings-backed global metadata/icon links/Google Tag Manager script rendering, global CSS/font wiring, and <code>revalidate = 0</code> so rendered App Router pages are produced on demand while explicit data caches remain tagged and time-based.</td>
               </tr>
               <tr>
                 <td><code>app/sitemap.ts</code></td>
@@ -346,6 +346,16 @@
                 <td><code>components/admin/loading/admin-tiktok-skeleton</code>.</td>
               </tr>
               <tr>
+                <td><code>app/(admin)/admin/marketing-tags/page.tsx</code></td>
+                <td><code>/admin/marketing-tags</code></td>
+                <td><code>components/admin/marketing-tags/admin-marketing-tags-page</code>; dedicated GTM ID editor and tracking-surface status map for Google Ads/GTM work.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/marketing-tags/loading.tsx</code></td>
+                <td><code>/admin/marketing-tags</code> loading UI</td>
+                <td><code>components/admin/loading/admin-settings-skeleton</code>.</td>
+              </tr>
+              <tr>
                 <td><code>app/(admin)/admin/sections/page.tsx</code></td>
                 <td><code>/admin/sections</code></td>
                 <td><code>components/admin/sections/admin-sections-page</code> with draft mapping helpers in <code>components/admin/sections/section-draft-helpers</code>.</td>
@@ -459,6 +469,11 @@
                 <td>Admin auth and delegation for TikTok settings reads and saves. Multipart parsing, TikTok URL validation, schema fallback loading, site-settings update/insert persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-tiktok-route.ts</code>.</td>
               </tr>
               <tr>
+                <td><code>app/(admin)/api/admin/marketing-tags/route.ts</code></td>
+                <td><code>/api/admin/marketing-tags</code></td>
+                <td>Admin auth and delegation for Google Tag Manager settings reads and saves. Multipart parsing, GTM ID allowlist validation, schema fallback loading, site-settings update/insert persistence, tracking-surface response shaping, and public settings cache revalidation live in <code>lib/site-settings/marketing-tags-route.ts</code>.</td>
+              </tr>
+              <tr>
                 <td><code>app/(admin)/api/admin/guides/route.ts</code></td>
                 <td><code>/api/admin/guides</code></td>
                 <td>Admin auth and delegation for guide listing, saving, deletion, and guide cache revalidation. Admin JSON parsing, delete payload parsing, select projection, slug-row loading, save-row shaping, unique slug orchestration, persistence response handling, and cache revalidation live in <code>lib/guides/admin-route.ts</code>.</td>
@@ -510,14 +525,19 @@
               <td>Render edits as draft-local previews until save; keep settings contract aligned to <code>lib/site-settings</code>.</td>
             </tr>
             <tr>
+              <td><code>components/admin/marketing-tags</code></td>
+              <td>Marketing Tags admin page for GTM ID editing, save feedback, and page/event coverage status for Google Ads and GTM tracking.</td>
+              <td>Persist only through <code>/api/admin/marketing-tags</code>; never accept raw script/code input in the client form.</td>
+            </tr>
+            <tr>
               <td><code>components/villas/search</code></td>
               <td>Search page, search page UI helpers, search bar, filters, mobile filter drawer, search loading skeleton, first-page server result hydration, and on-demand paginated catalog requests through <code>/api/houses</code>.</td>
               <td>Keep results incremental/paginated and do not add a visible near-sea toggle unless requested. The route sends the initial page plus result metadata marked as a partial catalog; the client fetches bounded filtered pages when an interaction needs more results or broader filtering.</td>
             </tr>
             <tr>
               <td><code>components/villas/detail</code></td>
-              <td>Villa detail page/helpers/gallery shell, gallery grid, gallery lightbox, gallery tile components, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI/visual helpers, recommendations, layout renderer/helpers/parts, CMS-managed advertisement cards, detail skeletons, and review videos backed by <code>lib/villas/detail</code> embed URLs.</td>
-              <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Review videos should use the shared lazy YouTube poster/embed UI so guide and villa video rendering stay aligned.</td>
+              <td>Villa detail page/helpers/gallery shell, gallery grid, gallery lightbox, gallery tile components, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI/visual helpers, recommendations, layout renderer/helpers/parts, CMS-managed advertisement cards, detail skeletons, review videos backed by <code>lib/villas/detail</code> embed URLs, and villa detail DataLayer events for view/contact tracking.</td>
+              <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Review videos should use the shared lazy YouTube poster/embed UI so guide and villa video rendering stay aligned. Villa detail marketing events should go through <code>lib/marketing-data-layer.ts</code> rather than inline pushes.</td>
             </tr>
             <tr>
               <td><code>components/villas/listing</code></td>
@@ -576,8 +596,13 @@
             </tr>
             <tr>
               <td><code>lib/site-settings</code></td>
-              <td>Site identity, theme colors, header/footer link hover colors, shared and separate bank highlight colors, logo background mode, favicon/logo/hero assets, villa card style, global SEO, section SEO templates, contact/TikTok settings, admin route helpers, admin multipart form parsing, admin asset upload/history cleanup, defaults, validation, Supabase reads, retention.</td>
+              <td>Site identity, theme colors, header/footer link hover colors, shared and separate bank highlight colors, logo background mode, favicon/logo/hero assets, villa card style, global SEO, section SEO templates, contact/TikTok/marketing tag settings, admin route helpers, admin multipart form parsing, admin asset upload/history cleanup, defaults, validation, Supabase reads, retention.</td>
               <td><code>lib/site-settings/__tests__</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/marketing-data-layer.ts</code></td>
+              <td>Client-safe DataLayer event builders and push helpers for villa <code>view_item</code> and booking contact click events.</td>
+              <td><code>lib/__tests__/marketing-data-layer.test.ts</code> plus detail contact-action tests when wiring new buttons.</td>
             </tr>
             <tr>
               <td><code>lib/tiktok</code></td>
@@ -694,8 +719,8 @@
               <tr>
                 <td>Site settings</td>
                 <td>Supabase settings table with defaults fallback.</td>
-                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, logo background options, villa card style, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; favicon, global and section SEO templates plus page-specific keyword arrays are normalized here, header/footer link colors, hover colors, shared and separate bank highlight colors, the logo background mode, and the public villa card style are normalized for public/admin rendering, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
-                <td>Public/admin layouts, theme provider, villa card style provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), general settings editor, and homepage section composition.</td>
+                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, logo background options, villa card style, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; favicon, global and section SEO templates plus page-specific keyword arrays are normalized here, header/footer link colors, hover colors, shared and separate bank highlight colors, the logo background mode, the public villa card style, and the Google Tag Manager ID are normalized for public/admin rendering, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
+                <td>Public/admin layouts, theme provider, villa card style provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), dedicated Marketing Tags manager (<code>/admin/marketing-tags</code>), general settings editor, GTM script rendering in the root layout, and homepage section composition.</td>
               </tr>
             <tr>
               <td>Detail layout settings</td>
@@ -887,9 +912,9 @@
               <td>Run lint and build before completion.</td>
             </tr>
             <tr>
-              <td>Site settings + TikTok settings</td>
-              <td><code>npm.cmd test -- lib/site-settings</code>, <code>npm.cmd test -- lib/tiktok</code>, <code>npm.cmd test -- components/admin/settings/__tests__/admin-password-security-card.test.tsx</code>, <code>npm.cmd test -- components/villas/listing/__tests__/villa-card-navigation.test.tsx</code>, and relevant <code>components/admin/settings</code>, <code>components/admin/tiktok</code>, <code>components/villas/home</code> tests.</td>
-              <td>Add TikTok-route assertions (including /api/admin/site-settings not overwriting TikTok columns, /api/admin/tiktok normalizing URL-only payloads), oEmbed thumbnail fallback/cache assertions, and homepage first-6/click-to-load expectations; run lint and build before completion.</td>
+              <td>Site settings, TikTok settings, and Marketing Tags</td>
+              <td><code>npm.cmd test -- lib/site-settings</code>, <code>npm.cmd test -- lib/tiktok</code>, <code>npm.cmd test -- lib/__tests__/marketing-data-layer.test.ts</code>, <code>npm.cmd test -- components/admin/settings/__tests__/admin-password-security-card.test.tsx</code>, <code>npm.cmd test -- components/villas/listing/__tests__/villa-card-navigation.test.tsx</code>, and relevant <code>components/admin/settings</code>, <code>components/admin/tiktok</code>, <code>components/admin/marketing-tags</code>, <code>components/villas/detail</code>, <code>components/villas/home</code> tests.</td>
+              <td>Add TikTok-route assertions (including /api/admin/site-settings not overwriting TikTok columns, /api/admin/tiktok normalizing URL-only payloads), Marketing Tags route/layout/DataLayer assertions, oEmbed thumbnail fallback/cache assertions, and homepage first-6/click-to-load expectations; run lint and build before completion.</td>
             </tr>
             <tr>
               <td>Detail layout config, renderer, or builder</td>

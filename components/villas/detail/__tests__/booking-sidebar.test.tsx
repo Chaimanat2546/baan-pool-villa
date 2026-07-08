@@ -231,6 +231,7 @@ describe("BookingSidebar", () => {
     clearBookingCalendarClientCacheForTests();
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    delete (window as typeof window & { dataLayer?: unknown[] }).dataLayer;
     document.body.classList.remove("body-scroll-locked");
     document.body.innerHTML = "";
   });
@@ -246,6 +247,38 @@ describe("BookingSidebar", () => {
 
     expect(markup).toContain("แชทเลย");
     expect(markup).toContain("จองผ่าน LINE");
+  });
+
+  it("pushes booking contact click events to the dataLayer", async () => {
+    const page = await renderBookingSidebar();
+    const lineLink = Array.from(page.container.querySelectorAll<HTMLAnchorElement>("a")).find(
+      (link) => link.href === DEFAULT_SITE_SETTINGS.contact.lineUrl,
+    );
+
+    expect(lineLink).not.toBeNull();
+
+    await act(async () => {
+      lineLink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect((window as typeof window & { dataLayer?: unknown[] }).dataLayer).toEqual([
+      expect.objectContaining({
+        contact_channel: "line",
+        contact_location: "booking_sidebar",
+        event: "booking_contact_click",
+        value: 12000,
+        ecommerce: expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              item_id: "66",
+              price: 12000,
+            }),
+          ],
+        }),
+      }),
+    ]);
+
+    await page.cleanup();
   });
 
   it("dedupes duplicate booking calendar requests across mounted sidebars", async () => {

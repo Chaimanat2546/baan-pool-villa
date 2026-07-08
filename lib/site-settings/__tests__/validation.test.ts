@@ -9,8 +9,10 @@ import {
   DEFAULT_DETAIL_LAYOUT_V2,
 } from "../../detail-layout/defaults";
 import {
+  normalizeGoogleTagManagerId,
   normalizeSiteSettingsDraft,
   normalizeSiteSettingsRow,
+  validateGoogleTagManagerId,
   validateSiteSettingsDraft,
   validateUploadMetadata,
 } from "../validation";
@@ -88,6 +90,7 @@ const validRow = {
     "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
     "https://www.tiktok.com/player/v1/7370000000000000002",
   ],
+  google_tag_manager_id: " gtm-abc1234 ",
   detail_layout: DEFAULT_DETAIL_LAYOUT,
 };
 
@@ -254,6 +257,7 @@ describe("normalizeSiteSettingsRow", () => {
           },
         ],
       },
+      googleTagManagerId: "GTM-ABC1234",
       detailLayout: DEFAULT_DETAIL_LAYOUT,
     });
   });
@@ -794,5 +798,24 @@ describe("validateUploadMetadata", () => {
     ).toMatchObject({
       villaCardStyle: "classic",
     });
+  });
+});
+
+describe("Google Tag Manager ID validation", () => {
+  it("normalizes a valid GTM ID to uppercase and trims whitespace", () => {
+    expect(normalizeGoogleTagManagerId(" gtm-abc1234 ")).toBe("GTM-ABC1234");
+  });
+
+  it("allows an empty GTM ID so tracking can be disabled", () => {
+    expect(validateGoogleTagManagerId("")).toEqual([]);
+    expect(normalizeGoogleTagManagerId(" ")).toBe("");
+  });
+
+  it("rejects script-like or non-GTM values", () => {
+    expect(validateGoogleTagManagerId("<script>alert(1)</script>")).toEqual([
+      "GTM ID ต้องอยู่ในรูปแบบ GTM-XXXXXXX และใช้ได้เฉพาะตัวอักษร A-Z กับตัวเลข",
+    ]);
+    expect(validateGoogleTagManagerId("G-ABC1234")).toHaveLength(1);
+    expect(validateGoogleTagManagerId("GTM-ABC_123")).toHaveLength(1);
   });
 });

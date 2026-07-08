@@ -137,5 +137,6 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   seo: DEFAULT_SITE_SEO_SETTINGS,
   pageSeo: DEFAULT_SITE_PAGE_SEO_SETTINGS,
   tiktok: DEFAULT_SITE_TIKTOK_SETTINGS,
+  googleTagManagerId: "",
   detailLayout: DEFAULT_DETAIL_LAYOUT,
 };

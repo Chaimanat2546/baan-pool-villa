@@ -127,6 +127,7 @@ function cmsSettings(): SiteSettings {
     },
     detailLayout: DEFAULT_SITE_SETTINGS.detailLayout,
     tiktok: DEFAULT_SITE_SETTINGS.tiktok,
+    googleTagManagerId: DEFAULT_SITE_SETTINGS.googleTagManagerId,
   };
 }
 

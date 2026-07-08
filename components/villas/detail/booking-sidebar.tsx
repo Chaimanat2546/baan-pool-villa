@@ -73,7 +73,9 @@ export function BookingSidebar({
 
         <BookingSidebarContactActions
           contactLinks={contactLinks}
+          listing={listing}
           phoneContacts={phoneContacts}
+          trackingLocation="booking_sidebar"
         />
       </div>
     </aside>

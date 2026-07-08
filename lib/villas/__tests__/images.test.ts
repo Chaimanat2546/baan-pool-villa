@@ -565,6 +565,37 @@ describe("fetchVillaPreviewImages", () => {
       },
     ]);
   });
+
+  it("uses cover-zone rows before cover_select rows for the main preview image", async () => {
+    mockImagesQuery({
+      data: [
+        {
+          id: 10,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "selected-outside.jpg",
+          image_url: "https://images.example.com/selected-outside.jpg",
+          caption: null,
+          image_zone: "outside",
+        },
+        {
+          id: 11,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "zone-cover.jpg",
+          image_url: "https://images.example.com/zone-cover.jpg",
+          caption: null,
+          image_zone: "cover",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(fetchVillaPreviewImages("9")).resolves.toEqual([
+      expect.objectContaining({ id: 11, zone: "cover" }),
+      expect.objectContaining({ id: 10, zone: "outside" }),
+    ]);
+  });
 });
 
 describe("resolveDisplayImages", () => {

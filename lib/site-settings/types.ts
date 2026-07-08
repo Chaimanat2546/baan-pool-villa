@@ -68,6 +68,10 @@ export interface SiteTikTokSettings {
   videos: SiteTikTokVideoSettings[];
 }
 
+export interface SiteMarketingTagsSettings {
+  googleTagManagerId: string;
+}
+
 export type SiteVillaCardStyle = "classic" | "gallery";
 
 export interface SiteSettings {
@@ -92,6 +96,7 @@ export interface SiteSettings {
   seo: SiteSeoSettings;
   pageSeo: SitePageSeoSettings;
   tiktok: SiteTikTokSettings;
+  googleTagManagerId: string;
   detailLayout: AnyDetailLayoutConfig;
 }
 
@@ -150,6 +155,7 @@ export interface SiteSettingsRow {
   villa_detail_seo_keywords?: unknown;
   tiktok_account_url?: string | null;
   tiktok_video_urls?: unknown;
+  google_tag_manager_id?: string | null;
   detail_layout?: unknown;
 }
 

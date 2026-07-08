@@ -76,11 +76,11 @@ function isCoverZone(zone: string | null): boolean {
 }
 
 function getPreviewCoverPriority(image: VillaImage): number {
-  if (image.isCover) {
+  if (isCoverZone(image.zone)) {
     return 2;
   }
 
-  return isCoverZone(image.zone) ? 1 : 0;
+  return image.isCover ? 1 : 0;
 }
 
 function getBentoZonePriority(zone: string | null): number {
