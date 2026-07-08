@@ -7,6 +7,7 @@ import {
   normalizeGuideDraftForSave,
   normalizeGuideHouseId,
   validateGuideDraft,
+  validateGuideDraftDetailed,
   validateGuideUploadMetadata,
 } from "../validation";
 
@@ -105,7 +106,34 @@ describe("validateGuideDraft", () => {
         "บทความที่เผยแพร่ต้องมีรูปปก",
         "บทความที่เผยแพร่ต้องมีเนื้อหาอย่างน้อย 1 บล็อก",
         "ควรใส่แท็กอย่างน้อย 1 แท็ก",
-        "บทความที่ช่วยปิดการจองควรเลือกบ้านพักแนะนำอย่างน้อย 1 หลัง",
+      ]),
+    );
+  });
+
+  it("allows guides without recommended villas", () => {
+    expect(
+      validateGuideDraft(
+        validDraft({
+          recommendedHouseIds: [],
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("returns field metadata for inline admin errors", () => {
+    expect(
+      validateGuideDraftDetailed(
+        validDraft({
+          excerpt: " ",
+          tags: [],
+          title: " ",
+        }),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        { field: "title", message: "ต้องใส่ชื่อบทความ" },
+        { field: "excerpt", message: "ต้องใส่คำโปรยบทความ" },
+        { field: "tags", message: "ควรใส่แท็กอย่างน้อย 1 แท็ก" },
       ]),
     );
   });

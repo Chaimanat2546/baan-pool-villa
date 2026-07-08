@@ -5,14 +5,20 @@ import {
 } from "./section-helpers";
 
 interface SectionConfigFormProps {
+  errors?: {
+    limitCount?: string[];
+  };
   onChange: (changes: Partial<Omit<AdminSectionDraft, "draftId">>) => void;
   section: AdminSectionDraft;
 }
 
 export function SectionConfigForm({
+  errors = {},
   onChange,
   section,
 }: SectionConfigFormProps) {
+  const limitCountErrors = errors.limitCount ?? [];
+
   return (
     <div className="grid gap-4">
       <fieldset className="min-w-0">
@@ -51,7 +57,17 @@ export function SectionConfigForm({
         <label className="block text-sm font-medium text-[var(--site-text)]">
           จำนวนบ้านสูงสุดที่แสดง
           <input
-            className="mt-2 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+            aria-describedby={
+              limitCountErrors.length > 0
+                ? "admin-section-limit-count-error"
+                : undefined
+            }
+            aria-invalid={limitCountErrors.length > 0}
+            className={`mt-2 h-10 w-full rounded-md border bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none transition ${
+              limitCountErrors.length > 0
+                ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                : "border-[var(--site-border)] focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+            }`}
             min={1}
             onChange={(event) => {
               onChange({ limitCount: Number(event.target.value) });
@@ -59,6 +75,17 @@ export function SectionConfigForm({
             type="number"
             value={section.limitCount}
           />
+          {limitCountErrors.length > 0 ? (
+            <ul
+              className="mt-2 list-disc space-y-1 pl-5 text-xs font-semibold leading-5 text-red-700"
+              data-admin-section-field-error="limitCount"
+              id="admin-section-limit-count-error"
+            >
+              {limitCountErrors.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          ) : null}
           <span className="mt-2 block text-xs leading-5 text-[var(--site-muted)]">
             ใส่จำนวนสูงสุดที่ต้องการให้แสดง ระบบจะแสดงเท่าที่มีข้อมูลบ้านจริง
           </span>

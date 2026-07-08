@@ -15,6 +15,8 @@ import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const OTP_PATTERN = /^\d{6}$/;
+const OTP_TEMPORARY_ERROR_MESSAGE =
+  "ระบบส่ง OTP มีปัญหาชั่วคราว กรุณารอสักครู่แล้วลองใหม่ หากยังไม่หายให้ตรวจ Supabase Auth Logs หรือ SMTP";
 
 function readErrorMessage(caughtError: unknown): string {
   if (caughtError instanceof Error) {
@@ -56,9 +58,24 @@ function isOtpRateLimitError(caughtError: unknown): boolean {
   );
 }
 
+function isOtpTemporaryError(caughtError: unknown): boolean {
+  const message = readErrorMessage(caughtError).toLowerCase();
+
+  return (
+    message.includes("504") ||
+    message.includes("gateway timeout") ||
+    message.includes("timeout") ||
+    message.trim() === "{}"
+  );
+}
+
 function getOtpSendErrorMessage(caughtError: unknown): string {
   if (isOtpRateLimitError(caughtError)) {
     return `ส่ง OTP ถี่เกินไป กรุณารอ ${OTP_RESEND_COOLDOWN_SECONDS} วินาทีแล้วลองใหม่`;
+  }
+
+  if (isOtpTemporaryError(caughtError)) {
+    return OTP_TEMPORARY_ERROR_MESSAGE;
   }
 
   return getAdminErrorMessage(caughtError, "ไม่สามารถส่งรหัส OTP ได้");

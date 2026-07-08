@@ -11,6 +11,9 @@ import {
   fetchVillaPreviewImages,
   normalizeImageRows,
   normalizeImageUrl,
+  resolveDisplayImages,
+  selectDefaultDisplayImages,
+  validateCustomDisplayImageIds,
 } from "../images";
 
 vi.mock("server-only", () => ({}));
@@ -25,6 +28,14 @@ const { createClientMock } = vi.hoisted(() => ({
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: createClientMock,
+}));
+
+const { createHomeConfigClientMock } = vi.hoisted(() => ({
+  createHomeConfigClientMock: vi.fn(),
+}));
+
+vi.mock("@/lib/home-sections/supabase", () => ({
+  createHomeConfigClient: createHomeConfigClientMock,
 }));
 
 vi.mock("@/lib/villas/images", async () => import("../images"));
@@ -76,13 +87,43 @@ function mockImagesQuery(response: unknown) {
   return mockImagesQuerySequence([response]);
 }
 
+function makeCardConfigQuery(response: unknown) {
+  const query = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    maybeSingle: vi.fn(),
+  };
+  query.select.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.maybeSingle.mockResolvedValue(response);
+
+  return query;
+}
+
+function mockCardImageConfigQuery({
+  config,
+}: {
+  config?: unknown;
+} = {}) {
+  const configQuery = makeCardConfigQuery(config ?? { data: null, error: null });
+  const supabase = {
+    from: vi.fn(() => configQuery),
+  };
+
+  createHomeConfigClientMock.mockReturnValue(supabase);
+
+  return { configQuery, supabase };
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   resetPublicRateLimitForTests();
   createClientMock.mockReset();
+  createHomeConfigClientMock.mockReset();
   unstableCacheMock.mockClear();
   process.env = { ...originalEnv };
   setSupabaseEnv();
+  mockCardImageConfigQuery();
 });
 
 afterEach(() => {
@@ -180,6 +221,38 @@ describe("normalizeImageRows", () => {
         } as Parameters<typeof normalizeImageRows>[0][number],
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("card display image selection", () => {
+  it("selects outside images before inside images for the default card order", () => {
+    const images = [
+      { id: 3, imageUrl: "https://images.example.com/outside-3.jpg", imageName: null, caption: null, isCover: true, zone: "outside" },
+      { id: 1, imageUrl: "https://images.example.com/inside-1.jpg", imageName: null, caption: null, isCover: false, zone: "inside" },
+      { id: 2, imageUrl: "https://images.example.com/outside-2.jpg", imageName: null, caption: null, isCover: false, zone: "outside" },
+      { id: 4, imageUrl: "https://images.example.com/inside-4.jpg", imageName: null, caption: null, isCover: false, zone: "inside" },
+      { id: 5, imageUrl: "https://images.example.com/review-5.jpg", imageName: null, caption: null, isCover: false, zone: "review" },
+    ];
+
+    expect(selectDefaultDisplayImages(images).map((image) => image.id)).toEqual([
+      2,
+      3,
+      1,
+      4,
+    ]);
+  });
+
+  it("validates custom card image ids before saving", () => {
+    expect(validateCustomDisplayImageIds([9, 7, 5])).toEqual([9, 7, 5]);
+    expect(() => validateCustomDisplayImageIds([9, 7])).toThrow(
+      "Select at least 3 images",
+    );
+    expect(() =>
+      validateCustomDisplayImageIds([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+    ).toThrow("Select at most 10 images");
+    expect(() => validateCustomDisplayImageIds([9, 9, 5])).toThrow(
+      "Duplicate image id",
+    );
   });
 });
 
@@ -494,6 +567,190 @@ describe("fetchVillaPreviewImages", () => {
   });
 });
 
+describe("resolveDisplayImages", () => {
+  it("uses recommended cover_select values in ascending global order when no custom row exists", async () => {
+    mockCardImageConfigQuery();
+    mockImagesQuery({
+      data: [
+        {
+          id: 20,
+          property_id: 9,
+          cover_select: 2,
+          image_name: "pool.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "outside",
+        },
+        {
+          id: 10,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "living.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "inside",
+        },
+        {
+          id: 30,
+          property_id: 9,
+          cover_select: 11,
+          image_name: "ignored.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "outside",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(resolveDisplayImages("9")).resolves.toEqual([
+      expect.objectContaining({ id: 10 }),
+      expect.objectContaining({ id: 20 }),
+    ]);
+    expect(unstableCacheMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      [CACHE_TAGS.villaCardImage("default", "9")],
+      {
+        revalidate: CACHE_REVALIDATE_SECONDS.villaCardImages,
+        tags: [
+          CACHE_TAGS.villaCardImages,
+          CACHE_TAGS.villaImages,
+          CACHE_TAGS.villaImage("9"),
+          CACHE_TAGS.villaCardImage("default", "9"),
+        ],
+      },
+    );
+  });
+
+  it("falls back to the default outside-then-inside order without recommendation data", async () => {
+    mockCardImageConfigQuery();
+    mockImagesQuery({
+      data: [
+        {
+          id: 2,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "inside.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "inside",
+        },
+        {
+          id: 1,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "outside.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "outside",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(resolveDisplayImages("9")).resolves.toEqual([
+      expect.objectContaining({ id: 1 }),
+      expect.objectContaining({ id: 2 }),
+    ]);
+  });
+
+  it("uses custom config image ids before recommended data when at least three images match", async () => {
+    mockCardImageConfigQuery({
+      config: {
+        data: {
+          villa_card_image_items: [
+            { image_id: 30, sort_order: 1 },
+            { image_id: 10, sort_order: 2 },
+            { image_id: 20, sort_order: 3 },
+          ],
+        },
+        error: null,
+      },
+    });
+    mockImagesQuery({
+      data: [
+        {
+          id: 10,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "cover.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "outside",
+        },
+        {
+          id: 20,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "inside.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "inside",
+        },
+        {
+          id: 30,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "bed.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "inside",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(resolveDisplayImages("9")).resolves.toEqual([
+      expect.objectContaining({ id: 30 }),
+      expect.objectContaining({ id: 10 }),
+      expect.objectContaining({ id: 20 }),
+    ]);
+  });
+
+  it("falls back to recommended images when a house has no custom override", async () => {
+    mockCardImageConfigQuery({
+      config: { data: null, error: null },
+    });
+    mockImagesQuery({
+      data: [
+        {
+          id: 20,
+          property_id: 9,
+          cover_select: 2,
+          image_name: "second.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "inside",
+        },
+        {
+          id: 10,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "first.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "outside",
+        },
+        {
+          id: 30,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "default-only.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "outside",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(resolveDisplayImages("9")).resolves.toEqual([
+      expect.objectContaining({ id: 10 }),
+      expect.objectContaining({ id: 20 }),
+    ]);
+  });
+});
+
 describe("GET /api/villas/[id]/images", () => {
   it("rate limits repeated image requests before querying Supabase", async () => {
     mockImagesQuery({ data: [], error: null });
@@ -585,6 +842,49 @@ describe("GET /api/villas/[id]/images", () => {
         id: 7,
         imageUrl: "https://images.example.com/pool.jpg",
       }),
+    ]);
+  });
+
+  it("returns card display images for the view=card query without loading the full gallery order", async () => {
+    mockCardImageConfigQuery();
+    mockImagesQuery({
+      data: [
+        {
+          id: 20,
+          property_id: 9,
+          cover_select: 2,
+          image_name: "second.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "inside",
+        },
+        {
+          id: 10,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "first.jpg",
+          image_url: null,
+          caption: null,
+          image_zone: "outside",
+        },
+      ],
+      error: null,
+    });
+    const { GET } = await import("../../../app/(public)/api/villas/[id]/images/route");
+
+    const response = await GET(
+      new Request("https://example.com/api/villas/9/images?view=card"),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, s-maxage=43200, stale-while-revalidate=43200",
+    );
+    expect(body.images.map((image: { id: number }) => image.id)).toEqual([
+      10,
+      20,
     ]);
   });
 

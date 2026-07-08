@@ -13,7 +13,10 @@ import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useEffect, useMemo, useState } from "react";
 
 import type { GuideStatus } from "@/lib/guides/types";
-import { createSlugFromTitle } from "@/lib/guides/validation";
+import {
+  createSlugFromTitle,
+  type GuideDraftValidationField,
+} from "@/lib/guides/validation";
 
 import type { AdminGuideDraft } from "./admin-guide-types";
 import {
@@ -33,6 +36,21 @@ interface GuideStatusPanelProps {
   onUpdate: (changes: Partial<AdminGuideDraft>) => void;
   pendingCoverFile: File | null;
   statusLabel: string;
+  validationErrors?: Partial<Record<GuideDraftValidationField, string[]>>;
+}
+
+function FieldErrors({ errors }: { errors?: string[] }) {
+  if (!errors || errors.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+      {errors.map((error) => (
+        <p key={error}>{error}</p>
+      ))}
+    </div>
+  );
 }
 
 export function GuideStatusPanel({
@@ -46,6 +64,7 @@ export function GuideStatusPanel({
   onUpdate,
   pendingCoverFile,
   statusLabel,
+  validationErrors = {},
 }: GuideStatusPanelProps) {
   const [tagsInputText, setTagsInputText] = useState(() =>
     formatCommaSeparatedInput(guide.tags),
@@ -117,7 +136,10 @@ export function GuideStatusPanel({
             </span>
           </div>
 
-          <label className="block text-sm font-medium text-[var(--site-text)]">
+          <label
+            className="block text-sm font-medium text-[var(--site-text)]"
+            data-guide-error-field="status"
+          >
             สถานะ
             <select
               className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
@@ -129,6 +151,7 @@ export function GuideStatusPanel({
               <option value="draft">ฉบับร่าง</option>
               <option value="published">เผยแพร่</option>
             </select>
+            <FieldErrors errors={validationErrors.status} />
           </label>
 
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-text)]">
@@ -176,7 +199,10 @@ export function GuideStatusPanel({
         </div>
       </section>
 
-      <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
+      <section
+        className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm"
+        data-guide-error-field="coverImage"
+      >
         <p className="text-sm font-bold text-[var(--site-text)]">รูปปก</p>
         <div className="mt-3 overflow-hidden rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)]">
           {coverPreviewUrl ? (
@@ -214,7 +240,11 @@ export function GuideStatusPanel({
             type="file"
           />
         </label>
-        <label className="mt-3 block text-sm font-medium text-[var(--site-text)]">
+        <FieldErrors errors={validationErrors.coverImage} />
+        <label
+          className="mt-3 block text-sm font-medium text-[var(--site-text)]"
+          data-guide-error-field="coverImageAlt"
+        >
           คำอธิบายรูป
           <input
             className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
@@ -232,11 +262,15 @@ export function GuideStatusPanel({
             }}
             value={guide.coverImage?.alt ?? ""}
           />
+          <FieldErrors errors={validationErrors.coverImageAlt} />
         </label>
       </section>
 
       <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
-        <label className="block text-sm font-medium text-[var(--site-text)]">
+        <label
+          className="block text-sm font-medium text-[var(--site-text)]"
+          data-guide-error-field="tags"
+        >
           แท็ก
           <input
             className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
@@ -248,6 +282,7 @@ export function GuideStatusPanel({
             type="text"
             value={tagsInputText}
           />
+          <FieldErrors errors={validationErrors.tags} />
         </label>
         <p className="mt-2 text-xs leading-5 text-[var(--site-muted)]">
           คั่นแต่ละแท็กด้วย comma
@@ -255,7 +290,10 @@ export function GuideStatusPanel({
       </section>
 
       <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
-        <label className="block text-sm font-medium text-[var(--site-text)]">
+        <label
+          className="block text-sm font-medium text-[var(--site-text)]"
+          data-guide-error-field="recommendedHouseIds"
+        >
           บ้านพักแนะนำ
           <input
             className="mt-1 h-10 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm outline-none transition focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
@@ -271,9 +309,10 @@ export function GuideStatusPanel({
             type="text"
             value={houseIdsInputText}
           />
+          <FieldErrors errors={validationErrors.recommendedHouseIds} />
         </label>
         <p className="mt-2 text-xs leading-5 text-[var(--site-muted)]">
-          ใส่รหัสบ้านพักคั่นด้วย comma เช่น 66,102,901
+          ไม่บังคับ ใส่รหัสบ้านพักคั่นด้วย comma เช่น 66,102,901
         </p>
       </section>
 

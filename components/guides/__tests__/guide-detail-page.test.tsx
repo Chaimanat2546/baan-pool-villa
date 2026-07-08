@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { GuidePost } from "@/lib/guides/types";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
+import type { VillaListing } from "@/lib/villas/types";
 
 import { GuideDetailPage, getYouTubeEmbedUrl } from "../guide-detail-page";
 
@@ -29,6 +30,20 @@ function makeGuide(contentBlocks: unknown[]): GuidePost {
     updatedAt: "2026-06-03T00:00:00.000Z",
   };
 }
+
+const villa: VillaListing = {
+  amenities: [],
+  bathrooms: 4,
+  bedrooms: 5,
+  coverImage: null,
+  distanceToSea: "500m",
+  id: "501",
+  people: 12,
+  poolType: "private",
+  price: 12000,
+  zone: "jomtien",
+  zoneLabel: "Jomtien",
+};
 
 describe("getYouTubeEmbedUrl", () => {
   it("converts supported YouTube URLs to privacy-enhanced embed URLs", () => {
@@ -224,6 +239,32 @@ describe("getYouTubeEmbedUrl", () => {
     );
 
     expect(markup).toContain('class="grid w-full gap-0 text-[var(--site-text)]"');
+  });
+
+  it("centers article content when there are no recommended villas", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([{ type: "paragraph", content: [] }])}
+        recommendedVillas={[]}
+        relatedGuides={[]}
+      />,
+    );
+
+    expect(markup).toContain("max-w-3xl");
+    expect(markup).not.toContain("lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]");
+  });
+
+  it("keeps the sidebar grid when recommended villas exist", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([{ type: "paragraph", content: [] }])}
+        recommendedVillas={[villa]}
+        relatedGuides={[]}
+      />,
+    );
+
+    expect(markup).toContain("max-w-6xl");
+    expect(markup).toContain("lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]");
   });
 
   it("renders YouTube links as thumbnail posters before play", () => {

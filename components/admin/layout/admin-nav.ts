@@ -51,6 +51,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     pageTitle: "จัดการบทความ",
   },
   {
+    description: "ตั้งค่าชุดรูปที่แสดงบนการ์ดบ้านพักทั้งเว็บ",
+    href: "/admin/card-images",
+    icon: Images,
+    label: "รูปการ์ด",
+    pageTitle: "ตั้งค่ารูปการ์ดบ้านพัก",
+  },
+  {
     description: "รูปภาพบ้านพักและแกลเลอรี",
     disabled: true,
     href: "/admin/images",

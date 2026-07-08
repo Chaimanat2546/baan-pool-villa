@@ -6,8 +6,9 @@ import {
   revalidateExternalVillaCache,
   revalidateGuideCache,
   revalidateHomeSectionsCache,
-  revalidateSiteSettingsCache,
   revalidateLegalPageCache,
+  revalidateSiteSettingsCache,
+  revalidateVillaCardImagesCache,
 } from "./cache-revalidation";
 import {
   HTML_CACHE_VERSION_GROUPS,
@@ -110,6 +111,21 @@ describe("cache revalidation", () => {
     ]);
   });
 
+  it("expires villa card image tags and the public image JSON edge version", async () => {
+    await revalidateVillaCardImagesCache("9");
+
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaCardImages, {
+      expire: 0,
+    });
+    expect(revalidateTagMock).toHaveBeenCalledWith(
+      CACHE_TAGS.villaCardImage("default", "9"),
+      { expire: 0 },
+    );
+    expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
+      HTML_CACHE_VERSION_GROUPS.villaImages,
+    ]);
+  });
+
   it("expires only shared external villa tags by default", async () => {
     let resolveBump: (() => void) | null = null;
     const bumpPromise = new Promise<void>((resolve) => {
@@ -126,6 +142,9 @@ describe("cache revalidation", () => {
       expire: 0,
     });
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaDetails, {
+      expire: 0,
+    });
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaCardImages, {
       expire: 0,
     });
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaImages, {

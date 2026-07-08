@@ -128,6 +128,11 @@ const SEARCH_LISTING_SELECT_COLUMNS = `
   property_type,
   max_guests
 `;
+const VILLA_CARD_HOUSE_SELECT_COLUMNS = `
+  property_id,
+  title,
+  location_zone
+`;
 
 let isVillaSearchRpcUnavailable = false;
 
@@ -184,6 +189,41 @@ export type VillaSearchPageResult = {
   facets: VillaSearchFacets;
   hasMore: boolean;
   items: VillaListing[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export type VillaListingPageQuery = {
+  page: number;
+  pageSize: number;
+  search?: string;
+};
+
+export type VillaListingPageResult = {
+  hasMore: boolean;
+  items: VillaListing[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export type VillaCardHouseOptionPageQuery = {
+  page: number;
+  pageSize: number;
+  search?: string;
+};
+
+export type VillaCardHouseOptionItem = {
+  coverImage: string | null;
+  id: string;
+  title: string;
+  zoneLabel: string;
+};
+
+export type VillaCardHouseOptionPageResult = {
+  hasMore: boolean;
+  items: VillaCardHouseOptionItem[];
   page: number;
   pageSize: number;
   total: number;
@@ -531,6 +571,52 @@ function selectSearchListings(
     ),
     sortKey,
   );
+}
+
+function selectListingPage(
+  supabase: VillaSupabaseClient,
+  search: string,
+) {
+  let query = supabase
+    .from("listings")
+    .select(LISTING_SELECT_COLUMNS, { count: "exact" })
+    .eq("is_active", true);
+  const trimmedSearch = search.trim();
+
+  if (trimmedSearch) {
+    const propertyId = toSearchPropertyId(trimmedSearch);
+    query =
+      propertyId === null
+        ? query.ilike("title", toTitleSearchPattern(trimmedSearch))
+        : query.eq("property_id", propertyId);
+  }
+
+  return query
+    .order("sort_order", { ascending: true })
+    .order("property_id", { ascending: true });
+}
+
+function selectVillaCardHouseOptionPage(
+  supabase: VillaSupabaseClient,
+  search: string,
+) {
+  let query = supabase
+    .from("listings")
+    .select(VILLA_CARD_HOUSE_SELECT_COLUMNS, { count: "exact" })
+    .eq("is_active", true);
+  const trimmedSearch = search.trim();
+
+  if (trimmedSearch) {
+    const propertyId = toSearchPropertyId(trimmedSearch);
+    query =
+      propertyId === null
+        ? query.ilike("title", toTitleSearchPattern(trimmedSearch))
+        : query.eq("property_id", propertyId);
+  }
+
+  return query
+    .order("sort_order", { ascending: true })
+    .order("property_id", { ascending: true });
 }
 
 function selectSearchListingCandidates(
@@ -950,6 +1036,93 @@ async function fetchVillaSearchPageFromSupabase({
   };
 }
 
+async function fetchVillaListingPageFromSupabase({
+  page,
+  pageSize,
+  search = "",
+}: VillaListingPageQuery): Promise<VillaListingPageResult> {
+  const { supabase, supabaseUrl } = createVillaSupabaseClient();
+  const offset = (page - 1) * pageSize;
+  const { count, data, error } = await selectListingPage(
+    supabase,
+    search,
+  ).range(offset, offset + pageSize - 1);
+
+  if (error) {
+    throw new Error(`Supabase listing page query failed: ${error.message}`);
+  }
+
+  const items = await hydrateListingRows(
+    supabase,
+    supabaseUrl,
+    (data ?? []) as unknown as SupabaseListingRow[],
+  );
+  const total = count ?? offset + items.length;
+
+  return {
+    hasMore: offset + items.length < total,
+    items,
+    page,
+    pageSize,
+    total,
+  };
+}
+
+function toVillaCardHouseOption(
+  row: SupabaseListingRow,
+  coverImages: Map<string, string>,
+): VillaCardHouseOptionItem | null {
+  const id = row.property_id === null ? "" : String(row.property_id).trim();
+
+  if (!id) {
+    return null;
+  }
+
+  const zone = row.location_zone?.trim() || "unknown";
+
+  return {
+    coverImage: coverImages.get(id) ?? null,
+    id,
+    title: row.title?.trim() || `Villa ${id}`,
+    zoneLabel: getZoneLabel(zone),
+  };
+}
+
+async function fetchVillaCardHouseOptionPageFromSupabase({
+  page,
+  pageSize,
+  search = "",
+}: VillaCardHouseOptionPageQuery): Promise<VillaCardHouseOptionPageResult> {
+  const { supabase, supabaseUrl } = createVillaSupabaseClient();
+  const offset = (page - 1) * pageSize;
+  const { count, data, error } = await selectVillaCardHouseOptionPage(
+    supabase,
+    search,
+  ).range(offset, offset + pageSize - 1);
+
+  if (error) {
+    throw new Error(`Supabase villa card house page query failed: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as unknown as SupabaseListingRow[];
+  const propertyIds = rows
+    .map((row) => toNumber(row.property_id))
+    .filter((id) => Number.isSafeInteger(id) && id > 0);
+  const coverImages = await fetchCoverImages(supabase, supabaseUrl, propertyIds);
+  const items = rows
+    .map((row) => toVillaCardHouseOption(row, coverImages))
+    .filter((item): item is VillaCardHouseOptionItem => item !== null);
+  const total = count ?? offset + items.length;
+
+  return {
+    hasMore: offset + items.length < total,
+    items,
+    page,
+    pageSize,
+    total,
+  };
+}
+
 async function fetchListingByIdFromSupabase(
   id: string,
 ): Promise<VillaListing | null> {
@@ -1088,6 +1261,24 @@ const fetchCachedVillaSearchPage = unstable_cache(
   },
 );
 
+const fetchCachedVillaListingPage = unstable_cache(
+  fetchVillaListingPageFromSupabase,
+  [`${CACHE_TAGS.villaListings}:listing-page`],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
+    tags: [CACHE_TAGS.villaListings],
+  },
+);
+
+const fetchCachedVillaCardHouseOptionPage = unstable_cache(
+  fetchVillaCardHouseOptionPageFromSupabase,
+  [`${CACHE_TAGS.villaListings}:card-house-option-page`],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.villaListings,
+    tags: [CACHE_TAGS.villaListings],
+  },
+);
+
 /**
  * Returns the cached public villa catalog used by home, search, guides, and
  * other listing consumers.
@@ -1118,6 +1309,24 @@ export async function fetchVillaSearchPage(
   return fetchCachedVillaSearchPage({
     ...query,
     villaIdQuery: query.villaIdQuery.trim(),
+  });
+}
+
+export async function fetchVillaListingPage(
+  query: VillaListingPageQuery,
+): Promise<VillaListingPageResult> {
+  return fetchCachedVillaListingPage({
+    ...query,
+    search: query.search?.trim() ?? "",
+  });
+}
+
+export async function fetchVillaCardHouseOptionPage(
+  query: VillaCardHouseOptionPageQuery,
+): Promise<VillaCardHouseOptionPageResult> {
+  return fetchCachedVillaCardHouseOptionPage({
+    ...query,
+    search: query.search?.trim() ?? "",
   });
 }
 

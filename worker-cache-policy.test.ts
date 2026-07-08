@@ -507,6 +507,14 @@ describe("worker JSON edge cache policy", () => {
       reason: "json",
       versionGroups: ["villa-images"],
     });
+    expect(
+      getJsonEdgeCacheDecision(request("/api/villas/9/images?view=card")),
+    ).toMatchObject({
+      cacheable: true,
+      candidate: true,
+      reason: "json",
+      versionGroups: ["villa-images"],
+    });
 
     expect(getJsonEdgeCacheDecision(request("/api/admin/site-settings"))).toMatchObject({
       cacheable: false,
@@ -535,6 +543,15 @@ describe("worker JSON edge cache policy", () => {
       getJsonEdgeCacheDecision(
         request("/api/villas/9/booking-calendar?month=2026-06&debug=1"),
       ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(request("/api/villas/9/images?imageId=7")),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(request("/api/villas/9/images?view=card&page=home")),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(request("/api/villas/9/images?view=card&debug=1")),
     ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
     expect(
       getJsonEdgeCacheDecision(
@@ -577,6 +594,21 @@ describe("worker JSON edge cache policy", () => {
     expect(url.pathname).toBe("/api/villas/9/booking-calendar");
     expect(url.searchParams.get("month")).toBe("2026-06");
     expect(url.searchParams.get("__bpv_json_v")).toBe("villa-details:42");
+    expect(url.hash).toBe("");
+  });
+
+  it("keeps the villa card view in JSON cache keys", () => {
+    const cacheKey = createJsonEdgeCacheKey(
+      request("/api/villas/9/images?view=card#top"),
+      "villa-images:42",
+    );
+    const url = new URL(cacheKey.url);
+
+    expect(cacheKey.method).toBe("GET");
+    expect(url.pathname).toBe("/api/villas/9/images");
+    expect(url.searchParams.get("view")).toBe("card");
+    expect(url.searchParams.has("page")).toBe(false);
+    expect(url.searchParams.get("__bpv_json_v")).toBe("villa-images:42");
     expect(url.hash).toBe("");
   });
 

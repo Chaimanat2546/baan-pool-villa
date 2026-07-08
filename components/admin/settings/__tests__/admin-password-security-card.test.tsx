@@ -181,6 +181,26 @@ describe("AdminPasswordSecurityCard", () => {
     await page.unmount();
   });
 
+  it("shows a useful Thai message when OTP sending times out", async () => {
+    mocks.signInWithOtp.mockResolvedValue({
+      data: {},
+      error: { message: "{}", status: 504 },
+    });
+    const page = await mountAdminPage(<AdminPasswordSecurityCard />);
+
+    await openPasswordModal(page.container);
+    await click(findButton(page.container, "ส่งรหัส OTP ไปอีเมล"));
+    await flushEffects();
+
+    expect(page.container.textContent).toContain(
+      "ระบบส่ง OTP มีปัญหาชั่วคราว",
+    );
+    expect(page.container.textContent).toContain("Supabase Auth Logs");
+    expect(page.container.textContent).not.toContain("{}");
+
+    await page.unmount();
+  });
+
   it("prevents immediate OTP resend after a successful send", async () => {
     const page = await mountAdminPage(<AdminPasswordSecurityCard />);
 
