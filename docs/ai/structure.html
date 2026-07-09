@@ -188,7 +188,7 @@
               <tr>
                 <td><code>app/(public)/villas/[id]/page.tsx</code></td>
                 <td><code>/villas/:id</code></td>
-                <td><code>components/villas/detail/page</code>, listing/detail API data, SEO/JSON-LD helpers, up to four display-prioritized SSR Supabase gallery preview images, and a client gallery loader backed by <code>/api/villas/:id/images</code>. Villa detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached initial data comes from villa listing/detail and villa-image tags, SSR preloads only the above-the-fold gallery preview images selected with the same main/side priority used by the rendered gallery, the client defers the full gallery image-set request until browser idle or user gallery interaction, lower detail blocks defer rendering until they approach the viewport, recommended villas load client-side from <code>/api/home-sections</code> after the recommendation block approaches the viewport, cached advertisements load only when the CMS detail layout contains the advertisement block, categorized image previews render placeholder tiles until their block approaches the viewport, public detail payloads pass validated listing cover and gallery source URLs to <code>next/image</code> with the custom image loader, gallery downloads use <code>/api/villas/:id/images?download=1</code>, and the route renders VacationRental plus breadcrumb JSON-LD.</td>
+                <td><code>components/villas/detail/page</code>, listing/detail API data, SEO/JSON-LD helpers, up to four display-prioritized SSR Supabase gallery preview images, and a client gallery loader backed by <code>/api/villas/:id/images</code>. Villa detail pages are not prebuilt with <code>generateStaticParams</code>; rendered output is on demand, cached initial data comes from villa listing/detail and villa-image tags, SSR preloads only the above-the-fold gallery preview images selected with the same main/side priority used by the rendered gallery, uploaded per-villa cover overrides become the first large gallery image and suppress old cover rows while present, the client defers the full gallery image-set request until browser idle or user gallery interaction, lower detail blocks defer rendering until they approach the viewport, recommended villas load client-side from <code>/api/home-sections</code> after the recommendation block approaches the viewport, cached advertisements load only when the CMS detail layout contains the advertisement block, categorized image previews render placeholder tiles until their block approaches the viewport, public detail payloads pass validated listing cover and gallery source URLs to <code>next/image</code> with the custom image loader, gallery downloads use <code>/api/villas/:id/images?download=1</code>, and the route renders VacationRental plus breadcrumb JSON-LD.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/villas/[id]/loading.tsx</code></td>
@@ -283,7 +283,7 @@
               <tr>
                 <td><code>app/(public)/api/villas/[id]/images/route.ts</code></td>
                 <td><code>/api/villas/:id/images</code></td>
-                <td>Rate limiting and error boundary for villa gallery list, card display image list, legacy display proxy, and download modes. Shared response handling lives in <code>lib/villas/public-image-route.ts</code>, backed by <code>lib/villas/images.ts</code>; <code>?view=card</code> returns up to 10 card images for the villa resolved automatically from custom config, recommended <code>cover_select</code>, then default outside/inside ordering, while query-free responses keep the full gallery list. Public cache headers, Worker JSON edge cache for query-free gallery lists and the validated card-image query variant, public gallery DTOs with validated source image URLs for the custom image loader, legacy gallery display proxy support for <code>?imageId=...</code> and <code>?url=...</code>, and no-store attachment downloads for <code>?download=1&amp;imageId=...</code> plus <code>?download=1&amp;url=...</code> are owned here.</td>
+                <td>Rate limiting and error boundary for villa gallery list, card display image list, legacy display proxy, and download modes. Shared response handling lives in <code>lib/villas/public-image-route.ts</code>, backed by <code>lib/villas/images.ts</code>; <code>?view=card</code> returns up to 10 card images for the villa resolved automatically from custom config, recommended <code>cover_select</code>, then default outside/inside ordering, while query-free responses prepend uploaded cover overrides and hide old cover rows when an override exists. Public cache headers, Worker JSON edge cache for query-free gallery lists and the validated card-image query variant, public gallery DTOs with validated source image URLs for the custom image loader, legacy gallery display proxy support for <code>?imageId=...</code> and <code>?url=...</code>, and no-store attachment downloads for <code>?download=1&amp;imageId=...</code> plus <code>?download=1&amp;url=...</code> are owned here.</td>
               </tr>
             </tbody>
           </table>
@@ -368,17 +368,17 @@
               <tr>
                 <td><code>app/(admin)/admin/card-images/page.tsx</code></td>
                 <td><code>/admin/card-images</code></td>
-                <td><code>components/admin/villa-card-images/admin-villa-card-images-page</code> manages the villa card style selector moved out of general settings and links into custom card-image setup.</td>
+                <td><code>components/admin/villa-card-images/admin-villa-card-images-page</code> manages the villa card style selector moved out of general settings and links into custom card-image and cover-upload setup.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/card-images/houses/page.tsx</code></td>
                 <td><code>/admin/card-images/houses</code></td>
-                <td>Server-paginated house list for custom card-image overrides with URL-backed search/page state, compact pagination, and per-house custom status badges.</td>
+                <td>Server-paginated house list for custom card-image and uploaded cover overrides with URL-backed search/page state, compact pagination, and per-house custom status badges.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/card-images/houses/[houseId]/page.tsx</code></td>
                 <td><code>/admin/card-images/houses/:houseId</code></td>
-                <td>One-house custom image editor with zone filters, thumbnail click selection, return-to-list query preservation, and confirm-modal drag ordering before save.</td>
+                <td>One-house custom image editor with select-to-upload cover preview, dialog-based cover delete/reset controls, outside-first zone filters with the all-images filter last, thumbnail click selection, return-to-list query preservation, and scroll-locking drag-order dialog with save/cancel actions.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/guides/page.tsx</code></td>
@@ -456,7 +456,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/villa-card-images/route.ts</code></td>
                 <td><code>/api/admin/villa-card-images</code></td>
-                <td>Admin auth and delegation for per-house custom card-image overrides. Row mapping, request payload parsing, custom image id validation, Supabase persistence, item replacement, and villa-card-image cache revalidation live in <code>lib/villas/card-image-config-admin.ts</code>.</td>
+                <td>Admin auth and delegation for per-house custom card-image and uploaded cover overrides. Row mapping, JSON and multipart request parsing, custom image id validation, Supabase persistence, Storage upload/history rows, uploaded cover delete/reset, item replacement, and villa-card/listing/gallery cache revalidation live in <code>lib/villas/card-image-config-admin.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
@@ -586,7 +586,7 @@
           <tbody>
             <tr>
               <td><code>lib/villas</code></td>
-              <td>External villa listings/detail fetches, booking calendar normalization/fetches, tagged normalized catalog caching, filtering, static search options, amenities, Supabase image reads, site-wide per-villa card image resolution, villa card image admin config helpers, admin refresh route helpers, villa types, and public listing DTOs that normalize and validate image source URLs before they cross into public API/client payloads for the custom image loader.</td>
+              <td>External villa listings/detail fetches, booking calendar normalization/fetches, tagged normalized catalog caching, filtering, static search options, amenities, Supabase image reads, site-wide per-villa card/cover image resolution, villa card image admin config helpers, admin refresh route helpers, villa types, and public listing DTOs that normalize and validate image source URLs before they cross into public API/client payloads for the custom image loader.</td>
               <td><code>lib/villas/__tests__</code></td>
             </tr>
             <tr>
@@ -646,7 +646,7 @@
             </tr>
             <tr>
               <td><code>lib/cache-revalidation.ts</code> and <code>lib/html-edge-cache-version.ts</code></td>
-              <td>Shared tag revalidation helpers. Supabase CMS helpers for settings, home sections, guides, legal pages, TikTok, and detail layout are tag-only for Next data cache, then bump the matching Cloudflare HTML cache version group where public HTML depends on the data. Villa card image config expires card-image tags and bumps the <code>villa-images</code> JSON edge version used by <code>/api/villas/:id/images?view=card</code>. External villa refresh expires villa listing/detail/image/card-image tags, then bumps the JSON-only Cloudflare version groups (<code>villa-listings</code>, <code>villa-details</code>, and <code>villa-images</code>) without adding those groups to public HTML keys or calling <code>revalidatePath</code>.</td>
+              <td>Shared tag revalidation helpers. Supabase CMS helpers for settings, home sections, guides, legal pages, TikTok, and detail layout are tag-only for Next data cache, then bump the matching Cloudflare HTML cache version group where public HTML depends on the data. Villa card image config expires card-image, villa-image, and villa-listing tags, then bumps the <code>villa-images</code> and <code>villa-listings</code> JSON edge version groups used by gallery/detail and card/listing consumers. External villa refresh expires villa listing/detail/image/card-image tags, then bumps the JSON-only Cloudflare version groups (<code>villa-listings</code>, <code>villa-details</code>, and <code>villa-images</code>) without adding those groups to public HTML keys or calling <code>revalidatePath</code>.</td>
               <td><code>lib/cache-revalidation.test.ts</code></td>
             </tr>
             <tr>
@@ -682,8 +682,8 @@
           <tbody>
             <tr>
               <td>Villa listings</td>
-              <td>Supabase <code>listings</code> rows with <code>listing_facilities</code>/<code>facilities</code> joins and batched cover rows from <code>images.property_id</code>.</td>
-              <td><code>lib/villas/server.ts</code>, listing cache tag; the normalized catalog result is cached with the same villa listings TTL/tag so routes do not re-query the Supabase catalog and cover images on warm reads. Public API/client payloads pass through <code>lib/villas/public-dto.ts</code> so cover and gallery images become validated source URLs for the custom image loader.</td>
+              <td>Supabase <code>listings</code> rows with <code>listing_facilities</code>/<code>facilities</code> joins, uploaded cover override metadata, and batched fallback cover rows from <code>images.property_id</code>.</td>
+              <td><code>lib/villas/server.ts</code>, listing cache tag; the normalized catalog result is cached with the same villa listings TTL/tag so routes do not re-query the Supabase catalog and cover images on warm reads. Uploaded cover overrides from <code>villa_card_image_configs</code> replace fallback cover rows for all listing/card consumers. Public API/client payloads pass through <code>lib/villas/public-dto.ts</code> so cover and gallery images become validated source URLs for the custom image loader.</td>
               <td>Home rails, search results, first home-section detail recommendations, guide recommendations, sitemap, public houses API.</td>
             </tr>
             <tr>
@@ -701,14 +701,14 @@
             <tr>
               <td>Villa images</td>
               <td>Supabase image rows matched by <code>images.property_id</code> to villa id.</td>
-              <td><code>lib/villas/images.ts</code>, image host builder, shared villa-images and villa-card-images tags, per-villa image cache tag, validated source URL normalization, card display resolver, and no-store download routes with legacy display proxy compatibility.</td>
-              <td>Public villa images API and the villa detail client gallery loader; detail SSR selects only the first four display-prioritized Supabase gallery images for the above-the-fold preview, then the client loads the full Supabase image set after browser idle or direct gallery retry/interaction so the lightbox categories can hydrate without starting every detail image request during first render. Public gallery list responses expose validated source image URLs for <code>next/image</code> with the custom image loader. Card gallery requests use <code>resolveDisplayImages</code> with automatic priority: per-house custom image ids and sort order first when at least three saved images still exist, otherwise source recommendations from <code>cover_select</code> values 1-10 ordered ascending, otherwise the default outside-first then inside image order. Detail gallery downloads on <code>/api/villas/:id/images</code> allow only the Supabase gallery rows and keep attachment responses <code>no-store</code>. Categorized gallery previews keep placeholders until their block approaches the viewport. Displayed gallery images, villa listing covers, destination covers, site hero assets, and guide images use the custom image loader; legacy same-origin display proxy routes remain only for compatibility.</td>
+              <td><code>lib/villas/images.ts</code>, image host builder, shared villa-images and villa-card-images tags, per-villa image cache tag, uploaded cover override resolver, validated source URL normalization, card display resolver, and no-store download routes with legacy display proxy compatibility.</td>
+              <td>Public villa images API and the villa detail client gallery loader; detail SSR selects only the first four display-prioritized gallery images for the above-the-fold preview, with an uploaded cover override first and old cover rows hidden while the override exists, then the client loads the full image set after browser idle or direct gallery retry/interaction so the lightbox categories can hydrate without starting every detail image request during first render. Public gallery list responses expose validated source image URLs for <code>next/image</code> with the custom image loader. Card gallery requests use <code>resolveDisplayImages</code> with automatic priority: per-house custom image ids and sort order first when at least three saved images still exist, otherwise source recommendations from <code>cover_select</code> values 1-10 ordered ascending, otherwise the default outside-first then inside image order. Detail gallery downloads on <code>/api/villas/:id/images</code> allow only the Supabase gallery rows and keep attachment responses <code>no-store</code>. Categorized gallery previews keep placeholders until their block approaches the viewport. Displayed gallery images, villa listing covers, destination covers, site hero assets, and guide images use the custom image loader; legacy same-origin display proxy routes remain only for compatibility.</td>
             </tr>
             <tr>
               <td>Villa card image config</td>
-              <td>Supabase home-section CMS project tables <code>villa_card_image_configs</code> and <code>villa_card_image_items</code>.</td>
-              <td><code>lib/villas/card-image-config-admin.ts</code>, <code>lib/villas/images.ts</code>, and the villa card image cache tag.</td>
-              <td>Admin <code>/admin/card-images</code> saves the public villa card style through site settings, then <code>/admin/card-images/houses</code> and <code>/admin/card-images/houses/:houseId</code> manage optional per-house custom image ids. The house list keeps search/page state in the URL so detail back-links return to the same page, and uses a cached lean picker query for house id, title, zone, and cover image instead of hydrating the full public listing card data. Public cards do not store or read a manual mode: custom wins when present, <code>images.cover_select</code> acts as recommendation data when present, and default outside/inside ordering is the fallback.</td>
+              <td>Supabase home-section CMS project tables <code>villa_card_image_configs</code>, <code>villa_card_image_items</code>, Storage bucket <code>site-assets</code>, and <code>site_asset_uploads</code> history rows for <code>villa-cover</code>.</td>
+              <td><code>lib/villas/card-image-config-admin.ts</code>, <code>lib/villas/images.ts</code>, and the villa card/listing/image cache tags.</td>
+              <td>Admin <code>/admin/card-images</code> saves the public villa card style through site settings, then <code>/admin/card-images/houses</code> and <code>/admin/card-images/houses/:houseId</code> manage optional per-house uploaded cover images with immediate select-to-upload, dialog delete/reset back to the source cover, and custom gallery image ids. The house list keeps search/page state in the URL so detail back-links return to the same page, and uses a cached lean picker query for house id, title, zone, and cover image instead of hydrating the full public listing card data. Public cards do not store or read a manual mode: uploaded cover overrides replace listing covers for all card styles, custom gallery ids win when present for gallery-card images, <code>images.cover_select</code> acts as recommendation data when present, and default outside/inside ordering is the fallback.</td>
             </tr>
               <tr>
                 <td>Home sections</td>

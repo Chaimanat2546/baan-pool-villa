@@ -22,12 +22,20 @@ const { createClientMock } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
 }));
 
+const { createHomeConfigClientMock } = vi.hoisted(() => ({
+  createHomeConfigClientMock: vi.fn(),
+}));
+
 const { fetchVillaPreviewImagesMock } = vi.hoisted(() => ({
   fetchVillaPreviewImagesMock: vi.fn(),
 }));
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: createClientMock,
+}));
+
+vi.mock("@/lib/home-sections/supabase", () => ({
+  createHomeConfigClient: createHomeConfigClientMock,
 }));
 
 vi.mock("../images", async () => {
@@ -171,6 +179,44 @@ function listingPricesQuery(data = listingPriceRows, error: unknown = null) {
   return query;
 }
 
+type CoverOverrideRow = {
+  cover_image_url: string | null;
+  house_id: string | null;
+};
+
+function coverOverrideQuery(
+  data: CoverOverrideRow[] = [],
+  error: unknown = null,
+) {
+  const query = {
+    eq: vi.fn(() => query),
+    in: vi.fn(() => Promise.resolve({ data, error })),
+    select: vi.fn(() => query),
+  };
+
+  return query;
+}
+
+function mockCoverOverrides(
+  data: CoverOverrideRow[] = [],
+  error: unknown = null,
+) {
+  const query = coverOverrideQuery(data, error);
+  const client = {
+    from: vi.fn((table: string) => {
+      if (table === "villa_card_image_configs") {
+        return query;
+      }
+
+      throw new Error(`Unexpected home config table ${table}`);
+    }),
+  };
+
+  createHomeConfigClientMock.mockReturnValue(client);
+
+  return { client, query };
+}
+
 function mockSupabase(options?: {
   imageRows?: typeof imageRows;
   listingPriceRows?: typeof listingPriceRows;
@@ -218,6 +264,7 @@ function mockSupabase(options?: {
 
 afterEach(() => {
   createClientMock.mockReset();
+  createHomeConfigClientMock.mockReset();
   fetchMock.mockReset();
   fetchVillaPreviewImagesMock.mockReset();
   vi.unstubAllEnvs();
@@ -228,6 +275,7 @@ beforeEach(() => {
   vi.stubEnv("SUPABASE_URL", "https://example.supabase.co");
   vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "publishable");
   vi.stubGlobal("fetch", fetchMock);
+  mockCoverOverrides();
   fetchVillaPreviewImagesMock.mockResolvedValue([]);
 });
 
@@ -290,6 +338,23 @@ describe("fetchHouseListings", () => {
     await expect(fetchHouseListings()).resolves.toEqual([
       expect.objectContaining({ id: "9", price: null }),
     ]);
+  });
+
+  it("uses uploaded cover overrides for public listings", async () => {
+    mockCoverOverrides([
+      {
+        cover_image_url: "https://assets.example.com/villa-cover/9/custom.webp",
+        house_id: "9",
+      },
+    ]);
+    const { images } = mockSupabase();
+
+    await expect(fetchHouseListings()).resolves.toEqual([
+      expect.objectContaining({
+        coverImage: "https://assets.example.com/villa-cover/9/custom.webp",
+      }),
+    ]);
+    expect(images.in).toHaveBeenCalledWith("property_id", [9]);
   });
 
   it("continues past the first Supabase listings page", async () => {
@@ -378,6 +443,27 @@ describe("fetchHouseListings", () => {
     expect(listings.range).toHaveBeenCalledWith(0, 6);
     expect(images.in).toHaveBeenCalledWith("property_id", [9]);
     expect(listingPrices.in).not.toHaveBeenCalled();
+  });
+
+  it("uses uploaded cover overrides in the admin card house picker", async () => {
+    mockCoverOverrides([
+      {
+        cover_image_url: "https://assets.example.com/villa-cover/9/admin.webp",
+        house_id: "9",
+      },
+    ]);
+    mockSupabase();
+
+    await expect(
+      fetchVillaCardHouseOptionPage({ page: 1, pageSize: 7, search: "9" }),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          coverImage: "https://assets.example.com/villa-cover/9/admin.webp",
+          id: "9",
+        },
+      ],
+    });
   });
 
   it("loads a bounded search page with database filters", async () => {

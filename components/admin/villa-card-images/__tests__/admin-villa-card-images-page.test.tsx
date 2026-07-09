@@ -61,6 +61,7 @@ describe("AdminVillaCardImagesPage", () => {
   });
 
   afterEach(() => {
+    document.body.style.overflow = "";
     vi.unstubAllGlobals();
   });
 
@@ -100,14 +101,16 @@ describe("AdminVillaCardImagesPage", () => {
     expect(
       page.container.querySelector('[data-villa-card-preview-option="gallery"]'),
     ).not.toBeNull();
-    const galleryOption = page.container
-      .querySelector('[data-villa-card-preview-option="gallery"]')
-      ?.closest("div");
     expect(
-      galleryOption
-        ?.querySelector("[data-villa-card-house-list-link]")
+      page.container
+        .querySelector("[data-villa-card-house-list-link]")
         ?.getAttribute("href"),
     ).toBe("/admin/card-images/houses");
+    expect(
+      page.container.querySelector(
+        '[data-villa-card-preview-option="gallery"] [data-villa-card-house-list-link]',
+      ),
+    ).toBeNull();
 
     await click(
       page.container.querySelector(
@@ -181,11 +184,11 @@ describe("AdminVillaCardImagesPage", () => {
     const page = await mountAdminPage(<AdminVillaCardHouseListPage />);
     await flushEffects();
 
-    expect(
-      page.container
-        .querySelector("[data-villa-card-back-link]")
-        ?.getAttribute("href"),
-    ).toBe("/admin/card-images");
+    const backLink = page.container.querySelector("[data-villa-card-back-link]");
+    expect(backLink?.getAttribute("href")).toBe("/admin/card-images");
+    expect(backLink?.textContent).toContain("กลับไปตั้งค่าการ์ดบ้าน");
+    expect(backLink?.className).not.toContain("rounded-md");
+    expect(page.container.textContent).not.toContain("Card images");
     expect(`${window.location.pathname}${window.location.search}`).toBe(
       "/admin/card-images/houses",
     );
@@ -581,6 +584,318 @@ describe("AdminVillaCardImagesPage", () => {
     await page.unmount();
   });
 
+  it("uploads a custom cover image without saving gallery selections", async () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const createObjectURLMock = vi.fn(() => "blob:cover-preview");
+    const revokeObjectURLMock = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURLMock,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURLMock,
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const requestUrl = input instanceof Request ? input.url : String(input);
+      const requestMethod =
+        input instanceof Request ? input.method : init?.method ?? "GET";
+
+      if (
+        requestUrl === "/api/admin/villa-card-images?houseId=9" &&
+        requestMethod === "GET"
+      ) {
+        return Promise.resolve(
+          makeJsonResponse({
+            body: {
+              configs: [],
+              houses: [
+                {
+                  coverImage: "https://images.example.com/old-cover.jpg",
+                  id: "9",
+                  title: "House 9",
+                  zoneLabel: "Pattaya",
+                },
+              ],
+              pagination: {
+                hasMore: false,
+                page: 1,
+                pageCount: 1,
+                pageSize: 1,
+                search: "",
+                total: 1,
+              },
+            },
+          }),
+        );
+      }
+
+      if (requestUrl === "/api/villas/9/images" && requestMethod === "GET") {
+        return Promise.resolve(
+          makeJsonResponse({
+            body: {
+              images: [
+                {
+                  id: 10,
+                  imageName: "pool.jpg",
+                  imageUrl: "https://images.example.com/pool.jpg",
+                  zone: "outside",
+                },
+              ],
+            },
+          }),
+        );
+      }
+
+      if (
+        requestUrl === "/api/admin/villa-card-images" &&
+        requestMethod === "PUT"
+      ) {
+        return Promise.resolve(
+          makeJsonResponse({
+            body: {
+              config: {
+                coverImage: {
+                  alt: "House 9",
+                  path: "villa-cover/9/custom.webp",
+                  url: "https://assets.example.com/villa-cover/9/custom.webp",
+                },
+                houseId: "9",
+                id: "config-1",
+                imageIds: [],
+                isActive: true,
+                pageKey: "default",
+              },
+            },
+          }),
+        );
+      }
+
+      return Promise.resolve(
+        makeJsonResponse({
+          body: { error: `Unhandled ${requestMethod} ${requestUrl}` },
+          status: 500,
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    let page:
+      | Awaited<ReturnType<typeof mountAdminPage>>
+      | null = null;
+
+    try {
+      page = await mountAdminPage(
+        <AdminVillaCardHouseCustomPage houseId="9" />,
+      );
+      await flushEffects();
+
+      const coverInput = page.container.querySelector(
+        "[data-villa-cover-input]",
+      ) as HTMLInputElement;
+      const coverFile = new File(["cover"], "custom-cover.webp", {
+        type: "image/webp",
+      });
+
+      act(() => {
+        Object.defineProperty(coverInput, "files", {
+          configurable: true,
+          value: [coverFile],
+        });
+        coverInput.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      await flushEffects();
+      await flushEffects();
+
+      expect(createObjectURLMock).toHaveBeenCalledWith(coverFile);
+      expect(
+        page.container.querySelector("[data-villa-cover-save]"),
+      ).toBeNull();
+
+      const coverSaveCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          url === "/api/admin/villa-card-images" &&
+          (init as RequestInit | undefined)?.method === "PUT",
+      );
+      const body = (coverSaveCall?.[1] as RequestInit).body as FormData;
+
+      expect(body).toBeInstanceOf(FormData);
+      expect(body.get("houseId")).toBe("9");
+      expect(body.get("coverImageAlt")).toBe("House 9");
+      expect(body.get("coverImage")).toBe(coverFile);
+      expect(
+        (coverSaveCall?.[1] as RequestInit).headers,
+      ).toEqual({ Authorization: "Bearer admin-token" });
+      expect(
+        page.container.querySelector("[data-villa-cover-current]"),
+      ).not.toBeNull();
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, init]) =>
+            url === "/api/admin/villa-card-images" &&
+            typeof (init as RequestInit | undefined)?.body === "string",
+        ),
+      ).toBe(false);
+    } finally {
+      await page?.unmount();
+
+      if (originalCreateObjectURL) {
+        Object.defineProperty(URL, "createObjectURL", {
+          configurable: true,
+          value: originalCreateObjectURL,
+        });
+      } else {
+        Reflect.deleteProperty(URL, "createObjectURL");
+      }
+
+      if (originalRevokeObjectURL) {
+        Object.defineProperty(URL, "revokeObjectURL", {
+          configurable: true,
+          value: originalRevokeObjectURL,
+        });
+      } else {
+        Reflect.deleteProperty(URL, "revokeObjectURL");
+      }
+    }
+  });
+
+  it("deletes a saved cover image through a dialog and falls back to the original cover", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const requestUrl = input instanceof Request ? input.url : String(input);
+      const requestMethod =
+        input instanceof Request ? input.method : init?.method ?? "GET";
+
+      if (
+        requestUrl === "/api/admin/villa-card-images?houseId=9" &&
+        requestMethod === "GET"
+      ) {
+        return Promise.resolve(
+          makeJsonResponse({
+            body: {
+              configs: [
+                {
+                  coverImage: {
+                    alt: "House 9",
+                    path: "villa-cover/9/custom.webp",
+                    url: "https://assets.example.com/villa-cover/9/custom.webp",
+                  },
+                  houseId: "9",
+                  id: "config-1",
+                  imageIds: [],
+                  isActive: true,
+                  pageKey: "default",
+                },
+              ],
+              houses: [
+                {
+                  coverImage: "https://images.example.com/old-cover.jpg",
+                  id: "9",
+                  title: "House 9",
+                  zoneLabel: "Pattaya",
+                },
+              ],
+              pagination: {
+                hasMore: false,
+                page: 1,
+                pageCount: 1,
+                pageSize: 1,
+                search: "",
+                total: 1,
+              },
+            },
+          }),
+        );
+      }
+
+      if (requestUrl === "/api/villas/9/images" && requestMethod === "GET") {
+        return Promise.resolve(makeJsonResponse({ body: { images: [] } }));
+      }
+
+      if (
+        requestUrl === "/api/admin/villa-card-images?houseId=9" &&
+        requestMethod === "DELETE"
+      ) {
+        return Promise.resolve(
+          makeJsonResponse({
+            body: {
+              config: {
+                coverImage: null,
+                houseId: "9",
+                id: "config-1",
+                imageIds: [],
+                isActive: true,
+                pageKey: "default",
+              },
+            },
+          }),
+        );
+      }
+
+      return Promise.resolve(
+        makeJsonResponse({
+          body: { error: `Unhandled ${requestMethod} ${requestUrl}` },
+          status: 500,
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(
+      <AdminVillaCardHouseCustomPage houseId="9" />,
+    );
+    await flushEffects();
+
+    expect(page.container.querySelector("[data-villa-cover-current]")).not.toBeNull();
+    const coverInput = page.container.querySelector(
+      "[data-villa-cover-input]",
+    ) as HTMLInputElement;
+    const coverUploadLabel = coverInput.closest("label");
+    const coverDeleteButton = page.container.querySelector(
+      "[data-villa-cover-delete]",
+    ) as HTMLButtonElement;
+
+    expect(coverUploadLabel?.textContent).toContain("อัพโหลดรูปปก");
+    expect(coverUploadLabel?.className).toContain("h-9");
+    expect(coverDeleteButton.className).toContain("h-9");
+    expect(coverUploadLabel?.parentElement).toBe(coverDeleteButton.parentElement);
+
+    await click(
+      coverDeleteButton,
+    );
+
+    expect(
+      page.container.querySelector("[data-villa-cover-delete-dialog]"),
+    ).not.toBeNull();
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/admin/villa-card-images?houseId=9",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+
+    await click(
+      page.container.querySelector(
+        "[data-villa-cover-delete-confirm]",
+      ) as HTMLButtonElement,
+    );
+    await flushEffects();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/villa-card-images?houseId=9",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer admin-token" },
+        method: "DELETE",
+      }),
+    );
+    expect(
+      page.container.querySelector("[data-villa-cover-delete-dialog]"),
+    ).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+    expect(page.container.querySelector("[data-villa-cover-current]")).toBeNull();
+
+    await page.unmount();
+  });
+
   it("loads one house from the route and lets admins select thumbnails", async () => {
     const fetchMock = makeFetchMock([
       {
@@ -662,6 +977,15 @@ describe("AdminVillaCardImagesPage", () => {
         .querySelector("[data-villa-card-back-link]")
         ?.getAttribute("href"),
     ).toBe("/admin/card-images/houses?page=2&search=9");
+    expect(
+      Array.from(
+        page.container.querySelectorAll("[data-villa-card-zone-option]"),
+        (item) => item.getAttribute("data-villa-card-zone-option"),
+      ),
+    ).toEqual(["outside", "inside", "__all__"]);
+    expect(
+      page.container.querySelector('[data-villa-card-image-option="30"]'),
+    ).toBeNull();
 
     const coverButton = page.container.querySelector(
       '[data-villa-card-image-option="10"]',
@@ -732,6 +1056,10 @@ describe("AdminVillaCardImagesPage", () => {
       "[data-villa-card-confirm-dialog]",
     );
     expect(confirmDialog).not.toBeNull();
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(
+      page.container.querySelector("[data-villa-card-confirm-cancel]"),
+    ).not.toBeNull();
     expect(fetchMock).not.toHaveBeenCalledWith(
       "/api/admin/villa-card-images",
       expect.objectContaining({ method: "PUT" }),
@@ -753,20 +1081,57 @@ describe("AdminVillaCardImagesPage", () => {
         ?.getAttribute("data-villa-card-confirm-order"),
     ).toBe("30,10,20");
 
-    // Close sort dialog with "เสร็จสิ้น"
     await click(
       page.container.querySelector(
-        "[data-villa-card-confirm-done]",
+        "[data-villa-card-confirm-cancel]",
       ) as HTMLButtonElement,
     );
     expect(
       page.container.querySelector("[data-villa-card-confirm-dialog]"),
     ).toBeNull();
-
-    // Now save — should fire PUT with reordered IDs
-    await click(
-      page.container.querySelector("[data-villa-card-save-custom]") as HTMLButtonElement,
+    expect(document.body.style.overflow).toBe("");
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/admin/villa-card-images",
+      expect.objectContaining({ method: "PUT" }),
     );
+
+    await click(
+      page.container.querySelector("[data-villa-card-sort-images]") as HTMLButtonElement,
+    );
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(
+      page.container
+        .querySelector("[data-villa-card-confirm-order]")
+        ?.getAttribute("data-villa-card-confirm-order"),
+    ).toBe("10,20,30");
+
+    act(() => {
+      page.container
+        .querySelector('[data-villa-card-confirm-image="30"]')
+        ?.dispatchEvent(new Event("dragstart", { bubbles: true }));
+      page.container
+        .querySelector('[data-villa-card-confirm-image="10"]')
+        ?.dispatchEvent(new Event("dragover", { bubbles: true }));
+    });
+    await flushEffects();
+
+    expect(
+      page.container
+        .querySelector("[data-villa-card-confirm-order]")
+        ?.getAttribute("data-villa-card-confirm-order"),
+    ).toBe("30,10,20");
+
+    // Save from the sort dialog.
+    await click(
+      page.container.querySelector(
+        "[data-villa-card-confirm-done]",
+      ) as HTMLButtonElement,
+    );
+    await flushEffects();
+    expect(
+      page.container.querySelector("[data-villa-card-confirm-dialog]"),
+    ).toBeNull();
+    expect(document.body.style.overflow).toBe("");
 
     const saveCall = fetchMock.mock.calls.find(
       ([url, init]) =>
