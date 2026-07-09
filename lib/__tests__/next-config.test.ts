@@ -21,6 +21,10 @@ describe("Next image config", () => {
     expect(nextConfig.images?.minimumCacheTTL).toBe(60 * 60 * 24 * 365);
   });
 
+  it("allows image qualities used by rendered image components", () => {
+    expect(nextConfig.images?.qualities).toEqual([50, 60, 70, 75]);
+  });
+
   it("allows advertisement images from the R2 worker", () => {
     expect(nextConfig.images?.remotePatterns).toEqual(
       expect.arrayContaining([
