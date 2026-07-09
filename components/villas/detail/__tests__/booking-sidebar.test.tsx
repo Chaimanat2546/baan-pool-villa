@@ -450,6 +450,12 @@ describe("BookingSidebar", () => {
     expect(todayButton?.className).toContain("rounded-2xl");
     expect(previousButton?.className).toContain("size-10");
     expect(nextButton?.className).toContain("size-10");
+    expect(
+      nextButton?.querySelector("[data-calendar-next-month-pointer]"),
+    ).not.toBeNull();
+    expect(
+      previousButton?.querySelector("[data-calendar-next-month-pointer]"),
+    ).toBeNull();
 
     await act(async () => {
       clickCalendarNavButton(page.container, "today");
