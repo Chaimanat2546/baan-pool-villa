@@ -431,6 +431,10 @@ describe("admin site settings route", () => {
       data: null,
       error: missingTiktokColumnError,
     });
+    const withoutMarketingTagsQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
     const withoutKeywordsQuery = siteSettingsSelectQuery({
       data: null,
       error: missingTiktokColumnError,
@@ -444,7 +448,13 @@ describe("admin site settings route", () => {
       error: null,
     });
     const from = fromQueue({
-      site_settings: [primaryQuery, withoutKeywordsQuery, withoutPageSeoQuery, fallbackQuery],
+      site_settings: [
+        primaryQuery,
+        withoutMarketingTagsQuery,
+        withoutKeywordsQuery,
+        withoutPageSeoQuery,
+        fallbackQuery,
+      ],
     });
 
     authSupabase({ from });
@@ -489,6 +499,7 @@ describe("admin site settings route", () => {
       expect.stringContaining("detail_layout"),
     );
     for (const fallbackSelectQuery of [
+      withoutMarketingTagsQuery,
       withoutKeywordsQuery,
       withoutPageSeoQuery,
       fallbackQuery,
@@ -507,6 +518,10 @@ describe("admin site settings route", () => {
 
   it("falls back to a general schema for GET when feature columns are missing", async () => {
     const primaryQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
+    const withoutMarketingTagsQuery = siteSettingsSelectQuery({
       data: null,
       error: missingTiktokColumnError,
     });
@@ -529,6 +544,7 @@ describe("admin site settings route", () => {
     const from = fromQueue({
       site_settings: [
         primaryQuery,
+        withoutMarketingTagsQuery,
         withoutKeywordsQuery,
         withoutPageSeoQuery,
         fallbackQuery,
@@ -930,6 +946,10 @@ describe("admin site settings route", () => {
       data: null,
       error: missingTiktokColumnError,
     });
+    const withoutMarketingTagsLoadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
     const withoutKeywordsLoadQuery = siteSettingsSelectQuery({
       data: null,
       error: missingTiktokColumnError,
@@ -947,6 +967,10 @@ describe("admin site settings route", () => {
       error: null,
     });
     const reloadQuery = siteSettingsSelectQuery({
+      data: null,
+      error: missingTiktokColumnError,
+    });
+    const withoutMarketingTagsReloadQuery = siteSettingsSelectQuery({
       data: null,
       error: missingTiktokColumnError,
     });
@@ -971,11 +995,13 @@ describe("admin site settings route", () => {
     const from = fromQueue({
       site_settings: [
         loadQuery,
+        withoutMarketingTagsLoadQuery,
         withoutKeywordsLoadQuery,
         withoutPageSeoLoadQuery,
         fallbackLoadQuery,
         saveQuery,
         reloadQuery,
+        withoutMarketingTagsReloadQuery,
         withoutKeywordsReloadQuery,
         withoutPageSeoReloadQuery,
         fallbackReloadQuery,

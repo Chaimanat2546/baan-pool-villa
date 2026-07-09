@@ -1,6 +1,7 @@
 import { requireHomeConfigAdmin } from "@/lib/admin/route-helpers";
 import {
   buildAdminVillaCardImageConfigsResponse,
+  deleteAdminVillaCardCoverImage,
   saveAdminVillaCardImages,
 } from "@/lib/villas/card-image-config-admin";
 
@@ -22,4 +23,14 @@ export async function PUT(request: Request) {
   }
 
   return saveAdminVillaCardImages(request, admin.supabase);
+}
+
+export async function DELETE(request: Request) {
+  const admin = await requireHomeConfigAdmin(request);
+
+  if (!admin.ok) {
+    return admin.response;
+  }
+
+  return deleteAdminVillaCardCoverImage(request, admin.supabase);
 }

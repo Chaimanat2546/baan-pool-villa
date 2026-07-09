@@ -27,6 +27,10 @@ export const VILLA_CARD_DISPLAY_IMAGE_MIN = 3;
 export const VILLA_CARD_DISPLAY_IMAGE_MAX = 10;
 
 type VillaCardImageConfigRow = {
+  cover_image_alt?: unknown;
+  cover_image_path?: unknown;
+  cover_image_url?: unknown;
+  house_id?: unknown;
   villa_card_image_items?: unknown;
 };
 
@@ -36,10 +40,12 @@ type VillaCardImageItemRow = {
 };
 
 type VillaCardImageConfig = {
+  coverImage: VillaImage | null;
   imageIds: number[];
 };
 
 const VILLA_CARD_IMAGE_CONFIG_PAGE_KEY = "default";
+const VILLA_COVER_OVERRIDE_IMAGE_ID = 0;
 
 function normalizeNullableText(value: string | null): string | null {
   const trimmedValue = value?.trim();
@@ -76,11 +82,11 @@ function isCoverZone(zone: string | null): boolean {
 }
 
 function getPreviewCoverPriority(image: VillaImage): number {
-  if (image.isCover) {
+  if (isCoverZone(image.zone)) {
     return 2;
   }
 
-  return isCoverZone(image.zone) ? 1 : 0;
+  return image.isCover ? 1 : 0;
 }
 
 function getBentoZonePriority(zone: string | null): number {
@@ -259,12 +265,68 @@ function mapVillaCardImageConfig(
   row: VillaCardImageConfigRow | null,
 ): VillaCardImageConfig {
   if (!row) {
-    return { imageIds: [] };
+    return { coverImage: null, imageIds: [] };
   }
 
   return {
+    coverImage: mapVillaCoverOverride(row),
     imageIds: getConfiguredImageIds(row.villa_card_image_items),
   };
+}
+
+function getImageNameFromPath(path: string): string | null {
+  const name = path.split("/").pop()?.trim();
+
+  return name || null;
+}
+
+function mapVillaCoverOverride(row: VillaCardImageConfigRow | null): VillaImage | null {
+  if (!row) {
+    return null;
+  }
+
+  const rawUrl =
+    typeof row.cover_image_url === "string" ? row.cover_image_url.trim() : "";
+  const imageUrl = normalizeImageUrl(rawUrl);
+
+  if (!imageUrl) {
+    return null;
+  }
+
+  const path =
+    typeof row.cover_image_path === "string" ? row.cover_image_path.trim() : "";
+  const alt =
+    typeof row.cover_image_alt === "string" && row.cover_image_alt.trim()
+      ? row.cover_image_alt.trim()
+      : null;
+
+  return {
+    caption: alt,
+    id: VILLA_COVER_OVERRIDE_IMAGE_ID,
+    imageName: getImageNameFromPath(path),
+    imageUrl,
+    isCover: true,
+    zone: "cover",
+  };
+}
+
+function applyVillaCoverOverride(
+  images: VillaImage[],
+  coverImage: VillaImage | null,
+): VillaImage[] {
+  if (!coverImage) {
+    return images;
+  }
+
+  return [
+    coverImage,
+    ...images.filter(
+      (image) =>
+        image.imageUrl !== coverImage.imageUrl &&
+        !image.isCover &&
+        !isCoverZone(image.zone),
+    ),
+  ];
 }
 
 function isMissingImageUrlColumnError(error: unknown): boolean {
@@ -430,23 +492,91 @@ async function fetchVillaImagesFromSupabase(
   return normalizeImageRows((data ?? []) as unknown as SupabaseImageRow[], supabaseUrl);
 }
 
+async function fetchVillaImagesWithCoverOverrideFromSupabase(
+  id: string,
+  villaId: number,
+): Promise<VillaImage[]> {
+  const [images, config] = await Promise.all([
+    fetchVillaImagesFromSupabase(id, villaId),
+    fetchVillaCardImageConfig(id),
+  ]);
+
+  return applyVillaCoverOverride(images, config.coverImage);
+}
+
 async function fetchVillaCardImageConfig(id: string): Promise<VillaCardImageConfig> {
   try {
     const { data, error } = await createHomeConfigClient()
       .from("villa_card_image_configs")
-      .select("villa_card_image_items(image_id,sort_order)")
+      .select(
+        "cover_image_path,cover_image_url,cover_image_alt,villa_card_image_items(image_id,sort_order)",
+      )
       .eq("page_key", VILLA_CARD_IMAGE_CONFIG_PAGE_KEY)
       .eq("house_id", id)
       .eq("is_active", true)
       .maybeSingle();
 
     if (error) {
-      return { imageIds: [] };
+      return { coverImage: null, imageIds: [] };
     }
 
     return mapVillaCardImageConfig(data as VillaCardImageConfigRow | null);
   } catch {
-    return { imageIds: [] };
+    return { coverImage: null, imageIds: [] };
+  }
+}
+
+export async function fetchVillaCoverOverride(id: string): Promise<VillaImage | null> {
+  parseVillaId(id);
+
+  return (await fetchVillaCardImageConfig(id)).coverImage;
+}
+
+export async function fetchVillaCoverOverrideUrls(
+  houseIds: readonly string[],
+): Promise<Map<string, string>> {
+  const validHouseIds = [...new Set(houseIds)]
+    .map((id) => id.trim())
+    .filter((id) => /^[1-9]\d*$/.test(id));
+
+  if (validHouseIds.length === 0) {
+    return new Map();
+  }
+
+  try {
+    const { data, error } = await createHomeConfigClient()
+      .from("villa_card_image_configs")
+      .select("house_id,cover_image_url")
+      .eq("page_key", VILLA_CARD_IMAGE_CONFIG_PAGE_KEY)
+      .eq("is_active", true)
+      .in("house_id", validHouseIds);
+
+    if (error || !Array.isArray(data)) {
+      return new Map();
+    }
+
+    const covers = new Map<string, string>();
+
+    for (const row of data as VillaCardImageConfigRow[]) {
+      const houseId =
+        typeof row.house_id === "number"
+          ? String(row.house_id)
+          : typeof row.house_id === "string"
+            ? row.house_id.trim()
+            : "";
+      const url =
+        typeof row.cover_image_url === "string"
+          ? normalizeImageUrl(row.cover_image_url)
+          : null;
+
+      if (houseId && url) {
+        covers.set(houseId, url);
+      }
+    }
+
+    return covers;
+  } catch {
+    return new Map();
   }
 }
 
@@ -524,15 +654,15 @@ async function resolveDisplayImagesFromSupabase(
     fetchVillaCardImageConfig(id),
   ]);
   const defaultImages = selectDefaultDisplayImages(
-    normalizeImageRows(rows, supabaseUrl),
+    applyVillaCoverOverride(normalizeImageRows(rows, supabaseUrl), config.coverImage),
   );
-  const recommendedImages = normalizeImageRows(
-    selectRecommendedDisplayRows(rows),
-    supabaseUrl,
+  const recommendedImages = applyVillaCoverOverride(
+    normalizeImageRows(selectRecommendedDisplayRows(rows), supabaseUrl),
+    config.coverImage,
   );
 
   const customImages = selectCustomDisplayImages(
-    normalizeImageRows(rows, supabaseUrl),
+    applyVillaCoverOverride(normalizeImageRows(rows, supabaseUrl), config.coverImage),
     config.imageIds,
   );
 
@@ -553,11 +683,16 @@ export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   const villaId = parseVillaId(id);
   const tag = CACHE_TAGS.villaImage(id);
   const getCachedVillaImages = unstable_cache(
-    () => fetchVillaImagesFromSupabase(id, villaId),
+    () => fetchVillaImagesWithCoverOverrideFromSupabase(id, villaId),
     [tag],
     {
       revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
-      tags: [CACHE_TAGS.villaImages, tag],
+      tags: [
+        CACHE_TAGS.villaImages,
+        CACHE_TAGS.villaCardImages,
+        tag,
+        CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id),
+      ],
     },
   );
 
@@ -575,11 +710,19 @@ export async function fetchVillaPreviewImages(id: string): Promise<VillaImage[]>
   const villaId = parseVillaId(id);
   const tag = CACHE_TAGS.villaImage(id);
   const getCachedVillaPreviewImages = unstable_cache(
-    async () => selectPreviewImages(await fetchVillaImagesFromSupabase(id, villaId)),
+    async () =>
+      selectPreviewImages(
+        await fetchVillaImagesWithCoverOverrideFromSupabase(id, villaId),
+      ),
     [`${tag}:preview`],
     {
       revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
-      tags: [CACHE_TAGS.villaImages, tag],
+      tags: [
+        CACHE_TAGS.villaImages,
+        CACHE_TAGS.villaCardImages,
+        tag,
+        CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id),
+      ],
     },
   );
 

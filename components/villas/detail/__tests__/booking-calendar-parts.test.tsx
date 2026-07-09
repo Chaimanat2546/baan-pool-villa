@@ -7,6 +7,7 @@ import {
   CalendarFirstAvailablePointer,
   CalendarFirstAvailableTooltip,
   CalendarLegend,
+  CalendarNextMonthPointer,
 } from "../booking-calendar-parts";
 
 const baseDay: BookingCalendarDay = {
@@ -33,6 +34,7 @@ describe("booking calendar parts", () => {
       <CalendarDayOverlay day={baseDay} />,
     );
     const pointerMarkup = renderToStaticMarkup(<CalendarFirstAvailablePointer />);
+    const nextPointerMarkup = renderToStaticMarkup(<CalendarNextMonthPointer />);
     const tooltipMarkup = renderToStaticMarkup(
       <CalendarFirstAvailableTooltip align="center" onDismiss={() => undefined} />,
     );
@@ -54,6 +56,12 @@ describe("booking calendar parts", () => {
     expect(pointerMarkup).toContain("animate-in");
     expect(pointerMarkup).toContain("calendar-pointer-bob");
     expect(pointerMarkup).not.toMatch(/\sstyle=/);
+    expect(nextPointerMarkup).toContain(
+      'data-calendar-next-month-pointer="true"',
+    );
+    expect(nextPointerMarkup).toContain("animate-in");
+    expect(nextPointerMarkup).toContain("calendar-pointer-bob");
+    expect(nextPointerMarkup).not.toMatch(/\sstyle=/);
     expect(tooltipMarkup).toContain('data-calendar-first-available-tip="true"');
     expect(tooltipMarkup).toContain("animate-in");
     expect(tooltipMarkup).not.toMatch(/\sstyle=/);

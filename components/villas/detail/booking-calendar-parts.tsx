@@ -115,6 +115,25 @@ export function CalendarFirstAvailablePointer() {
   );
 }
 
+export function CalendarNextMonthPointer() {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute -top-8 left-1/2 z-[35] -translate-x-1/2 animate-in drop-shadow-[0_3px_3px_rgba(12,28,24,0.24)] fade-in slide-in-from-bottom-1 zoom-in-95 duration-300"
+      data-calendar-next-month-pointer="true"
+    >
+      <Image
+        alt=""
+        className="calendar-pointer-bob relative z-10 size-11"
+        data-calendar-next-month-icon="true"
+        height={44}
+        src="/icons/pointing-left-finger-svgrepo-com.svg"
+        width={44}
+      />
+    </span>
+  );
+}
+
 export function CalendarFirstAvailableTooltip({
   align,
   onDismiss,

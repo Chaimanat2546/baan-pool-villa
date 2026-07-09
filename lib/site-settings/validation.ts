@@ -35,6 +35,9 @@ const TIKTOK_VIDEO_ID_PATTERN = /^\d{8,30}$/;
 const TIKTOK_PROFILE_PATH_PATTERN = /^\/@[^/]+\/?$/;
 const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
 const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
+const GOOGLE_TAG_MANAGER_ID_PATTERN = /^GTM-[A-Z0-9]{5,15}$/;
+const GOOGLE_TAG_MANAGER_ID_FORMAT_ERROR =
+  "GTM ID ต้องอยู่ในรูปแบบ GTM-XXXXXXX และใช้ได้เฉพาะตัวอักษร A-Z กับตัวเลข";
 const THAI_PHONE_PATTERN = /^0\d{9}$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
 const VILLA_CARD_STYLES = new Set(["classic", "gallery"]);
@@ -135,6 +138,9 @@ export function normalizeSiteSettingsRow(
   );
   const tiktokAccountUrl = normalizeTikTokAccountUrl(
     row.tiktok_account_url,
+  );
+  const googleTagManagerId = normalizeGoogleTagManagerId(
+    row.google_tag_manager_id,
   );
 
   return {
@@ -261,6 +267,7 @@ export function normalizeSiteSettingsRow(
       accountUrl: tiktokAccountUrl,
       videos: normalizeTikTokVideosFromRow(row.tiktok_video_urls),
     },
+    googleTagManagerId,
     detailLayout: normalizeAnyDetailLayout(row.detail_layout),
   };
 }
@@ -400,6 +407,32 @@ export function validateTikTokSettingsDraft(
   });
 
   return errors;
+}
+
+export function normalizeGoogleTagManagerId(
+  value: string | null | undefined,
+): string {
+  const normalizedValue = value?.trim().toUpperCase() ?? "";
+
+  if (normalizedValue.length === 0) {
+    return "";
+  }
+
+  return GOOGLE_TAG_MANAGER_ID_PATTERN.test(normalizedValue)
+    ? normalizedValue
+    : "";
+}
+
+export function validateGoogleTagManagerId(value: string): string[] {
+  const normalizedValue = value.trim().toUpperCase();
+
+  if (normalizedValue.length === 0) {
+    return [];
+  }
+
+  return GOOGLE_TAG_MANAGER_ID_PATTERN.test(normalizedValue)
+    ? []
+    : [GOOGLE_TAG_MANAGER_ID_FORMAT_ERROR];
 }
 
 /**

@@ -7,6 +7,8 @@ import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { unstable_cache } from "next/cache";
 import {
   buildProxyImageUrl,
+  fetchVillaCoverOverride,
+  fetchVillaCoverOverrideUrls,
   fetchVillaImages,
   fetchVillaPreviewImages,
   normalizeImageRows,
@@ -267,7 +269,12 @@ describe("fetchVillaImages", () => {
       [CACHE_TAGS.villaImage("9")],
       {
         revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
-        tags: [CACHE_TAGS.villaImages, CACHE_TAGS.villaImage("9")],
+        tags: [
+          CACHE_TAGS.villaImages,
+          CACHE_TAGS.villaCardImages,
+          CACHE_TAGS.villaImage("9"),
+          CACHE_TAGS.villaCardImage("default", "9"),
+        ],
       },
     );
   });
@@ -418,6 +425,62 @@ describe("fetchVillaImages", () => {
       "id, property_id, cover_select, image_name, caption, image_zone",
     );
   });
+
+  it("prepends an uploaded cover image and hides old cover images", async () => {
+    mockCardImageConfigQuery({
+      config: {
+        data: {
+          cover_image_alt: "Custom cover",
+          cover_image_path: "villa-cover/9/custom.webp",
+          cover_image_url: "https://assets.example.com/villa-cover/9/custom.webp",
+        },
+        error: null,
+      },
+    });
+    mockImagesQuery({
+      data: [
+        {
+          id: 1,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "old-zone-cover.jpg",
+          image_url: "https://images.example.com/old-zone-cover.jpg",
+          caption: null,
+          image_zone: "cover",
+        },
+        {
+          id: 2,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "old-selected-cover.jpg",
+          image_url: "https://images.example.com/old-selected-cover.jpg",
+          caption: null,
+          image_zone: "outside",
+        },
+        {
+          id: 3,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "pool.jpg",
+          image_url: "https://images.example.com/pool.jpg",
+          caption: null,
+          image_zone: "outside",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(fetchVillaImages("9")).resolves.toEqual([
+      expect.objectContaining({
+        id: 0,
+        imageName: "custom.webp",
+        imageUrl: "https://assets.example.com/villa-cover/9/custom.webp",
+        isCover: true,
+        zone: "cover",
+      }),
+      expect.objectContaining({ id: 3 }),
+    ]);
+  });
 });
 
 describe("fetchVillaPreviewImages", () => {
@@ -564,6 +627,125 @@ describe("fetchVillaPreviewImages", () => {
         zone: "cover",
       },
     ]);
+  });
+
+  it("uses cover-zone rows before cover_select rows for the main preview image", async () => {
+    mockImagesQuery({
+      data: [
+        {
+          id: 10,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "selected-outside.jpg",
+          image_url: "https://images.example.com/selected-outside.jpg",
+          caption: null,
+          image_zone: "outside",
+        },
+        {
+          id: 11,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "zone-cover.jpg",
+          image_url: "https://images.example.com/zone-cover.jpg",
+          caption: null,
+          image_zone: "cover",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(fetchVillaPreviewImages("9")).resolves.toEqual([
+      expect.objectContaining({ id: 11, zone: "cover" }),
+      expect.objectContaining({ id: 10, zone: "outside" }),
+    ]);
+  });
+
+  it("uses an uploaded cover as the first detail preview and omits old covers", async () => {
+    mockCardImageConfigQuery({
+      config: {
+        data: {
+          cover_image_alt: "Custom cover",
+          cover_image_path: "villa-cover/9/custom.webp",
+          cover_image_url: "https://assets.example.com/villa-cover/9/custom.webp",
+        },
+        error: null,
+      },
+    });
+    mockImagesQuery({
+      data: [
+        {
+          id: 1,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "old-cover.jpg",
+          image_url: "https://images.example.com/old-cover.jpg",
+          caption: null,
+          image_zone: "cover",
+        },
+        {
+          id: 2,
+          property_id: 9,
+          cover_select: 1,
+          image_name: "selected-cover.jpg",
+          image_url: "https://images.example.com/selected-cover.jpg",
+          caption: null,
+          image_zone: "outside",
+        },
+        {
+          id: 3,
+          property_id: 9,
+          cover_select: 0,
+          image_name: "inside.jpg",
+          image_url: "https://images.example.com/inside.jpg",
+          caption: null,
+          image_zone: "inside",
+        },
+      ],
+      error: null,
+    });
+
+    await expect(fetchVillaPreviewImages("9")).resolves.toEqual([
+      expect.objectContaining({
+        imageUrl: "https://assets.example.com/villa-cover/9/custom.webp",
+      }),
+      expect.objectContaining({ id: 3 }),
+    ]);
+  });
+});
+
+describe("fetchVillaCoverOverride", () => {
+  it("returns null when a house has no uploaded cover", async () => {
+    mockCardImageConfigQuery();
+
+    await expect(fetchVillaCoverOverride("9")).resolves.toBeNull();
+  });
+
+  it("maps cover override URLs when Supabase returns numeric house ids", async () => {
+    const query = {
+      eq: vi.fn(() => query),
+      in: vi.fn(() =>
+        Promise.resolve({
+          data: [
+            {
+              cover_image_url: "https://assets.example.com/villa-cover/9/custom.webp",
+              house_id: 9,
+            },
+          ],
+          error: null,
+        }),
+      ),
+      select: vi.fn(() => query),
+    };
+    createHomeConfigClientMock.mockReturnValue({
+      from: vi.fn(() => query),
+    });
+
+    await expect(fetchVillaCoverOverrideUrls(["9"])).resolves.toEqual(
+      new Map([
+        ["9", "https://assets.example.com/villa-cover/9/custom.webp"],
+      ]),
+    );
+    expect(query.in).toHaveBeenCalledWith("house_id", ["9"]);
   });
 });
 

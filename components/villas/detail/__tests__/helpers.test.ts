@@ -107,6 +107,34 @@ describe("buildGalleryItems", () => {
     expect(coverItem?.zoneLabel).toBe("รูปปก");
   });
 
+  it("uses cover-zone images before cover_select images", () => {
+    const images: VillaImage[] = [
+      {
+        caption: "Selected outside",
+        id: 10,
+        imageName: "selected-outside.jpg",
+        imageUrl: "https://images.example.com/selected-outside.jpg",
+        isCover: true,
+        zone: "outside",
+      },
+      {
+        caption: "Zone cover",
+        id: 11,
+        imageName: "zone-cover.jpg",
+        imageUrl: "https://images.example.com/zone-cover.jpg",
+        isCover: false,
+        zone: "cover",
+      },
+    ];
+
+    const items = buildGalleryItems(images);
+
+    expect(items.map((item) => item.url)).toEqual([
+      "https://images.example.com/zone-cover.jpg",
+      "https://images.example.com/selected-outside.jpg",
+    ]);
+  });
+
   it("uses the newest cover category image first when cover_select is not set", () => {
     const images: VillaImage[] = [
       {

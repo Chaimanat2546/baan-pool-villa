@@ -111,18 +111,28 @@ describe("cache revalidation", () => {
     ]);
   });
 
-  it("expires villa card image tags and the public image JSON edge version", async () => {
+  it("expires villa card image, gallery, and listing tags", async () => {
     await revalidateVillaCardImagesCache("9");
 
     expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaCardImages, {
+      expire: 0,
+    });
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaImages, {
+      expire: 0,
+    });
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaListings, {
       expire: 0,
     });
     expect(revalidateTagMock).toHaveBeenCalledWith(
       CACHE_TAGS.villaCardImage("default", "9"),
       { expire: 0 },
     );
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.villaImage("9"), {
+      expire: 0,
+    });
     expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
       HTML_CACHE_VERSION_GROUPS.villaImages,
+      HTML_CACHE_VERSION_GROUPS.villaListings,
     ]);
   });
 

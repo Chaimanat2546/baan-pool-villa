@@ -29,11 +29,19 @@ export async function revalidateHomeSectionsCache() {
 export async function revalidateVillaCardImagesCache(id?: string | null) {
   revalidateTags([
     CACHE_TAGS.villaCardImages,
+    CACHE_TAGS.villaImages,
+    CACHE_TAGS.villaListings,
     ...(id
-      ? [CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id)]
+      ? [
+          CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id),
+          CACHE_TAGS.villaImage(id),
+        ]
       : []),
   ]);
-  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.villaImages]);
+  await bumpHtmlEdgeCacheVersions([
+    HTML_CACHE_VERSION_GROUPS.villaImages,
+    HTML_CACHE_VERSION_GROUPS.villaListings,
+  ]);
 }
 
 export async function revalidateGuideCache(slug?: string | null) {

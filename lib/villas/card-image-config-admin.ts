@@ -4,6 +4,7 @@ import type {
 } from "@/lib/admin/route-helpers";
 import { adminSupabaseErrorResponse } from "@/lib/admin/route-helpers";
 import { revalidateVillaCardImagesCache } from "@/lib/cache-revalidation";
+import { SITE_ASSETS_BUCKET } from "@/lib/site-settings/defaults";
 import { validateCustomDisplayImageIds } from "@/lib/villas/images";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
 import {
@@ -12,9 +13,12 @@ import {
 } from "@/lib/villas/server";
 
 export const VILLA_CARD_IMAGE_CONFIG_SELECT =
-  "id,page_key,house_id,is_active,villa_card_image_items(image_id,sort_order)";
+  "id,page_key,house_id,is_active,cover_image_path,cover_image_url,cover_image_alt,villa_card_image_items(image_id,sort_order)";
 
 interface VillaCardImageConfigRow {
+  cover_image_alt?: unknown;
+  cover_image_path?: unknown;
+  cover_image_url?: unknown;
   id: unknown;
   page_key: unknown;
   house_id: unknown;
@@ -28,11 +32,18 @@ interface VillaCardImageItemRow {
 }
 
 export interface AdminVillaCardImageConfig {
+  coverImage: AdminVillaCardCoverImage | null;
   houseId: string;
   id: string;
   imageIds: number[];
   isActive: boolean;
   pageKey: string;
+}
+
+export interface AdminVillaCardCoverImage {
+  alt: string;
+  path: string;
+  url: string;
 }
 
 export interface AdminVillaCardHouseOption {
@@ -62,9 +73,18 @@ type ParsedVillaCardImageConfigPayload =
     };
 
 const VILLA_CARD_IMAGE_CONFIG_PAGE_KEY = "default";
+const VILLA_CARD_COVER_ASSET_TYPE = "villa-cover";
+const VILLA_CARD_COVER_PATH_PREFIX = "villa-cover";
 const DEFAULT_HOUSE_PAGE = 1;
 const DEFAULT_HOUSE_PAGE_SIZE = 10;
 const MAX_HOUSE_PAGE_SIZE = 50;
+const COVER_UPLOAD_LIMIT_BYTES = 6 * 1024 * 1024;
+const COVER_UPLOAD_EXTENSIONS = new Set(["jpeg", "jpg", "png", "webp"]);
+const COVER_UPLOAD_MIME_EXTENSIONS = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -107,6 +127,24 @@ function mapConfigItems(items: unknown): number[] {
     .map((item) => item.imageId);
 }
 
+function mapCoverImage(row: VillaCardImageConfigRow): AdminVillaCardCoverImage | null {
+  const path = typeof row.cover_image_path === "string" ? row.cover_image_path.trim() : "";
+  const url = typeof row.cover_image_url === "string" ? row.cover_image_url.trim() : "";
+
+  if (!path || !url) {
+    return null;
+  }
+
+  return {
+    alt:
+      typeof row.cover_image_alt === "string" && row.cover_image_alt.trim()
+        ? row.cover_image_alt.trim()
+        : "Villa cover",
+    path,
+    url,
+  };
+}
+
 export function mapVillaCardImageConfigRow(
   row: VillaCardImageConfigRow,
 ): AdminVillaCardImageConfig {
@@ -120,6 +158,7 @@ export function mapVillaCardImageConfigRow(
   }
 
   return {
+    coverImage: mapCoverImage(row),
     houseId: row.house_id,
     id: row.id,
     imageIds: mapConfigItems(row.villa_card_image_items),
@@ -161,6 +200,7 @@ export function parseVillaCardImageConfigPayload(
 
   return {
     config: {
+      coverImage: null,
       houseId,
       imageIds,
       isActive,
@@ -297,6 +337,120 @@ async function readJsonRequest(request: Request): Promise<unknown> {
   }
 }
 
+function readFormString(formData: FormData, fieldName: string): string {
+  const value = formData.get(fieldName);
+
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getCoverUpload(formData: FormData): File | null {
+  const value = formData.get("coverImage");
+
+  return value instanceof File && value.size > 0 ? value : null;
+}
+
+function getUploadExtension(mimeType: string): string | null {
+  return COVER_UPLOAD_MIME_EXTENSIONS.get(mimeType) ?? null;
+}
+
+function validateCoverUpload(file: File): string[] {
+  const errors: string[] = [];
+  const extension = file.name.trim().split(".").pop()?.toLowerCase() ?? "";
+
+  if (!COVER_UPLOAD_MIME_EXTENSIONS.has(file.type)) {
+    errors.push("Cover image must be JPG, PNG, or WebP.");
+  }
+
+  if (!COVER_UPLOAD_EXTENSIONS.has(extension)) {
+    errors.push("Cover image extension must be .jpg, .jpeg, .png, or .webp.");
+  }
+
+  if (file.size > COVER_UPLOAD_LIMIT_BYTES) {
+    errors.push("Cover image must be no larger than 6MB.");
+  }
+
+  return errors;
+}
+
+function buildVillaCoverStoragePath(houseId: string, mimeType: string): string {
+  const extension = getUploadExtension(mimeType);
+
+  if (!extension) {
+    throw new Error("Unsupported cover image MIME type.");
+  }
+
+  return `${VILLA_CARD_COVER_PATH_PREFIX}/${houseId}/${crypto.randomUUID()}.${extension}`;
+}
+
+async function removeUploadedCover(
+  supabase: HomeConfigSupabaseClient,
+  path: string,
+) {
+  await supabase.storage.from(SITE_ASSETS_BUCKET).remove([path]);
+}
+
+async function deleteCoverUploadHistory(
+  supabase: HomeConfigSupabaseClient,
+  uploadId: string,
+) {
+  await supabase.from("site_asset_uploads").delete().eq("id", uploadId);
+}
+
+async function recordCoverUpload(
+  supabase: HomeConfigSupabaseClient,
+  path: string,
+  publicUrl: string,
+): Promise<{ error: SupabaseLikeError | null; uploadId: string | null }> {
+  const { data, error } = await supabase
+    .from("site_asset_uploads")
+    .insert({
+      asset_type: VILLA_CARD_COVER_ASSET_TYPE,
+      storage_bucket: SITE_ASSETS_BUCKET,
+      storage_path: path,
+      public_url: publicUrl,
+      is_current: true,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    return { error, uploadId: null };
+  }
+
+  return {
+    error: null,
+    uploadId: data && typeof data.id === "string" ? data.id : null,
+  };
+}
+
+async function markPreviousVillaCoverUploadsInactive(
+  supabase: HomeConfigSupabaseClient,
+  houseId: string,
+  uploadId: string,
+) {
+  await supabase
+    .from("site_asset_uploads")
+    .update({ is_current: false })
+    .eq("asset_type", VILLA_CARD_COVER_ASSET_TYPE)
+    .eq("storage_bucket", SITE_ASSETS_BUCKET)
+    .eq("is_current", true)
+    .like("storage_path", `${VILLA_CARD_COVER_PATH_PREFIX}/${houseId}/%`)
+    .neq("id", uploadId);
+}
+
+async function markVillaCoverUploadsInactive(
+  supabase: HomeConfigSupabaseClient,
+  houseId: string,
+) {
+  await supabase
+    .from("site_asset_uploads")
+    .update({ is_current: false })
+    .eq("asset_type", VILLA_CARD_COVER_ASSET_TYPE)
+    .eq("storage_bucket", SITE_ASSETS_BUCKET)
+    .eq("is_current", true)
+    .like("storage_path", `${VILLA_CARD_COVER_PATH_PREFIX}/${houseId}/%`);
+}
+
 async function saveAdminVillaCardImageConfigPayload(
   payload: unknown,
   supabase: HomeConfigSupabaseClient,
@@ -318,7 +472,7 @@ async function saveAdminVillaCardImageConfigPayload(
       },
       { onConflict: "page_key,house_id" },
     )
-    .select("id,page_key,house_id,is_active")
+    .select("id,page_key,house_id,is_active,cover_image_path,cover_image_url,cover_image_alt")
     .single();
 
   if (error || !data) {
@@ -372,6 +526,103 @@ async function saveAdminVillaCardImageConfigPayload(
   });
 }
 
+async function saveAdminVillaCardCoverPayload(
+  formData: FormData,
+  supabase: HomeConfigSupabaseClient,
+) {
+  const houseId = readFormString(formData, "houseId");
+  const coverImage = getCoverUpload(formData);
+  const coverImageAlt = readFormString(formData, "coverImageAlt") || `Villa ${houseId} cover`;
+
+  if (!/^[1-9]\d*$/.test(houseId)) {
+    return Response.json(
+      { errors: ["houseId must be a positive house id."] },
+      { status: 400 },
+    );
+  }
+
+  if (!coverImage) {
+    return Response.json({ errors: ["coverImage is required."] }, { status: 400 });
+  }
+
+  const errors = validateCoverUpload(coverImage);
+
+  if (errors.length > 0) {
+    return Response.json({ errors }, { status: 400 });
+  }
+
+  const path = buildVillaCoverStoragePath(houseId, coverImage.type);
+  const uploadResult = await supabase.storage
+    .from(SITE_ASSETS_BUCKET)
+    .upload(path, coverImage, {
+      cacheControl: "31536000",
+      contentType: coverImage.type,
+      upsert: false,
+    });
+
+  if (uploadResult.error) {
+    return adminSupabaseErrorResponse(
+      uploadResult.error,
+      "Unable to upload villa cover image.",
+    );
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from(SITE_ASSETS_BUCKET)
+    .getPublicUrl(path);
+  const publicUrl = publicUrlData.publicUrl;
+  const historyResult = await recordCoverUpload(supabase, path, publicUrl);
+
+  if (historyResult.error || !historyResult.uploadId) {
+    await removeUploadedCover(supabase, path);
+
+    return adminSupabaseErrorResponse(
+      historyResult.error ?? { message: "Unable to read villa cover upload id." },
+      "Unable to record villa cover upload history.",
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("villa_card_image_configs")
+    .upsert(
+      {
+        cover_image_alt: coverImageAlt,
+        cover_image_path: path,
+        cover_image_url: publicUrl,
+        house_id: houseId,
+        is_active: true,
+        page_key: VILLA_CARD_IMAGE_CONFIG_PAGE_KEY,
+      },
+      { onConflict: "page_key,house_id" },
+    )
+    .select("id,page_key,house_id,is_active,cover_image_path,cover_image_url,cover_image_alt")
+    .single();
+
+  if (error || !data) {
+    await deleteCoverUploadHistory(supabase, historyResult.uploadId);
+    await removeUploadedCover(supabase, path);
+
+    return adminSupabaseErrorResponse(
+      error,
+      "Unable to save villa cover image config.",
+    );
+  }
+
+  await markPreviousVillaCoverUploadsInactive(
+    supabase,
+    houseId,
+    historyResult.uploadId,
+  );
+  await revalidateVillaCardImagesCache(houseId);
+
+  return Response.json({
+    config: mapVillaCardImageConfigRow({
+      ...(data as VillaCardImageConfigRow),
+      villa_card_image_items: [],
+    }),
+  });
+}
+
 export async function saveAdminVillaCardImageConfig(
   request: Request,
   supabase: HomeConfigSupabaseClient,
@@ -383,5 +634,82 @@ export async function saveAdminVillaCardImages(
   request: Request,
   supabase: HomeConfigSupabaseClient,
 ) {
+  if (request.headers.get("content-type")?.includes("multipart/form-data")) {
+    try {
+      return saveAdminVillaCardCoverPayload(await request.formData(), supabase);
+    } catch {
+      return Response.json(
+        { errors: ["Request body must be multipart/form-data."] },
+        { status: 400 },
+      );
+    }
+  }
+
   return saveAdminVillaCardImageConfigPayload(await readJsonRequest(request), supabase);
+}
+
+export async function deleteAdminVillaCardCoverImage(
+  request: Request,
+  supabase: HomeConfigSupabaseClient,
+) {
+  const houseId = new URL(request.url).searchParams.get("houseId")?.trim() ?? "";
+
+  if (!/^[1-9]\d*$/.test(houseId)) {
+    return Response.json(
+      { errors: ["houseId must be a positive house id."] },
+      { status: 400 },
+    );
+  }
+
+  const { data: currentData, error: currentError } = await supabase
+    .from("villa_card_image_configs")
+    .select(VILLA_CARD_IMAGE_CONFIG_SELECT)
+    .eq("page_key", VILLA_CARD_IMAGE_CONFIG_PAGE_KEY)
+    .eq("house_id", houseId)
+    .maybeSingle();
+
+  if (currentError) {
+    return adminSupabaseErrorResponse(
+      currentError,
+      "Unable to load villa cover image config.",
+    );
+  }
+
+  if (!currentData) {
+    return Response.json({ errors: ["Villa cover image config not found."] }, { status: 404 });
+  }
+
+  const currentConfig = mapVillaCardImageConfigRow(
+    currentData as VillaCardImageConfigRow,
+  );
+  const coverPath = currentConfig.coverImage?.path ?? null;
+  const { data, error } = await supabase
+    .from("villa_card_image_configs")
+    .update({
+      cover_image_alt: null,
+      cover_image_path: null,
+      cover_image_url: null,
+    })
+    .eq("id", currentConfig.id)
+    .select(VILLA_CARD_IMAGE_CONFIG_SELECT)
+    .single();
+
+  if (error || !data) {
+    return adminSupabaseErrorResponse(
+      error,
+      "Unable to delete villa cover image config.",
+    );
+  }
+
+  await markVillaCoverUploadsInactive(supabase, houseId);
+
+  if (coverPath) {
+    await removeUploadedCover(supabase, coverPath);
+  }
+
+  await revalidateVillaCardImagesCache(houseId);
+
+  return Response.json({
+    config: mapVillaCardImageConfigRow(data as VillaCardImageConfigRow),
+  });
 }

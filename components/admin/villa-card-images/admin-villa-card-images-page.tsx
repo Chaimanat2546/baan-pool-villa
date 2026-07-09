@@ -10,9 +10,11 @@ import {
   Search,
   SearchX,
   Trash2,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -37,11 +39,18 @@ import {
 } from "../settings/settings-helpers";
 
 interface AdminVillaCardImageConfig {
+  coverImage?: AdminVillaCardCoverImage | null;
   houseId: string;
   id: string;
   imageIds: number[];
   isActive: boolean;
   pageKey: string;
+}
+
+interface AdminVillaCardCoverImage {
+  alt: string;
+  path: string;
+  url: string;
 }
 
 interface AdminVillaCardHouseOption {
@@ -83,7 +92,15 @@ interface VillaImagesResponse {
 }
 
 const ALL_ZONE_KEY = "__all__";
+const OUTSIDE_ZONE_KEY = "outside";
 const HOUSE_PICKER_PAGE_SIZE = 7;
+const VILLA_COVER_UPLOAD_MAX_BYTES = 6 * 1024 * 1024;
+const VILLA_COVER_UPLOAD_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+const VILLA_COVER_UPLOAD_EXTENSIONS = new Set(["jpeg", "jpg", "png", "webp"]);
 const VILLA_CARD_PREVIEW_COVER_IMAGE_URL =
   "/images/villa-card-preview-cover.png";
 const VILLA_CARD_PREVIEW_IMAGE_URLS = [
@@ -188,6 +205,31 @@ function getZoneLabel(zone: string): string {
   return IMAGE_ZONE_LABELS[zone] ?? zone.replace(/[_-]+/g, " ");
 }
 
+function sortImageZoneKeys(zones: string[]): string[] {
+  return [...zones].sort((left, right) => {
+    if (left === right) {
+      return 0;
+    }
+
+    if (left === OUTSIDE_ZONE_KEY) {
+      return -1;
+    }
+
+    if (right === OUTSIDE_ZONE_KEY) {
+      return 1;
+    }
+
+    return left.localeCompare(right, "th");
+  });
+}
+
+function getInitialImageZone(images: PublicVillaImage[]): string {
+  return (
+    sortImageZoneKeys([...new Set(images.map(getImageZoneKey))])[0] ??
+    ALL_ZONE_KEY
+  );
+}
+
 function moveId(ids: number[], fromIndex: number, toIndex: number): number[] {
   if (toIndex < 0 || toIndex >= ids.length) {
     return ids;
@@ -201,6 +243,15 @@ function moveId(ids: number[], fromIndex: number, toIndex: number): number[] {
 
 function isUsableImage(image: PublicVillaImage): boolean {
   return typeof image.id === "number" && image.id > 0 && Boolean(image.imageUrl);
+}
+
+function isAllowedVillaCoverFile(file: File): boolean {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+
+  return (
+    VILLA_COVER_UPLOAD_TYPES.has(file.type) &&
+    Boolean(extension && VILLA_COVER_UPLOAD_EXTENSIONS.has(extension))
+  );
 }
 
 function VillaCardStyleSkeleton() {
@@ -387,10 +438,19 @@ export function AdminVillaCardImagesPage() {
               ตั้งค่าการ์ดบ้าน
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
-              เลือกรูปแบบการ์ดที่หน้าเว็บใช้ และตั้งค่ารูปสำหรับการ์ดแบบใหม่ในช่องเดียวกัน
+              เลือกรูปแบบการ์ดที่หน้าเว็บใช้ และจัดการรูปปกบ้านแยกจากรูปแบบการ์ด
             </p>
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
+            <Link
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+              data-villa-card-house-list-link
+              href="/admin/card-images/houses"
+              prefetch={false}
+            >
+              <Images className="h-4 w-4" />
+              จัดการรูปปกบ้าน
+            </Link>
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
               data-villa-card-save-style
@@ -461,21 +521,6 @@ export function AdminVillaCardImagesPage() {
                     ) : null}
                   </span>
                   <VillaCardStylePreview style={option.value} />
-                  {option.value === "gallery" ? (
-                    <Link
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
-                      data-villa-card-house-list-link
-                      href="/admin/card-images/houses"
-                      prefetch={false}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setStyle("gallery");
-                      }}
-                    >
-                      <Images className="h-4 w-4" />
-                      ตั้งค่ารูป card แบบใหม่
-                    </Link>
-                  ) : null}
                 </div>
               );
             })}
@@ -740,27 +785,24 @@ export function AdminVillaCardHouseListPage({
     <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
       <div className="sticky top-[73px] z-20 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:top-0 lg:z-30 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6">
         <header className="mx-auto grid w-full max-w-5xl gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div className="hidden min-w-0 lg:block">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
-              Card images
-            </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-normal text-[var(--site-text)]">
-              เลือกบ้านสำหรับจัดเรียงรูป
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
-              เลือกบ้านที่ต้องการจัดรูป Card แบบใหม่
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 lg:justify-end">
+          <div className="min-w-0">
             <Link
-              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+              className="inline-flex items-center gap-2 text-xs font-bold text-[var(--site-primary)] transition hover:text-[var(--site-primary-hover)]"
               data-villa-card-back-link
               href="/admin/card-images"
               prefetch={false}
             >
-              <ArrowLeft aria-hidden="true" className="size-4" />
-              ย้อนกลับ
+              <ArrowLeft aria-hidden="true" className="size-3.5" />
+              กลับไปตั้งค่าการ์ดบ้าน
             </Link>
+            <h1 className="mt-2 hidden text-3xl font-bold tracking-normal text-[var(--site-text)] lg:block">
+              เลือกบ้านสำหรับจัดเรียงรูป
+            </h1>
+            <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-[var(--site-muted)] lg:block">
+              เลือกบ้านที่ต้องการจัดรูปปกหรือรูปการ์ด
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
             <button
               type="button"
               className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
@@ -821,7 +863,12 @@ export function AdminVillaCardHouseListPage({
               </div>
             ) : (
               houses.map((house) => {
-                const hasCustom = configsByHouseId.has(house.id);
+                const customConfig = configsByHouseId.get(house.id);
+                const hasCustom = Boolean(
+                  customConfig?.coverImage || customConfig?.imageIds.length,
+                );
+                const houseCoverImage =
+                  customConfig?.coverImage?.url ?? house.coverImage;
 
                 return (
                   <Link
@@ -835,7 +882,7 @@ export function AdminVillaCardHouseListPage({
                       className="relative block h-24 w-full shrink-0 overflow-hidden rounded-lg bg-[var(--site-surface-tint)] sm:h-14 sm:w-20"
                       data-villa-card-house-thumb
                     >
-                      {house.coverImage ? (
+                      {houseCoverImage ? (
                         <Image
                           alt=""
                           className="object-cover"
@@ -843,7 +890,7 @@ export function AdminVillaCardHouseListPage({
                           loading="lazy"
                           quality={50}
                           sizes="80px"
-                          src={house.coverImage}
+                          src={houseCoverImage}
                         />
                       ) : null}
                     </span>
@@ -978,6 +1025,7 @@ export function AdminVillaCardHouseCustomPage({
     [houseId],
   );
   const {
+    configs,
     errors,
     getAccessToken,
     houses,
@@ -988,12 +1036,23 @@ export function AdminVillaCardHouseCustomPage({
   } = useVillaCardConfigs(handleConfigsLoaded, { houseId });
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingCover, setIsSavingCover] = useState(false);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [selectedZone, setSelectedZone] = useState(ALL_ZONE_KEY);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isDeleteCoverDialogOpen, setIsDeleteCoverDialogOpen] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const coverPreviewUrlRef = useRef<string | null>(null);
   const draggedSelectedImageIdRef = useRef<number | null>(null);
+  const sortDialogInitialImageIdsRef = useRef<number[]>([]);
   const activeZoneButtonRef = useRef<HTMLButtonElement | null>(null);
   const [images, setImages] = useState<PublicVillaImage[]>([]);
+  const currentConfig = useMemo(
+    () => configs.find((config) => config.houseId === houseId) ?? null,
+    [configs, houseId],
+  );
   const selectedHouse =
     houses.find((house) => house.id === houseId) ??
     ({
@@ -1002,6 +1061,9 @@ export function AdminVillaCardHouseCustomPage({
       title: `บ้าน ${houseId}`,
       zoneLabel: "",
     } satisfies AdminVillaCardHouseOption);
+  const savedCoverImage = currentConfig?.coverImage ?? null;
+  const coverPreviewSrc =
+    coverPreviewUrl ?? savedCoverImage?.url ?? selectedHouse.coverImage;
   const imageById = useMemo(
     () => new Map(images.map((image) => [image.id, image])),
     [images],
@@ -1018,10 +1080,11 @@ export function AdminVillaCardHouseCustomPage({
     }
 
     return [
+      ...sortImageZoneKeys([...counts.keys()]).map((zone) => ({
+        count: counts.get(zone) ?? 0,
+        zone,
+      })),
       { count: images.length, zone: ALL_ZONE_KEY },
-      ...[...counts.entries()]
-        .sort(([left], [right]) => left.localeCompare(right, "th"))
-        .map(([zone, count]) => ({ count, zone })),
     ];
   }, [images]);
   const visibleImages = useMemo(
@@ -1031,6 +1094,32 @@ export function AdminVillaCardHouseCustomPage({
         : images.filter((image) => getImageZoneKey(image) === selectedZone),
     [images, selectedZone],
   );
+
+  useEffect(
+    () => () => {
+      const previewUrl = coverPreviewUrlRef.current;
+
+      if (previewUrl && typeof URL.revokeObjectURL === "function") {
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      coverPreviewUrlRef.current = null;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isConfirmDialogOpen && !isDeleteCoverDialogOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isConfirmDialogOpen, isDeleteCoverDialogOpen]);
 
   useEffect(() => {
     const button = activeZoneButtonRef.current;
@@ -1068,7 +1157,9 @@ export function AdminVillaCardHouseCustomPage({
           return;
         }
 
-        setImages(payload.images.filter(isUsableImage));
+        const usableImages = payload.images.filter(isUsableImage);
+        setImages(usableImages);
+        setSelectedZone(getInitialImageZone(usableImages));
       } catch {
         setErrors(["ไม่สามารถโหลดรูปบ้านนี้ได้"]);
       } finally {
@@ -1078,6 +1169,168 @@ export function AdminVillaCardHouseCustomPage({
 
     void loadHouseImages();
   }, [houseId, setErrors]);
+
+  function replaceCoverFile(nextFile: File | null) {
+    const previousPreviewUrl = coverPreviewUrlRef.current;
+
+    if (previousPreviewUrl && typeof URL.revokeObjectURL === "function") {
+      URL.revokeObjectURL(previousPreviewUrl);
+    }
+
+    coverPreviewUrlRef.current = null;
+    setCoverFile(nextFile);
+
+    if (nextFile && typeof URL.createObjectURL === "function") {
+      const previewUrl = URL.createObjectURL(nextFile);
+      coverPreviewUrlRef.current = previewUrl;
+      setCoverPreviewUrl(previewUrl);
+      return;
+    }
+
+    setCoverPreviewUrl(null);
+  }
+
+  function handleCoverFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+
+    setNotice(null);
+
+    if (!file) {
+      replaceCoverFile(null);
+      return;
+    }
+
+    if (!isAllowedVillaCoverFile(file)) {
+      replaceCoverFile(null);
+      event.target.value = "";
+      setErrors(["รองรับไฟล์รูปปก JPG, PNG หรือ WebP เท่านั้น"]);
+      return;
+    }
+
+    if (file.size > VILLA_COVER_UPLOAD_MAX_BYTES) {
+      replaceCoverFile(null);
+      event.target.value = "";
+      setErrors(["รูปปกต้องมีขนาดไม่เกิน 6MB"]);
+      return;
+    }
+
+    setErrors([]);
+    replaceCoverFile(file);
+    void saveCoverImage(file);
+  }
+
+  async function saveCoverImage(file: File) {
+    const token = await getAccessToken();
+
+    if (!token) {
+      return;
+    }
+
+    setIsSavingCover(true);
+    setErrors([]);
+    setNotice(null);
+
+    try {
+      const formData = new FormData();
+      formData.set("houseId", houseId);
+      formData.set("coverImageAlt", selectedHouse.title || `Villa ${houseId}`);
+      formData.set("coverImage", file);
+
+      const response = await fetch("/api/admin/villa-card-images", {
+        body: formData,
+        headers: { Authorization: `Bearer ${token}` },
+        method: "PUT",
+      });
+      const payload =
+        (await readJsonPayload(response)) as AdminVillaCardImageSaveResponse | null;
+
+      if (shouldRedirectToLogin(response.status, payload)) {
+        redirectToLogin();
+        return;
+      }
+
+      if (!response.ok || !payload?.config) {
+        setErrors(extractAdminErrors(payload, "ไม่สามารถบันทึกรูปปกบ้านได้"));
+        return;
+      }
+
+      const savedConfig = payload.config;
+
+      setConfigs((currentConfigs) => [
+        ...currentConfigs.filter((config) => config.houseId !== savedConfig.houseId),
+        savedConfig,
+      ]);
+      replaceCoverFile(null);
+
+      setNotice("บันทึกรูปปกบ้านแล้ว");
+    } catch {
+      setErrors(["ไม่สามารถบันทึกรูปปกบ้านได้"]);
+    } finally {
+      if (coverInputRef.current) {
+        coverInputRef.current.value = "";
+      }
+
+      setIsSavingCover(false);
+    }
+  }
+
+  async function deleteCoverImage() {
+    if (!savedCoverImage) {
+      setIsDeleteCoverDialogOpen(false);
+      return;
+    }
+
+    const token = await getAccessToken();
+
+    if (!token) {
+      return;
+    }
+
+    setIsDeleteCoverDialogOpen(false);
+    setIsSavingCover(true);
+    setErrors([]);
+    setNotice(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/villa-card-images?houseId=${encodeURIComponent(houseId)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          method: "DELETE",
+        },
+      );
+      const payload =
+        (await readJsonPayload(response)) as AdminVillaCardImageSaveResponse | null;
+
+      if (shouldRedirectToLogin(response.status, payload)) {
+        redirectToLogin();
+        return;
+      }
+
+      if (!response.ok || !payload?.config) {
+        setErrors(extractAdminErrors(payload, "ไม่สามารถลบรูปปกบ้านได้"));
+        return;
+      }
+
+      const savedConfig = payload.config;
+
+      setConfigs((currentConfigs) => [
+        ...currentConfigs.filter((config) => config.houseId !== savedConfig.houseId),
+        savedConfig,
+      ]);
+      replaceCoverFile(null);
+
+      if (coverInputRef.current) {
+        coverInputRef.current.value = "";
+      }
+
+      setNotice("ลบรูปปกที่อัพโหลดแล้ว กลับไปใช้รูปเดิม");
+    } catch {
+      setErrors(["ไม่สามารถลบรูปปกบ้านได้"]);
+    } finally {
+      setIsSavingCover(false);
+    }
+  }
 
   function toggleImage(imageId: number) {
     setSelectedImageIds((currentIds) => {
@@ -1107,19 +1360,25 @@ export function AdminVillaCardHouseCustomPage({
 
   function openSortDialog() {
     if (selectedImageIds.length < 3) {
-      setErrors(["custom ควรมีอย่างน้อย 3 รูป"]);
+      setErrors(["ควรมีอย่างน้อย 3 รูป"]);
       setNotice(null);
       return;
     }
 
     setErrors([]);
     setNotice(null);
+    sortDialogInitialImageIdsRef.current = [...selectedImageIds];
     setIsConfirmDialogOpen(true);
+  }
+
+  function cancelSortDialog() {
+    setSelectedImageIds(sortDialogInitialImageIdsRef.current);
+    setIsConfirmDialogOpen(false);
   }
 
   function requestSaveConfig() {
     if (selectedImageIds.length < 3) {
-      setErrors(["custom ควรมีอย่างน้อย 3 รูป"]);
+      setErrors(["ควรมีอย่างน้อย 3 รูป"]);
       setNotice(null);
       return;
     }
@@ -1160,7 +1419,7 @@ export function AdminVillaCardHouseCustomPage({
       }
 
       if (!response.ok || !payload?.config) {
-        setErrors(extractAdminErrors(payload, "ไม่สามารถบันทึก config รูปการ์ดได้"));
+        setErrors(extractAdminErrors(payload, "ไม่สามารถบันทึกรูปการ์ดได้"));
         return;
       }
 
@@ -1171,9 +1430,9 @@ export function AdminVillaCardHouseCustomPage({
         savedConfig,
       ]);
       setIsConfirmDialogOpen(false);
-      setNotice("บันทึก custom รูปการ์ดแล้ว");
+      setNotice("บันทึกรูปการ์ดแล้ว");
     } catch {
-      setErrors(["ไม่สามารถบันทึก config รูปการ์ดได้"]);
+      setErrors(["ไม่สามารถบันทึกรูปการ์ดได้"]);
     } finally {
       setIsSaving(false);
     }
@@ -1206,7 +1465,13 @@ export function AdminVillaCardHouseCustomPage({
               type="button"
               className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-40"
               data-villa-card-sort-images
-              disabled={isSaving || isLoading || isLoadingImages || selectedImageIds.length < 1}
+              disabled={
+                isSavingCover ||
+                isSaving ||
+                isLoading ||
+                isLoadingImages ||
+                selectedImageIds.length < 1
+              }
               onClick={() => {
                 openSortDialog();
               }}
@@ -1218,13 +1483,13 @@ export function AdminVillaCardHouseCustomPage({
               type="button"
               className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
               data-villa-card-save-custom
-              disabled={isSaving || isLoading || isLoadingImages}
+              disabled={isSavingCover || isSaving || isLoading || isLoadingImages}
               onClick={() => {
                 requestSaveConfig();
               }}
             >
               <Save className="h-4 w-4" />
-              {isSaving ? "กำลังบันทึก..." : "บันทึก custom"}
+              {isSaving ? "กำลังบันทึก..." : "บันทึก"}
             </button>
           </div>
         </header>
@@ -1236,6 +1501,90 @@ export function AdminVillaCardHouseCustomPage({
           errorTitle="ตรวจสอบข้อมูลอีกครั้ง"
           notice={notice}
         />
+
+        <section className="grid gap-4 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:items-start">
+            <div
+              className="relative aspect-[4/3] min-w-0 overflow-hidden rounded-xl bg-[var(--site-surface-tint)]"
+              data-villa-cover-preview
+            >
+              {coverPreviewSrc ? (
+                <Image
+                  alt={savedCoverImage?.alt || selectedHouse.title}
+                  className="object-cover"
+                  fill
+                  loading="lazy"
+                  quality={70}
+                  sizes="(min-width: 768px) 288px, 100vw"
+                  src={coverPreviewSrc}
+                />
+              ) : (
+                <span className="grid h-full place-items-center px-4 text-center text-sm font-semibold text-[var(--site-muted)]">
+                  ยังไม่มีรูปปก
+                </span>
+              )}
+            </div>
+
+            <div className="grid min-w-0 content-start gap-3">
+              <div>
+                <h2 className="text-base font-bold text-[var(--site-text)]">
+                  รูปปกบ้าน
+                </h2>
+                <p className="mt-1 text-sm text-[var(--site-muted)]">
+                  JPG, PNG หรือ WebP สูงสุด 6MB
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]">
+                  <Upload className="h-3.5 w-3.5" />
+                  อัพโหลดรูปปก
+                  <input
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    data-villa-cover-input
+                    disabled={isSavingCover || isSaving || isLoading}
+                    ref={coverInputRef}
+                    type="file"
+                    onChange={handleCoverFileChange}
+                  />
+                </label>
+                {savedCoverImage ? (
+                  <button
+                    className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 shadow-sm transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    data-villa-cover-delete
+                    disabled={isSavingCover || isSaving || isLoading}
+                    type="button"
+                    onClick={() => {
+                      setIsDeleteCoverDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    ลบรูปที่อัพโหลด
+                  </button>
+                ) : null}
+              </div>
+
+              {coverFile ? (
+                <p
+                  className="min-w-0 truncate text-sm font-semibold text-[var(--site-text)]"
+                  data-villa-cover-file-name
+                >
+                  {coverFile.name}
+                </p>
+              ) : null}
+
+              {savedCoverImage ? (
+                <p
+                  className="text-sm font-semibold text-[var(--site-primary)]"
+                  data-villa-cover-current
+                >
+                  ใช้รูปปกที่อัพโหลดแล้ว
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </section>
 
       <section className="grid h-[calc(100dvh-14rem)] min-h-[32rem] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
         {isLoadingImages ? (
@@ -1340,6 +1689,55 @@ export function AdminVillaCardHouseCustomPage({
         </section>
       </div>
 
+      {isDeleteCoverDialogOpen ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-3"
+          data-villa-cover-delete-dialog
+          role="dialog"
+        >
+          <div className="grid w-full max-w-md gap-4 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-xl">
+            <div className="grid gap-2">
+              <div className="grid h-11 w-11 place-items-center rounded-full bg-red-50 text-red-600">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <h2 className="text-lg font-bold text-[var(--site-text)]">
+                ลบรูปปกที่อัพโหลด?
+              </h2>
+              <p className="text-sm leading-6 text-[var(--site-muted)]">
+                บ้านนี้จะกลับไปใช้รูปปกเดิมจากระบบ และรูปที่อัพโหลดจะไม่แสดงใน
+                Card หรือหน้า Detail
+              </p>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-sm font-bold text-[var(--site-text)]"
+                data-villa-cover-delete-cancel
+                disabled={isSavingCover}
+                type="button"
+                onClick={() => {
+                  setIsDeleteCoverDialogOpen(false);
+                }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                data-villa-cover-delete-confirm
+                disabled={isSavingCover}
+                type="button"
+                onClick={() => {
+                  void deleteCoverImage();
+                }}
+              >
+                {isSavingCover ? "กำลังลบ..." : "ลบรูปปก"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {isConfirmDialogOpen ? (
         <div
           aria-modal="true"
@@ -1353,7 +1751,7 @@ export function AdminVillaCardHouseCustomPage({
                 เรียงลำดับรูป
               </h2>
               <p className="mt-1 text-sm text-[var(--site-muted)]">
-                ลากหรือใช้ปุ่มลูกศรจัดลำดับ จากนั้นกด เสร็จสิ้น
+                ลากหรือใช้ปุ่มลูกศรจัดลำดับ จากนั้นกด บันทึก
               </p>
             </header>
 
@@ -1471,14 +1869,24 @@ export function AdminVillaCardHouseCustomPage({
 
             <footer className="flex flex-wrap justify-end gap-2 border-t border-[var(--site-border)] px-4 py-3">
               <button
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-sm font-bold text-[var(--site-text)]"
+                data-villa-card-confirm-cancel
+                disabled={isSaving}
+                type="button"
+                onClick={cancelSortDialog}
+              >
+                ยกเลิก
+              </button>
+              <button
                 className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--site-primary)] px-4 text-sm font-bold text-[var(--site-on-primary)]"
                 data-villa-card-confirm-done
+                disabled={isSaving}
                 type="button"
                 onClick={() => {
-                  setIsConfirmDialogOpen(false);
+                  void saveConfig();
                 }}
               >
-                เสร็จสิ้น
+                {isSaving ? "กำลังบันทึก..." : "บันทึก"}
               </button>
             </footer>
           </div>

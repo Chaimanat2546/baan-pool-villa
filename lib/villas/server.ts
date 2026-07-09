@@ -3,7 +3,11 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
-import { fetchVillaPreviewImages, normalizeImageRows } from "./images";
+import {
+  fetchVillaCoverOverrideUrls,
+  fetchVillaPreviewImages,
+  normalizeImageRows,
+} from "./images";
 import { AMENITY_OPTIONS, normalizeAmenityKey } from "./amenities";
 import {
   filterVillas,
@@ -440,6 +444,23 @@ async function fetchCoverImages(
   return coverImages;
 }
 
+async function fetchListingCoverImages(
+  supabase: VillaSupabaseClient,
+  supabaseUrl: string,
+  propertyIds: number[],
+): Promise<Map<string, string>> {
+  const [coverImages, coverOverrides] = await Promise.all([
+    fetchCoverImages(supabase, supabaseUrl, propertyIds),
+    fetchVillaCoverOverrideUrls(propertyIds.map(String)),
+  ]);
+
+  for (const [propertyId, coverUrl] of coverOverrides) {
+    coverImages.set(propertyId, coverUrl);
+  }
+
+  return coverImages;
+}
+
 async function fetchListingPrices(
   supabase: VillaSupabaseClient,
   listingIds: string[],
@@ -714,7 +735,7 @@ async function hydrateListingRows(
     .filter((id): id is string => Boolean(id));
   const [coverImages, prices] = await Promise.all([
     includeCoverImages
-      ? fetchCoverImages(supabase, supabaseUrl, propertyIds)
+      ? fetchListingCoverImages(supabase, supabaseUrl, propertyIds)
       : new Map<string, string>(),
     fetchListingPrices(supabase, listingIds),
   ]);
@@ -1108,7 +1129,11 @@ async function fetchVillaCardHouseOptionPageFromSupabase({
   const propertyIds = rows
     .map((row) => toNumber(row.property_id))
     .filter((id) => Number.isSafeInteger(id) && id > 0);
-  const coverImages = await fetchCoverImages(supabase, supabaseUrl, propertyIds);
+  const coverImages = await fetchListingCoverImages(
+    supabase,
+    supabaseUrl,
+    propertyIds,
+  );
   const items = rows
     .map((row) => toVillaCardHouseOption(row, coverImages))
     .filter((item): item is VillaCardHouseOptionItem => item !== null);
@@ -1142,7 +1167,7 @@ async function fetchListingByIdFromSupabase(
   const listingId = row.id?.trim();
   const [coverImages, prices] = await Promise.all([
     Number.isSafeInteger(propertyId) && propertyId > 0
-      ? fetchCoverImages(supabase, supabaseUrl, [propertyId])
+      ? fetchListingCoverImages(supabase, supabaseUrl, [propertyId])
       : new Map<string, string>(),
     listingId ? fetchListingPrices(supabase, [listingId]) : new Map<string, number>(),
   ]);

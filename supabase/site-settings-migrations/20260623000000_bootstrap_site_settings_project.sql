@@ -296,6 +296,7 @@ create table if not exists public.site_settings (
   bank_number_highlight_color text not null default '#eab308',
   logo_background text not null default 'white',
   villa_card_style text not null default 'classic',
+  google_tag_manager_id text not null default '',
   logo_image_path text,
   logo_image_url text,
   hero_image_path text,
@@ -315,7 +316,11 @@ create table if not exists public.site_settings (
   constraint site_settings_bank_name_highlight_color_hex check (bank_name_highlight_color ~ '^#[0-9A-Fa-f]{6}$'),
   constraint site_settings_bank_number_highlight_color_hex check (bank_number_highlight_color ~ '^#[0-9A-Fa-f]{6}$'),
   constraint site_settings_logo_background_allowed check (logo_background in ('white', 'transparent', 'primary', 'soft')),
-  constraint site_settings_villa_card_style_allowed check (villa_card_style in ('classic', 'gallery'))
+  constraint site_settings_villa_card_style_allowed check (villa_card_style in ('classic', 'gallery')),
+  constraint site_settings_google_tag_manager_id_format check (
+    google_tag_manager_id = ''
+    or google_tag_manager_id ~ '^GTM-[A-Z0-9]{5,15}$'
+  )
 );
 
 create table if not exists public.site_asset_uploads (
@@ -526,6 +531,7 @@ insert into public.site_settings (
   bank_number_highlight_color,
   logo_background,
   villa_card_style,
+  google_tag_manager_id,
   logo_image_path,
   logo_image_url,
   hero_image_path,
@@ -547,6 +553,7 @@ values (
   '#eab308',
   'white',
   'classic',
+  '',
   '/images/logo.jpg',
   '/images/logo.jpg',
   '/images/BPV-66_Cover-Web.jpg',
@@ -1754,3 +1761,191 @@ create policy "Authenticated admins can delete site assets"
 notify pgrst, 'reload schema';
 
 -- END supabase/migrations/20260703002000_add_site_favicon_setting.sql
+
+-- BEGIN supabase/migrations/20260706090000_add_villa_card_image_configs.sql
+create table if not exists public.villa_card_image_configs (
+  id uuid primary key default gen_random_uuid(),
+  page_key text not null default 'default' check (page_key ~ '^[a-z0-9][a-z0-9-]{0,63}$'),
+  house_id text not null check (house_id ~ '^[1-9][0-9]*$'),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (page_key, house_id)
+);
+
+create table if not exists public.villa_card_image_items (
+  id uuid primary key default gen_random_uuid(),
+  config_id uuid not null references public.villa_card_image_configs(id) on delete cascade,
+  image_id integer not null check (image_id > 0),
+  sort_order smallint not null check (sort_order between 1 and 10),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (config_id, image_id),
+  unique (config_id, sort_order)
+);
+
+create index if not exists villa_card_image_configs_lookup_idx
+  on public.villa_card_image_configs (page_key, house_id, is_active);
+
+create index if not exists villa_card_image_items_order_idx
+  on public.villa_card_image_items (config_id, sort_order);
+
+drop trigger if exists villa_card_image_configs_set_updated_at
+  on public.villa_card_image_configs;
+
+create trigger villa_card_image_configs_set_updated_at
+  before update on public.villa_card_image_configs
+  for each row execute function private.set_updated_at();
+
+drop trigger if exists villa_card_image_items_set_updated_at
+  on public.villa_card_image_items;
+
+create trigger villa_card_image_items_set_updated_at
+  before update on public.villa_card_image_items
+  for each row execute function private.set_updated_at();
+
+alter table public.villa_card_image_configs enable row level security;
+alter table public.villa_card_image_items enable row level security;
+
+drop policy if exists "Anon users can select active villa card image configs"
+  on public.villa_card_image_configs;
+
+create policy "Anon users can select active villa card image configs"
+  on public.villa_card_image_configs
+  for select
+  to anon
+  using (is_active);
+
+drop policy if exists "Authenticated users can select visible villa card image configs"
+  on public.villa_card_image_configs;
+
+create policy "Authenticated users can select visible villa card image configs"
+  on public.villa_card_image_configs
+  for select
+  to authenticated
+  using (is_active or private.is_home_config_admin());
+
+drop policy if exists "Authenticated admins can insert villa card image configs"
+  on public.villa_card_image_configs;
+
+create policy "Authenticated admins can insert villa card image configs"
+  on public.villa_card_image_configs
+  for insert
+  to authenticated
+  with check (private.is_home_config_admin());
+
+drop policy if exists "Authenticated admins can update villa card image configs"
+  on public.villa_card_image_configs;
+
+create policy "Authenticated admins can update villa card image configs"
+  on public.villa_card_image_configs
+  for update
+  to authenticated
+  using (private.is_home_config_admin())
+  with check (private.is_home_config_admin());
+
+drop policy if exists "Authenticated admins can delete villa card image configs"
+  on public.villa_card_image_configs;
+
+create policy "Authenticated admins can delete villa card image configs"
+  on public.villa_card_image_configs
+  for delete
+  to authenticated
+  using (private.is_home_config_admin());
+
+drop policy if exists "Anon users can select active villa card image items"
+  on public.villa_card_image_items;
+
+create policy "Anon users can select active villa card image items"
+  on public.villa_card_image_items
+  for select
+  to anon
+  using (
+    exists (
+      select 1
+      from public.villa_card_image_configs config
+      where config.id = villa_card_image_items.config_id
+        and config.is_active
+    )
+  );
+
+drop policy if exists "Authenticated users can select visible villa card image items"
+  on public.villa_card_image_items;
+
+create policy "Authenticated users can select visible villa card image items"
+  on public.villa_card_image_items
+  for select
+  to authenticated
+  using (
+    private.is_home_config_admin()
+    or exists (
+      select 1
+      from public.villa_card_image_configs config
+      where config.id = villa_card_image_items.config_id
+        and config.is_active
+    )
+  );
+
+drop policy if exists "Authenticated admins can insert villa card image items"
+  on public.villa_card_image_items;
+
+create policy "Authenticated admins can insert villa card image items"
+  on public.villa_card_image_items
+  for insert
+  to authenticated
+  with check (private.is_home_config_admin());
+
+drop policy if exists "Authenticated admins can update villa card image items"
+  on public.villa_card_image_items;
+
+create policy "Authenticated admins can update villa card image items"
+  on public.villa_card_image_items
+  for update
+  to authenticated
+  using (private.is_home_config_admin())
+  with check (private.is_home_config_admin());
+
+drop policy if exists "Authenticated admins can delete villa card image items"
+  on public.villa_card_image_items;
+
+create policy "Authenticated admins can delete villa card image items"
+  on public.villa_card_image_items
+  for delete
+  to authenticated
+  using (private.is_home_config_admin());
+
+grant select on public.villa_card_image_configs, public.villa_card_image_items
+  to anon, authenticated;
+
+grant insert, update, delete
+  on public.villa_card_image_configs, public.villa_card_image_items
+  to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- END supabase/migrations/20260706090000_add_villa_card_image_configs.sql
+
+-- BEGIN supabase/migrations/20260708035938_add_google_tag_manager_id.sql
+alter table public.site_settings
+  add column if not exists google_tag_manager_id text not null default '';
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'site_settings_google_tag_manager_id_format'
+      and conrelid = 'public.site_settings'::regclass
+  ) then
+    alter table public.site_settings
+      add constraint site_settings_google_tag_manager_id_format
+      check (
+        google_tag_manager_id = ''
+        or google_tag_manager_id ~ '^GTM-[A-Z0-9]{5,15}$'
+      );
+  end if;
+end $$;
+
+notify pgrst, 'reload schema';
+
+-- END supabase/migrations/20260708035938_add_google_tag_manager_id.sql

@@ -71,7 +71,7 @@ describe("getSiteSettings", () => {
 
     expect(unstableCacheMock).toHaveBeenCalledWith(
       expect.any(Function),
-      [`${CACHE_TAGS.siteSettings}:v3`],
+      [`${CACHE_TAGS.siteSettings}:v4`],
       {
         revalidate: CACHE_REVALIDATE_SECONDS.siteSettings,
         tags: [CACHE_TAGS.siteSettings],
@@ -232,6 +232,9 @@ describe("getSiteSettings", () => {
     );
     expect(query.select).toHaveBeenCalledWith(
       expect.stringContaining("tiktok_video_urls"),
+    );
+    expect(query.select).toHaveBeenCalledWith(
+      expect.stringContaining("google_tag_manager_id"),
     );
     expect(query.from).toHaveBeenCalledWith("site_settings");
     expect(query.eq).toHaveBeenCalledWith("id", SITE_SETTINGS_ID);
