@@ -205,17 +205,26 @@ export async function uploadSiteSettingsAssets(
   return { ok: true, uploadedAssets };
 }
 
-export function readSiteSettingsUploadFiles(formData: FormData): {
+export function readSiteSettingsUploadFiles(
+  formData: FormData,
+  allowedAssetTypes: readonly SiteAssetType[] = SITE_SETTINGS_ASSET_TYPES,
+): {
   errors: string[];
   uploadFiles: SiteSettingsUploadFile[];
 } {
   const errors: string[] = [];
   const uploadFiles: SiteSettingsUploadFile[] = [];
+  const allowedAssetTypeSet = new Set(allowedAssetTypes);
 
   ASSET_UPLOAD_FIELDS.forEach(({ assetType, fieldName }) => {
     const file = getOptionalUpload(formData, fieldName);
 
     if (!file) {
+      return;
+    }
+
+    if (!allowedAssetTypeSet.has(assetType)) {
+      errors.push(`Upload field "${fieldName}" is not allowed for this section.`);
       return;
     }
 
