@@ -280,9 +280,6 @@ export function CustomerReviewSection({ data }: CustomerReviewSectionProps) {
               เครดิตการจองและความไว้ใจจากผู้เข้าพัก
             </h2>
           </div>
-          <p className="max-w-sm text-sm leading-6 text-[var(--site-muted)]">
-            รูปแชทและสลิปจริงที่ทีมงานคัดไว้สำหรับหน้าแรก
-          </p>
         </div>
 
         {data.layout === "featured_rail" ? (
