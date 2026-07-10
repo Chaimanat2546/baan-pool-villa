@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, useEffect } from "react";
+import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -46,26 +46,38 @@ const options = {
   validate: () => [],
 };
 
-async function mountHook() {
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+
+  return { promise, resolve };
+}
+
+async function mountHook(initialOptions = options) {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
+  let currentOptions = initialOptions;
   let current: AdminSettingsSectionState<ThemeDraft> | null = null;
   let registeredDirty = false;
 
   function Probe() {
-    current = useAdminSettingsSection(options);
+    current = useAdminSettingsSection(currentOptions);
     registeredDirty = useSettingsDirtyState().isDirty;
     return null;
   }
 
-  act(() => {
+  function renderProbe() {
     root.render(
       <SettingsDirtyStateProvider>
         <Probe />
       </SettingsDirtyStateProvider>,
     );
-  });
+  }
+
+  act(renderProbe);
   await flushEffects();
 
   return {
@@ -74,6 +86,11 @@ async function mountHook() {
     },
     get registeredDirty() {
       return registeredDirty;
+    },
+    async rerender(nextOptions: typeof options) {
+      currentOptions = nextOptions;
+      act(renderProbe);
+      await flushEffects();
     },
     async unmount() {
       act(() => root.unmount());
@@ -238,5 +255,132 @@ describe("useAdminSettingsSection", () => {
     expect(dirty).toBe(false);
 
     act(() => root.unmount());
+  });
+
+  it("blocks PATCH when client validation fails", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      makeJsonResponse({ body: { settings: { primaryColor: "#000000" } } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const hook = await mountHook({
+      ...options,
+      validate: () => ["Invalid color"],
+    });
+
+    act(() => hook.current.updateDraft({ primaryColor: "invalid" }));
+    await act(async () => hook.current.save());
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(hook.current.errors).toEqual(["Invalid color"]);
+    await hook.unmount();
+  });
+
+  it("does not reload when inline callback identities change", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      makeJsonResponse({ body: { settings: { primaryColor: "#000000" } } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const hook = await mountHook();
+
+    await hook.rerender({
+      buildRequest: (draft) => ({ body: JSON.stringify(draft) }),
+      makeSnapshot: (draft) => JSON.stringify(draft),
+      mapResponse: (value) => (value as { settings: ThemeDraft }).settings,
+      section: "theme",
+      validate: () => [],
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await hook.unmount();
+  });
+
+  it("ignores an older GET that resolves after a newer section load", async () => {
+    const oldLoad = deferred<Response>();
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(oldLoad.promise)
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#222222" } } }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const hook = await mountHook();
+
+    await hook.rerender({ ...options, section: "brand" });
+    expect(hook.current.draft).toEqual({ primaryColor: "#222222" });
+
+    oldLoad.resolve(
+      makeJsonResponse({ body: { settings: { primaryColor: "#111111" } } }),
+    );
+    await flushEffects();
+
+    expect(hook.current.draft).toEqual({ primaryColor: "#222222" });
+    await hook.unmount();
+  });
+
+  it("allows only one PATCH when save is called twice rapidly", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#000000" } } }),
+      )
+      .mockResolvedValue(
+        makeJsonResponse({ body: { settings: { primaryColor: "#333333" } } }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const hook = await mountHook();
+    act(() => hook.current.updateDraft({ primaryColor: "#333333" }));
+
+    await act(async () => {
+      await Promise.all([hook.current.save(), hook.current.save()]);
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH"),
+    ).toHaveLength(1);
+    await hook.unmount();
+  });
+
+  it("preserves edits made while a save is in flight", async () => {
+    const pendingSave = deferred<Response>();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#000000" } } }),
+      )
+      .mockReturnValueOnce(pendingSave.promise);
+    vi.stubGlobal("fetch", fetchMock);
+    const hook = await mountHook();
+    act(() => hook.current.updateDraft({ primaryColor: "#444444" }));
+
+    let savePromise!: Promise<void>;
+    act(() => {
+      savePromise = hook.current.save();
+    });
+    await flushEffects();
+    act(() => hook.current.updateDraft({ primaryColor: "#555555" }));
+    pendingSave.resolve(
+      makeJsonResponse({ body: { settings: { primaryColor: "#444444" } } }),
+    );
+    await act(async () => savePromise);
+
+    expect(hook.current.draft).toEqual({ primaryColor: "#555555" });
+    expect(hook.current.hasUnsavedChanges).toBe(true);
+    await hook.unmount();
+  });
+
+  it("ignores an async GET completion after unmount", async () => {
+    const pendingLoad = deferred<Response>();
+    const mapResponse = vi.fn(options.mapResponse);
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(pendingLoad.promise));
+    const hook = await mountHook({ ...options, mapResponse });
+
+    await hook.unmount();
+    pendingLoad.resolve(
+      makeJsonResponse({ body: { settings: { primaryColor: "#999999" } } }),
+    );
+    await flushEffects();
+
+    expect(mapResponse).not.toHaveBeenCalled();
   });
 });

@@ -61,6 +61,7 @@ describe("SettingsDirtyStateProvider", () => {
     });
 
     expect(container.querySelector('a[href="/"]')?.getAttribute("target")).toBe("_blank");
+    expect(container.textContent).not.toContain("รีเฟรช");
     expect(container.querySelector("button")?.textContent).toContain("บันทึกส่วนนี้");
 
     act(() => root.unmount());

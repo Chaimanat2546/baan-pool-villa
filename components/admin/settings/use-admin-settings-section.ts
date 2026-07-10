@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   extractAdminErrors,
@@ -62,6 +62,21 @@ export function useAdminSettingsSection<TDraft>({
   const router = useRouter();
   const { setIsDirty } = useSettingsDirtyState();
   const mountedRef = useRef(true);
+  const saveInFlightRef = useRef(false);
+  const sectionRef = useRef(section);
+  const callbacksRef = useRef({
+    mapResponse,
+    makeSnapshot,
+    buildRequest,
+    validate,
+  });
+  sectionRef.current = section;
+  callbacksRef.current = {
+    mapResponse,
+    makeSnapshot,
+    buildRequest,
+    validate,
+  };
   const [draft, setDraft] = useState<TDraft | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -69,13 +84,10 @@ export function useAdminSettingsSection<TDraft>({
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const hasUnsavedChanges = useMemo(
-    () =>
-      draft !== null &&
-      savedSnapshot !== null &&
-      makeSnapshot(draft) !== savedSnapshot,
-    [draft, makeSnapshot, savedSnapshot],
-  );
+  const hasUnsavedChanges =
+    draft !== null &&
+    savedSnapshot !== null &&
+    callbacksRef.current.makeSnapshot(draft) !== savedSnapshot;
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
@@ -83,16 +95,24 @@ export function useAdminSettingsSection<TDraft>({
 
   useEffect(() => {
     mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
 
     async function load() {
       setIsLoading(true);
       setErrors([]);
       setWarnings([]);
       setNotice(null);
+      setIsSaving(false);
 
       try {
         const token = await readAdminAccessToken();
-        if (!mountedRef.current) return;
+        if (cancelled) return;
         if (!token) {
           redirectToLogin();
           return;
@@ -102,7 +122,7 @@ export function useAdminSettingsSection<TDraft>({
           headers: { Authorization: `Bearer ${token}` },
         });
         const payload = await readJsonPayload(response);
-        if (!mountedRef.current) return;
+        if (cancelled) return;
 
         if (shouldRedirectToLogin(response.status, payload)) {
           redirectToLogin();
@@ -113,25 +133,25 @@ export function useAdminSettingsSection<TDraft>({
           return;
         }
 
-        const nextDraft = mapResponse(payload);
+        const nextDraft = callbacksRef.current.mapResponse(payload);
         setDraft(nextDraft);
-        setSavedSnapshot(makeSnapshot(nextDraft));
+        setSavedSnapshot(callbacksRef.current.makeSnapshot(nextDraft));
       } catch (caughtError) {
-        if (mountedRef.current) {
+        if (!cancelled) {
           setErrors([
             getAdminErrorMessage(caughtError, "ไม่สามารถโหลดข้อมูลการตั้งค่าได้"),
           ]);
         }
       } finally {
-        if (mountedRef.current) setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
 
     void load();
     return () => {
-      mountedRef.current = false;
+      cancelled = true;
     };
-  }, [mapResponse, makeSnapshot, redirectToLogin, section]);
+  }, [redirectToLogin, section]);
 
   useEffect(() => {
     setIsDirty(hasUnsavedChanges);
@@ -152,39 +172,50 @@ export function useAdminSettingsSection<TDraft>({
   }, []);
 
   const save = useCallback(async () => {
-    if (!draft) return;
+    if (!draft || saveInFlightRef.current) return;
 
-    const validationErrors = validate(draft);
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
-      setWarnings([]);
-      setNotice(null);
-      return;
-    }
-
-    const token = await readAdminAccessToken();
-    if (!mountedRef.current) return;
-    if (!token) {
-      redirectToLogin();
-      return;
-    }
-
-    setIsSaving(true);
-    setErrors([]);
-    setWarnings([]);
-    setNotice(null);
+    saveInFlightRef.current = true;
+    const submittedSection = section;
+    const submittedDraft = draft;
+    const {
+      buildRequest: buildSubmittedRequest,
+      makeSnapshot: makeSubmittedSnapshot,
+      mapResponse: mapSubmittedResponse,
+      validate: validateSubmittedDraft,
+    } = callbacksRef.current;
+    const submittedSnapshot = makeSubmittedSnapshot(submittedDraft);
 
     try {
-      const request = buildRequest(draft);
+      const validationErrors = validateSubmittedDraft(submittedDraft);
+      if (validationErrors.length > 0) {
+        setErrors(validationErrors);
+        setWarnings([]);
+        setNotice(null);
+        return;
+      }
+
+      setIsSaving(true);
+      setErrors([]);
+      setWarnings([]);
+      setNotice(null);
+
+      const token = await readAdminAccessToken();
+      if (!mountedRef.current || sectionRef.current !== submittedSection) return;
+      if (!token) {
+        redirectToLogin();
+        return;
+      }
+
+      const request = buildSubmittedRequest(submittedDraft);
       const headers = new Headers(request.headers);
       headers.set("Authorization", `Bearer ${token}`);
-      const response = await fetch(`/api/admin/site-settings/${section}`, {
+      const response = await fetch(`/api/admin/site-settings/${submittedSection}`, {
         body: request.body,
         headers,
         method: "PATCH",
       });
       const payload = await readJsonPayload(response);
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || sectionRef.current !== submittedSection) return;
 
       if (shouldRedirectToLogin(response.status, payload)) {
         redirectToLogin();
@@ -195,21 +226,30 @@ export function useAdminSettingsSection<TDraft>({
         return;
       }
 
-      const nextDraft = mapResponse(payload);
-      setDraft(nextDraft);
-      setSavedSnapshot(makeSnapshot(nextDraft));
+      const nextDraft = mapSubmittedResponse(payload);
+      const nextSavedSnapshot = makeSubmittedSnapshot(nextDraft);
+      setDraft((currentDraft) =>
+        currentDraft &&
+        makeSubmittedSnapshot(currentDraft) === submittedSnapshot
+          ? nextDraft
+          : currentDraft,
+      );
+      setSavedSnapshot(nextSavedSnapshot);
       setWarnings(readWarnings(payload));
       setNotice("บันทึกการตั้งค่าสำเร็จ");
     } catch (caughtError) {
-      if (mountedRef.current) {
+      if (mountedRef.current && sectionRef.current === submittedSection) {
         setErrors([
           getAdminErrorMessage(caughtError, "ไม่สามารถบันทึกการตั้งค่าได้"),
         ]);
       }
     } finally {
-      if (mountedRef.current) setIsSaving(false);
+      saveInFlightRef.current = false;
+      if (mountedRef.current && sectionRef.current === submittedSection) {
+        setIsSaving(false);
+      }
     }
-  }, [buildRequest, draft, makeSnapshot, mapResponse, redirectToLogin, section, validate]);
+  }, [draft, redirectToLogin, section]);
 
   return {
     draft,
