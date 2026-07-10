@@ -326,14 +326,14 @@
                 <td><code>components/admin/loading/admin-login-skeleton</code>.</td>
               </tr>
               <tr>
-                <td><code>app/(admin)/admin/settings/page.tsx</code></td>
-                <td><code>/admin/settings</code></td>
-                <td><code>components/admin/settings/admin-settings-page</code>; the form uses shared controls in <code>components/admin/settings/settings-form-controls</code> and the password OTP modal in <code>components/admin/settings/admin-password-security-card</code>.</td>
+                <td><code>app/(admin)/admin/settings/layout.tsx</code> and <code>page.tsx</code></td>
+                <td><code>/admin/settings</code> and section routes</td>
+                <td><code>components/admin/settings/settings-layout-shell</code> owns the persistent responsive section sidebar, dirty-navigation confirmation, and external-data refresh tool; the index redirects to <code>/admin/settings/brand</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/settings/loading.tsx</code></td>
                 <td><code>/admin/settings</code> loading UI</td>
-                <td><code>components/admin/loading/admin-settings-skeleton</code>.</td>
+                <td><code>components/admin/settings/settings-section-skeleton</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/tiktok/page.tsx</code></td>

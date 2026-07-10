@@ -35,7 +35,7 @@ describe("admin loading skeletons", () => {
       'data-admin-settings-skeleton="true"',
     );
     expect(renderToStaticMarkup(<SettingsLoading />)).toContain(
-      'data-admin-settings-skeleton="true"',
+      'data-settings-section-skeleton="true"',
     );
   });
 
