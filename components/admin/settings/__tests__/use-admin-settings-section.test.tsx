@@ -383,4 +383,133 @@ describe("useAdminSettingsSection", () => {
 
     expect(mapResponse).not.toHaveBeenCalled();
   });
+
+  it("clears the previous draft while the next section loads and blocks save", async () => {
+    const nextLoad = deferred<Response>();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#101010" } } }),
+      )
+      .mockReturnValueOnce(nextLoad.promise);
+    vi.stubGlobal("fetch", fetchMock);
+    const hook = await mountHook();
+
+    await hook.rerender({ ...options, section: "brand" });
+
+    expect(hook.current.draft).toBeNull();
+    expect(hook.current.hasUnsavedChanges).toBe(false);
+    expect(hook.current.isLoading).toBe(true);
+    await act(async () => hook.current.save());
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH"),
+    ).toHaveLength(0);
+
+    await hook.unmount();
+  });
+
+  it("allows the new section to save while the previous PATCH is pending", async () => {
+    const oldSave = deferred<Response>();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#111111" } } }),
+      )
+      .mockReturnValueOnce(oldSave.promise)
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#222222" } } }),
+      )
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#232323" } } }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const hook = await mountHook();
+    act(() => hook.current.updateDraft({ primaryColor: "#121212" }));
+    const oldSavePromise = hook.current.save();
+    await flushEffects();
+
+    await hook.rerender({ ...options, section: "brand" });
+    act(() => hook.current.updateDraft({ primaryColor: "#232323" }));
+    await act(async () => hook.current.save());
+
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH"),
+    ).toHaveLength(2);
+    expect(hook.current.draft).toEqual({ primaryColor: "#232323" });
+    expect(hook.current.hasUnsavedChanges).toBe(false);
+
+    oldSave.resolve(
+      makeJsonResponse({ body: { settings: { primaryColor: "#121212" } } }),
+    );
+    await act(async () => oldSavePromise);
+    await hook.unmount();
+  });
+
+  it("ignores a pending PATCH after navigating from A to B and back to A", async () => {
+    const oldSave = deferred<Response>();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#111111" } } }),
+      )
+      .mockReturnValueOnce(oldSave.promise)
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#222222" } } }),
+      )
+      .mockResolvedValueOnce(
+        makeJsonResponse({ body: { settings: { primaryColor: "#333333" } } }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const hook = await mountHook();
+    act(() => hook.current.updateDraft({ primaryColor: "#121212" }));
+    const oldSavePromise = hook.current.save();
+    await flushEffects();
+
+    await hook.rerender({ ...options, section: "brand" });
+    await hook.rerender(options);
+    expect(hook.current.draft).toEqual({ primaryColor: "#333333" });
+
+    oldSave.resolve(
+      makeJsonResponse({
+        body: {
+          settings: { primaryColor: "#121212" },
+          warnings: ["Old save warning"],
+        },
+      }),
+    );
+    await act(async () => oldSavePromise);
+
+    expect(hook.current.draft).toEqual({ primaryColor: "#333333" });
+    expect(hook.current.hasUnsavedChanges).toBe(false);
+    expect(hook.current.warnings).toEqual([]);
+    expect(hook.current.notice).toBeNull();
+    await hook.unmount();
+  });
+
+  it("ignores a PATCH completion after unmount", async () => {
+    const pendingSave = deferred<Response>();
+    const mapResponse = vi.fn(options.mapResponse);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          makeJsonResponse({ body: { settings: { primaryColor: "#111111" } } }),
+        )
+        .mockReturnValueOnce(pendingSave.promise),
+    );
+    const hook = await mountHook({ ...options, mapResponse });
+    act(() => hook.current.updateDraft({ primaryColor: "#121212" }));
+    const savePromise = hook.current.save();
+    await flushEffects();
+    mapResponse.mockClear();
+
+    await hook.unmount();
+    pendingSave.resolve(
+      makeJsonResponse({ body: { settings: { primaryColor: "#121212" } } }),
+    );
+    await savePromise;
+
+    expect(mapResponse).not.toHaveBeenCalled();
+  });
 });
