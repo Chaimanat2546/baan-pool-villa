@@ -151,9 +151,10 @@ function uploadHistoryDeleteQuery(result: { error: unknown }) {
 
 function uploadHistorySelectQuery(result: { data: unknown; error: unknown }) {
   const order = vi.fn().mockResolvedValue(result);
-  const select = vi.fn().mockReturnValue({ order });
+  const inFilter = vi.fn().mockReturnValue({ order });
+  const select = vi.fn().mockReturnValue({ in: inFilter });
 
-  return { order, select };
+  return { inFilter, order, select };
 }
 
 function fromQueue(queues: Record<string, unknown[]>) {

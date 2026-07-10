@@ -38,9 +38,10 @@ export const ASSET_UPLOAD_FIELDS: {
   { assetType: "guides-seo-og", fieldName: "guidesSeoOgImageFile" },
 ];
 
-const SITE_ASSET_TYPE_SET = new Set<SiteAssetType>(
-  ASSET_UPLOAD_FIELDS.map((field) => field.assetType),
-);
+export const SITE_SETTINGS_ASSET_TYPES: readonly SiteAssetType[] =
+  ASSET_UPLOAD_FIELDS.map(({ assetType }) => assetType);
+
+const SITE_ASSET_TYPE_SET = new Set<SiteAssetType>(SITE_SETTINGS_ASSET_TYPES);
 
 interface SiteAssetUploadRow {
   id: unknown;
@@ -333,6 +334,7 @@ export async function cleanupRetainedAssets(
   const { data, error } = await supabase
     .from("site_asset_uploads")
     .select(SITE_ASSET_UPLOADS_SELECT)
+    .in("asset_type", [...SITE_SETTINGS_ASSET_TYPES])
     .order("created_at", { ascending: false });
 
   if (error || !Array.isArray(data)) {
@@ -383,5 +385,5 @@ export async function cleanupRetainedAssets(
     }
   }
 
-  return warnings;
+  return [...new Set(warnings)];
 }
