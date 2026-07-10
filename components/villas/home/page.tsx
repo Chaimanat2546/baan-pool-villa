@@ -2,11 +2,16 @@ import { Fragment, type ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
 import type { HomePageSettings } from "@/components/villas/home/client-payload";
+import {
+  DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
+  type HomepageCustomerReviewData,
+} from "@/lib/customer-reviews/types";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
 import type { ResolvedHomeSection } from "@/lib/home-sections/types";
 import { SEARCH_FACETS } from "@/lib/villas/search-options";
 
 import { ArticlesSection } from "./articles-section";
+import { CustomerReviewSection } from "./customer-review-section";
 import { DestinationsSection } from "./destinations-section";
 import { FaqSection } from "./faq-section";
 import { HeroSection } from "./hero-section";
@@ -33,6 +38,7 @@ export interface HomePageDegradedSources {
 
 interface HomePageProps {
   children?: ReactNode;
+  customerReviews?: HomepageCustomerReviewData;
   degradedSources?: HomePageDegradedSources;
   heroSearch?: ReactNode;
   initialGuides?: PublicGuideSummary[];
@@ -43,6 +49,7 @@ interface HomePageProps {
 }
 
 interface HomePageContentProps {
+  customerReviews?: HomepageCustomerReviewData;
   destinationVillas?: DestinationVilla[];
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
@@ -50,6 +57,10 @@ interface HomePageContentProps {
 }
 
 export function HomePageContent({
+  customerReviews = {
+    images: [],
+    layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
+  },
   destinationVillas = [],
   initialGuides = [],
   initialHomeSections = [],
@@ -80,6 +91,7 @@ export function HomePageContent({
 
       <DestinationsSection villas={destinationVillas} />
       <TikTokSection tiktok={settings.tiktok} />
+      <CustomerReviewSection data={customerReviews} />
       <ArticlesSection guides={initialGuides} />
       <FaqSection />
       <ContactSection settings={settings} />
@@ -103,6 +115,10 @@ export function HomePageContent({
  */
 export function HomePage({
   children,
+  customerReviews = {
+    images: [],
+    layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
+  },
   degradedSources,
   heroSearch,
   initialGuides = [],
@@ -140,6 +156,7 @@ export function HomePage({
         {children ?? (
           <HomePageContent
             destinationVillas={destinationVillas}
+            customerReviews={customerReviews}
             initialGuides={initialGuides}
             initialHomeSections={initialHomeSections}
             settings={settings}

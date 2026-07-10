@@ -59,6 +59,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     pageTitle: "ตั้งค่ารูปการ์ดบ้านพัก",
   },
   {
+    description: "อัปโหลดและจัดคิวรูปรีวิวลูกค้าสำหรับหน้าแรก",
+    href: "/admin/customer-reviews",
+    icon: Images,
+    label: "รีวิวลูกค้า",
+    pageTitle: "รูปเครดิตและรีวิวลูกค้า",
+  },
+  {
     description: "รูปภาพบ้านพักและแกลเลอรี",
     disabled: true,
     href: "/admin/images",

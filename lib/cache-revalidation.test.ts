@@ -6,6 +6,7 @@ import {
   revalidateExternalVillaCache,
   revalidateGuideCache,
   revalidateHomeSectionsCache,
+  revalidateCustomerReviewsCache,
   revalidateLegalPageCache,
   revalidateSiteSettingsCache,
   revalidateVillaCardImagesCache,
@@ -27,6 +28,7 @@ vi.mock("./html-edge-cache-version", () => ({
     detailLayout: "detail-layout",
     guides: "guides",
     homeSections: "home-sections",
+    customerReviews: "customer-reviews",
     legalPages: "legal-pages",
     siteSettings: "site-settings",
     villaDetails: "villa-details",
@@ -134,6 +136,25 @@ describe("cache revalidation", () => {
       HTML_CACHE_VERSION_GROUPS.villaImages,
       HTML_CACHE_VERSION_GROUPS.villaListings,
     ]);
+  });
+
+  it("expires only customer review tags and homepage HTML", async () => {
+    await revalidateCustomerReviewsCache();
+
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.customerReviews, {
+      expire: 0,
+    });
+    expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
+      HTML_CACHE_VERSION_GROUPS.customerReviews,
+    ]);
+    expect(revalidateTagMock).not.toHaveBeenCalledWith(
+      CACHE_TAGS.homeSections,
+      expect.anything(),
+    );
+    expect(revalidateTagMock).not.toHaveBeenCalledWith(
+      CACHE_TAGS.guides,
+      expect.anything(),
+    );
   });
 
   it("expires only shared external villa tags by default", async () => {

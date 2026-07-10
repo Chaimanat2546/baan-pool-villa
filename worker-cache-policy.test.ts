@@ -110,7 +110,12 @@ describe("worker HTML edge cache policy", () => {
 
   it("assigns CMS version groups to each cacheable public HTML route", () => {
     expect(getHtmlEdgeCacheDecision(request("/"))).toMatchObject({
-      versionGroups: ["site-settings", "home-sections", "guides"],
+      versionGroups: [
+        "site-settings",
+        "home-sections",
+        "guides",
+        "customer-reviews",
+      ],
     });
     expect(getHtmlEdgeCacheDecision(request("/search"))).toMatchObject({
       versionGroups: ["site-settings"],

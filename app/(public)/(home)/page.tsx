@@ -15,6 +15,11 @@ import {
 import { HeroSearchSkeleton } from "@/components/villas/home/hero-section-skeleton";
 import { HeroSearch } from "@/components/villas/home/hero-search";
 import { VillaRailSkeleton } from "@/components/villas/home/villa-rail-skeleton";
+import { getHomepageCustomerReviewData } from "@/lib/customer-reviews/server";
+import {
+  DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
+  type HomepageCustomerReviewData,
+} from "@/lib/customer-reviews/types";
 import { getPublishedGuides } from "@/lib/guides/server";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
 import {
@@ -42,6 +47,7 @@ const HOME_DESTINATION_LIMIT = 12;
 
 type HomePageData = {
   degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
+  customerReviews: HomepageCustomerReviewData;
   guides: PublicGuideSummary[];
   homeSections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"];
   filterSummary: FilterSummary;
@@ -96,6 +102,7 @@ async function HomeDeferredContent({
         degradedSources={homePageData.degradedSources}
       />
       <HomePageContent
+        customerReviews={homePageData.customerReviews}
         initialGuides={homePageData.guides}
         initialHomeSections={homePageData.homeSections}
         destinationVillas={homePageData.destinationVillas}
@@ -125,6 +132,10 @@ async function getHomePageData(): Promise<HomePageData> {
     (value) => ({ status: "fulfilled" as const, value }),
     (reason) => ({ reason, status: "rejected" as const }),
   );
+  const customerReviewsResultPromise = getHomepageCustomerReviewData().then(
+    (value) => ({ status: "fulfilled" as const, value }),
+    (reason) => ({ reason, status: "rejected" as const }),
+  );
   const homeSectionListingPlanResult = await getHomeSectionListingPlan(
     HOME_DESTINATION_LIMIT,
   ).then(
@@ -144,8 +155,16 @@ async function getHomePageData(): Promise<HomePageData> {
     (reason) => ({ reason, status: "rejected" as const }),
   );
   const guidesResult = await guidesResultPromise;
+  const customerReviewsResult = await customerReviewsResultPromise;
   const guides =
     guidesResult.status === "fulfilled" ? guidesResult.value : [];
+  const customerReviews =
+    customerReviewsResult.status === "fulfilled"
+      ? customerReviewsResult.value
+      : {
+          images: [],
+          layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
+        };
 
   if (guidesResult.status === "rejected") {
     console.error("Unable to load homepage guide posts", guidesResult.reason);
@@ -160,6 +179,7 @@ async function getHomePageData(): Promise<HomePageData> {
         homeSections: false,
         villaCatalog: true,
       },
+      customerReviews,
       guides: selectHomeGuideSummaries(guides),
       homeSections: [],
       filterSummary: {
@@ -191,6 +211,7 @@ async function getHomePageData(): Promise<HomePageData> {
       homeSections: homeSectionsResult.degraded,
       villaCatalog: false,
     },
+    customerReviews,
     guides: selectHomeGuideSummaries(guides),
     homeSections: homeSectionsResult.sections.map((section) => ({
       ...section,

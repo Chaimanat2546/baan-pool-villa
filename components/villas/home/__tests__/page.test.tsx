@@ -61,6 +61,23 @@ const destinationVillas = [
     id: "501",
   },
 ];
+const customerReviews = {
+  images: [
+    {
+      alt: "Customer chat",
+      id: "review-1",
+      order: 1,
+      url: "https://example.supabase.co/storage/v1/object/public/site-assets/customer-reviews/review-1.webp",
+    },
+    {
+      alt: "Transfer slip",
+      id: "review-2",
+      order: 2,
+      url: "https://example.supabase.co/storage/v1/object/public/site-assets/customer-reviews/review-2.webp",
+    },
+  ],
+  layout: "proof_wall" as const,
+};
 
 function makeGuide(index: number): GuidePost {
   return {
@@ -289,9 +306,13 @@ describe("HomePage", () => {
     expect(markup).toContain('rel="noopener noreferrer"');
 
     const tiktokSectionIndex = markup.indexOf("data-home-tiktok");
+    const customerReviewSectionIndex = markup.indexOf(
+      "data-home-customer-reviews",
+    );
     const guidesSectionIndex = markup.indexOf('data-home-guides="true"');
     expect(tiktokSectionIndex).toBeGreaterThan(-1);
     expect(guidesSectionIndex).toBeGreaterThan(tiktokSectionIndex);
+    expect(customerReviewSectionIndex).toBe(-1);
 
     const tiktokSectionMarkup = markup.slice(tiktokSectionIndex, guidesSectionIndex);
     expect(tiktokSectionMarkup).toContain("snap-x");
@@ -304,6 +325,44 @@ describe("HomePage", () => {
 
     const guidesSectionMarkup = markup.slice(guidesSectionIndex);
     expect(guidesSectionMarkup).toContain("Guide 1");
+  });
+
+  it("renders customer review images after TikTok and before guide articles", () => {
+    const markup = renderToStaticMarkup(
+      <HomePage
+        customerReviews={customerReviews}
+        initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
+        initialHomeSections={[homeSection]}
+        filterSummary={filterSummary}
+        destinationVillas={destinationVillas}
+        settings={{
+          ...DEFAULT_SITE_SETTINGS,
+          tiktok: {
+            accountUrl: "https://www.tiktok.com/@baanpoolvilla",
+            videos: [
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000100",
+                videoId: "7370000000000000100",
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    const tiktokSectionIndex = markup.indexOf("data-home-tiktok");
+    const customerReviewSectionIndex = markup.indexOf(
+      'data-home-customer-reviews="proof_wall"',
+    );
+    const guidesSectionIndex = markup.indexOf('data-home-guides="true"');
+
+    expect(tiktokSectionIndex).toBeGreaterThan(-1);
+    expect(customerReviewSectionIndex).toBeGreaterThan(tiktokSectionIndex);
+    expect(guidesSectionIndex).toBeGreaterThan(customerReviewSectionIndex);
+    expect(markup).toContain("Customer chat");
+    expect(markup).toContain("Transfer slip");
+    expect(markup).toContain("customer-reviews/review-1.webp");
+    expect(markup).toContain("customer-reviews/review-2.webp");
   });
 
   it("dedupes TikTok videos by videoId and keeps max 6 visible posters", () => {
