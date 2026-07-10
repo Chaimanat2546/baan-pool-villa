@@ -111,7 +111,7 @@ const nextConfig: NextConfig = {
     loader: "custom",
     loaderFile: "./lib/aws-loader.ts",
     minimumCacheTTL: 60 * 60 * 24 * 365,
-    qualities: [60, 75],
+    qualities: [50, 60, 70, 75],
     remotePatterns: [
       {
         protocol: "https",

@@ -83,9 +83,7 @@ export function VillaCardGalleryImages({
       ? staticImages.length >= MIN_GALLERY_CARD_IMAGES
         ? "ready"
         : "empty"
-      : coverImageSrc
-        ? "loading"
-        : "empty",
+      : "loading",
   );
   const [images, setImages] = useState<string[]>(
     staticImages ?? (coverImageSrc ? [coverImageSrc] : []),
@@ -99,7 +97,7 @@ export function VillaCardGalleryImages({
 
     const root = rootRef.current;
 
-    if (!root || !coverImageSrc) {
+    if (!root) {
       setStatus("empty");
       setImages([]);
       return;
@@ -113,8 +111,11 @@ export function VillaCardGalleryImages({
       setStatus("loading");
 
       try {
+        const params = new URLSearchParams({
+          view: "card",
+        });
         const response = await fetch(
-          `/api/villas/${encodeURIComponent(villaId)}/images`,
+          `/api/villas/${encodeURIComponent(villaId)}/images?${params}`,
           { signal: controller.signal },
         );
 
@@ -221,7 +222,9 @@ export function VillaCardGalleryImages({
     thumbnailRail.scrollLeft = targetLeft;
   }, [galleryStatus, selectedIndex]);
 
-  if (!coverImageSrc) {
+  const selectedImage = galleryImages[selectedIndex] ?? coverImageSrc;
+
+  if (!selectedImage) {
     return (
       <div
         ref={rootRef}
@@ -234,7 +237,6 @@ export function VillaCardGalleryImages({
     );
   }
 
-  const selectedImage = galleryImages[selectedIndex] ?? coverImageSrc;
   const mainImage = (
     <Image
       src={selectedImage}

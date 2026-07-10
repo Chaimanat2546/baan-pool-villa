@@ -11,7 +11,11 @@ import {
   isAllowedVillaImageUrl,
   normalizeDownloadImageUrl,
 } from "@/lib/villas/image-download";
-import { fetchVillaImages, parseVillaId } from "@/lib/villas/images";
+import {
+  fetchVillaImages,
+  parseVillaId,
+  resolveDisplayImages,
+} from "@/lib/villas/images";
 import { toPublicVillaImages } from "@/lib/villas/public-dto";
 
 const IMAGE_DOWNLOAD_TIMEOUT_MS = 10_000;
@@ -26,6 +30,20 @@ export async function buildVillaImagesRouteResponse(request: Request, id: string
   parseVillaId(id);
 
   const requestUrl = new URL(request.url);
+
+  if (requestUrl.searchParams.get("view") === "card") {
+    const images = await resolveDisplayImages(id);
+
+    return Response.json(
+      { images: toPublicVillaImages(id, images) },
+      {
+        headers: {
+          "Cache-Control": CACHE_HEADERS.villaCardImages,
+        },
+      },
+    );
+  }
+
   const images = await fetchVillaImages(id);
 
   if (requestUrl.searchParams.has("imageId")) {

@@ -21,6 +21,7 @@ import {
 
 interface AdminShellProps {
   children: React.ReactNode;
+  initialDesktopNavCollapsed?: boolean;
   settings: SiteSettings;
 }
 
@@ -124,10 +125,16 @@ function AdminNavigation({
   );
 }
 
-export function AdminShell({ children, settings }: AdminShellProps) {
+export function AdminShell({
+  children,
+  initialDesktopNavCollapsed = false,
+  settings,
+}: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
+  const isDesktopNavCollapsed = useAdminSidebarCollapsed(
+    initialDesktopNavCollapsed,
+  );
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const activeItem = getActiveAdminNavItem(pathname);
   const compactSiteMark = getCompactSiteMark(settings.siteName);

@@ -8,6 +8,8 @@ import type { SiteSettingsLoadResult, SiteSettingsRow } from "./types";
 import { normalizeSiteSettingsRow } from "./validation";
 
 const SITE_SETTINGS_SELECT =
+  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,villa_card_style,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords,detail_layout,tiktok_account_url,tiktok_video_urls,google_tag_manager_id";
+const SITE_SETTINGS_SELECT_WITHOUT_MARKETING_TAGS =
   "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,villa_card_style,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS =
   "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,villa_card_style,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_og_image_url,guides_seo_og_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
@@ -19,7 +21,7 @@ const CONTACT_SITE_SETTINGS_SELECT =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url";
 const LEGACY_SITE_SETTINGS_SELECT =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt";
-const SITE_SETTINGS_CACHE_KEY = `${CACHE_TAGS.siteSettings}:v3`;
+const SITE_SETTINGS_CACHE_KEY = `${CACHE_TAGS.siteSettings}:v4`;
 
 const getCachedSiteSettings = unstable_cache(
   async (): Promise<SiteSettingsLoadResult> => {
@@ -33,6 +35,25 @@ const getCachedSiteSettings = unstable_cache(
     if (error) {
       // Fall back through older select shapes so partially migrated CMS tables
       // can still return usable settings during rollout.
+      const {
+        data: withoutMarketingTagsData,
+        error: withoutMarketingTagsError,
+      } = await supabase
+        .from("site_settings")
+        .select(SITE_SETTINGS_SELECT_WITHOUT_MARKETING_TAGS)
+        .eq("id", SITE_SETTINGS_ID)
+        .maybeSingle();
+
+      if (!withoutMarketingTagsError && withoutMarketingTagsData) {
+        return {
+          degraded: true,
+          settings: normalizeSiteSettingsRow(
+            withoutMarketingTagsData as SiteSettingsRow,
+          ),
+          source: "config",
+        };
+      }
+
       const { data: withoutKeywordsData, error: withoutKeywordsError } = await supabase
         .from("site_settings")
         .select(SITE_SETTINGS_SELECT_WITHOUT_KEYWORDS)

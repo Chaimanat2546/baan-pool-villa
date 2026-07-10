@@ -19,14 +19,17 @@ describe("content security policy", () => {
     const scriptSrc = getCspDirective(csp, "script-src");
     const imgSrc = getCspDirective(csp, "img-src");
     const connectSrc = getCspDirective(csp, "connect-src");
+    const frameSrc = getCspDirective(csp, "frame-src");
 
     expect(styleSrc).toContain("'self'");
     expect(styleSrc).toContain("'unsafe-inline'");
     expect(styleSrc).toContain("https://fonts.googleapis.com");
+    expect(styleSrc).toContain("https://www.googletagmanager.com");
     expect(styleSrc).toContain("'nonce-request-nonce'");
     expect(scriptSrc).toContain("'nonce-request-nonce'");
     expect(scriptSrc).toContain("https://challenges.cloudflare.com");
     expect(scriptSrc).toContain("https://static.cloudflareinsights.com");
+    expect(scriptSrc).toContain("https://www.googletagmanager.com");
     expect(imgSrc).toContain(
       "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws",
     );
@@ -34,8 +37,14 @@ describe("content security policy", () => {
     expect(imgSrc).toContain("https://www.devillegroups.com");
     expect(imgSrc).toContain("https://webook-media.poolvilla.workers.dev");
     expect(imgSrc).toContain("https://s3.ap-southeast-1.amazonaws.com");
+    expect(imgSrc).toContain("https://fonts.gstatic.com");
+    expect(imgSrc).toContain("https://www.googletagmanager.com");
     expect(connectSrc).toContain("https://example.supabase.co");
     expect(connectSrc).toContain("https://static.cloudflareinsights.com");
+    expect(connectSrc).toContain("https://www.google-analytics.com");
+    expect(connectSrc).toContain("https://www.google.com");
+    expect(connectSrc).toContain("https://www.googletagmanager.com");
+    expect(frameSrc).toContain("https://www.googletagmanager.com");
     expect(connectSrc.split(" ")).not.toContain("https:");
     expect(getCspDirective(csp, "style-src-attr")).toBe(
       "style-src-attr 'unsafe-inline'",

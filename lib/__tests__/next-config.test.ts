@@ -21,6 +21,10 @@ describe("Next image config", () => {
     expect(nextConfig.images?.minimumCacheTTL).toBe(60 * 60 * 24 * 365);
   });
 
+  it("allows image qualities used by rendered image components", () => {
+    expect(nextConfig.images?.qualities).toEqual([50, 60, 70, 75]);
+  });
+
   it("allows advertisement images from the R2 worker", () => {
     expect(nextConfig.images?.remotePatterns).toEqual(
       expect.arrayContaining([
@@ -68,6 +72,27 @@ describe("Next image config", () => {
     expect(styleSrc).toContain("https://fonts.googleapis.com");
     expect(getCspDirective(csp, "style-src-attr")).toBe(
       "style-src-attr 'unsafe-inline'",
+    );
+  });
+
+  it("allows Google tags under the global content security policy", async () => {
+    const headers = await nextConfig.headers?.();
+    const csp = headers
+      ?.find((entry) => entry.source === "/:path*")
+      ?.headers.find((header) => header.key === "Content-Security-Policy")
+      ?.value;
+
+    expect(getCspDirective(csp, "script-src")).toContain(
+      "https://www.googletagmanager.com",
+    );
+    expect(getCspDirective(csp, "connect-src")).toContain(
+      "https://www.google-analytics.com",
+    );
+    expect(getCspDirective(csp, "connect-src")).toContain(
+      "https://www.google.com",
+    );
+    expect(getCspDirective(csp, "frame-src")).toContain(
+      "https://www.googletagmanager.com",
     );
   });
 

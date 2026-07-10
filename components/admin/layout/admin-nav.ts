@@ -6,6 +6,7 @@ import {
   Newspaper,
   ScrollText,
   Settings,
+  Tags,
   Users,
   Video,
   Warehouse,
@@ -51,6 +52,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     pageTitle: "จัดการบทความ",
   },
   {
+    description: "ตั้งค่าชุดรูปที่แสดงบนการ์ดบ้านพักทั้งเว็บ",
+    href: "/admin/card-images",
+    icon: Images,
+    label: "รูปการ์ด",
+    pageTitle: "ตั้งค่ารูปการ์ดบ้านพัก",
+  },
+  {
     description: "รูปภาพบ้านพักและแกลเลอรี",
     disabled: true,
     href: "/admin/images",
@@ -72,6 +80,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Video,
     label: "TikTok",
     pageTitle: "TikTok",
+  },
+  {
+    description: "ตั้งค่า GTM ID และดูจุดส่ง DataLayer สำหรับวัดผล Google Ads",
+    href: "/admin/marketing-tags",
+    icon: Tags,
+    label: "Marketing Tags",
+    pageTitle: "Marketing Tags",
   },
   {
     description: "แก้ไขเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว",

@@ -58,11 +58,11 @@ describe("RowSettingsPanel", () => {
     expect(markup).not.toContain("สัดส่วนคอลัมน์");
   });
 
-  it("explains that recommended villas are locked full width", () => {
+  it("does not show fixed recommended-villa controls", () => {
     const markup = renderPanel({ zone: "lockedBottom", blockIndex: 0 });
 
-    expect(markup).toContain("บ้านพักแนะนำ: ล็อกเต็มความกว้าง");
-    expect(markup).toContain("ถูกล็อกไว้ด้านล่าง");
-    expect(markup).toContain("ไม่มีการแก้แถวหรือเพิ่ม block");
+    expect(markup).toContain("เลือกฝั่ง 70 หรือฝั่ง 30");
+    expect(markup).not.toContain("บ้านพักแนะนำ");
+    expect(markup).not.toContain("เต็มความกว้าง");
   });
 });

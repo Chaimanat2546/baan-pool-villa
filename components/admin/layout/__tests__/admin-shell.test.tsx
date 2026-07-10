@@ -4,7 +4,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
-import { mountAdminPage } from "@/components/admin/__tests__/admin-page-dom-test-utils";
+import {
+  click,
+  mountAdminPage,
+} from "@/components/admin/__tests__/admin-page-dom-test-utils";
 
 const mocks = vi.hoisted(() => ({
   pathname: "/admin/settings",
@@ -35,6 +38,7 @@ describe("AdminShell", () => {
     mocks.replace.mockReset();
     mocks.signOut.mockReset();
     window.localStorage.clear();
+    document.cookie = "admin-sidebar-collapsed=; path=/; max-age=0";
   });
 
   afterEach(() => {
@@ -72,6 +76,25 @@ describe("AdminShell", () => {
     expect(
       page.container.querySelector('[data-admin-nav-layout="collapsed"]'),
     ).not.toBeNull();
+    expect(document.cookie).toContain("admin-sidebar-collapsed=true");
+
+    await page.unmount();
+  });
+
+  it("uses the server sidebar preference before localStorage is available", async () => {
+    const page = await mountAdminPage(
+      <AdminShell
+        initialDesktopNavCollapsed
+        settings={DEFAULT_SITE_SETTINGS}
+      >
+        <div>settings</div>
+      </AdminShell>,
+    );
+
+    expect(window.localStorage.getItem("admin-sidebar-collapsed")).toBeNull();
+    expect(
+      page.container.querySelector('[data-admin-sidebar-state="collapsed"]'),
+    ).not.toBeNull();
 
     await page.unmount();
   });
@@ -88,11 +111,10 @@ describe("AdminShell", () => {
     );
 
     expect(toggle).not.toBeNull();
-    toggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    await Promise.resolve();
-    await Promise.resolve();
+    await click(toggle as HTMLButtonElement);
 
     expect(window.localStorage.getItem("admin-sidebar-collapsed")).toBe("true");
+    expect(document.cookie).toContain("admin-sidebar-collapsed=true");
     expect(
       page.container.querySelector('[data-admin-sidebar-state="collapsed"]'),
     ).not.toBeNull();

@@ -638,6 +638,10 @@ export function GuideDetailPage({
   sidebar,
 }: GuideDetailPageProps) {
   const coverImageUrl = normalizePublicImageSourceUrl(guide.coverImage?.url ?? null);
+  const hasRecommendedVillas = recommendedVillas.length > 0 || sidebar !== undefined;
+  const detailLayoutClass = hasRecommendedVillas
+    ? "mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)] lg:px-8 lg:py-14"
+    : "mx-auto grid w-full max-w-3xl gap-8 px-4 py-10 sm:px-6 lg:px-8 lg:py-14";
 
   return (
     <main className="bg-[var(--site-surface-soft)] text-[var(--site-text)]">
@@ -695,7 +699,7 @@ export function GuideDetailPage({
         </header>
 
         <div
-          className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)] lg:px-8 lg:py-14"
+          className={detailLayoutClass}
           data-guide-detail-layout
         >
           <GuideContent blocks={guide.contentBlocks} />

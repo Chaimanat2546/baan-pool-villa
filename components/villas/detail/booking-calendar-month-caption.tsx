@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CalendarNextMonthPointer } from "./booking-calendar-parts";
 import { addCalendarMonths, THAI_MONTHS } from "./booking-calendar-ui";
 
 interface BookingCalendarMonthCaptionProps {
@@ -52,7 +53,7 @@ export function BookingCalendarMonthCaption({
         </div>
         <Button
           aria-label="ดูเดือนถัดไป"
-          className="size-10 rounded-2xl text-[var(--site-primary)]"
+          className="relative size-10 overflow-visible rounded-2xl text-[var(--site-primary)]"
           onClick={() => {
             setVisibleMonth((month) => addCalendarMonths(month, 1));
           }}
@@ -60,6 +61,7 @@ export function BookingCalendarMonthCaption({
           type="button"
           variant="outline"
         >
+          <CalendarNextMonthPointer />
           <ChevronRight data-icon="inline-start" />
         </Button>
       </div>

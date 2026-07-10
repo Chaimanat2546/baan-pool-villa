@@ -73,6 +73,9 @@ describe("AdminDetailLayoutPage", () => {
     );
     expect(pageText).not.toContain("ปิดไว้");
     expect(pageText).not.toContain("บล็อกที่ใช้");
+    expect(pageText).not.toContain("ล็อกไว้");
+    expect(pageText).not.toContain("ล็อกเต็ม");
+    expect(pageText).not.toContain("ส่วนล็อก");
 
     const resetButton = page.container.querySelector(
       "header button",
@@ -158,5 +161,68 @@ describe("AdminDetailLayoutPage", () => {
     expect(mocks.refresh).not.toHaveBeenCalled();
 
     await page.unmount();
+  });
+
+  it("shows save validation at the invalid row and scrolls to that row", async () => {
+    const previousScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    const fetchMock = makeFetchMock([
+      {
+        body: { layout: savedLayout },
+        url: "/api/admin/detail-layout",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    const addNarrowRowButton = Array.from(
+      page.container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("เพิ่มแถว 30"));
+
+    expect(addNarrowRowButton).not.toBeUndefined();
+
+    await click(addNarrowRowButton as HTMLButtonElement);
+    await flushEffects();
+
+    const saveButton = Array.from(page.container.querySelectorAll("header button"))[1];
+
+    expect(saveButton).not.toBeUndefined();
+
+    await click(saveButton as HTMLButtonElement);
+    await flushEffects();
+
+    const fieldError = page.container.querySelector(
+      '[data-detail-layout-error="true"]',
+    );
+
+    expect(fieldError?.textContent).toContain("ฝั่ง 30 ลำดับที่ 4 ต้องมี block");
+    expect(fieldError?.closest("article")?.textContent).toContain("แถว 30 ที่ 4");
+    expect(page.container.textContent).not.toContain(
+      "แก้รายการเหล่านี้ก่อนบันทึก:",
+    );
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "center",
+    });
+    expect(
+      fetchMock.mock.calls.some(([, init]) => init?.method === "PUT"),
+    ).toBe(false);
+
+    await page.unmount();
+
+    if (previousScrollIntoView) {
+      Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+        configurable: true,
+        value: previousScrollIntoView,
+      });
+    } else {
+      Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+    }
   });
 });

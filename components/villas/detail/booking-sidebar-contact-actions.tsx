@@ -1,19 +1,25 @@
 import { Phone } from "lucide-react";
 import { LineIcon, MessengerIcon } from "@/components/layout/contact-icons";
+import { pushBookingContactClick } from "@/lib/marketing-data-layer";
+import type { VillaListing } from "@/lib/villas/types";
 
 interface BookingSidebarContactActionsProps {
   contactLinks: { line: string; messenger: string };
+  listing: VillaListing;
   phoneContacts: {
     href: string;
     name: string;
     phone: string;
     time: string;
   }[];
+  trackingLocation: string;
 }
 
 export function BookingSidebarContactActions({
   contactLinks,
+  listing,
   phoneContacts,
+  trackingLocation,
 }: BookingSidebarContactActionsProps) {
   return (
     <div className="mt-4 grid gap-3">
@@ -40,6 +46,13 @@ export function BookingSidebarContactActions({
       <a
         className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] px-4 py-3 text-sm font-black text-[var(--site-primary)] transition hover:bg-[var(--site-surface-tint)]"
         href={contactLinks.messenger}
+        onClick={() => {
+          pushBookingContactClick({
+            channel: "messenger",
+            listing,
+            location: trackingLocation,
+          });
+        }}
         rel="noreferrer"
         target="_blank"
       >
@@ -50,6 +63,13 @@ export function BookingSidebarContactActions({
       <a
         className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-4 py-3 text-sm font-black text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
         href={contactLinks.line}
+        onClick={() => {
+          pushBookingContactClick({
+            channel: "line",
+            listing,
+            location: trackingLocation,
+          });
+        }}
         rel="noreferrer"
         target="_blank"
       >

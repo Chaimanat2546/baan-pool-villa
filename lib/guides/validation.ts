@@ -29,6 +29,29 @@ const GUIDE_ALLOWED_BLOCK_TYPES = new Set([
   "image",
 ]);
 
+export type GuideDraftValidationField =
+  | "title"
+  | "excerpt"
+  | "status"
+  | "tags"
+  | "recommendedHouseIds"
+  | "coverImage"
+  | "coverImageAlt"
+  | "contentBlocks";
+
+export interface GuideDraftValidationError {
+  field: GuideDraftValidationField;
+  message: string;
+}
+
+function addGuideDraftError(
+  errors: GuideDraftValidationError[],
+  field: GuideDraftValidationField,
+  message: string,
+) {
+  errors.push({ field, message });
+}
+
 /**
  * Creates a normalized slug from a guide title.
  *
@@ -120,40 +143,48 @@ export function normalizeGuideHouseId(value: string): string | null {
  * @returns User-facing validation error messages, or an empty array when valid.
  */
 export function validateGuideDraft(draft: GuideDraft): string[] {
-  const errors: string[] = [];
+  return validateGuideDraftDetailed(draft).map((error) => error.message);
+}
+
+export function validateGuideDraftDetailed(
+  draft: GuideDraft,
+): GuideDraftValidationError[] {
+  const errors: GuideDraftValidationError[] = [];
   const normalizedDraft = normalizeGuideDraftForSave(draft);
   const title = draft.title.trim();
   const excerpt = draft.excerpt.trim();
 
   if (title.length === 0) {
-    errors.push("ต้องใส่ชื่อบทความ");
+    addGuideDraftError(errors, "title", "ต้องใส่ชื่อบทความ");
   } else if (title.length > GUIDE_TITLE_MAX_LENGTH) {
-    errors.push("ชื่อบทความต้องไม่เกิน 120 ตัวอักษร");
+    addGuideDraftError(errors, "title", "ชื่อบทความต้องไม่เกิน 120 ตัวอักษร");
   }
 
   if (excerpt.length === 0) {
-    errors.push("ต้องใส่คำโปรยบทความ");
+    addGuideDraftError(errors, "excerpt", "ต้องใส่คำโปรยบทความ");
   } else if (excerpt.length > GUIDE_EXCERPT_MAX_LENGTH) {
-    errors.push("คำโปรยบทความต้องไม่เกิน 220 ตัวอักษร");
+    addGuideDraftError(errors, "excerpt", "คำโปรยบทความต้องไม่เกิน 220 ตัวอักษร");
   }
 
   if (draft.status !== "draft" && draft.status !== "published") {
-    errors.push("สถานะบทความไม่ถูกต้อง");
+    addGuideDraftError(errors, "status", "สถานะบทความไม่ถูกต้อง");
   }
 
   if (draft.tags.length === 0) {
-    errors.push("ควรใส่แท็กอย่างน้อย 1 แท็ก");
+    addGuideDraftError(errors, "tags", "ควรใส่แท็กอย่างน้อย 1 แท็ก");
   } else if (normalizedDraft.tags.length > GUIDE_TAGS_MAX_COUNT) {
-    errors.push("แท็กบทความต้องไม่เกิน 12 แท็ก");
+    addGuideDraftError(errors, "tags", "แท็กบทความต้องไม่เกิน 12 แท็ก");
   }
 
-  if (draft.recommendedHouseIds.length === 0) {
-    errors.push("บทความที่ช่วยปิดการจองควรเลือกบ้านพักแนะนำอย่างน้อย 1 หลัง");
-  } else if (
+  if (
     normalizedDraft.recommendedHouseIds.length >
     GUIDE_RECOMMENDED_HOUSE_IDS_MAX_COUNT
   ) {
-    errors.push("บ้านพักแนะนำต้องไม่เกิน 12 หลัง");
+    addGuideDraftError(
+      errors,
+      "recommendedHouseIds",
+      "บ้านพักแนะนำต้องไม่เกิน 12 หลัง",
+    );
   }
 
   validateRecommendedHouseIds(draft.recommendedHouseIds, errors);
@@ -242,19 +273,30 @@ export function validateGuideUploadMetadata(
   return errors;
 }
 
-function validateRecommendedHouseIds(values: string[], errors: string[]) {
+function validateRecommendedHouseIds(
+  values: string[],
+  errors: GuideDraftValidationError[],
+) {
   const seenHouseIds = new Set<string>();
 
   values.forEach((value, index) => {
     const normalizedHouseId = normalizeGuideHouseId(value);
 
     if (!normalizedHouseId) {
-      errors.push(`รหัสบ้านพักลำดับที่ ${index + 1} ไม่ถูกต้อง`);
+      addGuideDraftError(
+        errors,
+        "recommendedHouseIds",
+        `รหัสบ้านพักลำดับที่ ${index + 1} ไม่ถูกต้อง`,
+      );
       return;
     }
 
     if (seenHouseIds.has(normalizedHouseId)) {
-      errors.push(`มีรหัสบ้านพัก ${normalizedHouseId} ซ้ำ`);
+      addGuideDraftError(
+        errors,
+        "recommendedHouseIds",
+        `มีรหัสบ้านพัก ${normalizedHouseId} ซ้ำ`,
+      );
     } else {
       seenHouseIds.add(normalizedHouseId);
     }
@@ -264,35 +306,47 @@ function validateRecommendedHouseIds(values: string[], errors: string[]) {
 function validateGuideCoverImage(
   image: GuideImage | null,
   status: GuideStatus,
-  errors: string[],
+  errors: GuideDraftValidationError[],
 ) {
   if (image === null) {
     if (status === "published") {
-      errors.push("บทความที่เผยแพร่ต้องมีรูปปก");
+      addGuideDraftError(errors, "coverImage", "บทความที่เผยแพร่ต้องมีรูปปก");
     }
 
     return;
   }
 
   if (!isPublicImageUrl(image.url)) {
-    errors.push("ลิงก์รูปปกต้องเป็น URL แบบ http, https หรือ path ภายในเว็บที่ขึ้นต้นด้วย /");
+    addGuideDraftError(
+      errors,
+      "coverImage",
+      "ลิงก์รูปปกต้องเป็น URL แบบ http, https หรือ path ภายในเว็บที่ขึ้นต้นด้วย /",
+    );
   }
 
   if (image.alt.trim().length === 0) {
-    errors.push("ต้องใส่คำอธิบายรูปปก");
+    addGuideDraftError(errors, "coverImageAlt", "ต้องใส่คำอธิบายรูปปก");
   } else if (image.alt.length > GUIDE_COVER_ALT_MAX_LENGTH) {
-    errors.push("คำอธิบายรูปปกต้องไม่เกิน 180 ตัวอักษร");
+    addGuideDraftError(
+      errors,
+      "coverImageAlt",
+      "คำอธิบายรูปปกต้องไม่เกิน 180 ตัวอักษร",
+    );
   }
 }
 
 function validateGuideContentBlocks(
   contentBlocks: unknown[],
   status: GuideStatus,
-  errors: string[],
+  errors: GuideDraftValidationError[],
 ) {
   if (!Array.isArray(contentBlocks) || contentBlocks.length === 0) {
     if (status === "published") {
-      errors.push("บทความที่เผยแพร่ต้องมีเนื้อหาอย่างน้อย 1 บล็อก");
+      addGuideDraftError(
+        errors,
+        "contentBlocks",
+        "บทความที่เผยแพร่ต้องมีเนื้อหาอย่างน้อย 1 บล็อก",
+      );
     }
 
     return;
@@ -300,12 +354,20 @@ function validateGuideContentBlocks(
 
   contentBlocks.forEach((block, index) => {
     if (!isRecord(block) || typeof block.type !== "string") {
-      errors.push(`บล็อกเนื้อหาลำดับที่ ${index + 1} ไม่ถูกต้อง`);
+      addGuideDraftError(
+        errors,
+        "contentBlocks",
+        `บล็อกเนื้อหาลำดับที่ ${index + 1} ไม่ถูกต้อง`,
+      );
       return;
     }
 
     if (!GUIDE_ALLOWED_BLOCK_TYPES.has(block.type)) {
-      errors.push(`ชนิดบล็อกเนื้อหาลำดับที่ ${index + 1} ไม่รองรับ`);
+      addGuideDraftError(
+        errors,
+        "contentBlocks",
+        `ชนิดบล็อกเนื้อหาลำดับที่ ${index + 1} ไม่รองรับ`,
+      );
     }
   });
 }

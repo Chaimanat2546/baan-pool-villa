@@ -10,7 +10,10 @@ import {
   addDetailLayoutV2NarrowRow,
   addDetailLayoutV2WideRow,
   makeDetailLayoutV2Snapshot,
+  moveDetailLayoutV2NarrowBlockToWideSlot,
   moveDetailLayoutV2NarrowRow,
+  moveDetailLayoutV2WideBlock,
+  moveDetailLayoutV2WideBlockToNarrowRow,
   moveDetailLayoutV2WideRow,
   putDetailLayoutV2NarrowBlock,
   putDetailLayoutV2WideBlockInSlot,
@@ -19,6 +22,7 @@ import {
   toDetailLayoutV2Draft,
   updateDetailLayoutV2OuterRatio,
   updateDetailLayoutV2WideRowColumns,
+  validateDetailLayoutV2DraftForSaveDetails,
   validateDetailLayoutV2DraftForSave,
 } from "../detail-layout-v2-helpers";
 
@@ -85,6 +89,11 @@ describe("detail layout V2 helpers", () => {
     expect(validateDetailLayoutV2DraftForSave(withBlock)).toContain(
       "ฝั่ง 70 แถวที่ 5 มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง",
     );
+    expect(validateDetailLayoutV2DraftForSaveDetails(withBlock)).toContainEqual({
+      message:
+        "ฝั่ง 70 แถวที่ 5 มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง",
+      target: `${row.id}:slot:0`,
+    });
 
     const removed = removeDetailLayoutV2WideBlock(withBlock, row.id, 1);
 
@@ -93,6 +102,82 @@ describe("detail layout V2 helpers", () => {
         (block) => block?.type ?? null,
       ),
     ).toEqual([null, null]);
+  });
+
+  it("moves blocks between wide and narrow zones without dropping the overwritten block", () => {
+    const draft = addDetailLayoutV2WideRow(
+      toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2),
+      2,
+      "50/50",
+    );
+    const wideRow = draft.mainSplit.wideRows.at(-1);
+
+    if (!wideRow) {
+      throw new Error("Expected a wide draft row");
+    }
+
+    const withWideBlocks = putDetailLayoutV2WideBlockInSlot(
+      putDetailLayoutV2WideBlockInSlot(
+        draft,
+        wideRow.id,
+        0,
+        makeDetailLayoutBlock("pool"),
+      ),
+      wideRow.id,
+      1,
+      makeDetailLayoutBlock("kitchen"),
+    );
+    const withNarrowRow = addDetailLayoutV2NarrowRow(
+      withWideBlocks,
+      makeDetailLayoutBlock("map_nearby"),
+    );
+    const narrowRow = withNarrowRow.mainSplit.narrowRows.at(-1);
+
+    if (!narrowRow) {
+      throw new Error("Expected a narrow draft row");
+    }
+
+    const swappedWide = moveDetailLayoutV2WideBlock(
+      withNarrowRow,
+      wideRow.id,
+      0,
+      wideRow.id,
+      1,
+    );
+
+    expect(
+      swappedWide.mainSplit.wideRows.at(-1)?.blocks.map(
+        (block) => block?.type ?? null,
+      ),
+    ).toEqual(["kitchen", "pool"]);
+
+    const movedToNarrow = moveDetailLayoutV2WideBlockToNarrowRow(
+      withNarrowRow,
+      wideRow.id,
+      0,
+      narrowRow.id,
+    );
+
+    expect(movedToNarrow.mainSplit.wideRows.at(-1)?.blocks[0]?.type).toBe(
+      "map_nearby",
+    );
+    expect(movedToNarrow.mainSplit.narrowRows.at(-1)?.block?.type).toBe(
+      "pool",
+    );
+
+    const movedBackToWide = moveDetailLayoutV2NarrowBlockToWideSlot(
+      movedToNarrow,
+      narrowRow.id,
+      wideRow.id,
+      0,
+    );
+
+    expect(movedBackToWide.mainSplit.wideRows.at(-1)?.blocks[0]?.type).toBe(
+      "pool",
+    );
+    expect(movedBackToWide.mainSplit.narrowRows.at(-1)?.block?.type).toBe(
+      "map_nearby",
+    );
   });
 
   it("adds, fills, and reorders narrow rows as one-block vertical items", () => {

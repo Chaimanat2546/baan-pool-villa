@@ -1,8 +1,6 @@
 "use client";
 
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
-import { VillaCard } from "@/components/villas/listing/villa-card";
-import { VillaCardStyleProvider } from "@/components/villas/listing/villa-card-style-context";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   BadgeInfo,
@@ -26,7 +24,6 @@ import {
 } from "@/lib/site-settings/logo-background";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import { validateUploadMetadata } from "@/lib/site-settings/validation";
-import type { VillaListing } from "@/lib/villas/types";
 
 import { AssetUploadField } from "./asset-upload-field";
 import { AdminPasswordSecurityCard } from "./admin-password-security-card";
@@ -65,11 +62,6 @@ const SECTION_NAV_ITEMS: SectionNavItem[] = [
     label: "สีและธีม",
   },
   {
-    description: "เลือกรูปแบบการ์ดบ้านที่แสดงหน้าสาธารณะ",
-    id: "villa-card",
-    label: "การ์ดบ้าน",
-  },
-  {
     description: "ภาพหลักและคำอธิบายหน้าแรก",
     id: "hero",
     label: "รูปหลัก",
@@ -91,53 +83,6 @@ const SECTION_NAV_ITEMS: SectionNavItem[] = [
   },
 ];
 
-const VILLA_CARD_STYLE_OPTIONS: Array<{
-  description: string;
-  label: string;
-  value: AdminSettingsDraft["villaCardStyle"];
-}> = [
-  {
-    description: "รูปปกเดี่ยวและข้อมูลบ้านเหมือนหน้าปัจจุบัน",
-    label: "แบบเก่า",
-    value: "classic",
-  },
-  {
-    description: "รูปใหญ่พร้อมรูปย่อยเลื่อนได้จากแกลเลอรีบ้าน",
-    label: "แบบใหม่",
-    value: "gallery",
-  },
-];
-
-const VILLA_CARD_PREVIEW_COVER_IMAGE_URL =
-  "/images/villa-card-preview-cover.png";
-
-const VILLA_CARD_PREVIEW_IMAGE_URLS = [
-  "/images/villa-card-preview-1.jpg",
-  "/images/villa-card-preview-2.jpg",
-  "/images/villa-card-preview-3.jpg",
-  "/images/villa-card-preview-4.jpg",
-];
-
-const VILLA_CARD_PREVIEW_VILLA: VillaListing = {
-  amenities: [
-    { key: "grill", label: "เตาปิ้งย่าง" },
-    { key: "karaoke", label: "คาราโอเกะ" },
-    { key: "slider", label: "สไลด์เดอร์" },
-    { key: "fancyring", label: "ห่วงยางแฟนซี" },
-  ],
-  bathrooms: 4,
-  bedrooms: 5,
-  coverImage: null,
-  distanceToSea: "500m",
-  id: "501",
-  people: 12,
-  poolType: "private",
-  price: 12000,
-  title: "Preview Pool Villa",
-  zone: "pattaya",
-  zoneLabel: "พัทยา",
-};
-
 function getPreviewImageUrl(value: string, fallback: string): string {
   const trimmedValue = value.trim();
 
@@ -156,24 +101,6 @@ function getPreviewImageUrl(value: string, fallback: string): string {
   }
 
   return fallback;
-}
-
-function VillaCardStylePreview({
-  previewStyle,
-}: {
-  previewStyle: AdminSettingsDraft["villaCardStyle"];
-}) {
-  return (
-    <VillaCardStyleProvider value={previewStyle}>
-      <VillaCard
-        coverImageSrcOverride={VILLA_CARD_PREVIEW_COVER_IMAGE_URL}
-        galleryImageUrls={VILLA_CARD_PREVIEW_IMAGE_URLS}
-        navigationMode="static"
-        titleHeadingLevel="h3"
-        villa={VILLA_CARD_PREVIEW_VILLA}
-      />
-    </VillaCardStyleProvider>
-  );
 }
 
 export function SettingsForm({
@@ -646,65 +573,6 @@ export function SettingsForm({
                   </nav>
                 </div>
               </div>
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          description="เลือกหน้าตาการ์ดบ้านที่ใช้ในหน้าแรก หน้าค้นหา และบ้านแนะนำ"
-          icon={<LayoutTemplate aria-hidden="true" className="size-5" />}
-          id="villa-card"
-          title="การ์ดบ้าน"
-        >
-          <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4">
-            <div>
-              <p className="text-sm font-semibold text-[var(--site-text)]">
-                รูปแบบการ์ดบ้าน
-              </p>
-              <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
-                กดรูปแบบด้านล่างเพื่อเลือกการ์ดบ้านทุกจุดในหน้าเว็บสาธารณะ
-              </p>
-            </div>
-            <div className="mt-3 grid gap-3 lg:grid-cols-2">
-              {VILLA_CARD_STYLE_OPTIONS.map((option) => {
-                const isSelected = draft.villaCardStyle === option.value;
-
-                return (
-                  <div
-                    aria-pressed={isSelected}
-                    className={`cursor-pointer rounded-lg border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-[var(--site-primary)]/25 ${
-                      isSelected
-                        ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
-                        : "border-[var(--site-border)] bg-[var(--site-surface)] hover:border-[var(--site-border-strong)]"
-                    }`}
-                    data-villa-card-preview-option={option.value}
-                    key={`villa-card-preview-${option.value}`}
-                    onClick={() => {
-                      onChange({ villaCardStyle: option.value });
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onChange({ villaCardStyle: option.value });
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="text-sm font-bold text-[var(--site-text)]">
-                        {option.label}
-                      </p>
-                      {isSelected ? (
-                        <span className="rounded-md bg-[var(--site-primary)] px-2 py-1 text-xs font-semibold text-[var(--site-on-primary)]">
-                          กำลังเลือก
-                        </span>
-                      ) : null}
-                    </div>
-                    <VillaCardStylePreview previewStyle={option.value} />
-                  </div>
-                );
-              })}
             </div>
           </div>
         </SectionCard>
@@ -1269,6 +1137,12 @@ export function SettingsForm({
               </dd>
             </div>
           </dl>
+          <a
+            className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+            href="/admin/card-images"
+          >
+            ตั้งค่าการ์ดบ้าน
+          </a>
         </section>
 
         <section className="settings-preview-theme overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
@@ -1305,19 +1179,6 @@ export function SettingsForm({
                     ติดต่อเรา
                   </span>
                 </div>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
-              <div className="border-b border-[var(--site-border)] px-4 py-3">
-                <p className="text-sm font-bold text-[var(--site-text)]">
-                  การ์ดบ้าน
-                </p>
-              </div>
-              <div className="p-4">
-                <VillaCardStylePreview
-                  previewStyle={draft.villaCardStyle}
-                />
               </div>
             </div>
 
