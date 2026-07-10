@@ -464,6 +464,11 @@
                 <td>Admin auth and delegation for manual home section house ID preview validation. Request parsing, ID normalization, listing existence checks, and privacy-preserving response shaping live in <code>lib/home-sections/admin-preview-route.ts</code>.</td>
               </tr>
               <tr>
+                <td><code>app/(admin)/api/admin/home-sections/houses/route.ts</code></td>
+                <td><code>/api/admin/home-sections/houses</code></td>
+                <td>Authenticated, bounded house-name lookup for the manual home-section selector. It returns only IDs and titles for selected IDs or up to ten name/ID search matches.</td>
+              </tr>
+              <tr>
                 <td><code>app/(admin)/api/admin/villa-card-images/route.ts</code></td>
                 <td><code>/api/admin/villa-card-images</code></td>
                 <td>Admin auth and delegation for per-house custom card-image and uploaded cover overrides. Row mapping, JSON and multipart request parsing, custom image id validation, Supabase persistence, Storage upload/history rows, uploaded cover delete/reset, item replacement, and villa-card/listing/gallery cache revalidation live in <code>lib/villas/card-image-config-admin.ts</code>.</td>
