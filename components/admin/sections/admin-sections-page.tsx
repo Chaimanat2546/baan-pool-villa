@@ -45,7 +45,10 @@ import type {
   AdminSectionDraft,
 } from "./types";
 import { AutoModeSummary } from "./auto-mode-summary";
-import { ManualIdsEditor } from "./manual-ids-editor";
+import {
+  type ManualHouseOption,
+  ManualIdsEditor,
+} from "./manual-ids-editor";
 import { SectionConfigForm } from "./section-config-form";
 import { SectionHomePreview } from "./section-home-preview";
 import { SectionList } from "./section-list";
@@ -62,7 +65,6 @@ import {
   makeSectionsSnapshot,
   mapResponseSections,
   normalizeDisplayOrder,
-  parseManualIds,
   toHomeSectionDraft,
 } from "./section-draft-helpers";
 
@@ -224,9 +226,7 @@ export function AdminSectionsPage() {
   const [pendingErrorTarget, setPendingErrorTarget] =
     useState<SectionErrorTarget | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [manualIdTexts, setManualIdTexts] = useState<Record<string, string>>(
-    {},
-  );
+  const [manualHouses, setManualHouses] = useState<ManualHouseOption[]>([]);
   const [pendingDeleteDraftId, setPendingDeleteDraftId] = useState<
     string | null
   >(null);
@@ -389,7 +389,7 @@ export function AdminSectionsPage() {
 
         setSections(mappedSections);
         setSavedSnapshot(makeSectionsSnapshot(mappedSections));
-        setManualIdTexts({});
+        setManualHouses([]);
         setFieldErrors({});
         setPendingErrorTarget(null);
         setActiveDraftId(nextActiveDraftId);
@@ -578,6 +578,68 @@ export function AdminSectionsPage() {
       return payload as AdminManualPreviewResponse;
     },
     [redirectToLogin],
+  );
+
+  const searchManualHouses = useCallback(
+    async (query: string, selectedHouseIds: string[]) => {
+      const token = await getAccessToken();
+
+      if (!token) {
+        return;
+      }
+
+      const params = new URLSearchParams();
+      const trimmedQuery = query.trim();
+
+      if (trimmedQuery) {
+        params.set("search", trimmedQuery);
+      } else if (selectedHouseIds.length > 0) {
+        params.set("ids", selectedHouseIds.join(","));
+      } else {
+        setManualHouses([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/admin/home-sections/houses?${params.toString()}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        const payload = await readJsonPayload(response);
+        const housePayload = payload as { houses?: unknown } | null;
+
+        if (shouldRedirectToLogin(response.status, payload)) {
+          redirectToLogin("admin-access");
+          return;
+        }
+
+        if (
+          !response.ok ||
+          !housePayload ||
+          !Array.isArray(housePayload.houses)
+        ) {
+          setManualHouses([]);
+          return;
+        }
+
+        setManualHouses((currentHouses) => {
+          const housesById = new Map(
+            currentHouses.map((house) => [house.id, house]),
+          );
+
+          for (const house of housePayload.houses as ManualHouseOption[]) {
+            housesById.set(house.id, house);
+          }
+
+          return [...housesById.values()];
+        });
+      } catch {
+        setManualHouses([]);
+      }
+    },
+    [getAccessToken, redirectToLogin],
   );
 
   const previewManualIds = useCallback(
@@ -812,7 +874,7 @@ export function AdminSectionsPage() {
       );
       setSections(mappedSections);
       setSavedSnapshot(makeSectionsSnapshot(mappedSections));
-      setManualIdTexts({});
+      setManualHouses([]);
       setActiveDraftId(
         mappedSections.find((section) => section.draftId === activeDraftId)
           ?.draftId ??
@@ -1156,21 +1218,19 @@ export function AdminSectionsPage() {
                       >
                         <ManualIdsEditor
                           errors={activeFieldErrors.manualIds}
-                          manualIdText={
-                            manualIdTexts[activeSection.draftId] ??
-                            activeSection.items
-                              .map((item) => item.houseId)
-                              .join(",")
-                          }
-                          onChange={(nextManualIdText) => {
-                            setManualIdTexts((currentTexts) => ({
-                              ...currentTexts,
-                              [activeSection.draftId]: nextManualIdText,
-                            }));
+                          houses={manualHouses}
+                          onChange={(nextHouseIds) => {
                             updateSection(activeSection.draftId, {
-                              items: parseManualIds(nextManualIdText),
+                              items: nextHouseIds.map((houseId) => ({
+                                houseId,
+                                isActive: true,
+                              })),
                             });
                           }}
+                          onSearch={searchManualHouses}
+                          selectedHouseIds={activeSection.items.map(
+                            (item) => item.houseId,
+                          )}
                         />
                         <div className="flex flex-wrap items-center gap-3">
                           <button

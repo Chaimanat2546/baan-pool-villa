@@ -133,6 +133,7 @@ describe("AdminShell", () => {
     const linkTargets = navLinks.map((link) => link.getAttribute("href"));
     const disabledItems = page.container.querySelectorAll('nav [aria-disabled="true"]');
 
+    expect(linkTargets).toContain("/admin/customer-reviews");
     expect(linkTargets).toContain("/admin/tiktok");
     expect(linkTargets).not.toContain("/admin/villas");
     expect(linkTargets).not.toContain("/admin/images");

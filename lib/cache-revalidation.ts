@@ -26,6 +26,11 @@ export async function revalidateHomeSectionsCache() {
   await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.homeSections]);
 }
 
+export async function revalidateCustomerReviewsCache() {
+  revalidateTags([CACHE_TAGS.customerReviews]);
+  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.customerReviews]);
+}
+
 export async function revalidateVillaCardImagesCache(id?: string | null) {
   revalidateTags([
     CACHE_TAGS.villaCardImages,

@@ -45,6 +45,7 @@ export const STATIC_ASSET_CACHE_CONTROL =
 
 export const HTML_CACHE_VERSION_GROUPS = {
   detailLayout: "detail-layout",
+  customerReviews: "customer-reviews",
   guides: "guides",
   homeSections: "home-sections",
   legalPages: "legal-pages",
@@ -180,6 +181,7 @@ function getHtmlCacheVersionGroups(pathname) {
       HTML_CACHE_VERSION_GROUPS.siteSettings,
       HTML_CACHE_VERSION_GROUPS.homeSections,
       HTML_CACHE_VERSION_GROUPS.guides,
+      HTML_CACHE_VERSION_GROUPS.customerReviews,
     ];
   }
 

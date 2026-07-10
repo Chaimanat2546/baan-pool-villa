@@ -3,6 +3,7 @@ import {
   Home,
   Images,
   LayoutTemplate,
+  MessageSquareText,
   Newspaper,
   ScrollText,
   Settings,
@@ -57,6 +58,13 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Images,
     label: "รูปการ์ด",
     pageTitle: "ตั้งค่ารูปการ์ดบ้านพัก",
+  },
+  {
+    description: "อัปโหลดและจัดคิวรูปรีวิวลูกค้าสำหรับหน้าแรก",
+    href: "/admin/customer-reviews",
+    icon: MessageSquareText,
+    label: "รีวิวลูกค้า",
+    pageTitle: "รูปเครดิตและรีวิวลูกค้า",
   },
   {
     description: "รูปภาพบ้านพักและแกลเลอรี",
