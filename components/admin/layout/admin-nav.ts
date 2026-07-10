@@ -3,6 +3,7 @@ import {
   Home,
   Images,
   LayoutTemplate,
+  MessageSquareText,
   Newspaper,
   ScrollText,
   Settings,
@@ -61,7 +62,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {
     description: "อัปโหลดและจัดคิวรูปรีวิวลูกค้าสำหรับหน้าแรก",
     href: "/admin/customer-reviews",
-    icon: Images,
+    icon: MessageSquareText,
     label: "รีวิวลูกค้า",
     pageTitle: "รูปเครดิตและรีวิวลูกค้า",
   },
