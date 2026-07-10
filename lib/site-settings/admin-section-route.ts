@@ -121,6 +121,9 @@ export async function saveAdminSiteSettingsSection(
   if (loadError) {
     return adminSupabaseErrorResponse(loadError, "Unable to load site settings.");
   }
+  if (!existingRow) {
+    return Response.json({ error: "Site settings were not found." }, { status: 404 });
+  }
   const currentSettings = normalizeSiteSettingsRow(existingRow);
 
   const uploaded = await uploadSiteSettingsAssets(supabase, uploadResult.uploadFiles);
@@ -152,18 +155,23 @@ export async function saveAdminSiteSettingsSection(
     currentSettings,
     uploaded.uploadedAssets,
   );
-  const { error: saveError } = await supabase
+  const { data: updatedRow, error: saveError } = await supabase
     .from("site_settings")
     .update(payload)
-    .eq("id", SITE_SETTINGS_ID);
+    .eq("id", SITE_SETTINGS_ID)
+    .select("id")
+    .maybeSingle();
 
-  if (saveError) {
+  if (saveError || !updatedRow) {
     const cleanupWarnings = await cleanupFailedSiteAssetSave(
       supabase,
       history.recordedAssets,
       uploaded.uploadedAssets,
     );
-    return adminSupabaseErrorResponse(saveError, "Unable to save site settings.", {
+    return adminSupabaseErrorResponse(saveError ?? {
+      code: "PGRST116",
+      message: "Site settings were not found.",
+    }, "Unable to save site settings.", {
       warning: cleanupWarnings.join("; ") || undefined,
     });
   }
@@ -185,16 +193,22 @@ export async function saveAdminSiteSettingsSection(
       : []),
   ];
   const { data: savedRow, error: reloadError } = await loadSection(section, supabase);
-  const responseRow = savedRow ?? ({ ...(existingRow ?? {}), ...payload } as SiteSettingsRow);
-  if (reloadError) {
-    warnings.push(reloadError.message ?? "Unable to reload saved site settings.");
+  const verified = !reloadError && savedRow !== null;
+  const responseRow = savedRow ?? ({ ...existingRow, ...payload } as SiteSettingsRow);
+  if (!verified) {
+    warnings.push("Settings were saved but could not be reloaded.");
   }
 
-  await revalidateSiteSettingsCache();
+  try {
+    await revalidateSiteSettingsCache();
+  } catch {
+    warnings.push("Settings were saved but cache refresh failed.");
+  }
   const settings = normalizeSiteSettingsRow(responseRow);
   return Response.json({
     section,
     settings: mapSiteSettingsSectionResponse(section, settings),
+    verified,
     warnings: [...new Set(warnings)],
   });
 }

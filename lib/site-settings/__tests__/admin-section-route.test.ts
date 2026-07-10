@@ -41,10 +41,15 @@ function selectQuery(result: { data: unknown; error: unknown }) {
   return { eq, maybeSingle, select };
 }
 
-function updateQuery(result: { error: unknown }) {
-  const eq = vi.fn().mockResolvedValue(result);
+function updateQuery(result: { data?: unknown; error: unknown }) {
+  const maybeSingle = vi.fn().mockResolvedValue({
+    data: result.data === undefined && !result.error ? { id: SITE_SETTINGS_ID } : result.data,
+    error: result.error,
+  });
+  const select = vi.fn().mockReturnValue({ maybeSingle });
+  const eq = vi.fn().mockReturnValue({ select });
   const update = vi.fn().mockReturnValue({ eq });
-  return { eq, update };
+  return { eq, maybeSingle, select, update };
 }
 
 function historyInsertQuery(result: { data: unknown; error: unknown }) {
@@ -117,7 +122,10 @@ function brandRequest(files: Record<string, File>) {
 }
 
 describe("admin site-settings section route helper", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    revalidateSiteSettingsCacheMock.mockResolvedValue(undefined);
+  });
 
   it("loads and returns only the requested Brand projection", async () => {
     const query = selectQuery({ data: brandRow, error: null });
@@ -157,6 +165,36 @@ describe("admin site-settings section route helper", () => {
     expect(from).toHaveBeenCalledTimes(2);
   });
 
+  it("stops section projection fallback on non-missing-column errors", async () => {
+    const failed = selectQuery({ data: null, error: { code: "42501", message: "denied" } });
+    const fallback = selectQuery({ data: brandRow, error: null });
+    const from = fromQueue({ site_settings: [failed, fallback] });
+    const { buildAdminSiteSettingsSectionResponse } = await import("../admin-section-route");
+
+    const response = await buildAdminSiteSettingsSectionResponse("brand", { from } as never);
+
+    expect(response.status).toBe(403);
+    expect(from).toHaveBeenCalledTimes(1);
+    expect(fallback.select).not.toHaveBeenCalled();
+  });
+
+  it("rejects a missing singleton before upload or history work", async () => {
+    const load = selectQuery({ data: null, error: null });
+    const storageApi = storage();
+    const from = fromQueue({ site_settings: [load] });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      brandRequest({ logo: new File(["logo"], "logo.webp", { type: "image/webp" }) }),
+      "brand",
+      { from, storage: storageApi } as never,
+    );
+
+    expect(response.status).toBe(404);
+    expect(storageApi.upload).not.toHaveBeenCalled();
+    expect(from).toHaveBeenCalledTimes(1);
+  });
+
   it("updates only Theme columns and revalidates the shared settings cache", async () => {
     const load = selectQuery({ data: themeRow, error: null });
     const save = updateQuery({ error: null });
@@ -187,7 +225,11 @@ describe("admin site-settings section route helper", () => {
     expect(save.update.mock.calls[0]?.[0]).not.toHaveProperty("seo_title");
     expect(save.eq).toHaveBeenCalledWith("id", SITE_SETTINGS_ID);
     expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
-    await expect(response.json()).resolves.toMatchObject({ section: "theme", warnings: [] });
+    await expect(response.json()).resolves.toMatchObject({
+      section: "theme",
+      verified: true,
+      warnings: [],
+    });
   });
 
   it("rejects cross-section JSON fields before persistence", async () => {
@@ -242,17 +284,113 @@ describe("admin site-settings section route helper", () => {
     const save = updateQuery({ error: { message: "save failed" } });
     const historyDelete = historyDeleteQuery({ error: null });
     const storageApi = storage();
+    const from = fromQueue({
+      site_settings: [load, save],
+      site_asset_uploads: [history, historyDelete],
+    });
     const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
 
     const response = await saveAdminSiteSettingsSection(
       brandRequest({ logo: new File(["logo"], "logo.webp", { type: "image/webp" }) }),
       "brand",
-      { from: fromQueue({ site_settings: [load, save], site_asset_uploads: [history, historyDelete] }), storage: storageApi } as never,
+      { from, storage: storageApi } as never,
     );
 
     expect(response.status).toBe(500);
     expect(historyDelete.eq).toHaveBeenCalledWith("id", "new-logo");
     expect(storageApi.remove).toHaveBeenCalledWith([expect.stringMatching(/^logo\//)]);
+    expect(revalidateSiteSettingsCacheMock).not.toHaveBeenCalled();
+    expect(from).toHaveBeenCalledTimes(4);
+  });
+
+  it("cleans up and stops when the update affects no singleton row", async () => {
+    const load = selectQuery({ data: brandRow, error: null });
+    const history = historyInsertQuery({ data: { id: "new-logo" }, error: null });
+    const save = updateQuery({ data: null, error: null });
+    const historyDelete = historyDeleteQuery({ error: null });
+    const storageApi = storage();
+    const from = fromQueue({
+      site_settings: [load, save],
+      site_asset_uploads: [history, historyDelete],
+    });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      brandRequest({ logo: new File(["logo"], "logo.webp", { type: "image/webp" }) }),
+      "brand",
+      { from, storage: storageApi } as never,
+    );
+
+    expect(response.status).toBe(404);
+    expect(save.select).toHaveBeenCalledWith("id");
+    expect(historyDelete.eq).toHaveBeenCalledWith("id", "new-logo");
+    expect(storageApi.remove).toHaveBeenCalledWith([expect.stringMatching(/^logo\//)]);
+    expect(revalidateSiteSettingsCacheMock).not.toHaveBeenCalled();
+    expect(from).toHaveBeenCalledTimes(4);
+  });
+
+  it("returns intended values as unverified when reload errors after persistence", async () => {
+    const load = selectQuery({ data: themeRow, error: null });
+    const save = updateQuery({ error: null });
+    const reload = selectQuery({ data: null, error: { message: "reload failed" } });
+    const from = fromQueue({ site_settings: [load, save, reload] });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      themeRequest({ primaryColor: "#112233", accentColor: "#445566" }),
+      "theme",
+      { from, storage: storage() } as never,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      verified: false,
+      settings: { primaryColor: "#112233", accentColor: "#445566" },
+      warnings: ["Settings were saved but could not be reloaded."],
+    });
+  });
+
+  it("returns intended values as unverified when reload finds no row", async () => {
+    const load = selectQuery({ data: themeRow, error: null });
+    const save = updateQuery({ error: null });
+    const reload = selectQuery({ data: null, error: null });
+    const from = fromQueue({ site_settings: [load, save, reload] });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      themeRequest({ primaryColor: "#112233", accentColor: "#445566" }),
+      "theme",
+      { from, storage: storage() } as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      verified: false,
+      settings: { primaryColor: "#112233", accentColor: "#445566" },
+      warnings: ["Settings were saved but could not be reloaded."],
+    });
+  });
+
+  it("returns a deduplicated warning when cache revalidation fails after persistence", async () => {
+    const load = selectQuery({ data: themeRow, error: null });
+    const save = updateQuery({ error: null });
+    const reload = selectQuery({ data: themeRow, error: null });
+    const from = fromQueue({ site_settings: [load, save, reload] });
+    revalidateSiteSettingsCacheMock.mockRejectedValue(new Error("cache failed"));
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      themeRequest({ primaryColor: "#064e3b", accentColor: "#eab308" }),
+      "theme",
+      { from, storage: storage() } as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      verified: true,
+      warnings: ["Settings were saved but cache refresh failed."],
+    });
   });
 
   it("returns one deduplicated retention warning after a successful upload", async () => {

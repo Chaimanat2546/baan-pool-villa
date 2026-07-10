@@ -49,4 +49,22 @@ describe("dynamic site-settings section route", () => {
     expect(response.status).toBe(401);
     expect(patchResponseMock).not.toHaveBeenCalled();
   });
+
+  it("returns 404 for unknown PATCH sections before auth", async () => {
+    const { PATCH } = await import("./route");
+    const response = await PATCH(request, context("unknown"));
+    expect(response.status).toBe(404);
+    expect(requireAdminMock).not.toHaveBeenCalled();
+    expect(patchResponseMock).not.toHaveBeenCalled();
+  });
+
+  it("authorizes and delegates PATCH with awaited dynamic params", async () => {
+    const supabase = {} as never;
+    requireAdminMock.mockResolvedValue({ ok: true, supabase });
+    patchResponseMock.mockResolvedValue(Response.json({ section: "theme" }));
+    const { PATCH } = await import("./route");
+    const response = await PATCH(request, context("theme"));
+    expect(response.status).toBe(200);
+    expect(patchResponseMock).toHaveBeenCalledWith(request, "theme", supabase);
+  });
 });
