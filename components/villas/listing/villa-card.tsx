@@ -93,14 +93,14 @@ export function VillaCard({
         />
       ) : isStaticNavigation ? (
         <div
-          aria-label={`ดูรายละเอียด ${villaTitle}`}
+          aria-label={villaTitle}
           className="relative block h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]"
         >
           {coverImageContent}
         </div>
       ) : (
         <a
-          aria-label={`ดูรายละเอียด ${villaTitle}`}
+          aria-label={villaTitle}
           className="relative block h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]"
           href={villaHref}
         >
@@ -164,18 +164,6 @@ export function VillaCard({
             <span className="text-lg leading-7">{formatPrice(villa.price)}</span>{" "}
             <span className="text-sm leading-5">บาท / คืน</span>
           </p>
-          {isStaticNavigation ? (
-            <span className="shrink-0 text-sm leading-5 text-[var(--site-primary)]">
-              ดูรายละเอียด
-            </span>
-          ) : (
-            <a
-              className="shrink-0 text-sm leading-5 text-[var(--site-primary)]"
-              href={villaHref}
-            >
-              ดูรายละเอียด
-            </a>
-          )}
         </div>
       </div>
     </article>

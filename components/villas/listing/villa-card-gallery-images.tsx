@@ -258,7 +258,7 @@ export function VillaCardGalleryImages({
     >
       {href ? (
         <a
-          aria-label={`ดูรายละเอียด ${alt}`}
+          aria-label={alt}
           className="relative block h-[216px] w-full overflow-hidden"
           data-villa-card-gallery-main-link="true"
           href={href}
