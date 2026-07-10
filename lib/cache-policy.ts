@@ -10,6 +10,7 @@ export const CACHE_REVALIDATE_SECONDS = {
   guides: TWELVE_HOURS_SECONDS,
   legalPages: TWELVE_HOURS_SECONDS,
   homeSections: TWELVE_HOURS_SECONDS,
+  customerReviews: TWELVE_HOURS_SECONDS,
   siteSettings: TWELVE_HOURS_SECONDS,
   tiktokOEmbed: TWELVE_HOURS_SECONDS,
   villaDetail: TWELVE_HOURS_SECONDS,
@@ -26,6 +27,7 @@ export const CACHE_TAGS = {
   legalPage: (slug: string) => `legal-page:${slug}`,
   legalPages: "legal-pages",
   homeSections: "home-sections",
+  customerReviews: "customer-reviews",
   siteSettings: "site-settings",
   tiktokOEmbed: "tiktok-oembed",
   villaDetail: (id: string) => `villa-detail:${id}`,
@@ -39,6 +41,7 @@ export const CACHE_TAGS = {
 
 export const CACHE_HEADERS = {
   homeSections: "public, s-maxage=43200, stale-while-revalidate=43200",
+  customerReviews: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaDetail: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaCardImages: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaImages: "public, s-maxage=43200, stale-while-revalidate=43200",
