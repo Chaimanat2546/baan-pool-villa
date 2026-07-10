@@ -15,17 +15,38 @@ vi.mock("next/link", () => ({
   default: ({
     children,
     href,
+    onNavigate,
     prefetch,
     ...props
   }: AnchorHTMLAttributes<HTMLAnchorElement> & {
     children: ReactNode;
     href: string;
+    onNavigate?: (event: { preventDefault: () => void }) => void;
     prefetch?: boolean;
-  }) => (
-    <a data-prefetch={String(prefetch)} href={href} {...props}>
-      {children}
-    </a>
-  ),
+  }) => {
+    return (
+      <a
+        data-prefetch={String(prefetch)}
+        href={href}
+        onClick={(event) => {
+          if (
+            event.button !== 0 ||
+            event.altKey ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.shiftKey
+          ) {
+            return;
+          }
+
+          onNavigate?.({ preventDefault: () => event.preventDefault() });
+        }}
+        {...props}
+      >
+        {children}
+      </a>
+    );
+  },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -126,40 +147,117 @@ describe("SettingsSidebar", () => {
     act(() => mounted.root.unmount());
   });
 
-  it("prevents only declined dirty navigation and pushes confirmed navigation", () => {
+  it("does not prompt when the current section link is selected", () => {
     const mounted = mount();
+    mounted.setDirty(true);
+    const activeLink = mounted.container.querySelector(
+      'a[href="/admin/settings/seo"]',
+    ) as HTMLAnchorElement;
+    const confirm = vi.spyOn(window, "confirm");
+
+    activeLink.setAttribute("href", "#active-settings-navigation-test");
+    const event = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => activeLink.dispatchEvent(event));
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+
+    act(() => mounted.root.unmount());
+  });
+
+  it("prevents declined dirty navigation", () => {
+    const mounted = mount();
+    mounted.setDirty(true);
+    const link = mounted.container.querySelector(
+      'a[href="/admin/settings/theme"]',
+    ) as HTMLAnchorElement;
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    link.setAttribute("href", "#declined-settings-navigation-test");
+    const event = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => link.dispatchEvent(event));
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(mocks.push).not.toHaveBeenCalled();
+
+    act(() => mounted.root.unmount());
+  });
+
+  it("accepts dirty navigation without manually pushing", () => {
+    const mounted = mount();
+    mounted.setDirty(true);
+    const link = mounted.container.querySelector(
+      'a[href="/admin/settings/theme"]',
+    ) as HTMLAnchorElement;
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    link.setAttribute("href", "#accepted-settings-navigation-test");
+    const event = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => link.dispatchEvent(event));
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(mocks.push).not.toHaveBeenCalled();
+
+    act(() => mounted.root.unmount());
+  });
+
+  it("closes the mobile disclosure on clean navigation", () => {
+    const mounted = mount();
+    const toggle = mounted.container.querySelector(
+      'button[aria-controls="settings-section-navigation"]',
+    ) as HTMLButtonElement;
+    const link = mounted.container.querySelector(
+      'a[href="/admin/settings/theme"]',
+    ) as HTMLAnchorElement;
+
+    act(() => toggle.click());
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+
+    link.setAttribute("href", "#clean-settings-navigation-test");
+    act(() => link.click());
+
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(mocks.push).not.toHaveBeenCalled();
+
+    act(() => mounted.root.unmount());
+  });
+
+  it("leaves modifier clicks native and unprompted", () => {
+    const mounted = mount();
+    mounted.setDirty(true);
+    const toggle = mounted.container.querySelector(
+      'button[aria-controls="settings-section-navigation"]',
+    ) as HTMLButtonElement;
     const link = mounted.container.querySelector(
       'a[href="/admin/settings/theme"]',
     ) as HTMLAnchorElement;
     const confirm = vi.spyOn(window, "confirm");
 
-    link.setAttribute("href", "#settings-navigation-test");
-    const cleanEvent = new MouseEvent("click", {
+    act(() => toggle.click());
+    link.setAttribute("href", "#modifier-settings-navigation-test");
+    const event = new MouseEvent("click", {
       bubbles: true,
       cancelable: true,
+      ctrlKey: true,
     });
-    act(() => link.dispatchEvent(cleanEvent));
-    expect(cleanEvent.defaultPrevented).toBe(false);
+    act(() => link.dispatchEvent(event));
+
+    expect(event.defaultPrevented).toBe(false);
     expect(confirm).not.toHaveBeenCalled();
-
-    mounted.setDirty(true);
-    confirm.mockReturnValueOnce(false);
-    const declinedEvent = new MouseEvent("click", {
-      bubbles: true,
-      cancelable: true,
-    });
-    act(() => link.dispatchEvent(declinedEvent));
-    expect(declinedEvent.defaultPrevented).toBe(true);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(mocks.push).not.toHaveBeenCalled();
-
-    confirm.mockReturnValueOnce(true);
-    const confirmedEvent = new MouseEvent("click", {
-      bubbles: true,
-      cancelable: true,
-    });
-    act(() => link.dispatchEvent(confirmedEvent));
-    expect(confirmedEvent.defaultPrevented).toBe(true);
-    expect(mocks.push).toHaveBeenCalledWith("/admin/settings/theme");
 
     act(() => mounted.root.unmount());
   });

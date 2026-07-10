@@ -15,11 +15,13 @@ vi.mock("next/link", () => ({
   default: ({
     children,
     href,
+    onNavigate: _onNavigate,
     prefetch,
     ...props
   }: AnchorHTMLAttributes<HTMLAnchorElement> & {
     children: ReactNode;
     href: string;
+    onNavigate?: (event: { preventDefault: () => void }) => void;
     prefetch?: boolean;
   }) => (
     <a data-prefetch={String(prefetch)} href={href} {...props}>
@@ -39,6 +41,7 @@ vi.mock("@/components/admin/admin-auth", () => ({
 
 import { click, flushEffects } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 import { SettingsLayoutShell } from "../settings-layout-shell";
+import { SettingsSectionSkeleton } from "../settings-section-skeleton";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -82,6 +85,26 @@ describe("SettingsLayoutShell", () => {
     ).not.toBeNull();
 
     act(() => mounted.root.unmount());
+  });
+
+  it("renders only one settings sidebar while a section is loading", () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <SettingsLayoutShell>
+          <SettingsSectionSkeleton />
+        </SettingsLayoutShell>,
+      );
+    });
+
+    expect(container.querySelectorAll("aside")).toHaveLength(1);
+    expect(
+      container.querySelectorAll('nav[aria-label="ส่วนการตั้งค่าเว็บไซต์"]'),
+    ).toHaveLength(1);
+
+    act(() => root.unmount());
   });
 
   it("preserves two-click refresh confirmation, request headers, and cooldown", async () => {

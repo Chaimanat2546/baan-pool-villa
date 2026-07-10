@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSelectedLayoutSegment } from "next/navigation";
 import { ChevronDown, RefreshCw, Settings2 } from "lucide-react";
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 
 import { getAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
@@ -18,6 +18,10 @@ import { useSettingsDirtyState } from "./settings-dirty-state";
 import { SETTINGS_NAV_ITEMS } from "./settings-section-config";
 
 type ExternalDataRefreshScope = "tags-only";
+
+type SettingsNavigationEvent = {
+  preventDefault: () => void;
+};
 
 type AdminExternalDataRefreshResponse = {
   error?: string;
@@ -74,20 +78,22 @@ export function SettingsSidebar() {
   }, [cooldownSeconds]);
 
   function handleNavigation(
-    event: MouseEvent<HTMLAnchorElement>,
-    href: string,
+    event: SettingsNavigationEvent,
+    isActive: boolean,
   ) {
-    if (!isDirty) return;
+    if (isActive) return;
 
-    event.preventDefault();
     if (
-      window.confirm(
+      isDirty &&
+      !window.confirm(
         "มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?",
       )
     ) {
-      router.push(href);
-      setIsExpanded(false);
+      event.preventDefault();
+      return;
     }
+
+    setIsExpanded(false);
   }
 
   async function handleRefreshExternalData(scope: ExternalDataRefreshScope) {
@@ -203,7 +209,7 @@ export function SettingsSidebar() {
                 }`}
                 href={item.href}
                 key={item.id}
-                onClick={(event) => handleNavigation(event, item.href)}
+                onNavigate={(event) => handleNavigation(event, isActive)}
                 prefetch={false}
               >
                 <span className="block text-sm font-semibold">{item.label}</span>
