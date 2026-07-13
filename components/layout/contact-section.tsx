@@ -29,17 +29,14 @@ export function ContactSection({ settings }: ContactSectionProps) {
     {
       label: "ธนาคาร",
       value: settings.bank.bankName,
-      valueClassName: "text-[var(--site-bank-name-highlight)]",
     },
     {
       label: "เลขบัญชี",
       value: settings.bank.accountNumber,
-      valueClassName: "text-[var(--site-bank-number-highlight)]",
     },
     {
       label: "ชื่อบัญชี",
       value: settings.bank.accountName,
-      valueClassName: "text-[var(--site-bank-account-highlight)]",
     },
   ];
 
@@ -103,7 +100,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   className="grid gap-1 py-3 text-sm sm:grid-cols-[160px_1fr] sm:items-center sm:text-base"
                 >
                   <dt>{row.label}</dt>
-                  <dd className={`font-black ${row.valueClassName} sm:text-right`}>
+                  <dd className="font-black text-[var(--site-accent)] sm:text-right">
                     {row.value}
                   </dd>
                 </div>
