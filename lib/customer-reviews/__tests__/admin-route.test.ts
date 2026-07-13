@@ -596,6 +596,34 @@ describe("admin customer review route helpers", () => {
     );
   });
 
+  it("falls back to Sharp when Cloudflare Images conversion fails", async () => {
+    const file = new File([ONE_PIXEL_PNG], "proof.png", { type: "image/png" });
+    const formData = new FormData();
+    formData.set("alt", "Customer slip");
+    formData.set("image", file);
+    const output = vi.fn().mockRejectedValue(new Error("Cloudflare unavailable"));
+    mocks.getCloudflareContext.mockResolvedValue({ env: { IMAGES: { input: vi.fn(() => ({ output })) } } });
+
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const insert = vi.fn(() => ({ select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { id: "upload-1", alt: "Customer slip", created_at: "2026-07-10T04:00:00.000Z", homepage_order: null, is_active: true, is_homepage: false, public_url: "https://assets.example.com/proof.webp", storage_path: "customer-reviews/2026/07/proof.webp", updated_at: "2026-07-10T04:00:00.000Z" }, error: null }) })) }));
+    const supabase = {
+      from: vi.fn(() => ({ insert })),
+      storage: { from: vi.fn(() => ({ getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://assets.example.com/proof.webp" } })), remove: vi.fn(), upload })) },
+    };
+
+    const response = await uploadAdminCustomerReviewImage(
+      multipartRequest(formData),
+      supabase as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(upload).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ name: "proof.webp", type: "image/webp" }),
+      expect.any(Object),
+    );
+  });
+
   it("rejects unsupported customer review images before storage upload", async () => {
     const file = new File(["image"], "proof.gif", { type: "image/gif" });
     const formData = new FormData();

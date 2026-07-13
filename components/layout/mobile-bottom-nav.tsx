@@ -85,9 +85,11 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
             <span className={bottomNavLabelClass}>LINE</span>
           </a>
 
-          <p className="col-span-3 break-all border-t border-[var(--site-border)] px-2 py-1.5 text-center text-[11px] font-semibold leading-none text-[var(--site-muted)]">
-            LINE ID : {settings.contact.lineId}
-          </p>
+          {settings.contact.lineId ? (
+            <p className="col-span-3 break-all border-t border-[var(--site-border)] px-2 py-1.5 text-center text-[11px] font-semibold leading-none text-[var(--site-muted)]">
+              LINE ID : {settings.contact.lineId}
+            </p>
+          ) : null}
         </div>
       </nav>
 

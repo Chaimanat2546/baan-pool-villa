@@ -25,4 +25,15 @@ describe("MobileBottomNav", () => {
     expect(markup).toContain(`href="${DEFAULT_SITE_SETTINGS.contact.lineUrl}"`);
     expect(markup).toContain(`LINE ID : ${settings.contact.lineId}`);
   });
+
+  it("does not render an empty LINE ID row", () => {
+    const settings = {
+      ...DEFAULT_SITE_SETTINGS,
+      contact: { ...DEFAULT_SITE_SETTINGS.contact, lineId: "" },
+    };
+
+    expect(renderToStaticMarkup(<MobileBottomNav settings={settings} />)).not.toContain(
+      "LINE ID :",
+    );
+  });
 });

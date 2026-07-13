@@ -131,6 +131,24 @@ describe("AdminVillaCardImagesPage", () => {
     await page.unmount();
   });
 
+  it("keeps card style saving disabled when its initial load fails", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      makeJsonResponse({ body: { errors: ["Unable to load settings"] }, status: 500 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminVillaCardImagesPage />);
+    await flushEffects();
+
+    expect(
+      page.container.querySelector<HTMLButtonElement>("[data-villa-card-save-style]")
+        ?.disabled,
+    ).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await page.unmount();
+  });
+
   it("paginates the custom house list with clickable page numbers", async () => {
     const houses = Array.from({ length: 61 }, (_, index) => {
       const id = String(index + 1);
