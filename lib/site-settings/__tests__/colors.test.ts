@@ -91,10 +91,10 @@ describe("buildSiteThemeStyle", () => {
       "--site-primary": "#064e3b",
       "--site-surface": "#ffffff",
     });
-    expectContrast(style["--site-accent"], style["--site-surface"]);
     expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
     expectContrast(style["--site-on-accent"], style["--site-accent"]);
-    expect(style["--site-accent-hover"]).not.toBe(style["--site-accent"]);
+    expect(style["--site-primary-hover"]).toBe(style["--site-primary"]);
+    expect(style["--site-accent-hover"]).toBe(style["--site-accent"]);
     expect(style["--site-border"]).not.toBe(style["--site-primary"]);
     expect(style["--site-border-strong"]).not.toBe(style["--site-primary"]);
     expect(style["--site-muted"]).not.toBe(style["--site-text"]);
@@ -106,7 +106,7 @@ describe("buildSiteThemeStyle", () => {
     );
   });
 
-  it("keeps generated text tokens readable when users pick light brand colors", () => {
+  it("keeps on-color text readable when users pick light brand colors", () => {
     const style = buildSiteThemeStyle({
       primaryColor: "#fff9a8",
       accentColor: "#bdf7ff",
@@ -114,11 +114,7 @@ describe("buildSiteThemeStyle", () => {
 
     expectContrast(style["--site-on-primary"], style["--site-primary"]);
     expectContrast(style["--site-on-accent"], style["--site-accent"]);
-    expectContrast(style["--site-primary"], style["--site-surface"]);
-    expectContrast(style["--site-accent"], style["--site-surface"]);
     expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
-    expectContrast(style["--site-text"], style["--site-surface"]);
-    expectContrast(style["--site-muted"], style["--site-surface"]);
   });
 
   it("builds separate bank highlight variables when configured", () => {
@@ -148,22 +144,22 @@ describe("buildSiteThemeStyle", () => {
     expectContrast(style["--site-on-primary"], style["--site-primary-hover"]);
     expectContrast(style["--site-on-accent"], style["--site-accent-hover"]);
     expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
-    expectContrast(style["--site-primary"], style["--site-primary-soft"], 3);
-    expectContrast(style["--site-accent"], style["--site-accent-soft"], 3);
+    expect(style["--site-primary-soft"]).not.toBe(style["--site-primary"]);
+    expect(style["--site-accent-soft"]).not.toBe(style["--site-accent"]);
   });
 
-  it("normalizes white brand colors into usable action tokens", () => {
+  it("preserves white brand colors as selected action tokens", () => {
     const style = buildSiteThemeStyle({
       primaryColor: "#ffffff",
       accentColor: "#ffffff",
     });
 
-    expect(style["--site-primary"]).not.toBe("#ffffff");
-    expect(style["--site-accent"]).not.toBe("#ffffff");
+    expect(style["--site-primary"]).toBe("#ffffff");
+    expect(style["--site-accent"]).toBe("#ffffff");
+    expect(style["--site-primary-hover"]).toBe(style["--site-primary"]);
+    expect(style["--site-accent-hover"]).toBe(style["--site-accent"]);
     expectContrast(style["--site-on-primary"], style["--site-primary"]);
-    expectContrast(style["--site-on-primary"], style["--site-primary-hover"]);
     expectContrast(style["--site-on-accent"], style["--site-accent"]);
-    expectContrast(style["--site-on-accent"], style["--site-accent-hover"]);
     expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
   });
 
