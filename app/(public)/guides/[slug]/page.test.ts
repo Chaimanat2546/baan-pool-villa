@@ -85,4 +85,18 @@ describe("guide detail route config", () => {
     expect(getSiteSettingsMock).not.toHaveBeenCalled();
     expect(resolveGuideRecommendedVillasMock).not.toHaveBeenCalled();
   });
+
+  it("does not reserve sidebar space when no villas are configured", async () => {
+    getGuideBySlugMock.mockResolvedValue({ ...guide, recommendedHouseIds: [] });
+
+    const { default: GuideDetailRoute } = await import("./page");
+    const route = await GuideDetailRoute({
+      params: Promise.resolve({ slug: "guide-1" }),
+    });
+    const children = (
+      route as { props: { children: Array<{ props?: { sidebar?: unknown } }> } }
+    ).props.children;
+
+    expect(children[1]?.props?.sidebar).toBeUndefined();
+  });
 });
