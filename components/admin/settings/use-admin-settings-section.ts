@@ -69,12 +69,6 @@ export function useAdminSettingsSection<TDraft>({
     buildRequest,
     validate,
   });
-  callbacksRef.current = {
-    mapResponse,
-    makeSnapshot,
-    buildRequest,
-    validate,
-  };
   const [draft, setDraft] = useState<TDraft | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -85,11 +79,15 @@ export function useAdminSettingsSection<TDraft>({
   const hasUnsavedChanges =
     draft !== null &&
     savedSnapshot !== null &&
-    callbacksRef.current.makeSnapshot(draft) !== savedSnapshot;
+    makeSnapshot(draft) !== savedSnapshot;
 
   const redirectToLogin = useCallback(() => {
     router.replace("/admin/login");
   }, [router]);
+
+  useEffect(() => {
+    callbacksRef.current = { mapResponse, makeSnapshot, buildRequest, validate };
+  }, [buildRequest, makeSnapshot, mapResponse, validate]);
 
   useEffect(() => {
     return () => {
@@ -102,15 +100,14 @@ export function useAdminSettingsSection<TDraft>({
     generationRef.current = generation;
     const isCurrentGeneration = () => generationRef.current === generation;
 
-    setDraft(null);
-    setSavedSnapshot(null);
-    setIsLoading(true);
-    setErrors([]);
-    setWarnings([]);
-    setNotice(null);
-    setIsSaving(false);
-
     async function load() {
+      setDraft(null);
+      setSavedSnapshot(null);
+      setIsLoading(true);
+      setErrors([]);
+      setWarnings([]);
+      setNotice(null);
+      setIsSaving(false);
       try {
         const token = await readAdminAccessToken();
         if (!isCurrentGeneration()) return;

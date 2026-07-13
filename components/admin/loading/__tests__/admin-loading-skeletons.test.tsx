@@ -26,14 +26,10 @@ import TikTokLoading from "../../../../app/(admin)/admin/tiktok/loading";
 import { AdminDetailLayoutPage } from "../../detail-layout/admin-detail-layout-page";
 import { AdminGuidesPage } from "../../guides/admin-guides-page";
 import { AdminSectionsPage } from "../../sections/admin-sections-page";
-import { AdminSettingsPage } from "../../settings/admin-settings-page";
 import { AdminTikTokPage } from "../../tiktok/admin-tiktok-page";
 
 describe("admin loading skeletons", () => {
-  it("renders the settings loading shell for both the page state and route wrapper", () => {
-    expect(renderToStaticMarkup(<AdminSettingsPage />)).toContain(
-      'data-admin-settings-skeleton="true"',
-    );
+  it("renders the settings route loading shell", () => {
     expect(renderToStaticMarkup(<SettingsLoading />)).toContain(
       'data-settings-section-skeleton="true"',
     );

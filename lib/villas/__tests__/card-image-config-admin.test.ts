@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { revalidateVillaCardImagesCache } from "@/lib/cache-revalidation";
+import {
+  revalidateSiteSettingsCache,
+  revalidateVillaCardImagesCache,
+} from "@/lib/cache-revalidation";
 import { fetchVillaCardHouseOptionPage } from "@/lib/villas/server";
 import {
   buildAdminVillaCardImageConfigsResponse,
@@ -13,6 +16,7 @@ import {
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/cache-revalidation", () => ({
+  revalidateSiteSettingsCache: vi.fn(),
   revalidateVillaCardImagesCache: vi.fn(),
 }));
 
@@ -64,6 +68,7 @@ vi.mock("@/lib/villas/public-dto", () => ({
 const revalidateVillaCardImagesCacheMock = vi.mocked(
   revalidateVillaCardImagesCache,
 );
+const revalidateSiteSettingsCacheMock = vi.mocked(revalidateSiteSettingsCache);
 const fetchVillaCardHouseOptionPageMock = vi.mocked(
   fetchVillaCardHouseOptionPage,
 );
@@ -130,6 +135,46 @@ describe("admin villa card image config route helpers", () => {
     });
   });
 
+  it("saves only the validated villa card style", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: { villa_card_style: "gallery" },
+      error: null,
+    });
+    const selectSaved = vi.fn(() => ({ maybeSingle }));
+    const eq = vi.fn(() => ({ select: selectSaved }));
+    const update = vi.fn(() => ({ eq }));
+    const supabase = { from: vi.fn(() => ({ update })) };
+
+    const response = await saveAdminVillaCardImages(
+      request({ villaCardStyle: "gallery" }),
+      supabase as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(supabase.from).toHaveBeenCalledWith("site_settings");
+    expect(update).toHaveBeenCalledWith({ villa_card_style: "gallery" });
+    expect(eq).toHaveBeenCalledWith("id", "global");
+    expect(selectSaved).toHaveBeenCalledWith("villa_card_style");
+    expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledOnce();
+    expect(revalidateVillaCardImagesCacheMock).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({ villaCardStyle: "gallery" });
+  });
+
+  it("rejects invalid villa card styles without writing", async () => {
+    const supabase = { from: vi.fn() };
+
+    const response = await saveAdminVillaCardImages(
+      request({ villaCardStyle: "custom" }),
+      supabase as never,
+    );
+
+    expect(response.status).toBe(400);
+    expect(supabase.from).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({
+      errors: ["villaCardStyle must be classic or gallery."],
+    });
+  });
+
   it("loads configs without querying a removed mode column", async () => {
     const nestedOrder = vi.fn().mockResolvedValue({
       data: [
@@ -153,8 +198,16 @@ describe("admin villa card image config route helpers", () => {
     const inHouse = vi.fn().mockReturnValue({ order: houseOrder });
     const eq = vi.fn().mockReturnValue({ in: inHouse });
     const select = vi.fn().mockReturnValue({ eq });
+    const maybeSingleStyle = vi.fn().mockResolvedValue({
+      data: { villa_card_style: "gallery" },
+      error: null,
+    });
+    const eqStyle = vi.fn(() => ({ maybeSingle: maybeSingleStyle }));
+    const selectStyle = vi.fn(() => ({ eq: eqStyle }));
     const supabase = {
-      from: vi.fn(() => ({ select })),
+      from: vi.fn((table: string) =>
+        table === "site_settings" ? { select: selectStyle } : { select },
+      ),
     };
 
     const response = await buildAdminVillaCardImageConfigsResponse(
@@ -206,6 +259,7 @@ describe("admin villa card image config route helpers", () => {
         search: "",
         total: 1,
       },
+      villaCardStyle: "gallery",
     });
   });
 
@@ -229,8 +283,16 @@ describe("admin villa card image config route helpers", () => {
     const inHouse = vi.fn().mockReturnValue({ order: houseOrder });
     const eq = vi.fn().mockReturnValue({ in: inHouse });
     const select = vi.fn().mockReturnValue({ eq });
+    const maybeSingleStyle = vi.fn().mockResolvedValue({
+      data: { villa_card_style: "classic" },
+      error: null,
+    });
+    const eqStyle = vi.fn(() => ({ maybeSingle: maybeSingleStyle }));
+    const selectStyle = vi.fn(() => ({ eq: eqStyle }));
     const supabase = {
-      from: vi.fn(() => ({ select })),
+      from: vi.fn((table: string) =>
+        table === "site_settings" ? { select: selectStyle } : { select },
+      ),
     };
 
     const response = await buildAdminVillaCardImageConfigsResponse(
@@ -265,6 +327,7 @@ describe("admin villa card image config route helpers", () => {
         search: "pool",
         total: 61,
       },
+      villaCardStyle: "classic",
     });
   });
 

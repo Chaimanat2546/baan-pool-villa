@@ -326,9 +326,9 @@
                 <td><code>components/admin/loading/admin-login-skeleton</code>.</td>
               </tr>
               <tr>
-                <td><code>app/(admin)/admin/settings/layout.tsx</code>, <code>page.tsx</code>, and <code>brand</code>, <code>theme</code>, <code>hero</code> section routes</td>
-                <td><code>/admin/settings</code>, <code>/admin/settings/brand</code>, <code>/admin/settings/theme</code>, and <code>/admin/settings/hero</code></td>
-                <td><code>components/admin/settings/settings-layout-shell</code> owns the persistent responsive section sidebar, dirty-navigation confirmation, and external-data refresh tool; the index redirects to <code>/admin/settings/brand</code>. Brand, theme, and hero routes statically import only their matching section editor, and each editor loads and patches only its matching <code>/api/admin/site-settings/:section</code> contract.</td>
+                <td><code>app/(admin)/admin/settings/layout.tsx</code>, <code>page.tsx</code>, and the <code>brand</code>, <code>theme</code>, <code>hero</code>, <code>seo</code>, <code>contact</code>, and <code>security</code> child routes</td>
+                <td><code>/admin/settings</code> and <code>/admin/settings/:section</code></td>
+                <td>The index redirects to <code>/admin/settings/brand</code>. The nested layout and <code>components/admin/settings/settings-layout-shell</code> own the persistent responsive section sidebar, dirty-navigation confirmation, and external-data refresh tool. Each child route statically imports its matching <code>*-settings-page</code> editor; brand, theme, hero, SEO, and contact load and patch only their matching <code>/api/admin/site-settings/:section</code> projection. Security owns password/session controls and makes no site-settings request.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/settings/loading.tsx</code></td>
@@ -479,9 +479,9 @@
                 <td>Admin auth and delegation for customer proof/review image library reads, cropped multipart uploads, image metadata updates, hide/show, replace with a newly cropped Storage object while preserving the image row, delete with conservative upload-history and Storage cleanup, homepage queue/layout saves through <code>save_customer_review_homepage_queue</code>, and customer-review cache revalidation. Request parsing, row mapping, upload validation, Storage paths, and RPC response handling live in <code>lib/customer-reviews/admin-route.ts</code>.</td>
               </tr>
               <tr>
-                <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
-                <td><code>/api/admin/site-settings</code></td>
-                <td>Admin auth and delegation for site settings reads and saves. Admin multipart settings parsing, draft normalization, settings validation, save-payload shaping, Supabase persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-route.ts</code>. Site asset upload-file extraction, metadata validation, upload, upload-history cleanup, inactive marking, and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>; favicon, logo, hero, and SEO share images upload to the <code>site-assets</code> bucket with separate retained asset types. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
+                <td><code>app/(admin)/api/admin/site-settings/[section]/route.ts</code></td>
+                <td><code>/api/admin/site-settings/:section</code></td>
+                <td>Authenticated GET/PATCH for the brand, theme, hero, SEO, and contact projections. <code>lib/site-settings/admin-section-contracts.ts</code> owns section parsing, validation, projections, and payload shaping; <code>lib/site-settings/admin-section-route.ts</code> owns persistence and cache revalidation. Asset upload history and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>; cleanup filters only Settings-owned favicon, logo, hero, and SEO asset types.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
@@ -953,8 +953,8 @@
               <td>Run lint, build, and browser verification for <code>/admin/customer-reviews</code> and <code>/</code> at mobile and desktop widths.</td>
             </tr>
             <tr>
-              <td>Site settings, TikTok settings, and Marketing Tags</td>
-              <td><code>npm.cmd test -- lib/site-settings</code>, <code>npm.cmd test -- lib/tiktok</code>, <code>npm.cmd test -- lib/__tests__/marketing-data-layer.test.ts</code>, <code>npm.cmd test -- components/admin/settings/__tests__/admin-password-security-card.test.tsx</code>, <code>npm.cmd test -- components/villas/listing/__tests__/villa-card-navigation.test.tsx</code>, and relevant <code>components/admin/settings</code>, <code>components/admin/tiktok</code>, <code>components/admin/marketing-tags</code>, <code>components/villas/detail</code>, <code>components/villas/home</code> tests.</td>
+              <td>Site settings, TikTok settings, Marketing Tags, or villa card style</td>
+              <td><code>npm.cmd test -- components/admin/settings lib/site-settings 'app/(admin)/api/admin/site-settings/[section]/route.test.ts'</code>; add <code>lib/villas/__tests__/card-image-config-admin.test.ts</code> and <code>components/admin/villa-card-images/__tests__/admin-villa-card-images-page.test.tsx</code> when card style changes. Run <code>lib/tiktok</code> and <code>lib/__tests__/marketing-data-layer.test.ts</code> for their dedicated owners.</td>
               <td>Add TikTok-route assertions (including /api/admin/site-settings not overwriting TikTok columns, /api/admin/tiktok normalizing URL-only payloads), Marketing Tags route/layout/DataLayer assertions, oEmbed thumbnail fallback/cache assertions, and homepage first-6/click-to-load expectations; run lint and build before completion.</td>
             </tr>
             <tr>

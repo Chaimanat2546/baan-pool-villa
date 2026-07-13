@@ -11,7 +11,6 @@ import {
   makeJsonResponse,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
-import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 const mocks = vi.hoisted(() => ({
   readAdminAccessToken: vi.fn(),
@@ -69,22 +68,17 @@ describe("AdminVillaCardImagesPage", () => {
     const fetchMock = makeFetchMock([
       {
         body: {
-          settings: {
-            ...DEFAULT_SITE_SETTINGS,
-            villaCardStyle: "classic",
-          },
+          configs: [],
+          houses: [],
+          pagination: { hasMore: false, page: 1, pageCount: 1, pageSize: 10, search: "", total: 0 },
+          villaCardStyle: "classic",
         },
-        url: "/api/admin/site-settings",
+        url: "/api/admin/villa-card-images",
       },
       {
-        body: {
-          settings: {
-            ...DEFAULT_SITE_SETTINGS,
-            villaCardStyle: "gallery",
-          },
-        },
+        body: { villaCardStyle: "gallery" },
         method: "PUT",
-        url: "/api/admin/site-settings",
+        url: "/api/admin/villa-card-images",
       },
     ]);
     vi.stubGlobal("fetch", fetchMock);
@@ -123,12 +117,16 @@ describe("AdminVillaCardImagesPage", () => {
 
     const saveCall = fetchMock.mock.calls.find(
       ([url, init]) =>
-        url === "/api/admin/site-settings" &&
+        url === "/api/admin/villa-card-images" &&
         (init as RequestInit | undefined)?.method === "PUT",
     );
-    const body = (saveCall?.[1] as RequestInit).body as FormData;
-
-    expect(body.get("villaCardStyle")).toBe("gallery");
+    expect(JSON.parse(String((saveCall?.[1] as RequestInit).body))).toEqual({
+      villaCardStyle: "gallery",
+    });
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/admin/site-settings",
+      expect.anything(),
+    );
 
     await page.unmount();
   });
