@@ -1,0 +1,32 @@
+/** @vitest-environment jsdom */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { changeInput, click, makeJsonResponse, mountAdminPage } from "@/components/admin/__tests__/admin-page-dom-test-utils";
+import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
+
+const mocks = vi.hoisted(() => ({ readAdminAccessToken: vi.fn(), router: { replace: vi.fn() } }));
+vi.mock("next/navigation", () => ({ useRouter: () => mocks.router }));
+vi.mock("@/components/admin/admin-auth", () => ({ readAdminAccessToken: mocks.readAdminAccessToken }));
+
+import { SettingsDirtyStateProvider } from "../settings-dirty-state";
+import { ContactSettingsPage } from "../contact-settings-page";
+
+describe("ContactSettingsPage", () => {
+  beforeEach(() => mocks.readAdminAccessToken.mockResolvedValue("token"));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("owns only the contact endpoint and submits only contact JSON fields", async () => {
+    const settings = { bank: DEFAULT_SITE_SETTINGS.bank, contact: DEFAULT_SITE_SETTINGS.contact };
+    const fetchMock = vi.fn().mockResolvedValueOnce(makeJsonResponse({ body: { settings } })).mockResolvedValueOnce(makeJsonResponse({ body: { settings: { ...settings, bank: { ...settings.bank, accountName: "ชื่อใหม่" } } } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await mountAdminPage(<SettingsDirtyStateProvider><ContactSettingsPage /></SettingsDirtyStateProvider>);
+    expect(fetchMock).toHaveBeenCalledWith("/api/admin/site-settings/contact", expect.any(Object));
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/seo"))).toBe(false);
+    await changeInput(page.container.querySelector("#bankAccountName") as HTMLInputElement, "ชื่อใหม่");
+    await click([...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("บันทึกส่วนนี้"))!);
+    const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/admin/site-settings/contact");
+    expect(body).not.toEqual(expect.objectContaining({ seoTitle: expect.anything() }));
+    expect(Object.keys(body).sort()).toEqual(["bankAccountName", "bankAccountNumber", "bankName", "lineId", "lineUrl", "messengerUrl", "phoneContacts"].sort());
+    await page.unmount();
+  });
+});

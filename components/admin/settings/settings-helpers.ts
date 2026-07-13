@@ -13,6 +13,8 @@ import type {
   AdminSiteSettingsResponse,
   BrandSettingsDraft,
   HeroSettingsDraft,
+  ContactSettingsDraft,
+  SeoSettingsDraft,
   ThemeSettingsDraft,
 } from "./types";
 
@@ -149,6 +151,43 @@ export function buildHeroSettingsFormData(draft: HeroSettingsDraft): FormData {
   if (draft.heroFile) body.set("hero", draft.heroFile);
   return body;
 }
+
+export function parseDelimitedValues(value: string): string[] {
+  return value.replaceAll("\r\n", "\n").replaceAll("\r", "\n").replaceAll("\n", ",").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+export function formatDelimitedValues(values: string[]): string { return values.join(","); }
+
+export function mapSeoSettingsResponse(value: unknown): SeoSettingsDraft {
+  const { seo, pageSeo } = (value as { settings: Pick<SiteSettings, "seo" | "pageSeo"> }).settings;
+  return { seo, pageSeo, seoTitle: seo.title, seoDescription: seo.description, seoKeywords: [...seo.keywords], seoOgImageUrl: seo.ogImage.url, seoOgImageAlt: seo.ogImage.alt, seoBusinessName: seo.businessName, seoSameAsUrls: [...seo.sameAsUrls], searchSeoTitle: pageSeo.search.title, searchSeoDescription: pageSeo.search.description, searchSeoKeywords: [...pageSeo.search.keywords], searchSeoOgImageUrl: pageSeo.search.ogImage.url, searchSeoOgImageAlt: pageSeo.search.ogImage.alt, guidesSeoTitle: pageSeo.guides.title, guidesSeoDescription: pageSeo.guides.description, guidesSeoKeywords: [...pageSeo.guides.keywords], guidesSeoOgImageUrl: pageSeo.guides.ogImage.url, guidesSeoOgImageAlt: pageSeo.guides.ogImage.alt, villaDetailSeoKeywords: [...pageSeo.villaDetail.keywords], seoOgImageFile: null, searchSeoOgImageFile: null, guidesSeoOgImageFile: null };
+}
+
+export function makeSeoSettingsSnapshot(draft: SeoSettingsDraft): string {
+  const { seo, pageSeo, ...values } = draft;
+  return JSON.stringify({ ...values, seoOgImageFile: getFileSnapshot(draft.seoOgImageFile), searchSeoOgImageFile: getFileSnapshot(draft.searchSeoOgImageFile), guidesSeoOgImageFile: getFileSnapshot(draft.guidesSeoOgImageFile) });
+}
+
+export function buildSeoSettingsFormData(draft: SeoSettingsDraft): FormData {
+  const body = new FormData();
+  for (const key of ["seoTitle", "seoDescription", "seoOgImageUrl", "seoOgImageAlt", "seoBusinessName", "searchSeoTitle", "searchSeoDescription", "searchSeoOgImageUrl", "searchSeoOgImageAlt", "guidesSeoTitle", "guidesSeoDescription", "guidesSeoOgImageUrl", "guidesSeoOgImageAlt"] as const) body.set(key, draft[key]);
+  for (const key of ["seoKeywords", "seoSameAsUrls", "searchSeoKeywords", "guidesSeoKeywords", "villaDetailSeoKeywords"] as const) body.set(key, JSON.stringify(draft[key]));
+  if (draft.seoOgImageFile) body.set("seoOgImageFile", draft.seoOgImageFile);
+  if (draft.searchSeoOgImageFile) body.set("searchSeoOgImageFile", draft.searchSeoOgImageFile);
+  if (draft.guidesSeoOgImageFile) body.set("guidesSeoOgImageFile", draft.guidesSeoOgImageFile);
+  return body;
+}
+
+export function mapContactSettingsResponse(value: unknown): ContactSettingsDraft {
+  const { bank, contact } = (value as { settings: Pick<SiteSettings, "bank" | "contact"> }).settings;
+  return { bankAccountName: bank.accountName, bankName: bank.bankName, bankAccountNumber: bank.accountNumber, phoneContacts: contact.phoneContacts.map((item) => ({ ...item })), messengerUrl: contact.messengerUrl, lineId: contact.lineId, lineUrl: contact.lineUrl };
+}
+
+export function makeContactSettingsSnapshot(draft: ContactSettingsDraft): string { return JSON.stringify(draft); }
+export function buildContactSettingsJson(draft: ContactSettingsDraft): string { return JSON.stringify(draft); }
+export function addPhoneContact(contacts: ContactSettingsDraft["phoneContacts"]) { return [...contacts, { name: "", phone: "", time: "" }]; }
+export function updatePhoneContact(contacts: ContactSettingsDraft["phoneContacts"], index: number, changes: Partial<ContactSettingsDraft["phoneContacts"][number]>) { return contacts.map((contact, contactIndex) => contactIndex === index ? { ...contact, ...changes } : contact); }
+export function removePhoneContact(contacts: ContactSettingsDraft["phoneContacts"], index: number) { return contacts.length <= 1 ? contacts : contacts.filter((_contact, contactIndex) => contactIndex !== index); }
 
 export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
   return {

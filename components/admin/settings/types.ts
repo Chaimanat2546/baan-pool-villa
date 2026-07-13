@@ -30,6 +30,16 @@ export interface HeroSettingsDraft {
   heroImageAlt: string;
 }
 
+export type SeoSettingsDraft = import("@/lib/site-settings/admin-section-contracts").SiteSettingsSectionDraftMap["seo"] & {
+  seoOgImageFile: File | null;
+  searchSeoOgImageFile: File | null;
+  guidesSeoOgImageFile: File | null;
+  seo: SiteSettings["seo"];
+  pageSeo: SiteSettings["pageSeo"];
+};
+
+export type ContactSettingsDraft = import("@/lib/site-settings/admin-section-contracts").SiteSettingsSectionDraftMap["contact"];
+
 export interface AdminSettingsDraft {
   accentColor: string;
   faviconFile: File | null;
