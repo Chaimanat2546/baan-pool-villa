@@ -121,6 +121,15 @@ function brandRequest(files: Record<string, File>) {
   });
 }
 
+function seoRequest(files: Record<string, File>) {
+  const body = new FormData();
+  Object.entries(files).forEach(([name, file]) => body.set(name, file));
+  return new Request("https://example.com/api/admin/site-settings/seo", {
+    body,
+    method: "PATCH",
+  });
+}
+
 describe("admin site-settings section route helper", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -260,6 +269,89 @@ describe("admin site-settings section route helper", () => {
       primary_color: "#112233",
       accent_color: "#445566",
     });
+  });
+
+  it("rejects favicon uploads before storage when the Brand fallback cannot persist them", async () => {
+    const missing = () => selectQuery({
+      data: null,
+      error: { code: "42703", message: "column missing" },
+    });
+    const fallbackRow = {
+      id: SITE_SETTINGS_ID,
+      site_name: "Baan Pool Villa",
+      logo_background: "white",
+      logo_image_path: "logo/current.webp",
+      logo_image_url: "https://example.com/logo.webp",
+    };
+    const fallback = selectQuery({
+      data: fallbackRow,
+      error: null,
+    });
+    const history = historyInsertQuery({ data: { id: "new-favicon" }, error: null });
+    const save = updateQuery({ error: null });
+    const markInactive = historyUpdateQuery({ error: null });
+    const retention = historySelectQuery({ data: [], error: null });
+    const reload = selectQuery({ data: fallbackRow, error: null });
+    const storageApi = storage();
+    const from = fromQueue({
+      site_settings: [missing(), fallback, save, missing(), reload],
+      site_asset_uploads: [history, markInactive, retention],
+    });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      brandRequest({ faviconFile: new File(["favicon"], "favicon.webp", { type: "image/webp" }) }),
+      "brand",
+      { from, storage: storageApi } as never,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["The current settings schema cannot save the favicon image."],
+    });
+    expect(storageApi.upload).not.toHaveBeenCalled();
+    expect(history.insert).not.toHaveBeenCalled();
+  });
+
+  it("rejects secondary SEO share uploads before storage when the fallback cannot persist them", async () => {
+    const missing = () => selectQuery({
+      data: null,
+      error: { code: "42703", message: "column missing" },
+    });
+    const fallbackRow = {
+      id: SITE_SETTINGS_ID,
+      seo_title: "Baan Pool Villa",
+      seo_description: "Pool villas",
+      seo_og_image_url: "https://example.com/og.webp",
+      seo_og_image_alt: "Pool villa",
+      seo_business_name: "Baan Pool Villa",
+      seo_same_as_urls: [],
+    };
+    const fallback = selectQuery({ data: fallbackRow, error: null });
+    const history = historyInsertQuery({ data: { id: "new-search-og" }, error: null });
+    const save = updateQuery({ error: null });
+    const markInactive = historyUpdateQuery({ error: null });
+    const retention = historySelectQuery({ data: [], error: null });
+    const reload = selectQuery({ data: fallbackRow, error: null });
+    const storageApi = storage();
+    const from = fromQueue({
+      site_settings: [missing(), fallback, save, missing(), reload],
+      site_asset_uploads: [history, markInactive, retention],
+    });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      seoRequest({ searchSeoOgImageFile: new File(["image"], "search.webp", { type: "image/webp" }) }),
+      "seo",
+      { from, storage: storageApi } as never,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["The current settings schema cannot save the search-seo-og image."],
+    });
+    expect(storageApi.upload).not.toHaveBeenCalled();
+    expect(history.insert).not.toHaveBeenCalled();
   });
 
   it("rejects cross-section JSON fields before persistence", async () => {

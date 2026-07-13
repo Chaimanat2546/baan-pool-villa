@@ -22,8 +22,17 @@ import {
   type SiteSettingsSection,
 } from "./admin-section-contracts";
 import { SITE_SETTINGS_ID } from "./defaults";
-import type { SiteSettingsRow } from "./types";
+import type { SiteAssetType, SiteSettingsRow } from "./types";
 import { normalizeSiteSettingsRow } from "./validation";
+
+const ASSET_PERSISTENCE_COLUMNS: Record<SiteAssetType, readonly string[]> = {
+  favicon: ["favicon_image_path", "favicon_image_url"],
+  logo: ["logo_image_path", "logo_image_url"],
+  hero: ["hero_image_path", "hero_image_url"],
+  "seo-og": ["seo_og_image_url"],
+  "search-seo-og": ["search_seo_og_image_url"],
+  "guides-seo-og": ["guides_seo_og_image_url"],
+};
 
 function unknownSectionResponse() {
   return Response.json({ error: "Unknown settings section." }, { status: 404 });
@@ -135,6 +144,18 @@ export async function saveAdminSiteSettingsSection(
   }
   if (!existingRow) {
     return Response.json({ error: "Site settings were not found." }, { status: 404 });
+  }
+  const unsupportedUploads = uploadResult.uploadFiles.filter(({ assetType }) =>
+    ASSET_PERSISTENCE_COLUMNS[assetType].some(
+      (column) => !availableColumns.has(column),
+    ),
+  );
+  if (unsupportedUploads.length > 0) {
+    return Response.json({
+      errors: unsupportedUploads.map(
+        ({ assetType }) => `The current settings schema cannot save the ${assetType} image.`,
+      ),
+    }, { status: 400 });
   }
   const currentSettings = normalizeSiteSettingsRow(existingRow);
 
