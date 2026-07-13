@@ -35,7 +35,10 @@ describe("ThemeSettingsPage", () => {
 
     const page = await mountAdminPage(<SettingsDirtyStateProvider><ThemeSettingsPage /></SettingsDirtyStateProvider>);
 
-    expect(page.container.querySelector(".settings-preview-theme")).not.toBeNull();
+    const preview = page.container.querySelector(".settings-preview-theme") as HTMLElement;
+    expect(preview).not.toBeNull();
+    expect(preview.style.getPropertyValue("--site-primary")).toBe(settings.primaryColor);
+    expect(preview.querySelector('link[rel="stylesheet"]')).toBeNull();
     const primaryActions = page.container.querySelector('[data-theme-color-group="primary-actions"]');
     expect(primaryActions).not.toBeNull();
     expect(primaryActions?.querySelector("#primaryColor")).not.toBeNull();
