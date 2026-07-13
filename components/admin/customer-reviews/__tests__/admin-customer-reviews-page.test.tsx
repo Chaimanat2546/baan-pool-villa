@@ -42,7 +42,10 @@ vi.mock("@/lib/home-sections/supabase", () => ({
   }),
 }));
 
-import { AdminCustomerReviewsPage } from "../admin-customer-reviews-page";
+import {
+  AdminCustomerReviewsPage,
+  exportCanvasAsReviewImage,
+} from "../admin-customer-reviews-page";
 
 function makeReviewImage(id: string, index: number): AdminCustomerReviewImage {
   return {
@@ -70,6 +73,13 @@ function getQueueButtons(container: HTMLElement, action: string) {
       `[data-review-queue-action="${action}"]`,
     ),
   );
+}
+
+function countDeleteCalls(fetchMock: ReturnType<typeof makeFetchMock>, url: string) {
+  return fetchMock.mock.calls.filter(
+    ([requestUrl, init]) =>
+      requestUrl === url && (init as RequestInit | undefined)?.method === "DELETE",
+  ).length;
 }
 
 describe("AdminCustomerReviewsPage", () => {
@@ -170,25 +180,138 @@ describe("AdminCustomerReviewsPage", () => {
     );
     expect(checkboxes.every((checkbox) => checkbox.checked)).toBe(true);
 
-    await click(findButtonByText(page.container, "ลบที่เลือก") as HTMLButtonElement);
+    await click(
+      page.container.querySelector("[data-review-delete-submit]") as HTMLButtonElement,
+    );
+    const bulkDeleteDialog = page.container.querySelector(
+      "[data-review-delete-dialog]",
+    );
+    expect(bulkDeleteDialog).not.toBeNull();
     expect(
-      fetchMock.mock.calls.filter(
-        ([url, init]) =>
-          url === "/api/admin/customer-reviews?ids=review-1,review-2,review-3" &&
-          (init as RequestInit | undefined)?.method === "DELETE",
+      bulkDeleteDialog?.querySelectorAll('img[src^="/api/test-review-"]'),
+    ).toHaveLength(3);
+    expect(
+      countDeleteCalls(
+        fetchMock,
+        "/api/admin/customer-reviews?ids=review-1,review-2,review-3",
       ),
-    ).toHaveLength(0);
+    ).toBe(0);
 
-    await click(findButtonByText(page.container, "ยืนยันลบที่เลือก") as HTMLButtonElement);
+    await click(
+      page.container.querySelector("[data-review-delete-confirm]") as HTMLButtonElement,
+    );
     expect(
-      fetchMock.mock.calls.filter(
-        ([url, init]) =>
-          url === "/api/admin/customer-reviews?ids=review-1,review-2,review-3" &&
-          (init as RequestInit | undefined)?.method === "DELETE",
+      countDeleteCalls(
+        fetchMock,
+        "/api/admin/customer-reviews?ids=review-1,review-2,review-3",
       ),
-    ).toHaveLength(1);
+    ).toBe(1);
     expect(page.container.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
 
     await page.unmount();
+  });
+
+  it("opens a preview dialog before deleting one review image", async () => {
+    const images = [makeReviewImage("review-1", 1), makeReviewImage("review-2", 2)];
+    const fetchMock = makeFetchMock([
+      {
+        body: {
+          images,
+          layout: "proof_wall",
+          queueImageIds: ["review-1"],
+        },
+        url: "/api/admin/customer-reviews",
+      },
+      {
+        body: { deletedImageId: "review-1" },
+        method: "DELETE",
+        url: "/api/admin/customer-reviews?id=review-1",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminCustomerReviewsPage />);
+    await flushEffects();
+
+    await click(
+      page.container.querySelector(
+        '[data-review-delete-image="review-1"]',
+      ) as HTMLButtonElement,
+    );
+    const deleteDialog = page.container.querySelector("[data-review-delete-dialog]");
+    expect(deleteDialog).not.toBeNull();
+    expect(
+      deleteDialog?.querySelector('img[src="/api/test-review-1.webp"]'),
+    ).not.toBeNull();
+    expect(countDeleteCalls(fetchMock, "/api/admin/customer-reviews?id=review-1")).toBe(0);
+
+    await click(
+      page.container.querySelector("[data-review-delete-confirm]") as HTMLButtonElement,
+    );
+    expect(countDeleteCalls(fetchMock, "/api/admin/customer-reviews?id=review-1")).toBe(1);
+    expect(page.container.querySelector("[data-review-delete-dialog]")).toBeNull();
+
+    await page.unmount();
+  });
+
+  it("falls back to data URL WebP export when canvas toBlob does not return WebP", async () => {
+    const canvas = {
+      toBlob: vi.fn((callback: BlobCallback) => {
+        callback(new Blob(["png"], { type: "image/png" }));
+      }),
+      toDataURL: vi.fn(() => `data:image/webp;base64,${btoa("webp")}`),
+    } as unknown as HTMLCanvasElement;
+
+    const image = await exportCanvasAsReviewImage(canvas);
+
+    expect(image.extension).toBe("webp");
+    expect(image.blob.type).toBe("image/webp");
+    expect(await image.blob.text()).toBe("webp");
+  });
+
+  it("uses JPEG export when the browser cannot export canvas WebP", async () => {
+    const canvas = {
+      toBlob: vi.fn((callback: BlobCallback, mimeType?: string) => {
+        callback(
+          new Blob([mimeType === "image/jpeg" ? "jpeg" : "png"], {
+            type: mimeType === "image/jpeg" ? "image/jpeg" : "image/png",
+          }),
+        );
+      }),
+      toDataURL: vi.fn((mimeType?: string) =>
+        mimeType === "image/jpeg"
+          ? `data:image/jpeg;base64,${btoa("jpeg")}`
+          : `data:image/png;base64,${btoa("png")}`,
+      ),
+    } as unknown as HTMLCanvasElement;
+
+    const image = await exportCanvasAsReviewImage(canvas);
+
+    expect(image.extension).toBe("jpg");
+    expect(image.blob.type).toBe("image/jpeg");
+    expect(await image.blob.text()).toBe("jpeg");
+  });
+
+  it("uses PNG export when the browser cannot export canvas WebP or JPEG", async () => {
+    const canvas = {
+      toBlob: vi.fn((callback: BlobCallback, mimeType?: string) => {
+        callback(
+          new Blob([mimeType === "image/png" ? "png" : "fallback"], {
+            type: mimeType === "image/png" ? "image/png" : "image/octet-stream",
+          }),
+        );
+      }),
+      toDataURL: vi.fn((mimeType?: string) =>
+        mimeType === "image/png"
+          ? `data:image/png;base64,${btoa("png")}`
+          : `data:image/octet-stream;base64,${btoa("fallback")}`,
+      ),
+    } as unknown as HTMLCanvasElement;
+
+    const image = await exportCanvasAsReviewImage(canvas);
+
+    expect(image.extension).toBe("png");
+    expect(image.blob.type).toBe("image/png");
+    expect(await image.blob.text()).toBe("png");
   });
 });
