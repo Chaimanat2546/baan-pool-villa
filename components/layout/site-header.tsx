@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Phone, X } from "lucide-react";
+import { MapPin, Menu, Phone, X } from "lucide-react";
 import { LineIcon } from "@/components/layout/contact-icons";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import {
@@ -17,6 +17,7 @@ import { buildPhoneHref } from "@/lib/site-contact";
 import { SITE_LOGO_BACKGROUND_CLASSES } from "@/lib/site-settings/logo-background";
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { DesktopHeaderVariant } from "@/lib/site-header-settings/types";
 
 const navItems = [
   { href: "/", label: "หน้าแรก" },
@@ -25,11 +26,12 @@ const navItems = [
 ];
 
 interface SiteHeaderProps {
+  desktopHeaderVariant?: DesktopHeaderVariant;
   previewMode?: boolean;
   settings: SiteSettings;
 }
 
-export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
+export function SiteHeader({ desktopHeaderVariant = "centered-contact", previewMode = false, settings }: SiteHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const lastScrollYRef = useRef(0);
@@ -44,6 +46,7 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
   const primaryPhoneHref = primaryPhone
     ? buildPhoneHref(primaryPhone.phone)
     : null;
+  const isClassicDesktop = desktopHeaderVariant === "right-booking";
   const siteThemeStyle = buildSiteThemeStyle({
     accentColor: settings.accentColor,
     bankHighlightColor: settings.bankHighlightColor,
@@ -110,12 +113,19 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
       style={siteThemeStyle}
     >
       <div className={`${previewMode ? "" : "border-b border-[color:var(--site-on-primary)] shadow-[0_1px_1px_rgba(0,0,0,0.05)] backdrop-blur-[6px]"} bg-[var(--site-primary)]/95`}>
-        <div className="relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:grid lg:min-h-[72px] lg:grid-cols-[1fr_auto_1fr] lg:py-0 lg:px-8">
+        {isClassicDesktop ? <div className="hidden min-h-[90px] w-full items-center gap-4 px-8 lg:flex">
+          <a href="/" className="flex min-w-0 flex-1 items-center gap-3">
+            <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 border-white p-1.5 ${logoBackgroundClass}`}><Image src={logoImageSrc} alt={settings.logoImage.alt} fill quality={75} sizes="44px" className="object-contain" priority /></span>
+            <span className="min-w-0"><span className="block truncate text-2xl font-semibold leading-8 text-[var(--site-header-link)]">{settings.siteName}</span><span className="block text-sm leading-5 text-[var(--site-header-link)]">กรุณาโอนเงิน <span className="font-semibold text-[var(--site-bank-account-highlight)]">ชื่อบัญชี {settings.bank.accountName}</span>{" "}<span className="font-semibold text-[var(--site-bank-name-highlight)]">{settings.bank.bankName}</span>{" "}<span className="font-semibold text-[var(--site-bank-number-highlight)]">เลขที่ {settings.bank.accountNumber}</span> เท่านั้น</span></span>
+          </a>
+          <div className="flex shrink-0 items-center justify-end gap-8"><nav className="flex h-16 items-center justify-end gap-8 text-2xl font-semibold leading-8">{navItems.map((item) => previewMode ? <button className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]" key={item.label} type="button">{item.label}</button> : <a key={item.href} href={item.href} className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]">{item.label}</a>)}</nav><a href="/#contact" className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-4 text-sm font-medium leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"><MapPin className="h-4 w-4" aria-hidden="true" />จองเลย</a></div>
+        </div> : null}
+        <div className={`${isClassicDesktop ? "lg:hidden " : ""}relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:grid lg:min-h-[64px] lg:grid-cols-[1fr_auto_1fr] lg:py-0 lg:px-8`}>
           <a
             href="/"
-            className="flex min-w-0 flex-1 items-center gap-2 lg:absolute lg:left-8 lg:top-0 lg:z-10 lg:grid lg:h-full lg:w-[30rem] lg:grid-cols-[3.5rem_minmax(0,1fr)] lg:grid-rows-[26px_38px] lg:gap-x-3"
+            className="flex min-w-0 flex-1 items-center gap-2 lg:absolute lg:left-8 lg:top-0 lg:z-10 lg:grid lg:h-full lg:w-[20rem] lg:grid-cols-[3rem_minmax(0,1fr)] lg:grid-rows-[24px_32px] lg:gap-x-2 xl:w-[26rem]"
           >
-            <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 border-white p-1.5 lg:row-span-2 lg:h-14 lg:w-14 lg:self-center ${logoBackgroundClass}`}>
+            <span className={`relative h-auto w-16 shrink-0 self-stretch overflow-hidden rounded-2xl border-4 border-white p-1.5 lg:row-span-2 lg:h-12 lg:w-12 lg:self-center ${logoBackgroundClass}`}>
               <Image
                 src={logoImageSrc}
                 alt={settings.logoImage.alt}
@@ -127,28 +137,27 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
               />
             </span>
             <span className="min-w-0 lg:contents">
-              <span className="block truncate text-lg font-semibold leading-7 text-[var(--site-header-link)] sm:text-2xl sm:leading-8 lg:col-start-2 lg:row-start-1 lg:self-end lg:translate-y-2 lg:text-xl lg:leading-7">
+              <span className="block truncate text-lg font-semibold leading-7 text-[var(--site-header-link)] sm:text-2xl sm:leading-8 lg:col-start-2 lg:row-start-1 lg:self-end lg:translate-y-1 lg:text-lg lg:leading-6">
                 {settings.siteName}
               </span>
-              <span className="block text-[11px] leading-4 text-[var(--site-header-link)] sm:text-sm sm:leading-5 lg:col-start-2 lg:row-start-2 lg:-mt-1 lg:flex lg:items-center lg:gap-x-2 lg:whitespace-nowrap lg:pt-1 lg:border-t lg:border-[color:var(--site-header-link)]/25 lg:text-xs lg:leading-4">
+              <span className="block text-[11px] leading-4 text-[var(--site-header-link)] sm:text-sm sm:leading-5 lg:col-start-2 lg:row-start-2 lg:-mt-1 lg:flex lg:items-center lg:gap-x-1 lg:whitespace-nowrap lg:pt-1 lg:border-t lg:border-[color:var(--site-header-link)]/25 lg:text-[10px] lg:leading-3">
                 <span>กรุณาโอนเงิน</span>{" "}
-                <span className="ml-2 inline-flex gap-1 rounded-full font-semibold text-[var(--site-bank-account-highlight)] lg:ml-0">
+                <span className="inline-flex gap-1 rounded-full font-semibold text-[var(--site-bank-account-highlight)] lg:ml-0">
                   <span>ชื่อบัญชี</span>
                   <span>{settings.bank.accountName}</span>
                 </span>{" "}
-                <br className="sm:hidden" />
-                <span className="ml-2 inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)] lg:ml-0">
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)] lg:ml-0">
                   {settings.bank.bankName}
                 </span>{" "}
-                <span className="ml-2 inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)] lg:ml-0">
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)] lg:ml-0">
                   เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
-                <span className="ml-2 lg:ml-0">เท่านั้น</span>
+                <span className="lg:ml-0">เท่านั้น</span>
               </span>
             </span>
           </a>
 
-          <nav className={`${previewMode ? "absolute right-4 top-3 flex items-center gap-1 text-xs font-semibold" : "hidden h-12 items-center justify-center gap-8 text-xl font-semibold leading-7 lg:col-start-2 lg:flex"}`}>
+          <nav className={`${desktopHeaderVariant === "right-booking" ? "hidden items-center justify-end gap-8 text-xl font-semibold leading-7 lg:col-span-2 lg:flex" : "hidden h-10 items-center justify-center gap-4 text-base font-semibold leading-6 lg:col-start-2 lg:flex xl:gap-7 xl:text-lg"}`}>
             {navItems.map((item) => (
               previewMode ? (
                 <button
@@ -169,11 +178,17 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
               )
             ))}
           </nav>
-          <div className={`${previewMode ? "hidden" : "hidden items-center justify-self-end gap-2 lg:col-start-3 lg:flex"}`}>
+          {desktopHeaderVariant === "right-booking" ? (
+            <a href="/#contact" className="hidden items-center gap-2 rounded-full bg-[var(--site-surface)] px-4 py-2 text-sm font-semibold text-[var(--site-primary)] lg:flex">
+              <MapPin className="size-4" aria-hidden="true" />
+              จองเลย
+            </a>
+          ) : null}
+          <div className={`${desktopHeaderVariant === "right-booking" ? "hidden" : "hidden items-center justify-self-end gap-2 lg:col-start-3 lg:flex"}`}>
             {primaryPhoneHref && primaryPhoneHref !== "#" ? (
               <a
                 href={primaryPhoneHref}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-4 text-sm font-semibold leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-[var(--site-surface)] px-3 text-xs font-semibold leading-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] xl:h-9 xl:px-4 xl:text-sm"
               >
                 <Phone className="h-4 w-4" aria-hidden="true" />
                 {primaryPhone?.phone}
@@ -181,7 +196,7 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
             ) : null}
             <a
               href={settings.contact.lineUrl}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-3 text-sm font-semibold leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-[var(--site-surface)] px-2.5 text-xs font-semibold leading-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] xl:h-9 xl:px-3 xl:text-sm"
               rel="noreferrer"
               target="_blank"
             >

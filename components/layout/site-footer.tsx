@@ -2,6 +2,7 @@ import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import { SITE_LOGO_BACKGROUND_CLASSES } from "@/lib/site-settings/logo-background";
+import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 const FALLBACK_LOGO_IMAGE_SRC = "/images/logo.jpg";
@@ -19,6 +20,18 @@ interface SiteFooterProps {
 }
 
 export function SiteFooter({ settings }: SiteFooterProps) {
+  const siteThemeStyle = buildSiteThemeStyle({
+    accentColor: settings.accentColor,
+    bankHighlightColor: settings.bankHighlightColor,
+    bankAccountHighlightColor: settings.bankAccountHighlightColor,
+    bankNameHighlightColor: settings.bankNameHighlightColor,
+    bankNumberHighlightColor: settings.bankNumberHighlightColor,
+    footerLinkColor: settings.footerLinkColor,
+    footerLinkHoverColor: settings.footerLinkHoverColor,
+    headerLinkColor: settings.headerLinkColor,
+    headerLinkHoverColor: settings.headerLinkHoverColor,
+    primaryColor: settings.primaryColor,
+  });
   const logoImageSrc =
     normalizePublicImageSourceUrl(settings.logoImage.url) ??
     FALLBACK_LOGO_IMAGE_SRC;
@@ -45,7 +58,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
   ];
 
   return (
-    <footer className="bg-[var(--site-primary)] pb-28 text-[var(--site-on-primary)] md:pb-0">
+    <footer className="bg-[var(--site-primary)] pb-28 text-[var(--site-on-primary)] md:pb-0" style={siteThemeStyle}>
       <div className="mx-auto grid max-w-[1292px] gap-10 px-6 pb-16 pt-14 sm:px-8 lg:grid-cols-[1.45fr_0.7fr_0.9fr] lg:gap-20 lg:px-6 lg:pb-16 lg:pt-[60px]">
         <div>
           <div className="flex items-center gap-3">

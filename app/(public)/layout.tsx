@@ -4,18 +4,22 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteThemeProvider } from "@/components/layout/site-theme-provider";
 import { VillaCardStyleProvider } from "@/components/villas/listing/villa-card-style-context";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { getSiteHeaderSettings } from "@/lib/site-header-settings/server";
 
 export default async function PublicLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { settings } = await getSiteSettings();
+  const [{ settings }, headerSettings] = await Promise.all([
+    getSiteSettings(),
+    getSiteHeaderSettings(),
+  ]);
 
   return (
     <SiteThemeProvider settings={settings}>
       <div className="min-h-full pb-32 md:pb-0">
-        <SiteHeader settings={settings} />
+        <SiteHeader desktopHeaderVariant={headerSettings.desktopHeaderVariant} settings={settings} />
         <VillaCardStyleProvider value={settings.villaCardStyle}>
           {children}
         </VillaCardStyleProvider>
