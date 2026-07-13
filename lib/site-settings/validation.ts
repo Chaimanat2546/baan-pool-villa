@@ -442,186 +442,78 @@ export function validateGoogleTagManagerId(value: string): string[] {
  * @param draft - The normalized site-settings draft to validate.
  * @returns User-facing validation error messages, or an empty array when valid.
  */
+export function validateBrandSettingsValues(
+  draft: Pick<SiteSettingsDraft, "siteName" | "logoBackground">,
+): string[] {
+  const errors: string[] = [];
+  if (!draft.siteName.trim()) errors.push("ต้องใส่ชื่อเว็บ");
+  if (!isSiteLogoBackground(draft.logoBackground)) errors.push("พื้นหลังโลโก้ต้องเป็น ขาว, โปร่งใส, สีหลัก หรือสีอ่อน");
+  return errors;
+}
+
+export function validateThemeSettingsValues(
+  draft: Pick<SiteSettingsDraft, "primaryColor" | "accentColor" | "headerLinkColor" | "headerLinkHoverColor" | "footerLinkColor" | "footerLinkHoverColor" | "bankHighlightColor" | "bankAccountHighlightColor" | "bankNameHighlightColor" | "bankNumberHighlightColor">,
+): string[] {
+  const errors: string[] = [];
+  const fields = [["primaryColor", "สีหลัก"], ["accentColor", "สีเน้น"], ["headerLinkColor", "สีเมนูใน Header "], ["headerLinkHoverColor", "สี Hover เมนูใน Header "], ["footerLinkColor", "สีเมนูใน Footer "], ["footerLinkHoverColor", "สี Hover เมนูใน Footer "], ["bankHighlightColor", "สีไฮไลท์บัญชี"], ["bankAccountHighlightColor", "สีชื่อบัญชี"], ["bankNameHighlightColor", "สีชื่อธนาคาร"], ["bankNumberHighlightColor", "สีเลขบัญชี"]] as const;
+  for (const [field, label] of fields) if (!isHexColor(draft[field])) errors.push(`${label}ต้องเป็นค่าสีแบบ #RRGGBB`);
+  return errors;
+}
+
+export function validateHeroSettingsValues(
+  draft: Pick<SiteSettingsDraft, "heroImageAlt">,
+): string[] {
+  return draft.heroImageAlt.length > HERO_IMAGE_ALT_MAX_LENGTH ? ["คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร"] : [];
+}
+
+export function validateSeoSettingsValues(draft: Pick<SiteSettingsDraft, "seoTitle" | "seoDescription" | "seoKeywords" | "seoOgImageUrl" | "seoOgImageAlt" | "seoBusinessName" | "seoSameAsUrls" | "searchSeoTitle" | "searchSeoDescription" | "searchSeoKeywords" | "searchSeoOgImageUrl" | "searchSeoOgImageAlt" | "guidesSeoTitle" | "guidesSeoDescription" | "guidesSeoKeywords" | "guidesSeoOgImageUrl" | "guidesSeoOgImageAlt" | "villaDetailSeoKeywords">): string[] {
+  const errors: string[] = [];
+  if (!draft.seoTitle.trim()) errors.push("ต้องใส่ชื่อหน้าที่แสดงบน Google"); else if (draft.seoTitle.length > SEO_TITLE_MAX_LENGTH) errors.push("ชื่อหน้าที่แสดงบน Google ต้องไม่เกิน 80 ตัวอักษร");
+  if (!draft.seoDescription.trim()) errors.push("ต้องใส่คำอธิบายเว็บที่แสดงบน Google"); else if (draft.seoDescription.length > SEO_DESCRIPTION_MAX_LENGTH) errors.push("คำอธิบายเว็บที่แสดงบน Google ต้องไม่เกิน 180 ตัวอักษร");
+  errors.push(...validateKeywordList({ keywords: draft.seoKeywords, label: "หน้าแรก / ค่าเริ่มต้น", requireOne: true }));
+  if (!isPublicImageUrl(draft.seoOgImageUrl)) errors.push("รูปตัวอย่างตอนแชร์ลิงก์ต้องเป็น URL แบบ http, https หรือ path ภายในเว็บที่ขึ้นต้นด้วย /");
+  if (!draft.seoOgImageAlt.trim()) errors.push("ต้องใส่คำอธิบายรูปตอนแชร์ลิงก์"); else if (draft.seoOgImageAlt.length > SEO_IMAGE_ALT_MAX_LENGTH) errors.push("คำอธิบายรูปตอนแชร์ลิงก์ต้องไม่เกิน 160 ตัวอักษร");
+  if (!draft.seoBusinessName.trim()) errors.push("ต้องใส่ชื่อธุรกิจสำหรับ SEO"); else if (draft.seoBusinessName.length > SEO_BUSINESS_NAME_MAX_LENGTH) errors.push("ชื่อธุรกิจสำหรับ SEO ต้องไม่เกิน 100 ตัวอักษร");
+  if (draft.seoSameAsUrls.length > SEO_SAME_AS_URLS_MAX_COUNT) errors.push("ลิงก์โซเชียลของร้านต้องไม่เกิน 6 รายการ");
+  draft.seoSameAsUrls.forEach((url, index) => { if (!isHttpUrl(url)) errors.push(`ลิงก์โซเชียลของร้านรายการที่ ${index + 1} ต้องเป็น URL แบบ http หรือ https`); });
+  errors.push(...validateSectionSeoFields({ description: draft.searchSeoDescription ?? "", imageAlt: draft.searchSeoOgImageAlt ?? "", imageUrl: draft.searchSeoOgImageUrl ?? "", keywords: draft.searchSeoKeywords ?? [], label: "หน้าค้นหา (/search)", title: draft.searchSeoTitle ?? "" }));
+  errors.push(...validateSectionSeoFields({ description: draft.guidesSeoDescription ?? "", imageAlt: draft.guidesSeoOgImageAlt ?? "", imageUrl: draft.guidesSeoOgImageUrl ?? "", keywords: draft.guidesSeoKeywords ?? [], label: "หน้าบทความ (/guides)", title: draft.guidesSeoTitle ?? "" }));
+  errors.push(...validateKeywordList({ keywords: draft.villaDetailSeoKeywords ?? [], label: "หน้ารายละเอียดบ้าน", requireOne: false }));
+  return errors;
+}
+
+export function validateContactSettingsValues(draft: Pick<SiteSettingsDraft, "bankAccountName" | "bankName" | "bankAccountNumber" | "phoneContacts" | "messengerUrl" | "lineId" | "lineUrl">): string[] {
+  const errors: string[] = [];
+  if (!draft.bankAccountName.trim()) errors.push("ต้องใส่ชื่อบัญชีธนาคาร");
+  if (!draft.bankName.trim()) errors.push("ต้องใส่ชื่อธนาคาร");
+  if (!draft.bankAccountNumber.trim()) errors.push("ต้องใส่เลขบัญชีธนาคาร");
+  if (!draft.phoneContacts.length) errors.push("ต้องใส่เบอร์โทรอย่างน้อย 1 รายการ");
+  draft.phoneContacts.forEach((contact, index) => { const number = index + 1; if (!contact.name.trim()) errors.push(`ต้องใส่ชื่อผู้ติดต่อคนที่ ${number}`); if (!contact.phone.trim()) errors.push(`ต้องใส่เบอร์โทรผู้ติดต่อคนที่ ${number}`); else if (!isThaiPhoneNumber(contact.phone)) errors.push(`เบอร์โทรผู้ติดต่อคนที่ ${number} ต้องเป็นเบอร์ไทย 10 หลัก เช่น 0xxxxxxxxx`); if (!contact.time.trim()) errors.push(`ต้องใส่ช่วงเวลาผู้ติดต่อคนที่ ${number}`); });
+  if (!isHttpUrl(draft.messengerUrl)) errors.push("ลิงก์ Messenger ต้องเป็น URL แบบ http หรือ https");
+  if (!draft.lineId.trim()) errors.push("ต้องใส่ LINE ID");
+  if (!isHttpUrl(draft.lineUrl)) errors.push("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");
+  return errors;
+}
+
 export function validateSiteSettingsDraft(
   draft: SiteSettingsDraft,
 ): string[] {
   const errors: string[] = [];
 
-  if (draft.siteName.trim().length === 0) {
-    errors.push("ต้องใส่ชื่อเว็บ");
-  }
-
-  if (!isHexColor(draft.primaryColor)) {
-    errors.push("สีหลักต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isHexColor(draft.accentColor)) {
-    errors.push("สีเน้นต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isHexColor(draft.headerLinkColor)) {
-    errors.push("สีเมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isHexColor(draft.headerLinkHoverColor)) {
-    errors.push("สี Hover เมนูใน Header ต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isHexColor(draft.footerLinkColor)) {
-    errors.push("สีเมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isHexColor(draft.footerLinkHoverColor)) {
-    errors.push("สี Hover เมนูใน Footer ต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isHexColor(draft.bankHighlightColor)) {
-    errors.push("สีไฮไลท์บัญชีต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isHexColor(draft.bankAccountHighlightColor)) {
-    errors.push("สีชื่อบัญชีต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isHexColor(draft.bankNameHighlightColor)) {
-    errors.push("สีชื่อธนาคารต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isHexColor(draft.bankNumberHighlightColor)) {
-    errors.push("สีเลขบัญชีต้องเป็นค่าสีแบบ #RRGGBB");
-  }
-
-  if (!isSiteLogoBackground(draft.logoBackground)) {
-    errors.push("พื้นหลังโลโก้ต้องเป็น ขาว, โปร่งใส, สีหลัก หรือสีอ่อน");
-  }
+  const brandErrors = validateBrandSettingsValues(draft);
+  const siteNameError = brandErrors.find((error) => error === "ต้องใส่ชื่อเว็บ");
+  const logoBackgroundError = brandErrors.find((error) => error !== "ต้องใส่ชื่อเว็บ");
+  if (siteNameError) errors.push(siteNameError);
+  errors.push(...validateThemeSettingsValues(draft));
+  if (logoBackgroundError) errors.push(logoBackgroundError);
+  errors.push(...validateHeroSettingsValues(draft));
 
   if (!isVillaCardStyle(draft.villaCardStyle)) {
     errors.push("รูปแบบการ์ดบ้านต้องเป็น แบบเก่า หรือ แบบใหม่");
   }
 
-  if (draft.heroImageAlt.length > HERO_IMAGE_ALT_MAX_LENGTH) {
-    errors.push("คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร");
-  }
-
-  if (draft.seoTitle.trim().length === 0) {
-    errors.push("ต้องใส่ชื่อหน้าที่แสดงบน Google");
-  } else if (draft.seoTitle.length > SEO_TITLE_MAX_LENGTH) {
-    errors.push("ชื่อหน้าที่แสดงบน Google ต้องไม่เกิน 80 ตัวอักษร");
-  }
-
-  if (draft.seoDescription.trim().length === 0) {
-    errors.push("ต้องใส่คำอธิบายเว็บที่แสดงบน Google");
-  } else if (draft.seoDescription.length > SEO_DESCRIPTION_MAX_LENGTH) {
-    errors.push("คำอธิบายเว็บที่แสดงบน Google ต้องไม่เกิน 180 ตัวอักษร");
-  }
-
-  errors.push(
-    ...validateKeywordList({
-      keywords: draft.seoKeywords,
-      label: "หน้าแรก / ค่าเริ่มต้น",
-      requireOne: true,
-    }),
-  );
-
-  if (!isPublicImageUrl(draft.seoOgImageUrl)) {
-    errors.push("รูปตัวอย่างตอนแชร์ลิงก์ต้องเป็น URL แบบ http, https หรือ path ภายในเว็บที่ขึ้นต้นด้วย /");
-  }
-
-  if (draft.seoOgImageAlt.trim().length === 0) {
-    errors.push("ต้องใส่คำอธิบายรูปตอนแชร์ลิงก์");
-  } else if (draft.seoOgImageAlt.length > SEO_IMAGE_ALT_MAX_LENGTH) {
-    errors.push("คำอธิบายรูปตอนแชร์ลิงก์ต้องไม่เกิน 160 ตัวอักษร");
-  }
-
-  if (draft.seoBusinessName.trim().length === 0) {
-    errors.push("ต้องใส่ชื่อธุรกิจสำหรับ SEO");
-  } else if (draft.seoBusinessName.length > SEO_BUSINESS_NAME_MAX_LENGTH) {
-    errors.push("ชื่อธุรกิจสำหรับ SEO ต้องไม่เกิน 100 ตัวอักษร");
-  }
-
-  if (draft.seoSameAsUrls.length > SEO_SAME_AS_URLS_MAX_COUNT) {
-    errors.push("ลิงก์โซเชียลของร้านต้องไม่เกิน 6 รายการ");
-  }
-
-  draft.seoSameAsUrls.forEach((url, index) => {
-    if (!isHttpUrl(url)) {
-      errors.push(`ลิงก์โซเชียลของร้านรายการที่ ${index + 1} ต้องเป็น URL แบบ http หรือ https`);
-    }
-  });
-
-  errors.push(
-    ...validateSectionSeoFields({
-      description: draft.searchSeoDescription ?? "",
-      imageAlt: draft.searchSeoOgImageAlt ?? "",
-      imageUrl: draft.searchSeoOgImageUrl ?? "",
-      keywords: draft.searchSeoKeywords ?? [],
-      label: "หน้าค้นหา (/search)",
-      title: draft.searchSeoTitle ?? "",
-    }),
-  );
-  errors.push(
-    ...validateSectionSeoFields({
-      description: draft.guidesSeoDescription ?? "",
-      imageAlt: draft.guidesSeoOgImageAlt ?? "",
-      imageUrl: draft.guidesSeoOgImageUrl ?? "",
-      keywords: draft.guidesSeoKeywords ?? [],
-      label: "หน้าบทความ (/guides)",
-      title: draft.guidesSeoTitle ?? "",
-    }),
-  );
-  errors.push(
-    ...validateKeywordList({
-      keywords: draft.villaDetailSeoKeywords ?? [],
-      label: "หน้ารายละเอียดบ้าน",
-      requireOne: false,
-    }),
-  );
-
-  if (draft.bankAccountName.trim().length === 0) {
-    errors.push("ต้องใส่ชื่อบัญชีธนาคาร");
-  }
-
-  if (draft.bankName.trim().length === 0) {
-    errors.push("ต้องใส่ชื่อธนาคาร");
-  }
-
-  if (draft.bankAccountNumber.trim().length === 0) {
-    errors.push("ต้องใส่เลขบัญชีธนาคาร");
-  }
-
-  if (draft.phoneContacts.length === 0) {
-    errors.push("ต้องใส่เบอร์โทรอย่างน้อย 1 รายการ");
-  }
-
-  draft.phoneContacts.forEach((contact, index) => {
-    const contactNumber = index + 1;
-
-    if (contact.name.trim().length === 0) {
-      errors.push(`ต้องใส่ชื่อผู้ติดต่อคนที่ ${contactNumber}`);
-    }
-
-    if (contact.phone.trim().length === 0) {
-      errors.push(`ต้องใส่เบอร์โทรผู้ติดต่อคนที่ ${contactNumber}`);
-    } else if (!isThaiPhoneNumber(contact.phone)) {
-      errors.push(`เบอร์โทรผู้ติดต่อคนที่ ${contactNumber} ต้องเป็นเบอร์ไทย 10 หลัก เช่น 0xxxxxxxxx`);
-    }
-
-    if (contact.time.trim().length === 0) {
-      errors.push(`ต้องใส่ช่วงเวลาผู้ติดต่อคนที่ ${contactNumber}`);
-    }
-  });
-
-  if (!isHttpUrl(draft.messengerUrl)) {
-    errors.push("ลิงก์ Messenger ต้องเป็น URL แบบ http หรือ https");
-  }
-
-  if (draft.lineId.trim().length === 0) {
-    errors.push("ต้องใส่ LINE ID");
-  }
-
-  if (!isHttpUrl(draft.lineUrl)) {
-    errors.push("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");
-  }
+  errors.push(...validateSeoSettingsValues(draft));
+  errors.push(...validateContactSettingsValues(draft));
 
   errors.push(
     ...validateTikTokSettingsDraft({
@@ -630,7 +522,7 @@ export function validateSiteSettingsDraft(
     }),
   );
 
-  return errors;
+  return [...new Set(errors)];
 }
 
 /**

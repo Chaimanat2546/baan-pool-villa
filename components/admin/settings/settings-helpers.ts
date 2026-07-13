@@ -9,11 +9,26 @@ import {
   shouldRedirectToLogin,
 } from "@/components/admin/admin-api-client";
 import type {
-  AdminSettingsDraft,
   AdminSiteSettingsResponse,
+  BrandSettingsDraft,
+  HeroSettingsDraft,
+  ContactSettingsDraft,
+  SeoSettingsDraft,
+  ThemeSettingsDraft,
 } from "./types";
 
 const HEX_COLOR_PATTERN = /^#[\da-f]{6}$/i;
+
+export function getSafePreviewImageUrl(value: string, fallback: string): string {
+  const trimmedValue = value.trim();
+  if (trimmedValue.startsWith("/") && !trimmedValue.startsWith("//")) return trimmedValue;
+  try {
+    const url = new URL(trimmedValue);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function getFileSnapshot(file: File | null): string | null {
   return file
@@ -35,7 +50,7 @@ function readDraftHexColor(value: string, fallback: string): string {
 // the public site defaults whenever the draft still contains an invalid hex
 // value.
 export function buildDraftThemeStylesheetHref(
-  draft: AdminSettingsDraft,
+  draft: ThemeSettingsDraft,
   scope = "settings-preview-theme",
 ) {
   return buildSiteThemeStylesheetHref({
@@ -82,177 +97,95 @@ export function buildDraftThemeStylesheetHref(
   }, scope);
 }
 
-export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {
-  return {
-    accentColor: settings.accentColor,
-    bankHighlightColor: settings.bankHighlightColor,
-    bankAccountHighlightColor: settings.bankAccountHighlightColor,
-    bankNameHighlightColor: settings.bankNameHighlightColor,
-    bankNumberHighlightColor: settings.bankNumberHighlightColor,
-    bankAccountName: settings.bank.accountName,
-    bankAccountNumber: settings.bank.accountNumber,
-    bankName: settings.bank.bankName,
-    footerLinkColor: settings.footerLinkColor,
-    footerLinkHoverColor: settings.footerLinkHoverColor,
-    headerLinkColor: settings.headerLinkColor,
-    headerLinkHoverColor: settings.headerLinkHoverColor,
-    logoBackground: settings.logoBackground,
-    villaCardStyle: settings.villaCardStyle,
-    faviconFile: null,
-    heroFile: null,
-    heroImageAlt: settings.heroImage.alt,
-    lineId: settings.contact.lineId,
-    lineUrl: settings.contact.lineUrl,
-    logoFile: null,
-    messengerUrl: settings.contact.messengerUrl,
-    phoneContacts: settings.contact.phoneContacts.map((contact) => ({
-      ...contact,
-    })),
-    primaryColor: settings.primaryColor,
-    seoBusinessName: settings.seo.businessName,
-    seoDescription: settings.seo.description,
-    seoOgImageFile: null,
-    seoKeywords: [...settings.seo.keywords],
-    seoOgImageAlt: settings.seo.ogImage.alt,
-    seoOgImageUrl: settings.seo.ogImage.url,
-    seoSameAsUrls: [...settings.seo.sameAsUrls],
-    searchSeoTitle: settings.pageSeo.search.title,
-    searchSeoDescription: settings.pageSeo.search.description,
-    searchSeoOgImageFile: null,
-    searchSeoKeywords: [...settings.pageSeo.search.keywords],
-    searchSeoOgImageUrl: settings.pageSeo.search.ogImage.url,
-    searchSeoOgImageAlt: settings.pageSeo.search.ogImage.alt,
-    guidesSeoTitle: settings.pageSeo.guides.title,
-    guidesSeoDescription: settings.pageSeo.guides.description,
-    guidesSeoOgImageFile: null,
-    guidesSeoKeywords: [...settings.pageSeo.guides.keywords],
-    guidesSeoOgImageUrl: settings.pageSeo.guides.ogImage.url,
-    guidesSeoOgImageAlt: settings.pageSeo.guides.ogImage.alt,
-    villaDetailSeoKeywords: [...settings.pageSeo.villaDetail.keywords],
-    seoTitle: settings.seo.title,
-    siteName: settings.siteName,
-  };
+export function mapBrandSettingsResponse(value: unknown): BrandSettingsDraft {
+  const settings = (value as { settings: Omit<BrandSettingsDraft, "logoFile" | "faviconFile"> }).settings;
+  return { ...settings, faviconFile: null, logoFile: null };
 }
 
-export function makeSettingsSnapshot(draft: AdminSettingsDraft): string {
+export function makeBrandSettingsSnapshot(draft: BrandSettingsDraft): string {
   return JSON.stringify({
-    accentColor: draft.accentColor,
-    bankHighlightColor: draft.bankHighlightColor,
-    bankAccountHighlightColor: draft.bankAccountHighlightColor,
-    bankNameHighlightColor: draft.bankNameHighlightColor,
-    bankNumberHighlightColor: draft.bankNumberHighlightColor,
-    bankAccountName: draft.bankAccountName,
-    bankAccountNumber: draft.bankAccountNumber,
-    bankName: draft.bankName,
-    footerLinkColor: draft.footerLinkColor,
-    footerLinkHoverColor: draft.footerLinkHoverColor,
-    headerLinkColor: draft.headerLinkColor,
-    headerLinkHoverColor: draft.headerLinkHoverColor,
-    logoBackground: draft.logoBackground,
-    villaCardStyle: draft.villaCardStyle,
     faviconFile: getFileSnapshot(draft.faviconFile),
-    heroFile: getFileSnapshot(draft.heroFile),
-    heroImageAlt: draft.heroImageAlt,
-    lineId: draft.lineId,
-    lineUrl: draft.lineUrl,
+    logoBackground: draft.logoBackground,
     logoFile: getFileSnapshot(draft.logoFile),
-    messengerUrl: draft.messengerUrl,
-    phoneContacts: draft.phoneContacts,
-    primaryColor: draft.primaryColor,
-    seoBusinessName: draft.seoBusinessName,
-    seoDescription: draft.seoDescription,
-    seoOgImageFile: getFileSnapshot(draft.seoOgImageFile),
-    seoKeywords: draft.seoKeywords,
-    seoOgImageAlt: draft.seoOgImageAlt,
-    seoOgImageUrl: draft.seoOgImageUrl,
-    seoSameAsUrls: draft.seoSameAsUrls,
-    searchSeoTitle: draft.searchSeoTitle,
-    searchSeoDescription: draft.searchSeoDescription,
-    searchSeoOgImageFile: getFileSnapshot(draft.searchSeoOgImageFile),
-    searchSeoKeywords: draft.searchSeoKeywords,
-    searchSeoOgImageUrl: draft.searchSeoOgImageUrl,
-    searchSeoOgImageAlt: draft.searchSeoOgImageAlt,
-    guidesSeoTitle: draft.guidesSeoTitle,
-    guidesSeoDescription: draft.guidesSeoDescription,
-    guidesSeoOgImageFile: getFileSnapshot(draft.guidesSeoOgImageFile),
-    guidesSeoKeywords: draft.guidesSeoKeywords,
-    guidesSeoOgImageUrl: draft.guidesSeoOgImageUrl,
-    guidesSeoOgImageAlt: draft.guidesSeoOgImageAlt,
-    villaDetailSeoKeywords: draft.villaDetailSeoKeywords,
-    seoTitle: draft.seoTitle,
     siteName: draft.siteName,
   });
 }
 
-export function buildSettingsFormData(draft: AdminSettingsDraft): FormData {
-  const formData = new FormData();
-
-  formData.set("siteName", draft.siteName);
-  formData.set("primaryColor", draft.primaryColor);
-  formData.set("accentColor", draft.accentColor);
-  formData.set("headerLinkColor", draft.headerLinkColor);
-  formData.set("headerLinkHoverColor", draft.headerLinkHoverColor);
-  formData.set("footerLinkColor", draft.footerLinkColor);
-  formData.set("footerLinkHoverColor", draft.footerLinkHoverColor);
-  formData.set("bankHighlightColor", draft.bankHighlightColor);
-  formData.set("bankAccountHighlightColor", draft.bankAccountHighlightColor);
-  formData.set("bankNameHighlightColor", draft.bankNameHighlightColor);
-  formData.set("bankNumberHighlightColor", draft.bankNumberHighlightColor);
-  formData.set("logoBackground", draft.logoBackground);
-  formData.set("villaCardStyle", draft.villaCardStyle);
-  formData.set("heroImageAlt", draft.heroImageAlt);
-  formData.set("bankAccountName", draft.bankAccountName);
-  formData.set("bankName", draft.bankName);
-  formData.set("bankAccountNumber", draft.bankAccountNumber);
-  formData.set("phoneContacts", JSON.stringify(draft.phoneContacts));
-  formData.set("messengerUrl", draft.messengerUrl);
-  formData.set("lineId", draft.lineId);
-  formData.set("lineUrl", draft.lineUrl);
-  formData.set("seoTitle", draft.seoTitle);
-  formData.set("seoDescription", draft.seoDescription);
-  formData.set("seoKeywords", JSON.stringify(draft.seoKeywords));
-  formData.set("seoOgImageUrl", draft.seoOgImageUrl);
-  formData.set("seoOgImageAlt", draft.seoOgImageAlt);
-  formData.set("seoBusinessName", draft.seoBusinessName);
-  formData.set("seoSameAsUrls", JSON.stringify(draft.seoSameAsUrls));
-  formData.set("searchSeoTitle", draft.searchSeoTitle);
-  formData.set("searchSeoDescription", draft.searchSeoDescription);
-  formData.set("searchSeoKeywords", JSON.stringify(draft.searchSeoKeywords));
-  formData.set("searchSeoOgImageUrl", draft.searchSeoOgImageUrl);
-  formData.set("searchSeoOgImageAlt", draft.searchSeoOgImageAlt);
-  formData.set("guidesSeoTitle", draft.guidesSeoTitle);
-  formData.set("guidesSeoDescription", draft.guidesSeoDescription);
-  formData.set("guidesSeoKeywords", JSON.stringify(draft.guidesSeoKeywords));
-  formData.set("guidesSeoOgImageUrl", draft.guidesSeoOgImageUrl);
-  formData.set("guidesSeoOgImageAlt", draft.guidesSeoOgImageAlt);
-  formData.set("villaDetailSeoKeywords", JSON.stringify(draft.villaDetailSeoKeywords));
-
-  if (draft.logoFile) {
-    formData.set("logo", draft.logoFile);
-  }
-
-  if (draft.faviconFile) {
-    formData.set("faviconFile", draft.faviconFile);
-  }
-
-  if (draft.heroFile) {
-    formData.set("hero", draft.heroFile);
-  }
-
-  if (draft.seoOgImageFile) {
-    formData.set("seoOgImageFile", draft.seoOgImageFile);
-  }
-
-  if (draft.searchSeoOgImageFile) {
-    formData.set("searchSeoOgImageFile", draft.searchSeoOgImageFile);
-  }
-
-  if (draft.guidesSeoOgImageFile) {
-    formData.set("guidesSeoOgImageFile", draft.guidesSeoOgImageFile);
-  }
-
-  return formData;
+export function buildBrandSettingsFormData(draft: BrandSettingsDraft): FormData {
+  const body = new FormData();
+  body.set("siteName", draft.siteName);
+  body.set("logoBackground", draft.logoBackground);
+  if (draft.logoFile) body.set("logo", draft.logoFile);
+  if (draft.faviconFile) body.set("faviconFile", draft.faviconFile);
+  return body;
 }
+
+export function mapThemeSettingsResponse(value: unknown): ThemeSettingsDraft {
+  return (value as { settings: ThemeSettingsDraft }).settings;
+}
+
+export function makeThemeSettingsSnapshot(draft: ThemeSettingsDraft): string {
+  return JSON.stringify(draft);
+}
+
+export function buildThemeSettingsJson(draft: ThemeSettingsDraft): string {
+  return JSON.stringify(draft);
+}
+
+export function mapHeroSettingsResponse(value: unknown): HeroSettingsDraft {
+  const { heroImage } = (value as { settings: { heroImage: HeroSettingsDraft["heroImage"] } }).settings;
+  return { heroFile: null, heroImage, heroImageAlt: heroImage.alt };
+}
+
+export function makeHeroSettingsSnapshot(draft: HeroSettingsDraft): string {
+  return JSON.stringify({
+    heroFile: getFileSnapshot(draft.heroFile),
+    heroImageAlt: draft.heroImageAlt,
+  });
+}
+
+export function buildHeroSettingsFormData(draft: HeroSettingsDraft): FormData {
+  const body = new FormData();
+  body.set("heroImageAlt", draft.heroImageAlt);
+  if (draft.heroFile) body.set("hero", draft.heroFile);
+  return body;
+}
+
+export function parseDelimitedValues(value: string): string[] {
+  return value.replaceAll("\r\n", "\n").replaceAll("\r", "\n").replaceAll("\n", ",").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+export function formatDelimitedValues(values: string[]): string { return values.join(","); }
+
+export function mapSeoSettingsResponse(value: unknown): SeoSettingsDraft {
+  const { seo, pageSeo } = (value as { settings: Pick<SiteSettings, "seo" | "pageSeo"> }).settings;
+  return { seo, pageSeo, seoTitle: seo.title, seoDescription: seo.description, seoKeywords: [...seo.keywords], seoOgImageUrl: seo.ogImage.url, seoOgImageAlt: seo.ogImage.alt, seoBusinessName: seo.businessName, seoSameAsUrls: [...seo.sameAsUrls], searchSeoTitle: pageSeo.search.title, searchSeoDescription: pageSeo.search.description, searchSeoKeywords: [...pageSeo.search.keywords], searchSeoOgImageUrl: pageSeo.search.ogImage.url, searchSeoOgImageAlt: pageSeo.search.ogImage.alt, guidesSeoTitle: pageSeo.guides.title, guidesSeoDescription: pageSeo.guides.description, guidesSeoKeywords: [...pageSeo.guides.keywords], guidesSeoOgImageUrl: pageSeo.guides.ogImage.url, guidesSeoOgImageAlt: pageSeo.guides.ogImage.alt, villaDetailSeoKeywords: [...pageSeo.villaDetail.keywords], seoOgImageFile: null, searchSeoOgImageFile: null, guidesSeoOgImageFile: null };
+}
+
+export function makeSeoSettingsSnapshot(draft: SeoSettingsDraft): string {
+  return JSON.stringify({ ...draft, seo: undefined, pageSeo: undefined, seoOgImageFile: getFileSnapshot(draft.seoOgImageFile), searchSeoOgImageFile: getFileSnapshot(draft.searchSeoOgImageFile), guidesSeoOgImageFile: getFileSnapshot(draft.guidesSeoOgImageFile) });
+}
+
+export function buildSeoSettingsFormData(draft: SeoSettingsDraft): FormData {
+  const body = new FormData();
+  for (const key of ["seoTitle", "seoDescription", "seoOgImageUrl", "seoOgImageAlt", "seoBusinessName", "searchSeoTitle", "searchSeoDescription", "searchSeoOgImageUrl", "searchSeoOgImageAlt", "guidesSeoTitle", "guidesSeoDescription", "guidesSeoOgImageUrl", "guidesSeoOgImageAlt"] as const) body.set(key, draft[key]);
+  for (const key of ["seoKeywords", "seoSameAsUrls", "searchSeoKeywords", "guidesSeoKeywords", "villaDetailSeoKeywords"] as const) body.set(key, JSON.stringify(draft[key]));
+  if (draft.seoOgImageFile) body.set("seoOgImageFile", draft.seoOgImageFile);
+  if (draft.searchSeoOgImageFile) body.set("searchSeoOgImageFile", draft.searchSeoOgImageFile);
+  if (draft.guidesSeoOgImageFile) body.set("guidesSeoOgImageFile", draft.guidesSeoOgImageFile);
+  return body;
+}
+
+export function mapContactSettingsResponse(value: unknown): ContactSettingsDraft {
+  const { bank, contact } = (value as { settings: Pick<SiteSettings, "bank" | "contact"> }).settings;
+  return { bankAccountName: bank.accountName, bankName: bank.bankName, bankAccountNumber: bank.accountNumber, phoneContacts: contact.phoneContacts.map((item) => ({ ...item })), messengerUrl: contact.messengerUrl, lineId: contact.lineId, lineUrl: contact.lineUrl };
+}
+
+export function makeContactSettingsSnapshot(draft: ContactSettingsDraft): string { return JSON.stringify(draft); }
+export function buildContactSettingsJson(draft: ContactSettingsDraft): string { return JSON.stringify(draft); }
+export function addPhoneContact(contacts: ContactSettingsDraft["phoneContacts"]) { return [...contacts, { name: "", phone: "", time: "" }]; }
+export function updatePhoneContact(contacts: ContactSettingsDraft["phoneContacts"], index: number, changes: Partial<ContactSettingsDraft["phoneContacts"][number]>) { return contacts.map((contact, contactIndex) => contactIndex === index ? { ...contact, ...changes } : contact); }
+export function removePhoneContact(contacts: ContactSettingsDraft["phoneContacts"], index: number) { return contacts.length <= 1 ? contacts : contacts.filter((_contact, contactIndex) => contactIndex !== index); }
 
 export function extractErrors(
   payload: unknown,

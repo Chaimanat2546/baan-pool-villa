@@ -3,8 +3,12 @@ import type {
   SupabaseLikeError,
 } from "@/lib/admin/route-helpers";
 import { adminSupabaseErrorResponse } from "@/lib/admin/route-helpers";
-import { revalidateVillaCardImagesCache } from "@/lib/cache-revalidation";
-import { SITE_ASSETS_BUCKET } from "@/lib/site-settings/defaults";
+import {
+  revalidateSiteSettingsCache,
+  revalidateVillaCardImagesCache,
+} from "@/lib/cache-revalidation";
+import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
+import type { SiteVillaCardStyle } from "@/lib/site-settings/types";
 import { validateCustomDisplayImageIds } from "@/lib/villas/images";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
 import {
@@ -85,6 +89,18 @@ const COVER_UPLOAD_MIME_EXTENSIONS = new Map([
   ["image/png", "png"],
   ["image/webp", "webp"],
 ]);
+
+function toVillaCardStyle(value: unknown): SiteVillaCardStyle {
+  return value === "gallery" ? "gallery" : "classic";
+}
+
+async function loadVillaCardStyle(supabase: HomeConfigSupabaseClient) {
+  return supabase
+    .from("site_settings")
+    .select("villa_card_style")
+    .eq("id", SITE_SETTINGS_ID)
+    .maybeSingle();
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -309,11 +325,20 @@ export async function buildAdminVillaCardImageConfigsResponse(
     );
   }
 
+  const styleResult = await loadVillaCardStyle(supabase);
+  if (styleResult.error) {
+    return adminSupabaseErrorResponse(
+      styleResult.error,
+      "Unable to load villa card style.",
+    );
+  }
+
   try {
     return Response.json({
       configs: (data as VillaCardImageConfigRow[]).map(mapVillaCardImageConfigRow),
       houses: housePage.houses,
       pagination: housePage.pagination,
+      villaCardStyle: toVillaCardStyle(styleResult.data?.villa_card_style),
     });
   } catch (error) {
     return Response.json(
@@ -526,6 +551,31 @@ async function saveAdminVillaCardImageConfigPayload(
   });
 }
 
+async function saveAdminVillaCardStyle(
+  value: unknown,
+  supabase: HomeConfigSupabaseClient,
+) {
+  if (value !== "classic" && value !== "gallery") {
+    return Response.json(
+      { errors: ["villaCardStyle must be classic or gallery."] },
+      { status: 400 },
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("site_settings")
+    .update({ villa_card_style: value })
+    .eq("id", SITE_SETTINGS_ID)
+    .select("villa_card_style")
+    .maybeSingle();
+  if (error || !data) {
+    return adminSupabaseErrorResponse(error, "Unable to save villa card style.");
+  }
+
+  await revalidateSiteSettingsCache();
+  return Response.json({ villaCardStyle: toVillaCardStyle(data.villa_card_style) });
+}
+
 async function saveAdminVillaCardCoverPayload(
   formData: FormData,
   supabase: HomeConfigSupabaseClient,
@@ -645,7 +695,16 @@ export async function saveAdminVillaCardImages(
     }
   }
 
-  return saveAdminVillaCardImageConfigPayload(await readJsonRequest(request), supabase);
+  const payload = await readJsonRequest(request);
+  if (
+    isRecord(payload) &&
+    Object.keys(payload).length === 1 &&
+    Object.hasOwn(payload, "villaCardStyle")
+  ) {
+    return saveAdminVillaCardStyle(payload.villaCardStyle, supabase);
+  }
+
+  return saveAdminVillaCardImageConfigPayload(payload, supabase);
 }
 
 export async function deleteAdminVillaCardCoverImage(

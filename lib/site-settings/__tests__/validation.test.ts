@@ -14,6 +14,9 @@ import {
   normalizeSiteSettingsRow,
   validateGoogleTagManagerId,
   validateSiteSettingsDraft,
+  validateBrandSettingsValues,
+  validateHeroSettingsValues,
+  validateThemeSettingsValues,
   validateUploadMetadata,
 } from "../validation";
 import type { SiteSettingsDraft } from "../types";
@@ -567,6 +570,11 @@ describe("normalizeSiteSettingsDraft", () => {
 });
 
 describe("validateSiteSettingsDraft", () => {
+  it("exposes focused section validators with the existing exact errors", () => {
+    expect(validateBrandSettingsValues({ siteName: " ", logoBackground: "white" })).toEqual(["ต้องใส่ชื่อเว็บ"]);
+    expect(validateThemeSettingsValues({ ...validDraft, primaryColor: "bad" })).toEqual(["สีหลักต้องเป็นค่าสีแบบ #RRGGBB"]);
+    expect(validateHeroSettingsValues({ heroImageAlt: "x".repeat(161) })).toEqual(["คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร"]);
+  });
   it("accepts a complete valid draft", () => {
     expect(validateSiteSettingsDraft(validDraft)).toEqual([]);
   });

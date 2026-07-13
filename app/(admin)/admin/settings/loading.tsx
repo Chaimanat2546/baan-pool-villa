@@ -1,5 +1,5 @@
-import { AdminSettingsSkeleton } from "@/components/admin/loading/admin-settings-skeleton";
+import { SettingsSectionSkeleton } from "@/components/admin/settings/settings-section-skeleton";
 
 export default function Loading() {
-  return <AdminSettingsSkeleton />;
+  return <SettingsSectionSkeleton />;
 }
