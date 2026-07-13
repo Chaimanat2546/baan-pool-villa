@@ -54,16 +54,15 @@ describe("VillaCard navigation", () => {
     expect(markup).not.toContain("/api/houses/images");
   });
 
-  it("renders the gallery card image shell when the site setting selects the new style", () => {
+  it("uses its server-provided style instead of the surrounding client context", () => {
     const markup = renderToStaticMarkup(
       <VillaCardStyleProvider value="gallery">
-        <VillaCard villa={villa} />
+        <VillaCard villa={villa} villaCardStyle="classic" />
       </VillaCardStyleProvider>,
     );
 
-    expect(markup).toContain('data-villa-card-style="gallery"');
-    expect(markup).toContain('data-villa-card-gallery-status="loading"');
-    expect(markup).toContain('data-villa-card-gallery-main-link="true"');
+    expect(markup).toContain('data-villa-card-style="classic"');
+    expect(markup).not.toContain('data-villa-card-gallery-status="loading"');
     expect(markup).toContain('href="/villas/501"');
   });
 

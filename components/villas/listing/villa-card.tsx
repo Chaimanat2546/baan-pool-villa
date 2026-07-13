@@ -4,6 +4,7 @@ import { BedDouble, MapPin, Users } from "lucide-react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
 import { normalizePublicVillaCoverImage } from "@/lib/villas/public-dto";
+import type { SiteVillaCardStyle } from "@/lib/site-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 import { VillaCardGalleryImages } from "./villa-card-gallery-images";
 import { useVillaCardStyle } from "./villa-card-style-context";
@@ -12,6 +13,7 @@ interface VillaCardProps {
   coverImageSrcOverride?: string | null;
   galleryImageUrls?: string[];
   navigationMode?: "link" | "static";
+  villaCardStyle?: SiteVillaCardStyle;
   villa: VillaListing;
   titleHeadingLevel?: "h2" | "h3";
   preload?: boolean;
@@ -44,6 +46,7 @@ export function VillaCard({
   coverImageSrcOverride,
   galleryImageUrls,
   navigationMode = "link",
+  villaCardStyle: villaCardStyleProp,
   villa,
   titleHeadingLevel = "h2",
   preload = false,
@@ -59,7 +62,8 @@ export function VillaCard({
     coverImageSrcOverride === undefined
       ? normalizePublicVillaCoverImage(villa)
       : coverImageSrcOverride;
-  const villaCardStyle = useVillaCardStyle();
+  const contextVillaCardStyle = useVillaCardStyle();
+  const villaCardStyle = villaCardStyleProp ?? contextVillaCardStyle;
   const villaHref = `/villas/${villa.id}`;
   const villaTitle = getVillaTitle(villa);
   const isStaticNavigation = navigationMode === "static";

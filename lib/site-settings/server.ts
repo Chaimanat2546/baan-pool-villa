@@ -1,6 +1,7 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "./defaults";
 import { createHomeConfigClient } from "./supabase";
@@ -151,7 +152,7 @@ const getCachedSiteSettings = unstable_cache(
  * @returns The resolved site settings, including whether the result is
  * degraded and whether it came from remote config or local fallback defaults.
  */
-export async function getSiteSettings(): Promise<SiteSettingsLoadResult> {
+export const getSiteSettings = cache(async (): Promise<SiteSettingsLoadResult> => {
   try {
     return await getCachedSiteSettings();
   } catch {
@@ -161,4 +162,4 @@ export async function getSiteSettings(): Promise<SiteSettingsLoadResult> {
       source: "fallback",
     };
   }
-}
+});

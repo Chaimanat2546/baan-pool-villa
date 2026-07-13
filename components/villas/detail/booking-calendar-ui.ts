@@ -48,6 +48,21 @@ export function startOfCalendarDate(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+export function isCalendarDateSelectable({
+  date,
+  todayStart,
+  visibleMonth,
+}: {
+  date: Date;
+  todayStart: Date;
+  visibleMonth: Date;
+}) {
+  return (
+    visibleMonth < new Date(todayStart.getFullYear(), todayStart.getMonth(), 1) ||
+    startOfCalendarDate(date) >= todayStart
+  );
+}
+
 export function addCalendarMonths(date: Date, monthOffset: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + monthOffset, 1);
 }
@@ -153,9 +168,9 @@ export function getCalendarToneClass(day: BookingCalendarDay): string | null {
       return "bg-[var(--site-danger,#991b1b)] text-white ring-2 hover:text-white";
     case "holiday":
     case "hot_holiday":
-      return "bg-[var(--site-accent)] text-white ring-1 ring-[var(--site-accent)]/25 hover:bg-[var(--site-accent)] hover:text-white";
+      return "bg-yellow-500 text-white ring-1 ring-yellow-500/25 hover:bg-yellow-500 hover:text-white";
     case "waiting":
-      return "bg-[var(--site-primary)] text-[var(--site-on-primary)] ring-1 ring-[var(--site-primary)]/30 hover:bg-[var(--site-primary)] hover:text-[var(--site-on-primary)]";
+      return "bg-emerald-700 text-white ring-1 ring-emerald-700/30 hover:bg-emerald-700 hover:text-white";
     default:
       return null;
   }

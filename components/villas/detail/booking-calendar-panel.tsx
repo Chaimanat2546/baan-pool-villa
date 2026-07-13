@@ -16,6 +16,7 @@ import {
   formatCalendarMonthKey,
   formatThaiCalendarDate,
   getFallbackCalendarDay,
+  isCalendarDateSelectable,
   startOfCalendarDate,
   type BookingCalendarDay,
   type BookingCalendarMonth,
@@ -57,6 +58,7 @@ export function BookingCalendarPanel({
     Record<string, BookingCalendarMonth>
   >({});
   const visibleMonthKey = formatCalendarMonthKey(visibleMonth);
+  const isPastVisibleMonth = visibleMonth < currentMonth;
   const bookingCalendarCacheKey = `${listingId}:${visibleMonthKey}`;
   const bookingCalendar =
     bookingCalendars[bookingCalendarCacheKey] ??
@@ -69,8 +71,6 @@ export function BookingCalendarPanel({
     visibleMonth,
     visibleMonthKey,
   });
-  const isPastCalendarDate = (date: Date) =>
-    startOfCalendarDate(date).getTime() < todayStart.getTime();
   const isOutsideVisibleMonth = (date: Date) =>
     !isSameCalendarMonth(date, visibleMonth);
   const getCalendarDay = (date: Date): BookingCalendarDay => {
@@ -136,16 +136,16 @@ export function BookingCalendarPanel({
         month={visibleMonth}
         onMonthChange={setVisibleMonth}
         disabled={(date) =>
-          isPastCalendarDate(date) ||
+          !isCalendarDateSelectable({ date, todayStart, visibleMonth }) ||
           isOutsideVisibleMonth(date) ||
           bookingCalendar?.month !== visibleMonthKey
         }
         onSelect={(date) => {
           if (
             date &&
-            !isPastCalendarDate(date) &&
+            isCalendarDateSelectable({ date, todayStart, visibleMonth }) &&
             !isOutsideVisibleMonth(date) &&
-            !getCalendarDay(date).disabled
+            (!getCalendarDay(date).disabled || isPastVisibleMonth)
           ) {
             setIsCalendarTipDismissed(true);
             setSelectedCalendarDate(date);
@@ -161,10 +161,12 @@ export function BookingCalendarPanel({
               className={className}
               currentMonth={currentMonth}
               setVisibleMonth={setVisibleMonth}
+              showNextMonthPointer={!isPastVisibleMonth}
             />
           ),
           DayButton: ({ className, day, ...props }) => {
-            const isPast = isPastCalendarDate(day.date);
+            const isPast =
+              startOfCalendarDate(day.date).getTime() < todayStart.getTime();
             const isToday = isSameCalendarDay(day.date, today);
             const isOutsideVisibleMonth = !isSameCalendarMonth(
               day.date,
@@ -172,6 +174,7 @@ export function BookingCalendarPanel({
             );
             const calendarDay = getCalendarDay(day.date);
             const isFirstAvailable =
+              !isPastVisibleMonth &&
               formatCalendarDateKey(day.date) === firstAvailableCalendarDateKey;
 
             return (
@@ -184,6 +187,7 @@ export function BookingCalendarPanel({
                 isFirstAvailable={isFirstAvailable}
                 isOutsideVisibleMonth={isOutsideVisibleMonth}
                 isPast={isPast}
+                isPastVisibleMonth={isPastVisibleMonth}
                 isToday={isToday}
                 onDismissTip={() => {
                   setIsCalendarTipDismissed(true);

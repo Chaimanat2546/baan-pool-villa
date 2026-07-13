@@ -50,7 +50,7 @@ export function SettingsSectionHeader({
     <>
       <div aria-hidden="true" className="h-px" ref={sentinelRef} />
       <header
-        className="group sticky top-16 z-20 -mx-1 grid gap-4 border-b border-[var(--site-border)] bg-[var(--site-surface)]/95 px-1 pb-4 pt-1 shadow-sm backdrop-blur lg:top-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end"
+        className="group sticky top-16 z-20 -mx-1 grid gap-4 border-b border-[var(--site-border)] px-1 pb-4 pt-1 backdrop-blur lg:top-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end bg-transparent"
         data-compact={isCompact}
         data-settings-section-header
       >

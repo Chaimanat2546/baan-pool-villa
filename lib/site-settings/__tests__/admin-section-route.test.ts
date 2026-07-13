@@ -32,6 +32,17 @@ const themeRow = {
   bank_account_highlight_color: "#1d4ed8",
   bank_name_highlight_color: "#7c3aed",
   bank_number_highlight_color: "#be123c",
+  site_name: "Preview Villas",
+  logo_background: "white",
+  logo_image_path: "logo/current.webp",
+  logo_image_url: "https://example.com/logo.webp",
+  bank_account_name: "Preview Account",
+  bank_name: "Preview Bank",
+  bank_account_number: "123-456-7890",
+  phone_contacts: [{ name: "Sales", phone: "0812345678", time: "09:00-18:00" }],
+  messenger_url: "https://m.me/example",
+  line_id: "@preview",
+  line_url: "https://line.me/R/ti/p/@preview",
 };
 
 function selectQuery(result: { data: unknown; error: unknown }) {
@@ -150,6 +161,21 @@ describe("admin site-settings section route helper", () => {
     });
     expect(query.select).toHaveBeenCalledWith(expect.stringContaining("site_name"));
     expect(query.select).not.toHaveBeenCalledWith(expect.stringContaining("tiktok"));
+  });
+
+  it("returns only Theme fields with the Theme response", async () => {
+    const query = selectQuery({ data: themeRow, error: null });
+    const supabase = { from: vi.fn().mockReturnValue(query) };
+    const { buildAdminSiteSettingsSectionResponse } = await import("../admin-section-route");
+
+    const response = await buildAdminSiteSettingsSectionResponse("theme", supabase as never);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      section: "theme",
+      settings: { primaryColor: "#064e3b" },
+    });
+    expect(query.select).not.toHaveBeenCalledWith(expect.stringContaining("bank_account_number"));
   });
 
   it("returns 404 for an unknown section before touching Supabase", async () => {

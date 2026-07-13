@@ -208,8 +208,8 @@ export function CalendarLegendItem({
     <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-2.5 py-1 text-[11px] text-[var(--site-muted)]">
       <span
         className={cn(
-          "relative inline-flex size-4 items-center justify-center overflow-hidden rounded-full border border-[var(--site-border)] bg-[var(--site-surface-soft)] text-[var(--site-text)]",
-          swatchClassName,
+          "relative inline-flex size-4 items-center justify-center overflow-hidden rounded-full border border-[var(--site-border)] text-[var(--site-text)]",
+          swatchClassName ?? "bg-[var(--site-surface-soft)]",
         )}
       >
         {overlay === "booked-cross" ? (
@@ -238,11 +238,11 @@ export function CalendarLegend() {
       </CalendarLegendItem>
       <CalendarLegendItem
         overlay="booked-cross"
-        swatchClassName="bg-red-700/60"
+        swatchClassName="bg-[var(--site-danger,#991b1b)]"
       >
         ติดจองแล้ว
       </CalendarLegendItem>
-      <CalendarLegendItem swatchClassName="bg-yellow-500/50">
+      <CalendarLegendItem swatchClassName="bg-yellow-500">
         วันหยุด
       </CalendarLegendItem>
       <CalendarLegendItem icon="fire">โปรไฟลุก</CalendarLegendItem>

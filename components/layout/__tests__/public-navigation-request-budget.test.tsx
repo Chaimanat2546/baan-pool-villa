@@ -54,7 +54,11 @@ describe("public navigation request budget", () => {
     expectDocumentNavigationLink(markup, "/");
     expectDocumentNavigationLink(markup, "/search?guests=2&bedrooms=1&maxPrice=58900");
     expectDocumentNavigationLink(markup, "/guides");
-    expectDocumentNavigationLink(markup, "/#contact");
+    expectDocumentNavigationLink(
+      markup,
+      `tel:${DEFAULT_SITE_SETTINGS.contact.phoneContacts[0]?.phone}`,
+    );
+    expectDocumentNavigationLink(markup, DEFAULT_SITE_SETTINGS.contact.lineUrl);
   });
 
   it("does not viewport-prefetch footer navigation routes", () => {

@@ -63,5 +63,6 @@ describe("PublicLayout", () => {
 
     expect(markup).toContain('data-villa-card-style-provider="gallery"');
     expect(markup).toContain("หน้าแรก");
+    expect(markup).toContain("min-h-full pb-32 md:pb-0");
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
-import { MapPin, Menu, X } from "lucide-react";
+import { Menu, Phone, X } from "lucide-react";
+import { LineIcon } from "@/components/layout/contact-icons";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import {
   Sheet,
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { useEffect, useRef, useState } from "react";
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import { buildPhoneHref } from "@/lib/site-contact";
 import { SITE_LOGO_BACKGROUND_CLASSES } from "@/lib/site-settings/logo-background";
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -23,10 +25,11 @@ const navItems = [
 ];
 
 interface SiteHeaderProps {
+  previewMode?: boolean;
   settings: SiteSettings;
 }
 
-export function SiteHeader({ settings }: SiteHeaderProps) {
+export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const lastScrollYRef = useRef(0);
@@ -37,6 +40,10 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
     settings.logoImage.url;
   const logoBackgroundClass =
     SITE_LOGO_BACKGROUND_CLASSES[settings.logoBackground ?? "white"];
+  const primaryPhone = settings.contact.phoneContacts[0];
+  const primaryPhoneHref = primaryPhone
+    ? buildPhoneHref(primaryPhone.phone)
+    : null;
   const siteThemeStyle = buildSiteThemeStyle({
     accentColor: settings.accentColor,
     bankHighlightColor: settings.bankHighlightColor,
@@ -55,6 +62,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
   };
 
   useEffect(() => {
+    if (previewMode) return;
     lastScrollYRef.current = window.scrollY;
 
     const updateHeaderVisibility = () => {
@@ -91,71 +99,83 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
         window.cancelAnimationFrame(frameRef.current);
       }
     };
-  }, []);
+  }, [previewMode]);
 
   return (
     <header
-      className={`sticky top-0 z-50 bg-[var(--site-primary)] text-[var(--site-on-primary)] transition-transform duration-300 ease-out ${
+      className={`${previewMode ? "" : "sticky top-0 z-50 transition-transform duration-300 ease-out"} bg-[var(--site-primary)] text-[var(--site-on-primary)] ${
         isHeaderHidden && !isMenuOpen ? "-translate-y-full" : "translate-y-0"
       }`}
       data-header-hidden={isHeaderHidden && !isMenuOpen ? "true" : "false"}
     >
-      <div className="border-b border-[color:var(--site-on-primary)] bg-[var(--site-primary)]/95 shadow-[0_1px_1px_rgba(0,0,0,0.05)] backdrop-blur-[6px]">
-        <div className="relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+      <div className={`${previewMode ? "" : "border-b border-[color:var(--site-on-primary)] shadow-[0_1px_1px_rgba(0,0,0,0.05)] backdrop-blur-[6px]"} bg-[var(--site-primary)]/95`}>
+        <div className="relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:grid lg:min-h-[72px] lg:grid-cols-[1fr_auto_1fr] lg:py-0 lg:px-8">
           <a
             href="/"
-            className="flex min-w-0 flex-1 items-center gap-3"
+            className="flex min-w-0 flex-1 items-center gap-2 lg:absolute lg:left-8 lg:top-0 lg:z-10 lg:grid lg:h-full lg:w-[30rem] lg:grid-cols-[3.5rem_minmax(0,1fr)] lg:grid-rows-[26px_38px] lg:gap-x-3"
           >
-            <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 border-white p-1.5 ${logoBackgroundClass}`}>
+            <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 border-white p-1.5 lg:row-span-2 lg:h-14 lg:w-14 lg:self-center ${logoBackgroundClass}`}>
               <Image
                 src={logoImageSrc}
                 alt={settings.logoImage.alt}
                 fill
                 quality={75}
-                sizes="44px"
+                sizes="(min-width: 1024px) 56px, 44px"
                 className="object-contain"
                 priority
               />
             </span>
-            <span className="min-w-0">
-              <span className="block truncate text-lg font-semibold leading-7 sm:text-2xl sm:leading-8">
+            <span className="min-w-0 lg:contents">
+              <span className="block truncate text-lg font-semibold leading-7 sm:text-2xl sm:leading-8 lg:col-start-2 lg:row-start-1 lg:self-end lg:translate-y-2 lg:text-xl lg:leading-7">
                 {settings.siteName}
               </span>
-              <span className="block text-[11px] leading-4 text-[var(--site-on-primary)] sm:text-sm sm:leading-5">
-                กรุณาโอนเงิน{" "}
-                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-account-highlight)]">
-                  ชื่อบัญชี {settings.bank.accountName}
+              {!previewMode ? <span className="block text-[11px] leading-4 text-[var(--site-on-primary)] sm:text-sm sm:leading-5 lg:col-start-2 lg:row-start-2 lg:-mt-1 lg:flex lg:items-center lg:gap-x-2 lg:whitespace-nowrap lg:pt-1 lg:border-t lg:border-[color:var(--site-on-primary)]/25 lg:text-xs lg:leading-4">
+                <span>กรุณาโอนเงิน</span>{" "}
+                <span className="ml-2 inline-flex gap-1 rounded-full font-semibold text-[var(--site-bank-account-highlight)] lg:ml-0">
+                  <span>ชื่อบัญชี</span>
+                  <span>{settings.bank.accountName}</span>
                 </span>{" "}
                 <br className="sm:hidden" />
-                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)]">
+                <span className="ml-2 inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)] lg:ml-0">
                   {settings.bank.bankName}
                 </span>{" "}
-                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)]">
+                <span className="ml-2 inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)] lg:ml-0">
                   เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
-                เท่านั้น
-              </span>
+                <span className="ml-2 lg:ml-0">เท่านั้น</span>
+              </span> : null}
             </span>
           </a>
 
-          <div className="hidden shrink-0 items-center justify-end gap-8 lg:flex">
-            <nav className="flex h-16 items-center justify-end gap-8 text-2xl font-semibold leading-8">
-              {navItems.map((item) => (
-                <a
-                  key={`${item.href}-${item.label}`}
-                  href={item.href}
-                  className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
+          <nav className="hidden h-12 items-center justify-center gap-8 text-xl font-semibold leading-7 lg:col-start-2 lg:flex">
+            {navItems.map((item) => (
+              <a
+                key={`${item.href}-${item.label}`}
+                href={item.href}
+                className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <div className="hidden items-center justify-self-end gap-2 lg:col-start-3 lg:flex">
+            {primaryPhoneHref && primaryPhoneHref !== "#" ? (
+              <a
+                href={primaryPhoneHref}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-4 text-sm font-semibold leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+              >
+                <Phone className="h-4 w-4" aria-hidden="true" />
+                {primaryPhone?.phone}
+              </a>
+            ) : null}
             <a
-              href="/#contact"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-4 text-sm font-medium leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+              href={settings.contact.lineUrl}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-3 text-sm font-semibold leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+              rel="noreferrer"
+              target="_blank"
             >
-              <MapPin className="h-4 w-4" />
-              จองเลย
+              <LineIcon className="h-5 w-5" />
+              {settings.contact.lineId}
             </a>
           </div>
 
@@ -193,19 +213,32 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                   <SheetClose key={`mobile-${item.href}-${item.label}`} asChild>
                     <a
                       href={item.href}
-                      className="px-5 py-4 text-[var(--site-header-link)] transition hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-header-link-hover)]"
+                      className="px-5 py-4 text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-text)]"
                     >
                       {item.label}
                     </a>
                   </SheetClose>
                 ))}
+                {primaryPhoneHref && primaryPhoneHref !== "#" ? (
+                  <SheetClose asChild>
+                    <a
+                      href={primaryPhoneHref}
+                      className="flex items-center gap-2 px-5 py-4 text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
+                    >
+                      <Phone className="h-4 w-4" aria-hidden="true" />
+                      {primaryPhone?.phone}
+                    </a>
+                  </SheetClose>
+                ) : null}
                 <SheetClose asChild>
                   <a
-                    href="/#contact"
-                    className="flex items-center gap-2 px-5 py-4 text-[var(--site-header-link)] transition hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-header-link-hover)]"
+                    href={settings.contact.lineUrl}
+                    className="flex items-center gap-2 px-5 py-4 text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
+                    rel="noreferrer"
+                    target="_blank"
                   >
-                    <MapPin className="h-4 w-4" />
-                    จองเลย
+                    <LineIcon className="h-5 w-5" />
+                    {settings.contact.lineId}
                   </a>
                 </SheetClose>
               </nav>
