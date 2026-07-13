@@ -110,26 +110,6 @@ export function getReadableTextColor(
     : darkText;
 }
 
-function ensureReadableOnSurface(
-  colorHex: string,
-  surfaceHex = "#ffffff",
-  minimumRatio = 4.5,
-): string {
-  if (getContrastRatio(colorHex, surfaceHex) >= minimumRatio) {
-    return colorHex;
-  }
-
-  for (let weight = 0.04; weight <= 1; weight += 0.04) {
-    const candidate = mixHexColors(colorHex, "#020617", weight);
-
-    if (getContrastRatio(candidate, surfaceHex) >= minimumRatio) {
-      return candidate;
-    }
-  }
-
-  return "#020617";
-}
-
 function ensureReadableOnBackground(
   colorHex: string,
   backgroundHex: string,
@@ -160,8 +140,8 @@ function ensureReadableOnBackground(
  * @returns A CSS variable map with readable derived theme colors.
  */
 export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
-  const primaryColor = ensureReadableOnSurface(input.primaryColor.toLowerCase());
-  const accentColor = ensureReadableOnSurface(input.accentColor.toLowerCase());
+  const primaryColor = input.primaryColor.toLowerCase();
+  const accentColor = input.accentColor.toLowerCase();
   const bankHighlightColor = (
     input.bankHighlightColor ?? DEFAULT_HIGHLIGHT_COLOR
   ).toLowerCase();
@@ -191,7 +171,7 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
 
   return {
     "--site-accent": accentColor,
-    "--site-accent-hover": mixHexColors(accentColor, "#040000", 0.08),
+    "--site-accent-hover": accentColor,
     "--site-accent-on-dark": accentOnDarkColor,
     "--site-accent-soft": mixHexColors(accentColor, "#ffffff", 0.901),
     "--site-bank-account-highlight": bankAccountHighlightColor,
@@ -209,7 +189,7 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
     "--site-on-accent": getReadableTextColor(accentColor),
     "--site-on-primary": getReadableTextColor(primaryColor),
     "--site-primary": primaryColor,
-    "--site-primary-hover": mixHexColors(primaryColor, "#040000", 0.1),
+    "--site-primary-hover": primaryColor,
     "--site-primary-soft": mixHexColors(primaryColor, "#faffff", 0.95),
     "--site-surface": "#ffffff",
     "--site-surface-soft": mixHexColors(primaryColor, "#ffffff", 0.97),

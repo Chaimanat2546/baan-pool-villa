@@ -1,4 +1,4 @@
-import { buildSiteThemeStylesheetHref } from "@/lib/site-settings/colors";
+import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
@@ -49,11 +49,8 @@ function readDraftHexColor(value: string, fallback: string): string {
 // Keep the preview renderable while the form is mid-edit by falling back to
 // the public site defaults whenever the draft still contains an invalid hex
 // value.
-export function buildDraftThemeStylesheetHref(
-  draft: ThemeSettingsDraft,
-  scope = "settings-preview-theme",
-) {
-  return buildSiteThemeStylesheetHref({
+export function buildDraftThemeStyle(draft: ThemeSettingsDraft) {
+  return buildSiteThemeStyle({
     accentColor: readDraftHexColor(
       draft.accentColor,
       DEFAULT_SITE_SETTINGS.accentColor,
@@ -94,7 +91,7 @@ export function buildDraftThemeStylesheetHref(
       draft.primaryColor,
       DEFAULT_SITE_SETTINGS.primaryColor,
     ),
-  }, scope);
+  });
 }
 
 export function mapBrandSettingsResponse(value: unknown): BrandSettingsDraft {

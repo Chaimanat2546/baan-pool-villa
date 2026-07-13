@@ -36,8 +36,13 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 });
 
-const MAX_GUESTS = 100;
-const MAX_BEDROOMS = 50;
+const COUNT_OPTIONS = [
+  ...Array.from({ length: 10 }, (_, index) => ({
+    label: String(index + 1),
+    value: index + 1,
+  })),
+  { label: "มากกว่า 10", value: 11 },
+];
 
 function numberFromInput(value: string, minimum: number, maximum: number): number {
   const parsed = Number(value);
@@ -58,7 +63,11 @@ export function SearchBar({
   const containerRef = useRef<HTMLElement | null>(null);
   const locationMenuId = useId();
   const amenitiesMenuId = useId();
-  const [openMenu, setOpenMenu] = useState<"location" | "amenities" | null>(null);
+  const guestsMenuId = useId();
+  const bedroomsMenuId = useId();
+  const [openMenu, setOpenMenu] = useState<
+    "location" | "amenities" | "guests" | "bedrooms" | null
+  >(null);
   const [locationQuery, setLocationQuery] = useState("");
 
   const maxPrice = Math.max(maxAvailablePrice, 1000);
@@ -203,44 +212,94 @@ export function SearchBar({
 
         <div className="min-w-0">
           <label className="text-sm font-medium leading-5 text-[var(--site-text)]">ผู้เข้าพัก</label>
-          <div className="mt-1 flex min-h-10 items-center gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
-            <Users className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
-            <input
-              type="text"
-              inputMode="numeric"
-              min={1}
-              max={MAX_GUESTS}
-              value={filters.guests}
-              onChange={(event) => {
-                updateFilters({
-                  guests: numberFromInput(event.target.value, 1, MAX_GUESTS),
-                });
-              }}
-              className="w-full min-w-0 bg-transparent text-lg leading-7 text-[var(--site-text)] outline-none"
+          <button
+            type="button"
+            className="mt-1 flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-left text-lg leading-7 text-[var(--site-text)]"
+            onClick={() => {
+              setOpenMenu(openMenu === "guests" ? null : "guests");
+            }}
+            aria-controls={openMenu === "guests" ? guestsMenuId : undefined}
+            aria-expanded={openMenu === "guests"}
+            aria-haspopup="listbox"
+            aria-label="จำนวนผู้เข้าพัก"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Users className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
+              <span>{filters.guests > 10 ? "มากกว่า 10" : filters.guests}</span>
+            </span>
+            <ChevronDown className="h-5 w-5 shrink-0" />
+          </button>
+          {openMenu === "guests" ? (
+            <div
+              id={guestsMenuId}
+              role="listbox"
               aria-label="จำนวนผู้เข้าพัก"
-            />
-          </div>
+              className="absolute z-30 mt-1 max-h-56 w-[155px] overflow-y-auto rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-2 shadow-[0_18px_54px_rgba(6,63,53,0.16)]"
+            >
+              {COUNT_OPTIONS.map((option) => (
+                <button
+                  type="button"
+                  key={option.value}
+                  role="option"
+                  aria-selected={filters.guests === option.value}
+                  className="flex h-10 w-full items-center justify-between rounded-xl px-3 text-left text-sm font-medium text-[var(--site-text)] hover:bg-[var(--site-primary-soft)]"
+                  onClick={() => {
+                    updateFilters({ guests: option.value });
+                    setOpenMenu(null);
+                  }}
+                >
+                  {option.label}
+                  {filters.guests === option.value ? <Check className="h-4 w-4 text-[var(--site-accent)]" /> : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="min-w-0">
           <label className="text-sm font-medium leading-5 text-[var(--site-text)]">ห้องนอน</label>
-          <div className="mt-1 flex min-h-10 items-center gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2">
-            <BedDouble className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
-            <input
-              type="text"
-              inputMode="numeric"
-              min={1}
-              max={MAX_BEDROOMS}
-              value={filters.bedrooms}
-              onChange={(event) => {
-                updateFilters({
-                  bedrooms: numberFromInput(event.target.value, 1, MAX_BEDROOMS),
-                });
-              }}
-              className="w-full min-w-0 bg-transparent text-lg leading-7 text-[var(--site-text)] outline-none"
+          <button
+            type="button"
+            className="mt-1 flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-2 text-left text-lg leading-7 text-[var(--site-text)]"
+            onClick={() => {
+              setOpenMenu(openMenu === "bedrooms" ? null : "bedrooms");
+            }}
+            aria-controls={openMenu === "bedrooms" ? bedroomsMenuId : undefined}
+            aria-expanded={openMenu === "bedrooms"}
+            aria-haspopup="listbox"
+            aria-label="จำนวนห้องนอน"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <BedDouble className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
+              <span>{filters.bedrooms > 10 ? "มากกว่า 10" : filters.bedrooms}</span>
+            </span>
+            <ChevronDown className="h-5 w-5 shrink-0" />
+          </button>
+          {openMenu === "bedrooms" ? (
+            <div
+              id={bedroomsMenuId}
+              role="listbox"
               aria-label="จำนวนห้องนอน"
-            />
-          </div>
+              className="absolute z-30 mt-1 max-h-56 w-[155px] overflow-y-auto rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-2 shadow-[0_18px_54px_rgba(6,63,53,0.16)]"
+            >
+              {COUNT_OPTIONS.map((option) => (
+                <button
+                  type="button"
+                  key={option.value}
+                  role="option"
+                  aria-selected={filters.bedrooms === option.value}
+                  className="flex h-10 w-full items-center justify-between rounded-xl px-3 text-left text-sm font-medium text-[var(--site-text)] hover:bg-[var(--site-primary-soft)]"
+                  onClick={() => {
+                    updateFilters({ bedrooms: option.value });
+                    setOpenMenu(null);
+                  }}
+                >
+                  {option.label}
+                  {filters.bedrooms === option.value ? <Check className="h-4 w-4 text-[var(--site-accent)]" /> : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className={cn("relative min-w-0", compactMobile && "col-span-2")}>

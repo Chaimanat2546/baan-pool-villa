@@ -94,10 +94,7 @@ export async function buildAdminSiteSettingsSectionResponse(
   }
 
   const settings = normalizeSiteSettingsRow(data);
-  return Response.json({
-    section,
-    settings: mapSiteSettingsSectionResponse(section, settings),
-  });
+  return Response.json({ section, settings: mapSiteSettingsSectionResponse(section, settings) });
 }
 
 async function readRequestBody(request: Request, section: SiteSettingsSection) {

@@ -45,7 +45,7 @@ describe("/api/site-theme.css", () => {
     );
     const css = await response.text();
 
-    expect(css).toContain("--site-primary:#eb0002");
+    expect(css).toContain("--site-primary:#ff0000");
   });
 
   it("falls back when query values are invalid", async () => {

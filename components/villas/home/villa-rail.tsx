@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 
 import { ScrollRail } from "@/components/ui/scroll-rail";
 import type { VillaListing } from "@/lib/villas/types";
+import type { SiteVillaCardStyle } from "@/lib/site-settings/types";
 
 import { VillaCard } from "../listing/villa-card";
 import { SectionHeader } from "./section-header";
@@ -18,6 +19,7 @@ interface VillaRailProps {
   id?: string;
   title: string;
   titleHeadingLevel?: "h1" | "h2";
+  villaCardStyle?: SiteVillaCardStyle;
   villas: VillaListing[];
 }
 
@@ -63,6 +65,7 @@ export function VillaRail({
   id,
   title,
   titleHeadingLevel = "h1",
+  villaCardStyle,
   villas,
 }: VillaRailProps) {
   const ctaConfig = getVillaRailCtaConfig(cta);
@@ -85,7 +88,11 @@ export function VillaRail({
       >
         {renderedVillas.map((villa) => (
           <div key={villa.id} className="w-[290px] shrink-0 snap-start">
-            <VillaCard villa={villa} titleHeadingLevel={cardTitleHeadingLevel} />
+            <VillaCard
+              villa={villa}
+              villaCardStyle={villaCardStyle}
+              titleHeadingLevel={cardTitleHeadingLevel}
+            />
           </div>
         ))}
       </ScrollRail>

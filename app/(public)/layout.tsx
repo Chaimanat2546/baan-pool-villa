@@ -14,7 +14,7 @@ export default async function PublicLayout({
 
   return (
     <SiteThemeProvider settings={settings}>
-      <div className="min-h-full pb-24 md:pb-0">
+      <div className="min-h-full pb-32 md:pb-0">
         <SiteHeader settings={settings} />
         <VillaCardStyleProvider value={settings.villaCardStyle}>
           {children}

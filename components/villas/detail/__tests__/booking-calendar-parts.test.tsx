@@ -7,8 +7,10 @@ import {
   CalendarFirstAvailablePointer,
   CalendarFirstAvailableTooltip,
   CalendarLegend,
+  CalendarLegendItem,
   CalendarNextMonthPointer,
 } from "../booking-calendar-parts";
+import { BookingCalendarMonthCaption } from "../booking-calendar-month-caption";
 
 const baseDay: BookingCalendarDay = {
   disabled: false,
@@ -39,6 +41,11 @@ describe("booking calendar parts", () => {
       <CalendarFirstAvailableTooltip align="center" onDismiss={() => undefined} />,
     );
     const legendMarkup = renderToStaticMarkup(<CalendarLegend />);
+    const swatchMarkup = renderToStaticMarkup(
+      <CalendarLegendItem swatchClassName="bg-[var(--site-primary)]">
+        test
+      </CalendarLegendItem>,
+    );
 
     expect(iconsMarkup).toContain('data-calendar-icon="fire"');
     expect(iconsMarkup).toContain("animate-in");
@@ -68,5 +75,24 @@ describe("booking calendar parts", () => {
     expect(legendMarkup).not.toMatch(/\sstyle=/);
     expect(legendMarkup).toContain("ติดจองแล้ว");
     expect(legendMarkup).not.toContain("โปรโมชั่น");
+    expect(legendMarkup).toContain("bg-emerald-700");
+    expect(legendMarkup).toContain("bg-[var(--site-danger,#991b1b)]");
+    expect(legendMarkup).toContain("bg-yellow-500");
+    expect(swatchMarkup).not.toContain("bg-[var(--site-surface-soft)]");
+  });
+
+  it("hides the navigation finger when a prior month is visible", () => {
+    const priorCaptionMarkup = renderToStaticMarkup(
+      <BookingCalendarMonthCaption
+        calendarMonth={{ date: new Date(2026, 5, 1) }}
+        currentMonth={new Date(2026, 6, 1)}
+        setVisibleMonth={() => undefined}
+        showNextMonthPointer={false}
+      />,
+    );
+
+    expect(priorCaptionMarkup).not.toContain(
+      'data-calendar-next-month-pointer="true"',
+    );
   });
 });
