@@ -19,8 +19,7 @@ describe("ThemeSettingsPage", () => {
     vi.stubGlobal("fetch", fetchMock);
     const page = await mountAdminPage(<SettingsDirtyStateProvider><ThemeSettingsPage /></SettingsDirtyStateProvider>);
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/site-settings/theme", expect.any(Object));
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/brand"))).toBe(false);
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/seo"))).toBe(false);
+    for (const section of ["brand", "hero", "seo", "contact"]) expect(fetchMock.mock.calls.some(([url]) => String(url).includes(`/${section}`))).toBe(false);
     await changeInput(page.container.querySelector("#primaryColor") as HTMLInputElement, "#112233");
     await click([...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("บันทึกส่วนนี้"))!);
     const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));

@@ -13,7 +13,7 @@ import { SettingsDirtyStateProvider } from "../settings-dirty-state";
 import { BrandSettingsPage } from "../brand-settings-page";
 
 describe("BrandSettingsPage", () => {
-  beforeEach(() => { mocks.readAdminAccessToken.mockResolvedValue("token"); mocks.router.replace = mocks.replace; });
+  beforeEach(() => { mocks.readAdminAccessToken.mockResolvedValue("token"); mocks.router.replace = mocks.replace; vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: vi.fn(() => "blob:preview"), revokeObjectURL: vi.fn() })); });
   afterEach(() => vi.unstubAllGlobals());
 
   it("owns only the brand endpoint and submits only brand fields", async () => {
@@ -30,16 +30,20 @@ describe("BrandSettingsPage", () => {
     const page = await mountAdminPage(<SettingsDirtyStateProvider><BrandSettingsPage /></SettingsDirtyStateProvider>);
 
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/site-settings/brand", expect.any(Object));
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/theme"))).toBe(false);
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/seo"))).toBe(false);
+    for (const section of ["theme", "hero", "seo", "contact"]) expect(fetchMock.mock.calls.some(([url]) => String(url).includes(`/${section}`))).toBe(false);
+    const logo = new File(["logo"], "logo.png", { type: "image/png" });
+    const favicon = new File(["icon"], "icon.png", { type: "image/png" });
+    for (const [id, file] of [["#logoFile", logo], ["#faviconFile", favicon]] as const) act(() => { const input = page.container.querySelector(id) as HTMLInputElement; Object.defineProperty(input, "files", { configurable: true, value: [file] }); input.dispatchEvent(new Event("change", { bubbles: true })); });
     await changeInput(page.container.querySelector("#siteName") as HTMLInputElement, "New Brand");
     await click([...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("บันทึกส่วนนี้"))!);
 
     const body = fetchMock.mock.calls[1]?.[1]?.body as FormData;
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/admin/site-settings/brand");
     expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("PATCH");
-    expect([...body.keys()]).toEqual(["siteName", "logoBackground"]);
+    expect([...body.keys()]).toEqual(["siteName", "logoBackground", "logo", "faviconFile"]);
     expect(body.get("siteName")).toBe("New Brand");
+    expect(body.get("logo")).toBe(logo);
+    expect(body.get("faviconFile")).toBe(favicon);
     await page.unmount();
   });
 });

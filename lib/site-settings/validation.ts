@@ -442,6 +442,30 @@ export function validateGoogleTagManagerId(value: string): string[] {
  * @param draft - The normalized site-settings draft to validate.
  * @returns User-facing validation error messages, or an empty array when valid.
  */
+export function validateBrandSettingsValues(
+  draft: Pick<SiteSettingsDraft, "siteName" | "logoBackground">,
+): string[] {
+  const errors: string[] = [];
+  if (!draft.siteName.trim()) errors.push("ต้องใส่ชื่อเว็บ");
+  if (!isSiteLogoBackground(draft.logoBackground)) errors.push("พื้นหลังโลโก้ต้องเป็น ขาว, โปร่งใส, สีหลัก หรือสีอ่อน");
+  return errors;
+}
+
+export function validateThemeSettingsValues(
+  draft: Pick<SiteSettingsDraft, "primaryColor" | "accentColor" | "headerLinkColor" | "headerLinkHoverColor" | "footerLinkColor" | "footerLinkHoverColor" | "bankHighlightColor" | "bankAccountHighlightColor" | "bankNameHighlightColor" | "bankNumberHighlightColor">,
+): string[] {
+  const errors: string[] = [];
+  const fields = [["primaryColor", "สีหลัก"], ["accentColor", "สีเน้น"], ["headerLinkColor", "สีเมนูใน Header "], ["headerLinkHoverColor", "สี Hover เมนูใน Header "], ["footerLinkColor", "สีเมนูใน Footer "], ["footerLinkHoverColor", "สี Hover เมนูใน Footer "], ["bankHighlightColor", "สีไฮไลท์บัญชี"], ["bankAccountHighlightColor", "สีชื่อบัญชี"], ["bankNameHighlightColor", "สีชื่อธนาคาร"], ["bankNumberHighlightColor", "สีเลขบัญชี"]] as const;
+  for (const [field, label] of fields) if (!isHexColor(draft[field])) errors.push(`${label}ต้องเป็นค่าสีแบบ #RRGGBB`);
+  return errors;
+}
+
+export function validateHeroSettingsValues(
+  draft: Pick<SiteSettingsDraft, "heroImageAlt">,
+): string[] {
+  return draft.heroImageAlt.length > HERO_IMAGE_ALT_MAX_LENGTH ? ["คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร"] : [];
+}
+
 export function validateSiteSettingsDraft(
   draft: SiteSettingsDraft,
 ): string[] {
@@ -630,7 +654,11 @@ export function validateSiteSettingsDraft(
     }),
   );
 
-  return errors;
+  for (const error of [...validateBrandSettingsValues(draft), ...validateThemeSettingsValues(draft), ...validateHeroSettingsValues(draft)]) {
+    if (!errors.includes(error)) errors.push(error);
+  }
+
+  return [...new Set(errors)];
 }
 
 /**

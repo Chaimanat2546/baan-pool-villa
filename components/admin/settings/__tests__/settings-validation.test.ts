@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 import { mapSettingsToDraft } from "../settings-helpers";
-import { validateAdminSettingsDraftForClient } from "../settings-validation";
+import { validateAdminSettingsDraftForClient, validateBrandSettingsDraft, validateHeroSettingsDraft, validateThemeSettingsDraft } from "../settings-validation";
 
 describe("validateAdminSettingsDraftForClient", () => {
   it("uses shared settings validation before the save request", () => {
@@ -62,5 +62,20 @@ describe("validateAdminSettingsDraftForClient", () => {
     expect(
       validateAdminSettingsDraftForClient(mapSettingsToDraft(DEFAULT_SITE_SETTINGS)),
     ).toEqual([]);
+  });
+});
+
+describe("section settings validation", () => {
+  it("validates brand without unrelated settings", () => {
+    expect(validateBrandSettingsDraft({ siteName: " ", logoBackground: "white", logoFile: null, faviconFile: null, logoImage: DEFAULT_SITE_SETTINGS.logoImage, faviconImage: DEFAULT_SITE_SETTINGS.faviconImage })).toEqual(["ต้องใส่ชื่อเว็บ"]);
+  });
+
+  it("validates only the ten theme colors", () => {
+    const draft = Object.fromEntries(["primaryColor", "accentColor", "headerLinkColor", "headerLinkHoverColor", "footerLinkColor", "footerLinkHoverColor", "bankHighlightColor", "bankAccountHighlightColor", "bankNameHighlightColor", "bankNumberHighlightColor"].map((key) => [key, DEFAULT_SITE_SETTINGS[key as keyof typeof DEFAULT_SITE_SETTINGS]])) as Parameters<typeof validateThemeSettingsDraft>[0];
+    expect(validateThemeSettingsDraft({ ...draft, primaryColor: "bad" })).toEqual(["สีหลักต้องเป็นค่าสีแบบ #RRGGBB"]);
+  });
+
+  it("validates hero alt without unrelated settings", () => {
+    expect(validateHeroSettingsDraft({ heroFile: null, heroImage: DEFAULT_SITE_SETTINGS.heroImage, heroImageAlt: "x".repeat(161) })).toEqual(["คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร"]);
   });
 });
