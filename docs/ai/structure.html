@@ -471,7 +471,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/villa-card-images/route.ts</code></td>
                 <td><code>/api/admin/villa-card-images</code></td>
-                <td>Admin auth and delegation for per-house custom card-image and uploaded cover overrides. Row mapping, JSON and multipart request parsing, custom image id validation, Supabase persistence, Storage upload/history rows, uploaded cover delete/reset, item replacement, and villa-card/listing/gallery cache revalidation live in <code>lib/villas/card-image-config-admin.ts</code>.</td>
+                <td>Admin auth and delegation for per-house custom card-image and uploaded cover overrides. GET also includes <code>villaCardStyle</code>; PUT accepts exact JSON <code>{ villaCardStyle }</code> to update only <code>site_settings.villa_card_style</code> (<code>classic</code> or <code>gallery</code>), alongside the existing image and cover contracts. Row mapping, JSON and multipart request parsing, custom image id validation, Supabase persistence, Storage upload/history rows, uploaded cover delete/reset, item replacement, and villa-card/listing/gallery cache revalidation live in <code>lib/villas/card-image-config-admin.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/customer-reviews/route.ts</code></td>
