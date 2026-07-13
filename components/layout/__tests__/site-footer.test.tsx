@@ -90,6 +90,16 @@ describe("SiteFooter", () => {
     expect(markup).toContain("hover:text-[var(--site-footer-link-hover)]");
   });
 
+  it("applies the readable primary text color directly to the footer", () => {
+    const markup = renderToStaticMarkup(
+      <SiteFooter
+        settings={{ ...DEFAULT_SITE_SETTINGS, primaryColor: "#f8fafc" }}
+      />,
+    );
+
+    expect(markup).toContain("--site-on-primary:#0f172a");
+  });
+
   it("renders uploaded logos with the selected background and containment", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter

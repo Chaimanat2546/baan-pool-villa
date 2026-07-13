@@ -115,7 +115,7 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
             href="/"
             className="flex min-w-0 flex-1 items-center gap-2 lg:absolute lg:left-8 lg:top-0 lg:z-10 lg:grid lg:h-full lg:w-[30rem] lg:grid-cols-[3.5rem_minmax(0,1fr)] lg:grid-rows-[26px_38px] lg:gap-x-3"
           >
-            <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 border-white p-1.5 lg:row-span-2 lg:h-14 lg:w-14 lg:self-center ${logoBackgroundClass}`}>
+            <span className={`relative h-auto w-16 shrink-0 self-stretch overflow-hidden rounded-2xl border-4 border-white p-1.5 lg:row-span-2 lg:h-14 lg:w-14 lg:self-center ${logoBackgroundClass}`}>
               <Image
                 src={logoImageSrc}
                 alt={settings.logoImage.alt}
@@ -132,18 +132,17 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
               </span>
               <span className="block text-[11px] leading-4 text-[var(--site-header-link)] sm:text-sm sm:leading-5 lg:col-start-2 lg:row-start-2 lg:-mt-1 lg:flex lg:items-center lg:gap-x-2 lg:whitespace-nowrap lg:pt-1 lg:border-t lg:border-[color:var(--site-header-link)]/25 lg:text-xs lg:leading-4">
                 <span>กรุณาโอนเงิน</span>{" "}
-                <span className="ml-2 inline-flex gap-1 rounded-full font-semibold text-[var(--site-bank-account-highlight)] lg:ml-0">
+                <span className="inline-flex gap-1 rounded-full font-semibold text-[var(--site-bank-account-highlight)] lg:ml-0">
                   <span>ชื่อบัญชี</span>
                   <span>{settings.bank.accountName}</span>
                 </span>{" "}
-                <br className="sm:hidden" />
-                <span className="ml-2 inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)] lg:ml-0">
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)] lg:ml-0">
                   {settings.bank.bankName}
                 </span>{" "}
-                <span className="ml-2 inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)] lg:ml-0">
+                <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)] lg:ml-0">
                   เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
-                <span className="ml-2 lg:ml-0">เท่านั้น</span>
+                <span className="lg:ml-0">เท่านั้น</span>
               </span>
             </span>
           </a>
