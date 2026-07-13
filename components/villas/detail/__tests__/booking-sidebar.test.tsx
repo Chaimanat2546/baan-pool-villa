@@ -59,7 +59,7 @@ function buildCalendarResponse(month: string) {
     };
   }
 
-  if (month === "2026-06") {
+  if (month === "2026-05" || month === "2026-06") {
     const promotionMessage = [
       "วันธรรมดา อา-พฤ แบ่งเปิดได้",
       "- 3 ห้องนอน ราคา 5900/12 ท่าน",
@@ -70,7 +70,7 @@ function buildCalendarResponse(month: string) {
       "วันศุกร์ และ วันเสาร์ เปิดเต็ม 6 ห้องนอนเท่านั้น",
     ].join("\n");
 
-    days["2026-06-17"] = {
+    days[`${month}-17`] = {
       disabled: false,
       displayPrice: "5,900",
       icons: [],
@@ -80,7 +80,7 @@ function buildCalendarResponse(month: string) {
       promotionMessage,
       tone: "promotion",
     };
-    days["2026-06-18"] = {
+    days[`${month}-18`] = {
       disabled: true,
       displayPrice: "9,900",
       icons: [],
@@ -90,7 +90,7 @@ function buildCalendarResponse(month: string) {
       promotionMessage: null,
       tone: "waiting",
     };
-    days["2026-06-19"] = {
+    days[`${month}-19`] = {
       disabled: true,
       displayPrice: "13,900",
       icons: [],
@@ -100,7 +100,7 @@ function buildCalendarResponse(month: string) {
       promotionMessage: null,
       tone: "booked",
     };
-    days["2026-06-20"] = {
+    days[`${month}-20`] = {
       disabled: false,
       displayPrice: "18,900",
       icons: [],
@@ -110,7 +110,7 @@ function buildCalendarResponse(month: string) {
       promotionMessage: null,
       tone: "holiday",
     };
-    days["2026-06-21"] = {
+    days[`${month}-21`] = {
       disabled: false,
       displayPrice: "12,900",
       icons: ["fire"],
@@ -120,7 +120,7 @@ function buildCalendarResponse(month: string) {
       promotionMessage: null,
       tone: "hotpro",
     };
-    days["2026-06-22"] = {
+    days[`${month}-22`] = {
       disabled: false,
       displayPrice: "15,900",
       icons: ["fire"],
@@ -703,6 +703,41 @@ describe("BookingSidebar", () => {
     await page.cleanup();
   });
 
+  it("renders prices and status markers when viewing a prior month", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
+    const page = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+      clickCalendarNavButton(page.container, "previous");
+      await Promise.resolve();
+    });
+
+    const findPriorDate = (day: string) =>
+      Array.from(page.container.querySelectorAll<HTMLButtonElement>("button")).find(
+        (button) => button.getAttribute("aria-label")?.startsWith(`${day} `),
+      );
+    const promotionDate = findPriorDate("17");
+    const waitingDate = findPriorDate("18");
+    const bookedDate = findPriorDate("19");
+    const holidayDate = findPriorDate("20");
+    const hotproDate = findPriorDate("21");
+
+    expect(promotionDate?.textContent).toContain("5,900");
+    expect(waitingDate?.disabled).toBe(false);
+    expect(waitingDate?.className).toContain("bg-emerald-700");
+    expect(bookedDate?.disabled).toBe(false);
+    expect(bookedDate?.className).toContain("bg-[var(--site-danger,#991b1b)]");
+    expect(
+      bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
+    ).not.toBeNull();
+    expect(holidayDate?.className).toContain("bg-yellow-500");
+    expect(hotproDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
+
+    await page.cleanup();
+  });
+
   it("renders booking calendar markers, legend, disabled booking days, and event modal details", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
@@ -787,12 +822,12 @@ describe("BookingSidebar", () => {
       bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
     ).not.toBeNull();
     expect(holidayDate?.dataset.calendarDayKind).toBe("holiday");
-    expect(holidayDate?.className).toContain("bg-[var(--site-accent)]");
+    expect(holidayDate?.className).toContain("bg-yellow-500");
     expect(hotproDate?.dataset.calendarDayKind).toBe("hotpro");
-    expect(hotproDate?.className).not.toContain("bg-[var(--site-accent)]");
+    expect(hotproDate?.className).not.toContain("bg-yellow-500");
     expect(hotproDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
     expect(hotHolidayDate?.dataset.calendarDayKind).toBe("hot_holiday");
-    expect(hotHolidayDate?.className).toContain("bg-[var(--site-accent)]");
+    expect(hotHolidayDate?.className).toContain("bg-yellow-500");
     expect(hotHolidayDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
 
     expect(page.container.querySelector("[data-calendar-legend]")?.textContent).not.toContain(

@@ -10,6 +10,7 @@ interface BookingCalendarMonthCaptionProps {
   className?: string;
   currentMonth: Date;
   setVisibleMonth: Dispatch<SetStateAction<Date>>;
+  showNextMonthPointer: boolean;
 }
 
 export function BookingCalendarMonthCaption({
@@ -17,6 +18,7 @@ export function BookingCalendarMonthCaption({
   className,
   currentMonth,
   setVisibleMonth,
+  showNextMonthPointer,
 }: BookingCalendarMonthCaptionProps) {
   return (
     <div
@@ -61,7 +63,7 @@ export function BookingCalendarMonthCaption({
           type="button"
           variant="outline"
         >
-          <CalendarNextMonthPointer />
+          {showNextMonthPointer ? <CalendarNextMonthPointer /> : null}
           <ChevronRight data-icon="inline-start" />
         </Button>
       </div>

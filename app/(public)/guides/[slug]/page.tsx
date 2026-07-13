@@ -143,6 +143,7 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
       mainEntityOfPage: absoluteUrl(`/guides/${guide.slug}`),
     },
   ];
+  const hasConfiguredRecommendedVillas = guide.recommendedHouseIds.length > 0;
 
   return (
     <>
@@ -160,9 +161,11 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
         recommendedVillas={[]}
         relatedGuides={[]}
         sidebar={
-          <Suspense fallback={<RecommendedVillaSidebarSkeleton />}>
-            <GuideRecommendedVillasSection guide={guide} />
-          </Suspense>
+          hasConfiguredRecommendedVillas ? (
+            <Suspense fallback={<RecommendedVillaSidebarSkeleton />}>
+              <GuideRecommendedVillasSection guide={guide} />
+            </Suspense>
+          ) : undefined
         }
       />
     </>

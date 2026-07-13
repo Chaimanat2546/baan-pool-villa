@@ -6,8 +6,15 @@ import { MobileBottomNav } from "../mobile-bottom-nav";
 
 describe("MobileBottomNav", () => {
   it("renders chat actions as links so browser link actions still work", () => {
+    const settings = {
+      ...DEFAULT_SITE_SETTINGS,
+      contact: {
+        ...DEFAULT_SITE_SETTINGS.contact,
+        lineId: "@customline",
+      },
+    };
     const markup = renderToStaticMarkup(
-      <MobileBottomNav settings={DEFAULT_SITE_SETTINGS} />,
+      <MobileBottomNav settings={settings} />,
     );
 
     expect(markup).toContain('aria-label="แชทผ่าน Messenger"');
@@ -16,5 +23,17 @@ describe("MobileBottomNav", () => {
     );
     expect(markup).toContain('aria-label="ติดต่อผ่าน LINE"');
     expect(markup).toContain(`href="${DEFAULT_SITE_SETTINGS.contact.lineUrl}"`);
+    expect(markup).toContain(`LINE ID : ${settings.contact.lineId}`);
+  });
+
+  it("does not render an empty LINE ID row", () => {
+    const settings = {
+      ...DEFAULT_SITE_SETTINGS,
+      contact: { ...DEFAULT_SITE_SETTINGS.contact, lineId: "" },
+    };
+
+    expect(renderToStaticMarkup(<MobileBottomNav settings={settings} />)).not.toContain(
+      "LINE ID :",
+    );
   });
 });

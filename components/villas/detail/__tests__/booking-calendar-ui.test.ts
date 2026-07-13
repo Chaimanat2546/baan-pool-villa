@@ -9,6 +9,7 @@ import {
   formatThaiCalendarDate,
   getCalendarToneClass,
   getFallbackCalendarDay,
+  isCalendarDateSelectable,
   startOfCalendarDate,
 } from "../booking-calendar-ui";
 
@@ -42,10 +43,10 @@ describe("booking calendar UI helpers", () => {
       "bg-[var(--site-danger,#991b1b)]",
     );
     expect(getCalendarToneClass({ ...fallbackDay, tone: "holiday" })).toContain(
-      "bg-[var(--site-accent)]",
+      "bg-yellow-500",
     );
     expect(getCalendarToneClass({ ...fallbackDay, tone: "waiting" })).toContain(
-      "bg-[var(--site-primary)]",
+      "bg-emerald-700",
     );
   });
 
@@ -84,5 +85,24 @@ describe("booking calendar UI helpers", () => {
         visibleMonthKey: "2026-07",
       }),
     ).toBeNull();
+  });
+
+  it("allows inspecting dates in a prior visible month", () => {
+    const todayStart = new Date(2026, 6, 13);
+
+    expect(
+      isCalendarDateSelectable({
+        date: new Date(2026, 5, 16),
+        todayStart,
+        visibleMonth: new Date(2026, 5, 1),
+      }),
+    ).toBe(true);
+    expect(
+      isCalendarDateSelectable({
+        date: new Date(2026, 6, 12),
+        todayStart,
+        visibleMonth: new Date(2026, 6, 1),
+      }),
+    ).toBe(false);
   });
 });

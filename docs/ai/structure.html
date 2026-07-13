@@ -253,7 +253,7 @@
               <tr>
                 <td><code>app/(public)/api/site-theme.css/route.ts</code></td>
                 <td><code>/api/site-theme.css</code></td>
-                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. Public and admin preview shells use <code>lib/site-settings/colors.ts</code> to build validated query-driven stylesheet URLs with hashless hex color params, including primary/accent, header/footer link and hover colors, shared bank highlight color, and separate bank account/name/number highlight colors, instead of inline React style attributes, keeping style CSP narrow and preventing stale or fallback edge CSS across color changes.</td>
+                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. The public shell uses <code>/api/site-theme.css</code> with validated hashless hex color params for primary/accent, header/footer link and hover colors, shared bank highlight color, and separate bank account/name/number highlight colors. The admin draft preview applies the same validated CSS variables locally to its scope and does not call this route before save.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/guides/images/proxy/route.ts</code></td>
@@ -326,14 +326,14 @@
                 <td><code>components/admin/loading/admin-login-skeleton</code>.</td>
               </tr>
               <tr>
-                <td><code>app/(admin)/admin/settings/page.tsx</code></td>
-                <td><code>/admin/settings</code></td>
-                <td><code>components/admin/settings/admin-settings-page</code>; the form uses shared controls in <code>components/admin/settings/settings-form-controls</code> and the password OTP modal in <code>components/admin/settings/admin-password-security-card</code>.</td>
+                <td><code>app/(admin)/admin/settings/layout.tsx</code>, <code>page.tsx</code>, and the <code>brand</code>, <code>theme</code>, <code>hero</code>, <code>seo</code>, <code>contact</code>, and <code>security</code> child routes</td>
+                <td><code>/admin/settings</code> and <code>/admin/settings/:section</code></td>
+                <td>The index redirects to <code>/admin/settings/brand</code>. The nested layout and <code>components/admin/settings/settings-layout-shell</code> own the persistent responsive section sidebar, dirty-navigation confirmation, and external-data refresh tool. The shared <code>SettingsSectionHeader</code> is sticky and compacts by hiding its long description while retaining the title and save action. Each child route statically imports its matching <code>*-settings-page</code> editor; brand, theme, hero, SEO, and contact load and patch only their matching <code>/api/admin/site-settings/:section</code> projection. <code>ThemeSettingsPage</code> renders four co-located, draft-scoped editor groups for primary/actions, header menu, bank details, and footer menu; local edits make no request, preserve direct primary/accent values with equal hover tokens, and derive on-color text from contrast. Its Header, bank, and Footer previews use realistic fixed demo contact/payment values, never values from Contact settings. Security owns password/session controls and makes no site-settings request.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/settings/loading.tsx</code></td>
                 <td><code>/admin/settings</code> loading UI</td>
-                <td><code>components/admin/loading/admin-settings-skeleton</code>.</td>
+                <td><code>components/admin/settings/settings-section-skeleton</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/tiktok/page.tsx</code></td>
@@ -471,7 +471,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/villa-card-images/route.ts</code></td>
                 <td><code>/api/admin/villa-card-images</code></td>
-                <td>Admin auth and delegation for per-house custom card-image and uploaded cover overrides. Row mapping, JSON and multipart request parsing, custom image id validation, Supabase persistence, Storage upload/history rows, uploaded cover delete/reset, item replacement, and villa-card/listing/gallery cache revalidation live in <code>lib/villas/card-image-config-admin.ts</code>.</td>
+                <td>Admin auth and delegation for per-house custom card-image and uploaded cover overrides. GET also includes <code>villaCardStyle</code>; PUT accepts exact JSON <code>{ villaCardStyle }</code> to update only <code>site_settings.villa_card_style</code> (<code>classic</code> or <code>gallery</code>), alongside the existing image and cover contracts. Row mapping, JSON and multipart request parsing, custom image id validation, Supabase persistence, Storage upload/history rows, uploaded cover delete/reset, item replacement, and villa-card/listing/gallery cache revalidation live in <code>lib/villas/card-image-config-admin.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/customer-reviews/route.ts</code></td>
@@ -479,9 +479,9 @@
                 <td>Admin auth and delegation for customer proof/review image library reads, cropped multipart uploads, image metadata updates, hide/show, replace with a newly cropped Storage object while preserving the image row, delete with conservative upload-history and Storage cleanup, homepage queue/layout saves through <code>save_customer_review_homepage_queue</code>, and customer-review cache revalidation. Request parsing, row mapping, upload validation, Storage paths, and RPC response handling live in <code>lib/customer-reviews/admin-route.ts</code>.</td>
               </tr>
               <tr>
-                <td><code>app/(admin)/api/admin/site-settings/route.ts</code></td>
-                <td><code>/api/admin/site-settings</code></td>
-                <td>Admin auth and delegation for site settings reads and saves. Admin multipart settings parsing, draft normalization, settings validation, save-payload shaping, Supabase persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-route.ts</code>. Site asset upload-file extraction, metadata validation, upload, upload-history cleanup, inactive marking, and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>; favicon, logo, hero, and SEO share images upload to the <code>site-assets</code> bucket with separate retained asset types. GET still returns full settings payloads including TikTok, and the save flow includes section SEO templates and meta keyword arrays for home/default, <code>/search</code>, <code>/guides</code>, and villa-detail base keywords.</td>
+                <td><code>app/(admin)/api/admin/site-settings/[section]/route.ts</code></td>
+                <td><code>/api/admin/site-settings/:section</code></td>
+                <td>Authenticated GET/PATCH for the brand, theme, hero, SEO, and contact projections. <code>lib/site-settings/admin-section-contracts.ts</code> owns section parsing, validation, projections, and payload shaping; <code>lib/site-settings/admin-section-route.ts</code> owns persistence and cache revalidation. Asset upload history and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>; cleanup filters only Settings-owned favicon, logo, hero, and SEO asset types.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
@@ -756,7 +756,7 @@
                 <td>Site settings</td>
                 <td>Supabase settings table with defaults fallback.</td>
                 <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, logo background options, villa card style, retention, site settings cache tag. Load results include <code>source</code> and <code>degraded</code>; favicon, global and section SEO templates plus page-specific keyword arrays are normalized here, header/footer link colors, hover colors, shared and separate bank highlight colors, the logo background mode, the public villa card style, and the Google Tag Manager ID are normalized for public/admin rendering, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
-                <td>Public/admin layouts, theme provider, villa card style provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), dedicated Marketing Tags manager (<code>/admin/marketing-tags</code>), general settings editor, GTM script rendering in the root layout, and homepage section composition.</td>
+                <td>Public/admin layouts, theme provider, villa card style provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), dedicated Marketing Tags manager (<code>/admin/marketing-tags</code>), section settings editors, GTM script rendering in the root layout, and homepage section composition.</td>
               </tr>
             <tr>
               <td>Detail layout settings</td>
@@ -953,8 +953,8 @@
               <td>Run lint, build, and browser verification for <code>/admin/customer-reviews</code> and <code>/</code> at mobile and desktop widths.</td>
             </tr>
             <tr>
-              <td>Site settings, TikTok settings, and Marketing Tags</td>
-              <td><code>npm.cmd test -- lib/site-settings</code>, <code>npm.cmd test -- lib/tiktok</code>, <code>npm.cmd test -- lib/__tests__/marketing-data-layer.test.ts</code>, <code>npm.cmd test -- components/admin/settings/__tests__/admin-password-security-card.test.tsx</code>, <code>npm.cmd test -- components/villas/listing/__tests__/villa-card-navigation.test.tsx</code>, and relevant <code>components/admin/settings</code>, <code>components/admin/tiktok</code>, <code>components/admin/marketing-tags</code>, <code>components/villas/detail</code>, <code>components/villas/home</code> tests.</td>
+              <td>Site settings, TikTok settings, Marketing Tags, or villa card style</td>
+              <td><code>npm.cmd test -- components/admin/settings lib/site-settings 'app/(admin)/api/admin/site-settings/[section]/route.test.ts'</code>; add <code>lib/villas/__tests__/card-image-config-admin.test.ts</code> and <code>components/admin/villa-card-images/__tests__/admin-villa-card-images-page.test.tsx</code> when card style changes. Run <code>lib/tiktok</code> and <code>lib/__tests__/marketing-data-layer.test.ts</code> for their dedicated owners.</td>
               <td>Add TikTok-route assertions (including /api/admin/site-settings not overwriting TikTok columns, /api/admin/tiktok normalizing URL-only payloads), Marketing Tags route/layout/DataLayer assertions, oEmbed thumbnail fallback/cache assertions, and homepage first-6/click-to-load expectations; run lint and build before completion.</td>
             </tr>
             <tr>

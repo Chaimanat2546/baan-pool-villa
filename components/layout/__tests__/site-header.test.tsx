@@ -85,6 +85,7 @@ describe("SiteHeader", () => {
     );
 
     expect(markup).toContain("ชื่อบัญชี");
+    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountName);
     expect(markup).toContain("ธนาคาร");
     expect(markup).toContain("เลขที่");
     expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountName);
@@ -93,13 +94,63 @@ describe("SiteHeader", () => {
     expect(markup).not.toContain(
       `${DEFAULT_SITE_SETTINGS.bank.bankName} เลขที่ ${DEFAULT_SITE_SETTINGS.bank.accountNumber}`,
     );
-    expect(markup).toContain("text-[var(--site-on-primary)]");
+    expect(markup).toContain("border-[color:var(--site-header-link)]/25");
     expect(markup).toContain("text-[var(--site-bank-account-highlight)]");
     expect(markup).toContain("text-[var(--site-bank-name-highlight)]");
     expect(markup).toContain("text-[var(--site-bank-number-highlight)]");
     expect(markup).not.toContain("text-[var(--site-bank-highlight)]");
     expect(markup).toContain("text-[var(--site-header-link)]");
     expect(markup).toContain("hover:text-[var(--site-header-link-hover)]");
+  });
+
+  it("applies the resolved theme text color to a preview header", () => {
+    const markup = renderToStaticMarkup(
+      <SiteHeader
+        previewMode
+        settings={{ ...DEFAULT_SITE_SETTINGS, primaryColor: "#111111" }}
+      />,
+    );
+
+    expect(markup).toContain("--site-on-primary:#ffffff");
+    expect(markup).toContain("text-[var(--site-header-link)]");
+    expect(markup).toContain('absolute right-4 top-3 flex');
+    expect(markup).toContain('type="button">หน้าแรก</button>');
+  });
+
+  it("keeps the desktop brand and bank notice inside one header row", () => {
+    const markup = renderToStaticMarkup(
+      <SiteHeader settings={DEFAULT_SITE_SETTINGS} />,
+    );
+
+    expect(markup).toContain("lg:row-span-2");
+    expect(markup).not.toContain("lg:ml-[6.25rem]");
+  });
+
+  it("renders the first phone and LINE actions in the desktop header", () => {
+    const markup = renderToStaticMarkup(
+      <SiteHeader settings={DEFAULT_SITE_SETTINGS} />,
+    );
+
+    expect(markup).toContain(
+      `href="tel:${DEFAULT_SITE_SETTINGS.contact.phoneContacts[0]?.phone}"`,
+    );
+    expect(markup).toContain(
+      `href="${DEFAULT_SITE_SETTINGS.contact.lineUrl}"`,
+    );
+    expect(markup).toContain(DEFAULT_SITE_SETTINGS.contact.lineId);
+  });
+
+  it("hides the phone action when no phone contact is configured", () => {
+    const markup = renderToStaticMarkup(
+      <SiteHeader
+        settings={{
+          ...DEFAULT_SITE_SETTINGS,
+          contact: { ...DEFAULT_SITE_SETTINGS.contact, phoneContacts: [] },
+        }}
+      />,
+    );
+
+    expect(markup).not.toContain('href="tel:');
   });
 
   it("renders uploaded logos with the selected background and containment", () => {
@@ -190,17 +241,32 @@ describe("SiteHeader", () => {
       const sheetContent = document.body.querySelector<HTMLElement>(
         '[data-slot="sheet-content"]',
       );
-      const contactLink = document.body.querySelector<HTMLAnchorElement>(
-        '[data-slot="sheet-content"] a[href="/#contact"]',
+      const guideLink = document.body.querySelector<HTMLAnchorElement>(
+        '[data-slot="sheet-content"] a[href="/guides"]',
       );
 
       expect(sheetContent?.className).toContain("w-screen");
       expect(sheetContent?.style.getPropertyValue("--site-primary")).toBeTruthy();
       expect(sheetContent?.getAttribute("style")).toContain("linear-gradient");
-      expect(contactLink).not.toBeNull();
+      expect(
+        document.body.querySelector('[data-slot="sheet-content"] a[href="/#contact"]'),
+      ).toBeNull();
+      expect(guideLink).not.toBeNull();
+      expect(
+        document.body.querySelector(
+          `[data-slot="sheet-content"] a[href="tel:${DEFAULT_SITE_SETTINGS.contact.phoneContacts[0]?.phone}"]`,
+        ),
+      ).not.toBeNull();
+      expect(
+        document.body.querySelector(
+          `[data-slot="sheet-content"] a[href="${DEFAULT_SITE_SETTINGS.contact.lineUrl}"]`,
+        ),
+      ).not.toBeNull();
+      expect(guideLink?.className).toContain("text-[var(--site-text)]");
+      expect(guideLink?.className).toContain("hover:text-[var(--site-text)]");
 
       await act(async () => {
-        contactLink?.dispatchEvent(
+        guideLink?.dispatchEvent(
           new MouseEvent("click", { bubbles: true, cancelable: true }),
         );
       });

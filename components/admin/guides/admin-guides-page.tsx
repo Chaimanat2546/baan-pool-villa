@@ -663,7 +663,10 @@ export function AdminGuidesPage({ guideId }: AdminGuidesPageProps) {
 
   if (isListPage) {
     return (
-      <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
+      <div
+        className="flex w-full flex-col gap-6 text-[var(--site-text)]"
+        data-admin-guides-skeleton={isLoading ? "true" : undefined}
+      >
         <div
           className="sticky top-[73px] z-20 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:top-0 lg:z-30 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6"
           id="guidesPageHeader"

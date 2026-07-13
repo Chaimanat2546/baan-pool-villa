@@ -81,6 +81,7 @@ export function HomePageContent({
               title={section.title}
               description={section.description}
               villas={section.villas}
+              villaCardStyle={settings.villaCardStyle}
             />
             {index === 0 ? <WhyChooseSection /> : null}
           </Fragment>

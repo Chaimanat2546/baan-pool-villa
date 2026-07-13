@@ -6,11 +6,17 @@ import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "../defaults";
 import { getSiteSettings } from "../server";
 import { createHomeConfigClient } from "../supabase";
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("next/cache", () => ({
   unstable_cache: vi.fn((fn: unknown) => fn),
+}));
+
+vi.mock("react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react")>()),
+  cache: vi.fn((fn: unknown) => fn),
 }));
 
 vi.mock("../supabase", () => ({
@@ -19,6 +25,7 @@ vi.mock("../supabase", () => ({
 
 const createHomeConfigClientMock = vi.mocked(createHomeConfigClient);
 const unstableCacheMock = vi.mocked(unstable_cache);
+const cacheMock = vi.mocked(cache);
 
 function mockSiteSettingsQuery(result: {
   data: unknown;
@@ -77,6 +84,10 @@ describe("getSiteSettings", () => {
         tags: [CACHE_TAGS.siteSettings],
       },
     );
+  });
+
+  it("memoizes the resolved settings for a server render", () => {
+    expect(cacheMock).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it("returns normalized settings from the config table", async () => {

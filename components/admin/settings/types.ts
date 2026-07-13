@@ -1,53 +1,44 @@
 import type { SiteLogoBackground } from "@/lib/site-settings/logo-background";
-import type { SitePhoneContact, SiteSettings } from "@/lib/site-settings/types";
+import type { SiteSettings } from "@/lib/site-settings/types";
 
-export interface AdminSettingsDraft {
-  accentColor: string;
+export interface BrandSettingsDraft {
   faviconFile: File | null;
-  heroFile: File | null;
-  heroImageAlt: string;
-  logoFile: File | null;
-  primaryColor: string;
-  headerLinkColor: string;
-  headerLinkHoverColor: string;
-  footerLinkColor: string;
-  footerLinkHoverColor: string;
-  bankHighlightColor: string;
-  bankAccountHighlightColor: string;
-  bankNameHighlightColor: string;
-  bankNumberHighlightColor: string;
+  faviconImage: SiteSettings["faviconImage"];
   logoBackground: SiteLogoBackground;
-  villaCardStyle: SiteSettings["villaCardStyle"];
+  logoFile: File | null;
+  logoImage: SiteSettings["logoImage"];
+  siteName: string;
+}
+
+export type ThemeSettingsDraft = Pick<
+  SiteSettings,
+  | "primaryColor"
+  | "accentColor"
+  | "headerLinkColor"
+  | "headerLinkHoverColor"
+  | "footerLinkColor"
+  | "footerLinkHoverColor"
+  | "bankHighlightColor"
+  | "bankAccountHighlightColor"
+  | "bankNameHighlightColor"
+  | "bankNumberHighlightColor"
+>;
+
+export interface HeroSettingsDraft {
+  heroFile: File | null;
+  heroImage: SiteSettings["heroImage"];
+  heroImageAlt: string;
+}
+
+export type SeoSettingsDraft = import("@/lib/site-settings/admin-section-contracts").SiteSettingsSectionDraftMap["seo"] & {
   seoOgImageFile: File | null;
   searchSeoOgImageFile: File | null;
   guidesSeoOgImageFile: File | null;
-  siteName: string;
-  bankAccountName: string;
-  bankName: string;
-  bankAccountNumber: string;
-  phoneContacts: SitePhoneContact[];
-  messengerUrl: string;
-  lineId: string;
-  lineUrl: string;
-  seoTitle: string;
-  seoDescription: string;
-  seoKeywords: string[];
-  seoOgImageUrl: string;
-  seoOgImageAlt: string;
-  seoBusinessName: string;
-  seoSameAsUrls: string[];
-  searchSeoTitle: string;
-  searchSeoDescription: string;
-  searchSeoKeywords: string[];
-  searchSeoOgImageUrl: string;
-  searchSeoOgImageAlt: string;
-  guidesSeoTitle: string;
-  guidesSeoDescription: string;
-  guidesSeoKeywords: string[];
-  guidesSeoOgImageUrl: string;
-  guidesSeoOgImageAlt: string;
-  villaDetailSeoKeywords: string[];
-}
+  seo: SiteSettings["seo"];
+  pageSeo: SiteSettings["pageSeo"];
+};
+
+export type ContactSettingsDraft = import("@/lib/site-settings/admin-section-contracts").SiteSettingsSectionDraftMap["contact"];
 
 export interface AdminSiteSettingsResponse {
   code?: string;

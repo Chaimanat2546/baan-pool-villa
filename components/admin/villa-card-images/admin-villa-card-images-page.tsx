@@ -29,14 +29,9 @@ import { IMAGE_ZONE_LABELS } from "@/components/villas/detail/constants";
 import { VillaCard } from "@/components/villas/listing/villa-card";
 import { VillaCardStyleProvider } from "@/components/villas/listing/villa-card-style-context";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
-import type { SiteSettings, SiteVillaCardStyle } from "@/lib/site-settings/types";
+import type { SiteVillaCardStyle } from "@/lib/site-settings/types";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
 import type { VillaListing } from "@/lib/villas/types";
-
-import {
-  buildSettingsFormData,
-  mapSettingsToDraft,
-} from "../settings/settings-helpers";
 
 interface AdminVillaCardImageConfig {
   coverImage?: AdminVillaCardCoverImage | null;
@@ -73,18 +68,14 @@ interface AdminVillaCardImagesResponse {
   configs?: AdminVillaCardImageConfig[];
   houses?: AdminVillaCardHouseOption[];
   pagination?: AdminVillaCardHousePagination;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 interface AdminVillaCardImageSaveResponse {
   config?: AdminVillaCardImageConfig;
   error?: string;
   errors?: string[];
-}
-
-interface AdminSiteSettingsResponse {
-  error?: string;
-  errors?: string[];
-  settings?: SiteSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 interface VillaImagesResponse {
@@ -329,11 +320,11 @@ function useAdminToken() {
 
 export function AdminVillaCardImagesPage() {
   const { getAccessToken, redirectToLogin } = useAdminToken();
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [style, setStyle] = useState<SiteVillaCardStyle>("classic");
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedStyle, setHasLoadedStyle] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const loadSettings = useCallback(async () => {
@@ -344,27 +335,28 @@ export function AdminVillaCardImagesPage() {
     }
 
     setIsLoading(true);
+    setHasLoadedStyle(false);
     setErrors([]);
 
     try {
-      const response = await fetch("/api/admin/site-settings", {
+      const response = await fetch("/api/admin/villa-card-images", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const payload =
-        (await readJsonPayload(response)) as AdminSiteSettingsResponse | null;
+        (await readJsonPayload(response)) as AdminVillaCardImagesResponse | null;
 
       if (shouldRedirectToLogin(response.status, payload)) {
         redirectToLogin();
         return;
       }
 
-      if (!response.ok || !payload?.settings) {
+      if (!response.ok || !payload?.villaCardStyle) {
         setErrors(extractAdminErrors(payload, "ไม่สามารถโหลด settings ได้"));
         return;
       }
 
-      setSettings(payload.settings);
-      setStyle(payload.settings.villaCardStyle);
+      setStyle(payload.villaCardStyle);
+      setHasLoadedStyle(true);
     } catch {
       setErrors(["ไม่สามารถโหลด settings ได้"]);
     } finally {
@@ -383,9 +375,13 @@ export function AdminVillaCardImagesPage() {
   }, [loadSettings]);
 
   async function saveStyle() {
+    if (!hasLoadedStyle) {
+      return;
+    }
+
     const token = await getAccessToken();
 
-    if (!token || !settings) {
+    if (!token) {
       return;
     }
 
@@ -394,30 +390,28 @@ export function AdminVillaCardImagesPage() {
     setNotice(null);
 
     try {
-      const formData = buildSettingsFormData({
-        ...mapSettingsToDraft(settings),
-        villaCardStyle: style,
-      });
-      const response = await fetch("/api/admin/site-settings", {
-        body: formData,
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetch("/api/admin/villa-card-images", {
+        body: JSON.stringify({ villaCardStyle: style }),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         method: "PUT",
       });
       const payload =
-        (await readJsonPayload(response)) as AdminSiteSettingsResponse | null;
+        (await readJsonPayload(response)) as AdminVillaCardImageSaveResponse | null;
 
       if (shouldRedirectToLogin(response.status, payload)) {
         redirectToLogin();
         return;
       }
 
-      if (!response.ok || !payload?.settings) {
+      if (!response.ok || !payload?.villaCardStyle) {
         setErrors(extractAdminErrors(payload, "ไม่สามารถบันทึกรูปแบบการ์ดได้"));
         return;
       }
 
-      setSettings(payload.settings);
-      setStyle(payload.settings.villaCardStyle);
+      setStyle(payload.villaCardStyle);
       setNotice("บันทึกรูปแบบการ์ดบ้านแล้ว");
     } catch {
       setErrors(["ไม่สามารถบันทึกรูปแบบการ์ดได้"]);
@@ -454,7 +448,7 @@ export function AdminVillaCardImagesPage() {
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
               data-villa-card-save-style
-              disabled={isSaving || isLoading || !settings}
+              disabled={isSaving || isLoading || !hasLoadedStyle}
               type="button"
               onClick={() => {
                 void saveStyle();
