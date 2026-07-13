@@ -29,6 +29,19 @@ describe("ContactSettingsPage", () => {
     expect(Object.keys(body).sort()).toEqual(["bankAccountName", "bankAccountNumber", "bankName", "lineId", "lineUrl", "messengerUrl", "phoneContacts"].sort());
     expect(page.container.textContent).toContain("ข้อมูลบัญชีธนาคาร");
     expect(page.container.textContent).toContain("ช่องทางแชตและโซเชียล");
+    const addButton = [...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("เพิ่มผู้ติดต่อ"));
+    expect(addButton?.getAttribute("type")).toBe("button");
+    expect(addButton?.className).toContain("focus:ring-2");
+    expect(page.container.textContent).toContain("ลบผู้ติดต่อ");
+    await page.unmount();
+  });
+
+  it("uses the original realistic bank preview fallbacks", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(makeJsonResponse({ body: { settings: { bank: { accountName: "", bankName: "", accountNumber: "" }, contact: DEFAULT_SITE_SETTINGS.contact } } })));
+    const page = await mountAdminPage(<SettingsDirtyStateProvider><ContactSettingsPage /></SettingsDirtyStateProvider>);
+    expect(page.container.textContent).toContain("คุณ อาภัสรา จินดาวา");
+    expect(page.container.textContent).toContain("ธนาคารกสิกรไทย");
+    expect(page.container.textContent).toContain("398-289-7482");
     await page.unmount();
   });
 });

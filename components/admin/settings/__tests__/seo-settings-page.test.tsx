@@ -33,6 +33,11 @@ describe("SeoSettingsPage", () => {
     expect([...body.keys()].sort()).toEqual(["seoTitle", "seoDescription", "seoKeywords", "seoOgImageUrl", "seoOgImageAlt", "seoBusinessName", "seoSameAsUrls", "searchSeoTitle", "searchSeoDescription", "searchSeoKeywords", "searchSeoOgImageUrl", "searchSeoOgImageAlt", "guidesSeoTitle", "guidesSeoDescription", "guidesSeoKeywords", "guidesSeoOgImageUrl", "guidesSeoOgImageAlt", "villaDetailSeoKeywords", "seoOgImageFile", "searchSeoOgImageFile", "guidesSeoOgImageFile"].sort());
     expect(page.container.textContent).toContain("ตัวอย่างผลค้นหา Google");
     expect(page.container.textContent).toContain("ตัวอย่างตอนแชร์ลิงก์");
+    expect(page.container.querySelector("#seoTitle")?.getAttribute("placeholder")).toBe("Pool Villas Pattaya | บ้านพักพูลวิลล่าพัทยา");
+    expect(page.container.querySelector("#seoDescription")?.getAttribute("rows")).toBe("5");
+    expect(page.container.querySelector("#searchSeoDescription")?.getAttribute("placeholder")).toContain("จำนวนผู้เข้าพัก");
+    expect(page.container.querySelector("#guidesSeoKeywords")?.getAttribute("rows")).toBe("4");
+    expect(page.container.querySelector("#villaDetailSeoKeywords")?.getAttribute("placeholder")).toBe("รายละเอียดพูลวิลล่าพัทยา,จองพูลวิลล่าพัทยา");
     await page.unmount();
   });
 });
