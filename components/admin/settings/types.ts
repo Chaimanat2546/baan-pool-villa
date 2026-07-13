@@ -1,6 +1,35 @@
 import type { SiteLogoBackground } from "@/lib/site-settings/logo-background";
 import type { SitePhoneContact, SiteSettings } from "@/lib/site-settings/types";
 
+export interface BrandSettingsDraft {
+  faviconFile: File | null;
+  faviconImage: SiteSettings["faviconImage"];
+  logoBackground: SiteLogoBackground;
+  logoFile: File | null;
+  logoImage: SiteSettings["logoImage"];
+  siteName: string;
+}
+
+export type ThemeSettingsDraft = Pick<
+  AdminSettingsDraft,
+  | "primaryColor"
+  | "accentColor"
+  | "headerLinkColor"
+  | "headerLinkHoverColor"
+  | "footerLinkColor"
+  | "footerLinkHoverColor"
+  | "bankHighlightColor"
+  | "bankAccountHighlightColor"
+  | "bankNameHighlightColor"
+  | "bankNumberHighlightColor"
+>;
+
+export interface HeroSettingsDraft {
+  heroFile: File | null;
+  heroImage: SiteSettings["heroImage"];
+  heroImageAlt: string;
+}
+
 export interface AdminSettingsDraft {
   accentColor: string;
   faviconFile: File | null;

@@ -11,9 +11,23 @@ import {
 import type {
   AdminSettingsDraft,
   AdminSiteSettingsResponse,
+  BrandSettingsDraft,
+  HeroSettingsDraft,
+  ThemeSettingsDraft,
 } from "./types";
 
 const HEX_COLOR_PATTERN = /^#[\da-f]{6}$/i;
+
+export function getSafePreviewImageUrl(value: string, fallback: string): string {
+  const trimmedValue = value.trim();
+  if (trimmedValue.startsWith("/") && !trimmedValue.startsWith("//")) return trimmedValue;
+  try {
+    const url = new URL(trimmedValue);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function getFileSnapshot(file: File | null): string | null {
   return file
@@ -35,7 +49,7 @@ function readDraftHexColor(value: string, fallback: string): string {
 // the public site defaults whenever the draft still contains an invalid hex
 // value.
 export function buildDraftThemeStylesheetHref(
-  draft: AdminSettingsDraft,
+  draft: ThemeSettingsDraft,
   scope = "settings-preview-theme",
 ) {
   return buildSiteThemeStylesheetHref({
@@ -80,6 +94,60 @@ export function buildDraftThemeStylesheetHref(
       DEFAULT_SITE_SETTINGS.primaryColor,
     ),
   }, scope);
+}
+
+export function mapBrandSettingsResponse(value: unknown): BrandSettingsDraft {
+  const settings = (value as { settings: Omit<BrandSettingsDraft, "logoFile" | "faviconFile"> }).settings;
+  return { ...settings, faviconFile: null, logoFile: null };
+}
+
+export function makeBrandSettingsSnapshot(draft: BrandSettingsDraft): string {
+  return JSON.stringify({
+    faviconFile: getFileSnapshot(draft.faviconFile),
+    logoBackground: draft.logoBackground,
+    logoFile: getFileSnapshot(draft.logoFile),
+    siteName: draft.siteName,
+  });
+}
+
+export function buildBrandSettingsFormData(draft: BrandSettingsDraft): FormData {
+  const body = new FormData();
+  body.set("siteName", draft.siteName);
+  body.set("logoBackground", draft.logoBackground);
+  if (draft.logoFile) body.set("logo", draft.logoFile);
+  if (draft.faviconFile) body.set("faviconFile", draft.faviconFile);
+  return body;
+}
+
+export function mapThemeSettingsResponse(value: unknown): ThemeSettingsDraft {
+  return (value as { settings: ThemeSettingsDraft }).settings;
+}
+
+export function makeThemeSettingsSnapshot(draft: ThemeSettingsDraft): string {
+  return JSON.stringify(draft);
+}
+
+export function buildThemeSettingsJson(draft: ThemeSettingsDraft): string {
+  return JSON.stringify(draft);
+}
+
+export function mapHeroSettingsResponse(value: unknown): HeroSettingsDraft {
+  const { heroImage } = (value as { settings: { heroImage: HeroSettingsDraft["heroImage"] } }).settings;
+  return { heroFile: null, heroImage, heroImageAlt: heroImage.alt };
+}
+
+export function makeHeroSettingsSnapshot(draft: HeroSettingsDraft): string {
+  return JSON.stringify({
+    heroFile: getFileSnapshot(draft.heroFile),
+    heroImageAlt: draft.heroImageAlt,
+  });
+}
+
+export function buildHeroSettingsFormData(draft: HeroSettingsDraft): FormData {
+  const body = new FormData();
+  body.set("heroImageAlt", draft.heroImageAlt);
+  if (draft.heroFile) body.set("hero", draft.heroFile);
+  return body;
 }
 
 export function mapSettingsToDraft(settings: SiteSettings): AdminSettingsDraft {

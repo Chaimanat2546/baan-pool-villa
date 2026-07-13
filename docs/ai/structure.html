@@ -326,9 +326,9 @@
                 <td><code>components/admin/loading/admin-login-skeleton</code>.</td>
               </tr>
               <tr>
-                <td><code>app/(admin)/admin/settings/layout.tsx</code> and <code>page.tsx</code></td>
-                <td><code>/admin/settings</code> and section routes</td>
-                <td><code>components/admin/settings/settings-layout-shell</code> owns the persistent responsive section sidebar, dirty-navigation confirmation, and external-data refresh tool; the index redirects to <code>/admin/settings/brand</code>.</td>
+                <td><code>app/(admin)/admin/settings/layout.tsx</code>, <code>page.tsx</code>, and <code>brand</code>, <code>theme</code>, <code>hero</code> section routes</td>
+                <td><code>/admin/settings</code>, <code>/admin/settings/brand</code>, <code>/admin/settings/theme</code>, and <code>/admin/settings/hero</code></td>
+                <td><code>components/admin/settings/settings-layout-shell</code> owns the persistent responsive section sidebar, dirty-navigation confirmation, and external-data refresh tool; the index redirects to <code>/admin/settings/brand</code>. Brand, theme, and hero routes statically import only their matching section editor, and each editor loads and patches only its matching <code>/api/admin/site-settings/:section</code> contract.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/settings/loading.tsx</code></td>
