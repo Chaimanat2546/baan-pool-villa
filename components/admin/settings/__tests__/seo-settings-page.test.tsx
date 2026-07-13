@@ -22,10 +22,17 @@ describe("SeoSettingsPage", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/site-settings/seo", expect.any(Object));
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/contact"))).toBe(false);
     await changeInput(page.container.querySelector("#seoTitle") as HTMLInputElement, "SEO ใหม่");
+    for (const id of ["seoOgImageFile", "searchSeoOgImageFile", "guidesSeoOgImageFile"]) {
+      const input = page.container.querySelector(`#${id}`) as HTMLInputElement;
+      Object.defineProperty(input, "files", { configurable: true, value: [new File([id], `${id}.png`, { type: "image/png" })] });
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
     await click([...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("บันทึกส่วนนี้"))!);
     const body = fetchMock.mock.calls[1]?.[1]?.body as FormData;
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/admin/site-settings/seo");
-    expect([...body.keys()]).not.toEqual(expect.arrayContaining(["phoneContacts", "messengerUrl", "lineId", "lineUrl", "bankAccountName", "bankName", "bankAccountNumber"]));
+    expect([...body.keys()].sort()).toEqual(["seoTitle", "seoDescription", "seoKeywords", "seoOgImageUrl", "seoOgImageAlt", "seoBusinessName", "seoSameAsUrls", "searchSeoTitle", "searchSeoDescription", "searchSeoKeywords", "searchSeoOgImageUrl", "searchSeoOgImageAlt", "guidesSeoTitle", "guidesSeoDescription", "guidesSeoKeywords", "guidesSeoOgImageUrl", "guidesSeoOgImageAlt", "villaDetailSeoKeywords", "seoOgImageFile", "searchSeoOgImageFile", "guidesSeoOgImageFile"].sort());
+    expect(page.container.textContent).toContain("ตัวอย่างผลค้นหา Google");
+    expect(page.container.textContent).toContain("ตัวอย่างตอนแชร์ลิงก์");
     await page.unmount();
   });
 });

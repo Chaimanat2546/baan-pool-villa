@@ -9,14 +9,28 @@ import { buildSiteThemeStylesheetHref } from "../../../../lib/site-settings/colo
 
 import {
   buildDraftThemeStylesheetHref,
+  addPhoneContact,
   buildSettingsFormData,
   extractErrors,
   makeSettingsSnapshot,
   mapSettingsToDraft,
+  removePhoneContact,
   shouldRedirectToLogin,
+  updatePhoneContact,
 } from "../settings-helpers";
 
 describe("settings helpers", () => {
+  it("updates, adds, and removes phone contacts immutably while keeping one", () => {
+    const contacts = [{ name: "A", phone: "0617485213", time: "เช้า" }];
+    const updated = updatePhoneContact(contacts, 0, { name: "B" });
+    const added = addPhoneContact(updated);
+    const removed = removePhoneContact(added, 0);
+    expect(contacts[0]?.name).toBe("A");
+    expect(updated[0]?.name).toBe("B");
+    expect(added).toHaveLength(2);
+    expect(removed).toEqual([{ name: "", phone: "", time: "" }]);
+    expect(removePhoneContact(contacts, 0)).toBe(contacts);
+  });
   it("maps editable bank and contact settings into the admin draft", () => {
     const draft = mapSettingsToDraft({
       ...DEFAULT_SITE_SETTINGS,

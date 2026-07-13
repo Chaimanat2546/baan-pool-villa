@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 import { mapSettingsToDraft } from "../settings-helpers";
-import { validateAdminSettingsDraftForClient, validateBrandSettingsDraft, validateHeroSettingsDraft, validateThemeSettingsDraft } from "../settings-validation";
+import { validateAdminSettingsDraftForClient, validateBrandSettingsDraft, validateContactSettingsDraft, validateHeroSettingsDraft, validateSeoSettingsDraft, validateThemeSettingsDraft } from "../settings-validation";
+import { mapContactSettingsResponse, mapSeoSettingsResponse } from "../settings-helpers";
 
 describe("validateAdminSettingsDraftForClient", () => {
   it("uses shared settings validation before the save request", () => {
@@ -77,5 +78,15 @@ describe("section settings validation", () => {
 
   it("validates hero alt without unrelated settings", () => {
     expect(validateHeroSettingsDraft({ heroFile: null, heroImage: DEFAULT_SITE_SETTINGS.heroImage, heroImageAlt: "x".repeat(161) })).toEqual(["คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร"]);
+  });
+
+  it("validates every SEO group without unrelated settings", () => {
+    const draft = mapSeoSettingsResponse({ settings: { seo: DEFAULT_SITE_SETTINGS.seo, pageSeo: DEFAULT_SITE_SETTINGS.pageSeo } });
+    expect(validateSeoSettingsDraft({ ...draft, seoTitle: "x".repeat(81), searchSeoDescription: "" })).toEqual(expect.arrayContaining(["ชื่อหน้าที่แสดงบน Google ต้องไม่เกิน 80 ตัวอักษร", "ต้องใส่คำอธิบาย SEO ของหน้าค้นหา (/search)"]));
+  });
+
+  it("validates contact fields without unrelated settings", () => {
+    const draft = mapContactSettingsResponse({ settings: { bank: DEFAULT_SITE_SETTINGS.bank, contact: DEFAULT_SITE_SETTINGS.contact } });
+    expect(validateContactSettingsDraft({ ...draft, bankName: "", messengerUrl: "bad" })).toEqual(expect.arrayContaining(["ต้องใส่ชื่อธนาคาร", "ลิงก์ Messenger ต้องเป็น URL แบบ http หรือ https"]));
   });
 });

@@ -27,6 +27,8 @@ describe("ContactSettingsPage", () => {
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/admin/site-settings/contact");
     expect(body).not.toEqual(expect.objectContaining({ seoTitle: expect.anything() }));
     expect(Object.keys(body).sort()).toEqual(["bankAccountName", "bankAccountNumber", "bankName", "lineId", "lineUrl", "messengerUrl", "phoneContacts"].sort());
+    expect(page.container.textContent).toContain("ข้อมูลบัญชีธนาคาร");
+    expect(page.container.textContent).toContain("ช่องทางแชตและโซเชียล");
     await page.unmount();
   });
 });
