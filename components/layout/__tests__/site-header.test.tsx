@@ -94,13 +94,27 @@ describe("SiteHeader", () => {
     expect(markup).not.toContain(
       `${DEFAULT_SITE_SETTINGS.bank.bankName} เลขที่ ${DEFAULT_SITE_SETTINGS.bank.accountNumber}`,
     );
-    expect(markup).toContain("text-[var(--site-on-primary)]");
+    expect(markup).toContain("border-[color:var(--site-header-link)]/25");
     expect(markup).toContain("text-[var(--site-bank-account-highlight)]");
     expect(markup).toContain("text-[var(--site-bank-name-highlight)]");
     expect(markup).toContain("text-[var(--site-bank-number-highlight)]");
     expect(markup).not.toContain("text-[var(--site-bank-highlight)]");
     expect(markup).toContain("text-[var(--site-header-link)]");
     expect(markup).toContain("hover:text-[var(--site-header-link-hover)]");
+  });
+
+  it("applies the resolved theme text color to a preview header", () => {
+    const markup = renderToStaticMarkup(
+      <SiteHeader
+        previewMode
+        settings={{ ...DEFAULT_SITE_SETTINGS, primaryColor: "#111111" }}
+      />,
+    );
+
+    expect(markup).toContain("--site-on-primary:#ffffff");
+    expect(markup).toContain("text-[var(--site-header-link)]");
+    expect(markup).toContain('absolute right-4 top-3 flex');
+    expect(markup).toContain('type="button">หน้าแรก</button>');
   });
 
   it("keeps the desktop brand and bank notice inside one header row", () => {

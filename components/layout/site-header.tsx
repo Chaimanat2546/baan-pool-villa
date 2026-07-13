@@ -107,6 +107,7 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
         isHeaderHidden && !isMenuOpen ? "-translate-y-full" : "translate-y-0"
       }`}
       data-header-hidden={isHeaderHidden && !isMenuOpen ? "true" : "false"}
+      style={siteThemeStyle}
     >
       <div className={`${previewMode ? "" : "border-b border-[color:var(--site-on-primary)] shadow-[0_1px_1px_rgba(0,0,0,0.05)] backdrop-blur-[6px]"} bg-[var(--site-primary)]/95`}>
         <div className="relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:grid lg:min-h-[72px] lg:grid-cols-[1fr_auto_1fr] lg:py-0 lg:px-8">
@@ -126,10 +127,10 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
               />
             </span>
             <span className="min-w-0 lg:contents">
-              <span className="block truncate text-lg font-semibold leading-7 sm:text-2xl sm:leading-8 lg:col-start-2 lg:row-start-1 lg:self-end lg:translate-y-2 lg:text-xl lg:leading-7">
+              <span className="block truncate text-lg font-semibold leading-7 text-[var(--site-header-link)] sm:text-2xl sm:leading-8 lg:col-start-2 lg:row-start-1 lg:self-end lg:translate-y-2 lg:text-xl lg:leading-7">
                 {settings.siteName}
               </span>
-              {!previewMode ? <span className="block text-[11px] leading-4 text-[var(--site-on-primary)] sm:text-sm sm:leading-5 lg:col-start-2 lg:row-start-2 lg:-mt-1 lg:flex lg:items-center lg:gap-x-2 lg:whitespace-nowrap lg:pt-1 lg:border-t lg:border-[color:var(--site-on-primary)]/25 lg:text-xs lg:leading-4">
+              <span className="block text-[11px] leading-4 text-[var(--site-header-link)] sm:text-sm sm:leading-5 lg:col-start-2 lg:row-start-2 lg:-mt-1 lg:flex lg:items-center lg:gap-x-2 lg:whitespace-nowrap lg:pt-1 lg:border-t lg:border-[color:var(--site-header-link)]/25 lg:text-xs lg:leading-4">
                 <span>กรุณาโอนเงิน</span>{" "}
                 <span className="ml-2 inline-flex gap-1 rounded-full font-semibold text-[var(--site-bank-account-highlight)] lg:ml-0">
                   <span>ชื่อบัญชี</span>
@@ -143,22 +144,32 @@ export function SiteHeader({ previewMode = false, settings }: SiteHeaderProps) {
                   เลขที่ {settings.bank.accountNumber}
                 </span>{" "}
                 <span className="ml-2 lg:ml-0">เท่านั้น</span>
-              </span> : null}
+              </span>
             </span>
           </a>
 
-          <nav className="hidden h-12 items-center justify-center gap-8 text-xl font-semibold leading-7 lg:col-start-2 lg:flex">
+          <nav className={`${previewMode ? "absolute right-4 top-3 flex items-center gap-1 text-xs font-semibold" : "hidden h-12 items-center justify-center gap-8 text-xl font-semibold leading-7 lg:col-start-2 lg:flex"}`}>
             {navItems.map((item) => (
-              <a
-                key={`${item.href}-${item.label}`}
-                href={item.href}
-                className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]"
-              >
-                {item.label}
-              </a>
+              previewMode ? (
+                <button
+                  className="rounded-md px-2 py-1 text-[var(--site-header-link)] transition hover:bg-white/10 hover:text-[var(--site-header-link-hover)]"
+                  key={item.label}
+                  type="button"
+                >
+                  {item.label}
+                </button>
+              ) : (
+                <a
+                  key={`${item.href}-${item.label}`}
+                  href={item.href}
+                  className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]"
+                >
+                  {item.label}
+                </a>
+              )
             ))}
           </nav>
-          <div className="hidden items-center justify-self-end gap-2 lg:col-start-3 lg:flex">
+          <div className={`${previewMode ? "hidden" : "hidden items-center justify-self-end gap-2 lg:col-start-3 lg:flex"}`}>
             {primaryPhoneHref && primaryPhoneHref !== "#" ? (
               <a
                 href={primaryPhoneHref}
