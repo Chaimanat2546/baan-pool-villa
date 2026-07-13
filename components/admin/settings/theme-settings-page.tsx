@@ -1,6 +1,7 @@
 "use client";
 
 import { Palette } from "lucide-react";
+import type { ReactNode } from "react";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { ColorControl, SectionCard } from "./settings-form-controls";
 import { buildDraftThemeStylesheetHref, buildThemeSettingsJson, makeThemeSettingsSnapshot, mapThemeSettingsResponse } from "./settings-helpers";
@@ -23,6 +24,10 @@ const COLORS: { key: keyof ThemeSettingsDraft; label: string; description: strin
   { key: "bankNumberHighlightColor", label: "สีเลขบัญชี", description: "ใช้กับข้อความเลขบัญชี" },
 ];
 
+function PreviewCard({ title, children }: { title: string; children: ReactNode }) {
+  return <section className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm"><h2 className="border-b border-[var(--site-border)] px-4 py-3 text-sm font-bold text-[var(--site-text)]">{title}</h2><div className="p-4">{children}</div></section>;
+}
+
 export function ThemeSettingsPage() {
   const state = useAdminSettingsSection({ section: "theme", mapResponse: mapThemeSettingsResponse, makeSnapshot: makeThemeSettingsSnapshot, buildRequest: (draft) => ({ body: buildThemeSettingsJson(draft), headers: { "Content-Type": "application/json" } }), validate: validateThemeSettingsDraft });
   const { draft } = state;
@@ -32,7 +37,7 @@ export function ThemeSettingsPage() {
     <AdminFeedback errors={state.errors} errorTitle="กรุณาแก้ไขก่อนบันทึก:" notice={state.notice} warnings={state.warnings} />
     {state.isLoading ? <SettingsSectionSkeleton /> : draft ? <div className="settings-preview-theme grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]"><link href={themeHref} rel="stylesheet" />
       <SectionCard description="ใช้สีจากธีมเว็บไซต์เดียวกันทั้งฝั่งสาธารณะและแอดมิน" icon={<Palette aria-hidden="true" className="size-5" />} id="theme" title="สีและธีม"><div className="grid gap-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4"><div className="grid gap-4 lg:grid-cols-2">{COLORS.map(({ key, label, description }) => <ColorControl key={key} id={key} label={label} description={description} value={draft[key]} onChange={(value) => state.updateDraft({ [key]: value })} />)}</div></div></SectionCard>
-      <aside className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm"><h2 className="border-b border-[var(--site-border)] p-4 font-bold text-[var(--site-text)]">ตัวอย่างธีม</h2><div className="bg-[var(--site-primary)] p-4 text-[var(--site-on-primary)]"><p className="font-bold">Pool Villas Pattaya</p><nav aria-label="เมนู Header ตัวอย่าง" className="mt-3 flex flex-wrap gap-3 text-xs font-semibold"><span className="text-[var(--site-header-link)]">หน้าแรก</span><span className="text-[var(--site-header-link-hover)]">ค้นหาบ้านพัก (Hover)</span></nav><p className="mt-3 text-xs">กรุณาโอนเงิน <span className="text-[var(--site-bank-highlight)]">ข้อมูลบัญชี</span> <span className="text-[var(--site-bank-account-highlight)]">ชื่อบัญชี</span> <span className="text-[var(--site-bank-name-highlight)]">ชื่อธนาคาร</span> <span className="text-[var(--site-bank-number-highlight)]">เลขบัญชี</span></p></div><div className="p-4"><button className="rounded-md bg-[var(--site-primary)] px-4 py-2 text-sm font-semibold text-[var(--site-on-primary)]" type="button">ดูบ้านพัก</button><span className="ml-3 font-semibold text-[var(--site-accent)]">สีเน้น</span></div><footer className="bg-[var(--site-primary)] p-4 text-xs"><span className="text-[var(--site-footer-link)]">ติดต่อเรา</span><span className="ml-3 text-[var(--site-footer-link-hover)]">บทความ (Hover)</span></footer></aside>
+      <aside><section aria-label="ตัวอย่างสีที่ใช้จริง" className="grid gap-4"><PreviewCard title="ตัวอย่าง Header"><div className="bg-[var(--site-primary)] p-4 text-[var(--site-on-primary)]"><p className="font-bold">Pool Villas Pattaya</p><nav aria-label="เมนู Header ตัวอย่าง" className="mt-3 flex flex-wrap gap-3 text-xs font-semibold"><span className="text-[var(--site-header-link)]">หน้าแรก</span><span className="text-[var(--site-header-link-hover)]">ค้นหาบ้านพัก (Hover)</span></nav></div></PreviewCard><PreviewCard title="ตัวอย่างปุ่มและสีเน้น"><button className="rounded-md bg-[var(--site-primary)] px-4 py-2 text-sm font-semibold text-[var(--site-on-primary)]" type="button">ดูบ้านพัก</button><span className="ml-3 font-semibold text-[var(--site-accent)]">สีเน้น</span></PreviewCard><PreviewCard title="ตัวอย่างข้อมูลบัญชี"><p className="text-sm">กรุณาโอนเงิน <span className="text-[var(--site-bank-highlight)]">ข้อมูลบัญชี</span> <span className="text-[var(--site-bank-account-highlight)]">ชื่อบัญชี</span> <span className="text-[var(--site-bank-name-highlight)]">ชื่อธนาคาร</span> <span className="text-[var(--site-bank-number-highlight)]">เลขบัญชี</span></p></PreviewCard><PreviewCard title="ตัวอย่าง Footer"><footer className="bg-[var(--site-primary)] p-4 text-xs"><span className="text-[var(--site-footer-link)]">ติดต่อเรา</span><span className="ml-3 text-[var(--site-footer-link-hover)]">บทความ (Hover)</span></footer></PreviewCard></section></aside>
     </div> : null}
   </div>;
 }
