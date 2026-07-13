@@ -18,7 +18,7 @@ export function HeroSettingsPage() {
   const previewUrl = draft ? getSafePreviewImageUrl(draft.heroImage.url, "/images/BPV-66_Cover-Web.jpg") : "";
   return <div className="grid gap-5">
     <SettingsSectionHeader title="รูปหลัก" description="จัดการภาพหลักของหน้าแรกและคำอธิบายรูปที่ใช้กับภาพเดียวกันทั้งเดสก์ท็อปและมือถือ" hasUnsavedChanges={state.hasUnsavedChanges} isSaving={state.isSaving} onSave={state.save} />
-    <AdminFeedback errors={state.errors} notice={state.notice} warnings={state.warnings} />
+    <AdminFeedback errors={state.errors} errorTitle="กรุณาแก้ไขก่อนบันทึก:" notice={state.notice} warnings={state.warnings} />
     {state.isLoading ? <SettingsSectionSkeleton /> : draft ? <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
       <SectionCard description="ภาพหลักและคำอธิบายหน้าแรก" icon={<LayoutTemplate aria-hidden="true" className="size-5" />} id="hero" title="รูปหลัก">
         <TextControl id="heroImageAlt" label="คำอธิบายรูปหน้าแรก" description="ใช้เป็นข้อความอธิบายรูปสำหรับการเข้าถึงและกรณีโหลดรูปไม่สำเร็จ" maxLength={160} placeholder="ภาพบ้านพักพูลวิลล่าที่พัทยา" value={draft.heroImageAlt} onChange={(heroImageAlt) => state.updateDraft({ heroImageAlt })} />

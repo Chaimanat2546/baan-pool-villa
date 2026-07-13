@@ -20,7 +20,7 @@ export function ContactSettingsPage() {
   return (
     <div className="grid gap-5">
       <SettingsSectionHeader title="ติดต่อและชำระเงิน" description="จัดการช่องทางติดต่อและข้อมูลบัญชีธนาคารที่ใช้จริงบนหน้าเว็บไซต์" hasUnsavedChanges={state.hasUnsavedChanges} isSaving={state.isSaving} onSave={state.save} />
-      <AdminFeedback errors={state.errors} notice={state.notice} warnings={state.warnings} />
+      <AdminFeedback errors={state.errors} errorTitle="กรุณาแก้ไขก่อนบันทึก:" notice={state.notice} warnings={state.warnings} />
       {state.isLoading ? <SettingsSectionSkeleton /> : draft ? (
         <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <SectionCard

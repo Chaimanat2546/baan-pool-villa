@@ -23,7 +23,7 @@ export function BrandSettingsPage() {
   const { draft } = state;
   return <div className="grid gap-5">
     <SettingsSectionHeader title="ข้อมูลแบรนด์" description="ดูแลชื่อเว็บไซต์ โลโก้ และตัวตนหลักของหน้าเว็บให้สอดคล้องกันทุกจุด" hasUnsavedChanges={state.hasUnsavedChanges} isSaving={state.isSaving} onSave={state.save} />
-    <AdminFeedback errors={state.errors} notice={state.notice} warnings={state.warnings} />
+    <AdminFeedback errors={state.errors} errorTitle="กรุณาแก้ไขก่อนบันทึก:" notice={state.notice} warnings={state.warnings} />
     {state.isLoading ? <SettingsSectionSkeleton /> : draft ? <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
       <SectionCard description="ชื่อเว็บไซต์ โลโก้ และไอคอนที่ใช้งานจริง" icon={<Building2 aria-hidden="true" className="size-5" />} id="identity" title="ข้อมูลแบรนด์">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
