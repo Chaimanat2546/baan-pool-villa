@@ -15,7 +15,8 @@ import type { SiteSettingsSection } from "@/lib/site-settings/admin-section-cont
 import { useSettingsDirtyState } from "./settings-dirty-state";
 
 export interface UseAdminSettingsSectionOptions<TDraft> {
-  section: SiteSettingsSection;
+  section: SiteSettingsSection | "header";
+  endpoint?: string;
   mapResponse: (value: unknown) => TDraft;
   makeSnapshot: (draft: TDraft) => string;
   buildRequest: (draft: TDraft) => { body: BodyInit; headers?: HeadersInit };
@@ -54,6 +55,7 @@ function readWarnings(payload: unknown): string[] {
 
 export function useAdminSettingsSection<TDraft>({
   section,
+  endpoint,
   mapResponse,
   makeSnapshot,
   buildRequest,
@@ -116,7 +118,7 @@ export function useAdminSettingsSection<TDraft>({
           return;
         }
 
-        const response = await fetch(`/api/admin/site-settings/${section}`, {
+        const response = await fetch(endpoint ?? `/api/admin/site-settings/${section}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const payload = await readJsonPayload(response);
@@ -146,7 +148,7 @@ export function useAdminSettingsSection<TDraft>({
     }
 
     void load();
-  }, [redirectToLogin, section]);
+  }, [endpoint, redirectToLogin, section]);
 
   useEffect(() => {
     setIsDirty(hasUnsavedChanges);
@@ -207,7 +209,7 @@ export function useAdminSettingsSection<TDraft>({
       const request = buildSubmittedRequest(submittedDraft);
       const headers = new Headers(request.headers);
       headers.set("Authorization", `Bearer ${token}`);
-      const response = await fetch(`/api/admin/site-settings/${section}`, {
+      const response = await fetch(endpoint ?? `/api/admin/site-settings/${section}`, {
         body: request.body,
         headers,
         method: "PATCH",
@@ -249,7 +251,7 @@ export function useAdminSettingsSection<TDraft>({
         setIsSaving(false);
       }
     }
-  }, [draft, redirectToLogin, section]);
+  }, [draft, endpoint, redirectToLogin, section]);
 
   return {
     draft,

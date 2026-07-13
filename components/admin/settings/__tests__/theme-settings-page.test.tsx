@@ -14,23 +14,32 @@ describe("ThemeSettingsPage", () => {
   beforeEach(() => { mocks.readAdminAccessToken.mockResolvedValue("token"); mocks.router.replace = mocks.replace; });
   afterEach(() => vi.unstubAllGlobals());
   it("owns only the theme endpoint and submits only theme fields", async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(makeJsonResponse({ body: { settings } })).mockResolvedValueOnce(makeJsonResponse({ body: { settings: { ...settings, primaryColor: "#112233" } } }));
+    const fetchMock = vi.fn((url: string, options?: RequestInit) => Promise.resolve(
+      url === "/api/admin/site-header-settings"
+        ? makeJsonResponse({ body: { settings: { desktopHeaderVariant: "right-booking" } } })
+        : makeJsonResponse({ body: { settings: options?.method === "PATCH" ? { ...settings, primaryColor: "#112233" } : settings } }),
+    ));
     vi.stubGlobal("fetch", fetchMock);
     const page = await mountAdminPage(<SettingsDirtyStateProvider><ThemeSettingsPage /></SettingsDirtyStateProvider>);
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/site-settings/theme", expect.any(Object));
     for (const section of ["brand", "hero", "seo", "contact"]) expect(fetchMock.mock.calls.some(([url]) => String(url).includes(`/${section}`))).toBe(false);
     await changeInput(page.container.querySelector("#primaryColor") as HTMLInputElement, "#112233");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     await click([...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("บันทึกส่วนนี้"))!);
-    const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
-    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/admin/site-settings/theme");
+    const saveCall = fetchMock.mock.calls.find(([, options]) => options?.method === "PATCH")!;
+    const body = JSON.parse(String(saveCall[1]?.body));
+    expect(saveCall[0]).toBe("/api/admin/site-settings/theme");
     expect(Object.keys(body)).toEqual(Object.keys(settings));
     expect(body.primaryColor).toBe("#112233");
     await page.unmount();
   });
 
   it("groups each color control with its scoped draft preview", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(makeJsonResponse({ body: { settings } })));
+    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(
+      url === "/api/admin/site-header-settings"
+        ? makeJsonResponse({ body: { settings: { desktopHeaderVariant: "right-booking" } } })
+        : makeJsonResponse({ body: { settings } }),
+    )));
 
     const page = await mountAdminPage(<SettingsDirtyStateProvider><ThemeSettingsPage /></SettingsDirtyStateProvider>);
 

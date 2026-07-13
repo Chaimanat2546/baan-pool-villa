@@ -113,7 +113,7 @@ describe("SiteHeader", () => {
 
     expect(markup).toContain("--site-on-primary:#ffffff");
     expect(markup).toContain("text-[var(--site-header-link)]");
-    expect(markup).toContain('absolute right-4 top-3 flex');
+    expect(markup).toContain('lg:col-start-2 lg:flex');
     expect(markup).toContain('type="button">หน้าแรก</button>');
   });
 
