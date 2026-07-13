@@ -53,6 +53,13 @@ describe("SearchBar", () => {
       guestCombobox?.click();
     });
 
+    expect(guestCombobox?.parentElement?.className).toContain("relative");
+
+    const bedroomCombobox = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="จำนวนห้องนอน"]',
+    );
+    expect(bedroomCombobox?.parentElement?.className).toContain("relative");
+
     const moreThanTen = Array.from(
       container.querySelectorAll<HTMLButtonElement>('[role="option"]'),
     ).find((option) => option.textContent?.includes("มากกว่า 10"));

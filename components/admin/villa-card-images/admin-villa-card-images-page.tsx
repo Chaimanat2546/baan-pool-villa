@@ -324,6 +324,7 @@ export function AdminVillaCardImagesPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedStyle, setHasLoadedStyle] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const loadSettings = useCallback(async () => {
@@ -334,6 +335,7 @@ export function AdminVillaCardImagesPage() {
     }
 
     setIsLoading(true);
+    setHasLoadedStyle(false);
     setErrors([]);
 
     try {
@@ -354,6 +356,7 @@ export function AdminVillaCardImagesPage() {
       }
 
       setStyle(payload.villaCardStyle);
+      setHasLoadedStyle(true);
     } catch {
       setErrors(["ไม่สามารถโหลด settings ได้"]);
     } finally {
@@ -372,6 +375,10 @@ export function AdminVillaCardImagesPage() {
   }, [loadSettings]);
 
   async function saveStyle() {
+    if (!hasLoadedStyle) {
+      return;
+    }
+
     const token = await getAccessToken();
 
     if (!token) {
@@ -441,7 +448,7 @@ export function AdminVillaCardImagesPage() {
             <button
               className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
               data-villa-card-save-style
-              disabled={isSaving || isLoading}
+              disabled={isSaving || isLoading || !hasLoadedStyle}
               type="button"
               onClick={() => {
                 void saveStyle();

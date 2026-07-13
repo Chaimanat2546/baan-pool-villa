@@ -198,7 +198,13 @@ async function convertCustomerReviewUploadToWebp(file: File): Promise<File> {
     return file;
   }
 
-  const cloudflareImage = await convertCustomerReviewUploadWithCloudflareImages(file);
+  let cloudflareImage: File | null = null;
+
+  try {
+    cloudflareImage = await convertCustomerReviewUploadWithCloudflareImages(file);
+  } catch {
+    // Fall back to Sharp when the optional Cloudflare binding is unavailable.
+  }
 
   if (cloudflareImage) {
     return cloudflareImage;

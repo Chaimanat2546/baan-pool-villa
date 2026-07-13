@@ -210,7 +210,7 @@ export function SearchBar({
           ) : null}
         </div>
 
-        <div className="min-w-0">
+        <div className="relative min-w-0">
           <label className="text-sm font-medium leading-5 text-[var(--site-text)]">ผู้เข้าพัก</label>
           <button
             type="button"
@@ -256,7 +256,7 @@ export function SearchBar({
           ) : null}
         </div>
 
-        <div className="min-w-0">
+        <div className="relative min-w-0">
           <label className="text-sm font-medium leading-5 text-[var(--site-text)]">ห้องนอน</label>
           <button
             type="button"
