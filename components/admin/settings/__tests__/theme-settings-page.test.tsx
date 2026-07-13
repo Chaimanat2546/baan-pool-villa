@@ -30,18 +30,32 @@ describe("ThemeSettingsPage", () => {
     await page.unmount();
   });
 
-  it("renders four scoped labelled draft previews", async () => {
+  it("groups each color control with its scoped draft preview", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(makeJsonResponse({ body: { settings } })));
 
     const page = await mountAdminPage(<SettingsDirtyStateProvider><ThemeSettingsPage /></SettingsDirtyStateProvider>);
 
     expect(page.container.querySelector(".settings-preview-theme")).not.toBeNull();
-    expect(page.container.textContent).toContain("ตัวอย่าง Header");
-    expect(page.container.textContent).toContain("ตัวอย่างปุ่มและสีเน้น");
-    expect(page.container.textContent).toContain("ตัวอย่างข้อมูลบัญชี");
-    expect(page.container.textContent).toContain("ตัวอย่าง Footer");
-    expect(page.container.querySelector('[class~="text-[var(--site-header-link)]"]')).not.toBeNull();
-    expect(page.container.querySelector('[class~="text-[var(--site-bank-number-highlight)]"]')).not.toBeNull();
+    const primaryActions = page.container.querySelector('[data-theme-color-group="primary-actions"]');
+    expect(primaryActions).not.toBeNull();
+    expect(primaryActions?.querySelector("#primaryColor")).not.toBeNull();
+    expect(primaryActions?.querySelector("#accentColor")).not.toBeNull();
+    expect(primaryActions?.querySelector('[class~="bg-[var(--site-primary)]"]')).not.toBeNull();
+
+    const headerMenu = page.container.querySelector('[data-theme-color-group="header-menu"]');
+    expect(headerMenu).not.toBeNull();
+    expect(headerMenu?.querySelector("#headerLinkHoverColor")).not.toBeNull();
+    expect(headerMenu?.querySelector('[class~="text-[var(--site-header-link-hover)]"]')).not.toBeNull();
+
+    const bankDetails = page.container.querySelector('[data-theme-color-group="bank-details"]');
+    expect(bankDetails).not.toBeNull();
+    expect(bankDetails?.querySelector("#bankNumberHighlightColor")).not.toBeNull();
+    expect(bankDetails?.querySelector('[class~="text-[var(--site-bank-number-highlight)]"]')).not.toBeNull();
+
+    const footerMenu = page.container.querySelector('[data-theme-color-group="footer-menu"]');
+    expect(footerMenu).not.toBeNull();
+    expect(footerMenu?.querySelector("#footerLinkHoverColor")).not.toBeNull();
+    expect(footerMenu?.querySelector('[class~="text-[var(--site-footer-link-hover)]"]')).not.toBeNull();
     await page.unmount();
   });
 });
