@@ -78,6 +78,12 @@ const REVIEW_UPLOAD_MAX_BYTES = 6 * 1024 * 1024;
 const REVIEW_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const REVIEW_UPLOAD_EXTENSIONS = new Set(["jpeg", "jpg", "png", "webp"]);
 const REVIEW_EXPORT_MIME_TYPE = "image/webp";
+const REVIEW_FALLBACK_EXPORT_MIME_TYPE = "image/jpeg";
+const REVIEW_LAST_RESORT_EXPORT_MIME_TYPE = "image/png";
+type ReviewCanvasExport = {
+  blob: Blob;
+  extension: "jpg" | "png" | "webp";
+};
 const LAYOUT_OPTIONS: Array<{
   description: string;
   label: string;
@@ -161,10 +167,75 @@ function validateReviewImageFile(file: File): string[] {
   return errors;
 }
 
-function getCroppedFileName(file: File): string {
+function getCroppedFileName(file: File, extension = "webp"): string {
   const baseName = file.name.replace(/\.[^.]+$/, "").trim() || "customer-review";
 
-  return `${baseName}-cropped.webp`;
+  return `${baseName}-cropped.${extension}`;
+}
+
+function blobFromDataUrl(dataUrl: string, mimeType: string): Blob | null {
+  const [header, payload] = dataUrl.split(",", 2);
+
+  if (!header?.startsWith(`data:${mimeType}`) || !payload) {
+    return null;
+  }
+
+  const binary = atob(payload);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return new Blob([bytes], { type: mimeType });
+}
+
+async function exportCanvasAsMimeBlob(
+  canvas: HTMLCanvasElement,
+  mimeType: string,
+): Promise<Blob | null> {
+  const blob =
+    typeof canvas.toBlob === "function"
+      ? await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob(resolve, mimeType, 0.9);
+        })
+      : null;
+
+  if (blob?.type === mimeType) {
+    return blob;
+  }
+
+  return blobFromDataUrl(canvas.toDataURL(mimeType, 0.9), mimeType);
+}
+
+export async function exportCanvasAsReviewImage(
+  canvas: HTMLCanvasElement,
+): Promise<ReviewCanvasExport> {
+  const webpBlob = await exportCanvasAsMimeBlob(canvas, REVIEW_EXPORT_MIME_TYPE);
+
+  if (webpBlob) {
+    return { blob: webpBlob, extension: "webp" };
+  }
+
+  const fallbackBlob = await exportCanvasAsMimeBlob(
+    canvas,
+    REVIEW_FALLBACK_EXPORT_MIME_TYPE,
+  );
+
+  if (fallbackBlob) {
+    return { blob: fallbackBlob, extension: "jpg" };
+  }
+
+  const pngBlob = await exportCanvasAsMimeBlob(
+    canvas,
+    REVIEW_LAST_RESORT_EXPORT_MIME_TYPE,
+  );
+
+  if (pngBlob) {
+    return { blob: pngBlob, extension: "png" };
+  }
+
+  throw new Error("Browser does not support image export.");
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -212,17 +283,15 @@ async function cropImageFile({
     canvas.height,
   );
 
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, REVIEW_EXPORT_MIME_TYPE, 0.9);
-  });
+  const exportedImage = await exportCanvasAsReviewImage(canvas);
 
-  if (!blob || blob.type !== REVIEW_EXPORT_MIME_TYPE) {
-    throw new Error("Browser does not support WebP image export.");
-  }
-
-  return new File([blob], getCroppedFileName(file), {
-    type: REVIEW_EXPORT_MIME_TYPE,
-  });
+  return new File(
+    [exportedImage.blob],
+    getCroppedFileName(file, exportedImage.extension),
+    {
+      type: exportedImage.blob.type,
+    },
+  );
 }
 
 function useAdminToken() {
@@ -535,6 +604,109 @@ function CropDialog({
   );
 }
 
+function DeleteReviewImagesDialog({
+  images,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}: {
+  images: AdminCustomerReviewImage[];
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const isSingleImage = images.length === 1;
+  const title = isSingleImage
+    ? "ต้องการลบรูปนี้หรือไม่"
+    : `ต้องการลบ ${images.length.toLocaleString("th-TH")} รูปหรือไม่`;
+
+  return (
+    <div
+      aria-labelledby="customer-review-delete-title"
+      aria-modal="true"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-3"
+      data-review-delete-dialog
+      role="dialog"
+    >
+      <div
+        className={`grid max-h-[calc(100dvh-1.5rem)] w-full grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-xl ${
+          isSingleImage ? "max-w-md" : "max-w-3xl"
+        }`}
+      >
+        <header className="flex items-start justify-between gap-3 border-b border-[var(--site-border)] px-4 py-3">
+          <div className="min-w-0">
+            <h2
+              className="text-lg font-bold text-[var(--site-text)]"
+              id="customer-review-delete-title"
+            >
+              {title}
+            </h2>
+            <p className="mt-1 text-sm text-[var(--site-muted)]">
+              รูปจะถูกลบออกจากคลังและคิวหน้าแรกถ้ามีอยู่
+            </p>
+          </div>
+          <button
+            aria-label="ปิดหน้าต่างยืนยันลบ"
+            className="grid size-9 shrink-0 place-items-center rounded-md border border-[var(--site-border)] text-[var(--site-muted)] hover:bg-[var(--site-surface-soft)]"
+            data-review-delete-cancel
+            disabled={isDeleting}
+            onClick={onCancel}
+            type="button"
+          >
+            <X aria-hidden="true" className="size-4" />
+          </button>
+        </header>
+
+        <div
+          className={`min-h-0 overflow-y-auto p-4 ${
+            isSingleImage ? "grid gap-3" : "grid grid-cols-3 gap-2 sm:grid-cols-4"
+          }`}
+        >
+          {images.map((image) => (
+            <figure className="grid min-w-0 gap-2" key={image.id}>
+              <span className="relative block aspect-[4/5] overflow-hidden rounded-md bg-[var(--site-surface-tint)]">
+                <PreviewImage
+                  alt={image.alt}
+                  className="object-contain"
+                  fill
+                  loading="lazy"
+                  sizes={isSingleImage ? "min(28rem, 100vw)" : "140px"}
+                  src={image.url}
+                />
+              </span>
+              <figcaption className="truncate text-xs font-semibold text-[var(--site-muted)]">
+                {image.alt || image.path}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+
+        <footer className="flex flex-wrap justify-end gap-2 border-t border-[var(--site-border)] px-4 py-3">
+          <button
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-text)] disabled:opacity-60"
+            disabled={isDeleting}
+            onClick={onCancel}
+            type="button"
+          >
+            <X aria-hidden="true" className="size-4" />
+            ยกเลิก
+          </button>
+          <button
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-red-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            data-review-delete-confirm
+            disabled={isDeleting}
+            onClick={onConfirm}
+            type="button"
+          >
+            <Trash2 aria-hidden="true" className="size-4" />
+            {isDeleting ? "กำลังลบ..." : isSingleImage ? "ลบรูปนี้" : "ลบรูปที่เลือก"}
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
 export function AdminCustomerReviewsPage() {
   const { getAccessToken, redirectToLogin } = useAdminToken();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -562,7 +734,7 @@ export function AdminCustomerReviewsPage() {
   >([]);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-  const [isBulkDeleteConfirming, setIsBulkDeleteConfirming] = useState(false);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [cropFileUrl, setCropFileUrl] = useState<string | null>(null);
@@ -608,6 +780,14 @@ export function AdminCustomerReviewsPage() {
   const selectedDeleteImageIdSet = useMemo(
     () => new Set(selectedDeleteImageIds),
     [selectedDeleteImageIds],
+  );
+  const pendingDeleteImage = useMemo(
+    () => images.find((image) => image.id === pendingDeleteImageId) ?? null,
+    [images, pendingDeleteImageId],
+  );
+  const selectedDeleteImages = useMemo(
+    () => images.filter((image) => selectedDeleteImageIdSet.has(image.id)),
+    [images, selectedDeleteImageIdSet],
   );
   const areFilteredImagesSelectedForDelete =
     filteredImages.length > 0 &&
@@ -940,13 +1120,6 @@ export function AdminCustomerReviewsPage() {
   }
 
   async function deleteReviewImage(image: AdminCustomerReviewImage) {
-    if (pendingDeleteImageId !== image.id) {
-      setPendingDeleteImageId(image.id);
-      setErrors([]);
-      setNotice("กดลบอีกครั้งเพื่อยืนยันการลบรูปนี้");
-      return;
-    }
-
     const token = await getAccessToken();
 
     if (!token) {
@@ -1001,7 +1174,7 @@ export function AdminCustomerReviewsPage() {
       }
 
       setPendingDeleteImageId(null);
-      setIsBulkDeleteConfirming(false);
+      setIsBulkDeleteDialogOpen(false);
       setNotice(
         payload.warning
           ? `ลบรูปแล้ว แต่ cleanup ไฟล์มีคำเตือน: ${payload.warning}`
@@ -1018,13 +1191,13 @@ export function AdminCustomerReviewsPage() {
     setErrors([]);
     setNotice(null);
     setPendingDeleteImageId(null);
+    setIsBulkDeleteDialogOpen(false);
     setEditingImageId(null);
     setAltDraft("");
     draggedQueueImageIdRef.current = null;
     setIsDeleteMode((currentMode) => {
       if (currentMode) {
         setSelectedDeleteImageIds([]);
-        setIsBulkDeleteConfirming(false);
       }
 
       return !currentMode;
@@ -1039,7 +1212,7 @@ export function AdminCustomerReviewsPage() {
     setErrors([]);
     setNotice(null);
     setPendingDeleteImageId(null);
-    setIsBulkDeleteConfirming(false);
+    setIsBulkDeleteDialogOpen(false);
     setSelectedDeleteImageIds((currentIds) =>
       currentIds.includes(imageId)
         ? currentIds.filter((currentId) => currentId !== imageId)
@@ -1057,7 +1230,7 @@ export function AdminCustomerReviewsPage() {
     setErrors([]);
     setNotice(null);
     setPendingDeleteImageId(null);
-    setIsBulkDeleteConfirming(false);
+    setIsBulkDeleteDialogOpen(false);
     setSelectedDeleteImageIds((currentIds) => {
       const filteredIdSet = new Set(filteredImageIds);
       const allFilteredSelected = filteredImageIds.every((imageId) =>
@@ -1074,29 +1247,35 @@ export function AdminCustomerReviewsPage() {
 
   function clearDeleteSelection() {
     setSelectedDeleteImageIds([]);
-    setIsBulkDeleteConfirming(false);
+    setIsBulkDeleteDialogOpen(false);
+    setErrors([]);
+    setNotice(null);
+  }
+
+  function openSingleDeleteDialog(imageId: string) {
+    setPendingDeleteImageId(imageId);
+    setIsBulkDeleteDialogOpen(false);
+    setErrors([]);
+    setNotice(null);
+  }
+
+  function openBulkDeleteDialog() {
+    if (selectedDeleteImages.length === 0) {
+      clearDeleteSelection();
+      return;
+    }
+
+    setPendingDeleteImageId(null);
+    setIsBulkDeleteDialogOpen(true);
     setErrors([]);
     setNotice(null);
   }
 
   async function deleteSelectedReviewImages() {
-    const imageIds = selectedDeleteImageIds.filter((imageId) =>
-      images.some((image) => image.id === imageId),
-    );
+    const imageIds = selectedDeleteImages.map((image) => image.id);
 
     if (imageIds.length === 0) {
       clearDeleteSelection();
-      return;
-    }
-
-    if (!isBulkDeleteConfirming) {
-      setErrors([]);
-      setNotice(
-        `กดลบที่เลือกอีกครั้งเพื่อยืนยันการลบ ${imageIds.length.toLocaleString(
-          "th-TH",
-        )} รูป`,
-      );
-      setIsBulkDeleteConfirming(true);
       return;
     }
 
@@ -1163,7 +1342,7 @@ export function AdminCustomerReviewsPage() {
         setPendingDeleteImageId(null);
       }
 
-      setIsBulkDeleteConfirming(false);
+      setIsBulkDeleteDialogOpen(false);
       setIsDeleteMode(false);
 
       const warnings = payload?.warnings ?? (payload?.warning ? [payload.warning] : []);
@@ -1510,13 +1689,11 @@ export function AdminCustomerReviewsPage() {
                     className="inline-flex h-9 items-center gap-1 rounded-md border border-red-200 bg-white px-3 text-xs font-bold text-red-700 disabled:opacity-50"
                     data-review-delete-submit
                     disabled={selectedDeleteImageIds.length === 0 || isBulkDeleting}
-                    onClick={() => {
-                      void deleteSelectedReviewImages();
-                    }}
+                    onClick={openBulkDeleteDialog}
                     type="button"
                   >
                     <Trash2 aria-hidden="true" className="size-3.5" />
-                    {isBulkDeleteConfirming ? "ยืนยันลบที่เลือก" : "ลบที่เลือก"}
+                    ลบที่เลือก
                   </button>
                 </span>
               </div>
@@ -1694,14 +1871,15 @@ export function AdminCustomerReviewsPage() {
                       {!isDeleteMode ? (
                         <button
                           className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 text-xs font-bold text-red-700 disabled:opacity-60"
+                          data-review-delete-image={image.id}
                           disabled={busyImageId === image.id}
                           onClick={() => {
-                            void deleteReviewImage(image);
+                            openSingleDeleteDialog(image.id);
                           }}
                           type="button"
                         >
                           <Trash2 aria-hidden="true" className="size-3.5" />
-                          {pendingDeleteImageId === image.id ? "ยืนยัน" : "ลบ"}
+                          ลบ
                         </button>
                       ) : null}
                     </div>
@@ -1867,6 +2045,36 @@ export function AdminCustomerReviewsPage() {
             <CustomerReviewSection data={previewCustomerReviews} />
           </div>
         </section>
+      ) : null}
+
+      {pendingDeleteImage ? (
+        <DeleteReviewImagesDialog
+          images={[pendingDeleteImage]}
+          isDeleting={busyImageId === pendingDeleteImage.id}
+          onCancel={() => {
+            if (busyImageId !== pendingDeleteImage.id) {
+              setPendingDeleteImageId(null);
+            }
+          }}
+          onConfirm={() => {
+            void deleteReviewImage(pendingDeleteImage);
+          }}
+        />
+      ) : null}
+
+      {isBulkDeleteDialogOpen && selectedDeleteImages.length > 0 ? (
+        <DeleteReviewImagesDialog
+          images={selectedDeleteImages}
+          isDeleting={isBulkDeleting}
+          onCancel={() => {
+            if (!isBulkDeleting) {
+              setIsBulkDeleteDialogOpen(false);
+            }
+          }}
+          onConfirm={() => {
+            void deleteSelectedReviewImages();
+          }}
+        />
       ) : null}
 
       {cropFile && cropFileUrl ? (

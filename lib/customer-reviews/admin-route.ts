@@ -24,10 +24,13 @@ const CUSTOMER_REVIEW_UPLOAD_LIMIT_BYTES = 6 * 1024 * 1024;
 const CUSTOMER_REVIEW_ALT_LIMIT = 160;
 const CUSTOMER_REVIEW_IMAGE_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const CUSTOMER_REVIEW_UPLOAD_EXTENSIONS = new Set(["webp"]);
+const CUSTOMER_REVIEW_UPLOAD_EXTENSIONS = new Set(["jpeg", "jpg", "png", "webp"]);
 const CUSTOMER_REVIEW_UPLOAD_MIME_EXTENSIONS = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
   ["image/webp", "webp"],
 ]);
+const CUSTOMER_REVIEW_STORAGE_MIME_TYPE = "image/webp";
 
 interface CustomerReviewImageRow {
   alt?: unknown;
@@ -90,6 +93,17 @@ type DeletedCustomerReviewImage = {
   warning: string | null;
 };
 
+type CloudflareImagesBinding = {
+  input: (image: ReadableStream<Uint8Array>) => {
+    output: (options: {
+      format: "image/webp";
+      quality: number;
+    }) => Promise<{
+      response: () => Response;
+    }>;
+  };
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -106,20 +120,16 @@ function getCustomerReviewUpload(formData: FormData): File | null {
   return value instanceof File && value.size > 0 ? value : null;
 }
 
-function getUploadExtension(mimeType: string): string | null {
-  return CUSTOMER_REVIEW_UPLOAD_MIME_EXTENSIONS.get(mimeType) ?? null;
-}
-
 function validateCustomerReviewUpload(file: File): string[] {
   const errors: string[] = [];
   const extension = file.name.trim().split(".").pop()?.toLowerCase() ?? "";
 
   if (!CUSTOMER_REVIEW_UPLOAD_MIME_EXTENSIONS.has(file.type)) {
-    errors.push("Image must be WebP.");
+    errors.push("Image must be JPG, PNG, or WebP.");
   }
 
   if (!CUSTOMER_REVIEW_UPLOAD_EXTENSIONS.has(extension)) {
-    errors.push("Image extension must be .webp.");
+    errors.push("Image extension must be .jpg, .jpeg, .png, or .webp.");
   }
 
   if (file.size > CUSTOMER_REVIEW_UPLOAD_LIMIT_BYTES) {
@@ -129,18 +139,80 @@ function validateCustomerReviewUpload(file: File): string[] {
   return errors;
 }
 
-function buildCustomerReviewStoragePath(mimeType: string): string {
-  const extension = getUploadExtension(mimeType);
+function getCustomerReviewWebpFileName(file: File): string {
+  const baseName = file.name.replace(/\.[^.]+$/, "").trim() || "customer-review";
 
-  if (!extension) {
-    throw new Error("Unsupported customer review image MIME type.");
-  }
+  return `${baseName}.webp`;
+}
 
+function buildCustomerReviewStoragePath(): string {
   const now = new Date();
   const year = String(now.getUTCFullYear());
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
 
-  return `${CUSTOMER_REVIEW_PATH_PREFIX}/${year}/${month}/${crypto.randomUUID()}.${extension}`;
+  return `${CUSTOMER_REVIEW_PATH_PREFIX}/${year}/${month}/${crypto.randomUUID()}.webp`;
+}
+
+async function getCloudflareImagesBinding(): Promise<CloudflareImagesBinding | null> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const cloudflareContext = await getCloudflareContext({ async: true });
+    const images = cloudflareContext.env.IMAGES;
+
+    return images && typeof images.input === "function"
+      ? (images as CloudflareImagesBinding)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function convertCustomerReviewUploadWithCloudflareImages(
+  file: File,
+): Promise<File | null> {
+  const images = await getCloudflareImagesBinding();
+
+  if (!images) {
+    return null;
+  }
+
+  const result = await images
+    .input(file.stream() as ReadableStream<Uint8Array>)
+    .output({ format: CUSTOMER_REVIEW_STORAGE_MIME_TYPE, quality: 90 });
+  const response = result.response();
+  const contentType = response.headers.get("content-type")?.split(";")[0]?.trim();
+
+  if (!response.ok || contentType !== CUSTOMER_REVIEW_STORAGE_MIME_TYPE) {
+    throw new Error("Cloudflare Images did not return WebP.");
+  }
+
+  return new File(
+    [new Uint8Array(await response.arrayBuffer())],
+    getCustomerReviewWebpFileName(file),
+    { type: CUSTOMER_REVIEW_STORAGE_MIME_TYPE },
+  );
+}
+
+async function convertCustomerReviewUploadToWebp(file: File): Promise<File> {
+  if (file.type === CUSTOMER_REVIEW_STORAGE_MIME_TYPE) {
+    return file;
+  }
+
+  const cloudflareImage = await convertCustomerReviewUploadWithCloudflareImages(file);
+
+  if (cloudflareImage) {
+    return cloudflareImage;
+  }
+
+  const { default: sharp } = await import("sharp");
+  const webpBuffer = await sharp(Buffer.from(await file.arrayBuffer()))
+    .rotate()
+    .webp({ quality: 90 })
+    .toBuffer();
+
+  return new File([new Uint8Array(webpBuffer)], getCustomerReviewWebpFileName(file), {
+    type: CUSTOMER_REVIEW_STORAGE_MIME_TYPE,
+  });
 }
 
 function normalizeAdminAlt(value: string): string {
@@ -399,7 +471,7 @@ async function uploadCustomerReviewAsset(
   supabase: HomeConfigSupabaseClient,
   image: File,
 ): Promise<UploadedCustomerReviewAsset> {
-  const path = buildCustomerReviewStoragePath(image.type);
+  const path = buildCustomerReviewStoragePath();
   const uploadResult = await supabase.storage
     .from(SITE_ASSETS_BUCKET)
     .upload(path, image, {
@@ -609,7 +681,18 @@ export async function uploadAdminCustomerReviewImage(
     return Response.json({ errors }, { status: 400 });
   }
 
-  const upload = await uploadCustomerReviewAsset(supabase, image);
+  let webpImage: File;
+
+  try {
+    webpImage = await convertCustomerReviewUploadToWebp(image);
+  } catch {
+    return Response.json(
+      { errors: ["Unable to convert customer review image to WebP."] },
+      { status: 400 },
+    );
+  }
+
+  const upload = await uploadCustomerReviewAsset(supabase, webpImage);
 
   if (!upload.asset) {
     return upload.response;
