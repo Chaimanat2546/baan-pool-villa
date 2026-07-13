@@ -232,6 +232,36 @@ describe("admin site-settings section route helper", () => {
     });
   });
 
+  it("persists only Theme columns returned by a fallback projection", async () => {
+    const missing = () => selectQuery({
+      data: null,
+      error: { code: "42703", message: "column missing" },
+    });
+    const load = selectQuery({
+      data: { id: SITE_SETTINGS_ID, primary_color: "#064e3b", accent_color: "#eab308" },
+      error: null,
+    });
+    const save = updateQuery({ error: null });
+    const reload = selectQuery({
+      data: { id: SITE_SETTINGS_ID, primary_color: "#112233", accent_color: "#445566" },
+      error: null,
+    });
+    const from = fromQueue({ site_settings: [missing(), load, save, missing(), reload] });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      themeRequest({ primaryColor: "#112233", accentColor: "#445566" }),
+      "theme",
+      { from, storage: storage() } as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(save.update).toHaveBeenCalledWith({
+      primary_color: "#112233",
+      accent_color: "#445566",
+    });
+  });
+
   it("rejects cross-section JSON fields before persistence", async () => {
     const from = vi.fn();
     const { saveAdminSiteSettingsSection } = await import("../admin-section-route");

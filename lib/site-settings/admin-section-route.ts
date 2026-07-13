@@ -43,7 +43,11 @@ function isMissingColumnError(error: SupabaseLikeError | null | undefined) {
 async function loadSection(
   section: SiteSettingsSection,
   supabase: HomeConfigSupabaseClient,
-): Promise<{ data: SiteSettingsRow | null; error: SupabaseLikeError | null }> {
+): Promise<{
+  data: SiteSettingsRow | null;
+  error: SupabaseLikeError | null;
+  availableColumns: ReadonlySet<string>;
+}> {
   let lastError: SupabaseLikeError | null = null;
 
   for (const select of getSiteSettingsSectionSelects(section)) {
@@ -54,15 +58,19 @@ async function loadSection(
       .maybeSingle();
 
     if (!result.error) {
-      return { data: (result.data as SiteSettingsRow | null) ?? null, error: null };
+      return {
+        data: (result.data as SiteSettingsRow | null) ?? null,
+        error: null,
+        availableColumns: new Set(select.split(",")),
+      };
     }
     if (!isMissingColumnError(result.error)) {
-      return { data: null, error: result.error };
+      return { data: null, error: result.error, availableColumns: new Set() };
     }
     lastError = result.error;
   }
 
-  return { data: null, error: lastError };
+  return { data: null, error: lastError, availableColumns: new Set() };
 }
 
 export async function buildAdminSiteSettingsSectionResponse(
@@ -117,7 +125,11 @@ export async function saveAdminSiteSettingsSection(
     return Response.json({ errors: uploadResult.errors }, { status: 400 });
   }
 
-  const { data: existingRow, error: loadError } = await loadSection(section, supabase);
+  const {
+    data: existingRow,
+    error: loadError,
+    availableColumns,
+  } = await loadSection(section, supabase);
   if (loadError) {
     return adminSupabaseErrorResponse(loadError, "Unable to load site settings.");
   }
@@ -149,12 +161,12 @@ export async function saveAdminSiteSettingsSection(
     );
   }
 
-  const payload = buildSiteSettingsSectionPayload(
+  const payload = Object.fromEntries(Object.entries(buildSiteSettingsSectionPayload(
     section,
     draftResult.draft,
     currentSettings,
     uploaded.uploadedAssets,
-  );
+  )).filter(([column]) => availableColumns.has(column)));
   const { data: updatedRow, error: saveError } = await supabase
     .from("site_settings")
     .update(payload)

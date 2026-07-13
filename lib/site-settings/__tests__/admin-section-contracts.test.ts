@@ -50,7 +50,10 @@ describe("admin site-settings section contracts", () => {
     expect(getSiteSettingsSectionSelects("hero")).toEqual([
       "id,hero_image_path,hero_image_url,hero_image_alt",
     ]);
-    expect(getSiteSettingsSectionSelects("seo")).toHaveLength(2);
+    expect(getSiteSettingsSectionSelects("seo")).toEqual([
+      "id,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords",
+      "id,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls",
+    ]);
     expect(getSiteSettingsSectionSelects("contact")).toEqual([
       "id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url",
     ]);
