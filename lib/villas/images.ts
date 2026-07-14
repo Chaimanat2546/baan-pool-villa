@@ -654,9 +654,16 @@ async function resolveDisplayImagesFromSupabase(
     fetchVillaCardImageConfig(id),
   ]);
   const images = normalizeImageRows(rows, supabaseUrl);
-  const defaultImages = selectDefaultDisplayImages(
-    applyVillaCoverOverride(images, config.coverImage),
-  );
+  const defaultImages = config.coverImage
+    ? [
+        config.coverImage,
+        ...selectDefaultDisplayImages(images).filter(
+          (image) =>
+            image.imageUrl !== config.coverImage?.imageUrl &&
+            !isCoverZone(image.zone),
+        ),
+      ]
+    : selectDefaultDisplayImages(images);
   const recommendedImages = applyVillaCoverOverride(
     normalizeImageRows(selectRecommendedDisplayRows(rows), supabaseUrl),
     config.coverImage,
@@ -673,6 +680,10 @@ async function resolveDisplayImagesFromSupabase(
 
   if (customImages.length >= VILLA_CARD_DISPLAY_IMAGE_MIN) {
     return customImages;
+  }
+
+  if (config.coverImage) {
+    return defaultImages;
   }
 
   return recommendedImages.length > 0 ? recommendedImages : defaultImages;
