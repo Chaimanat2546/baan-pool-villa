@@ -653,18 +653,23 @@ async function resolveDisplayImagesFromSupabase(
     fetchVillaCardImageRowsFromSupabase(villaId),
     fetchVillaCardImageConfig(id),
   ]);
+  const images = normalizeImageRows(rows, supabaseUrl);
   const defaultImages = selectDefaultDisplayImages(
-    applyVillaCoverOverride(normalizeImageRows(rows, supabaseUrl), config.coverImage),
+    applyVillaCoverOverride(images, config.coverImage),
   );
   const recommendedImages = applyVillaCoverOverride(
     normalizeImageRows(selectRecommendedDisplayRows(rows), supabaseUrl),
     config.coverImage,
   );
 
-  const customImages = selectCustomDisplayImages(
-    applyVillaCoverOverride(normalizeImageRows(rows, supabaseUrl), config.coverImage),
-    config.imageIds,
-  );
+  const customImages = [
+    ...(config.coverImage ? [config.coverImage] : []),
+    ...selectCustomDisplayImages(images, config.imageIds).filter(
+      (image) =>
+        !config.coverImage ||
+        (image.imageUrl !== config.coverImage.imageUrl && !isCoverZone(image.zone)),
+    ),
+  ];
 
   if (customImages.length >= VILLA_CARD_DISPLAY_IMAGE_MIN) {
     return customImages;
