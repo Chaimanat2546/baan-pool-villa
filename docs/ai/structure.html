@@ -253,7 +253,7 @@
               <tr>
                 <td><code>app/(public)/api/site-theme.css/route.ts</code></td>
                 <td><code>/api/site-theme.css</code></td>
-                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. The public shell uses <code>/api/site-theme.css</code> with validated hashless hex color params for primary/accent, header/footer link and hover colors, shared bank highlight color, and separate bank account/name/number highlight colors. The admin draft preview applies the same validated CSS variables locally to its scope and does not call this route before save.</td>
+                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. The public shell uses <code>/api/site-theme.css</code> with validated hashless hex color params for primary/accent, header/footer link and hover colors, shared bank highlight color, and separate bank account/name/number highlight colors; user-configured colors are passed through unchanged and the shared overlay foreground stays light for darkened image badges. The admin draft preview applies the same validated CSS variables locally to its scope and does not call this route before save.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/guides/images/proxy/route.ts</code></td>

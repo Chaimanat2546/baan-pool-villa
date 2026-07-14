@@ -27,6 +27,7 @@ describe("/api/site-theme.css", () => {
     );
     expect(css).toContain(".settings-preview-theme{");
     expect(css).toContain("--site-primary:#064e3b");
+    expect(css).toContain("--site-muted-text:");
     expect(css).toContain("--site-header-link:#f8fafc");
     expect(css).toContain("--site-header-link-hover:#fde68a");
     expect(css).toContain("--site-footer-link:#e2e8f0");

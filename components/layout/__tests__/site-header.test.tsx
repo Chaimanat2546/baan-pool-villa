@@ -164,6 +164,7 @@ describe("SiteHeader", () => {
     );
 
     expect(markup).toContain("bg-[var(--site-primary-soft)]");
+    expect(markup).toContain("border-[var(--site-primary-soft)]");
     expect(markup).toContain("object-contain");
   });
 
