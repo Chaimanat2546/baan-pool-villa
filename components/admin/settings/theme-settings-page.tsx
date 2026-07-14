@@ -1,11 +1,14 @@
 "use client";
 
 import { Palette } from "lucide-react";
+import { useEffect, useState } from "react";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
+import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { DesktopHeaderVariant } from "@/lib/site-header-settings/types";
 import { ColorControl, SectionCard } from "./settings-form-controls";
 import {
   buildDraftThemeStyle,
@@ -38,6 +41,8 @@ const THEME_PREVIEW_SETTINGS: SiteSettings = {
 };
 
 export function ThemeSettingsPage() {
+  const [desktopHeaderVariant, setDesktopHeaderVariant] =
+    useState<DesktopHeaderVariant>("centered-contact");
   const state = useAdminSettingsSection({
     section: "theme",
     mapResponse: mapThemeSettingsResponse,
@@ -51,6 +56,29 @@ export function ThemeSettingsPage() {
   const { draft } = state;
   const themeStyle = draft ? buildDraftThemeStyle(draft) : undefined;
   const previewSettings = draft ? { ...THEME_PREVIEW_SETTINGS, ...draft } : null;
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadHeaderVariant() {
+      const token = await readAdminAccessToken();
+      if (!token) return;
+
+      const response = await fetch("/api/admin/site-header-settings", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const payload = await response.json().catch(() => null) as {
+        settings?: { desktopHeaderVariant?: DesktopHeaderVariant };
+      } | null;
+
+      if (active && response.ok && payload?.settings?.desktopHeaderVariant) {
+        setDesktopHeaderVariant(payload.settings.desktopHeaderVariant);
+      }
+    }
+
+    void loadHeaderVariant();
+    return () => { active = false; };
+  }, []);
 
   return (
     <div className="grid gap-5">
@@ -141,7 +169,7 @@ export function ThemeSettingsPage() {
                   if (event.key === "Enter" || event.key === " ") event.preventDefault();
                 }}
               >
-                {previewSettings ? <SiteHeader previewMode settings={previewSettings} /> : null}
+                {previewSettings ? <SiteHeader desktopHeaderVariant={desktopHeaderVariant} previewMode settings={previewSettings} /> : null}
               </div>
             </SectionCard>
           </div>
