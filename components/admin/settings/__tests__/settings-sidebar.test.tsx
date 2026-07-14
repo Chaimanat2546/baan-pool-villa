@@ -108,11 +108,11 @@ describe("SettingsSidebar", () => {
     };
   }
 
-  it("renders six Thai section links without prefetch and marks the active section", () => {
+  it("renders the web-style link without prefetch and marks the active section", () => {
     const mounted = mount();
     const links = [...mounted.container.querySelectorAll("nav a")];
 
-    expect(links).toHaveLength(6);
+    expect(links).toHaveLength(7);
     expect(
       mounted.container.querySelector('a[href="/admin/settings/brand"]')
         ?.textContent,
@@ -122,6 +122,10 @@ describe("SettingsSidebar", () => {
         .querySelector('a[href="/admin/settings/theme"]')
         ?.getAttribute("data-prefetch"),
     ).toBe("false");
+    expect(
+      mounted.container.querySelector('a[href="/admin/settings/web-style"]')
+        ?.textContent,
+    ).toContain("รูปแบบเว็บ");
     expect(
       mounted.container
         .querySelector('a[href="/admin/settings/seo"]')

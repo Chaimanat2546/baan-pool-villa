@@ -1,9 +1,10 @@
 "use client";
 
-import { LayoutPanelTop } from "lucide-react";
+import { LayoutPanelTop, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import { AdminVillaCardImagesPage } from "@/components/admin/villa-card-images/admin-villa-card-images-page";
 import { SiteHeader } from "@/components/layout/site-header";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { SectionCard } from "./settings-form-controls";
@@ -35,7 +36,7 @@ const HEADER_PREVIEW_SETTINGS = {
   },
 };
 
-export function HeaderSettingsPage() {
+export function WebStyleSettingsPage() {
   const [previewTheme, setPreviewTheme] = useState<ThemeSettingsDraft | null>(null);
   const state = useAdminSettingsSection<HeaderDraft>({
     section: "header",
@@ -46,6 +47,7 @@ export function HeaderSettingsPage() {
     validate: (draft) => OPTIONS.some((option) => option.value === draft.desktopHeaderVariant) ? [] : ["เลือกรูปแบบ Header"],
   });
   const draft = state.draft;
+  const selectedOption = OPTIONS.find((option) => option.value === draft?.desktopHeaderVariant);
 
   useEffect(() => {
     let active = true;
@@ -69,13 +71,19 @@ export function HeaderSettingsPage() {
   }, []);
 
   return <div className="grid gap-5">
-    <SettingsSectionHeader title="Header" description="เลือกรูปแบบ Header สำหรับ Desktop โดยไม่กระทบมือถือ" hasUnsavedChanges={state.hasUnsavedChanges} isSaving={state.isSaving} onSave={state.save} />
+    <SettingsSectionHeader title="รูปแบบเว็บ" description="เลือกรูปแบบ Header และการ์ดบ้าน โดยไม่กระทบมือถือ" />
     <AdminFeedback errors={state.errors} errorTitle="กรุณาแก้ไขก่อนบันทึก:" notice={state.notice} warnings={state.warnings} />
-    {state.isLoading ? <SettingsSectionSkeleton /> : draft ? <SectionCard icon={<LayoutPanelTop className="size-5" />} id="desktop-header-variant" title="รูปแบบ Header บน Desktop" description="มือถือคงรูปแบบเดิมเสมอ">
+    {state.isLoading ? <SettingsSectionSkeleton /> : draft ? <SectionCard action={<button className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:opacity-70" data-header-style-save disabled={state.isSaving || !state.hasUnsavedChanges} onClick={() => void state.save()} type="button"><Save aria-hidden="true" className={state.isSaving ? "size-4 animate-pulse" : "size-4"} />{state.isSaving ? "กำลังบันทึก..." : "บันทึกรูปแบบ Header"}</button>} icon={<LayoutPanelTop className="size-5" />} id="desktop-header-variant" title="รูปแบบ Header บน Desktop" description="มือถือคงรูปแบบเดิมเสมอ">
       <div className="grid gap-3 sm:grid-cols-2">{OPTIONS.map((option) => <label key={option.value} className="flex cursor-pointer gap-3 rounded-lg border border-[var(--site-border)] p-4 has-[:checked]:border-[var(--site-primary)] has-[:checked]:bg-[var(--site-primary-soft)]"><input checked={draft.desktopHeaderVariant === option.value} name="desktopHeaderVariant" onChange={() => state.updateDraft({ desktopHeaderVariant: option.value })} type="radio" value={option.value} /><span><span className="block font-semibold">{option.label}</span><span className="mt-1 block text-sm text-[var(--site-text-muted)]">{option.description}</span></span></label>)}</div>
-      <div className="mt-4 overflow-hidden rounded-lg" data-header-preview onAuxClickCapture={(event) => event.preventDefault()} onClickCapture={(event) => event.preventDefault()} onKeyDownCapture={(event) => { if (event.key === "Enter" || event.key === " ") event.preventDefault(); }}>
+      <div className="mt-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4 lg:hidden" data-header-mobile-summary>
+        <p className="text-sm font-semibold text-[var(--site-text)]">{selectedOption?.label}</p>
+        <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">{selectedOption?.description}</p>
+        <p className="mt-3 text-xs font-medium text-[var(--site-muted)]">การตั้งค่านี้มีผลกับ Header บน Desktop เท่านั้น</p>
+      </div>
+      <div className="mt-4 hidden overflow-hidden rounded-lg lg:block" data-header-preview onAuxClickCapture={(event) => event.preventDefault()} onClickCapture={(event) => event.preventDefault()} onKeyDownCapture={(event) => { if (event.key === "Enter" || event.key === " ") event.preventDefault(); }}>
         <SiteHeader desktopHeaderVariant={draft.desktopHeaderVariant} previewMode settings={{ ...HEADER_PREVIEW_SETTINGS, ...previewTheme }} />
       </div>
     </SectionCard> : null}
+    <AdminVillaCardImagesPage embedded />
   </div>;
 }

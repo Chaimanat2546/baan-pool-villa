@@ -105,15 +105,55 @@ describe("AdminVillaCardImagesPage", () => {
         '[data-villa-card-preview-option="gallery"] [data-villa-card-house-list-link]',
       ),
     ).toBeNull();
+    const galleryRadio = page.container.querySelector<HTMLInputElement>(
+      '[name="villaCardStyle"][value="gallery"]',
+    );
+    expect(galleryRadio).not.toBeNull();
+    expect(galleryRadio?.checked).toBe(false);
+    expect(
+      page.container.querySelector('[data-villa-card-selected-state="classic"]'),
+    ).not.toBeNull();
+    expect(
+      page.container.querySelectorAll("[data-villa-card-style-preview]"),
+    ).toHaveLength(1);
+    expect(
+      page.container.querySelector("[data-villa-card-selected-preview]"),
+    ).not.toBeNull();
+    expect(
+      page.container.querySelector("[data-villa-card-style-options]"),
+    ).not.toBeNull();
+    expect(
+      page.container.querySelector("[data-villa-card-style-options]")?.className,
+    ).toContain("lg:grid-rows-2");
+    expect(
+      (page.container.querySelector("[data-villa-card-save-style]") as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
 
     await click(
       page.container.querySelector(
         '[data-villa-card-preview-option="gallery"]',
       ) as HTMLElement,
     );
+    expect(
+      page.container.querySelector<HTMLInputElement>(
+        '[name="villaCardStyle"][value="gallery"]',
+      )?.checked,
+    ).toBe(true);
+    expect(
+      page.container.querySelector('[data-villa-card-selected-state="gallery"]'),
+    ).not.toBeNull();
+    expect(
+      (page.container.querySelector("[data-villa-card-save-style]") as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
     await click(
       page.container.querySelector("[data-villa-card-save-style]") as HTMLElement,
     );
+    expect(
+      (page.container.querySelector("[data-villa-card-save-style]") as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
 
     const saveCall = fetchMock.mock.calls.find(
       ([url, init]) =>
@@ -127,6 +167,29 @@ describe("AdminVillaCardImagesPage", () => {
       "/api/admin/site-settings",
       expect.anything(),
     );
+
+    await page.unmount();
+  });
+
+  it("renders card style controls as a settings section when embedded", async () => {
+    vi.stubGlobal(
+      "fetch",
+      makeFetchMock([
+        {
+          body: { villaCardStyle: "classic" },
+          url: "/api/admin/villa-card-images",
+        },
+      ]),
+    );
+
+    const page = await mountAdminPage(<AdminVillaCardImagesPage embedded />);
+    await flushEffects();
+
+    expect(page.container.querySelector("h1")).toBeNull();
+    expect(page.container.textContent).not.toContain("Card images");
+    expect(
+      page.container.querySelector("[data-villa-card-house-list-link]"),
+    ).not.toBeNull();
 
     await page.unmount();
   });

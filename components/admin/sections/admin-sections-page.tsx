@@ -904,7 +904,7 @@ export function AdminSectionsPage() {
         <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div className="hidden min-w-0 lg:block">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
-              หน้าแรก
+              ชุดบ้านพัก
             </p>
             <h1 className="mt-2 text-3xl font-bold tracking-normal text-[var(--site-text)]">
               จัดชุดบ้านพักหน้าแรก

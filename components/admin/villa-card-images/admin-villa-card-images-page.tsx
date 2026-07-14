@@ -274,7 +274,7 @@ function VillaCardStyleSkeleton() {
 
 function VillaCardStylePreview({ style }: { style: SiteVillaCardStyle }) {
   return (
-    <div className="mx-auto w-full max-w-[300px]">
+    <div className="mx-auto w-full max-w-[300px]" data-villa-card-style-preview>
       <VillaCardStyleProvider value={style}>
         <VillaCard
           coverImageSrcOverride={VILLA_CARD_PREVIEW_COVER_IMAGE_URL}
@@ -318,9 +318,10 @@ function useAdminToken() {
   return { getAccessToken, redirectToLogin };
 }
 
-export function AdminVillaCardImagesPage() {
+export function AdminVillaCardImagesPage({ embedded = false }: { embedded?: boolean }) {
   const { getAccessToken, redirectToLogin } = useAdminToken();
   const [style, setStyle] = useState<SiteVillaCardStyle>("classic");
+  const [savedStyle, setSavedStyle] = useState<SiteVillaCardStyle | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -356,6 +357,7 @@ export function AdminVillaCardImagesPage() {
       }
 
       setStyle(payload.villaCardStyle);
+      setSavedStyle(payload.villaCardStyle);
       setHasLoadedStyle(true);
     } catch {
       setErrors(["ไม่สามารถโหลด settings ได้"]);
@@ -412,6 +414,7 @@ export function AdminVillaCardImagesPage() {
       }
 
       setStyle(payload.villaCardStyle);
+      setSavedStyle(payload.villaCardStyle);
       setNotice("บันทึกรูปแบบการ์ดบ้านแล้ว");
     } catch {
       setErrors(["ไม่สามารถบันทึกรูปแบบการ์ดได้"]);
@@ -422,7 +425,7 @@ export function AdminVillaCardImagesPage() {
 
   return (
     <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
-      <div className="sticky top-[73px] z-20 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:top-0 lg:z-30 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6">
+      {!embedded ? <div className="sticky top-[73px] z-20 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:top-0 lg:z-30 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6">
         <header className="mx-auto grid w-full max-w-5xl gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div className="hidden min-w-0 lg:block">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
@@ -435,89 +438,99 @@ export function AdminVillaCardImagesPage() {
               เลือกรูปแบบการ์ดที่หน้าเว็บใช้ และจัดการรูปปกบ้านแยกจากรูปแบบการ์ด
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            <Link
-              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
-              data-villa-card-house-list-link
-              href="/admin/card-images/houses"
-              prefetch={false}
-            >
-              <Images className="h-4 w-4" />
-              จัดการรูปปกบ้าน
-            </Link>
-            <button
-              className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
-              data-villa-card-save-style
-              disabled={isSaving || isLoading || !hasLoadedStyle}
-              type="button"
-              onClick={() => {
-                void saveStyle();
-              }}
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? "กำลังบันทึก..." : "บันทึกรูปแบบ"}
-            </button>
-          </div>
         </header>
-      </div>
+      </div> : null}
 
-      <div className="mx-auto grid w-full max-w-5xl gap-6">
+      <div className={embedded ? "grid gap-4" : "mx-auto grid w-full max-w-5xl gap-6"}>
         <AdminFeedback
           errors={errors}
           errorTitle="ตรวจสอบข้อมูลอีกครั้ง"
           notice={notice}
         />
 
-        <section className="grid gap-4 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
-          <div>
-            <h2 className="text-base font-semibold text-[var(--site-text)]">
-              รูปแบบการ์ดบ้าน
-            </h2>
+        <section className="grid gap-4 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-4">
+              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+                <Images className="size-5" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-[var(--site-text)]">
+                  รูปแบบการ์ดบ้าน
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                  เลือกรูปแบบที่ใช้กับรายการบ้านทั้งเว็บไซต์
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+                data-villa-card-house-list-link
+                href="/admin/card-images/houses"
+                prefetch={false}
+              >
+                <Images className="h-4 w-4" />
+                จัดการรูปปกบ้าน
+              </Link>
+              <button
+                className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] shadow-sm transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
+                data-villa-card-save-style
+                disabled={isSaving || isLoading || !hasLoadedStyle || style === savedStyle}
+                type="button"
+                onClick={() => {
+                  void saveStyle();
+                }}
+              >
+                <Save className="h-4 w-4" />
+                {isSaving ? "กำลังบันทึก..." : "บันทึกรูปแบบ"}
+              </button>
+            </div>
           </div>
 
           {isLoading ? (
             <VillaCardStyleSkeleton />
           ) : (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)]">
+            <div className="flex items-center justify-center overflow-hidden rounded-lg" data-villa-card-selected-preview data-villa-card-selected-state={style}>
+              <VillaCardStylePreview style={style} />
+            </div>
+            <div className="grid content-start gap-3 lg:grid-rows-2" data-villa-card-style-options>
             {VILLA_CARD_STYLE_OPTIONS.map((option) => {
               const isSelected = style === option.value;
 
               return (
-                <div
-                  aria-pressed={isSelected}
-                  className={`grid min-w-0 cursor-pointer content-start gap-3 rounded-xl border p-3 text-left transition ${
+                <label
+                  className={`flex cursor-pointer gap-3 rounded-lg border p-4 text-left transition ${
                     isSelected
                       ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
                       : "border-[var(--site-border)] bg-[var(--site-surface-soft)]"
                   }`}
                   data-villa-card-preview-option={option.value}
                   key={option.value}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    setStyle(option.value);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setStyle(option.value);
-                    }
-                  }}
+                  onClick={() => setStyle(option.value)}
                 >
-                  <span className="flex min-w-0 items-center justify-between gap-3">
-                    <span className="text-sm font-bold text-[var(--site-text)]">
+                  <input
+                    aria-label={`เลือกรูปแบบ ${option.label}`}
+                    checked={isSelected}
+                    className="mt-1 size-4 shrink-0 accent-[var(--site-primary)]"
+                    name="villaCardStyle"
+                    onChange={() => setStyle(option.value)}
+                    type="radio"
+                    value={option.value}
+                  />
+                  <span>
+                    <span className="block font-semibold text-[var(--site-text)]">
                       {option.label}
                     </span>
-                    {isSelected ? (
-                      <span className="rounded-md bg-[var(--site-primary)] px-2 py-1 text-xs font-bold text-[var(--site-on-primary)]">
-                        กำลังเลือก
-                      </span>
-                    ) : null}
+                    <span className="mt-1 block text-sm text-[var(--site-text-muted)]">
+                      เลือกเพื่อแสดงตัวอย่างด้านล่าง
+                    </span>
                   </span>
-                  <VillaCardStylePreview style={option.value} />
-                </div>
+                </label>
               );
             })}
+            </div>
           </div>
           )}
         </section>

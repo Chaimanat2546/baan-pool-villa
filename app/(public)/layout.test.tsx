@@ -57,12 +57,12 @@ describe("PublicLayout", () => {
 
     const PublicLayout = (await import("./layout")).default;
     const element = await PublicLayout({
-      children: <main>หน้าแรก</main>,
+      children: <main>ชุดบ้านพัก</main>,
     });
     const markup = renderToStaticMarkup(element);
 
     expect(markup).toContain('data-villa-card-style-provider="gallery"');
-    expect(markup).toContain("หน้าแรก");
+    expect(markup).toContain("ชุดบ้านพัก");
     expect(markup).toContain("min-h-full pb-32 md:pb-0");
   });
 });
