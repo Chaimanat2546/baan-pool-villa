@@ -1,5 +1,5 @@
-import { AdminVillaCardImagesPage } from "@/components/admin/villa-card-images/admin-villa-card-images-page";
+import { redirect } from "next/navigation";
 
 export default function AdminVillaCardImagesRoute() {
-  return <AdminVillaCardImagesPage />;
+  redirect("/admin/settings/web-style");
 }

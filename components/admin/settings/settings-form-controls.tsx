@@ -31,6 +31,7 @@ interface TextControlProps {
 }
 
 interface SectionCardProps {
+  action?: ReactNode;
   children: ReactNode;
   description: string;
   icon: ReactNode;
@@ -141,6 +142,7 @@ export function TextControl({
 }
 
 export function SectionCard({
+  action,
   children,
   description,
   icon,
@@ -152,16 +154,19 @@ export function SectionCard({
       className="scroll-mt-32 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm"
       id={id}
     >
-      <div className="flex items-start gap-4">
-        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-lg font-bold text-[var(--site-text)]">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
-            {description}
-          </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-4">
+          <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+            {icon}
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-[var(--site-text)]">{title}</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+              {description}
+            </p>
+          </div>
         </div>
+        {action}
       </div>
       <div className="mt-5 grid gap-4">{children}</div>
     </section>
