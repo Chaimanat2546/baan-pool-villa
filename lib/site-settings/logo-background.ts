@@ -21,6 +21,13 @@ export const SITE_LOGO_BACKGROUND_CLASSES: Record<SiteLogoBackground, string> = 
   white: "bg-white",
 };
 
+export const SITE_LOGO_BORDER_CLASSES: Record<SiteLogoBackground, string> = {
+  primary: "border-[var(--site-primary)]",
+  soft: "border-[var(--site-primary-soft)]",
+  transparent: "border-transparent",
+  white: "border-white",
+};
+
 export function isSiteLogoBackground(
   value: string,
 ): value is SiteLogoBackground {

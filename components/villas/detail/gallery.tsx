@@ -76,7 +76,7 @@ export function Gallery({
               />
 
               <button
-                className="absolute inset-0 grid place-items-center bg-black/5 text-[11px] font-black text-[var(--site-on-primary)] lg:text-sm"
+                className="absolute inset-0 grid place-items-center bg-black/5 text-[11px] font-black text-[var(--site-on-overlay)] lg:text-sm"
                 type="button"
                 onClick={() => {
                   onImageClick(fourth);

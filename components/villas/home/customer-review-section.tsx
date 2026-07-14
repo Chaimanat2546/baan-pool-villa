@@ -198,7 +198,7 @@ function ReviewLightbox({
     >
       <button
         aria-label="ปิดรูปรีวิว"
-        className="absolute right-3 top-3 z-20 grid size-11 place-items-center rounded-md bg-white text-zinc-950 shadow-lg"
+        className="absolute right-3 top-3 z-20 grid size-11 place-items-center rounded-md bg-white text-[var(--site-text)] shadow-lg"
         onClick={onClose}
         type="button"
       >
@@ -209,7 +209,7 @@ function ReviewLightbox({
         <>
           <button
             aria-label="รูปก่อนหน้า"
-            className="absolute left-3 top-1/2 z-20 grid size-11 -translate-y-1/2 place-items-center rounded-md bg-white text-zinc-950 shadow-lg"
+            className="absolute left-3 top-1/2 z-20 grid size-11 -translate-y-1/2 place-items-center rounded-md bg-white text-[var(--site-text)] shadow-lg"
             onClick={() => {
               move(-1);
             }}
@@ -219,7 +219,7 @@ function ReviewLightbox({
           </button>
           <button
             aria-label="รูปถัดไป"
-            className="absolute right-3 top-1/2 z-20 grid size-11 -translate-y-1/2 place-items-center rounded-md bg-white text-zinc-950 shadow-lg"
+            className="absolute right-3 top-1/2 z-20 grid size-11 -translate-y-1/2 place-items-center rounded-md bg-white text-[var(--site-text)] shadow-lg"
             onClick={() => {
               move(1);
             }}
@@ -242,7 +242,7 @@ function ReviewLightbox({
             src={activeImage.url}
           />
         </div>
-        <figcaption className="rounded-md bg-white px-4 py-3 text-sm font-semibold text-zinc-950 shadow">
+        <figcaption className="rounded-md bg-white px-4 py-3 text-sm font-semibold text-[var(--site-text)] shadow">
           รูปที่ {(activeIndex + 1).toLocaleString("th-TH")} จาก{" "}
           {images.length.toLocaleString("th-TH")}
         </figcaption>
