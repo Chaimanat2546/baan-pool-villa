@@ -11,6 +11,7 @@ describe("settings form controls", () => {
   it("renders color, text, and section wrappers used by settings form", () => {
     const html = renderToStaticMarkup(
       <SectionCard
+        action={<button data-section-card-action type="button">Save</button>}
         description="Group description"
         icon={<span aria-hidden="true">I</span>}
         id="identity"
@@ -32,6 +33,7 @@ describe("settings form controls", () => {
     );
 
     expect(html).toContain('id="identity"');
+    expect(html).toContain('data-section-card-action="true"');
     expect(html).toContain('id="primaryColor"');
     expect(html).toContain('value="#000000"');
     expect(html).toContain('id="siteName"');

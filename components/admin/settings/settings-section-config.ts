@@ -12,10 +12,10 @@ export const SETTINGS_NAV_ITEMS = [
     description: "สีหลัก ลิงก์ และข้อมูลไฮไลต์",
   },
   {
-    id: "header",
-    href: "/admin/settings/header",
-    label: "Header",
-    description: "รูปแบบ Header บน Desktop",
+    id: "web-style",
+    href: "/admin/settings/web-style",
+    label: "รูปแบบเว็บ",
+    description: "รูปแบบ Header และการ์ดบ้าน",
   },
   {
     id: "hero",

@@ -27,8 +27,8 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     description: "จัดชุดบ้านพักที่แสดงบนหน้าแรก",
     href: "/admin/sections",
     icon: Home,
-    label: "หน้าแรก",
-    pageTitle: "จัดหน้าแรก",
+    label: "ชุดบ้านพัก",
+    pageTitle: "จัดชุดบ้านพัก",
   },
   {
     description: "ข้อมูลบ้านพัก ราคา และสถานะ",
@@ -51,13 +51,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: Newspaper,
     label: "บทความ",
     pageTitle: "จัดการบทความ",
-  },
-  {
-    description: "ตั้งค่าชุดรูปที่แสดงบนการ์ดบ้านพักทั้งเว็บ",
-    href: "/admin/card-images",
-    icon: Images,
-    label: "รูปการ์ด",
-    pageTitle: "ตั้งค่ารูปการ์ดบ้านพัก",
   },
   {
     description: "อัปโหลดและจัดคิวรูปรีวิวลูกค้าสำหรับหน้าแรก",

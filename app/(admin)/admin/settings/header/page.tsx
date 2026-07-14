@@ -1,3 +1,3 @@
-import { HeaderSettingsPage } from "@/components/admin/settings/header-settings-page";
+import { redirect } from "next/navigation";
 
-export default function Page() { return <HeaderSettingsPage />; }
+export default function Page() { redirect("/admin/settings/web-style"); }
