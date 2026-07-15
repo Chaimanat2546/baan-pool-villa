@@ -249,6 +249,24 @@ describe("BookingSidebar", () => {
     expect(markup).toContain("จองผ่าน LINE");
   });
 
+  it("uses the canonical checkout fact instead of the default time", () => {
+    const markup = renderToStaticMarkup(
+      <BookingSidebar
+        content={{
+          ...content,
+          facts: [
+            { label: "เช็คอิน", value: "13:00" },
+            { label: "เช็คเอาต์", value: "11:00" },
+          ],
+        }}
+        listing={listing}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+
+    expect(markup).toContain("เช็คอิน 13:00 · เช็คเอาท์ 11:00");
+  });
+
   it("pushes booking contact click events to the dataLayer", async () => {
     const page = await renderBookingSidebar();
     const lineLink = Array.from(page.container.querySelectorAll<HTMLAnchorElement>("a")).find(
@@ -373,36 +391,6 @@ describe("BookingSidebar", () => {
     await secondPage.cleanup();
   });
 
-  it("evicts older booking calendar months from the shared client cache", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-18T04:00:00.000Z"));
-    const page = await renderBookingSidebar();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    for (let index = 0; index < 60; index += 1) {
-      await act(async () => {
-        clickCalendarNavButton(page.container, "next");
-        await Promise.resolve();
-      });
-    }
-
-    expect(getFetchedBookingCalendarMonths()[0]).toBe("2026-06");
-    await page.cleanup();
-    vi.mocked(fetch).mockClear();
-
-    const secondPage = await renderBookingSidebar();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
-    await secondPage.cleanup();
-  }, 10_000);
-
   it("renders calendar navigation inside the caption and can return to the current month", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
@@ -462,6 +450,29 @@ describe("BookingSidebar", () => {
     });
 
     expect(page.container.textContent).toContain("มิถุนายน");
+    await page.cleanup();
+  });
+
+  it("limits calendar navigation to one prior month and twelve future months", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
+    const page = await renderBookingSidebar();
+
+    await act(async () => {
+      clickCalendarNavButton(page.container, "previous");
+    });
+    expect(getCalendarNavButton(page.container, "previous")?.disabled).toBe(true);
+
+    await act(async () => {
+      clickCalendarNavButton(page.container, "today");
+      for (let offset = 0; offset < 12; offset += 1) {
+        clickCalendarNavButton(page.container, "next");
+      }
+    });
+
+    expect(page.container.textContent).toContain("มิถุนายน 2570");
+    expect(getCalendarNavButton(page.container, "next")?.disabled).toBe(true);
+
     await page.cleanup();
   });
 
@@ -567,7 +578,7 @@ describe("BookingSidebar", () => {
     await page.cleanup();
   });
 
-  it("disables past dates and opens a date detail modal for selectable days", async () => {
+  it("shows past dates and opens a date detail modal for available days", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
     const page = await renderBookingSidebar();
@@ -578,13 +589,14 @@ describe("BookingSidebar", () => {
       button.getAttribute("aria-label")?.startsWith("15 มิถุนายน 2569"),
     );
 
-    expect(pastDate?.disabled).toBe(true);
+    expect(pastDate?.disabled).toBe(false);
     expect(pastDate?.className).toContain("bg-[var(--site-surface-tint)]");
+    expect(pastDate?.className).not.toContain("opacity-60");
 
     await act(async () => {
       pastDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    expect(page.container.querySelector("[data-date-detail-dialog]")).toBeNull();
+    expect(page.container.querySelector("[data-date-detail-dialog]")).not.toBeNull();
 
     const normalDate = Array.from(
       page.container.querySelectorAll<HTMLButtonElement>("button"),
@@ -630,6 +642,34 @@ describe("BookingSidebar", () => {
     dialog = page.container.querySelector("[data-date-detail-dialog]");
     expect(dialog?.textContent).toContain("วันธรรมดา");
     expect(dialog?.textContent).toContain("ราคา 9,900 บาท");
+
+    await page.cleanup();
+  });
+
+  it("shows available past days but keeps booked past days unselectable", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-23T04:00:00.000Z"));
+    const page = await renderBookingSidebar();
+
+    const findDate = (day: string) =>
+      Array.from(page.container.querySelectorAll<HTMLButtonElement>("button")).find(
+        (button) => button.getAttribute("aria-label")?.startsWith(`${day} `),
+      );
+    const availablePastDate = findDate("15");
+    const bookedPastDate = findDate("19");
+
+    expect(availablePastDate?.disabled).toBe(false);
+    expect(availablePastDate?.textContent).toContain("9,900");
+
+    await act(async () => {
+      availablePastDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(page.container.querySelector("[data-date-detail-dialog]")).not.toBeNull();
+
+    expect(bookedPastDate?.disabled).toBe(true);
+    expect(bookedPastDate?.className).not.toContain("bg-[var(--site-surface-tint)]");
+    expect(bookedPastDate?.className).toContain("disabled:!opacity-100");
+    expect(bookedPastDate?.parentElement?.className).toContain("opacity-100");
 
     await page.cleanup();
   });
@@ -725,9 +765,9 @@ describe("BookingSidebar", () => {
     const hotproDate = findPriorDate("21");
 
     expect(promotionDate?.textContent).toContain("5,900");
-    expect(waitingDate?.disabled).toBe(false);
+    expect(waitingDate?.disabled).toBe(true);
     expect(waitingDate?.className).toContain("bg-emerald-700");
-    expect(bookedDate?.disabled).toBe(false);
+    expect(bookedDate?.disabled).toBe(true);
     expect(bookedDate?.className).toContain("bg-[var(--site-danger,#991b1b)]");
     expect(
       bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
@@ -801,7 +841,7 @@ describe("BookingSidebar", () => {
         ?.getAttribute("class"),
     ).toContain("text-[10px]");
     expect(promotionDate?.textContent).toContain("5,900");
-    expect(pastDate?.querySelector("[data-calendar-day-price]")).toBeNull();
+    expect(pastDate?.querySelector("[data-calendar-day-price]")).not.toBeNull();
     expect(baseDate?.dataset.calendarDayKind).toBe("base");
     expect(baseDate?.querySelector("[data-calendar-icon-slot='empty']")).not.toBeNull();
     expect(baseDate?.textContent).toContain("9,900");

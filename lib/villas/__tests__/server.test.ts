@@ -656,7 +656,7 @@ describe("fetchHouseListings", () => {
   });
 });
 describe("fetchVillaDetail", () => {
-  it("returns Deville Central detail fields for the requested listing", async () => {
+  it("keeps Supabase detail values while filling missing fields from Deville Central", async () => {
     const listing = {
       amenities: [],
       bathrooms: 5,
@@ -672,14 +672,20 @@ describe("fetchVillaDetail", () => {
     };
     mockSupabase();
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
-    fetchMock.mockResolvedValue(
-      new Response(JSON.stringify(devilleDetail), { status: 200 }),
-    );
+    const upstreamDetail = {
+      ...devilleDetail,
+      h_rule: "No parties after midnight",
+      h_time_checkin: "15:00:00",
+    };
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(upstreamDetail), { status: 200 }));
 
     const payload = await fetchVillaDetail("9", [listing]);
 
-    expect(payload).toEqual({
-      detail: devilleDetail,
+    expect(payload).toMatchObject({
+      detail: expect.objectContaining({
+        h_rule: "No parties after midnight",
+        h_time_checkin: "14:00:00",
+      }),
       detailStatus: "available",
       listing,
     });

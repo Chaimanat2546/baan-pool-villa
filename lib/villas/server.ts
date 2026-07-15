@@ -1188,6 +1188,24 @@ async function fetchSupabaseDetailFallback(
   return data ? toVillaDetail(data as unknown as SupabaseListingRow) : null;
 }
 
+function mergeVillaDetailSources(
+  supabaseDetail: Record<string, unknown> | null,
+  devilleDetail: unknown,
+): unknown {
+  if (!supabaseDetail || typeof devilleDetail !== "object" || devilleDetail === null || Array.isArray(devilleDetail)) {
+    return devilleDetail;
+  }
+
+  return {
+    ...devilleDetail,
+    ...Object.fromEntries(
+      Object.entries(supabaseDetail).filter(([, value]) =>
+        value !== null && value !== undefined && (typeof value !== "string" || value.trim() !== ""),
+      ),
+    ),
+  };
+}
+
 async function fetchVillaDetailFromSources(
   id: string,
   listing: VillaListing,
@@ -1195,11 +1213,12 @@ async function fetchVillaDetailFromSources(
   const tag = CACHE_TAGS.villaDetail(id);
   const getCachedVillaDetail = unstable_cache(
     async (): Promise<Omit<VillaDetailPayload, "listing">> => {
+      const supabaseDetail = await fetchSupabaseDetailFallback(id);
       const token = process.env.DEVILLE_BEARER_TOKEN?.trim();
 
       if (!token) {
         return {
-          detail: await fetchSupabaseDetailFallback(id),
+          detail: supabaseDetail,
           detailStatus: "missing_token",
         };
       }
@@ -1216,7 +1235,7 @@ async function fetchVillaDetailFromSources(
 
         if (response.ok) {
           return {
-            detail: await readJson<unknown>(response),
+            detail: mergeVillaDetailSources(supabaseDetail, await readJson<unknown>(response)),
             detailStatus: "available",
           };
         }
@@ -1225,7 +1244,7 @@ async function fetchVillaDetailFromSources(
       }
 
       return {
-        detail: await fetchSupabaseDetailFallback(id),
+        detail: supabaseDetail,
         detailStatus: "unavailable",
       };
     },

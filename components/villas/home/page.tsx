@@ -83,11 +83,11 @@ export function HomePageContent({
               villas={section.villas}
               villaCardStyle={settings.villaCardStyle}
             />
-            {index === 0 ? <WhyChooseSection /> : null}
+            {index === 0 ? <WhyChooseSection siteName={settings.siteName} /> : null}
           </Fragment>
         ))
       ) : (
-        <WhyChooseSection />
+        <WhyChooseSection siteName={settings.siteName} />
       )}
 
       <DestinationsSection villas={destinationVillas} />

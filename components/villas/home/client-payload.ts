@@ -12,6 +12,7 @@ export interface HomePageSettings {
   bank: SiteSettings["bank"];
   contact: SiteSettings["contact"];
   heroImage: SiteSettings["heroImage"];
+  siteName: SiteSettings["siteName"];
   tiktok: SiteTikTokSettings;
   villaCardStyle: SiteSettings["villaCardStyle"];
 }
@@ -43,6 +44,7 @@ export function toHomePageSettings(settings: SiteSettings): HomePageSettings {
     bank: settings.bank,
     contact: settings.contact,
     heroImage: settings.heroImage,
+    siteName: settings.siteName,
     tiktok: {
       accountUrl: settings.tiktok.accountUrl,
       videos: selectHomeTikTokVideos(settings.tiktok),

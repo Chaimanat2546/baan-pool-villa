@@ -23,7 +23,7 @@ const whyChooseItems = [
   },
 ];
 
-export function WhyChooseSection() {
+export function WhyChooseSection({ siteName }: { siteName: string }) {
   return (
     <section
       id="recommendations"
@@ -31,7 +31,7 @@ export function WhyChooseSection() {
     >
       <div className="mx-auto max-w-3xl text-center">
         <h2 className="text-[20px] font-semibold leading-7 text-[var(--site-text)] sm:text-[30px] sm:leading-9">
-          ทำไมถึงเลือก Baan Pool Villas
+          ทำไมถึงเลือก {siteName}
         </h2>
         <p className="mx-auto mt-[7px] max-w-[260px] text-xs leading-5 text-[var(--site-muted)] sm:max-w-none sm:text-base sm:leading-6">
           สัมผัสประสบการณ์พักผ่อนระดับพรีเมียม พร้อมบริการดูแลอย่างใส่ใจในทุกขั้นตอน
