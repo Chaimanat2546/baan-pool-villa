@@ -21,8 +21,8 @@ export async function revalidateSiteSettingsCache() {
   await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.siteSettings]);
 }
 
-export async function revalidateSiteHeaderSettingsCache() {
-  revalidateTags([CACHE_TAGS.siteHeaderSettings]);
+export async function revalidateSiteWebStylesCache() {
+  revalidateTags([CACHE_TAGS.siteWebStyles]);
   await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.siteSettings]);
 }
 

@@ -293,6 +293,7 @@ export function useVillaGallery({
     handleGalleryImageClick,
     handleGalleryRetry,
     handleImageError,
+    loadGalleryImages,
     setActiveGalleryItem,
     shouldShowGallerySkeleton:
       galleryLoadStatus === "loading" ||

@@ -8,13 +8,15 @@ export function Gallery({
   listing,
   onImageClick,
   onImageError,
+  onViewAll,
   totalImageCount,
 }: {
   items: GalleryItem[];
   listing: VillaListing;
   onImageClick: (item: GalleryItem) => void;
   onImageError: (url: string) => void;
-  totalImageCount: number;
+  onViewAll: () => void;
+  totalImageCount: number | null;
 }) {
   const [main, second, third, fourth] = items;
 
@@ -79,11 +81,14 @@ export function Gallery({
                 className="absolute inset-0 grid place-items-center bg-black/5 text-[11px] font-black text-[var(--site-on-overlay)] lg:text-sm"
                 type="button"
                 onClick={() => {
-                  onImageClick(fourth);
+                  onViewAll();
                 }}
               >
                 <span className="inline-flex max-w-[92%] items-center gap-1 rounded-full bg-black/40 px-2 py-1 backdrop-blur-md lg:gap-2 lg:px-4 lg:py-2">
-                  <span>+ {totalImageCount} รูป</span>
+                  <span>
+                    ดูรูปที่พัก
+                    {totalImageCount === null ? "" : ` (${totalImageCount})`}
+                  </span>
                 </span>
               </button>
             </div>

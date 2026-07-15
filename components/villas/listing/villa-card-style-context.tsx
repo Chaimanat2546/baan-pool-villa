@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 
-import type { SiteVillaCardStyle } from "@/lib/site-settings/types";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 
 const VillaCardStyleContext = createContext<SiteVillaCardStyle>("classic");
 

@@ -10,8 +10,9 @@ interface VillaDetailGalleryProps {
   onImageClick: (item: GalleryItem) => void;
   onImageError: (imageUrl: string) => void;
   onRetry: () => void;
+  onViewAll: () => void;
   showSkeleton: boolean;
-  totalImageCount: number;
+  totalImageCount: number | null;
 }
 
 interface VillaDetailGalleryErrorProps {
@@ -25,6 +26,7 @@ export function VillaDetailGallery({
   onImageClick,
   onImageError,
   onRetry,
+  onViewAll,
   showSkeleton,
   totalImageCount,
 }: VillaDetailGalleryProps) {
@@ -39,6 +41,7 @@ export function VillaDetailGallery({
         listing={listing}
         onImageClick={onImageClick}
         onImageError={onImageError}
+        onViewAll={onViewAll}
         totalImageCount={totalImageCount}
       />
     );

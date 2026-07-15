@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { revalidateSiteHeaderSettingsCache } from "@/lib/cache-revalidation";
+import { revalidateSiteWebStylesCache } from "@/lib/cache-revalidation";
 import {
   getAdminSiteHeaderSettings,
   saveAdminSiteHeaderSettings,
@@ -8,10 +8,10 @@ import {
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/cache-revalidation", () => ({
-  revalidateSiteHeaderSettingsCache: vi.fn(),
+  revalidateSiteWebStylesCache: vi.fn(),
 }));
 
-const revalidateMock = vi.mocked(revalidateSiteHeaderSettingsCache);
+const revalidateMock = vi.mocked(revalidateSiteWebStylesCache);
 
 function selectQuery(result: { data: unknown; error: unknown }) {
   const maybeSingle = vi.fn().mockResolvedValue(result);
@@ -23,7 +23,7 @@ function selectQuery(result: { data: unknown; error: unknown }) {
 describe("site header settings admin route", () => {
   it("returns the isolated saved variant", async () => {
     const query = selectQuery({
-      data: { desktop_header_variant: "right-booking" },
+      data: { options: {}, style_type: "header", style_variant: "right-booking" },
       error: null,
     });
     const from = vi.fn().mockReturnValue(query);
@@ -34,12 +34,12 @@ describe("site header settings admin route", () => {
     await expect(response.json()).resolves.toEqual({
       settings: { desktopHeaderVariant: "right-booking" },
     });
-    expect(from).toHaveBeenCalledWith("site_header_settings");
+    expect(from).toHaveBeenCalledWith("site_web_styles");
   });
 
   it("persists only the supported header variant", async () => {
     const maybeSingle = vi.fn().mockResolvedValue({
-      data: { desktop_header_variant: "right-booking" },
+      data: { options: {}, style_type: "header", style_variant: "right-booking" },
       error: null,
     });
     const select = vi.fn().mockReturnValue({ maybeSingle });
@@ -57,8 +57,9 @@ describe("site header settings admin route", () => {
 
     expect(response.status).toBe(200);
     expect(upsert).toHaveBeenCalledWith({
-      desktop_header_variant: "right-booking",
-      singleton_id: true,
+      options: {},
+      style_type: "header",
+      style_variant: "right-booking",
     });
     await expect(response.json()).resolves.toEqual({
       settings: { desktopHeaderVariant: "right-booking" },

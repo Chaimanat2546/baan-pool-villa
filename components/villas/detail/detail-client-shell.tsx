@@ -1,11 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import { pushVillaDetailView } from "@/lib/marketing-data-layer";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type {
   PublicRecommendedVillaSection,
@@ -19,13 +20,22 @@ import {
 } from "./detail-page-gallery";
 import { DetailLayoutRenderer } from "./detail-layout-renderer";
 import { GalleryLightbox } from "./gallery";
+import { GalleryOverviewModal } from "./gallery-overview-modal";
 import { useVillaGallery } from "./use-villa-gallery";
+
+type GalleryModalView = "closed" | "overview" | "lightbox";
+interface GalleryModalState {
+  returnToOverview: boolean;
+  villaId: string;
+  view: GalleryModalView;
+}
 
 interface VillaDetailClientShellProps {
   advertisements: PublicAdvertisement[];
   bookingSidebarId: string;
   children: ReactNode;
   content: VillaDetailContent;
+  galleryStyle: GalleryStyleSettings;
   id: string;
   initialGalleryImages?: PublicVillaImage[];
   listing: PublicVillaListing;
@@ -38,6 +48,7 @@ export function VillaDetailClientShell({
   bookingSidebarId,
   children,
   content,
+  galleryStyle,
   id,
   initialGalleryImages = [],
   listing,
@@ -45,6 +56,9 @@ export function VillaDetailClientShell({
   settings,
 }: VillaDetailClientShellProps) {
   const pushedViewItemIdRef = useRef<string | null>(null);
+  const [galleryModalState, setGalleryModalState] = useState<GalleryModalState>(
+    { returnToOverview: false, villaId: id, view: "closed" },
+  );
   const {
     activeGalleryItem,
     galleryCategories,
@@ -54,10 +68,40 @@ export function VillaDetailClientShell({
     handleGalleryImageClick,
     handleGalleryRetry,
     handleImageError,
+    loadGalleryImages,
     setActiveGalleryItem,
     shouldShowGallerySkeleton,
     visibleGalleryItemCount,
   } = useVillaGallery({ id, initialGalleryImages });
+
+  const galleryModalView =
+    galleryModalState.villaId === id ? galleryModalState.view : "closed";
+
+  const handleDirectImageClick = (item: (typeof galleryItems)[number]) => {
+    setGalleryModalState({
+      returnToOverview: false,
+      villaId: id,
+      view: "lightbox",
+    });
+    handleGalleryImageClick(item);
+  };
+
+  const handleViewAll = () => {
+    if (galleryStyle.variant === "categorized-grid") {
+      setGalleryModalState({
+        returnToOverview: false,
+        villaId: id,
+        view: "overview",
+      });
+      void loadGalleryImages().catch(() => undefined);
+      return;
+    }
+
+    const item = galleryItems[3] ?? galleryItems[0];
+    if (item) {
+      handleDirectImageClick(item);
+    }
+  };
 
   useEffect(() => {
     if (pushedViewItemIdRef.current === listing.id) {
@@ -73,11 +117,14 @@ export function VillaDetailClientShell({
       <VillaDetailGallery
         items={galleryItems}
         listing={listing}
-        onImageClick={handleGalleryImageClick}
+        onImageClick={handleDirectImageClick}
         onImageError={handleImageError}
         onRetry={handleGalleryRetry}
+        onViewAll={handleViewAll}
         showSkeleton={shouldShowGallerySkeleton}
-        totalImageCount={visibleGalleryItemCount}
+        totalImageCount={
+          galleryLoadStatus === "loaded" ? visibleGalleryItemCount : null
+        }
       />
 
       <VillaDetailGalleryError
@@ -92,21 +139,58 @@ export function VillaDetailClientShell({
         bookingSidebarId={bookingSidebarId}
         content={content}
         galleryCategories={galleryCategories}
+        galleryStyle={galleryStyle}
         layout={settings.detailLayout}
         listing={listing}
         recommendedSection={recommendedSection}
         settings={settings}
       />
 
+      {galleryModalView === "overview" ? (
+        <GalleryOverviewModal
+          categories={galleryCategories}
+          listing={listing}
+          onClose={() => {
+            setGalleryModalState({
+              returnToOverview: false,
+              villaId: id,
+              view: "closed",
+            });
+          }}
+          onImageError={handleImageError}
+          onSelect={(item) => {
+            setActiveGalleryItem(item);
+            setGalleryModalState({
+              returnToOverview: true,
+              villaId: id,
+              view: "lightbox",
+            });
+          }}
+          style={galleryStyle}
+        />
+      ) : null}
+
       <GalleryLightbox
-        activeItem={activeGalleryItem}
+        activeItem={
+          galleryModalView === "lightbox" ? activeGalleryItem : null
+        }
         categories={galleryCategories}
         listing={listing}
         onClose={() => {
           setActiveGalleryItem(null);
+          setGalleryModalState({
+            returnToOverview: false,
+            villaId: id,
+            view: galleryModalState.returnToOverview ? "overview" : "closed",
+          });
         }}
         onImageError={handleImageError}
         onSelect={setActiveGalleryItem}
+        showCategorySelector={!galleryModalState.returnToOverview}
+        style={galleryStyle}
+        thumbnailPlacement={
+          galleryModalState.returnToOverview ? "bottom" : "side"
+        }
       />
     </>
   );

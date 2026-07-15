@@ -4,6 +4,7 @@ import { ImageIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
+import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
 import type { VillaListing } from "@/lib/villas/types";
 import { GalleryLightbox } from "./gallery";
 import type { GalleryCategory, GalleryItem } from "./types";
@@ -36,9 +37,11 @@ function toActivityItem(
 
 export function ActivityAdvertisementsSection({
   advertisements,
+  galleryStyle,
   listing,
 }: {
   advertisements: PublicAdvertisement[];
+  galleryStyle: GalleryStyleSettings;
   listing: VillaListing;
 }) {
   const [activeAdvertisement, setActiveAdvertisement] =
@@ -167,6 +170,7 @@ export function ActivityAdvertisementsSection({
         onSelect={setActiveItem}
         showCategorySelector={false}
         showDownload={false}
+        style={galleryStyle}
         title={activeAdvertisement?.title ?? "กิจกรรม"}
       />
     </section>

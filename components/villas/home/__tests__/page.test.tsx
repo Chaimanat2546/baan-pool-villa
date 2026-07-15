@@ -138,7 +138,6 @@ describe("HomePage", () => {
       "heroImage",
       "siteName",
       "tiktok",
-      "villaCardStyle",
     ]);
     expect(settings.heroImage).toBe(DEFAULT_SITE_SETTINGS.heroImage);
     expect(settings.tiktok).toEqual(DEFAULT_SITE_SETTINGS.tiktok);

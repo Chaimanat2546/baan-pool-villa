@@ -17,6 +17,7 @@ import {
   getVillaTitle,
 } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
 interface VillaPageProps {
@@ -61,9 +62,10 @@ export async function generateMetadata({
 
 export default async function Page({ params }: VillaPageProps) {
   const { id } = await params;
-  const [data, siteSettingsResult] = await Promise.all([
+  const [data, siteSettingsResult, siteWebStylesResult] = await Promise.all([
     fetchVillaPageData(id),
     getSiteSettings(),
+    getSiteWebStyles(),
   ]);
 
   if (!data) {
@@ -122,6 +124,7 @@ export default async function Page({ params }: VillaPageProps) {
       />
       <VillaDetailPage
         advertisements={advertisements}
+        galleryStyle={siteWebStylesResult.gallery}
         id={id}
         initialGalleryImages={data.initialGalleryImages}
         payload={data.payload}

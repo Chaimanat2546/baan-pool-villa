@@ -29,7 +29,7 @@ import { IMAGE_ZONE_LABELS } from "@/components/villas/detail/constants";
 import { VillaCard } from "@/components/villas/listing/villa-card";
 import { VillaCardStyleProvider } from "@/components/villas/listing/villa-card-style-context";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
-import type { SiteVillaCardStyle } from "@/lib/site-settings/types";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
 import type { VillaListing } from "@/lib/villas/types";
 

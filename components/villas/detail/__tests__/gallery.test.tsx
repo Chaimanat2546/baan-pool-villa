@@ -46,6 +46,7 @@ describe("Gallery", () => {
         listing={listing}
         onImageClick={() => undefined}
         onImageError={() => undefined}
+        onViewAll={() => undefined}
         totalImageCount={5}
       />,
     );
@@ -82,6 +83,7 @@ describe("Gallery", () => {
         listing={listing}
         onImageClick={() => undefined}
         onImageError={() => undefined}
+        onViewAll={() => undefined}
         totalImageCount={2}
       />,
     );
@@ -108,11 +110,41 @@ describe("Gallery", () => {
         }}
         onImageClick={() => undefined}
         onImageError={() => undefined}
+        onViewAll={() => undefined}
         totalImageCount={4}
       />,
     );
 
     expect(markup).toContain("text-[var(--site-on-overlay)]");
+    expect(markup).toContain("ดูรูปที่พัก (4)");
+  });
+
+  it("uses a count-free label until the full gallery count is known", () => {
+    const markup = renderToStaticMarkup(
+      <Gallery
+        items={["cover", "outside", "inside", "pool"].map(makeGalleryItem)}
+        listing={{
+          id: "79",
+          zone: "jomtien",
+          zoneLabel: "Jomtien",
+          bedrooms: 2,
+          bathrooms: 2,
+          distanceToSea: "500m",
+          price: 8000,
+          people: 4,
+          coverImage: null,
+          amenities: [],
+          poolType: "private",
+        }}
+        onImageClick={() => undefined}
+        onImageError={() => undefined}
+        onViewAll={() => undefined}
+        totalImageCount={null}
+      />,
+    );
+
+    expect(markup).toContain("ดูรูปที่พัก");
+    expect(markup).not.toContain("ดูรูปที่พัก (");
   });
 
   it("passes gallery tile images to next/image without the villa display proxy", () => {
@@ -136,6 +168,7 @@ describe("Gallery", () => {
         listing={listing}
         onImageClick={() => undefined}
         onImageError={() => undefined}
+        onViewAll={() => undefined}
         totalImageCount={2}
       />,
     );
@@ -170,6 +203,7 @@ describe("Gallery", () => {
         listing={listing}
         onImageClick={() => undefined}
         onImageError={() => undefined}
+        onViewAll={() => undefined}
         totalImageCount={1}
       />,
     );
@@ -199,6 +233,7 @@ describe("Gallery", () => {
         listing={listing}
         onImageClick={() => undefined}
         onImageError={() => undefined}
+        onViewAll={() => undefined}
         totalImageCount={1}
       />,
     );

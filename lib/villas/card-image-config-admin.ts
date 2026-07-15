@@ -4,11 +4,11 @@ import type {
 } from "@/lib/admin/route-helpers";
 import { adminSupabaseErrorResponse } from "@/lib/admin/route-helpers";
 import {
-  revalidateSiteSettingsCache,
+  revalidateSiteWebStylesCache,
   revalidateVillaCardImagesCache,
 } from "@/lib/cache-revalidation";
-import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "@/lib/site-settings/defaults";
-import type { SiteVillaCardStyle } from "@/lib/site-settings/types";
+import { SITE_ASSETS_BUCKET } from "@/lib/site-settings/defaults";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import { validateCustomDisplayImageIds } from "@/lib/villas/images";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
 import {
@@ -96,9 +96,9 @@ function toVillaCardStyle(value: unknown): SiteVillaCardStyle {
 
 async function loadVillaCardStyle(supabase: HomeConfigSupabaseClient) {
   return supabase
-    .from("site_settings")
-    .select("villa_card_style")
-    .eq("id", SITE_SETTINGS_ID)
+    .from("site_web_styles")
+    .select("style_type,style_variant,options")
+    .eq("style_type", "house_card")
     .maybeSingle();
 }
 
@@ -338,7 +338,7 @@ export async function buildAdminVillaCardImageConfigsResponse(
       configs: (data as VillaCardImageConfigRow[]).map(mapVillaCardImageConfigRow),
       houses: housePage.houses,
       pagination: housePage.pagination,
-      villaCardStyle: toVillaCardStyle(styleResult.data?.villa_card_style),
+      villaCardStyle: toVillaCardStyle(styleResult.data?.style_variant),
     });
   } catch (error) {
     return Response.json(
@@ -563,17 +563,20 @@ async function saveAdminVillaCardStyle(
   }
 
   const { data, error } = await supabase
-    .from("site_settings")
-    .update({ villa_card_style: value })
-    .eq("id", SITE_SETTINGS_ID)
-    .select("villa_card_style")
+    .from("site_web_styles")
+    .upsert({
+      options: {},
+      style_type: "house_card",
+      style_variant: value,
+    })
+    .select("style_type,style_variant,options")
     .maybeSingle();
   if (error || !data) {
     return adminSupabaseErrorResponse(error, "Unable to save villa card style.");
   }
 
-  await revalidateSiteSettingsCache();
-  return Response.json({ villaCardStyle: toVillaCardStyle(data.villa_card_style) });
+  await revalidateSiteWebStylesCache();
+  return Response.json({ villaCardStyle: toVillaCardStyle(data.style_variant) });
 }
 
 async function saveAdminVillaCardCoverPayload(
