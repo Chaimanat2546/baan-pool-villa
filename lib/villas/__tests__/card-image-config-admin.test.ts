@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  revalidateSiteSettingsCache,
+  revalidateSiteWebStylesCache,
   revalidateVillaCardImagesCache,
 } from "@/lib/cache-revalidation";
 import { fetchVillaCardHouseOptionPage } from "@/lib/villas/server";
@@ -16,7 +16,7 @@ import {
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/lib/cache-revalidation", () => ({
-  revalidateSiteSettingsCache: vi.fn(),
+  revalidateSiteWebStylesCache: vi.fn(),
   revalidateVillaCardImagesCache: vi.fn(),
 }));
 
@@ -68,7 +68,7 @@ vi.mock("@/lib/villas/public-dto", () => ({
 const revalidateVillaCardImagesCacheMock = vi.mocked(
   revalidateVillaCardImagesCache,
 );
-const revalidateSiteSettingsCacheMock = vi.mocked(revalidateSiteSettingsCache);
+const revalidateSiteWebStylesCacheMock = vi.mocked(revalidateSiteWebStylesCache);
 const fetchVillaCardHouseOptionPageMock = vi.mocked(
   fetchVillaCardHouseOptionPage,
 );
@@ -137,13 +137,12 @@ describe("admin villa card image config route helpers", () => {
 
   it("saves only the validated villa card style", async () => {
     const maybeSingle = vi.fn().mockResolvedValue({
-      data: { villa_card_style: "gallery" },
+      data: { options: {}, style_type: "house_card", style_variant: "gallery" },
       error: null,
     });
     const selectSaved = vi.fn(() => ({ maybeSingle }));
-    const eq = vi.fn(() => ({ select: selectSaved }));
-    const update = vi.fn(() => ({ eq }));
-    const supabase = { from: vi.fn(() => ({ update })) };
+    const upsert = vi.fn(() => ({ select: selectSaved }));
+    const supabase = { from: vi.fn(() => ({ upsert })) };
 
     const response = await saveAdminVillaCardImages(
       request({ villaCardStyle: "gallery" }),
@@ -151,11 +150,14 @@ describe("admin villa card image config route helpers", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(supabase.from).toHaveBeenCalledWith("site_settings");
-    expect(update).toHaveBeenCalledWith({ villa_card_style: "gallery" });
-    expect(eq).toHaveBeenCalledWith("id", "global");
-    expect(selectSaved).toHaveBeenCalledWith("villa_card_style");
-    expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledOnce();
+    expect(supabase.from).toHaveBeenCalledWith("site_web_styles");
+    expect(upsert).toHaveBeenCalledWith({
+      options: {},
+      style_type: "house_card",
+      style_variant: "gallery",
+    });
+    expect(selectSaved).toHaveBeenCalledWith("style_type,style_variant,options");
+    expect(revalidateSiteWebStylesCacheMock).toHaveBeenCalledOnce();
     expect(revalidateVillaCardImagesCacheMock).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toEqual({ villaCardStyle: "gallery" });
   });
@@ -199,14 +201,14 @@ describe("admin villa card image config route helpers", () => {
     const eq = vi.fn().mockReturnValue({ in: inHouse });
     const select = vi.fn().mockReturnValue({ eq });
     const maybeSingleStyle = vi.fn().mockResolvedValue({
-      data: { villa_card_style: "gallery" },
+      data: { options: {}, style_type: "house_card", style_variant: "gallery" },
       error: null,
     });
     const eqStyle = vi.fn(() => ({ maybeSingle: maybeSingleStyle }));
     const selectStyle = vi.fn(() => ({ eq: eqStyle }));
     const supabase = {
       from: vi.fn((table: string) =>
-        table === "site_settings" ? { select: selectStyle } : { select },
+        table === "site_web_styles" ? { select: selectStyle } : { select },
       ),
     };
 
@@ -284,14 +286,14 @@ describe("admin villa card image config route helpers", () => {
     const eq = vi.fn().mockReturnValue({ in: inHouse });
     const select = vi.fn().mockReturnValue({ eq });
     const maybeSingleStyle = vi.fn().mockResolvedValue({
-      data: { villa_card_style: "classic" },
+      data: { options: {}, style_type: "house_card", style_variant: "classic" },
       error: null,
     });
     const eqStyle = vi.fn(() => ({ maybeSingle: maybeSingleStyle }));
     const selectStyle = vi.fn(() => ({ eq: eqStyle }));
     const supabase = {
       from: vi.fn((table: string) =>
-        table === "site_settings" ? { select: selectStyle } : { select },
+        table === "site_web_styles" ? { select: selectStyle } : { select },
       ),
     };
 

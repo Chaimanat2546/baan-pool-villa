@@ -889,6 +889,63 @@ describe("resolveDisplayImages", () => {
     ]);
   });
 
+  it("keeps configured card images when an uploaded cover replaces the cover", async () => {
+    mockCardImageConfigQuery({
+      config: {
+        data: {
+          cover_image_path: "villa-cover/9/custom.webp",
+          cover_image_url: "https://assets.example.com/villa-cover/9/custom.webp",
+          villa_card_image_items: [
+            { image_id: 10, sort_order: 1 },
+            { image_id: 20, sort_order: 2 },
+            { image_id: 30, sort_order: 3 },
+          ],
+        },
+        error: null,
+      },
+    });
+    mockImagesQuery({
+      data: [
+        { id: 10, property_id: 9, cover_select: 1, image_name: "pool.jpg", image_url: null, caption: null, image_zone: "outside" },
+        { id: 20, property_id: 9, cover_select: 2, image_name: "living.jpg", image_url: null, caption: null, image_zone: "inside" },
+        { id: 30, property_id: 9, cover_select: 3, image_name: "bedroom.jpg", image_url: null, caption: null, image_zone: "inside" },
+      ],
+      error: null,
+    });
+
+    await expect(resolveDisplayImages("9")).resolves.toEqual([
+      expect.objectContaining({ id: 0 }),
+      expect.objectContaining({ id: 10 }),
+      expect.objectContaining({ id: 20 }),
+      expect.objectContaining({ id: 30 }),
+    ]);
+  });
+
+  it("uses automatic outside and inside images with an uploaded cover when no card images are configured", async () => {
+    mockCardImageConfigQuery({
+      config: {
+        data: {
+          cover_image_path: "villa-cover/9/custom.webp",
+          cover_image_url: "https://assets.example.com/villa-cover/9/custom.webp",
+        },
+        error: null,
+      },
+    });
+    mockImagesQuery({
+      data: [
+        { id: 10, property_id: 9, cover_select: 1, image_name: "pool.jpg", image_url: null, caption: null, image_zone: "outside" },
+        { id: 20, property_id: 9, cover_select: 2, image_name: "living.jpg", image_url: null, caption: null, image_zone: "inside" },
+      ],
+      error: null,
+    });
+
+    await expect(resolveDisplayImages("9")).resolves.toEqual([
+      expect.objectContaining({ id: 0 }),
+      expect.objectContaining({ id: 10 }),
+      expect.objectContaining({ id: 20 }),
+    ]);
+  });
+
   it("falls back to recommended images when a house has no custom override", async () => {
     mockCardImageConfigQuery({
       config: { data: null, error: null },

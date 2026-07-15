@@ -200,7 +200,6 @@ function defaultDraft(): SiteSettingsDraft {
     bankNameHighlightColor: DEFAULT_SITE_SETTINGS.bankNameHighlightColor,
     bankNumberHighlightColor: DEFAULT_SITE_SETTINGS.bankNumberHighlightColor,
     logoBackground: DEFAULT_SITE_SETTINGS.logoBackground,
-    villaCardStyle: DEFAULT_SITE_SETTINGS.villaCardStyle,
     heroImageAlt: DEFAULT_SITE_SETTINGS.heroImage.alt,
     bankAccountName: DEFAULT_SITE_SETTINGS.bank.accountName,
     bankName: DEFAULT_SITE_SETTINGS.bank.bankName,

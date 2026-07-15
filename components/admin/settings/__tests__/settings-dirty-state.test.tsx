@@ -45,6 +45,34 @@ describe("SettingsDirtyStateProvider", () => {
     act(() => root.unmount());
   });
 
+  it("keeps the page dirty until every keyed editor is clean", () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    let isDirty = false;
+    let setDirtySource: ((key: string, value: boolean) => void) | null = null;
+
+    function Probe() {
+      const state = useSettingsDirtyState();
+      isDirty = state.isDirty;
+      setDirtySource = state.setDirtySource;
+      return null;
+    }
+
+    act(() => root.render(<SettingsDirtyStateProvider><Probe /></SettingsDirtyStateProvider>));
+    act(() => {
+      setDirtySource?.("header", true);
+      setDirtySource?.("gallery", true);
+    });
+    expect(isDirty).toBe(true);
+
+    act(() => setDirtySource?.("header", false));
+    expect(isDirty).toBe(true);
+
+    act(() => setDirtySource?.("gallery", false));
+    expect(isDirty).toBe(false);
+    act(() => root.unmount());
+  });
+
   it("renders the shared public-site link and section save button", () => {
     const container = document.createElement("div");
     const root = createRoot(container);

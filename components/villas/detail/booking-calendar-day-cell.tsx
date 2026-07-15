@@ -34,12 +34,9 @@ export function BookingCalendarDayCell({
   onDismissTip,
   ...props
 }: BookingCalendarDayCellProps) {
-  const shouldShowCalendarData = !isPast || isPastVisibleMonth;
+  const shouldShowCalendarData = !isOutsideVisibleMonth;
   const isBlockedBooking =
-    !isPastVisibleMonth &&
-    shouldShowCalendarData &&
-    !isOutsideVisibleMonth &&
-    calendarDay.disabled;
+    shouldShowCalendarData && calendarDay.disabled;
   const firstAvailableTooltipAlign =
     day.date.getDay() <= 1
       ? "start"
@@ -58,8 +55,8 @@ export function BookingCalendarDayCell({
         aria-disabled={isBlockedBooking ? true : props["aria-disabled"]}
         className={cn(
           className,
-          isPast && !isPastVisibleMonth
-            ? "bg-[var(--site-surface-tint)] text-[var(--site-muted)] opacity-60 ring-0 hover:bg-[var(--site-surface-tint)] hover:text-[var(--site-muted)] disabled:opacity-60 "
+          isPast && !isPastVisibleMonth && !calendarDay.disabled
+            ? "bg-[var(--site-surface-tint)] text-[var(--site-muted)] ring-0 hover:bg-[var(--site-surface-tint)] hover:text-[var(--site-muted)] "
             : null,
           shouldShowCalendarData && isToday
             ? "border border-[var(--site-primary)] text-[var(--site-primary)] ring-2 ring-[var(--site-primary)]/20 hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)] "
@@ -70,8 +67,10 @@ export function BookingCalendarDayCell({
           shouldShowCalendarData && !isOutsideVisibleMonth
             ? getCalendarToneClass(calendarDay)
             : null,
-          isBlockedBooking ? "pointer-events-none cursor-not-allowed " : null,
-          "relative !block !h-12 !min-w-0 overflow-visible text-center opacity-70 ring-1 ring-[var(--site-border)] hover:opacity-100 disabled:opacity-70",
+          isBlockedBooking
+            ? "pointer-events-none cursor-not-allowed disabled:!opacity-100 "
+            : null,
+          "relative !block !h-12 !min-w-0 overflow-visible text-center ring-1 ring-[var(--site-border)]",
           "transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
         )}
         data-calendar-day-kind={

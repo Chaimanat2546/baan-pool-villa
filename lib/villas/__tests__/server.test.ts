@@ -124,6 +124,11 @@ const listingPriceRows = [
   },
 ];
 
+const listingFacilityRows = listingRows[0].listing_facilities.map((facility) => ({
+  ...facility,
+  listing_id: "listing-9",
+}));
+
 const devilleDetail = {
   h_bedroom_detail: "Bedroom 1: king bed",
   h_kitchen_ware: "Microwave\nThai kitchen equipment",
@@ -179,6 +184,18 @@ function listingPricesQuery(data = listingPriceRows, error: unknown = null) {
   return query;
 }
 
+function listingFacilitiesQuery(
+  data = listingFacilityRows,
+  error: unknown = null,
+) {
+  const query = {
+    in: vi.fn(() => Promise.resolve({ data, error })),
+    select: vi.fn(() => query),
+  };
+
+  return query;
+}
+
 type CoverOverrideRow = {
   cover_image_url: string | null;
   house_id: string | null;
@@ -219,6 +236,7 @@ function mockCoverOverrides(
 
 function mockSupabase(options?: {
   imageRows?: typeof imageRows;
+  listingFacilityRows?: typeof listingFacilityRows;
   listingPriceRows?: typeof listingPriceRows;
   listingError?: unknown;
   listingRows?: typeof listingRows;
@@ -232,6 +250,9 @@ function mockSupabase(options?: {
   const images = imagesQuery(options?.imageRows ?? imageRows);
   const listingPrices = listingPricesQuery(
     options?.listingPriceRows ?? listingPriceRows,
+  );
+  const listingFacilities = listingFacilitiesQuery(
+    options?.listingFacilityRows ?? listingFacilityRows,
   );
   const supabase = {
     from: vi.fn((table: string) => {
@@ -247,6 +268,10 @@ function mockSupabase(options?: {
         return listingPrices;
       }
 
+      if (table === "listing_facilities") {
+        return listingFacilities;
+      }
+
       throw new Error(`Unexpected table ${table}`);
     }),
     rpc: vi.fn(() =>
@@ -259,7 +284,7 @@ function mockSupabase(options?: {
 
   createClientMock.mockReturnValue(supabase);
 
-  return { images, listingPrices, listings, supabase };
+  return { images, listingFacilities, listingPrices, listings, supabase };
 }
 
 afterEach(() => {
@@ -292,7 +317,7 @@ describe("fetchHouseListings", () => {
   });
 
   it("loads active Supabase listings with facilities and cover images", async () => {
-    const { images, listingPrices, listings } = mockSupabase();
+    const { images, listingFacilities, listingPrices, listings } = mockSupabase();
 
     await expect(fetchHouseListings()).resolves.toEqual([
       {
@@ -328,6 +353,10 @@ describe("fetchHouseListings", () => {
       },
     );
     expect(listings.eq).toHaveBeenCalledWith("is_active", true);
+    expect(listings.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("listing_facilities"),
+    );
+    expect(listingFacilities.in).toHaveBeenCalledWith("listing_id", ["listing-9"]);
     expect(images.in).toHaveBeenCalledWith("property_id", [9]);
     expect(listingPrices.in).toHaveBeenCalledWith("listing_id", ["listing-9"]);
   });
@@ -656,7 +685,7 @@ describe("fetchHouseListings", () => {
   });
 });
 describe("fetchVillaDetail", () => {
-  it("returns Deville Central detail fields for the requested listing", async () => {
+  it("keeps Supabase detail values while filling missing fields from Deville Central", async () => {
     const listing = {
       amenities: [],
       bathrooms: 5,
@@ -672,14 +701,20 @@ describe("fetchVillaDetail", () => {
     };
     mockSupabase();
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
-    fetchMock.mockResolvedValue(
-      new Response(JSON.stringify(devilleDetail), { status: 200 }),
-    );
+    const upstreamDetail = {
+      ...devilleDetail,
+      h_rule: "No parties after midnight",
+      h_time_checkin: "15:00:00",
+    };
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(upstreamDetail), { status: 200 }));
 
     const payload = await fetchVillaDetail("9", [listing]);
 
-    expect(payload).toEqual({
-      detail: devilleDetail,
+    expect(payload).toMatchObject({
+      detail: expect.objectContaining({
+        h_rule: "No parties after midnight",
+        h_time_checkin: "14:00:00",
+      }),
       detailStatus: "available",
       listing,
     });

@@ -4,7 +4,7 @@ import { BedDouble, MapPin, Users } from "lucide-react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
 import { normalizePublicVillaCoverImage } from "@/lib/villas/public-dto";
-import type { SiteVillaCardStyle } from "@/lib/site-settings/types";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import type { VillaListing } from "@/lib/villas/types";
 import { VillaCardGalleryImages } from "./villa-card-gallery-images";
 import { useVillaCardStyle } from "./villa-card-style-context";

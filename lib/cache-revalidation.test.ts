@@ -9,6 +9,7 @@ import {
   revalidateCustomerReviewsCache,
   revalidateLegalPageCache,
   revalidateSiteSettingsCache,
+  revalidateSiteWebStylesCache,
   revalidateVillaCardImagesCache,
 } from "./cache-revalidation";
 import {
@@ -110,6 +111,17 @@ describe("cache revalidation", () => {
     });
     expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
       HTML_CACHE_VERSION_GROUPS.detailLayout,
+    ]);
+  });
+
+  it("expires the web styles tag and shared style-dependent HTML", async () => {
+    await revalidateSiteWebStylesCache();
+
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.siteWebStyles, {
+      expire: 0,
+    });
+    expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
+      HTML_CACHE_VERSION_GROUPS.siteSettings,
     ]);
   });
 

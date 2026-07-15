@@ -38,7 +38,6 @@ const validRow = {
   bank_name_highlight_color: "#facc15",
   bank_number_highlight_color: "#fef08a",
   logo_background: "soft",
-  villa_card_style: "gallery",
   logo_image_path: "logo/2026/05/logo.webp",
   logo_image_url:
     "https://example.supabase.co/storage/v1/object/public/site-assets/logo/2026/05/logo.webp",
@@ -121,7 +120,6 @@ const validDraft: SiteSettingsDraft = {
   bankNameHighlightColor: "#facc15",
   bankNumberHighlightColor: "#fef08a",
   logoBackground: "white",
-  villaCardStyle: "gallery",
   heroImageAlt: "Hero image for validation",
   bankAccountName: "Account Name",
   bankName: "Bank Name",
@@ -173,7 +171,6 @@ describe("normalizeSiteSettingsRow", () => {
       bankNameHighlightColor: "#facc15",
       bankNumberHighlightColor: "#fef08a",
       logoBackground: "soft",
-      villaCardStyle: "gallery",
       logoImage: {
         path: "logo/2026/05/logo.webp",
         url: "https://example.supabase.co/storage/v1/object/public/site-assets/logo/2026/05/logo.webp",
@@ -300,22 +297,6 @@ describe("normalizeSiteSettingsRow", () => {
     });
   });
 
-  it("falls back to the classic villa card style when the database value is missing or invalid", () => {
-    expect(
-      normalizeSiteSettingsRow({
-        ...validRow,
-        villa_card_style: undefined,
-      }).villaCardStyle,
-    ).toBe("classic");
-
-    expect(
-      normalizeSiteSettingsRow({
-        ...validRow,
-        villa_card_style: "carousel",
-      }).villaCardStyle,
-    ).toBe("classic");
-  });
-
   it("falls back separate bank highlight colors to the shared bank highlight", () => {
     expect(
       normalizeSiteSettingsRow({
@@ -434,7 +415,6 @@ describe("normalizeSiteSettingsDraft", () => {
         bankNameHighlightColor: " #FACC15 ",
         bankNumberHighlightColor: " #FEF08A ",
         logoBackground: " primary ",
-        villaCardStyle: " gallery ",
         heroImageAlt: " Pool villas in Pattaya ",
         bankAccountName: " Account Name ",
         bankName: " Bank Name ",
@@ -491,7 +471,6 @@ describe("normalizeSiteSettingsDraft", () => {
         bankNameHighlightColor: "#facc15",
         bankNumberHighlightColor: "#fef08a",
         logoBackground: "primary",
-        villaCardStyle: "gallery",
       heroImageAlt: "Pool villas in Pattaya",
       bankAccountName: "Account Name",
       bankName: "Bank Name",
@@ -797,16 +776,6 @@ describe("validateUploadMetadata", () => {
     ]);
   });
 
-  it("normalizes invalid villa card style drafts back to classic", () => {
-    expect(
-      normalizeSiteSettingsDraft({
-        ...validDraft,
-        villaCardStyle: " carousel ",
-      }),
-    ).toMatchObject({
-      villaCardStyle: "classic",
-    });
-  });
 });
 
 describe("Google Tag Manager ID validation", () => {

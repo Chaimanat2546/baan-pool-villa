@@ -23,10 +23,7 @@ export function BookingSidebar({
   settings: SiteSettings;
 }) {
   const checkIn = findFact(content.facts, "เช็คอิน") ?? "14:00";
-  const checkOut =
-    findFact(content.facts, "เช็คเอ้า") ??
-    findFact(content.facts, "เช็คเอาท์") ??
-    "12:00";
+  const checkOut = findFact(content.facts, "เช็คเอาต์") ?? "12:00";
   const contactLinks = buildContactLinks(settings.contact);
   const phoneContacts = settings.contact.phoneContacts.map(withPhoneHref);
   const primaryPhoneContact = phoneContacts[0];
@@ -58,16 +55,13 @@ export function BookingSidebar({
             เช็คอิน / เช็คเอาท์
           </p>
           <p className="mt-1 text-lg font-black text-[var(--site-text)]">
-            {checkIn} - {checkOut}
+            เช็คอิน {checkIn} · เช็คเอาท์ {checkOut}
           </p>
         </div>
 
         <div className={listing.price === null ? "hidden" : "mt-4 rounded-xl border border-[var(--site-border)] p-3 text-sm"}>
           <p className="font-black text-[var(--site-text)]">
             {formatVillaPrice(listing.price)} / คืน
-          </p>
-          <p className="mt-1 text-xs text-[var(--site-muted)]">
-            เช็คอิน {checkIn} · เช็คเอาท์ {checkOut}
           </p>
         </div>
 

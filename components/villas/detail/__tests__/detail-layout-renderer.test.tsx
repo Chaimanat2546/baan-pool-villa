@@ -13,6 +13,7 @@ import type {
   DetailLayoutV2Config,
 } from "../../../../lib/detail-layout/types";
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
+import { DEFAULT_SITE_WEB_STYLES } from "../../../../lib/site-web-styles/defaults";
 import type { VillaDetailContent } from "../../../../lib/villas/detail";
 import type {
   RecommendedVillaSection,
@@ -220,6 +221,7 @@ function render(
       advertisements={advertisements}
       content={{ ...content, ...overrides }}
       galleryCategories={galleryCategories}
+      galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
       layout={layout}
       listing={activeListing}
       recommendedSection={recommendedSection}

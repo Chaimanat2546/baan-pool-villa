@@ -9,6 +9,8 @@ interface BookingCalendarMonthCaptionProps {
   calendarMonth: { date: Date };
   className?: string;
   currentMonth: Date;
+  maximumMonth: Date;
+  minimumMonth: Date;
   setVisibleMonth: Dispatch<SetStateAction<Date>>;
   showNextMonthPointer: boolean;
 }
@@ -17,9 +19,14 @@ export function BookingCalendarMonthCaption({
   calendarMonth,
   className,
   currentMonth,
+  maximumMonth,
+  minimumMonth,
   setVisibleMonth,
   showNextMonthPointer,
 }: BookingCalendarMonthCaptionProps) {
+  const isPreviousDisabled = addCalendarMonths(calendarMonth.date, -1) < minimumMonth;
+  const isNextDisabled = addCalendarMonths(calendarMonth.date, 1) > maximumMonth;
+
   return (
     <div
       className={cn(className, "h-auto flex-col gap-4 px-0 pb-1")}
@@ -40,6 +47,7 @@ export function BookingCalendarMonthCaption({
         <Button
           aria-label="ดูเดือนก่อนหน้า"
           className="size-10 rounded-2xl text-[var(--site-primary)]"
+          disabled={isPreviousDisabled}
           onClick={() => {
             setVisibleMonth((month) => addCalendarMonths(month, -1));
           }}
@@ -56,6 +64,7 @@ export function BookingCalendarMonthCaption({
         <Button
           aria-label="ดูเดือนถัดไป"
           className="relative size-10 overflow-visible rounded-2xl text-[var(--site-primary)]"
+          disabled={isNextDisabled}
           onClick={() => {
             setVisibleMonth((month) => addCalendarMonths(month, 1));
           }}

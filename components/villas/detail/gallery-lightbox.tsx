@@ -2,6 +2,9 @@ import { ChevronLeft, ChevronRight, Download, ImageOff, X } from "lucide-react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useEffect, useRef, useState, type RefObject, type TouchEvent } from "react";
 import type { VillaListing } from "@/lib/villas/types";
+import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
+import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
+import { getGalleryModalStyle } from "./gallery-modal-style";
 import { buildGalleryDisplaySrc, buildGalleryDownloadHref } from "./gallery-urls";
 import { getGalleryItemDescription, getVillaTitle } from "./helpers";
 import type { GalleryCategory, GalleryItem } from "./types";
@@ -63,19 +66,23 @@ function GalleryThumbnailButton({
   listingId,
   onImageError,
   onSelect,
+  thumbnailPlacement,
 }: {
   isActive: boolean;
   item: GalleryItem;
   listingId: string;
   onImageError: (url: string) => void;
   onSelect: (item: GalleryItem) => void;
+  thumbnailPlacement: "bottom" | "side";
 }) {
   const thumbnailSrc = buildGalleryDisplaySrc(listingId, item, 160, 60);
 
   return (
     <button
       aria-label={`ดูรูปหมวด${item.zoneLabel}`}
-      className={`relative h-20 w-24 shrink-0 snap-start overflow-hidden rounded-xl border transition sm:h-24 sm:w-32 lg:h-[112px] lg:w-full lg:rounded-lg lg:border-2 ${
+      className={`relative h-20 w-24 shrink-0 snap-start overflow-hidden rounded-xl border transition sm:h-24 sm:w-32 lg:h-[112px] lg:rounded-lg lg:border-2 ${
+        thumbnailPlacement === "bottom" ? "lg:w-40" : "lg:w-full"
+      } ${
         isActive
           ? "border-white opacity-100 shadow-[0_0_0_2px_rgba(255,255,255,0.22)]"
           : "border-white/10 opacity-75 hover:border-white/35 hover:opacity-100"
@@ -198,6 +205,8 @@ export function GalleryLightbox({
   onSelect,
   showCategorySelector = true,
   showDownload = true,
+  style = DEFAULT_SITE_WEB_STYLES.gallery,
+  thumbnailPlacement = "side",
   title,
 }: {
   activeItem: GalleryItem | null;
@@ -209,6 +218,8 @@ export function GalleryLightbox({
   onSelect: (item: GalleryItem) => void;
   showCategorySelector?: boolean;
   showDownload?: boolean;
+  style?: GalleryStyleSettings;
+  thumbnailPlacement?: "bottom" | "side";
   title?: string;
 }) {
 
@@ -308,8 +319,9 @@ export function GalleryLightbox({
     <div
       aria-labelledby={lightboxTitleId}
       aria-modal="true"
-      className="fixed inset-0 z-[70] overscroll-contain bg-[var(--site-primary-hover)] text-[var(--site-on-primary)]"
+      className="fixed inset-0 z-[70] overscroll-contain bg-[var(--gallery-modal-background,var(--site-primary-hover))] text-[var(--gallery-modal-text,var(--site-on-primary))]"
       role="dialog"
+      style={getGalleryModalStyle(style)}
     >
       <div className="flex h-dvh flex-col overflow-hidden">
 
@@ -376,7 +388,14 @@ export function GalleryLightbox({
         </div>
         ) : null}
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden px-3 pb-8 pt-3 sm:gap-3 sm:px-6 sm:py-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-5 lg:px-6 lg:pb-6 lg:pt-5">
+        <div
+          className={`flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden px-3 pb-8 pt-3 sm:gap-3 sm:px-6 sm:py-4 lg:gap-5 lg:px-6 lg:pb-6 lg:pt-5 ${
+            thumbnailPlacement === "bottom"
+              ? "lg:flex lg:flex-col"
+              : "lg:grid lg:grid-cols-[minmax(0,1fr)_320px]"
+          }`}
+          data-gallery-thumbnail-placement={thumbnailPlacement}
+        >
 
           <div
             className="relative h-[46dvh] min-h-[250px] min-w-0 max-w-full shrink-0 touch-pan-y overflow-hidden rounded-2xl bg-white/5 sm:h-auto sm:flex-1 lg:h-auto lg:min-h-0"
@@ -499,7 +518,13 @@ export function GalleryLightbox({
 
           </div>
 
-          <aside className="min-h-0 min-w-0 max-w-full shrink-0 lg:flex lg:h-full lg:flex-col lg:overflow-hidden">
+          <aside
+            className={
+              thumbnailPlacement === "bottom"
+                ? "min-h-0 min-w-0 max-w-full shrink-0"
+                : "min-h-0 min-w-0 max-w-full shrink-0 lg:flex lg:h-full lg:flex-col lg:overflow-hidden"
+            }
+          >
 
             {showCategorySelector ? (
             <div className="hidden shrink-0 rounded-2xl bg-white/10 p-3 lg:block">
@@ -532,7 +557,15 @@ export function GalleryLightbox({
             </div>
             ) : null}
 
-            <div ref={thumbnailStripRef} className="mt-2 flex max-w-full snap-x gap-2 overflow-x-auto overflow-y-hidden pb-1 sm:mt-3 sm:pb-2 lg:min-h-0 lg:flex-1 lg:grid lg:auto-rows-[112px] lg:grid-cols-2 lg:content-start lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1">
+            <div
+              ref={thumbnailStripRef}
+              className={
+                thumbnailPlacement === "bottom"
+                  ? "mt-2 flex max-w-full snap-x gap-2 overflow-x-auto overflow-y-hidden pb-1 [scrollbar-width:none] sm:mt-3 sm:pb-2 lg:max-h-[112px] lg:pb-0 [&::-webkit-scrollbar]:hidden"
+                  : "mt-2 flex max-w-full snap-x gap-2 overflow-x-auto overflow-y-hidden pb-1 sm:mt-3 sm:pb-2 lg:min-h-0 lg:flex-1 lg:grid lg:auto-rows-[112px] lg:grid-cols-2 lg:content-start lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1"
+              }
+              data-gallery-thumbnail-strip={thumbnailPlacement}
+            >
 
               {activeItems.map((item) => (
                 <GalleryThumbnailButton
@@ -542,6 +575,7 @@ export function GalleryLightbox({
                   listingId={listing.id}
                   onImageError={onImageError}
                   onSelect={onSelect}
+                  thumbnailPlacement={thumbnailPlacement}
                 />
               ))}
 
