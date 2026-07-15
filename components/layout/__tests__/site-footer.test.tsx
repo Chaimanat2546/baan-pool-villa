@@ -88,6 +88,7 @@ describe("SiteFooter", () => {
     expect(markup).not.toContain("text-[var(--site-bank-highlight)]");
     expect(markup).toContain("text-[var(--site-footer-link)]");
     expect(markup).toContain("hover:text-[var(--site-footer-link-hover)]");
+    expect(markup).not.toContain("text-[var(--site-on-primary)]");
   });
 
   it("applies the readable primary text color directly to the footer", () => {
@@ -111,6 +112,7 @@ describe("SiteFooter", () => {
     );
 
     expect(markup).toContain("bg-transparent");
+    expect(markup).toContain("border-transparent");
     expect(markup).toContain("object-contain");
   });
 

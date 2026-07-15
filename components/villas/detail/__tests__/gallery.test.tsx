@@ -89,6 +89,32 @@ describe("Gallery", () => {
     expect(markup).not.toContain("priority=");
   });
 
+  it("uses the overlay text token for the image-count badge", () => {
+    const markup = renderToStaticMarkup(
+      <Gallery
+        items={["cover", "outside", "inside", "pool"].map(makeGalleryItem)}
+        listing={{
+          id: "78",
+          zone: "jomtien",
+          zoneLabel: "Jomtien",
+          bedrooms: 2,
+          bathrooms: 2,
+          distanceToSea: "500m",
+          price: 8000,
+          people: 4,
+          coverImage: null,
+          amenities: [],
+          poolType: "private",
+        }}
+        onImageClick={() => undefined}
+        onImageError={() => undefined}
+        totalImageCount={4}
+      />,
+    );
+
+    expect(markup).toContain("text-[var(--site-on-overlay)]");
+  });
+
   it("passes gallery tile images to next/image without the villa display proxy", () => {
     const listing: VillaListing = {
       id: "88",

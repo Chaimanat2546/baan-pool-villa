@@ -1,7 +1,7 @@
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
-import { SITE_LOGO_BACKGROUND_CLASSES } from "@/lib/site-settings/logo-background";
+import { SITE_LOGO_BACKGROUND_CLASSES, SITE_LOGO_BORDER_CLASSES } from "@/lib/site-settings/logo-background";
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
@@ -37,6 +37,8 @@ export function SiteFooter({ settings }: SiteFooterProps) {
     FALLBACK_LOGO_IMAGE_SRC;
   const logoBackgroundClass =
     SITE_LOGO_BACKGROUND_CLASSES[settings.logoBackground ?? "white"];
+  const logoBorderClass =
+    SITE_LOGO_BORDER_CLASSES[settings.logoBackground ?? "white"];
   const contactItems = [
     ...settings.contact.phoneContacts.map(
       (contact, index) => ({
@@ -58,11 +60,11 @@ export function SiteFooter({ settings }: SiteFooterProps) {
   ];
 
   return (
-    <footer className="bg-[var(--site-primary)] pb-28 text-[var(--site-on-primary)] md:pb-0" style={siteThemeStyle}>
+    <footer className="bg-[var(--site-primary)] pb-28 text-[var(--site-footer-link)] md:pb-0" style={siteThemeStyle}>
       <div className="mx-auto grid max-w-[1292px] gap-10 px-6 pb-16 pt-14 sm:px-8 lg:grid-cols-[1.45fr_0.7fr_0.9fr] lg:gap-20 lg:px-6 lg:pb-16 lg:pt-[60px]">
         <div>
           <div className="flex items-center gap-3">
-            <span className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] border-4 border-white p-2 ${logoBackgroundClass}`}>
+            <span className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] border-4 p-2 ${logoBackgroundClass} ${logoBorderClass}`}>
               <Image
                 src={logoImageSrc}
                 alt={settings.logoImage.alt}
@@ -73,10 +75,10 @@ export function SiteFooter({ settings }: SiteFooterProps) {
               />
             </span>
             <div className="min-w-0">
-              <h2 className="text-[26px] font-semibold leading-8 text-[var(--site-on-primary)]">
+              <h2 className="text-[26px] font-semibold leading-8 text-[var(--site-footer-link)]">
                 {settings.siteName}
               </h2>
-              <p className="mt-[7px] text-sm leading-5 text-[var(--site-on-primary)]">
+              <p className="mt-[7px] text-sm leading-5 text-[var(--site-footer-link)]">
                 กรุณาโอนเงิน{" "}
                 <span className="inline-flex rounded-full font-medium text-[var(--site-bank-account-highlight)]">
                   ชื่อบัญชี {settings.bank.accountName}
@@ -93,14 +95,14 @@ export function SiteFooter({ settings }: SiteFooterProps) {
             </div>
           </div>
 
-          <p className="mt-4 max-w-[600px] text-sm leading-[21px] text-[var(--site-on-primary)] opacity-70">
+          <p className="mt-4 max-w-[600px] text-sm leading-[21px] text-[var(--site-footer-link)] opacity-70">
             บ้านพักพูลวิลล่าสุดหรูใจกลางพัทยา พร้อมสระว่ายน้ำส่วนตัว
             เหมาะสำหรับครอบครัวและกลุ่มเพื่อน
           </p>
         </div>
 
         <nav aria-label="เมนูหลัก">
-          <h3 className="text-lg font-semibold leading-7 text-[var(--site-on-primary)]">
+          <h3 className="text-lg font-semibold leading-7 text-[var(--site-footer-link)]">
             เมนูหลัก
           </h3>
           <div className="mt-[22px] grid gap-4 text-base leading-6">
@@ -117,7 +119,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
         </nav>
 
         <div>
-          <h3 className="text-lg font-semibold leading-7 text-[var(--site-on-primary)]">
+          <h3 className="text-lg font-semibold leading-7 text-[var(--site-footer-link)]">
             ติดต่อเรา
           </h3>
           <div className="mt-[22px] grid gap-3 text-base leading-6">
@@ -145,7 +147,7 @@ export function SiteFooter({ settings }: SiteFooterProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1292px] px-6 pb-8 text-center text-sm leading-5 text-[var(--site-on-primary)] opacity-50 sm:px-8 lg:px-6">
+      <div className="mx-auto max-w-[1292px] px-6 pb-8 text-center text-sm leading-5 text-[var(--site-footer-link)] opacity-50 sm:px-8 lg:px-6">
         <p>
           © {new Date().getFullYear()} Baan Pool Villas. All rights reserved.
         </p>

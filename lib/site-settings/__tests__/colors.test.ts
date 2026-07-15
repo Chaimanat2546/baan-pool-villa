@@ -98,6 +98,11 @@ describe("buildSiteThemeStyle", () => {
     expect(style["--site-border"]).not.toBe(style["--site-primary"]);
     expect(style["--site-border-strong"]).not.toBe(style["--site-primary"]);
     expect(style["--site-muted"]).not.toBe(style["--site-text"]);
+    expect(style["--site-muted-text"]).toBe(style["--site-muted"]);
+    expectContrast(style["--site-text"], style["--site-surface"]);
+    expectContrast(style["--site-muted"], style["--site-surface"]);
+    expectContrast(style["--site-on-primary"], style["--site-primary"]);
+    expectContrast(style["--site-on-accent"], style["--site-accent"]);
     expect(style["--site-surface-soft"]).not.toBe(style["--site-surface"]);
     expect(style["--site-surface-tint"]).not.toBe(style["--site-surface"]);
     expect(style["--site-text"]).not.toBe(style["--site-primary"]);
@@ -117,6 +122,25 @@ describe("buildSiteThemeStyle", () => {
     expectContrast(style["--site-accent-on-dark"], style["--site-primary"]);
   });
 
+  it("preserves configured header, footer, and bank text on gold primary", () => {
+    const style = buildSiteThemeStyle({
+      primaryColor: "#d1950b",
+      accentColor: "#eab308",
+      headerLinkColor: "#ffffff",
+      headerLinkHoverColor: "#eab308",
+      footerLinkColor: "#ffffff",
+      footerLinkHoverColor: "#eab308",
+      bankHighlightColor: "#eab308",
+    });
+
+    expect(style["--site-header-link"]).toBe("#ffffff");
+    expect(style["--site-header-link-hover"]).toBe("#eab308");
+    expect(style["--site-footer-link"]).toBe("#ffffff");
+    expect(style["--site-footer-link-hover"]).toBe("#eab308");
+    expect(style["--site-bank-account-highlight"]).toBe("#eab308");
+    expect(style["--site-on-overlay"]).toBe("#f8fafc");
+  });
+
   it("builds separate bank highlight variables when configured", () => {
     const style = buildSiteThemeStyle({
       primaryColor: "#064e3b",
@@ -127,12 +151,10 @@ describe("buildSiteThemeStyle", () => {
       bankNumberHighlightColor: "#be123c",
     });
 
-    expect(style).toMatchObject({
-      "--site-bank-highlight": "#fde047",
-      "--site-bank-account-highlight": "#1d4ed8",
-      "--site-bank-name-highlight": "#7c3aed",
-      "--site-bank-number-highlight": "#be123c",
-    });
+    expect(style["--site-bank-highlight"]).toBe("#fde047");
+    expect(style["--site-bank-account-highlight"]).toBe("#1d4ed8");
+    expect(style["--site-bank-name-highlight"]).toBe("#7c3aed");
+    expect(style["--site-bank-number-highlight"]).toBe("#be123c");
   });
 
   it("keeps hover and soft tokens readable across saturated brand colors", () => {

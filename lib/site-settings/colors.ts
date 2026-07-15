@@ -168,6 +168,7 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
     primaryColor,
   );
   const textColor = mixHexColors(primaryColor, "#020617", 0.44);
+  const mutedTextColor = mixHexColors(textColor, "#64748b", 0.58);
 
   return {
     "--site-accent": accentColor,
@@ -185,8 +186,10 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
     "--site-footer-link-hover": footerLinkHoverColor,
     "--site-header-link": headerLinkColor,
     "--site-header-link-hover": headerLinkHoverColor,
-    "--site-muted": mixHexColors(textColor, "#64748b", 0.58),
+    "--site-muted": mutedTextColor,
+    "--site-muted-text": mutedTextColor,
     "--site-on-accent": getReadableTextColor(accentColor),
+    "--site-on-overlay": "#f8fafc",
     "--site-on-primary": getReadableTextColor(primaryColor),
     "--site-primary": primaryColor,
     "--site-primary-hover": primaryColor,
