@@ -16,6 +16,8 @@ export const THAI_MONTHS = [
 export interface BookingCalendarDay {
   disabled: boolean;
   displayPrice: string | null;
+  guestCapacity: string | null;
+  holidayAlert: string | null;
   icons: "fire"[];
   kind:
     | "base"
@@ -98,6 +100,8 @@ export function getFallbackCalendarDay(price: number | null): BookingCalendarDay
   return {
     disabled: false,
     displayPrice: price === null ? null : new Intl.NumberFormat("th-TH").format(price),
+    guestCapacity: null,
+    holidayAlert: null,
     icons: [],
     kind: "base",
     label: "วันธรรมดา",

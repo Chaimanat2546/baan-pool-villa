@@ -76,6 +76,7 @@ export function VillaDetailClientShell({
 
   const galleryModalView =
     galleryModalState.villaId === id ? galleryModalState.view : "closed";
+  const isCategorizedGallery = galleryStyle.variant === "categorized-grid";
 
   const handleDirectImageClick = (item: (typeof galleryItems)[number]) => {
     setGalleryModalState({
@@ -87,7 +88,7 @@ export function VillaDetailClientShell({
   };
 
   const handleViewAll = () => {
-    if (galleryStyle.variant === "categorized-grid") {
+    if (isCategorizedGallery) {
       setGalleryModalState({
         returnToOverview: false,
         villaId: id,
@@ -186,10 +187,10 @@ export function VillaDetailClientShell({
         }}
         onImageError={handleImageError}
         onSelect={setActiveGalleryItem}
-        showCategorySelector={!galleryModalState.returnToOverview}
+        showCategorySelector={!isCategorizedGallery}
         style={galleryStyle}
         thumbnailPlacement={
-          galleryModalState.returnToOverview ? "bottom" : "side"
+          isCategorizedGallery ? "bottom" : "side"
         }
       />
     </>

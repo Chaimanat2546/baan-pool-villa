@@ -27,7 +27,7 @@ export function CalendarDayDetailDialog({
       <div
         aria-labelledby="calendar-day-detail-title"
         aria-modal="true"
-        className="w-full max-w-sm rounded-[1.5rem] border border-[var(--site-border)] bg-[linear-gradient(145deg,var(--site-surface),var(--site-surface-soft))] p-4 text-[var(--site-text)] shadow-[var(--site-card-shadow)] ring-1 ring-[var(--site-primary)]/10 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] fill-mode-both motion-reduce:animate-none"
+        className="max-h-[calc(100dvh-12rem-env(safe-area-inset-bottom))] w-full max-w-sm overflow-y-auto rounded-[1.5rem] border border-[var(--site-border)] bg-[linear-gradient(145deg,var(--site-surface),var(--site-surface-soft))] p-4 text-[var(--site-text)] shadow-[var(--site-card-shadow)] ring-1 ring-[var(--site-primary)]/10 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] fill-mode-both motion-reduce:animate-none"
         data-date-detail-dialog="true"
         role="dialog"
       >
@@ -61,11 +61,21 @@ export function CalendarDayDetailDialog({
             <p className="mt-2 text-3xl font-black leading-none">
               ราคา {formatCalendarPrice(day.price)}
             </p>
+            {day.guestCapacity ? (
+              <p className="mt-2 text-xs font-bold text-[var(--site-on-primary)]/80">
+                ราคานี้รองรับ {day.guestCapacity} ท่าน
+              </p>
+            ) : null}
             <p className="mt-2 text-xs font-bold text-[var(--site-on-primary)]/80">
               ราคาเฉพาะวันที่เลือก ทักแอดมินเพื่อยืนยันก่อนหลุดคิว
             </p>
           </div>
           <div className="grid gap-3 p-3">
+            {day.holidayAlert ? (
+              <p className="whitespace-pre-line rounded-xl bg-[var(--site-surface)] px-3 py-2 text-xs font-bold leading-5 text-[var(--site-text)]">
+                {day.holidayAlert}
+              </p>
+            ) : null}
             {day.promotionMessage ? (
               <p className="whitespace-pre-line rounded-xl bg-[var(--site-surface)] px-3 py-2 text-xs font-bold leading-5 text-[var(--site-text)]">
                 {day.promotionMessage}
