@@ -767,7 +767,7 @@
                 <td>Site web styles</td>
                 <td>Supabase <code>site_web_styles</code> with exactly one bounded row for each <code>header</code>, <code>gallery</code>, and <code>house_card</code> style type.</td>
                 <td><code>lib/site-web-styles/server.ts</code>, defaults, validation, admin route helpers, and the site-web-styles cache tag. Variants are type-specific; only Gallery accepts optional six-digit hex <code>backgroundColor</code> and <code>textColor</code> options.</td>
-                <td>Public Header, villa-card style provider, villa detail and activity gallery modals, and <code>/admin/settings/web-style</code>. The expand migration backfills legacy Header and villa-card style values; legacy columns are retained until a separately verified contract migration.</td>
+                <td>Public Header, villa-card style provider, villa detail and activity gallery modals, and <code>/admin/settings/web-style</code>. The contract migration removed the legacy <code>site_header_settings</code> table and <code>site_settings.villa_card_style</code> column; the header compatibility adapter remains application-only.</td>
               </tr>
             <tr>
               <td>Detail layout settings</td>
