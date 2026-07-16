@@ -32,5 +32,8 @@ describe("CalendarDayDetailDialog", () => {
     expect(markup.indexOf("ราคานี้รองรับ 18 ท่าน")).toBeLessThan(
       markup.indexOf("ราคาเฉพาะวันที่เลือก"),
     );
+    expect(markup).toContain(
+      "max-h-[calc(100dvh-12rem-env(safe-area-inset-bottom))]",
+    );
   });
 });
