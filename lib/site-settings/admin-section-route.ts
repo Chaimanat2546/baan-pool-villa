@@ -3,7 +3,16 @@ import {
   type HomeConfigSupabaseClient,
   type SupabaseLikeError,
 } from "@/lib/admin/route-helpers";
-import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
+import {
+  revalidateSiteSeoSettingsCache,
+  revalidateSiteSettingsCache,
+} from "@/lib/cache-revalidation";
+import {
+  buildSiteSeoRows,
+  mapSiteSeoRowsToLegacyProjection,
+  SITE_SEO_PAGE_TYPES,
+  type SiteSeoSettingsRow,
+} from "@/lib/site-seo-settings/rows";
 
 import {
   cleanupFailedSiteAssetSave,
@@ -33,6 +42,44 @@ const ASSET_PERSISTENCE_COLUMNS: Record<SiteAssetType, readonly string[]> = {
   "search-seo-og": ["search_seo_og_image_url"],
   "guides-seo-og": ["guides_seo_og_image_url"],
 };
+const SITE_SEO_PAGE_TYPE_SET = new Set<string>(SITE_SEO_PAGE_TYPES);
+
+function incompleteSiteSeoRowsError(): SupabaseLikeError {
+  return {
+    code: "SITE_SEO_SETTINGS_INCOMPLETE",
+    details: `Expected exactly one usable row for each page type: ${SITE_SEO_PAGE_TYPES.join(", ")}.`,
+    message: "SEO settings rows are incomplete.",
+  };
+}
+
+function getCompleteSiteSeoRows(data: unknown): SiteSeoSettingsRow[] | null {
+  if (!Array.isArray(data) || data.length !== SITE_SEO_PAGE_TYPES.length) {
+    return null;
+  }
+
+  const pageTypes = new Set<string>();
+
+  for (const row of data) {
+    if (row === null || typeof row !== "object" || Array.isArray(row)) {
+      return null;
+    }
+
+    const { page_type: pageType, settings } = row as Record<string, unknown>;
+    if (
+      typeof pageType !== "string" ||
+      !SITE_SEO_PAGE_TYPE_SET.has(pageType) ||
+      pageTypes.has(pageType) ||
+      settings === null ||
+      typeof settings !== "object" ||
+      Array.isArray(settings)
+    ) {
+      return null;
+    }
+    pageTypes.add(pageType);
+  }
+
+  return data as SiteSeoSettingsRow[];
+}
 
 function unknownSectionResponse() {
   return Response.json({ error: "Unknown settings section." }, { status: 404 });
@@ -57,6 +104,36 @@ async function loadSection(
   error: SupabaseLikeError | null;
   availableColumns: ReadonlySet<string>;
 }> {
+  if (section === "seo") {
+    const result = await supabase
+      .from("site_seo_settings")
+      .select("page_type,settings");
+
+    if (result.error) {
+      return { data: null, error: result.error, availableColumns: new Set() };
+    }
+
+    const rows = getCompleteSiteSeoRows(result.data);
+    if (!rows) {
+      return {
+        data: null,
+        error: incompleteSiteSeoRowsError(),
+        availableColumns: new Set(),
+      };
+    }
+
+    return {
+      data: {
+        id: SITE_SETTINGS_ID,
+        ...mapSiteSeoRowsToLegacyProjection(rows),
+      } as SiteSettingsRow,
+      error: null,
+      availableColumns: new Set(
+        getSiteSettingsSectionSelects("seo")[0].split(","),
+      ),
+    };
+  }
+
   let lastError: SupabaseLikeError | null = null;
 
   for (const select of getSiteSettingsSectionSelects(section)) {
@@ -185,12 +262,25 @@ export async function saveAdminSiteSettingsSection(
     currentSettings,
     uploaded.uploadedAssets,
   )).filter(([column]) => availableColumns.has(column)));
-  const { data: updatedRow, error: saveError } = await supabase
-    .from("site_settings")
-    .update(payload)
-    .eq("id", SITE_SETTINGS_ID)
-    .select("id")
-    .maybeSingle();
+  let saveError: SupabaseLikeError | null;
+  let updatedRow: unknown = true;
+
+  if (section === "seo") {
+    const result = await supabase
+      .from("site_seo_settings")
+      .upsert(buildSiteSeoRows(payload), { onConflict: "page_type" })
+      .select("page_type,settings");
+    saveError = result.error;
+  } else {
+    const result = await supabase
+      .from("site_settings")
+      .update(payload)
+      .eq("id", SITE_SETTINGS_ID)
+      .select("id")
+      .maybeSingle();
+    saveError = result.error;
+    updatedRow = result.data;
+  }
 
   if (saveError || !updatedRow) {
     const cleanupWarnings = await cleanupFailedSiteAssetSave(
@@ -206,10 +296,12 @@ export async function saveAdminSiteSettingsSection(
     });
   }
 
-  const historyUpdateError = await markPreviousUploadsInactive(
-    supabase,
-    history.recordedAssets,
-  );
+  const { data: savedRow, error: reloadError } = await loadSection(section, supabase);
+  const verified = !reloadError && savedRow !== null;
+  const shouldFinalizeAssets = section !== "seo" || verified;
+  const historyUpdateError = shouldFinalizeAssets
+    ? await markPreviousUploadsInactive(supabase, history.recordedAssets)
+    : null;
   if (historyUpdateError) {
     console.error("Unable to mark previous site asset uploads inactive", historyUpdateError);
   }
@@ -218,19 +310,19 @@ export async function saveAdminSiteSettingsSection(
     ...(historyUpdateError
       ? ["Unable to mark previous site asset uploads inactive."]
       : []),
-    ...(uploaded.uploadedAssets.length > 0
+    ...(shouldFinalizeAssets && uploaded.uploadedAssets.length > 0
       ? await cleanupRetainedAssets(supabase)
       : []),
   ];
-  const { data: savedRow, error: reloadError } = await loadSection(section, supabase);
-  const verified = !reloadError && savedRow !== null;
   const responseRow = savedRow ?? ({ ...existingRow, ...payload } as SiteSettingsRow);
   if (!verified) {
     warnings.push("Settings were saved but could not be reloaded.");
   }
 
   try {
-    await revalidateSiteSettingsCache();
+    await (section === "seo"
+      ? revalidateSiteSeoSettingsCache()
+      : revalidateSiteSettingsCache());
   } catch {
     warnings.push("Settings were saved but cache refresh failed.");
   }
