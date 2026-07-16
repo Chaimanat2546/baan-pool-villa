@@ -18,6 +18,7 @@ describe("BlockLibrary", () => {
     expect(markup).toContain("เลือกช่องในผัง");
     expect(markup).toContain("เพิ่มหรือวาง block");
     expect(markup).toContain("ฝั่ง 70 / แถว 1 / ช่องซ้าย");
+    expect(markup).toContain("ที่จอดรถ");
     expect(markup).not.toContain("max-h-[420px]");
     expect(markup).not.toContain("overflow-y-auto");
   });
@@ -47,6 +48,7 @@ describe("BlockLibrary", () => {
           "bedrooms",
           "pool",
           "kitchen",
+          "parking",
           "amenities",
           "categorized_images",
           "costs_promotions",
