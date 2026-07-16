@@ -1,40 +1,36 @@
 import "server-only";
 
+import type { HomeConfigSupabaseClient } from "@/lib/admin/route-helpers";
 import {
-  adminSupabaseErrorResponse,
-  type HomeConfigSupabaseClient,
-} from "@/lib/admin/route-helpers";
-import { revalidateSiteHeaderSettingsCache } from "@/lib/cache-revalidation";
-import { DEFAULT_SITE_HEADER_SETTINGS } from "./defaults";
-import type { SiteHeaderSettings } from "./types";
+  getAdminWebStyle,
+  saveAdminWebStyle,
+} from "@/lib/site-web-styles/admin-route";
 import {
   normalizeDesktopHeaderVariant,
   validateDesktopHeaderVariant,
 } from "./validation";
 
-function toSettings(row: unknown): SiteHeaderSettings {
-  return {
-    desktopHeaderVariant: normalizeDesktopHeaderVariant(
-      (row as { desktop_header_variant?: unknown } | null)
-        ?.desktop_header_variant,
-    ),
+async function toLegacyHeaderResponse(response: Response): Promise<Response> {
+  if (!response.ok) return response;
+
+  const payload = (await response.json()) as {
+    settings?: { variant?: unknown };
+    verified?: boolean;
+    warnings?: string[];
   };
+  return Response.json({
+    settings: {
+      desktopHeaderVariant: normalizeDesktopHeaderVariant(payload.settings?.variant),
+    },
+    ...(payload.verified === undefined ? {} : { verified: payload.verified }),
+    ...(payload.warnings === undefined ? {} : { warnings: payload.warnings }),
+  });
 }
 
 export async function getAdminSiteHeaderSettings(
   supabase: HomeConfigSupabaseClient,
 ): Promise<Response> {
-  const { data, error } = await supabase
-    .from("site_header_settings")
-    .select("desktop_header_variant")
-    .eq("singleton_id", true)
-    .maybeSingle();
-
-  if (error) {
-    return adminSupabaseErrorResponse(error, "Unable to load header settings.");
-  }
-
-  return Response.json({ settings: data ? toSettings(data) : DEFAULT_SITE_HEADER_SETTINGS });
+  return toLegacyHeaderResponse(await getAdminWebStyle("header", supabase));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -62,27 +58,16 @@ export async function saveAdminSiteHeaderSettings(
     return Response.json({ errors }, { status: 400 });
   }
 
-  const desktopHeaderVariant = normalizeDesktopHeaderVariant(body.desktopHeaderVariant);
-  const { data, error } = await supabase
-    .from("site_header_settings")
-    .upsert({ singleton_id: true, desktop_header_variant: desktopHeaderVariant })
-    .select("desktop_header_variant")
-    .maybeSingle();
-
-  if (error) {
-    return adminSupabaseErrorResponse(error, "Unable to save header settings.");
-  }
-
-  const warnings: string[] = [];
-  try {
-    await revalidateSiteHeaderSettingsCache();
-  } catch {
-    warnings.push("Header settings were saved but cache refresh failed.");
-  }
-
-  return Response.json({
-    settings: data ? toSettings(data) : { desktopHeaderVariant },
-    verified: Boolean(data),
-    warnings,
-  });
+  const response = await saveAdminWebStyle(
+    "header",
+    new Request(request.url, {
+      body: JSON.stringify({
+        variant: normalizeDesktopHeaderVariant(body.desktopHeaderVariant),
+      }),
+      headers: { "content-type": "application/json" },
+      method: "PATCH",
+    }),
+    supabase,
+  );
+  return toLegacyHeaderResponse(response);
 }

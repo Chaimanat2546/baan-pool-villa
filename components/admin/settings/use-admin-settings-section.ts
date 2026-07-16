@@ -11,11 +11,12 @@ import {
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { getAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import type { SiteSettingsSection } from "@/lib/site-settings/admin-section-contracts";
+import type { WebStyleType } from "@/lib/site-web-styles/types";
 
 import { useSettingsDirtyState } from "./settings-dirty-state";
 
 export interface UseAdminSettingsSectionOptions<TDraft> {
-  section: SiteSettingsSection | "header";
+  section: SiteSettingsSection | WebStyleType;
   endpoint?: string;
   mapResponse: (value: unknown) => TDraft;
   makeSnapshot: (draft: TDraft) => string;
@@ -62,7 +63,7 @@ export function useAdminSettingsSection<TDraft>({
   validate,
 }: UseAdminSettingsSectionOptions<TDraft>): AdminSettingsSectionState<TDraft> {
   const router = useRouter();
-  const { setIsDirty } = useSettingsDirtyState();
+  const { setDirtySource } = useSettingsDirtyState();
   const generationRef = useRef(0);
   const saveInFlightGenerationRef = useRef<number | null>(null);
   const callbacksRef = useRef({
@@ -151,14 +152,14 @@ export function useAdminSettingsSection<TDraft>({
   }, [endpoint, redirectToLogin, section]);
 
   useEffect(() => {
-    setIsDirty(hasUnsavedChanges);
-  }, [hasUnsavedChanges, setIsDirty]);
+    setDirtySource(section, hasUnsavedChanges);
+  }, [hasUnsavedChanges, section, setDirtySource]);
 
   useEffect(
     () => () => {
-      setIsDirty(false);
+      setDirtySource(section, false);
     },
-    [setIsDirty],
+    [section, setDirtySource],
   );
 
   const updateDraft = useCallback((changes: Partial<TDraft>) => {

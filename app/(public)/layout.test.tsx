@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 
 vi.mock("@/components/layout/mobile-bottom-nav", () => ({
   MobileBottomNav: () => <nav data-testid="mobile-bottom-nav" />,
@@ -37,22 +38,29 @@ vi.mock("@/components/villas/listing/villa-card-style-context", () => ({
 vi.mock("@/lib/site-settings/server", () => ({
   getSiteSettings: vi.fn(),
 }));
+vi.mock("@/lib/site-web-styles/server", () => ({
+  getSiteWebStyles: vi.fn(),
+}));
 
 const mockedGetSiteSettings = vi.mocked(getSiteSettings);
+const mockedGetSiteWebStyles = vi.mocked(getSiteWebStyles);
 
 describe("PublicLayout", () => {
   beforeEach(() => {
     mockedGetSiteSettings.mockReset();
+    mockedGetSiteWebStyles.mockReset();
   });
 
   it("passes the site villa card style setting to public page content", async () => {
     mockedGetSiteSettings.mockResolvedValue({
       degraded: false,
-      settings: {
-        ...DEFAULT_SITE_SETTINGS,
-        villaCardStyle: "gallery",
-      },
+      settings: DEFAULT_SITE_SETTINGS,
       source: "database",
+    });
+    mockedGetSiteWebStyles.mockResolvedValue({
+      gallery: { variant: "lightbox" },
+      header: { variant: "right-booking" },
+      houseCard: { variant: "gallery" },
     });
 
     const PublicLayout = (await import("./layout")).default;

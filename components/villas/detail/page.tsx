@@ -11,6 +11,7 @@ const EMPTY_ADVERTISEMENTS: NonNullable<VillaDetailPageProps["advertisements"]> 
 
 export function VillaDetailPage({
   advertisements = EMPTY_ADVERTISEMENTS,
+  galleryStyle,
   id,
   initialGalleryImages = EMPTY_INITIAL_GALLERY_IMAGES,
   payload,
@@ -42,6 +43,7 @@ export function VillaDetailPage({
         bookingSidebarId={bookingSidebarId}
         advertisements={advertisements}
         content={content}
+        galleryStyle={galleryStyle}
         id={id}
         initialGalleryImages={initialGalleryImages}
         listing={listing}

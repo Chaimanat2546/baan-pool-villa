@@ -2,46 +2,31 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_SITE_HEADER_SETTINGS } from "../defaults";
 import { getSiteHeaderSettings } from "../server";
-import { createHomeConfigClient } from "@/lib/home-sections/supabase";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 
 vi.mock("server-only", () => ({}));
-vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
-vi.mock("react", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("react")>()),
-  cache: (fn: unknown) => fn,
-}));
-vi.mock("@/lib/home-sections/supabase", () => ({
-  createHomeConfigClient: vi.fn(),
+vi.mock("@/lib/site-web-styles/server", () => ({
+  getSiteWebStyles: vi.fn(),
 }));
 
-const createHomeConfigClientMock = vi.mocked(createHomeConfigClient);
-
-function mockHeaderSettingsQuery(result: { data: unknown; error: unknown }) {
-  const maybeSingle = vi.fn().mockResolvedValue(result);
-  const eq = vi.fn().mockReturnValue({ maybeSingle });
-  const select = vi.fn().mockReturnValue({ eq });
-  const from = vi.fn().mockReturnValue({ select });
-  createHomeConfigClientMock.mockReturnValue({ from } as ReturnType<typeof createHomeConfigClient>);
-  return { eq, from, select };
-}
+const getSiteWebStylesMock = vi.mocked(getSiteWebStyles);
 
 describe("getSiteHeaderSettings", () => {
-  it("reads the isolated header singleton", async () => {
-    const query = mockHeaderSettingsQuery({
-      data: { desktop_header_variant: "right-booking" },
-      error: null,
+  it("reads Header from the Web Styles owner", async () => {
+    getSiteWebStylesMock.mockResolvedValueOnce({
+      gallery: { variant: "lightbox" },
+      header: { variant: "right-booking" },
+      houseCard: { variant: "classic" },
     });
 
     await expect(getSiteHeaderSettings()).resolves.toEqual({
       desktopHeaderVariant: "right-booking",
     });
-    expect(query.from).toHaveBeenCalledWith("site_header_settings");
-    expect(query.select).toHaveBeenCalledWith("desktop_header_variant");
-    expect(query.eq).toHaveBeenCalledWith("singleton_id", true);
+    expect(getSiteWebStylesMock).toHaveBeenCalledOnce();
   });
 
-  it("uses the safe default when the new table is unavailable", async () => {
-    mockHeaderSettingsQuery({ data: null, error: { message: "table missing" } });
+  it("uses the safe default when the Web Styles reader rejects", async () => {
+    getSiteWebStylesMock.mockRejectedValueOnce(new Error("table missing"));
 
     await expect(getSiteHeaderSettings()).resolves.toEqual(
       DEFAULT_SITE_HEADER_SETTINGS,

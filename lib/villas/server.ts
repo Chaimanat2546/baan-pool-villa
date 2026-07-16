@@ -37,6 +37,10 @@ type SupabaseFacilityJoin = {
   value_boolean: boolean | null;
 };
 
+type SupabaseListingFacilityRow = SupabaseFacilityJoin & {
+  listing_id: string | null;
+};
+
 type SupabaseListingRow = {
   bathrooms: number | null;
   bedrooms: number | null;
@@ -111,15 +115,7 @@ const LISTING_SELECT_COLUMNS = `
   rating,
   max_guests,
   is_active,
-  property_tags,
-  listing_facilities (
-    value_boolean,
-    message,
-    facilities (
-      name,
-      title
-    )
-  )
+  property_tags
 `;
 const SEARCH_LISTING_SELECT_COLUMNS = `
   id,
@@ -327,6 +323,7 @@ function toVillaListing(
   row: SupabaseListingRow,
   coverImages: Map<string, string>,
   prices: Map<string, number>,
+  facilitiesByListingId = new Map<string, SupabaseFacilityJoin[]>(),
 ): VillaListing | null {
   const id = row.property_id === null ? "" : String(row.property_id).trim();
 
@@ -348,7 +345,9 @@ function toVillaListing(
     price: listingId ? (prices.get(listingId) ?? null) : null,
     people: toNumber(row.max_guests),
     coverImage: coverImages.get(id) ?? null,
-    amenities: (row.listing_facilities ?? [])
+    amenities: (listingId
+      ? (facilitiesByListingId.get(listingId) ?? [])
+      : (row.listing_facilities ?? []))
       .map(toAmenity)
       .filter((amenity): amenity is Amenity => amenity !== null),
     poolType: row.property_type?.trim() || "-",
@@ -498,6 +497,40 @@ async function fetchListingPrices(
   }
 
   return prices;
+}
+
+async function fetchListingFacilities(
+  supabase: VillaSupabaseClient,
+  listingIds: string[],
+): Promise<Map<string, SupabaseFacilityJoin[]>> {
+  if (listingIds.length === 0) {
+    return new Map();
+  }
+
+  const facilitiesByListingId = new Map<string, SupabaseFacilityJoin[]>();
+
+  for (const chunk of chunkListingIds(listingIds)) {
+    const { data, error } = await supabase
+      .from("listing_facilities")
+      .select("listing_id, value_boolean, message, facilities(name, title)")
+      .in("listing_id", chunk);
+
+    if (error) {
+      throw new Error(`Supabase listing facilities query failed: ${error.message}`);
+    }
+
+    for (const row of (data ?? []) as SupabaseListingFacilityRow[]) {
+      const listingId = row.listing_id?.trim();
+
+      if (listingId) {
+        const rows = facilitiesByListingId.get(listingId) ?? [];
+        rows.push(row);
+        facilitiesByListingId.set(listingId, rows);
+      }
+    }
+  }
+
+  return facilitiesByListingId;
 }
 
 function selectListings(
@@ -733,15 +766,16 @@ async function hydrateListingRows(
   const listingIds = rows
     .map((row) => row.id?.trim())
     .filter((id): id is string => Boolean(id));
-  const [coverImages, prices] = await Promise.all([
+  const [coverImages, prices, facilitiesByListingId] = await Promise.all([
     includeCoverImages
       ? fetchListingCoverImages(supabase, supabaseUrl, propertyIds)
       : new Map<string, string>(),
     fetchListingPrices(supabase, listingIds),
+    fetchListingFacilities(supabase, listingIds),
   ]);
 
   return rows
-    .map((row) => toVillaListing(row, coverImages, prices))
+    .map((row) => toVillaListing(row, coverImages, prices, facilitiesByListingId))
     .filter((listing): listing is VillaListing => listing !== null);
 }
 
@@ -1165,14 +1199,15 @@ async function fetchListingByIdFromSupabase(
   const row = data as unknown as SupabaseListingRow;
   const propertyId = toNumber(row.property_id);
   const listingId = row.id?.trim();
-  const [coverImages, prices] = await Promise.all([
+  const [coverImages, prices, facilitiesByListingId] = await Promise.all([
     Number.isSafeInteger(propertyId) && propertyId > 0
       ? fetchListingCoverImages(supabase, supabaseUrl, [propertyId])
       : new Map<string, string>(),
     listingId ? fetchListingPrices(supabase, [listingId]) : new Map<string, number>(),
+    listingId ? fetchListingFacilities(supabase, [listingId]) : new Map<string, SupabaseFacilityJoin[]>(),
   ]);
 
-  return toVillaListing(row, coverImages, prices);
+  return toVillaListing(row, coverImages, prices, facilitiesByListingId);
 }
 
 async function fetchSupabaseDetailFallback(
@@ -1188,6 +1223,24 @@ async function fetchSupabaseDetailFallback(
   return data ? toVillaDetail(data as unknown as SupabaseListingRow) : null;
 }
 
+function mergeVillaDetailSources(
+  supabaseDetail: Record<string, unknown> | null,
+  devilleDetail: unknown,
+): unknown {
+  if (!supabaseDetail || typeof devilleDetail !== "object" || devilleDetail === null || Array.isArray(devilleDetail)) {
+    return devilleDetail;
+  }
+
+  return {
+    ...devilleDetail,
+    ...Object.fromEntries(
+      Object.entries(supabaseDetail).filter(([, value]) =>
+        value !== null && value !== undefined && (typeof value !== "string" || value.trim() !== ""),
+      ),
+    ),
+  };
+}
+
 async function fetchVillaDetailFromSources(
   id: string,
   listing: VillaListing,
@@ -1195,11 +1248,12 @@ async function fetchVillaDetailFromSources(
   const tag = CACHE_TAGS.villaDetail(id);
   const getCachedVillaDetail = unstable_cache(
     async (): Promise<Omit<VillaDetailPayload, "listing">> => {
+      const supabaseDetail = await fetchSupabaseDetailFallback(id);
       const token = process.env.DEVILLE_BEARER_TOKEN?.trim();
 
       if (!token) {
         return {
-          detail: await fetchSupabaseDetailFallback(id),
+          detail: supabaseDetail,
           detailStatus: "missing_token",
         };
       }
@@ -1216,7 +1270,7 @@ async function fetchVillaDetailFromSources(
 
         if (response.ok) {
           return {
-            detail: await readJson<unknown>(response),
+            detail: mergeVillaDetailSources(supabaseDetail, await readJson<unknown>(response)),
             detailStatus: "available",
           };
         }
@@ -1225,7 +1279,7 @@ async function fetchVillaDetailFromSources(
       }
 
       return {
-        detail: await fetchSupabaseDetailFallback(id),
+        detail: supabaseDetail,
         detailStatus: "unavailable",
       };
     },

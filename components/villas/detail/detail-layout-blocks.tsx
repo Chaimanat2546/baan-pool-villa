@@ -12,6 +12,7 @@ import type {
   DetailLayoutBlockType,
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
 import type {
   VillaDetailContent,
   VillaDetailSection,
@@ -34,6 +35,7 @@ interface DetailLayoutBlockContext {
   bookingSidebarId?: string;
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
+  galleryStyle: GalleryStyleSettings;
   listing: VillaListing;
   recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
@@ -283,6 +285,7 @@ function renderRulesPetPolicy({ content }: DetailLayoutBlockContext) {
 
 function renderAdvertisements({
   advertisements,
+  galleryStyle,
   listing,
 }: DetailLayoutBlockContext) {
   if (advertisements.length === 0) {
@@ -292,6 +295,7 @@ function renderAdvertisements({
   return (
     <ActivityAdvertisementsSection
       advertisements={advertisements}
+      galleryStyle={galleryStyle}
       listing={listing}
     />
   );

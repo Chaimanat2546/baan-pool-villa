@@ -5,6 +5,7 @@ import { act, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
+import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
 import type {
   VillaDetailPayload,
   VillaImage,
@@ -19,11 +20,13 @@ vi.mock("../gallery", () => ({
   Gallery: ({
     items,
     onImageClick,
+    onViewAll,
     totalImageCount,
   }: {
     items: GalleryItem[];
     onImageClick: (item: GalleryItem) => void;
-    totalImageCount: number;
+    onViewAll: () => void;
+    totalImageCount: number | null;
   }) => (
     <section
       data-gallery-items={items.map((item) => item.url).join("|")}
@@ -41,10 +44,58 @@ vi.mock("../gallery", () => ({
           {item.zoneLabel}
         </button>
       ))}
+      <button data-gallery-view-all type="button" onClick={onViewAll}>
+        view all
+      </button>
     </section>
   ),
-  GalleryLightbox: ({ activeItem }: { activeItem: GalleryItem | null }) =>
-    activeItem ? <div data-lightbox-active={activeItem.url} /> : null,
+  GalleryLightbox: ({
+    activeItem,
+    onClose,
+    showCategorySelector,
+    thumbnailPlacement,
+  }: {
+    activeItem: GalleryItem | null;
+    onClose: () => void;
+    showCategorySelector?: boolean;
+    thumbnailPlacement?: "bottom" | "side";
+  }) =>
+    activeItem ? (
+      <div
+        data-lightbox-active={activeItem.url}
+        data-lightbox-category-selector={String(showCategorySelector)}
+        data-lightbox-thumbnail-placement={thumbnailPlacement}
+      >
+        <button data-lightbox-close type="button" onClick={onClose}>
+          close
+        </button>
+      </div>
+    ) : null,
+}));
+
+vi.mock("../gallery-overview-modal", () => ({
+  GalleryOverviewModal: ({
+    categories,
+    onClose,
+    onSelect,
+  }: {
+    categories: Array<{ items: GalleryItem[] }>;
+    onClose: () => void;
+    onSelect: (item: GalleryItem) => void;
+  }) => (
+    <div data-gallery-overview="true">
+      <button data-overview-close type="button" onClick={onClose}>
+        close overview
+      </button>
+      <button
+        data-overview-item
+        type="button"
+        onClick={() => onSelect(categories[0].items[0])}
+      >
+        open item
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock("../detail-layout-renderer", () => ({
@@ -141,6 +192,7 @@ function makePage(id = listing.id, activeListing = listing) {
   return (
     <VillaDetailPage
       id={id}
+      galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
       payload={makePayload(activeListing)}
       recommendedSection={null}
       settings={DEFAULT_SITE_SETTINGS}
@@ -156,6 +208,7 @@ function makePageWithInitialGalleryImages(
   return (
     <VillaDetailPage
       id={id}
+      galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
       initialGalleryImages={initialGalleryImages}
       payload={makePayload(activeListing)}
       recommendedSection={null}
@@ -471,6 +524,62 @@ describe("VillaDetailPage deferred gallery loader", () => {
 
     await clickFirstGalleryItem(page.container);
 
+    expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
+
+    await page.unmount();
+  });
+
+  it("opens the categorized overview, continues to the lightbox, and returns to the overview", async () => {
+    const fetchMock = makeGalleryFetchMock(() =>
+      makeJsonResponse({ images: [apiCoverImage, apiImage] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const page = renderPage();
+
+    await page.render(
+      <VillaDetailPage
+        galleryStyle={{ variant: "categorized-grid" }}
+        id={listing.id}
+        initialGalleryImages={[apiCoverImage]}
+        payload={makePayload()}
+        recommendedSection={null}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    await flushReact();
+
+    await act(async () => {
+      (page.container.querySelector("[data-gallery-view-all]") as HTMLButtonElement).click();
+    });
+    await flushReact();
+
+    expect(page.container.querySelector('[data-gallery-overview="true"]')).not.toBeNull();
+    expect(page.container.querySelector("[data-lightbox-active]")).toBeNull();
+
+    await act(async () => {
+      (page.container.querySelector("[data-overview-item]") as HTMLButtonElement).click();
+    });
+    await flushReact();
+
+    expect(page.container.querySelector('[data-gallery-overview="true"]')).toBeNull();
+    const categorizedLightbox = page.container.querySelector(
+      "[data-lightbox-active]",
+    );
+    expect(categorizedLightbox).not.toBeNull();
+    expect(
+      categorizedLightbox?.getAttribute("data-lightbox-category-selector"),
+    ).toBe("false");
+    expect(
+      categorizedLightbox?.getAttribute("data-lightbox-thumbnail-placement"),
+    ).toBe("bottom");
+
+    await act(async () => {
+      (page.container.querySelector("[data-lightbox-close]") as HTMLButtonElement).click();
+    });
+    await flushReact();
+
+    expect(page.container.querySelector('[data-gallery-overview="true"]')).not.toBeNull();
+    expect(page.container.querySelector("[data-lightbox-active]")).toBeNull();
     expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
 
     await page.unmount();

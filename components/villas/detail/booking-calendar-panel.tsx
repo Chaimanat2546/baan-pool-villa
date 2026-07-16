@@ -11,12 +11,12 @@ import { CalendarDayDetailDialog } from "./booking-calendar-day-detail-dialog";
 import { BookingCalendarMonthCaption } from "./booking-calendar-month-caption";
 import { CalendarLegend } from "./booking-calendar-parts";
 import {
+  addCalendarMonths,
   findFirstAvailableCalendarDateKey,
   formatCalendarDateKey,
   formatCalendarMonthKey,
   formatThaiCalendarDate,
   getFallbackCalendarDay,
-  isCalendarDateSelectable,
   startOfCalendarDate,
   type BookingCalendarDay,
   type BookingCalendarMonth,
@@ -136,20 +136,22 @@ export function BookingCalendarPanel({
         month={visibleMonth}
         onMonthChange={setVisibleMonth}
         disabled={(date) =>
-          !isCalendarDateSelectable({ date, todayStart, visibleMonth }) ||
           isOutsideVisibleMonth(date) ||
-          bookingCalendar?.month !== visibleMonthKey
+          bookingCalendar?.month !== visibleMonthKey ||
+          getCalendarDay(date).disabled
         }
         onSelect={(date) => {
           if (
             date &&
-            isCalendarDateSelectable({ date, todayStart, visibleMonth }) &&
             !isOutsideVisibleMonth(date) &&
-            (!getCalendarDay(date).disabled || isPastVisibleMonth)
+            !getCalendarDay(date).disabled
           ) {
             setIsCalendarTipDismissed(true);
             setSelectedCalendarDate(date);
           }
+        }}
+        classNames={{
+          disabled: "text-muted-foreground opacity-100",
         }}
         hideNavigation
         today={today}
@@ -160,6 +162,8 @@ export function BookingCalendarPanel({
               calendarMonth={calendarMonth}
               className={className}
               currentMonth={currentMonth}
+              maximumMonth={addCalendarMonths(currentMonth, 12)}
+              minimumMonth={addCalendarMonths(currentMonth, -1)}
               setVisibleMonth={setVisibleMonth}
               showNextMonthPointer={!isPastVisibleMonth}
             />

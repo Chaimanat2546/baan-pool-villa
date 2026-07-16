@@ -116,7 +116,6 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   bankNameHighlightColor: "#eab308",
   bankNumberHighlightColor: "#eab308",
   logoBackground: "white",
-  villaCardStyle: "classic",
   logoImage: {
     path: "/images/logo.jpg",
     url: "/images/logo.jpg",

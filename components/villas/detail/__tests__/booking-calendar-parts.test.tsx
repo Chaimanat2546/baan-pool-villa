@@ -86,6 +86,8 @@ describe("booking calendar parts", () => {
       <BookingCalendarMonthCaption
         calendarMonth={{ date: new Date(2026, 5, 1) }}
         currentMonth={new Date(2026, 6, 1)}
+        maximumMonth={new Date(2027, 6, 1)}
+        minimumMonth={new Date(2026, 5, 1)}
         setVisibleMonth={() => undefined}
         showNextMonthPointer={false}
       />,

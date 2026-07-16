@@ -136,8 +136,8 @@ describe("HomePage", () => {
       "bank",
       "contact",
       "heroImage",
+      "siteName",
       "tiktok",
-      "villaCardStyle",
     ]);
     expect(settings.heroImage).toBe(DEFAULT_SITE_SETTINGS.heroImage);
     expect(settings.tiktok).toEqual(DEFAULT_SITE_SETTINGS.tiktok);
@@ -146,7 +146,7 @@ describe("HomePage", () => {
     expect(settings).not.toHaveProperty("seo");
     expect(settings).not.toHaveProperty("detailLayout");
     expect(settings).not.toHaveProperty("logoImage");
-    expect(settings).not.toHaveProperty("siteName");
+    expect(settings.siteName).toBe(DEFAULT_SITE_SETTINGS.siteName);
   });
 
   it("limits the homepage settings TikTok payload to the rendered videos", () => {

@@ -116,6 +116,48 @@ describe("GalleryLightbox", () => {
     expect(markup).not.toContain("ดาวน์โหลดรูปนี้");
   });
 
+  it("keeps a categorized selection in one category with thumbnails below", () => {
+    const markup = renderToStaticMarkup(
+      <GalleryLightbox
+        activeItem={item}
+        categories={[{ ...categories[0], items: [item, secondItem] }]}
+        listing={listing}
+        onClose={() => undefined}
+        onImageError={() => undefined}
+        onSelect={() => undefined}
+        showCategorySelector={false}
+        thumbnailPlacement="bottom"
+      />,
+    );
+
+    expect(markup).toContain('data-gallery-thumbnail-placement="bottom"');
+    expect(markup).toContain('data-gallery-thumbnail-strip="bottom"');
+    expect(markup).not.toContain("เลือกหมวดหมู่");
+    expect(markup.match(/ดูรูปหมวดPool/g) ?? []).toHaveLength(2);
+  });
+
+  it("applies optional gallery modal colors without replacing theme fallbacks", () => {
+    const markup = renderToStaticMarkup(
+      <GalleryLightbox
+        activeItem={item}
+        categories={categories}
+        listing={listing}
+        onClose={() => undefined}
+        onImageError={() => undefined}
+        onSelect={() => undefined}
+        style={{
+          backgroundColor: "#123456",
+          textColor: "#ffffff",
+          variant: "categorized-grid",
+        }}
+      />,
+    );
+
+    expect(markup).toContain("--gallery-modal-background:#123456");
+    expect(markup).toContain("--gallery-modal-text:#ffffff");
+    expect(markup).toContain("bg-[var(--gallery-modal-background");
+  });
+
   it("does not select an empty category", async () => {
     const container = document.createElement("div");
     document.body.append(container);

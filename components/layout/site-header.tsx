@@ -125,9 +125,9 @@ export function SiteHeader({ desktopHeaderVariant = "centered-contact", previewM
         <div className={`${isClassicDesktop ? "lg:hidden " : ""}relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:grid lg:min-h-[64px] lg:grid-cols-[1fr_auto_1fr] lg:py-0 lg:px-8`}>
           <a
             href="/"
-            className="flex min-w-0 flex-1 items-center gap-2 lg:absolute lg:left-8 lg:top-0 lg:z-10 lg:grid lg:h-full lg:w-[20rem] lg:grid-cols-[3rem_minmax(0,1fr)] lg:grid-rows-[24px_32px] lg:gap-x-2 xl:w-[26rem]"
+            className="flex min-w-0 flex-1 items-center gap-2 lg:absolute lg:left-8 lg:top-0 lg:z-10 lg:grid lg:h-full lg:w-[20rem] lg:translate-y-[3px] lg:grid-cols-[3rem_minmax(0,1fr)] lg:grid-rows-[24px_2px_31px] lg:gap-x-2 xl:w-[26rem]"
           >
-            <span className={`relative h-auto w-16 shrink-0 self-stretch overflow-hidden rounded-2xl border-4 p-1.5 lg:row-span-2 lg:h-12 lg:w-12 lg:self-center ${logoBackgroundClass} ${logoBorderClass}`}>
+            <span className={`relative h-auto w-16 shrink-0 self-stretch overflow-hidden rounded-2xl border-4 p-1.5 lg:row-span-3 lg:mt-1 lg:h-12 lg:w-12 lg:self-start ${logoBackgroundClass} ${logoBorderClass}`}>
               <Image
                 src={logoImageSrc}
                 alt={settings.logoImage.alt}
@@ -139,10 +139,11 @@ export function SiteHeader({ desktopHeaderVariant = "centered-contact", previewM
               />
             </span>
             <span className="min-w-0 lg:contents">
-              <span className="block truncate text-lg font-semibold leading-7 text-[var(--site-header-link)] sm:text-2xl sm:leading-8 lg:col-start-2 lg:row-start-1 lg:self-end lg:translate-y-1 lg:text-lg lg:leading-6">
+              <span className="block truncate text-lg font-semibold leading-7 text-[var(--site-header-link)] sm:text-2xl sm:leading-8 lg:col-start-2 lg:row-start-1 lg:self-end lg:translate-y-1 lg:text-lg lg:leading-6 ">
                 {settings.siteName}
               </span>
-              <span className="block text-[11px] leading-4 text-[var(--site-header-link)] sm:text-sm sm:leading-5 lg:col-start-2 lg:row-start-2 lg:-mt-1 lg:flex lg:items-center lg:gap-x-1 lg:whitespace-nowrap lg:pt-1 lg:border-t lg:border-[color:var(--site-header-link)]/25 lg:text-[10px] lg:leading-3">
+              <span aria-hidden="true" className="hidden rounded-full bg-[var(--site-header-link)] lg:col-start-2 lg:row-start-2 lg:block lg:self-stretch" />
+              <span className="block text-[11px] leading-4 text-[var(--site-header-link)] sm:text-sm sm:leading-5 lg:col-start-2 lg:row-start-3 lg:flex lg:self-start lg:items-center lg:gap-x-1 lg:whitespace-nowrap lg:text-[10px] lg:leading-3">
                 <span>กรุณาโอนเงิน</span>{" "}
                 <span className="inline-flex gap-1 rounded-full font-semibold text-[var(--site-bank-account-highlight)] lg:ml-0">
                   <span>ชื่อบัญชี</span>

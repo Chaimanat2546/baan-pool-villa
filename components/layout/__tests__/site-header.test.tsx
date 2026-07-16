@@ -94,7 +94,7 @@ describe("SiteHeader", () => {
     expect(markup).not.toContain(
       `${DEFAULT_SITE_SETTINGS.bank.bankName} เลขที่ ${DEFAULT_SITE_SETTINGS.bank.accountNumber}`,
     );
-    expect(markup).toContain("border-[color:var(--site-header-link)]/25");
+    expect(markup).toContain("bg-[var(--site-header-link)]");
     expect(markup).toContain("text-[var(--site-bank-account-highlight)]");
     expect(markup).toContain("text-[var(--site-bank-name-highlight)]");
     expect(markup).toContain("text-[var(--site-bank-number-highlight)]");
@@ -122,7 +122,7 @@ describe("SiteHeader", () => {
       <SiteHeader settings={DEFAULT_SITE_SETTINGS} />,
     );
 
-    expect(markup).toContain("lg:row-span-2");
+    expect(markup).toContain("lg:row-span-3");
     expect(markup).not.toContain("lg:ml-[6.25rem]");
   });
 
