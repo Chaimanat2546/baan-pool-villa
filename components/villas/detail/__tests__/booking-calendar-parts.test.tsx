@@ -15,6 +15,8 @@ import { BookingCalendarMonthCaption } from "../booking-calendar-month-caption";
 const baseDay: BookingCalendarDay = {
   disabled: false,
   displayPrice: "9,900",
+  guestCapacity: "12",
+  holidayAlert: null,
   icons: [],
   kind: "base",
   label: "วันธรรมดา",

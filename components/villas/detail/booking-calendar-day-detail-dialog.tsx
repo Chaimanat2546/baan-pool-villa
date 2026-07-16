@@ -61,11 +61,21 @@ export function CalendarDayDetailDialog({
             <p className="mt-2 text-3xl font-black leading-none">
               ราคา {formatCalendarPrice(day.price)}
             </p>
+            {day.guestCapacity ? (
+              <p className="mt-2 text-xs font-bold text-[var(--site-on-primary)]/80">
+                ราคานี้รองรับ {day.guestCapacity} ท่าน
+              </p>
+            ) : null}
             <p className="mt-2 text-xs font-bold text-[var(--site-on-primary)]/80">
               ราคาเฉพาะวันที่เลือก ทักแอดมินเพื่อยืนยันก่อนหลุดคิว
             </p>
           </div>
           <div className="grid gap-3 p-3">
+            {day.holidayAlert ? (
+              <p className="whitespace-pre-line rounded-xl bg-[var(--site-surface)] px-3 py-2 text-xs font-bold leading-5 text-[var(--site-text)]">
+                {day.holidayAlert}
+              </p>
+            ) : null}
             {day.promotionMessage ? (
               <p className="whitespace-pre-line rounded-xl bg-[var(--site-surface)] px-3 py-2 text-xs font-bold leading-5 text-[var(--site-text)]">
                 {day.promotionMessage}
