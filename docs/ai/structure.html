@@ -631,8 +631,13 @@
             </tr>
             <tr>
               <td><code>lib/site-settings</code></td>
-              <td>Site identity, theme colors, header/footer link hover colors, shared and separate bank highlight colors, logo background mode, favicon/logo/hero assets, villa card style, global SEO, section SEO templates, contact/TikTok/marketing tag settings, admin route helpers, admin multipart form parsing, admin asset upload/history cleanup, defaults, validation, Supabase reads, retention.</td>
+              <td>Non-SEO site identity, theme colors, header/footer link hover colors, shared and separate bank highlight colors, logo background mode, favicon/logo/hero assets, villa card style, contact/TikTok/marketing tag settings, shared settings composition, admin route helpers, admin multipart form parsing, admin asset upload/history cleanup, defaults, validation, Supabase reads, retention. SEO persistence and row mapping do not belong here.</td>
               <td><code>lib/site-settings/__tests__</code></td>
+            </tr>
+            <tr>
+              <td><code>lib/site-seo-settings</code></td>
+              <td>SEO ownership: bounded <code>global</code>, <code>search</code>, <code>guides</code>, and <code>villa_detail</code> row mapping plus cached public reads from <code>site_seo_settings</code>. The expand deployment has one legacy <code>site_settings</code> projection fallback; the contract migration removes those 18 legacy columns after all four canonical rows exist.</td>
+              <td><code>lib/site-seo-settings/__tests__</code></td>
             </tr>
             <tr>
               <td><code>lib/marketing-data-layer.ts</code></td>
@@ -666,7 +671,7 @@
             </tr>
             <tr>
               <td><code>lib/cache-policy.ts</code></td>
-              <td>Data cache durations, cache tags, and public API Cache-Control headers. The public villa catalog data and bounded <code>/api/houses</code> responses use a 6-hour TTL; public villa detail data, guide, legal page, home-section, site-settings, image metadata, villa card image metadata, and embed reads keep a 12-hour TTL. <code>sitemap.xml</code> keeps a 24-hour route cache and response cache header, and uses sitemap-specific villa, guide, and legal readers with 24-hour data caches so lower page/API TTLs do not shorten crawler caching.</td>
+              <td>Data cache durations, cache tags, and public API Cache-Control headers. The public villa catalog data and bounded <code>/api/houses</code> responses use a 6-hour TTL; public villa detail data, guide, legal page, home-section, site-settings, <code>site-seo-settings</code>, image metadata, villa card image metadata, and embed reads keep a 12-hour TTL. <code>sitemap.xml</code> keeps a 24-hour route cache and response cache header, and uses sitemap-specific villa, guide, and legal readers with 24-hour data caches so lower page/API TTLs do not shorten crawler caching.</td>
               <td><code>lib/__tests__/cache-policy.test.ts</code></td>
             </tr>
             <tr>
@@ -758,10 +763,10 @@
                 <td>Home page, villa detail recommendations from the first resolved section, and admin sections editor.</td>
               </tr>
               <tr>
-                <td>Site settings</td>
-                <td>Supabase settings table with defaults fallback.</td>
-                <td><code>lib/site-settings/server.ts</code>, defaults, validation, colors, logo background options, retention, and the site-settings cache tag. Load results include <code>source</code> and <code>degraded</code>; favicon, global and section SEO templates plus page-specific keyword arrays are normalized here, header/footer link colors, hover colors, shared and separate bank highlight colors, the logo background mode, and the Google Tag Manager ID are normalized for public/admin rendering, SEO share image URLs are populated from Supabase Storage uploads, TikTok homepage settings flow directly to the client renderer, and thumbnail hydration uses client-side TikTok oEmbed caching so the homepage route does not wait on TikTok oEmbed.</td>
-                <td>Public/admin layouts, theme provider, metadata, contact actions, dedicated TikTok admin manager (<code>/admin/tiktok</code>), dedicated Marketing Tags manager (<code>/admin/marketing-tags</code>), section settings editors, GTM script rendering in the root layout, and homepage section composition.</td>
+                <td>Site and SEO settings</td>
+                <td>Supabase <code>site_settings</code> for non-SEO settings plus <code>site_seo_settings</code> with exactly one row for each <code>global</code>, <code>search</code>, <code>guides</code>, and <code>villa_detail</code> page type.</td>
+                <td><code>lib/site-settings/server.ts</code> composes non-SEO settings with SEO owned by <code>lib/site-seo-settings</code>; the sources use independent <code>site-settings</code> and <code>site-seo-settings</code> cache tags. Public loads resolve both cached sources in parallel and replace only normalized <code>seo</code>/<code>pageSeo</code> when the SEO projection exists. During the expand phase, the SEO loader may fall back once to the legacy projection; after the contract migration removes the columns, the canonical table is the only database source. Load results include <code>source</code> and <code>degraded</code>; SEO share image URLs are populated from Supabase Storage uploads.</td>
+                <td>Public/admin layouts, metadata, theme provider, contact actions, and settings editors. The compatible <code>/api/admin/site-settings/seo</code> endpoint remains unchanged for clients but reads and upserts the four canonical <code>site_seo_settings</code> rows; a save revalidates the dedicated <code>site-seo-settings</code> data tag and bumps the existing <code>site-settings</code> HTML edge-cache version group.</td>
               </tr>
               <tr>
                 <td>Site web styles</td>
@@ -771,7 +776,7 @@
               </tr>
             <tr>
               <td>Detail layout settings</td>
-              <td>Supabase detail layout config.</td>
+              <td>Admin-configurable Detail Layout blocks, including <code>parking</code> backed by the API-derived <code>h_parking</code> section.</td>
               <td><code>lib/detail-layout</code>, admin detail layout API, detail layout cache revalidation.</td>
               <td>Villa detail renderer and admin detail layout builder.</td>
             </tr>
@@ -795,6 +800,21 @@
               </tr>
           </tbody>
         </table>
+        <p>
+          The SQL Editor rollout is two-phase and ordered. Use the exact same
+          reviewed expand SQL and exact same reviewed contract SQL across all
+          three projects in Development → Staging → Production order: first run
+          <code>20260716071658_expand_site_seo_settings.sql</code>, deploy the
+          compatible application code, and verify all four canonical rows;
+          only then run
+          <code>20260716080413_contract_site_seo_settings.sql</code>. The
+          contract script aborts before dropping columns unless the four rows
+          exist, reloads the PostgREST schema, and ends with a read-only
+          postflight result expected to report
+          <code>canonical_row_count = 4</code> and
+          <code>legacy_column_count = 0</code>, and
+          <code>dependency_count = 0</code>.
+        </p>
       </section>
 
       <section id="model-workflow-map">

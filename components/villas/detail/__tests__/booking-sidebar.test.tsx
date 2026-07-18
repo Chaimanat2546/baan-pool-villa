@@ -50,6 +50,7 @@ function buildCalendarResponse(month: string) {
     days[dateKey] = {
       disabled: false,
       displayPrice: "9,900",
+      guestCapacity: "12",
       icons: [],
       kind: "base",
       label: "วันธรรมดา",
@@ -829,7 +830,11 @@ describe("BookingSidebar", () => {
     expect(promotionDate?.dataset.calendarDayKind).toBe("promotion");
     expect(promotionDate?.querySelector("[data-calendar-icon='promotion']")).toBeNull();
     expect(promotionDate?.className).toContain("!block");
-    expect(promotionDate?.className).toContain("!h-12");
+    expect(promotionDate?.className).toContain("!min-h-14");
+    expect(promotionDate?.className).toContain("!aspect-auto");
+    expect(promotionDate?.className).not.toContain("!h-12");
+    expect(promotionDate?.parentElement?.className).toContain("min-h-14");
+    expect(promotionDate?.parentElement?.className).not.toContain("aspect-square");
     expect(
       promotionDate
         ?.querySelector("[data-calendar-day-number]")
@@ -840,7 +845,35 @@ describe("BookingSidebar", () => {
         ?.querySelector("[data-calendar-day-price]")
         ?.getAttribute("class"),
     ).toContain("text-[10px]");
+    expect(
+      promotionDate
+        ?.querySelector("[data-calendar-day-price]")
+        ?.getAttribute("class"),
+    ).toContain("italic");
+    expect(
+      promotionDate
+        ?.querySelector("[data-calendar-day-price]")
+        ?.getAttribute("class"),
+    ).toContain("text-[var(--site-muted)]");
     expect(promotionDate?.textContent).toContain("5,900");
+    expect(
+      baseDate?.querySelector("[data-calendar-day-capacity]")?.textContent,
+    ).toBe("12");
+    expect(
+      baseDate
+        ?.querySelector("[data-calendar-day-capacity]")
+        ?.getAttribute("class"),
+    ).toContain("italic");
+    expect(
+      baseDate
+        ?.querySelector("[data-calendar-day-capacity]")
+        ?.getAttribute("class"),
+    ).toContain("text-[var(--site-muted)]");
+    expect(
+      baseDate
+        ?.querySelector("[data-calendar-day-capacity] svg")
+        ?.getAttribute("class"),
+    ).toContain("size-[10px]");
     expect(pastDate?.querySelector("[data-calendar-day-price]")).not.toBeNull();
     expect(baseDate?.dataset.calendarDayKind).toBe("base");
     expect(baseDate?.querySelector("[data-calendar-icon-slot='empty']")).not.toBeNull();
@@ -850,6 +883,7 @@ describe("BookingSidebar", () => {
     expect(waitingDate?.tabIndex).toBe(-1);
     expect(waitingDate?.dataset.calendarDayKind).toBe("booking_waiting");
     expect(waitingDate?.querySelector("[data-calendar-day-price]")).toBeNull();
+    expect(waitingDate?.querySelector("[data-calendar-day-capacity]")).toBeNull();
     expect(
       waitingDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
     ).toBeNull();
@@ -858,6 +892,7 @@ describe("BookingSidebar", () => {
     expect(bookedDate?.tabIndex).toBe(-1);
     expect(bookedDate?.dataset.calendarDayKind).toBe("booking_confirmed");
     expect(bookedDate?.querySelector("[data-calendar-day-price]")).toBeNull();
+    expect(bookedDate?.querySelector("[data-calendar-day-capacity]")).toBeNull();
     expect(
       bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
     ).not.toBeNull();

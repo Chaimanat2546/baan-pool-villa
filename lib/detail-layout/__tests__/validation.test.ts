@@ -99,6 +99,31 @@ describe("normalizeDetailLayout", () => {
     );
   });
 
+  it("accepts parking blocks", () => {
+    const result = validateDetailLayout({
+      version: 1,
+      lockedTop: ["gallery", "intro"],
+      rows: [
+        {
+          id: "parking",
+          columns: 1,
+          enabled: true,
+          blocks: [
+            {
+              type: "parking",
+              title: "ที่จอดรถ",
+              enabled: true,
+              hideWhenEmpty: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.layout.rows[0].blocks[0].type).toBe("parking");
+  });
+
   it("falls back to the default layout for unknown blocks or invalid ratios", () => {
     expect(
       normalizeDetailLayout({

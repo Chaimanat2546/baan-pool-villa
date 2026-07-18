@@ -231,6 +231,51 @@ function render(
 }
 
 describe("DetailLayoutRenderer", () => {
+  it("renders parking lines when the layout enables the parking block", () => {
+    const layout: DetailLayoutConfig = {
+      ...DEFAULT_DETAIL_LAYOUT,
+      rows: [
+        {
+          id: "parking_only",
+          columns: 1,
+          enabled: true,
+          blocks: [block("parking")],
+        },
+      ],
+    };
+    const markup = render(layout, {
+      sections: [
+        {
+          title: "ที่จอดรถ",
+          lines: ["จอดรถในบ้านได้ 3 คัน"],
+        },
+      ],
+    });
+
+    expect(markup).toContain('data-detail-layout-block="parking"');
+    expect(markup).toContain("ที่จอดรถ");
+    expect(markup).toContain("จอดรถในบ้านได้ 3 คัน");
+  });
+
+  it("does not render parking when its section is absent or empty", () => {
+    const layout: DetailLayoutConfig = {
+      ...DEFAULT_DETAIL_LAYOUT,
+      rows: [
+        {
+          id: "parking_only",
+          columns: 1,
+          enabled: true,
+          blocks: [block("parking")],
+        },
+      ],
+    };
+
+    expect(render(layout, { sections: [] })).toBe("");
+    expect(
+      render(layout, { sections: [{ title: "ที่จอดรถ", lines: [] }] }),
+    ).toBe("");
+  });
+
   it("renders the default detail layout blocks when data exists", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT);
 

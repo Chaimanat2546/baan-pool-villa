@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { DEFAULT_DETAIL_LAYOUT } from "../../detail-layout/defaults";
@@ -7,6 +7,10 @@ import { getSiteSettings } from "../server";
 import { createHomeConfigClient } from "../supabase";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
+
+const { getSiteSeoSettingsProjectionMock } = vi.hoisted(() => ({
+  getSiteSeoSettingsProjectionMock: vi.fn(),
+}));
 
 vi.mock("server-only", () => ({}));
 
@@ -21,6 +25,10 @@ vi.mock("react", async (importOriginal) => ({
 
 vi.mock("../supabase", () => ({
   createHomeConfigClient: vi.fn(),
+}));
+
+vi.mock("@/lib/site-seo-settings/server", () => ({
+  getSiteSeoSettingsProjection: getSiteSeoSettingsProjectionMock,
 }));
 
 const createHomeConfigClientMock = vi.mocked(createHomeConfigClient);
@@ -71,6 +79,11 @@ function mockSiteSettingsQueryQueue(
 }
 
 describe("getSiteSettings", () => {
+  beforeEach(() => {
+    getSiteSeoSettingsProjectionMock.mockReset();
+    getSiteSeoSettingsProjectionMock.mockResolvedValue(null);
+  });
+
   it("wraps the Supabase site settings read in a tagged Next cache", async () => {
     mockSiteSettingsQuery({ data: null, error: null });
 
@@ -117,27 +130,6 @@ describe("getSiteSettings", () => {
         messenger_url: " https://www.facebook.com/baanpoolvillas ",
         line_id: " @baanpoolvilla ",
         line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
-        seo_title: " Baan Pool Villa Pattaya | Private Pool Villas ",
-        seo_description: " Book private pool villas in Pattaya. ",
-        seo_keywords: [" พูลวิลล่าพัทยา ", " บ้านพักพูลวิลล่า "],
-        seo_og_image_url: " /images/seo-cover.jpg ",
-        seo_og_image_alt: " Pool villa with private swimming pool ",
-        seo_business_name: " Baan Pool Villa Pattaya ",
-        seo_same_as_urls: [
-          " https://www.facebook.com/baanpoolvillas ",
-          " https://line.me/R/ti/p/@baanpoolvilla ",
-        ],
-        search_seo_title: " ค้นหาบ้านพักพูลวิลล่าพัทยา ",
-        search_seo_description: " ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา ",
-        search_seo_keywords: [" ค้นหาพูลวิลล่าพัทยา "],
-        search_seo_og_image_url: " /images/search-cover.jpg ",
-        search_seo_og_image_alt: " Search cover ",
-        guides_seo_title: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา ",
-        guides_seo_description: " บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก ",
-        guides_seo_keywords: [" บทความพูลวิลล่าพัทยา "],
-        guides_seo_og_image_url: " /images/guides-cover.jpg ",
-        guides_seo_og_image_alt: " Guides cover ",
-        villa_detail_seo_keywords: [" รายละเอียดพูลวิลล่าพัทยา "],
         detail_layout: DEFAULT_DETAIL_LAYOUT,
         tiktok_account_url: " https://www.tiktok.com/@baanpoolvilla ",
         tiktok_video_urls: [
@@ -149,7 +141,7 @@ describe("getSiteSettings", () => {
     });
 
     await expect(getSiteSettings()).resolves.toMatchObject({
-      degraded: false,
+      degraded: true,
       settings: {
         siteName: "Baan Pool Villa",
         primaryColor: "#123456",
@@ -181,46 +173,8 @@ describe("getSiteSettings", () => {
           lineId: "@baanpoolvilla",
           lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
         },
-        seo: {
-          title: "Baan Pool Villa Pattaya | Private Pool Villas",
-          description: "Book private pool villas in Pattaya.",
-          keywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
-          ogImage: {
-            path: "/images/seo-cover.jpg",
-            url: "/images/seo-cover.jpg",
-            alt: "Pool villa with private swimming pool",
-          },
-          businessName: "Baan Pool Villa Pattaya",
-          sameAsUrls: [
-            "https://www.facebook.com/baanpoolvillas",
-            "https://line.me/R/ti/p/@baanpoolvilla",
-          ],
-        },
-        pageSeo: {
-          search: {
-            title: "ค้นหาบ้านพักพูลวิลล่าพัทยา",
-            description: "ค้นหาบ้านพักพูลวิลล่าพัทยาด้วยทำเลและราคา",
-            keywords: ["ค้นหาพูลวิลล่าพัทยา"],
-            ogImage: {
-              path: "/images/search-cover.jpg",
-              url: "/images/search-cover.jpg",
-              alt: "Search cover",
-            },
-          },
-          guides: {
-            title: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา",
-            description: "บทความแนะนำบ้านพักพูลวิลล่าพัทยา วิธีเลือกบ้านพัก",
-            keywords: ["บทความพูลวิลล่าพัทยา"],
-            ogImage: {
-              path: "/images/guides-cover.jpg",
-              url: "/images/guides-cover.jpg",
-              alt: "Guides cover",
-            },
-          },
-          villaDetail: {
-            keywords: ["รายละเอียดพูลวิลล่าพัทยา"],
-          },
-        },
+        seo: DEFAULT_SITE_SETTINGS.seo,
+        pageSeo: DEFAULT_SITE_SETTINGS.pageSeo,
         tiktok: {
           accountUrl: "https://www.tiktok.com/@baanpoolvilla",
           videos: [
@@ -247,8 +201,69 @@ describe("getSiteSettings", () => {
     expect(query.select).toHaveBeenCalledWith(
       expect.stringContaining("google_tag_manager_id"),
     );
+    expect(query.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("seo_title"),
+    );
     expect(query.from).toHaveBeenCalledWith("site_settings");
     expect(query.eq).toHaveBeenCalledWith("id", SITE_SETTINGS_ID);
+  });
+
+  it("replaces only SEO settings when the dedicated projection exists", async () => {
+    getSiteSeoSettingsProjectionMock.mockResolvedValue({
+      seo_title: "Dedicated SEO",
+      search_seo_title: "Dedicated Search SEO",
+    });
+    mockSiteSettingsQuery({
+      data: {
+        id: SITE_SETTINGS_ID,
+        site_name: "Remote Brand",
+        primary_color: "#123456",
+        accent_color: "#abcdef",
+      },
+      error: null,
+    });
+
+    await expect(getSiteSettings()).resolves.toMatchObject({
+      settings: {
+        siteName: "Remote Brand",
+        primaryColor: "#123456",
+        seo: { title: "Dedicated SEO" },
+        pageSeo: { search: { title: "Dedicated Search SEO" } },
+      },
+      source: "config",
+    });
+  });
+
+  it("keeps valid base settings when the SEO projection rejects", async () => {
+    getSiteSeoSettingsProjectionMock.mockRejectedValue(
+      new Error("SEO cache unavailable"),
+    );
+    mockSiteSettingsQuery({
+      data: {
+        id: SITE_SETTINGS_ID,
+        site_name: "Remote Brand",
+        primary_color: "#123456",
+        accent_color: "#abcdef",
+        bank_account_name: "Remote Account",
+        messenger_url: "https://www.facebook.com/baanpoolvillas",
+      },
+      error: null,
+    });
+
+    await expect(getSiteSettings()).resolves.toMatchObject({
+      degraded: true,
+      settings: {
+        siteName: "Remote Brand",
+        primaryColor: "#123456",
+        bank: { accountName: "Remote Account" },
+        contact: {
+          messengerUrl: "https://www.facebook.com/baanpoolvillas",
+        },
+        seo: DEFAULT_SITE_SETTINGS.seo,
+        pageSeo: DEFAULT_SITE_SETTINGS.pageSeo,
+      },
+      source: "config",
+    });
   });
 
   it("returns fallback settings when the config row is unavailable", async () => {
@@ -355,15 +370,6 @@ describe("getSiteSettings", () => {
           messenger_url: " https://www.facebook.com/baanpoolvillas ",
           line_id: " @baanpoolvilla ",
           line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
-          seo_title: " Baan Pool Villa Pattaya | Private Pool Villas ",
-          seo_description: " Book private pool villas in Pattaya. ",
-          seo_og_image_url: " /images/seo-cover.jpg ",
-          seo_og_image_alt: " Pool villa with private swimming pool ",
-          seo_business_name: " Baan Pool Villa Pattaya ",
-          seo_same_as_urls: [
-            " https://www.facebook.com/baanpoolvillas ",
-            " https://line.me/R/ti/p/@baanpoolvilla ",
-          ],
           detail_layout: DEFAULT_DETAIL_LAYOUT,
         },
         error: null,
@@ -372,20 +378,8 @@ describe("getSiteSettings", () => {
 
     await expect(getSiteSettings()).resolves.toMatchObject({
       settings: {
-        seo: {
-          title: "Baan Pool Villa Pattaya | Private Pool Villas",
-          description: "Book private pool villas in Pattaya.",
-          businessName: "Baan Pool Villa Pattaya",
-          sameAsUrls: [
-            "https://www.facebook.com/baanpoolvillas",
-            "https://line.me/R/ti/p/@baanpoolvilla",
-          ],
-          ogImage: {
-            path: "/images/seo-cover.jpg",
-            url: "/images/seo-cover.jpg",
-            alt: "Pool villa with private swimming pool",
-          },
-        },
+        seo: DEFAULT_SITE_SETTINGS.seo,
+        pageSeo: DEFAULT_SITE_SETTINGS.pageSeo,
         detailLayout: DEFAULT_DETAIL_LAYOUT,
         tiktok: {
           accountUrl: "",

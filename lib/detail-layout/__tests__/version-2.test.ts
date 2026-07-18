@@ -28,6 +28,18 @@ describe("DEFAULT_DETAIL_LAYOUT_V2", () => {
       "recommended_villas",
     );
   });
+  it("includes parking beside kitchen content in both default layouts", () => {
+    expect(
+      DEFAULT_DETAIL_LAYOUT.rows.some((row) =>
+        row.blocks.some((block) => block.type === "parking"),
+      ),
+    ).toBe(true);
+    expect(
+      DEFAULT_DETAIL_LAYOUT_V2.mainSplit.wideRows.some((row) =>
+        row.blocks.some((block) => block.type === "parking"),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("convertDetailLayoutV1ToV2", () => {

@@ -3,6 +3,7 @@ export const DETAIL_LAYOUT_BLOCK_TYPES = [
   "bedrooms",
   "pool",
   "kitchen",
+  "parking",
   "amenities",
   "categorized_images",
   "costs_promotions",
