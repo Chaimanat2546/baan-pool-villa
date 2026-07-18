@@ -31,6 +31,7 @@ export const DETAIL_LAYOUT_BLOCK_LABELS: Record<DetailLayoutBlockType, string> =
   bedrooms: "ห้องนอน",
   pool: "สระว่ายน้ำ",
   kitchen: "ห้องครัว",
+  parking: "ที่จอดรถ",
   amenities: "สิ่งอำนวยความสะดวก",
   categorized_images: "รูปภาพตามหมวดหมู่",
   costs_promotions: "ค่าใช้จ่ายและโปรโมชัน",
@@ -82,6 +83,7 @@ export const DEFAULT_DETAIL_LAYOUT: DetailLayoutConfig = {
       block("amenities"),
       block("categorized_images"),
     ]),
+    row("row_parking", 1, [block("parking")]),
     row(
       "row_costs_rules",
       2,
@@ -117,6 +119,12 @@ export const DEFAULT_DETAIL_LAYOUT_V2: DetailLayoutV2Config = {
         ratio: "50/50",
         enabled: true,
         blocks: [block("pool"), block("kitchen")],
+      },
+      {
+        id: "wide_parking",
+        columns: 1,
+        enabled: true,
+        blocks: [block("parking")],
       },
       {
         id: "wide_bedrooms_images",

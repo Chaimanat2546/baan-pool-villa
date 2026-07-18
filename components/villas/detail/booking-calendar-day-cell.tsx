@@ -7,10 +7,15 @@ import {
   CalendarFirstAvailablePointer,
   CalendarFirstAvailableTooltip,
 } from "./booking-calendar-parts";
-import { getCalendarToneClass, type BookingCalendarDay } from "./booking-calendar-ui";
+import {
+  getCalendarToneClass,
+  type BookingCalendarDay,
+} from "./booking-calendar-ui";
+import { UserRound } from "lucide-react";
 
-interface BookingCalendarDayCellProps
-  extends ComponentProps<typeof CalendarDayButton> {
+interface BookingCalendarDayCellProps extends ComponentProps<
+  typeof CalendarDayButton
+> {
   calendarDay: BookingCalendarDay;
   isCalendarTipDismissed: boolean;
   isFirstAvailable: boolean;
@@ -35,8 +40,7 @@ export function BookingCalendarDayCell({
   ...props
 }: BookingCalendarDayCellProps) {
   const shouldShowCalendarData = !isOutsideVisibleMonth;
-  const isBlockedBooking =
-    shouldShowCalendarData && calendarDay.disabled;
+  const isBlockedBooking = shouldShowCalendarData && calendarDay.disabled;
   const firstAvailableTooltipAlign =
     day.date.getDay() <= 1
       ? "start"
@@ -70,7 +74,7 @@ export function BookingCalendarDayCell({
           isBlockedBooking
             ? "pointer-events-none cursor-not-allowed disabled:!opacity-100 "
             : null,
-          "relative !block !h-12 !min-w-0 overflow-visible text-center ring-1 ring-[var(--site-border)]",
+          "relative !block !h-auto !min-h-14 !min-w-0 !aspect-auto text-center ring-1 ring-[var(--site-border)]",
           "transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
         )}
         data-calendar-day-kind={
@@ -103,7 +107,7 @@ export function BookingCalendarDayCell({
           calendarDay.displayPrice ? (
             <span
               className={cn(
-                "block mt-1 text-[10px] leading-none font-black",
+                "mt-1 block text-[10px] leading-none font-medium italic text-[var(--site-muted)]",
                 showFireText
                   ? "text-white [paint-order:stroke_fill] [-webkit-text-stroke:2px_black] drop-shadow-[0_1px_2px_rgba(120,12,12,0.24)]"
                   : null,
@@ -111,6 +115,18 @@ export function BookingCalendarDayCell({
               data-calendar-day-price="true"
             >
               {calendarDay.displayPrice}
+            </span>
+          ) : null}
+          {shouldShowCalendarData &&
+          !isOutsideVisibleMonth &&
+          !calendarDay.disabled &&
+          calendarDay.guestCapacity ? (
+            <span
+              className="mt-0.5 block text-[8px] leading-none italic text-[var(--site-muted)]"
+              data-calendar-day-capacity="true"
+            >
+              <UserRound className="mr-0.5 inline-block shrink-0 align-text-bottom size-[10px]" />
+              {calendarDay.guestCapacity}
             </span>
           ) : null}
         </div>

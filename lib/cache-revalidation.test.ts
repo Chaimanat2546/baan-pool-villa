@@ -8,6 +8,7 @@ import {
   revalidateHomeSectionsCache,
   revalidateCustomerReviewsCache,
   revalidateLegalPageCache,
+  revalidateSiteSeoSettingsCache,
   revalidateSiteSettingsCache,
   revalidateSiteWebStylesCache,
   revalidateVillaCardImagesCache,
@@ -111,6 +112,17 @@ describe("cache revalidation", () => {
     });
     expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
       HTML_CACHE_VERSION_GROUPS.detailLayout,
+    ]);
+  });
+
+  it("expires the SEO settings tag and shared settings HTML", async () => {
+    await revalidateSiteSeoSettingsCache();
+
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.siteSeoSettings, {
+      expire: 0,
+    });
+    expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
+      HTML_CACHE_VERSION_GROUPS.siteSettings,
     ]);
   });
 

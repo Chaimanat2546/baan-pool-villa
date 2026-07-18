@@ -36,12 +36,6 @@ export function buildDefaultSettingsInsertPayload(
     messenger_url: DEFAULT_SITE_SETTINGS.contact.messengerUrl,
     line_id: DEFAULT_SITE_SETTINGS.contact.lineId,
     line_url: DEFAULT_SITE_SETTINGS.contact.lineUrl,
-    seo_title: DEFAULT_SITE_SETTINGS.seo.title,
-    seo_description: DEFAULT_SITE_SETTINGS.seo.description,
-    seo_og_image_url: DEFAULT_SITE_SETTINGS.seo.ogImage.url,
-    seo_og_image_alt: DEFAULT_SITE_SETTINGS.seo.ogImage.alt,
-    seo_business_name: DEFAULT_SITE_SETTINGS.seo.businessName,
-    seo_same_as_urls: DEFAULT_SITE_SETTINGS.seo.sameAsUrls,
     detail_layout: detailLayout,
   };
 }

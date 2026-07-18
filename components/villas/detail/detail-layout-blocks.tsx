@@ -58,6 +58,7 @@ const sectionTitles = {
   bedrooms: "รายละเอียดห้องนอน",
   pool: "สระว่ายน้ำ",
   kitchen: "ครัวและอุปกรณ์",
+  parking: "ที่จอดรถ",
   costs: "ค่าใช้จ่ายเพิ่มเติม",
   promotions: "โปรโมชัน / ราคาแยกตามวัน",
   notes: "หมายเหตุ",
@@ -170,6 +171,10 @@ function renderPool({ content }: DetailLayoutBlockContext) {
 
 function renderKitchen({ content }: DetailLayoutBlockContext) {
   return renderSectionBlock(content, sectionTitles.kitchen);
+}
+
+function renderParking({ content }: DetailLayoutBlockContext) {
+  return renderSectionBlock(content, sectionTitles.parking);
 }
 
 function renderAmenities({ content, listing }: DetailLayoutBlockContext) {
@@ -354,6 +359,7 @@ const blockRenderers = {
   bedrooms: renderBedrooms,
   pool: renderPool,
   kitchen: renderKitchen,
+  parking: renderParking,
   amenities: renderAmenities,
   categorized_images: renderCategorizedImages,
   costs_promotions: renderCostsPromotions,

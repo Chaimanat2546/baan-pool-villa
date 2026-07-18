@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
-import { SITE_ASSETS_BUCKET, SITE_SETTINGS_ID } from "../defaults";
+import {
+  revalidateSiteSeoSettingsCache,
+  revalidateSiteSettingsCache,
+} from "@/lib/cache-revalidation";
+import { SITE_SETTINGS_ID } from "../defaults";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/cache-revalidation", () => ({
+  revalidateSiteSeoSettingsCache: vi.fn(),
   revalidateSiteSettingsCache: vi.fn(),
 }));
 
+const revalidateSiteSeoSettingsCacheMock = vi.mocked(revalidateSiteSeoSettingsCache);
 const revalidateSiteSettingsCacheMock = vi.mocked(revalidateSiteSettingsCache);
 
 const brandRow = {
@@ -45,6 +50,56 @@ const themeRow = {
   line_url: "https://line.me/R/ti/p/@preview",
 };
 
+const seoRows = [
+  {
+    page_type: "global",
+    settings: {
+      title: "Baan Pool Villa",
+      description: "Pool villas",
+      keywords: ["pool villa"],
+      ogImageUrl: "https://example.com/og.webp",
+      ogImageAlt: "Pool villa",
+      businessName: "Baan Pool Villa",
+      sameAsUrls: [],
+    },
+  },
+  {
+    page_type: "search",
+    settings: {
+      title: "Search villas",
+      description: "Search pool villas",
+      keywords: ["search villas"],
+      ogImageUrl: "https://example.com/search.webp",
+      ogImageAlt: "Search villas",
+    },
+  },
+  {
+    page_type: "guides",
+    settings: {
+      title: "Villa guides",
+      description: "Pool villa guides",
+      keywords: ["villa guides"],
+      ogImageUrl: "https://example.com/guides.webp",
+      ogImageAlt: "Villa guides",
+    },
+  },
+  {
+    page_type: "villa_detail",
+    settings: { keywords: ["villa detail"] },
+  },
+];
+
+const incompleteSeoRowSets = [
+  ["null", null],
+  ["empty", []],
+  ["partial", seoRows.slice(0, 3)],
+  ["duplicate", [...seoRows.slice(0, 3), seoRows[0]]],
+  [
+    "invalid settings",
+    seoRows.map((row, index) => index === 2 ? { ...row, settings: null } : row),
+  ],
+] as const;
+
 function selectQuery(result: { data: unknown; error: unknown }) {
   const maybeSingle = vi.fn().mockResolvedValue(result);
   const eq = vi.fn().mockReturnValue({ maybeSingle });
@@ -63,6 +118,16 @@ function updateQuery(result: { data?: unknown; error: unknown }) {
   return { eq, maybeSingle, select, update };
 }
 
+function seoSelectQuery(result: { data: unknown; error: unknown }) {
+  return { select: vi.fn().mockResolvedValue(result) };
+}
+
+function upsertQuery(result: { data: unknown; error: unknown }) {
+  const select = vi.fn().mockResolvedValue(result);
+  const upsert = vi.fn().mockReturnValue({ select });
+  return { select, upsert };
+}
+
 function historyInsertQuery(result: { data: unknown; error: unknown }) {
   const single = vi.fn().mockResolvedValue(result);
   const select = vi.fn().mockReturnValue({ single });
@@ -79,6 +144,13 @@ function historyUpdateQuery(result: { error: unknown }) {
 function historyDeleteQuery(result: { error: unknown }) {
   const eq = vi.fn().mockResolvedValue(result);
   return { delete: vi.fn().mockReturnValue({ eq }), eq };
+}
+
+function historyCleanupOrUpdateQuery(result: { error: unknown }) {
+  return {
+    ...historyDeleteQuery(result),
+    ...historyUpdateQuery(result),
+  };
 }
 
 function historySelectQuery(result: { data: unknown; error: unknown }) {
@@ -144,6 +216,7 @@ function seoRequest(files: Record<string, File>) {
 describe("admin site-settings section route helper", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    revalidateSiteSeoSettingsCacheMock.mockResolvedValue(undefined);
     revalidateSiteSettingsCacheMock.mockResolvedValue(undefined);
   });
 
@@ -177,6 +250,48 @@ describe("admin site-settings section route helper", () => {
     });
     expect(query.select).not.toHaveBeenCalledWith(expect.stringContaining("bank_account_number"));
   });
+
+  it("loads SEO from the four site_seo_settings rows without reading site_settings", async () => {
+    const query = seoSelectQuery({ data: seoRows, error: null });
+    const from = fromQueue({ site_seo_settings: [query] });
+    const { buildAdminSiteSettingsSectionResponse } = await import("../admin-section-route");
+
+    const response = await buildAdminSiteSettingsSectionResponse("seo", { from } as never);
+
+    expect(response.status).toBe(200);
+    expect(from).toHaveBeenCalledTimes(1);
+    expect(from).toHaveBeenCalledWith("site_seo_settings");
+    expect(query.select).toHaveBeenCalledWith("page_type,settings");
+    await expect(response.json()).resolves.toMatchObject({
+      section: "seo",
+      settings: {
+        seo: { title: "Baan Pool Villa" },
+        pageSeo: {
+          guides: { title: "Villa guides" },
+          search: { title: "Search villas" },
+          villaDetail: { keywords: ["villa detail"] },
+        },
+      },
+    });
+  });
+
+  it.each(incompleteSeoRowSets)(
+    "rejects a %s SEO row set instead of synthesizing defaults",
+    async (_name, data) => {
+      const query = seoSelectQuery({ data, error: null });
+      const from = fromQueue({ site_seo_settings: [query] });
+      const { buildAdminSiteSettingsSectionResponse } = await import("../admin-section-route");
+
+      const response = await buildAdminSiteSettingsSectionResponse("seo", { from } as never);
+
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "SITE_SEO_SETTINGS_INCOMPLETE",
+        details: expect.stringContaining("global, search, guides, villa_detail"),
+        error: "SEO settings rows are incomplete.",
+      });
+    },
+  );
 
   it("returns 404 for an unknown section before touching Supabase", async () => {
     const from = vi.fn();
@@ -339,46 +454,188 @@ describe("admin site-settings section route helper", () => {
     expect(history.insert).not.toHaveBeenCalled();
   });
 
-  it("rejects secondary SEO share uploads before storage when the fallback cannot persist them", async () => {
-    const missing = () => selectQuery({
-      data: null,
-      error: { code: "42703", message: "column missing" },
-    });
-    const fallbackRow = {
-      id: SITE_SETTINGS_ID,
-      seo_title: "Baan Pool Villa",
-      seo_description: "Pool villas",
-      seo_og_image_url: "https://example.com/og.webp",
-      seo_og_image_alt: "Pool villa",
-      seo_business_name: "Baan Pool Villa",
-      seo_same_as_urls: [],
-    };
-    const fallback = selectQuery({ data: fallbackRow, error: null });
-    const history = historyInsertQuery({ data: { id: "new-search-og" }, error: null });
-    const save = updateQuery({ error: null });
-    const markInactive = historyUpdateQuery({ error: null });
+  it("upserts exactly four SEO rows and preserves all three uploaded image URLs", async () => {
+    const load = seoSelectQuery({ data: seoRows, error: null });
+    const save = upsertQuery({ data: seoRows, error: null });
+    const reload = seoSelectQuery({ data: seoRows, error: null });
+    const histories = ["new-seo-og", "new-search-og", "new-guides-og"].map((id) =>
+      historyInsertQuery({ data: { id }, error: null }));
+    const markInactive = [1, 2, 3].map(() => historyUpdateQuery({ error: null }));
     const retention = historySelectQuery({ data: [], error: null });
-    const reload = selectQuery({ data: fallbackRow, error: null });
     const storageApi = storage();
     const from = fromQueue({
-      site_settings: [missing(), fallback, save, missing(), reload],
-      site_asset_uploads: [history, markInactive, retention],
+      site_seo_settings: [load, save, reload],
+      site_asset_uploads: [...histories, ...markInactive, retention],
     });
     const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
 
     const response = await saveAdminSiteSettingsSection(
-      seoRequest({ searchSeoOgImageFile: new File(["image"], "search.webp", { type: "image/webp" }) }),
+      seoRequest({
+        seoOgImageFile: new File(["global"], "global.webp", { type: "image/webp" }),
+        searchSeoOgImageFile: new File(["search"], "search.webp", { type: "image/webp" }),
+        guidesSeoOgImageFile: new File(["guides"], "guides.webp", { type: "image/webp" }),
+      }),
       "seo",
       { from, storage: storageApi } as never,
     );
 
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      errors: ["The current settings schema cannot save the search-seo-og image."],
-    });
-    expect(storageApi.upload).not.toHaveBeenCalled();
-    expect(history.insert).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(save.upsert).toHaveBeenCalledTimes(1);
+    const [rows, options] = save.upsert.mock.calls[0];
+    expect(options).toEqual({ onConflict: "page_type" });
+    expect(rows).toHaveLength(4);
+    expect(rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        page_type: "global",
+        settings: expect.objectContaining({ ogImageUrl: expect.stringContaining("/seo-og/") }),
+      }),
+      expect.objectContaining({
+        page_type: "search",
+        settings: expect.objectContaining({ ogImageUrl: expect.stringContaining("/search-seo-og/") }),
+      }),
+      expect.objectContaining({
+        page_type: "guides",
+        settings: expect.objectContaining({ ogImageUrl: expect.stringContaining("/guides-seo-og/") }),
+      }),
+      expect.objectContaining({ page_type: "villa_detail" }),
+    ]));
+    expect(from.mock.calls.some(([table]) => table === "site_settings")).toBe(false);
+    expect(revalidateSiteSeoSettingsCacheMock).toHaveBeenCalledTimes(1);
+    expect(revalidateSiteSettingsCacheMock).not.toHaveBeenCalled();
   });
+
+  it("returns detailed SEO upsert errors and cleans uploaded files and history", async () => {
+    const load = seoSelectQuery({ data: seoRows, error: null });
+    const save = upsertQuery({
+      data: null,
+      error: {
+        code: "42501",
+        details: "RLS rejected four-row upsert",
+        hint: "Check the admin write policy",
+        message: "SEO save denied",
+      },
+    });
+    const history = historyInsertQuery({ data: { id: "new-seo-og" }, error: null });
+    const historyDelete = historyDeleteQuery({ error: null });
+    const storageApi = storage();
+    const from = fromQueue({
+      site_seo_settings: [load, save],
+      site_asset_uploads: [history, historyDelete],
+    });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      seoRequest({ seoOgImageFile: new File(["global"], "global.webp", { type: "image/webp" }) }),
+      "seo",
+      { from, storage: storageApi } as never,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "42501",
+      details: "RLS rejected four-row upsert",
+      error: "SEO save denied",
+      hint: "Check the admin write policy",
+    });
+    expect(historyDelete.eq).toHaveBeenCalledWith("id", "new-seo-og");
+    expect(storageApi.remove).toHaveBeenCalledWith([expect.stringMatching(/^seo-og\//)]);
+    expect(from.mock.calls.some(([table]) => table === "site_settings")).toBe(false);
+    expect(revalidateSiteSeoSettingsCacheMock).not.toHaveBeenCalled();
+  });
+
+  it.each(incompleteSeoRowSets)(
+    "reloads after %s selected SEO upsert data without deleting committed assets",
+    async (_name, data) => {
+      const load = seoSelectQuery({ data: seoRows, error: null });
+      const save = upsertQuery({ data, error: null });
+      const reload = seoSelectQuery({ data: seoRows, error: null });
+      const history = historyInsertQuery({ data: { id: "new-seo-og" }, error: null });
+      const historyLifecycle = historyCleanupOrUpdateQuery({ error: null });
+      const retention = historySelectQuery({ data: [], error: null });
+      const storageApi = storage();
+      const from = fromQueue({
+        site_seo_settings: [load, save, reload],
+        site_asset_uploads: [history, historyLifecycle, retention],
+      });
+      const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+      const response = await saveAdminSiteSettingsSection(
+        seoRequest({ seoOgImageFile: new File(["global"], "global.webp", { type: "image/webp" }) }),
+        "seo",
+        { from, storage: storageApi } as never,
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        verified: true,
+      });
+      expect(historyLifecycle.delete).not.toHaveBeenCalled();
+      expect(historyLifecycle.update).toHaveBeenCalled();
+      expect(retention.select).toHaveBeenCalled();
+      expect(storageApi.remove).not.toHaveBeenCalled();
+      expect(from).toHaveBeenCalledTimes(6);
+      expect(revalidateSiteSeoSettingsCacheMock).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("keeps uploaded SEO assets current when an incomplete representation cannot be verified", async () => {
+    const load = seoSelectQuery({ data: seoRows, error: null });
+    const save = upsertQuery({ data: null, error: null });
+    const reload = seoSelectQuery({ data: seoRows.slice(0, 3), error: null });
+    const history = historyInsertQuery({ data: { id: "new-seo-og" }, error: null });
+    const historyLifecycle = historyCleanupOrUpdateQuery({ error: null });
+    const retention = historySelectQuery({ data: [], error: null });
+    const storageApi = storage();
+    const from = fromQueue({
+      site_seo_settings: [load, save, reload],
+      site_asset_uploads: [history, historyLifecycle, retention],
+    });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      seoRequest({ seoOgImageFile: new File(["global"], "global.webp", { type: "image/webp" }) }),
+      "seo",
+      { from, storage: storageApi } as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      verified: false,
+      warnings: ["Settings were saved but could not be reloaded."],
+    });
+    expect(historyLifecycle.delete).not.toHaveBeenCalled();
+    expect(historyLifecycle.update).not.toHaveBeenCalled();
+    expect(retention.select).not.toHaveBeenCalled();
+    expect(storageApi.remove).not.toHaveBeenCalled();
+    expect(revalidateSiteSeoSettingsCacheMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["reload error", { data: null, error: { message: "reload failed" } }],
+    ["incomplete reload", { data: seoRows.slice(0, 3), error: null }],
+  ])(
+    "returns verified false after a successful SEO upsert with %s",
+    async (_name, reloadResult) => {
+      const load = seoSelectQuery({ data: seoRows, error: null });
+      const save = upsertQuery({ data: seoRows, error: null });
+      const reload = seoSelectQuery(reloadResult);
+      const from = fromQueue({ site_seo_settings: [load, save, reload] });
+      const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+      const response = await saveAdminSiteSettingsSection(
+        seoRequest({}),
+        "seo",
+        { from, storage: storage() } as never,
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        verified: false,
+        warnings: ["Settings were saved but could not be reloaded."],
+      });
+      expect(revalidateSiteSeoSettingsCacheMock).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("rejects cross-section JSON fields before persistence", async () => {
     const from = vi.fn();
