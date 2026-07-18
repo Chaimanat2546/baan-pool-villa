@@ -31,6 +31,8 @@ export type BookingCalendarTone =
 export interface BookingCalendarDay {
   disabled: boolean;
   displayPrice: string | null;
+  guestCapacity: string | null;
+  holidayAlert: string | null;
   icons: BookingCalendarIcon[];
   kind: BookingCalendarKind;
   label: string;
@@ -242,6 +244,16 @@ function getWeekdayPrice(
   return typeof value === "number" ? value : null;
 }
 
+function getWeekdayGuestCapacity(
+  basePrice: RawWeekdayPrice | null | undefined,
+  dateKey: string,
+): string | null {
+  const weekday = getWeekdayKey(dateKey);
+  const value = basePrice?.[`people_${weekday}` as keyof RawWeekdayPrice];
+
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function getPromotionWeekdayPrice(
   promotion: RawPromotion,
   dateKey: string,
@@ -250,6 +262,16 @@ function getPromotionWeekdayPrice(
   const value = promotion[`protime_price_${weekday}` as keyof RawPromotion];
 
   return typeof value === "number" ? value : null;
+}
+
+function getPromotionWeekdayGuestCapacity(
+  promotion: RawPromotion,
+  dateKey: string,
+): string | null {
+  const weekday = getWeekdayKey(dateKey);
+  const value = promotion[`protime_people_${weekday}` as keyof RawPromotion];
+
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function formatCalendarDayDisplayPrice(price: number | null): string | null {
@@ -326,6 +348,8 @@ function createBaseDay(
   return {
     disabled: false,
     displayPrice: formatCalendarDayDisplayPrice(price),
+    guestCapacity: getWeekdayGuestCapacity(response.base_price, dateKey),
+    holidayAlert: null,
     icons: [],
     kind: "base",
     label: "วันธรรมดา",
@@ -388,6 +412,10 @@ export function normalizeBookingCalendar(
         day: {
           disabled: false,
           displayPrice: formatCalendarDayDisplayPrice(price),
+          guestCapacity:
+            getPromotionWeekdayGuestCapacity(promotion, dateKey) ??
+            getWeekdayGuestCapacity(response.base_price, dateKey),
+          holidayAlert: null,
           icons: [],
           kind: "promotion",
           label: "โปรโมชั่น",
@@ -402,6 +430,7 @@ export function normalizeBookingCalendar(
 
   for (const holiday of response.holidays ?? []) {
     const isHotpro = holiday.holiday_type === "hotpro";
+    const holidayAlert = holiday.holiday_alert?.trim() || null;
     for (const dateKey of eachDateInRange(
       holiday.holiday_start,
       holiday.holiday_end,
@@ -415,6 +444,8 @@ export function normalizeBookingCalendar(
         day: {
           disabled: false,
           displayPrice: formatCalendarDayDisplayPrice(price),
+          guestCapacity: getWeekdayGuestCapacity(response.base_price, dateKey),
+          holidayAlert,
           icons: isHotpro ? ["fire"] : [],
           kind: isHotpro ? "hotpro" : "holiday",
           label: isHotpro ? "โปรไฟลุก" : "วันหยุดนักขัตฤกษ์",
@@ -428,6 +459,7 @@ export function normalizeBookingCalendar(
   }
 
   for (const holiday of response.hot_holidays ?? []) {
+    const holidayAlert = holiday.holiday_alert?.trim() || null;
     for (const dateKey of eachDateInRange(
       holiday.holiday_start,
       holiday.holiday_end,
@@ -441,6 +473,8 @@ export function normalizeBookingCalendar(
         day: {
           disabled: false,
           displayPrice: formatCalendarDayDisplayPrice(price),
+          guestCapacity: getWeekdayGuestCapacity(response.base_price, dateKey),
+          holidayAlert,
           icons: ["fire"],
           kind: "hot_holiday",
           label: "โปรไฟลุกในวันหยุด",
@@ -467,6 +501,8 @@ export function normalizeBookingCalendar(
         day: {
           disabled: true,
           displayPrice: null,
+          guestCapacity: getWeekdayGuestCapacity(response.base_price, dateKey),
+          holidayAlert: null,
           icons: [],
           kind: isWaiting ? "booking_waiting" : "booking_confirmed",
           label: isWaiting ? "ติดจองแต่ยังไม่โอน" : "ติดจองแล้ว",

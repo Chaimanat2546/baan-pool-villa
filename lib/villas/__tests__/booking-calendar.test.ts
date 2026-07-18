@@ -42,6 +42,8 @@ describe("normalizeBookingCalendar", () => {
 
     expect(calendar.days["2026-06-16"]).toMatchObject({
       disabled: false,
+      guestCapacity: "18",
+      holidayAlert: null,
       icons: [],
       kind: "base",
       label: "วันธรรมดา",
@@ -85,6 +87,8 @@ describe("normalizeBookingCalendar", () => {
     expect(calendar.days["2026-06-16"]).toMatchObject({
       disabled: false,
       displayPrice: "7,900",
+      guestCapacity: "14",
+      holidayAlert: null,
       icons: [],
       kind: "promotion",
       label: "โปรโมชั่น",
@@ -197,6 +201,7 @@ describe("normalizeBookingCalendar", () => {
         ...baseResponse,
         holidays: [
           {
+            holiday_alert: "วันหยุดยาว เข้าพักขั้นต่ำ 2 คืน",
             holiday_end: "2026-06-03",
             holiday_price: 18900,
             holiday_start: "2026-06-03",
@@ -221,6 +226,8 @@ describe("normalizeBookingCalendar", () => {
     );
 
     expect(calendar.days["2026-06-03"]).toMatchObject({
+      guestCapacity: "18",
+      holidayAlert: "วันหยุดยาว เข้าพักขั้นต่ำ 2 คืน",
       icons: [],
       kind: "holiday",
       label: "วันหยุดนักขัตฤกษ์",

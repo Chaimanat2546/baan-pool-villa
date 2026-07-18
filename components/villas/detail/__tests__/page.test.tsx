@@ -520,11 +520,62 @@ describe("VillaDetailPage deferred gallery loader", () => {
     await clickFirstGalleryItem(page.container);
 
     expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
-    expect(page.container.querySelector("[data-lightbox-active]")).not.toBeNull();
+    const classicLightbox = page.container.querySelector("[data-lightbox-active]");
+    expect(classicLightbox).not.toBeNull();
+    expect(
+      classicLightbox?.getAttribute("data-lightbox-category-selector"),
+    ).toBe("true");
+    expect(
+      classicLightbox?.getAttribute("data-lightbox-thumbnail-placement"),
+    ).toBe("side");
 
     await clickFirstGalleryItem(page.container);
 
     expect(getGalleryImageFetchCalls(fetchMock)).toHaveLength(1);
+
+    await page.unmount();
+  });
+
+  it("uses the categorized lightbox when a preview image is clicked directly", async () => {
+    const fetchMock = makeGalleryFetchMock(() =>
+      makeJsonResponse({ images: [apiCoverImage, apiImage] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const page = renderPage();
+
+    await page.render(
+      <VillaDetailPage
+        galleryStyle={{ variant: "categorized-grid" }}
+        id={listing.id}
+        initialGalleryImages={[apiCoverImage]}
+        payload={makePayload()}
+        recommendedSection={null}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    await flushReact();
+
+    await clickFirstGalleryItem(page.container);
+
+    const categorizedLightbox = page.container.querySelector(
+      "[data-lightbox-active]",
+    );
+    expect(categorizedLightbox).not.toBeNull();
+    expect(
+      categorizedLightbox?.getAttribute("data-lightbox-category-selector"),
+    ).toBe("false");
+    expect(
+      categorizedLightbox?.getAttribute("data-lightbox-thumbnail-placement"),
+    ).toBe("bottom");
+    expect(page.container.querySelector('[data-gallery-overview="true"]')).toBeNull();
+
+    await act(async () => {
+      (page.container.querySelector("[data-lightbox-close]") as HTMLButtonElement).click();
+    });
+    await flushReact();
+
+    expect(page.container.querySelector("[data-lightbox-active]")).toBeNull();
+    expect(page.container.querySelector('[data-gallery-overview="true"]')).toBeNull();
 
     await page.unmount();
   });
