@@ -36,6 +36,7 @@ export interface VillaDetailContent {
   facts: VillaDetailFact[];
   location: VillaDetailLocation | null;
   nearbyPlaces: VillaNearbyPlace[];
+  poolType: string;
   sections: VillaDetailSection[];
   videos: VillaDetailVideo[];
 }
@@ -342,10 +343,27 @@ function buildPoolLines(detail: DetailRecord): string[] {
   const facilities = detail.facilities;
 
   if (isRecord(facilities) && readString(facilities, "swim_type") === "salt") {
-    lines.push("สระระบบเกลือ");
+    lines.push("เกลือ");
   }
 
   return lines;
+}
+
+function buildPoolType(detail: DetailRecord): string {
+  const facilities = detail.facilities;
+
+  if (!isRecord(facilities) || !isEnabledFacilityValue(facilities.swimming_pool)) {
+    return "ไม่มี";
+  }
+
+  switch (readString(facilities, "swim_type")?.toLowerCase()) {
+    case "chlorine":
+      return "คลอรีน";
+    case "salt":
+      return "เกลือ";
+    default:
+      return "มีสระว่ายน้ำ";
+  }
 }
 
 function buildPetPolicyLines(detail: DetailRecord): string[] {
@@ -443,6 +461,7 @@ export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
       facts: [],
       location: null,
       nearbyPlaces: [],
+      poolType: "ไม่มี",
       sections: [],
       videos: [],
     };
@@ -484,6 +503,7 @@ export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
     facts,
     location,
     nearbyPlaces: buildNearbyPlaces(detail),
+    poolType: buildPoolType(detail),
     sections,
     videos: buildVillaVideos(detail),
   };
