@@ -103,7 +103,7 @@ export function VillaIntro({
           value={`${listing.people} ท่าน`}
         />
 
-        <StatTile icon={Waves} label="สระว่ายน้ำ" value="ส่วนตัว" />
+        <StatTile icon={Waves} label="สระว่ายน้ำ" value={content.poolType} />
       </div>
     </section>
   );
