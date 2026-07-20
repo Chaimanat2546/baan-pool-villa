@@ -71,7 +71,7 @@ describe("buildVillaDetailContent", () => {
     ).toContain("1:");
     expect(
       content.sections.find((section) => section.title === "สระว่ายน้ำ")?.lines,
-    ).toContain("สระระบบเกลือ");
+    ).toContain("เกลือ");
     expect(
       content.sections.find((section) => section.title === "ครัวและอุปกรณ์")?.lines.length,
     ).toBe(2);
@@ -108,9 +108,20 @@ describe("buildVillaDetailContent", () => {
       facts: [],
       location: null,
       nearbyPlaces: [],
+      poolType: "ไม่มี",
       sections: [],
       videos: [],
     });
+  });
+
+  it.each([
+    [{ facilities: { swimming_pool: "n" } }, "ไม่มี"],
+    [{ facilities: { swimming_pool: "y", swim_type: "chlorine" } }, "คลอรีน"],
+    [{ facilities: { swimming_pool: "y", swim_type: "salt" } }, "เกลือ"],
+    [{ facilities: { swimming_pool: "y" } }, "มีสระว่ายน้ำ"],
+    [{ facilities: { swimming_pool: "y", swim_type: "other" } }, "มีสระว่ายน้ำ"],
+  ])("sets poolType to %s for the supplied facilities", (detail, poolType) => {
+    expect(buildVillaDetailContent(detail).poolType).toBe(poolType);
   });
 
   it("normalizes video URLs without trailing prose punctuation", () => {
