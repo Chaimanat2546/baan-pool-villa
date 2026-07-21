@@ -1,5 +1,8 @@
-import { DEFAULT_SITE_CONTACT_SETTINGS } from "./site-settings/defaults";
-import type { SiteContactSettings, SitePhoneContact } from "./site-settings/types";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "./site-contact-settings/defaults";
+import type {
+  SiteContactChannels,
+  SitePhoneContact,
+} from "./site-contact-settings/types";
 
 export function buildPhoneHref(phone: string): string {
   let digits = "";
@@ -20,15 +23,15 @@ export function withPhoneHref(contact: SitePhoneContact) {
   };
 }
 
-export function buildContactLinks(contact: SiteContactSettings) {
+export function buildContactLinks(contact: SiteContactChannels) {
   return {
     messenger: contact.messengerUrl,
     line: contact.lineUrl,
   };
 }
 
-export const phoneContacts = DEFAULT_SITE_CONTACT_SETTINGS.phoneContacts.map(
+export const phoneContacts = DEFAULT_SITE_CONTACT_SETTINGS.contact.phoneContacts.map(
   withPhoneHref,
 );
 
-export const contactLinks = buildContactLinks(DEFAULT_SITE_CONTACT_SETTINGS);
+export const contactLinks = buildContactLinks(DEFAULT_SITE_CONTACT_SETTINGS.contact);

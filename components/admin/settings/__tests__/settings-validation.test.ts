@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 import { mapContactSettingsResponse, mapSeoSettingsResponse } from "../settings-helpers";
@@ -20,7 +21,7 @@ describe("section settings validation", () => {
     const seo = mapSeoSettingsResponse({ settings: { seo: DEFAULT_SITE_SETTINGS.seo, pageSeo: DEFAULT_SITE_SETTINGS.pageSeo } });
     expect(validateSeoSettingsDraft({ ...seo, seoTitle: "x".repeat(81) })).toHaveLength(1);
 
-    const contact = mapContactSettingsResponse({ settings: { bank: DEFAULT_SITE_SETTINGS.bank, contact: DEFAULT_SITE_SETTINGS.contact } });
+    const contact = mapContactSettingsResponse({ settings: DEFAULT_SITE_CONTACT_SETTINGS });
     expect(validateContactSettingsDraft({ ...contact, bankName: "" })).toHaveLength(1);
   });
 });

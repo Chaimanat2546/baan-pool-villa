@@ -23,6 +23,7 @@ import {
   resolveGuideRecommendedVillas,
 } from "@/lib/guides/server";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import type { GuidePost } from "@/lib/guides/types";
 import { fetchHouseListings } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
@@ -54,7 +55,7 @@ async function GuideRecommendedVillasSection({
 async function GuideBottomSections({ guide }: { guide: GuidePost }) {
   const [guidesResult, siteSettingsResult] = await Promise.allSettled([
     getPublishedGuides(),
-    getSiteSettings(),
+    getSiteContactSettings(),
   ]);
 
   let relatedGuides: GuidePost[] = [];

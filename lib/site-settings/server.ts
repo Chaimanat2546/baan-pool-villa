@@ -10,16 +10,14 @@ import type { SiteSettingsLoadResult, SiteSettingsRow } from "./types";
 import { normalizeSiteSettingsRow } from "./validation";
 
 const SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,detail_layout,tiktok_account_url,tiktok_video_urls,google_tag_manager_id";
+  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls,google_tag_manager_id";
 const SITE_SETTINGS_SELECT_WITHOUT_MARKETING_TAGS =
-  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,detail_layout,tiktok_account_url,tiktok_video_urls";
+  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,detail_layout,tiktok_account_url,tiktok_video_urls";
 const SITE_SETTINGS_SELECT_WITHOUT_TIKTOK =
-  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url,detail_layout";
-const CONTACT_SITE_SETTINGS_SELECT =
-  "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url";
+  "id,site_name,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color,logo_background,logo_image_path,logo_image_url,favicon_image_path,favicon_image_url,hero_image_path,hero_image_url,hero_image_alt,detail_layout";
 const LEGACY_SITE_SETTINGS_SELECT =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt";
-const SITE_SETTINGS_CACHE_KEY = `${CACHE_TAGS.siteSettings}:v4`;
+const SITE_SETTINGS_CACHE_KEY = `${CACHE_TAGS.siteSettings}:v5`;
 
 const getCachedSiteSettings = unstable_cache(
   async (): Promise<SiteSettingsLoadResult> => {
@@ -62,20 +60,6 @@ const getCachedSiteSettings = unstable_cache(
         return {
           degraded: true,
           settings: normalizeSiteSettingsRow(withoutTikTokData as SiteSettingsRow),
-          source: "config",
-        };
-      }
-
-      const { data: contactData, error: contactError } = await supabase
-        .from("site_settings")
-        .select(CONTACT_SITE_SETTINGS_SELECT)
-        .eq("id", SITE_SETTINGS_ID)
-        .maybeSingle();
-
-      if (!contactError && contactData) {
-        return {
-          degraded: true,
-          settings: normalizeSiteSettingsRow(contactData as SiteSettingsRow),
           source: "config",
         };
       }

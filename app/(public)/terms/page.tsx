@@ -4,6 +4,7 @@ import { LegalPage } from "@/components/legal/legal-page";
 import { getLegalPageBySlug } from "@/lib/legal-pages/server";
 import { buildLegalPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const [page, siteSettingsResult] = await Promise.all([
@@ -18,10 +19,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TermsRoute() {
-  const [page, siteSettingsResult] = await Promise.all([
+  const [page, contactSettingsResult] = await Promise.all([
     getLegalPageBySlug("terms"),
-    getSiteSettings(),
+    getSiteContactSettings(),
   ]);
 
-  return <LegalPage page={page} settings={siteSettingsResult.settings} />;
+  return <LegalPage page={page} settings={contactSettingsResult.settings} />;
 }

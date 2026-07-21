@@ -14,7 +14,7 @@ import type { GuidePost } from "@/lib/guides/types";
 import {
   normalizePublicImageSourceUrl,
 } from "@/lib/public-image-proxy";
-import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 
 interface GuideDetailPageProps {
@@ -22,7 +22,7 @@ interface GuideDetailPageProps {
   guide: GuidePost;
   recommendedVillas: VillaListing[];
   relatedGuides: GuidePost[];
-  settings?: SiteSettings;
+  settings?: SiteContactSettings;
   sidebar?: ReactNode;
 }
 
@@ -582,7 +582,7 @@ export function GuideDetailBottomSections({
   settings,
 }: {
   relatedGuides: GuidePost[];
-  settings?: SiteSettings;
+  settings?: SiteContactSettings;
 }) {
   return (
     <>

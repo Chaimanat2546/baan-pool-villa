@@ -30,6 +30,7 @@ import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
 import { SEARCH_FACETS } from "@/lib/villas/search-options";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { fetchHomeListings } from "@/lib/villas/server";
 import { toPublicVillaListing } from "@/lib/villas/public-dto";
 
@@ -252,11 +253,17 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function Page() {
   const homePageDataPromise = getHomePageData();
-  const settingsResult = await getSiteSettings();
+  const [settingsResult, contactSettingsResult] = await Promise.all([
+    getSiteSettings(),
+    getSiteContactSettings(),
+  ]);
   const { settings } = settingsResult;
-  const homePageSettings = toHomePageSettings(settings);
+  const homePageSettings = toHomePageSettings(
+    settings,
+    contactSettingsResult.settings,
+  );
 
-  const jsonLd = buildHomeJsonLd(settings);
+  const jsonLd = buildHomeJsonLd(settings, contactSettingsResult.settings);
 
   return (
     <>
@@ -269,7 +276,7 @@ export default async function Page() {
         degradedSources={{
           guidePosts: false,
           homeSections: false,
-          siteSettings: settingsResult.degraded,
+          siteSettings: settingsResult.degraded || contactSettingsResult.degraded,
           villaCatalog: false,
         }}
         heroSearch={

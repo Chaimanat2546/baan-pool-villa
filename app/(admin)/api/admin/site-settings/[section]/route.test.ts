@@ -29,6 +29,16 @@ describe("dynamic site-settings section route", () => {
     expect(requireAdminMock).not.toHaveBeenCalled();
   });
 
+  it("returns 404 for contact because the static route owns it", async () => {
+    const { GET, PATCH } = await import("./route");
+
+    expect((await GET(request, context("contact"))).status).toBe(404);
+    expect((await PATCH(request, context("contact"))).status).toBe(404);
+    expect(requireAdminMock).not.toHaveBeenCalled();
+    expect(getResponseMock).not.toHaveBeenCalled();
+    expect(patchResponseMock).not.toHaveBeenCalled();
+  });
+
   it("authorizes and delegates GET with awaited dynamic params", async () => {
     const supabase = {} as never;
     requireAdminMock.mockResolvedValue({ ok: true, supabase });

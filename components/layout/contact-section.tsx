@@ -1,9 +1,9 @@
 import { CreditCard, MessageCircle, Phone } from "lucide-react";
 import { buildPhoneHref } from "@/lib/site-contact";
-import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 
 interface ContactSectionProps {
-  settings: Pick<SiteSettings, "bank" | "contact">;
+  settings: SiteContactSettings;
 }
 
 export function ContactSection({ settings }: ContactSectionProps) {

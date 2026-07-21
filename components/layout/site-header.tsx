@@ -17,6 +17,7 @@ import { buildPhoneHref } from "@/lib/site-contact";
 import { SITE_LOGO_BACKGROUND_CLASSES, SITE_LOGO_BORDER_CLASSES } from "@/lib/site-settings/logo-background";
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { DesktopHeaderVariant } from "@/lib/site-header-settings/types";
 
 const navItems = [
@@ -26,12 +27,13 @@ const navItems = [
 ];
 
 interface SiteHeaderProps {
+  contactSettings: SiteContactSettings;
   desktopHeaderVariant?: DesktopHeaderVariant;
   previewMode?: boolean;
   settings: SiteSettings;
 }
 
-export function SiteHeader({ desktopHeaderVariant = "centered-contact", previewMode = false, settings }: SiteHeaderProps) {
+export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-contact", previewMode = false, settings }: SiteHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
   const lastScrollYRef = useRef(0);
@@ -44,7 +46,7 @@ export function SiteHeader({ desktopHeaderVariant = "centered-contact", previewM
     SITE_LOGO_BACKGROUND_CLASSES[settings.logoBackground ?? "white"];
   const logoBorderClass =
     SITE_LOGO_BORDER_CLASSES[settings.logoBackground ?? "white"];
-  const primaryPhone = settings.contact.phoneContacts[0];
+  const primaryPhone = contactSettings.contact.phoneContacts[0];
   const primaryPhoneHref = primaryPhone
     ? buildPhoneHref(primaryPhone.phone)
     : null;
@@ -118,7 +120,7 @@ export function SiteHeader({ desktopHeaderVariant = "centered-contact", previewM
         {isClassicDesktop ? <div className="hidden min-h-[90px] w-full items-center gap-4 px-8 lg:flex">
           <a href="/" className="flex min-w-0 flex-1 items-center gap-3">
             <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 p-1.5 ${logoBackgroundClass} ${logoBorderClass}`}><Image src={logoImageSrc} alt={settings.logoImage.alt} fill quality={75} sizes="44px" className="object-contain" priority /></span>
-            <span className="min-w-0"><span className="block truncate text-2xl font-semibold leading-8 text-[var(--site-header-link)]">{settings.siteName}</span><span className="block text-sm leading-5 text-[var(--site-header-link)]">กรุณาโอนเงิน <span className="font-semibold text-[var(--site-bank-account-highlight)]">ชื่อบัญชี {settings.bank.accountName}</span>{" "}<span className="font-semibold text-[var(--site-bank-name-highlight)]">{settings.bank.bankName}</span>{" "}<span className="font-semibold text-[var(--site-bank-number-highlight)]">เลขที่ {settings.bank.accountNumber}</span> เท่านั้น</span></span>
+            <span className="min-w-0"><span className="block truncate text-2xl font-semibold leading-8 text-[var(--site-header-link)]">{settings.siteName}</span><span className="block text-sm leading-5 text-[var(--site-header-link)]">กรุณาโอนเงิน <span className="font-semibold text-[var(--site-bank-account-highlight)]">ชื่อบัญชี {contactSettings.bank.accountName}</span>{" "}<span className="font-semibold text-[var(--site-bank-name-highlight)]">{contactSettings.bank.bankName}</span>{" "}<span className="font-semibold text-[var(--site-bank-number-highlight)]">เลขที่ {contactSettings.bank.accountNumber}</span> เท่านั้น</span></span>
           </a>
           <div className="flex shrink-0 items-center justify-end gap-8"><nav className="flex h-16 items-center justify-end gap-8 text-2xl font-semibold leading-8">{navItems.map((item) => previewMode ? <button className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]" key={item.label} type="button">{item.label}</button> : <a key={item.href} href={item.href} className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]">{item.label}</a>)}</nav><a href="/#contact" className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-4 text-sm font-medium leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"><MapPin className="h-4 w-4" aria-hidden="true" />จองเลย</a></div>
         </div> : null}
@@ -147,13 +149,13 @@ export function SiteHeader({ desktopHeaderVariant = "centered-contact", previewM
                 <span>กรุณาโอนเงิน</span>{" "}
                 <span className="inline-flex gap-1 rounded-full font-semibold text-[var(--site-bank-account-highlight)] lg:ml-0">
                   <span>ชื่อบัญชี</span>
-                  <span>{settings.bank.accountName}</span>
+                  <span>{contactSettings.bank.accountName}</span>
                 </span>{" "}
                 <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-name-highlight)] lg:ml-0">
-                  {settings.bank.bankName}
+                  {contactSettings.bank.bankName}
                 </span>{" "}
                 <span className="inline-flex rounded-full font-semibold text-[var(--site-bank-number-highlight)] lg:ml-0">
-                  เลขที่ {settings.bank.accountNumber}
+                  เลขที่ {contactSettings.bank.accountNumber}
                 </span>{" "}
                 <span className="lg:ml-0">เท่านั้น</span>
               </span>
@@ -198,13 +200,13 @@ export function SiteHeader({ desktopHeaderVariant = "centered-contact", previewM
               </a>
             ) : null}
             <a
-              href={settings.contact.lineUrl}
+              href={contactSettings.contact.lineUrl}
                 className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-[var(--site-surface)] px-2.5 text-xs font-semibold leading-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] xl:h-9 xl:px-3 xl:text-sm"
               rel="noreferrer"
               target="_blank"
             >
               <LineIcon className="h-5 w-5" />
-              {settings.contact.lineId}
+              {contactSettings.contact.lineId}
             </a>
           </div>
 
@@ -261,13 +263,13 @@ export function SiteHeader({ desktopHeaderVariant = "centered-contact", previewM
                 ) : null}
                 <SheetClose asChild>
                   <a
-                    href={settings.contact.lineUrl}
+                    href={contactSettings.contact.lineUrl}
                     className="flex items-center gap-2 px-5 py-4 text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
                     rel="noreferrer"
                     target="_blank"
                   >
                     <LineIcon className="h-5 w-5" />
-                    {settings.contact.lineId}
+                    {contactSettings.contact.lineId}
                   </a>
                 </SheetClose>
               </nav>

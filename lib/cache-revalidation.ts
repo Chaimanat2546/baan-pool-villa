@@ -21,6 +21,11 @@ export async function revalidateSiteSettingsCache() {
   await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.siteSettings]);
 }
 
+export async function revalidateSiteContactSettingsCache() {
+  revalidateTags([CACHE_TAGS.siteContactSettings]);
+  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.siteSettings]);
+}
+
 export async function revalidateSiteSeoSettingsCache() {
   revalidateTags([CACHE_TAGS.siteSeoSettings]);
   await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.siteSettings]);

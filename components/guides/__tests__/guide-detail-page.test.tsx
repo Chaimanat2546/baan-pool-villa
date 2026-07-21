@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import type { GuidePost } from "@/lib/guides/types";
-import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import type { VillaListing } from "@/lib/villas/types";
 
 import { GuideDetailPage, getYouTubeEmbedUrl } from "../guide-detail-page";
@@ -299,7 +299,7 @@ describe("getYouTubeEmbedUrl", () => {
         guide={makeGuide([])}
         recommendedVillas={[]}
         relatedGuides={[{ ...makeGuide([]), id: "guide-2", slug: "guide-2" }]}
-        settings={DEFAULT_SITE_SETTINGS}
+        settings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
     );
 

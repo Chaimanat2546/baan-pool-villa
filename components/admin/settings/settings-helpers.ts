@@ -1,6 +1,7 @@
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 
 import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import {
@@ -174,7 +175,7 @@ export function buildSeoSettingsFormData(draft: SeoSettingsDraft): FormData {
 }
 
 export function mapContactSettingsResponse(value: unknown): ContactSettingsDraft {
-  const { bank, contact } = (value as { settings: Pick<SiteSettings, "bank" | "contact"> }).settings;
+  const { bank, contact } = (value as { settings: SiteContactSettings }).settings;
   return { bankAccountName: bank.accountName, bankName: bank.bankName, bankAccountNumber: bank.accountNumber, phoneContacts: contact.phoneContacts.map((item) => ({ ...item })), messengerUrl: contact.messengerUrl, lineId: contact.lineId, lineUrl: contact.lineUrl };
 }
 

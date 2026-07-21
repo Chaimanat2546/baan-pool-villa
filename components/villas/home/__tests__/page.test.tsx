@@ -21,6 +21,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "../../../../lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import type { GuidePost } from "../../../../lib/guides/types";
 import type { ResolvedHomeSection } from "../../../../lib/home-sections/types";
@@ -28,6 +29,11 @@ import type { VillaListing } from "../../../../lib/villas/types";
 import { toHomePageSettings } from "../client-payload";
 import { selectHomeGuideSummaries } from "../articles-section";
 import { HomePage } from "../page";
+
+const DEFAULT_HOME_SETTINGS = toHomePageSettings(
+  DEFAULT_SITE_SETTINGS,
+  DEFAULT_SITE_CONTACT_SETTINGS,
+);
 
 const villa: VillaListing = {
   amenities: [],
@@ -116,7 +122,7 @@ describe("HomePage", () => {
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
-        settings={DEFAULT_SITE_SETTINGS}
+        settings={DEFAULT_HOME_SETTINGS}
       />,
     );
 
@@ -130,7 +136,10 @@ describe("HomePage", () => {
   });
 
   it("keeps the homepage client settings payload limited to rendered fields", () => {
-    const settings = toHomePageSettings(DEFAULT_SITE_SETTINGS);
+    const settings = toHomePageSettings(
+      DEFAULT_SITE_SETTINGS,
+      DEFAULT_SITE_CONTACT_SETTINGS,
+    );
 
     expect(Object.keys(settings).sort()).toEqual([
       "bank",
@@ -141,8 +150,8 @@ describe("HomePage", () => {
     ]);
     expect(settings.heroImage).toBe(DEFAULT_SITE_SETTINGS.heroImage);
     expect(settings.tiktok).toEqual(DEFAULT_SITE_SETTINGS.tiktok);
-    expect(settings.contact).toBe(DEFAULT_SITE_SETTINGS.contact);
-    expect(settings.bank).toBe(DEFAULT_SITE_SETTINGS.bank);
+    expect(settings.contact).toBe(DEFAULT_SITE_CONTACT_SETTINGS.contact);
+    expect(settings.bank).toBe(DEFAULT_SITE_CONTACT_SETTINGS.bank);
     expect(settings).not.toHaveProperty("seo");
     expect(settings).not.toHaveProperty("detailLayout");
     expect(settings).not.toHaveProperty("logoImage");
@@ -150,9 +159,10 @@ describe("HomePage", () => {
   });
 
   it("limits the homepage settings TikTok payload to the rendered videos", () => {
-    const settings = toHomePageSettings({
-      ...DEFAULT_SITE_SETTINGS,
-      tiktok: {
+    const settings = toHomePageSettings(
+      {
+        ...DEFAULT_SITE_SETTINGS,
+        tiktok: {
         accountUrl: "https://www.tiktok.com/@baanpoolvilla",
         videos: [
           {
@@ -188,8 +198,10 @@ describe("HomePage", () => {
             videoId: "7370000000000000007",
           },
         ],
+        },
       },
-    });
+      DEFAULT_SITE_CONTACT_SETTINGS,
+    );
 
     expect(settings.tiktok.videos.map((video) => video.videoId)).toEqual([
       "7370000000000000001",
@@ -207,7 +219,7 @@ describe("HomePage", () => {
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
-        settings={DEFAULT_SITE_SETTINGS}
+        settings={DEFAULT_HOME_SETTINGS}
         degradedSources={{
           guidePosts: false,
           homeSections: true,
@@ -235,7 +247,7 @@ describe("HomePage", () => {
         filterSummary={filterSummary}
         destinationVillas={compactDestinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -278,7 +290,7 @@ describe("HomePage", () => {
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -337,7 +349,7 @@ describe("HomePage", () => {
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -374,7 +386,7 @@ describe("HomePage", () => {
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -442,7 +454,7 @@ describe("HomePage", () => {
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -501,7 +513,7 @@ describe("HomePage", () => {
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -542,7 +554,7 @@ describe("HomePage", () => {
         filterSummary={filterSummary}
         destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [],
@@ -568,7 +580,7 @@ describe("HomePage", () => {
           initialHomeSections={[homeSection]}
           filterSummary={filterSummary}
           destinationVillas={destinationVillas}
-          settings={DEFAULT_SITE_SETTINGS}
+        settings={DEFAULT_HOME_SETTINGS}
         />,
       );
     });

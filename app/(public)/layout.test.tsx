@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
+import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
@@ -38,24 +40,34 @@ vi.mock("@/components/villas/listing/villa-card-style-context", () => ({
 vi.mock("@/lib/site-settings/server", () => ({
   getSiteSettings: vi.fn(),
 }));
+vi.mock("@/lib/site-contact-settings/server", () => ({
+  getSiteContactSettings: vi.fn(),
+}));
 vi.mock("@/lib/site-web-styles/server", () => ({
   getSiteWebStyles: vi.fn(),
 }));
 
+const mockedGetSiteContactSettings = vi.mocked(getSiteContactSettings);
 const mockedGetSiteSettings = vi.mocked(getSiteSettings);
 const mockedGetSiteWebStyles = vi.mocked(getSiteWebStyles);
 
 describe("PublicLayout", () => {
   beforeEach(() => {
+    mockedGetSiteContactSettings.mockReset();
     mockedGetSiteSettings.mockReset();
     mockedGetSiteWebStyles.mockReset();
   });
 
   it("passes the site villa card style setting to public page content", async () => {
+    mockedGetSiteContactSettings.mockResolvedValue({
+      degraded: false,
+      settings: DEFAULT_SITE_CONTACT_SETTINGS,
+      source: "config",
+    });
     mockedGetSiteSettings.mockResolvedValue({
       degraded: false,
       settings: DEFAULT_SITE_SETTINGS,
-      source: "database",
+      source: "config",
     });
     mockedGetSiteWebStyles.mockResolvedValue({
       gallery: { variant: "lightbox" },

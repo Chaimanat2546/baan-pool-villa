@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
 import type { LegalPage } from "@/lib/legal-pages/types";
-import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 
 interface LegalTextMark {
   attrs?: {
@@ -23,7 +23,7 @@ interface LegalBlock {
 
 interface LegalPageProps {
   page: LegalPage;
-  settings?: SiteSettings;
+  settings?: SiteContactSettings;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
