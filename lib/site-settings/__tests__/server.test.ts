@@ -91,7 +91,7 @@ describe("getSiteSettings", () => {
 
     expect(unstableCacheMock).toHaveBeenCalledWith(
       expect.any(Function),
-      [`${CACHE_TAGS.siteSettings}:v4`],
+      [`${CACHE_TAGS.siteSettings}:v5`],
       {
         revalidate: CACHE_REVALIDATE_SECONDS.siteSettings,
         tags: [CACHE_TAGS.siteSettings],
@@ -156,23 +156,6 @@ describe("getSiteSettings", () => {
           url: "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
           alt: "Pool villas",
         },
-        bank: {
-          accountName: "คุณ อาภัสรา จินดาวา",
-          bankName: "ธนาคารกสิกรไทย",
-          accountNumber: "398-289-7482",
-        },
-        contact: {
-          phoneContacts: [
-            {
-              name: "คุณเกม",
-              phone: "0617485213",
-              time: "ช่วง 07.00-15.00",
-            },
-          ],
-          messengerUrl: "https://www.facebook.com/baanpoolvillas",
-          lineId: "@baanpoolvilla",
-          lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
-        },
         seo: DEFAULT_SITE_SETTINGS.seo,
         pageSeo: DEFAULT_SITE_SETTINGS.pageSeo,
         tiktok: {
@@ -203,6 +186,12 @@ describe("getSiteSettings", () => {
     );
     expect(query.select).toHaveBeenCalledWith(
       expect.not.stringContaining("seo_title"),
+    );
+    expect(query.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("bank_account_name"),
+    );
+    expect(query.select).toHaveBeenCalledWith(
+      expect.not.stringContaining("phone_contacts"),
     );
     expect(query.from).toHaveBeenCalledWith("site_settings");
     expect(query.eq).toHaveBeenCalledWith("id", SITE_SETTINGS_ID);
@@ -255,10 +244,6 @@ describe("getSiteSettings", () => {
       settings: {
         siteName: "Remote Brand",
         primaryColor: "#123456",
-        bank: { accountName: "Remote Account" },
-        contact: {
-          messengerUrl: "https://www.facebook.com/baanpoolvillas",
-        },
         seo: DEFAULT_SITE_SETTINGS.seo,
         pageSeo: DEFAULT_SITE_SETTINGS.pageSeo,
       },
@@ -276,7 +261,7 @@ describe("getSiteSettings", () => {
     });
   });
 
-  it("keeps contact settings when SEO columns are not available yet", async () => {
+  it("keeps base settings when SEO columns are not available yet", async () => {
     mockSiteSettingsQueryQueue([
       {
         data: null,
@@ -315,23 +300,7 @@ describe("getSiteSettings", () => {
 
     await expect(getSiteSettings()).resolves.toMatchObject({
       settings: {
-        bank: {
-          accountName: "Account Name",
-          bankName: "Bank Name",
-          accountNumber: "398-289-7482",
-        },
-        contact: {
-          messengerUrl: "https://www.facebook.com/baanpoolvillas",
-          lineId: "@baanpoolvilla",
-          lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
-          phoneContacts: [
-            {
-              name: "Game",
-              phone: "0617485213",
-              time: "07.00-15.00",
-            },
-          ],
-        },
+        siteName: "Baan Pool Villa",
         seo: DEFAULT_SITE_SETTINGS.seo,
       },
       source: "config",
@@ -390,7 +359,7 @@ describe("getSiteSettings", () => {
     });
   });
 
-  it("keeps legacy settings when contact columns are not available yet", async () => {
+  it("keeps base settings when legacy contact columns are unavailable", async () => {
     mockSiteSettingsQueryQueue([
       {
         data: null,
@@ -419,8 +388,6 @@ describe("getSiteSettings", () => {
         siteName: "Baan Pool Villa",
         primaryColor: "#123456",
         accentColor: "#abcdef",
-        bank: DEFAULT_SITE_SETTINGS.bank,
-        contact: DEFAULT_SITE_SETTINGS.contact,
         seo: DEFAULT_SITE_SETTINGS.seo,
       },
       source: "config",

@@ -29,13 +29,6 @@ export function buildDefaultSettingsInsertPayload(
     hero_image_path: DEFAULT_SITE_SETTINGS.heroImage.path,
     hero_image_url: DEFAULT_SITE_SETTINGS.heroImage.url,
     hero_image_alt: DEFAULT_SITE_SETTINGS.heroImage.alt,
-    bank_account_name: DEFAULT_SITE_SETTINGS.bank.accountName,
-    bank_name: DEFAULT_SITE_SETTINGS.bank.bankName,
-    bank_account_number: DEFAULT_SITE_SETTINGS.bank.accountNumber,
-    phone_contacts: DEFAULT_SITE_SETTINGS.contact.phoneContacts,
-    messenger_url: DEFAULT_SITE_SETTINGS.contact.messengerUrl,
-    line_id: DEFAULT_SITE_SETTINGS.contact.lineId,
-    line_url: DEFAULT_SITE_SETTINGS.contact.lineUrl,
     detail_layout: detailLayout,
   };
 }

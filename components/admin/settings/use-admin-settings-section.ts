@@ -16,7 +16,7 @@ import type { WebStyleType } from "@/lib/site-web-styles/types";
 import { useSettingsDirtyState } from "./settings-dirty-state";
 
 export interface UseAdminSettingsSectionOptions<TDraft> {
-  section: SiteSettingsSection | WebStyleType;
+  section: SiteSettingsSection | WebStyleType | "contact";
   endpoint?: string;
   mapResponse: (value: unknown) => TDraft;
   makeSnapshot: (draft: TDraft) => string;

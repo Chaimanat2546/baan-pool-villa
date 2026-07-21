@@ -12,6 +12,7 @@ import type {
   DetailLayoutConfig,
   DetailLayoutV2Config,
 } from "../../../../lib/detail-layout/types";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "../../../../lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import { DEFAULT_SITE_WEB_STYLES } from "../../../../lib/site-web-styles/defaults";
 import type { VillaDetailContent } from "../../../../lib/villas/detail";
@@ -219,6 +220,7 @@ function render(
   return renderToStaticMarkup(
     <DetailLayoutRenderer
       advertisements={advertisements}
+      contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       content={{ ...content, ...overrides }}
       galleryCategories={galleryCategories}
       galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}

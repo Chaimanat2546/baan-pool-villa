@@ -16,6 +16,7 @@ import {
   getVillaSearchIntentSummary,
   getVillaTitle,
 } from "../seo";
+import type { SiteContactSettings } from "../site-contact-settings/types";
 import { DEFAULT_SITE_SETTINGS } from "../site-settings/defaults";
 import type { SiteSettings } from "../site-settings/types";
 import type { GuidePost } from "../guides/types";
@@ -68,23 +69,6 @@ function cmsSettings(): SiteSettings {
       url: "/images/hero.jpg",
       alt: "Hero",
     },
-    bank: {
-      accountName: "Account Name",
-      bankName: "Bank Name",
-      accountNumber: "398-289-7482",
-    },
-    contact: {
-      phoneContacts: [
-        {
-          name: "Game",
-          phone: "0617485213",
-          time: "07.00-15.00",
-        },
-      ],
-      messengerUrl: "https://www.facebook.com/baanpoolvillas",
-      lineId: "@baanpoolvilla",
-      lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
-    },
     seo: {
       title: "Baan Pool Villa Pattaya | Private Pool Villas",
       description: "Book private pool villas in Pattaya.",
@@ -130,6 +114,26 @@ function cmsSettings(): SiteSettings {
     googleTagManagerId: DEFAULT_SITE_SETTINGS.googleTagManagerId,
   };
 }
+
+const contactSettings: SiteContactSettings = {
+  bank: {
+    accountName: "Account Name",
+    bankName: "Bank Name",
+    accountNumber: "398-289-7482",
+  },
+  contact: {
+    phoneContacts: [
+      {
+        name: "Game",
+        phone: "0617485213",
+        time: "07.00-15.00",
+      },
+    ],
+    messengerUrl: "https://www.facebook.com/baanpoolvillas",
+    lineId: "@baanpoolvilla",
+    lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
+  },
+};
 
 const sampleVilla: VillaListing = {
   amenities: [
@@ -352,7 +356,7 @@ describe("SEO helpers", () => {
   it("builds LodgingBusiness JSON-LD from CMS SEO and contact settings", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
 
-    expect(buildHomeJsonLd(cmsSettings())).toMatchObject({
+    expect(buildHomeJsonLd(cmsSettings(), contactSettings)).toMatchObject({
       "@context": "https://schema.org",
       "@type": "LodgingBusiness",
       name: "Baan Pool Villa Pattaya",

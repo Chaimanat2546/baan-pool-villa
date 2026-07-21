@@ -27,6 +27,7 @@ describe("cache policy", () => {
 
   it("keeps public Supabase and third-party reads on twelve-hour TTLs", () => {
     expect(CACHE_REVALIDATE_SECONDS.siteSettings).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.siteContactSettings).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.siteWebStyles).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.homeSections).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.customerReviews).toBe(TWELVE_HOURS_SECONDS);
@@ -54,6 +55,7 @@ describe("cache policy", () => {
       "villa-card-images:home:42",
     );
     expect(CACHE_TAGS.siteSettings).toBe("site-settings");
+    expect(CACHE_TAGS.siteContactSettings).toBe("site-contact-settings");
     expect(CACHE_TAGS.siteWebStyles).toBe("site-web-styles");
     expect(CACHE_TAGS.tiktokOEmbed).toBe("tiktok-oembed");
     expect(CACHE_TAGS.homeSections).toBe("home-sections");

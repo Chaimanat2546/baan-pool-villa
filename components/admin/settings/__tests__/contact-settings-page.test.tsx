@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { changeInput, click, makeJsonResponse, mountAdminPage } from "@/components/admin/__tests__/admin-page-dom-test-utils";
-import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 
 const mocks = vi.hoisted(() => ({ readAdminAccessToken: vi.fn(), router: { replace: vi.fn() } }));
 vi.mock("next/navigation", () => ({ useRouter: () => mocks.router }));
@@ -15,7 +15,7 @@ describe("ContactSettingsPage", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("owns only the contact endpoint and submits only contact JSON fields", async () => {
-    const settings = { bank: DEFAULT_SITE_SETTINGS.bank, contact: DEFAULT_SITE_SETTINGS.contact };
+    const settings = DEFAULT_SITE_CONTACT_SETTINGS;
     const fetchMock = vi.fn().mockResolvedValueOnce(makeJsonResponse({ body: { settings } })).mockResolvedValueOnce(makeJsonResponse({ body: { settings: { ...settings, bank: { ...settings.bank, accountName: "ชื่อใหม่" } } } }));
     vi.stubGlobal("fetch", fetchMock);
     const page = await mountAdminPage(<SettingsDirtyStateProvider><ContactSettingsPage /></SettingsDirtyStateProvider>);
@@ -37,7 +37,7 @@ describe("ContactSettingsPage", () => {
   });
 
   it("uses the original realistic bank preview fallbacks", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(makeJsonResponse({ body: { settings: { bank: { accountName: "", bankName: "", accountNumber: "" }, contact: DEFAULT_SITE_SETTINGS.contact } } })));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(makeJsonResponse({ body: { settings: { bank: { accountName: "", bankName: "", accountNumber: "" }, contact: DEFAULT_SITE_CONTACT_SETTINGS.contact } } })));
     const page = await mountAdminPage(<SettingsDirtyStateProvider><ContactSettingsPage /></SettingsDirtyStateProvider>);
     expect(page.container.textContent).toContain("คุณ อาภัสรา จินดาวา");
     expect(page.container.textContent).toContain("ธนาคารกสิกรไทย");

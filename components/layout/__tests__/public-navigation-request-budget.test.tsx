@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
@@ -48,7 +49,7 @@ function publicSettingsWithRemoteLogo(): SiteSettings {
 describe("public navigation request budget", () => {
   it("does not viewport-prefetch header navigation routes", () => {
     const markup = renderToStaticMarkup(
-      <SiteHeader settings={DEFAULT_SITE_SETTINGS} />,
+      <SiteHeader contactSettings={DEFAULT_SITE_CONTACT_SETTINGS} settings={DEFAULT_SITE_SETTINGS} />,
     );
 
     expectDocumentNavigationLink(markup, "/");
@@ -56,14 +57,14 @@ describe("public navigation request budget", () => {
     expectDocumentNavigationLink(markup, "/guides");
     expectDocumentNavigationLink(
       markup,
-      `tel:${DEFAULT_SITE_SETTINGS.contact.phoneContacts[0]?.phone}`,
+      `tel:${DEFAULT_SITE_CONTACT_SETTINGS.contact.phoneContacts[0]?.phone}`,
     );
-    expectDocumentNavigationLink(markup, DEFAULT_SITE_SETTINGS.contact.lineUrl);
+    expectDocumentNavigationLink(markup, DEFAULT_SITE_CONTACT_SETTINGS.contact.lineUrl);
   });
 
   it("does not viewport-prefetch footer navigation routes", () => {
     const markup = renderToStaticMarkup(
-      <SiteFooter settings={DEFAULT_SITE_SETTINGS} />,
+      <SiteFooter contactSettings={DEFAULT_SITE_CONTACT_SETTINGS} settings={DEFAULT_SITE_SETTINGS} />,
     );
 
     expectDocumentNavigationLink(markup, "/");
@@ -75,8 +76,12 @@ describe("public navigation request budget", () => {
 
   it("passes public header and footer logos to the AWS image loader", () => {
     const settings = publicSettingsWithRemoteLogo();
-    const headerMarkup = renderToStaticMarkup(<SiteHeader settings={settings} />);
-    const footerMarkup = renderToStaticMarkup(<SiteFooter settings={settings} />);
+    const headerMarkup = renderToStaticMarkup(
+      <SiteHeader contactSettings={DEFAULT_SITE_CONTACT_SETTINGS} settings={settings} />,
+    );
+    const footerMarkup = renderToStaticMarkup(
+      <SiteFooter contactSettings={DEFAULT_SITE_CONTACT_SETTINGS} settings={settings} />,
+    );
 
     expect(getFirstImageSrc(headerMarkup)).toBe(
       "https://assets.example.com/storage/v1/object/public/site-assets/logo.png",

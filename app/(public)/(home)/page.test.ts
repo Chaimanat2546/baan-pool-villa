@@ -5,6 +5,9 @@ import {
   getHomeSectionListingPlan,
   getResolvedHomeSections,
 } from "@/lib/home-sections/server";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
+import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
+import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { fetchHomeListings } from "@/lib/villas/server";
 
@@ -40,13 +43,17 @@ vi.mock("@/lib/json-ld", () => ({
   serializeJsonLd: vi.fn(() => "{}"),
 }));
 
-vi.mock("@/lib/seo", () => ({
+vi.mock("@/lib/seo", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/seo")>()),
   buildHomeJsonLd: vi.fn(() => ({})),
   buildSiteSettingsPageMetadata: vi.fn((metadata: unknown) => metadata),
 }));
 
 vi.mock("@/lib/site-settings/server", () => ({
   getSiteSettings: vi.fn(),
+}));
+vi.mock("@/lib/site-contact-settings/server", () => ({
+  getSiteContactSettings: vi.fn(),
 }));
 
 vi.mock("@/lib/villas/public-dto", () => ({
@@ -60,6 +67,7 @@ vi.mock("@/lib/villas/server", () => ({
 const getPublishedGuidesMock = vi.mocked(getPublishedGuides);
 const getHomeSectionListingPlanMock = vi.mocked(getHomeSectionListingPlan);
 const getResolvedHomeSectionsMock = vi.mocked(getResolvedHomeSections);
+const getSiteContactSettingsMock = vi.mocked(getSiteContactSettings);
 const getSiteSettingsMock = vi.mocked(getSiteSettings);
 const fetchHomeListingsMock = vi.mocked(fetchHomeListings);
 
@@ -68,6 +76,7 @@ describe("HomePageRoute", () => {
     getPublishedGuidesMock.mockReset();
     getHomeSectionListingPlanMock.mockReset();
     getResolvedHomeSectionsMock.mockReset();
+    getSiteContactSettingsMock.mockReset();
     getSiteSettingsMock.mockReset();
     fetchHomeListingsMock.mockReset();
   });
@@ -90,9 +99,14 @@ describe("HomePageRoute", () => {
       sections: [],
       source: "config",
     });
+    getSiteContactSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: DEFAULT_SITE_CONTACT_SETTINGS,
+      source: "config",
+    });
     getSiteSettingsMock.mockResolvedValue({
       degraded: false,
-      settings: { seo: { title: "Home" } },
+      settings: DEFAULT_SITE_SETTINGS,
       source: "config",
     });
 
@@ -129,9 +143,14 @@ describe("HomePageRoute", () => {
       sections: [],
       source: "config",
     });
+    getSiteContactSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: DEFAULT_SITE_CONTACT_SETTINGS,
+      source: "config",
+    });
     getSiteSettingsMock.mockResolvedValue({
       degraded: false,
-      settings: { seo: { title: "Home" } },
+      settings: DEFAULT_SITE_SETTINGS,
       source: "config",
     });
 

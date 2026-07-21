@@ -3,12 +3,12 @@
 import { Phone, PhoneCall, X } from "lucide-react";
 import { useState } from "react";
 import { buildContactLinks, withPhoneHref } from "@/lib/site-contact";
-import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import { FacebookIcon, LineIcon } from "./contact-icons";
 import { cn } from "@/lib/utils";
 
 interface MobileBottomNavProps {
-  settings: SiteSettings;
+  settings: SiteContactSettings;
 }
 
 const bottomNavActionClass =

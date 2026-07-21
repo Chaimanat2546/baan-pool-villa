@@ -3,11 +3,7 @@ import {
   readSiteSettingsUploadFiles,
   type UploadedAsset,
 } from "./admin-asset-uploads";
-import {
-  readPhoneContactsField,
-  readStringArrayField,
-  readStringField,
-} from "./admin-form-fields";
+import { readStringArrayField, readStringField } from "./admin-form-fields";
 import { DEFAULT_SITE_SETTINGS } from "./defaults";
 import type {
   SiteAssetType,
@@ -24,7 +20,6 @@ export const SITE_SETTINGS_SECTIONS = [
   "theme",
   "hero",
   "seo",
-  "contact",
 ] as const;
 
 export type SiteSettingsSection = (typeof SITE_SETTINGS_SECTIONS)[number];
@@ -70,16 +65,6 @@ export interface SiteSettingsSectionDraftMap {
   theme: ThemeDraft;
   hero: Pick<SiteSettingsDraft, "heroImageAlt">;
   seo: SeoDraft;
-  contact: Pick<
-    SiteSettingsDraft,
-    | "bankAccountName"
-    | "bankName"
-    | "bankAccountNumber"
-    | "phoneContacts"
-    | "messengerUrl"
-    | "lineId"
-    | "lineUrl"
-  >;
 }
 
 export interface SiteSettingsSectionResponseMap {
@@ -102,7 +87,6 @@ export interface SiteSettingsSectionResponseMap {
   >;
   hero: Pick<SiteSettings, "heroImage">;
   seo: Pick<SiteSettings, "seo" | "pageSeo">;
-  contact: Pick<SiteSettings, "bank" | "contact">;
 }
 
 const SECTION_SELECTS: Record<SiteSettingsSection, readonly string[]> = {
@@ -118,9 +102,6 @@ const SECTION_SELECTS: Record<SiteSettingsSection, readonly string[]> = {
   seo: [
     "id,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords",
     "id,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls",
-  ],
-  contact: [
-    "id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url",
   ],
 };
 
@@ -159,15 +140,6 @@ const SECTION_FIELDS = {
     "guidesSeoOgImageAlt",
     "villaDetailSeoKeywords",
   ],
-  contact: [
-    "bankAccountName",
-    "bankName",
-    "bankAccountNumber",
-    "phoneContacts",
-    "messengerUrl",
-    "lineId",
-    "lineUrl",
-  ],
 } as const satisfies Record<SiteSettingsSection, readonly (keyof SiteSettingsDraft)[]>;
 
 const SECTION_ASSET_TYPES = {
@@ -175,7 +147,6 @@ const SECTION_ASSET_TYPES = {
   theme: [],
   hero: ["hero"],
   seo: ["seo-og", "search-seo-og", "guides-seo-og"],
-  contact: [],
 } satisfies Record<SiteSettingsSection, readonly SiteAssetType[]>;
 
 const ARRAY_FIELDS = new Set<keyof SiteSettingsDraft>([
@@ -201,15 +172,6 @@ function defaultDraft(): SiteSettingsDraft {
     bankNumberHighlightColor: DEFAULT_SITE_SETTINGS.bankNumberHighlightColor,
     logoBackground: DEFAULT_SITE_SETTINGS.logoBackground,
     heroImageAlt: DEFAULT_SITE_SETTINGS.heroImage.alt,
-    bankAccountName: DEFAULT_SITE_SETTINGS.bank.accountName,
-    bankName: DEFAULT_SITE_SETTINGS.bank.bankName,
-    bankAccountNumber: DEFAULT_SITE_SETTINGS.bank.accountNumber,
-    phoneContacts: DEFAULT_SITE_SETTINGS.contact.phoneContacts.map((contact) => ({
-      ...contact,
-    })),
-    messengerUrl: DEFAULT_SITE_SETTINGS.contact.messengerUrl,
-    lineId: DEFAULT_SITE_SETTINGS.contact.lineId,
-    lineUrl: DEFAULT_SITE_SETTINGS.contact.lineUrl,
     seoTitle: DEFAULT_SITE_SETTINGS.seo.title,
     seoDescription: DEFAULT_SITE_SETTINGS.seo.description,
     seoKeywords: [...DEFAULT_SITE_SETTINGS.seo.keywords],
@@ -280,16 +242,8 @@ export function parseSiteSettingsSectionRequest<S extends SiteSettingsSection>(
   const draft = defaultDraft();
 
   if (body instanceof FormData) {
-    if (section === "contact" && body.has("phoneContacts")) {
-      const contacts = readPhoneContactsField(body);
-      if (!contacts.ok) {
-        return { ok: false, errors: [contacts.error] };
-      }
-      draft.phoneContacts = contacts.value;
-    }
-
     for (const field of fields) {
-      if (!body.has(field) || field === "phoneContacts") {
+      if (!body.has(field)) {
         continue;
       }
       if (ARRAY_FIELDS.has(field)) {
@@ -306,21 +260,7 @@ export function parseSiteSettingsSectionRequest<S extends SiteSettingsSection>(
         continue;
       }
       const value = body[field];
-      if (field === "phoneContacts") {
-        if (
-          !Array.isArray(value) ||
-          value.some(
-            (item) =>
-              !item ||
-              typeof item !== "object" ||
-              typeof (item as Record<string, unknown>).name !== "string" ||
-              typeof (item as Record<string, unknown>).phone !== "string" ||
-              typeof (item as Record<string, unknown>).time !== "string",
-          )
-        ) {
-          return { ok: false, errors: ["Invalid phoneContacts value."] };
-        }
-      } else if (ARRAY_FIELDS.has(field)) {
+      if (ARRAY_FIELDS.has(field)) {
         if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
           return { ok: false, errors: [`Invalid ${field} value.`] };
         }
@@ -372,7 +312,6 @@ export function mapSiteSettingsSectionResponse<S extends SiteSettingsSection>(
     },
     hero: { heroImage: settings.heroImage },
     seo: { seo: settings.seo, pageSeo: settings.pageSeo },
-    contact: { bank: settings.bank, contact: settings.contact },
   };
 
   return responses[section];
@@ -455,18 +394,6 @@ export function buildSiteSettingsSectionPayload<S extends SiteSettingsSection>(
           uploaded("guides-seo-og")?.publicUrl ?? seo.guidesSeoOgImageUrl,
         guides_seo_og_image_alt: seo.guidesSeoOgImageAlt,
         villa_detail_seo_keywords: seo.villaDetailSeoKeywords,
-      };
-    }
-    case "contact": {
-      const contact = draft as SiteSettingsSectionDraftMap["contact"];
-      return {
-        bank_account_name: contact.bankAccountName,
-        bank_name: contact.bankName,
-        bank_account_number: contact.bankAccountNumber,
-        phone_contacts: contact.phoneContacts,
-        messenger_url: contact.messengerUrl,
-        line_id: contact.lineId,
-        line_url: contact.lineUrl,
       };
     }
   }

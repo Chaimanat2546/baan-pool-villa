@@ -12,6 +12,7 @@ import type {
   DetailLayoutBlockType,
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
 import type {
   VillaDetailContent,
@@ -33,6 +34,7 @@ import type { GalleryCategory } from "./types";
 interface DetailLayoutBlockContext {
   advertisements: PublicAdvertisement[];
   bookingSidebarId?: string;
+  contactSettings: SiteContactSettings;
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
   galleryStyle: GalleryStyleSettings;
@@ -336,16 +338,16 @@ function renderReviewVideos({ content }: DetailLayoutBlockContext) {
 
 function renderBookingContact({
   bookingSidebarId,
+  contactSettings,
   content,
   listing,
-  settings,
 }: DetailLayoutBlockContext) {
   return (
     <BookingSidebar
+      contactSettings={contactSettings}
       content={content}
       id={bookingSidebarId}
       listing={listing}
-      settings={settings}
     />
   );
 }

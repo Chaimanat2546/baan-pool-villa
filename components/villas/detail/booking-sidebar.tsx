@@ -1,7 +1,7 @@
 "use client";
 
 import { buildContactLinks, withPhoneHref } from "@/lib/site-contact";
-import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
@@ -15,17 +15,17 @@ export function BookingSidebar({
   content,
   id = "contact",
   listing,
-  settings,
+  contactSettings,
 }: {
   content: VillaDetailContent;
   id?: string;
   listing: VillaListing;
-  settings: SiteSettings;
+  contactSettings: SiteContactSettings;
 }) {
   const checkIn = findFact(content.facts, "เช็คอิน") ?? "14:00";
   const checkOut = findFact(content.facts, "เช็คเอาต์") ?? "12:00";
-  const contactLinks = buildContactLinks(settings.contact);
-  const phoneContacts = settings.contact.phoneContacts.map(withPhoneHref);
+  const contactLinks = buildContactLinks(contactSettings.contact);
+  const phoneContacts = contactSettings.contact.phoneContacts.map(withPhoneHref);
   const primaryPhoneContact = phoneContacts[0];
 
   return (

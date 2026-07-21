@@ -4,6 +4,7 @@ import type { GuidePost } from "@/lib/guides/types";
 import type { LegalPage } from "@/lib/legal-pages/types";
 import { buildAwsImageUrl } from "@/lib/aws-image-url";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { VillaListing } from "@/lib/villas/types";
 
 export const siteName = "Pool Villas Pattaya";
@@ -469,8 +470,11 @@ export function buildBreadcrumbJsonLd(
   };
 }
 
-export function buildHomeJsonLd(settings: SiteSettings): Record<string, unknown> {
-  const firstPhone = settings.contact.phoneContacts.at(0)?.phone;
+export function buildHomeJsonLd(
+  settings: SiteSettings,
+  contactSettings: SiteContactSettings,
+): Record<string, unknown> {
+  const firstPhone = contactSettings.contact.phoneContacts.at(0)?.phone;
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "LodgingBusiness",

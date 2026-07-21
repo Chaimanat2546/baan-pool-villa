@@ -4,6 +4,7 @@
 import { act, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
 import type {
@@ -191,6 +192,7 @@ async function flushReact() {
 function makePage(id = listing.id, activeListing = listing) {
   return (
     <VillaDetailPage
+      contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       id={id}
       galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
       payload={makePayload(activeListing)}
@@ -207,6 +209,7 @@ function makePageWithInitialGalleryImages(
 ) {
   return (
     <VillaDetailPage
+      contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       id={id}
       galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
       initialGalleryImages={initialGalleryImages}
@@ -545,6 +548,7 @@ describe("VillaDetailPage deferred gallery loader", () => {
 
     await page.render(
       <VillaDetailPage
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         galleryStyle={{ variant: "categorized-grid" }}
         id={listing.id}
         initialGalleryImages={[apiCoverImage]}
@@ -589,6 +593,7 @@ describe("VillaDetailPage deferred gallery loader", () => {
 
     await page.render(
       <VillaDetailPage
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         galleryStyle={{ variant: "categorized-grid" }}
         id={listing.id}
         initialGalleryImages={[apiCoverImage]}

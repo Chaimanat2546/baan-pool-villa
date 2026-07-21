@@ -1,11 +1,11 @@
 import {
   validateBrandSettingsValues,
-  validateContactSettingsValues,
   validateHeroSettingsValues,
   validateSeoSettingsValues,
   validateThemeSettingsValues,
   validateUploadMetadata,
 } from "@/lib/site-settings/validation";
+import { validateSiteContactSettingsDraft } from "@/lib/site-contact-settings/validation";
 import type { BrandSettingsDraft, ContactSettingsDraft, HeroSettingsDraft, SeoSettingsDraft, ThemeSettingsDraft } from "./types";
 
 export function validateBrandSettingsDraft(draft: BrandSettingsDraft): string[] {
@@ -32,5 +32,5 @@ export function validateSeoSettingsDraft(draft: SeoSettingsDraft): string[] {
 }
 
 export function validateContactSettingsDraft(draft: ContactSettingsDraft): string[] {
-  return validateContactSettingsValues(draft);
+  return validateSiteContactSettingsDraft(draft);
 }

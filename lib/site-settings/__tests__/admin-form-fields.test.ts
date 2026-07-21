@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   getOptionalUpload,
-  readPhoneContactsField,
   readStringArrayField,
   readStringField,
 } from "../admin-form-fields";
@@ -27,28 +26,14 @@ describe("admin site settings form fields", () => {
     ]);
   });
 
-  it("parses phone contacts and upload fields safely", () => {
+  it("reads optional upload fields safely", () => {
     const formData = new FormData();
     const logo = new File(["logo"], "logo.webp", { type: "image/webp" });
 
-    formData.set(
-      "phoneContacts",
-      JSON.stringify([{ name: "Game", phone: "0617485213", time: "07.00-15.00" }]),
-    );
     formData.set("logo", logo);
     formData.set("hero", new File([], "empty.webp", { type: "image/webp" }));
 
-    expect(readPhoneContactsField(formData)).toEqual({
-      ok: true,
-      value: [{ name: "Game", phone: "0617485213", time: "07.00-15.00" }],
-    });
     expect(getOptionalUpload(formData, "logo")).toBe(logo);
     expect(getOptionalUpload(formData, "hero")).toBeNull();
-
-    formData.set("phoneContacts", JSON.stringify({ name: "Game" }));
-
-    const invalidResult = readPhoneContactsField(formData);
-
-    expect(invalidResult.ok).toBe(false);
   });
 });

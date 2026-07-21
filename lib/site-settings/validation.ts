@@ -13,7 +13,6 @@ import type {
   SiteAssetUploadRecord,
   SiteAssetType,
   SiteImageSettings,
-  SitePhoneContact,
   SiteSettings,
   SiteTikTokVideoSettings,
   SiteSettingsDraft,
@@ -38,7 +37,6 @@ const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
 const GOOGLE_TAG_MANAGER_ID_PATTERN = /^GTM-[A-Z0-9]{5,15}$/;
 const GOOGLE_TAG_MANAGER_ID_FORMAT_ERROR =
   "GTM ID ต้องอยู่ในรูปแบบ GTM-XXXXXXX และใช้ได้เฉพาะตัวอักษร A-Z กับตัวเลข";
-const THAI_PHONE_PATTERN = /^0\d{9}$/;
 const RETAINED_UPLOADS_PER_ASSET_TYPE = 3;
 const SITE_ASSET_TYPES: SiteAssetType[] = [
   "favicon",
@@ -169,38 +167,6 @@ export function normalizeSiteSettingsRow(
       normalizeRequiredText(row.hero_image_alt, DEFAULT_SITE_SETTINGS.heroImage.alt),
       DEFAULT_SITE_SETTINGS.heroImage,
     ),
-    bank: {
-      accountName: normalizeRequiredText(
-        row.bank_account_name,
-        DEFAULT_SITE_SETTINGS.bank.accountName,
-      ),
-      bankName: normalizeRequiredText(
-        row.bank_name,
-        DEFAULT_SITE_SETTINGS.bank.bankName,
-      ),
-      accountNumber: normalizeRequiredText(
-        row.bank_account_number,
-        DEFAULT_SITE_SETTINGS.bank.accountNumber,
-      ),
-    },
-    contact: {
-      phoneContacts: normalizePhoneContacts(
-        row.phone_contacts,
-        DEFAULT_SITE_SETTINGS.contact.phoneContacts,
-      ),
-      messengerUrl: normalizeUrl(
-        row.messenger_url,
-        DEFAULT_SITE_SETTINGS.contact.messengerUrl,
-      ),
-      lineId: normalizeRequiredText(
-        row.line_id,
-        DEFAULT_SITE_SETTINGS.contact.lineId,
-      ),
-      lineUrl: normalizeUrl(
-        row.line_url,
-        DEFAULT_SITE_SETTINGS.contact.lineUrl,
-      ),
-    },
     seo: {
       title: normalizeRequiredText(
         row.seo_title,
@@ -294,17 +260,6 @@ export function normalizeSiteSettingsDraft(
       DEFAULT_SITE_SETTINGS.logoBackground,
     ),
     heroImageAlt: draft.heroImageAlt.trim(),
-    bankAccountName: draft.bankAccountName.trim(),
-    bankName: draft.bankName.trim(),
-    bankAccountNumber: draft.bankAccountNumber.trim(),
-    phoneContacts: draft.phoneContacts.map((contact) => ({
-      name: contact.name.trim(),
-      phone: contact.phone.trim(),
-      time: contact.time.trim(),
-    })),
-    messengerUrl: draft.messengerUrl.trim(),
-    lineId: draft.lineId.trim(),
-    lineUrl: draft.lineUrl.trim(),
     seoTitle: draft.seoTitle.trim(),
     seoDescription: draft.seoDescription.trim(),
     seoKeywords: normalizeKeywordList(draft.seoKeywords),
@@ -472,19 +427,6 @@ export function validateSeoSettingsValues(draft: Pick<SiteSettingsDraft, "seoTit
   return errors;
 }
 
-export function validateContactSettingsValues(draft: Pick<SiteSettingsDraft, "bankAccountName" | "bankName" | "bankAccountNumber" | "phoneContacts" | "messengerUrl" | "lineId" | "lineUrl">): string[] {
-  const errors: string[] = [];
-  if (!draft.bankAccountName.trim()) errors.push("ต้องใส่ชื่อบัญชีธนาคาร");
-  if (!draft.bankName.trim()) errors.push("ต้องใส่ชื่อธนาคาร");
-  if (!draft.bankAccountNumber.trim()) errors.push("ต้องใส่เลขบัญชีธนาคาร");
-  if (!draft.phoneContacts.length) errors.push("ต้องใส่เบอร์โทรอย่างน้อย 1 รายการ");
-  draft.phoneContacts.forEach((contact, index) => { const number = index + 1; if (!contact.name.trim()) errors.push(`ต้องใส่ชื่อผู้ติดต่อคนที่ ${number}`); if (!contact.phone.trim()) errors.push(`ต้องใส่เบอร์โทรผู้ติดต่อคนที่ ${number}`); else if (!isThaiPhoneNumber(contact.phone)) errors.push(`เบอร์โทรผู้ติดต่อคนที่ ${number} ต้องเป็นเบอร์ไทย 10 หลัก เช่น 0xxxxxxxxx`); if (!contact.time.trim()) errors.push(`ต้องใส่ช่วงเวลาผู้ติดต่อคนที่ ${number}`); });
-  if (!isHttpUrl(draft.messengerUrl)) errors.push("ลิงก์ Messenger ต้องเป็น URL แบบ http หรือ https");
-  if (!draft.lineId.trim()) errors.push("ต้องใส่ LINE ID");
-  if (!isHttpUrl(draft.lineUrl)) errors.push("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");
-  return errors;
-}
-
 export function validateSiteSettingsDraft(
   draft: SiteSettingsDraft,
 ): string[] {
@@ -499,7 +441,6 @@ export function validateSiteSettingsDraft(
   errors.push(...validateHeroSettingsValues(draft));
 
   errors.push(...validateSeoSettingsValues(draft));
-  errors.push(...validateContactSettingsValues(draft));
 
   errors.push(
     ...validateTikTokSettingsDraft({
@@ -917,48 +858,6 @@ function parseTikTokUrl(value: string): URL | null {
   }
 }
 
-function normalizePhoneContacts(
-  value: unknown,
-  fallback: SitePhoneContact[],
-): SitePhoneContact[] {
-  if (!Array.isArray(value)) {
-    return fallback;
-  }
-
-  const contacts = value
-    .map((item) => {
-      if (!item || typeof item !== "object") {
-        return null;
-      }
-
-      const contact = item as Partial<Record<keyof SitePhoneContact, unknown>>;
-
-      if (
-        typeof contact.name !== "string" ||
-        typeof contact.phone !== "string" ||
-        typeof contact.time !== "string"
-      ) {
-        return null;
-      }
-
-      return {
-        name: contact.name.trim(),
-        phone: contact.phone.trim(),
-        time: contact.time.trim(),
-      };
-    })
-    .filter((contact): contact is SitePhoneContact => {
-      return (
-        contact !== null &&
-        contact.name.length > 0 &&
-        contact.phone.length > 0 &&
-        contact.time.length > 0
-      );
-    });
-
-  return contacts.length > 0 ? contacts : fallback;
-}
-
 function normalizeSameAsUrls(value: unknown, fallback: string[]): string[] {
   if (!Array.isArray(value)) {
     return fallback;
@@ -970,20 +869,6 @@ function normalizeSameAsUrls(value: unknown, fallback: string[]): string[] {
     .filter((item) => item.length > 0 && isHttpUrl(item));
 
   return urls.length > 0 ? [...new Set(urls)] : fallback;
-}
-
-function normalizeThaiPhoneDigits(value: string): string {
-  return value.replaceAll(" ", "").replaceAll("-", "");
-}
-
-function isThaiPhoneNumber(value: string): boolean {
-  return THAI_PHONE_PATTERN.test(normalizeThaiPhoneDigits(value));
-}
-
-function normalizeUrl(value: string | null | undefined, fallback: string): string {
-  const trimmedValue = value?.trim() ?? "";
-
-  return isHttpUrl(trimmedValue) ? trimmedValue : fallback;
 }
 
 function isPublicImageUrl(value: string): boolean {

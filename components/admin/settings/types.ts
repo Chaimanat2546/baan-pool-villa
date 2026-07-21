@@ -1,5 +1,9 @@
 import type { SiteLogoBackground } from "@/lib/site-settings/logo-background";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type {
+  SiteContactSettings,
+  SiteContactSettingsDraft,
+} from "@/lib/site-contact-settings/types";
 
 export interface BrandSettingsDraft {
   faviconFile: File | null;
@@ -38,7 +42,7 @@ export type SeoSettingsDraft = import("@/lib/site-settings/admin-section-contrac
   pageSeo: SiteSettings["pageSeo"];
 };
 
-export type ContactSettingsDraft = import("@/lib/site-settings/admin-section-contracts").SiteSettingsSectionDraftMap["contact"];
+export type ContactSettingsDraft = SiteContactSettingsDraft;
 
 export interface AdminSiteSettingsResponse {
   code?: string;
@@ -46,7 +50,7 @@ export interface AdminSiteSettingsResponse {
   error?: string;
   errors?: string[];
   hint?: string;
-  settings?: SiteSettings;
+  settings?: SiteSettings | SiteContactSettings;
   warning?: string;
   warnings?: string[];
 }

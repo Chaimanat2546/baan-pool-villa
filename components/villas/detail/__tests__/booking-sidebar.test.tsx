@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
 import {
@@ -173,7 +173,7 @@ async function renderBookingSidebar() {
       <BookingSidebar
         content={content}
         listing={listing}
-        settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
     );
   });
@@ -242,7 +242,7 @@ describe("BookingSidebar", () => {
       <BookingSidebar
         content={content}
         listing={listing}
-        settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
     );
 
@@ -261,7 +261,7 @@ describe("BookingSidebar", () => {
           ],
         }}
         listing={listing}
-        settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
     );
 
@@ -271,7 +271,7 @@ describe("BookingSidebar", () => {
   it("pushes booking contact click events to the dataLayer", async () => {
     const page = await renderBookingSidebar();
     const lineLink = Array.from(page.container.querySelectorAll<HTMLAnchorElement>("a")).find(
-      (link) => link.href === DEFAULT_SITE_SETTINGS.contact.lineUrl,
+      (link) => link.href === DEFAULT_SITE_CONTACT_SETTINGS.contact.lineUrl,
     );
 
     expect(lineLink).not.toBeNull();
@@ -313,12 +313,12 @@ describe("BookingSidebar", () => {
           <BookingSidebar
             content={content}
             listing={listing}
-            settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
           />
           <BookingSidebar
             content={content}
             listing={listing}
-            settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
           />
         </>,
       );

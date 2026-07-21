@@ -48,6 +48,8 @@ const GALLERY_OPTIONS: Array<{
 const HEADER_PREVIEW_SETTINGS = {
   ...DEFAULT_SITE_SETTINGS,
   siteName: "บ้านพักตัวอย่าง",
+};
+const HEADER_PREVIEW_CONTACT_SETTINGS = {
   bank: {
     accountName: "คุณมินท์ ใจดี",
     bankName: "ธนาคารตัวอย่าง",
@@ -135,7 +137,7 @@ export function WebStyleSettingsPage() {
         <p className="mt-3 text-xs font-medium text-[var(--site-muted)]">การตั้งค่านี้มีผลกับ Header บน Desktop เท่านั้น</p>
       </div>
       <div className="mt-4 hidden overflow-hidden rounded-lg lg:block" data-header-preview onAuxClickCapture={(event) => event.preventDefault()} onClickCapture={(event) => event.preventDefault()} onKeyDownCapture={(event) => { if (event.key === "Enter" || event.key === " ") event.preventDefault(); }}>
-        <SiteHeader desktopHeaderVariant={draft.desktopHeaderVariant} previewMode settings={{ ...HEADER_PREVIEW_SETTINGS, ...previewTheme }} />
+        <SiteHeader contactSettings={HEADER_PREVIEW_CONTACT_SETTINGS} desktopHeaderVariant={draft.desktopHeaderVariant} previewMode settings={{ ...HEADER_PREVIEW_SETTINGS, ...previewTheme }} />
       </div>
     </SectionCard> : null}
     <AdminFeedback errors={galleryState.errors} errorTitle="กรุณาแก้ไขการแสดงรูปก่อนบันทึก:" notice={galleryState.notice} warnings={galleryState.warnings} />

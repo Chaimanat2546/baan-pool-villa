@@ -1,265 +1,110 @@
-# Admin CMS Data Model Refactor Handoff
+# Admin CMS Data Model Refactor Status
 
-## Problem
+## Current State
 
-`/admin/detail-layout` feels slow even though the detail-layout API reads only one small field. The deeper issue is that admin/CMS settings have grown around one overloaded `site_settings` row that mixes identity, theme, assets, contact, bank display fields, marketing tags, SEO, TikTok, and `detail_layout`.
+`site_settings` is being reduced one bounded domain at a time. This document records the implemented ownership and the remaining release gates; it is not a proposal to redesign SEO or Web Styles again.
 
-The refactor should be done as a set of coarse work packages, not many tiny tasks. Each package below is designed to be handed to a separate chat/agent.
-
-## Current Detail Layout Data Flow
-
-The detail-layout editor itself reads very little:
-
-- Page: `app/(admin)/admin/detail-layout/page.tsx`
-- Client: `components/admin/detail-layout/admin-detail-layout-page.tsx`
-- API: `app/(admin)/api/admin/detail-layout/route.ts`
-- Backend helper: `lib/detail-layout/admin-route.ts`
-- Actual data read: `site_settings.select("id,detail_layout").eq("id","global").maybeSingle()`
-
-The likely slowness is the surrounding waterfall:
-
-- `app/(admin)/admin/layout.tsx` calls `getSiteSettings()` before the admin shell renders.
-- `lib/site-settings/server.ts` uses one large `SITE_SETTINGS_SELECT` for almost every consumer.
-- The browser then reads the Supabase session and calls `/api/admin/detail-layout`.
-- The API auth path calls `supabase.auth.getUser(token)` and checks `admin_users`.
-
-The first performance win should be to make the admin shell use a narrow settings read. The bigger backend win is to stop adding unrelated JSON fields to `site_settings`.
-
-## Data Model Direction
-
-Normalize settings that are ordered, independently editable, validated, public-facing, or permissioned.
-
-Keep JSON only where it is a document body or genuinely unqueryable configuration.
-
-| Current data | Target direction | Notes |
+| Domain | Canonical storage | Status |
 | --- | --- | --- |
-| Site name, logo background, villa card style | `site_identity_settings` | Singleton settings. |
-| Theme colors | `site_theme_settings` | Narrow read for public/admin chrome. |
-| Logo, favicon, hero, SEO images | `site_asset_settings` plus existing `site_asset_uploads` history | Do not duplicate upload history unless needed. |
-| `phone_contacts` JSON | `site_contact_channels` | Ordered rows with active state and validation. |
-| Bank display fields | `site_bank_accounts` | Keep internal payment/admin-only fields private unless explicitly required. |
-| Google Tag Manager | `site_marketing_settings` | Avoid full settings rewrites for one marketing field. |
-| SEO titles/descriptions/images | `site_seo_profiles` | Suggested profile keys: `global`, `search`, `guides`, `villa_detail`. |
-| SEO keyword JSON arrays | `site_seo_keywords` | Ordered rows per SEO profile. |
-| Same-as/social URL JSON | `site_social_links` | Ordered active rows. |
-| TikTok video URL JSON | `site_social_videos` | Provider, URL, active state, sort order. |
-| `detail_layout` JSON | `detail_layouts`, `detail_layout_rows`, `detail_layout_blocks` | Keep tiny per-block `config jsonb` only for unqueried variant options. |
-| `guide_posts.content_blocks` JSON | Keep JSON for now | Rich document body, not first refactor target. |
-| `legal_pages.content_blocks` JSON | Keep JSON for now | Rich document body, not first refactor target. |
+| SEO | `site_seo_settings` | Implemented. Global, search, guides, and villa-detail SEO are owned by the dedicated SEO domain. |
+| Web Styles | `site_web_styles` | Implemented. Header, gallery, and house-card styles are owned by the dedicated Web Styles domain. |
+| Contact and public bank display | `site_contact_settings` | Final canonical owner. Expansion, application cutover, production verification, and contract completed on 2026-07-21. |
+| Brand, theme, assets, TikTok, marketing tag, detail layout | `site_settings` | Still owned by `site_settings`; not part of the contact refactor. |
 
-## Work Package 1: Audit And Target Model Record
+SEO and Web Styles must not be recreated as part of `site_contact_settings` work.
 
-Purpose: lock the target schema before implementation so later agents do not create incompatible migrations.
+## Contact Target Model
 
-Inspect:
+`site_contact_settings` is a public-readable singleton table. It intentionally keeps the current product contract together instead of introducing child tables with no current caller.
 
-- `docs/ai/structure.html`
-- `lib/site-settings/types.ts`
-- `lib/site-settings/defaults.ts`
-- `lib/site-settings/validation.ts`
-- `lib/site-settings/server.ts`
-- `lib/site-settings/admin-route.ts`
-- `lib/detail-layout/admin-route.ts`
-- `app/(admin)/admin/layout.tsx`
-- `app/(public)/layout.tsx`
-- `app/(public)/(home)/page.tsx`
-- `app/(public)/villas/[id]/page.tsx`
-- `supabase/migrations/20260528000000_create_site_settings.sql`
-- `supabase/migrations/20260527000000_create_home_section_config.sql`
-- Later migrations that add contact, SEO, detail-layout, TikTok, and SEO keyword fields.
+Columns:
 
-Deliverable:
+- `singleton_id boolean primary key default true` with a singleton check.
+- `bank_account_name`, `bank_name`, and `bank_account_number`.
+- `phone_contacts jsonb` containing the ordered public phone contacts.
+- `messenger_url`, `line_id`, and `line_url`.
+- `created_at` and `updated_at`.
 
-- Expand or update this document with exact table names, columns, owner modules, rollout order, and rollback notes.
-- No runtime code or schema changes in this package.
+Security and access:
 
-Done when:
+- RLS is enabled.
+- Anonymous and authenticated users may select the public contact row.
+- Only authenticated admins may insert or update it.
+- Delete is not granted.
+- The expansion migration includes explicit table grants and a PostgREST schema reload.
 
-- Every `site_settings` JSON field has a keep/normalize decision.
-- Rich-content JSON fields are explicitly in or out of scope.
-- The implementation order is clear enough for the next package to start.
+The table contains public display data only. Internal payment or admin-only banking data must not be added without a separate product and security decision.
 
-## Work Package 2: Normalize Site Settings Schema
+## Application Ownership
 
-Purpose: add domain tables and backfill them from legacy `site_settings` while preserving old data.
+| Concern | Owner |
+| --- | --- |
+| Types and row contract | `lib/site-contact-settings/types.ts` |
+| Production-safe defaults | `lib/site-contact-settings/defaults.ts` |
+| Normalization and validation | `lib/site-contact-settings/validation.ts` |
+| Cached public read | `lib/site-contact-settings/server.ts` |
+| Admin GET/PATCH persistence | `lib/site-contact-settings/admin-route.ts` |
+| Compatible admin endpoint | `app/(admin)/api/admin/site-settings/contact/route.ts` |
+| Public link formatting | `lib/site-contact.ts` |
+| Cache duration and tag | `lib/cache-policy.ts` and `lib/cache-revalidation.ts` |
 
-Likely files:
+`lib/site-settings` no longer owns the seven contact/bank fields. The other `/api/admin/site-settings/:section` routes do not accept `contact`; the compatible URL is handled by its dedicated route.
 
-- New migration under `supabase/migrations/`
-- Possibly matching idempotent patch SQL notes for an existing online Supabase project.
+## Public Consumers
 
-Implementation direction:
+The public layout loads general settings, contact settings, and Web Styles independently. Header, footer, mobile contact actions, the shared contact section, homepage JSON-LD, guide/legal contact sections, and villa booking contact actions receive the contact domain explicitly.
 
-- Create the domain tables listed in "Data Model Direction".
-- Backfill from `site_settings`.
-- Enable RLS and add explicit grants/policies.
-- Add indexes and uniqueness constraints for singleton keys, profile keys, and ordered child rows.
-- Include `notify pgrst, 'reload schema'` after schema/grant changes.
-- Do not drop old columns yet.
+Metadata still uses the existing SEO owner. `buildHomeJsonLd` receives both SEO/general settings and contact settings so the business phone does not leak back into `SiteSettings` ownership.
 
-Done when:
+## Rollout
 
-- New tables exist with safe policies and grants.
-- Backfill is non-destructive.
-- Public reads are exposed only where intentional.
-- Admin writes are limited to authenticated admins.
+### 1. Expand — applied 2026-07-21
 
-## Work Package 3: Add Narrow Read Models
+Migration: `supabase/migrations/20260720084701_create_site_contact_settings.sql`
 
-Purpose: move hot layouts/pages off the large `getSiteSettings()` projection.
+It creates the table, policies, grants, one-time non-destructive backfill from `site_settings`, timestamp trigger, schema reload, and postflight checks. The backfill uses `on conflict do nothing`, so rerunning it cannot overwrite canonical contact values with legacy data.
 
-Likely files:
+The expansion and contract migrations are recorded with the same source-controlled versions in all three production projects: `zkxpozvhvmgqfrwnlfrn`, `vfqxpujsvgdqtrzpxobh`, and `lpxsktjrkjzwbxvhjogo`. Each project backfilled only from its own legacy row.
 
-- `lib/site-settings/server.ts`
-- `lib/site-settings/types.ts`
-- `lib/site-settings/defaults.ts`
-- `lib/site-settings/validation.ts`
-- `app/(admin)/admin/layout.tsx`
-- `app/layout.tsx`
-- `app/(public)/layout.tsx`
-- `app/(public)/(home)/page.tsx`
-- `app/(public)/villas/[id]/page.tsx`
-- `app/(public)/api/site-assets/proxy/route.ts`
-- `components/layout/site-theme-provider.tsx`
-- `components/admin/layout/admin-shell.tsx`
+### 2. Deploy and verify — completed 2026-07-21
 
-Suggested read models:
+Production verification covered the public header, footer, homepage contact and JSON-LD, guide/legal pages, villa booking actions, and the Contact admin page. Desktop and a 390 px mobile viewport rendered without horizontal overflow; the mobile contact bar exposed the canonical phone, Messenger, and LINE links.
 
-- `getAdminChromeSettings()`: site name and theme colors for admin shell.
-- `getPublicChromeSettings()`: public chrome, contact actions, theme, card style.
-- `getHomePageSettings()`: hero, videos, contact summary, and home-only display settings.
-- `getSeoSettings(pageKey)`: SEO profile, keywords, same-as links, and image data.
-- `getDetailLayoutSettings()`: detail layout only.
-- `getFullSiteSettings()`: temporary compatibility adapter for old callers.
+The production network check returned zero `_rsc` and zero `/_next/image` requests, with only the bounded `/api/site-theme.css` request. A same-value Contact save normalized `LINE ID` back to `@baanpool`, advanced only `site_contact_settings.updated_at`, and left `site_settings.updated_at` unchanged. Public and admin browser logs contained no errors.
 
-Done when:
+The deployed application and repository scan contain no runtime read or write of the seven legacy columns outside the dedicated contact persistence owner and schema history.
 
-- `/admin/detail-layout` no longer waits on the full site settings projection through the admin layout.
-- Public metadata and layout behavior remain the same.
-- Fallbacks still work if the new tables are not populated.
-- Targeted helper tests pass, then `npm.cmd run lint` and `npm.cmd run build` pass.
+The deployed application no longer has a legacy Contact read or write path.
 
-## Work Package 4: Split Admin APIs And Forms By Domain
+### 3. Contract — completed 2026-07-21
 
-Purpose: make admin writes match the new domain model instead of rewriting a giant settings object.
+Migration: `supabase/migrations/20260721093339_contract_site_contact_settings.sql`
 
-Likely files:
+Before application, the migration verified one canonical row, one legacy source row, all seven legacy columns, and exact equality across every value. A timestamped JSON export was taken outside Git with SHA-256 `D58B9BAB7451032D98E04DFEC7C9B543801D1253561A2EE49B8D276A79EEE657`, and the user explicitly approved the destructive contract step.
 
-- `lib/site-settings/admin-route.ts`
-- `lib/site-settings/admin-tiktok-route.ts`
-- `lib/site-settings/marketing-tags-route.ts`
-- `app/(admin)/api/admin/site-settings/route.ts`
-- `app/(admin)/api/admin/site-settings/tiktok/route.ts`
-- `app/(admin)/api/admin/site-settings/marketing-tags/route.ts`
-- Admin settings components under `components/admin`
+Postflight on all three production projects returned one canonical row and zero legacy columns. RLS remained enabled with all three required policies and no DELETE/TRUNCATE grant. Production public smoke tests loaded each environment's canonical bank/contact values without browser errors; authenticated Admin Contact loaded on `baanPMhee` and `baanparty`, while unauthenticated `baan02` redirected to login. Migration history versions match the source-controlled expansion and contract filenames everywhere.
 
-Direction:
+Rollback after this point requires a forward migration that recreates the legacy schema and restores exported values; do not redeploy the old application by itself.
 
-- Keep the visible UI stable.
-- Save each domain independently.
-- Do not let contact saves rewrite SEO/theme/detail-layout fields.
-- Keep compatibility dual-write to old `site_settings` columns during rollout.
-- Surface Supabase/storage/auth errors with useful details.
+Dropped legacy columns:
 
-Done when:
+- `bank_account_name`
+- `bank_name`
+- `bank_account_number`
+- `phone_contacts`
+- `messenger_url`
+- `line_id`
+- `line_url`
 
-- Existing admin settings screens still load/save the same visible data.
-- Each domain has validation and at least one focused save-path test.
-- Errors are domain-specific and not collapsed into generic login failures.
+## Verification Contract
 
-## Work Package 5: Normalize Detail Layout
+Focused tests must cover defaults, normalization, URL and phone validation, cached fallback behavior, admin authentication/parsing/upsert errors, cache revalidation, public contact link formatting, and all affected consumers.
 
-Purpose: move villa detail layout out of `site_settings.detail_layout`.
+Before declaring the application change deployable, run:
 
-Suggested tables:
+- Contact/site-settings/admin/public focused tests.
+- `npm.cmd run lint`.
+- `npm.cmd run build`.
+- The browser checks listed in the deploy gate after a database with the expansion migration is available.
 
-- `detail_layouts`
-- `detail_layout_rows`
-- `detail_layout_blocks`
-
-Keep a small `config jsonb` on blocks only for options that are not queried or permissioned independently.
-
-Likely files:
-
-- `lib/detail-layout/admin-route.ts`
-- `lib/detail-layout/defaults.ts`
-- `lib/detail-layout/types.ts`
-- `lib/detail-layout/validation.ts`
-- `components/admin/detail-layout/admin-detail-layout-page.tsx`
-- `components/villas/detail/*`
-- `app/(admin)/api/admin/detail-layout/route.ts`
-- `app/(public)/villas/[id]/page.tsx`
-
-Done when:
-
-- New tables are backfilled from `site_settings.detail_layout`.
-- Admin detail-layout editor loads/saves through normalized rows and blocks.
-- Public villa detail renders the same layout after backfill.
-- Legacy fallback still works during rollout.
-- Tests cover mapping, validation, ordering, and defaults.
-
-## Work Package 6: Cutover And Cleanup
-
-Purpose: remove compatibility debt only after the new paths are verified.
-
-Scope:
-
-- Remove fallback reads from legacy `site_settings`.
-- Stop dual-writing old JSON columns.
-- Drop legacy columns only after explicit approval, backup/export, and production verification.
-- Update `docs/ai/structure.html` with final schema ownership, route ownership, cache behavior, and targeted tests.
-
-Verification:
-
-- Targeted tests for changed helpers/routes.
-- `npm.cmd run lint`
-- `npm.cmd run build`
-- Browser check `/admin/detail-layout`, `/admin/settings`, public home, public villa detail, and metadata-critical pages.
-- If public cache/navigation behavior changes, run a production browser network check for bounded route/API counts and no unexpected public `_rsc` or image optimization requests.
-
-## Recommended Order
-
-1. Package 1: confirm exact target model.
-2. Package 2: add schema and backfill.
-3. Package 3: add narrow read models and fix the detail-layout slowdown path.
-4. Package 4: split admin writes by domain.
-5. Package 5: normalize detail layout.
-6. Package 6: remove legacy compatibility after explicit approval.
-
-## Copy-Paste Prompts
-
-Package 1:
-
-```text
-Use docs/ai/admin-cms-data-model-refactor.md. Implement Work Package 1 only: audit current settings/detail-layout data, expand the target model record, and do not change runtime code or schema.
-```
-
-Package 2:
-
-```text
-Use docs/ai/admin-cms-data-model-refactor.md. Implement Work Package 2 only: add normalized site settings tables with RLS, grants, indexes, and safe backfill from legacy site_settings. Preserve legacy data.
-```
-
-Package 3:
-
-```text
-Use docs/ai/admin-cms-data-model-refactor.md. Implement Work Package 3 only: add narrow site-settings read models and move admin/public layouts off the full getSiteSettings projection while preserving compatibility and tests.
-```
-
-Package 4:
-
-```text
-Use docs/ai/admin-cms-data-model-refactor.md. Implement Work Package 4 only: split admin settings saves by domain, keep UI behavior stable, dual-write legacy fields during rollout, and add focused tests.
-```
-
-Package 5:
-
-```text
-Use docs/ai/admin-cms-data-model-refactor.md. Implement Work Package 5 only: normalize detail layout into rows/blocks tables, backfill from site_settings.detail_layout, keep payload compatibility, and verify admin plus public villa detail behavior.
-```
-
-Package 6:
-
-```text
-Use docs/ai/admin-cms-data-model-refactor.md. Implement Work Package 6 only: after production verification, remove legacy compatibility paths and update docs/tests. Do not drop legacy columns without explicit approval.
-```
+The contact contract is complete; the seven dropped columns must not be recreated outside an explicit forward recovery migration.

@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 import { SiteHeader } from "../site-header";
@@ -39,7 +40,12 @@ async function renderHeader() {
   const root = createRoot(container);
 
   await act(async () => {
-    root.render(<SiteHeader settings={DEFAULT_SITE_SETTINGS} />);
+    root.render(
+      <SiteHeader
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
   });
 
   return { container, root };
@@ -81,18 +87,18 @@ describe("SiteHeader", () => {
 
   it("renders the bank account notice with readable navbar text tokens", () => {
     const markup = renderToStaticMarkup(
-      <SiteHeader settings={DEFAULT_SITE_SETTINGS} />,
+      <SiteHeader contactSettings={DEFAULT_SITE_CONTACT_SETTINGS} settings={DEFAULT_SITE_SETTINGS} />,
     );
 
     expect(markup).toContain("ชื่อบัญชี");
-    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountName);
+    expect(markup).toContain(DEFAULT_SITE_CONTACT_SETTINGS.bank.accountName);
     expect(markup).toContain("ธนาคาร");
     expect(markup).toContain("เลขที่");
-    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountName);
-    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.bankName);
-    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountNumber);
+    expect(markup).toContain(DEFAULT_SITE_CONTACT_SETTINGS.bank.accountName);
+    expect(markup).toContain(DEFAULT_SITE_CONTACT_SETTINGS.bank.bankName);
+    expect(markup).toContain(DEFAULT_SITE_CONTACT_SETTINGS.bank.accountNumber);
     expect(markup).not.toContain(
-      `${DEFAULT_SITE_SETTINGS.bank.bankName} เลขที่ ${DEFAULT_SITE_SETTINGS.bank.accountNumber}`,
+      `${DEFAULT_SITE_CONTACT_SETTINGS.bank.bankName} เลขที่ ${DEFAULT_SITE_CONTACT_SETTINGS.bank.accountNumber}`,
     );
     expect(markup).toContain("bg-[var(--site-header-link)]");
     expect(markup).toContain("text-[var(--site-bank-account-highlight)]");
@@ -106,6 +112,7 @@ describe("SiteHeader", () => {
   it("applies the resolved theme text color to a preview header", () => {
     const markup = renderToStaticMarkup(
       <SiteHeader
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         previewMode
         settings={{ ...DEFAULT_SITE_SETTINGS, primaryColor: "#111111" }}
       />,
@@ -119,7 +126,7 @@ describe("SiteHeader", () => {
 
   it("keeps the desktop brand and bank notice inside one header row", () => {
     const markup = renderToStaticMarkup(
-      <SiteHeader settings={DEFAULT_SITE_SETTINGS} />,
+      <SiteHeader contactSettings={DEFAULT_SITE_CONTACT_SETTINGS} settings={DEFAULT_SITE_SETTINGS} />,
     );
 
     expect(markup).toContain("lg:row-span-3");
@@ -128,25 +135,26 @@ describe("SiteHeader", () => {
 
   it("renders the first phone and LINE actions in the desktop header", () => {
     const markup = renderToStaticMarkup(
-      <SiteHeader settings={DEFAULT_SITE_SETTINGS} />,
+      <SiteHeader contactSettings={DEFAULT_SITE_CONTACT_SETTINGS} settings={DEFAULT_SITE_SETTINGS} />,
     );
 
     expect(markup).toContain(
-      `href="tel:${DEFAULT_SITE_SETTINGS.contact.phoneContacts[0]?.phone}"`,
+      `href="tel:${DEFAULT_SITE_CONTACT_SETTINGS.contact.phoneContacts[0]?.phone}"`,
     );
     expect(markup).toContain(
-      `href="${DEFAULT_SITE_SETTINGS.contact.lineUrl}"`,
+      `href="${DEFAULT_SITE_CONTACT_SETTINGS.contact.lineUrl}"`,
     );
-    expect(markup).toContain(DEFAULT_SITE_SETTINGS.contact.lineId);
+    expect(markup).toContain(DEFAULT_SITE_CONTACT_SETTINGS.contact.lineId);
   });
 
   it("hides the phone action when no phone contact is configured", () => {
     const markup = renderToStaticMarkup(
       <SiteHeader
-        settings={{
-          ...DEFAULT_SITE_SETTINGS,
-          contact: { ...DEFAULT_SITE_SETTINGS.contact, phoneContacts: [] },
+        contactSettings={{
+          ...DEFAULT_SITE_CONTACT_SETTINGS,
+          contact: { ...DEFAULT_SITE_CONTACT_SETTINGS.contact, phoneContacts: [] },
         }}
+        settings={DEFAULT_SITE_SETTINGS}
       />,
     );
 
@@ -156,6 +164,7 @@ describe("SiteHeader", () => {
   it("renders uploaded logos with the selected background and containment", () => {
     const markup = renderToStaticMarkup(
       <SiteHeader
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         settings={{
           ...DEFAULT_SITE_SETTINGS,
           logoBackground: "soft",
@@ -171,6 +180,7 @@ describe("SiteHeader", () => {
   it("falls back to a white logo background for cached settings without a logo background", () => {
     const markup = renderToStaticMarkup(
       <SiteHeader
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         settings={{
           ...DEFAULT_SITE_SETTINGS,
           logoBackground: undefined,
@@ -255,12 +265,12 @@ describe("SiteHeader", () => {
       expect(guideLink).not.toBeNull();
       expect(
         document.body.querySelector(
-          `[data-slot="sheet-content"] a[href="tel:${DEFAULT_SITE_SETTINGS.contact.phoneContacts[0]?.phone}"]`,
+          `[data-slot="sheet-content"] a[href="tel:${DEFAULT_SITE_CONTACT_SETTINGS.contact.phoneContacts[0]?.phone}"]`,
         ),
       ).not.toBeNull();
       expect(
         document.body.querySelector(
-          `[data-slot="sheet-content"] a[href="${DEFAULT_SITE_SETTINGS.contact.lineUrl}"]`,
+          `[data-slot="sheet-content"] a[href="${DEFAULT_SITE_CONTACT_SETTINGS.contact.lineUrl}"]`,
         ),
       ).not.toBeNull();
       expect(guideLink?.className).toContain("text-[var(--site-text)]");
