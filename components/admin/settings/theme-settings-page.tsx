@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { DesktopHeaderVariant } from "@/lib/site-header-settings/types";
 import { ColorControl, SectionCard } from "./settings-form-controls";
 import {
@@ -24,6 +25,8 @@ import { useAdminSettingsSection } from "./use-admin-settings-section";
 const THEME_PREVIEW_SETTINGS: SiteSettings = {
   ...DEFAULT_SITE_SETTINGS,
   siteName: "บ้านพักตัวอย่าง",
+};
+const THEME_PREVIEW_CONTACT_SETTINGS: SiteContactSettings = {
   bank: {
     accountName: "คุณมินท์ ใจดี",
     bankName: "ธนาคารตัวอย่าง",
@@ -169,7 +172,7 @@ export function ThemeSettingsPage() {
                   if (event.key === "Enter" || event.key === " ") event.preventDefault();
                 }}
               >
-                {previewSettings ? <SiteHeader desktopHeaderVariant={desktopHeaderVariant} previewMode settings={previewSettings} /> : null}
+                {previewSettings ? <SiteHeader contactSettings={THEME_PREVIEW_CONTACT_SETTINGS} desktopHeaderVariant={desktopHeaderVariant} previewMode settings={previewSettings} /> : null}
               </div>
             </SectionCard>
           </div>
@@ -206,9 +209,9 @@ export function ThemeSettingsPage() {
               </div>
               <div className="rounded-lg bg-[var(--site-primary)] p-4 text-sm text-[var(--site-on-primary)]">
                 กรุณาโอนเงิน{" "}
-                <span className="font-semibold text-[var(--site-bank-account-highlight)]">ชื่อบัญชี {THEME_PREVIEW_SETTINGS.bank.accountName}</span>{" "}
-                <span className="font-semibold text-[var(--site-bank-name-highlight)]">{THEME_PREVIEW_SETTINGS.bank.bankName}</span>{" "}
-                <span className="font-semibold text-[var(--site-bank-number-highlight)]">เลขที่ {THEME_PREVIEW_SETTINGS.bank.accountNumber}</span>
+                <span className="font-semibold text-[var(--site-bank-account-highlight)]">ชื่อบัญชี {THEME_PREVIEW_CONTACT_SETTINGS.bank.accountName}</span>{" "}
+                <span className="font-semibold text-[var(--site-bank-name-highlight)]">{THEME_PREVIEW_CONTACT_SETTINGS.bank.bankName}</span>{" "}
+                <span className="font-semibold text-[var(--site-bank-number-highlight)]">เลขที่ {THEME_PREVIEW_CONTACT_SETTINGS.bank.accountNumber}</span>
               </div>
             </SectionCard>
           </div>
@@ -245,7 +248,7 @@ export function ThemeSettingsPage() {
                   if (event.key === "Enter" || event.key === " ") event.preventDefault();
                 }}
               >
-                {previewSettings ? <SiteFooter settings={previewSettings} /> : null}
+                {previewSettings ? <SiteFooter contactSettings={THEME_PREVIEW_CONTACT_SETTINGS} settings={previewSettings} /> : null}
               </div>
             </SectionCard>
           </div>

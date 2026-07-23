@@ -1,3 +1,4 @@
+const FIFTEEN_MINUTES_SECONDS = 15 * 60;
 const SIX_HOURS_SECONDS = 6 * 60 * 60;
 const TWELVE_HOURS_SECONDS = 12 * 60 * 60;
 const TWENTY_FOUR_HOURS_SECONDS = 24 * 60 * 60;
@@ -7,11 +8,13 @@ export type SitemapRevalidateSeconds = typeof SITEMAP_REVALIDATE_SECONDS;
 
 export const CACHE_REVALIDATE_SECONDS = {
   advertisements: TWELVE_HOURS_SECONDS,
+  bookingCalendar: FIFTEEN_MINUTES_SECONDS,
   guides: TWELVE_HOURS_SECONDS,
   legalPages: TWELVE_HOURS_SECONDS,
   homeSections: TWELVE_HOURS_SECONDS,
   customerReviews: TWELVE_HOURS_SECONDS,
   siteSettings: TWELVE_HOURS_SECONDS,
+  siteContactSettings: TWELVE_HOURS_SECONDS,
   siteSeoSettings: TWELVE_HOURS_SECONDS,
   siteWebStyles: TWELVE_HOURS_SECONDS,
   tiktokOEmbed: TWELVE_HOURS_SECONDS,
@@ -31,6 +34,7 @@ export const CACHE_TAGS = {
   homeSections: "home-sections",
   customerReviews: "customer-reviews",
   siteSettings: "site-settings",
+  siteContactSettings: "site-contact-settings",
   siteSeoSettings: "site-seo-settings",
   siteWebStyles: "site-web-styles",
   tiktokOEmbed: "tiktok-oembed",
@@ -44,6 +48,7 @@ export const CACHE_TAGS = {
 } as const;
 
 export const CACHE_HEADERS = {
+  bookingCalendar: "public, s-maxage=900",
   homeSections: "public, s-maxage=43200, stale-while-revalidate=43200",
   customerReviews: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaDetail: "public, s-maxage=43200, stale-while-revalidate=43200",

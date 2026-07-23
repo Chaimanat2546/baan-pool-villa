@@ -17,6 +17,7 @@ import {
   getVillaTitle,
 } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
@@ -62,9 +63,10 @@ export async function generateMetadata({
 
 export default async function Page({ params }: VillaPageProps) {
   const { id } = await params;
-  const [data, siteSettingsResult, siteWebStylesResult] = await Promise.all([
+  const [data, siteSettingsResult, contactSettingsResult, siteWebStylesResult] = await Promise.all([
     fetchVillaPageData(id),
     getSiteSettings(),
+    getSiteContactSettings(),
     getSiteWebStyles(),
   ]);
 
@@ -129,6 +131,7 @@ export default async function Page({ params }: VillaPageProps) {
         initialGalleryImages={data.initialGalleryImages}
         payload={data.payload}
         recommendedSection={data.recommendedSection}
+        contactSettings={contactSettingsResult.settings}
         settings={siteSettingsResult.settings}
       />
     </>

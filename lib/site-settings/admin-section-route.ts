@@ -176,7 +176,7 @@ export async function buildAdminSiteSettingsSectionResponse(
 
 async function readRequestBody(request: Request, section: SiteSettingsSection) {
   try {
-    return section === "theme" || section === "contact"
+    return section === "theme"
       ? await request.json() as Record<string, unknown>
       : await request.formData();
   } catch {

@@ -13,18 +13,6 @@ import {
   type SiteSettingsSectionDraftMap,
 } from "../admin-section-contracts";
 
-const contactDraft: SiteSettingsSectionDraftMap["contact"] = {
-  bankAccountName: "Account Name",
-  bankName: "Bank Name",
-  bankAccountNumber: "123-456-7890",
-  phoneContacts: [
-    { name: "Game", phone: "0617485213", time: "07.00-15.00" },
-  ],
-  messengerUrl: "https://www.facebook.com/example",
-  lineId: "@example",
-  lineUrl: "https://line.me/R/ti/p/@example",
-};
-
 describe("admin site-settings section contracts", () => {
   it("defines the exact supported section set and runtime guard", () => {
     expect(SITE_SETTINGS_SECTIONS).toEqual([
@@ -32,7 +20,6 @@ describe("admin site-settings section contracts", () => {
       "theme",
       "hero",
       "seo",
-      "contact",
     ]);
     expect(isSiteSettingsSection("brand")).toBe(true);
     expect(isSiteSettingsSection("security")).toBe(false);
@@ -53,9 +40,6 @@ describe("admin site-settings section contracts", () => {
     expect(getSiteSettingsSectionSelects("seo")).toEqual([
       "id,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords",
       "id,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls",
-    ]);
-    expect(getSiteSettingsSectionSelects("contact")).toEqual([
-      "id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url",
     ]);
   });
 
@@ -153,15 +137,6 @@ describe("admin site-settings section contracts", () => {
     });
   });
 
-  it("rejects malformed structured contact input", () => {
-    const formData = new FormData();
-    formData.set("phoneContacts", "not-json");
-
-    const result = parseSiteSettingsSectionRequest("contact", formData);
-
-    expect(result.ok).toBe(false);
-  });
-
   it("narrows uploads to section ownership and rejects cross-section files", () => {
     const brandData = new FormData();
     const logo = new File(["logo"], "logo.webp", { type: "image/webp" });
@@ -181,25 +156,6 @@ describe("admin site-settings section contracts", () => {
     const wrongSection = getSectionUploadFiles("brand", wrongSectionData);
     expect(wrongSection.uploadFiles).toEqual([]);
     expect(wrongSection.errors).toEqual([expect.stringContaining("hero")]);
-  });
-
-  it("builds a contact payload with only contact-owned columns", () => {
-    expect(
-      buildSiteSettingsSectionPayload(
-        "contact",
-        contactDraft,
-        DEFAULT_SITE_SETTINGS,
-        [],
-      ),
-    ).toEqual({
-      bank_account_name: contactDraft.bankAccountName,
-      bank_name: contactDraft.bankName,
-      bank_account_number: contactDraft.bankAccountNumber,
-      phone_contacts: contactDraft.phoneContacts,
-      messenger_url: contactDraft.messengerUrl,
-      line_id: contactDraft.lineId,
-      line_url: contactDraft.lineUrl,
-    });
   });
 
   it("builds brand payloads with uploaded or retained section assets only", () => {

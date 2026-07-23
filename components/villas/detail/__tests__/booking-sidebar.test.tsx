@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
 import {
@@ -146,11 +146,25 @@ function mockBookingCalendarFetch() {
     vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input), "https://example.com");
       const month = url.searchParams.get("month") ?? "2026-06";
+      const monthCount = url.searchParams.get("months") === "6" ? 6 : 1;
+      const [year, monthNumber] = month.split("-").map(Number);
+      const calendars = Array.from({ length: monthCount }, (_, offset) => {
+        const date = new Date(year, monthNumber - 1 + offset, 1);
+        const monthKey = [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+        ].join("-");
 
-      return new Response(JSON.stringify(buildCalendarResponse(month)), {
-        headers: { "Content-Type": "application/json" },
-        status: 200,
+        return buildCalendarResponse(monthKey);
       });
+
+      return new Response(
+        JSON.stringify(monthCount === 1 ? calendars[0] : calendars),
+        {
+          headers: { "Content-Type": "application/json" },
+          status: 200,
+        },
+      );
     }),
   );
 }
@@ -160,6 +174,14 @@ function getFetchedBookingCalendarMonths() {
     const url = input instanceof Request ? input.url : String(input);
 
     return new URL(url, "https://example.com").searchParams.get("month");
+  });
+}
+
+function getFetchedBookingCalendarMonthCounts() {
+  return vi.mocked(fetch).mock.calls.map(([input]) => {
+    const url = input instanceof Request ? input.url : String(input);
+
+    return new URL(url, "https://example.com").searchParams.get("months");
   });
 }
 
@@ -173,7 +195,7 @@ async function renderBookingSidebar() {
       <BookingSidebar
         content={content}
         listing={listing}
-        settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
     );
   });
@@ -242,7 +264,7 @@ describe("BookingSidebar", () => {
       <BookingSidebar
         content={content}
         listing={listing}
-        settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
     );
 
@@ -261,7 +283,7 @@ describe("BookingSidebar", () => {
           ],
         }}
         listing={listing}
-        settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
     );
 
@@ -271,7 +293,7 @@ describe("BookingSidebar", () => {
   it("pushes booking contact click events to the dataLayer", async () => {
     const page = await renderBookingSidebar();
     const lineLink = Array.from(page.container.querySelectorAll<HTMLAnchorElement>("a")).find(
-      (link) => link.href === DEFAULT_SITE_SETTINGS.contact.lineUrl,
+      (link) => link.href === DEFAULT_SITE_CONTACT_SETTINGS.contact.lineUrl,
     );
 
     expect(lineLink).not.toBeNull();
@@ -313,12 +335,12 @@ describe("BookingSidebar", () => {
           <BookingSidebar
             content={content}
             listing={listing}
-            settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
           />
           <BookingSidebar
             content={content}
             listing={listing}
-            settings={DEFAULT_SITE_SETTINGS}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
           />
         </>,
       );
@@ -326,6 +348,7 @@ describe("BookingSidebar", () => {
     });
 
     expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
+    expect(getFetchedBookingCalendarMonthCounts()).toEqual(["6"]);
 
     await act(async () => {
       root.unmount();
@@ -357,6 +380,29 @@ describe("BookingSidebar", () => {
       secondPage.container.querySelector("[data-calendar-first-available='true']"),
     ).not.toBeNull();
 
+    await secondPage.cleanup();
+  });
+
+  it("expires the client booking calendar cache after fifteen minutes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-18T04:00:00.000Z"));
+    const firstPage = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await firstPage.cleanup();
+    vi.mocked(fetch).mockClear();
+    vi.setSystemTime(new Date("2026-06-18T04:15:00.001Z"));
+
+    const secondPage = await renderBookingSidebar();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(getFetchedBookingCalendarMonthCounts()).toEqual(["6"]);
     await secondPage.cleanup();
   });
 
@@ -491,7 +537,7 @@ describe("BookingSidebar", () => {
       clickCalendarNavButton(page.container, "next");
       await Promise.resolve();
     });
-    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06", "2026-07"]);
+    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
 
     await act(async () => {
       clickCalendarNavButton(page.container, "today");
@@ -502,7 +548,7 @@ describe("BookingSidebar", () => {
       await Promise.resolve();
     });
 
-    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06", "2026-07"]);
+    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
     await page.cleanup();
   });
 

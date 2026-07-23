@@ -9,6 +9,7 @@ import {
   revalidateCustomerReviewsCache,
   revalidateLegalPageCache,
   revalidateSiteSeoSettingsCache,
+  revalidateSiteContactSettingsCache,
   revalidateSiteSettingsCache,
   revalidateSiteWebStylesCache,
   revalidateVillaCardImagesCache,
@@ -112,6 +113,18 @@ describe("cache revalidation", () => {
     });
     expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
       HTML_CACHE_VERSION_GROUPS.detailLayout,
+    ]);
+  });
+
+  it("expires the contact settings tag and shared settings HTML", async () => {
+    await revalidateSiteContactSettingsCache();
+
+    expect(revalidateTagMock).toHaveBeenCalledWith(
+      CACHE_TAGS.siteContactSettings,
+      { expire: 0 },
+    );
+    expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith([
+      HTML_CACHE_VERSION_GROUPS.siteSettings,
     ]);
   });
 

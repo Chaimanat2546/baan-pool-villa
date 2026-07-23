@@ -13,21 +13,40 @@ const image: VillaImage = {
 };
 
 describe("public villa DTOs", () => {
-  it("returns normalized gallery image source URLs for AWS loader rendering", () => {
-    expect(toPublicVillaImages("9", [image, { ...image, imageUrl: "http://x.test/pool.jpg" }])).toEqual([
+  it("returns same-origin gallery image paths without exposing source URLs", () => {
+    expect(
+      toPublicVillaImages("9", [
+        image,
+        {
+          ...image,
+          id: 0,
+          imageUrl: "https://images.example.com/uploaded-cover.jpg",
+          isCover: true,
+          zone: "cover",
+        },
+        { ...image, imageUrl: "http://x.test/pool.jpg" },
+      ]),
+    ).toEqual([
       {
         ...image,
-        imageUrl: "https://images.example.com/pool.jpg",
+        imageUrl: "/api/villas/9/images?imageId=7",
+      },
+      {
+        ...image,
+        id: 0,
+        imageUrl: "/api/houses/images/9",
+        isCover: true,
+        zone: "cover",
       },
     ]);
   });
 
-  it("keeps same-origin villa image routes for listing covers", () => {
+  it("returns a same-origin house image path for listing covers", () => {
     const villa: VillaListing = {
       amenities: [],
       bathrooms: 4,
       bedrooms: 5,
-      coverImage: "/api/villas/9/images?imageId=4&w=640",
+      coverImage: "https://images.example.com/cover.jpg",
       distanceToSea: "-",
       id: "9",
       people: 12,
@@ -38,11 +57,14 @@ describe("public villa DTOs", () => {
     };
 
     expect(toPublicVillaListing(villa).coverImage).toBe(
-      "/api/villas/9/images?imageId=4",
+      "/api/houses/images/9",
+    );
+    expect(toPublicVillaListing(toPublicVillaListing(villa)).coverImage).toBe(
+      "/api/houses/images/9",
     );
   });
 
-  it("keeps same-origin villa image routes that point at a Supabase source URL", () => {
+  it("removes source URLs from legacy same-origin listing cover routes", () => {
     const villa: VillaListing = {
       amenities: [],
       bathrooms: 4,
@@ -59,7 +81,7 @@ describe("public villa DTOs", () => {
     };
 
     expect(toPublicVillaListing(villa).coverImage).toBe(
-      "/api/villas/9/images?url=https%3A%2F%2Fexample.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fvillas%2Fcover.jpg",
+      "/api/houses/images/9",
     );
   });
 });

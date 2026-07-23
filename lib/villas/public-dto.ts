@@ -1,4 +1,8 @@
-import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import {
+  buildVillaCoverImageProxyPath,
+  buildVillaGalleryImageProxyPath,
+  normalizePublicImageSourceUrl,
+} from "@/lib/public-image-proxy";
 import type {
   RecommendedVillaSection,
   VillaDetailPayload,
@@ -22,13 +26,16 @@ export function normalizePublicVillaCoverImage(
   villa: Pick<VillaListing, "coverImage" | "id">,
 ): string | null {
   const coverImage = villa.coverImage?.trim();
+  const proxyPath = buildVillaCoverImageProxyPath(villa.id);
 
-  if (!coverImage) {
+  if (!coverImage || !proxyPath) {
     return null;
   }
 
   try {
     const url = new URL(coverImage, "https://local.invalid");
+    const isResolvedCoverRoute =
+      url.origin === "https://local.invalid" && url.pathname === proxyPath;
 
     const isVillaImageRoute =
       url.origin === "https://local.invalid" &&
@@ -36,18 +43,21 @@ export function normalizePublicVillaCoverImage(
     const imageId = url.searchParams.get("imageId");
     const sourceUrl = normalizePublicImageSourceUrl(url.searchParams.get("url"));
 
-    if (isVillaImageRoute && /^[1-9]\d*$/.test(imageId ?? "")) {
-      return `${url.pathname}?imageId=${imageId}`;
+    if (
+      isResolvedCoverRoute ||
+      (isVillaImageRoute && /^[1-9]\d*$/.test(imageId ?? ""))
+    ) {
+      return proxyPath;
     }
 
     if (isVillaImageRoute && sourceUrl) {
-      return `${url.pathname}?url=${encodeURIComponent(sourceUrl)}`;
+      return proxyPath;
     }
   } catch {
     return null;
   }
 
-  return normalizePublicImageSourceUrl(coverImage);
+  return normalizePublicImageSourceUrl(coverImage) ? proxyPath : null;
 }
 
 export function toPublicVillaListing(villa: VillaListing): PublicVillaListing {
@@ -67,10 +77,18 @@ export function toPublicVillaImage(
   villaId: string,
   image: VillaImage,
 ): PublicVillaImage | null {
-  void villaId;
   const imageUrl = normalizePublicImageSourceUrl(image.imageUrl);
 
-  return imageUrl ? { ...image, imageUrl } : null;
+  if (!imageUrl) {
+    return null;
+  }
+
+  const proxyPath =
+    image.id === 0
+      ? buildVillaCoverImageProxyPath(villaId)
+      : buildVillaGalleryImageProxyPath(villaId, image.id);
+
+  return proxyPath ? { ...image, imageUrl: proxyPath } : null;
 }
 
 export function toPublicVillaImages(

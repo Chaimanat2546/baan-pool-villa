@@ -48,19 +48,6 @@ const validRow = {
   hero_image_url:
     "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
   hero_image_alt: " พูลวิลล่าพัทยา ",
-  bank_account_name: " คุณ อาภัสรา จินดาวา ",
-  bank_name: " ธนาคารกสิกรไทย ",
-  bank_account_number: " 398-289-7482 ",
-  phone_contacts: [
-    {
-      name: " คุณเกม ",
-      phone: " 0617485213 ",
-      time: " ช่วง 07.00-15.00 ",
-    },
-  ],
-  messenger_url: " https://www.facebook.com/baanpoolvillas ",
-  line_id: " @baanpoolvilla ",
-  line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
   seo_title: " Baan Pool Villa Pattaya | Private Pool Villas ",
   seo_description:
     " Book private pool villas in Pattaya for families, friends, and party trips. ",
@@ -121,19 +108,6 @@ const validDraft: SiteSettingsDraft = {
   bankNumberHighlightColor: "#fef08a",
   logoBackground: "white",
   heroImageAlt: "Hero image for validation",
-  bankAccountName: "Account Name",
-  bankName: "Bank Name",
-  bankAccountNumber: "398-289-7482",
-  phoneContacts: [
-    {
-      name: "Owner",
-      phone: "0617485213",
-      time: "07.00-15.00",
-    },
-  ],
-  messengerUrl: "https://www.facebook.com/baanpoolvillas",
-  lineId: "@baanpoolvilla",
-  lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
   seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
   seoDescription:
     "Book private pool villas in Pattaya for families, friends, and party trips.",
@@ -185,23 +159,6 @@ describe("normalizeSiteSettingsRow", () => {
         path: "hero/2026/05/hero.webp",
         url: "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
         alt: "พูลวิลล่าพัทยา",
-      },
-      bank: {
-        accountName: "คุณ อาภัสรา จินดาวา",
-        bankName: "ธนาคารกสิกรไทย",
-        accountNumber: "398-289-7482",
-      },
-      contact: {
-        phoneContacts: [
-          {
-            name: "คุณเกม",
-            phone: "0617485213",
-            time: "ช่วง 07.00-15.00",
-          },
-        ],
-        messengerUrl: "https://www.facebook.com/baanpoolvillas",
-        lineId: "@baanpoolvilla",
-        lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
       },
       seo: {
         title: "Baan Pool Villa Pattaya | Private Pool Villas",
@@ -350,13 +307,6 @@ describe("normalizeSiteSettingsRow", () => {
         hero_image_path: null,
         hero_image_url: null,
         hero_image_alt: "",
-        bank_account_name: "",
-        bank_name: "",
-        bank_account_number: "",
-        phone_contacts: [],
-        messenger_url: "javascript:alert(1)",
-        line_id: "",
-        line_url: "ftp://example.com/line",
         seo_title: "",
         seo_description: "",
         seo_keywords: "not-jsonb-array",
@@ -416,19 +366,6 @@ describe("normalizeSiteSettingsDraft", () => {
         bankNumberHighlightColor: " #FEF08A ",
         logoBackground: " primary ",
         heroImageAlt: " Pool villas in Pattaya ",
-        bankAccountName: " Account Name ",
-        bankName: " Bank Name ",
-        bankAccountNumber: " 398-289-7482 ",
-        phoneContacts: [
-          {
-            name: " Game ",
-            phone: " 061-748-5213 ",
-            time: " 07.00-15.00 ",
-          },
-        ],
-        messengerUrl: " https://www.facebook.com/baanpoolvillas ",
-        lineId: " @baanpoolvilla ",
-        lineUrl: " https://line.me/R/ti/p/@baanpoolvilla ",
         seoTitle: " Baan Pool Villa Pattaya | Private Pool Villas ",
         seoDescription: " Book private pool villas in Pattaya. ",
         seoKeywords: [" พูลวิลล่าพัทยา ", "", " บ้านพักพูลวิลล่า ", "พูลวิลล่าพัทยา"],
@@ -472,19 +409,6 @@ describe("normalizeSiteSettingsDraft", () => {
         bankNumberHighlightColor: "#fef08a",
         logoBackground: "primary",
       heroImageAlt: "Pool villas in Pattaya",
-      bankAccountName: "Account Name",
-      bankName: "Bank Name",
-      bankAccountNumber: "398-289-7482",
-      phoneContacts: [
-        {
-          name: "Game",
-          phone: "061-748-5213",
-          time: "07.00-15.00",
-        },
-      ],
-      messengerUrl: "https://www.facebook.com/baanpoolvillas",
-      lineId: "@baanpoolvilla",
-      lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
       seoTitle: "Baan Pool Villa Pattaya | Private Pool Villas",
       seoDescription: "Book private pool villas in Pattaya.",
       seoKeywords: ["พูลวิลล่าพัทยา", "บ้านพักพูลวิลล่า"],
@@ -556,44 +480,6 @@ describe("validateSiteSettingsDraft", () => {
   });
   it("accepts a complete valid draft", () => {
     expect(validateSiteSettingsDraft(validDraft)).toEqual([]);
-  });
-
-  it("accepts Thai phone numbers with optional display separators", () => {
-    expect(
-      validateSiteSettingsDraft({
-        ...validDraft,
-        phoneContacts: [
-          {
-            name: "คุณเกม",
-            phone: "061-748-5213",
-            time: "ช่วง 07.00-15.00",
-          },
-        ],
-      }),
-    ).toEqual([]);
-  });
-
-  it("rejects phone numbers that do not match the Thai mobile format", () => {
-    expect(
-      validateSiteSettingsDraft({
-        ...validDraft,
-        phoneContacts: [
-          {
-            name: "คุณเกม",
-            phone: "12345",
-            time: "ช่วง 07.00-15.00",
-          },
-          {
-            name: "คุณบี",
-            phone: "+66617485213",
-            time: "ช่วง 07.00-15.00",
-          },
-        ],
-      }),
-    ).toEqual([
-      "เบอร์โทรผู้ติดต่อคนที่ 1 ต้องเป็นเบอร์ไทย 10 หลัก เช่น 0xxxxxxxxx",
-      "เบอร์โทรผู้ติดต่อคนที่ 2 ต้องเป็นเบอร์ไทย 10 หลัก เช่น 0xxxxxxxxx",
-    ]);
   });
 
   it("rejects invalid global and section SEO settings", () => {
@@ -669,19 +555,6 @@ describe("validateSiteSettingsDraft", () => {
         bankNumberHighlightColor: "123456",
         logoBackground: "checkerboard",
         heroImageAlt: "x".repeat(161),
-        bankAccountName: "",
-        bankName: "",
-        bankAccountNumber: "",
-        phoneContacts: [
-          {
-            name: "",
-            phone: "",
-            time: "",
-          },
-        ],
-        messengerUrl: "not a url",
-        lineId: "",
-        lineUrl: "javascript:alert(1)",
       }),
     ).toEqual([
       "ต้องใส่ชื่อเว็บ",
@@ -697,15 +570,6 @@ describe("validateSiteSettingsDraft", () => {
       "สีเลขบัญชีต้องเป็นค่าสีแบบ #RRGGBB",
       "พื้นหลังโลโก้ต้องเป็น ขาว, โปร่งใส, สีหลัก หรือสีอ่อน",
       "คำอธิบายรูป Hero ต้องไม่เกิน 160 ตัวอักษร",
-      "ต้องใส่ชื่อบัญชีธนาคาร",
-      "ต้องใส่ชื่อธนาคาร",
-      "ต้องใส่เลขบัญชีธนาคาร",
-      "ต้องใส่ชื่อผู้ติดต่อคนที่ 1",
-      "ต้องใส่เบอร์โทรผู้ติดต่อคนที่ 1",
-      "ต้องใส่ช่วงเวลาผู้ติดต่อคนที่ 1",
-      "ลิงก์ Messenger ต้องเป็น URL แบบ http หรือ https",
-      "ต้องใส่ LINE ID",
-      "ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https",
     ]);
   });
 

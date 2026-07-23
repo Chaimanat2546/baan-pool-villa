@@ -5,14 +5,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { mountAdminPage } from "@/components/admin/__tests__/admin-page-dom-test-utils";
-import { DEFAULT_SITE_SETTINGS } from "../../../lib/site-settings/defaults";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "../../../lib/site-contact-settings/defaults";
 import { ContactSection } from "../contact-section";
 
 function settingsWithDuplicatePhoneContacts() {
   return {
-    ...DEFAULT_SITE_SETTINGS,
+    ...DEFAULT_SITE_CONTACT_SETTINGS,
     contact: {
-      ...DEFAULT_SITE_SETTINGS.contact,
+      ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
       phoneContacts: [
         {
           name: "คุณคลีน",
@@ -36,7 +36,7 @@ describe("ContactSection", () => {
 
   it("shows the current bank account number", () => {
     const markup = renderToStaticMarkup(
-      <ContactSection settings={DEFAULT_SITE_SETTINGS} />,
+      <ContactSection settings={DEFAULT_SITE_CONTACT_SETTINGS} />,
     );
 
     expect(markup).toContain("398-289-7482");
@@ -52,7 +52,7 @@ describe("ContactSection", () => {
     const markup = renderToStaticMarkup(
       <ContactSection
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_SITE_CONTACT_SETTINGS,
           bank: {
             accountName: "คุณ อาภัสรา จินดาวา",
             bankName: "ธนาคารกสิกรไทย",

@@ -1,37 +1,52 @@
 import type { BookingCalendarMonth } from "./booking-calendar-ui";
 
 const BOOKING_CALENDAR_CLIENT_CACHE_LIMIT = 60;
+const BOOKING_CALENDAR_CLIENT_CACHE_TTL_MS = 15 * 60 * 1_000;
 const BOOKING_CALENDAR_CLIENT_TIMEOUT_MS = 8_000;
-const bookingCalendarClientCache = new Map<string, BookingCalendarMonth>();
+const bookingCalendarClientCache = new Map<
+  string,
+  { calendar: BookingCalendarMonth; expiresAt: number }
+>();
 const bookingCalendarClientRequests = new Map<
   string,
   Promise<BookingCalendarMonth>
+>();
+const bookingCalendarClientBatchRequests = new Map<
+  string,
+  Promise<BookingCalendarMonth[]>
 >();
 
 export function clearBookingCalendarClientCacheForTests() {
   bookingCalendarClientCache.clear();
   bookingCalendarClientRequests.clear();
+  bookingCalendarClientBatchRequests.clear();
 }
 
 export function peekBookingCalendarClientCache(
   cacheKey: string,
 ): BookingCalendarMonth | null {
-  return bookingCalendarClientCache.get(cacheKey) ?? null;
+  return getCachedBookingCalendarMonth(cacheKey);
 }
 
 function getCachedBookingCalendarMonth(
   cacheKey: string,
 ): BookingCalendarMonth | null {
-  const cachedCalendar = bookingCalendarClientCache.get(cacheKey);
+  const cached = bookingCalendarClientCache.get(cacheKey);
 
-  if (!cachedCalendar) {
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    bookingCalendarClientCache.delete(cacheKey);
+
     return null;
   }
 
   bookingCalendarClientCache.delete(cacheKey);
-  bookingCalendarClientCache.set(cacheKey, cachedCalendar);
+  bookingCalendarClientCache.set(cacheKey, cached);
 
-  return cachedCalendar;
+  return cached.calendar;
 }
 
 function setCachedBookingCalendarMonth(
@@ -39,7 +54,10 @@ function setCachedBookingCalendarMonth(
   calendar: BookingCalendarMonth,
 ) {
   bookingCalendarClientCache.delete(cacheKey);
-  bookingCalendarClientCache.set(cacheKey, calendar);
+  bookingCalendarClientCache.set(cacheKey, {
+    calendar,
+    expiresAt: Date.now() + BOOKING_CALENDAR_CLIENT_CACHE_TTL_MS,
+  });
 
   while (bookingCalendarClientCache.size > BOOKING_CALENDAR_CLIENT_CACHE_LIMIT) {
     const oldestCacheKey = bookingCalendarClientCache.keys().next().value;
@@ -117,6 +135,78 @@ export function loadBookingCalendarMonth({
     });
 
   setBookingCalendarClientRequest(cacheKey, request);
+
+  return request;
+}
+
+export function loadBookingCalendarMonths({
+  listingId,
+  startMonthKey,
+}: {
+  listingId: string;
+  startMonthKey: string;
+}): Promise<BookingCalendarMonth[]> {
+  const [year, month] = startMonthKey.split("-").map(Number);
+  const monthKeys = Array.from({ length: 6 }, (_, offset) => {
+    const date = new Date(Date.UTC(year, month - 1 + offset, 1));
+
+    return [
+      date.getUTCFullYear(),
+      String(date.getUTCMonth() + 1).padStart(2, "0"),
+    ].join("-");
+  });
+  const cachedCalendars = monthKeys.map((monthKey) =>
+    getCachedBookingCalendarMonth(`${listingId}:${monthKey}`),
+  );
+
+  if (cachedCalendars.every(Boolean)) {
+    return Promise.resolve(cachedCalendars as BookingCalendarMonth[]);
+  }
+
+  const requestKey = `${listingId}:${startMonthKey}:6`;
+  const existingRequest = bookingCalendarClientBatchRequests.get(requestKey);
+
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => {
+    controller.abort();
+  }, BOOKING_CALENDAR_CLIENT_TIMEOUT_MS);
+  const request = fetch(
+    `/api/villas/${encodeURIComponent(listingId)}/booking-calendar?month=${startMonthKey}&months=6`,
+    { signal: controller.signal },
+  )
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error("Unable to load booking calendar.");
+      }
+
+      const calendars = (await response.json()) as BookingCalendarMonth[];
+
+      if (!Array.isArray(calendars)) {
+        throw new Error("Invalid booking calendar response.");
+      }
+
+      return calendars;
+    })
+    .then((calendars) => {
+      calendars.forEach((calendar) => {
+        setCachedBookingCalendarMonth(
+          `${listingId}:${calendar.month}`,
+          calendar,
+        );
+      });
+
+      return calendars;
+    })
+    .finally(() => {
+      globalThis.clearTimeout(timeout);
+      bookingCalendarClientBatchRequests.delete(requestKey);
+    });
+
+  bookingCalendarClientBatchRequests.set(requestKey, request);
 
   return request;
 }

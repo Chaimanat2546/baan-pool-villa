@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { LegalPage } from "@/lib/legal-pages/types";
-import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 
 import { LegalPage as LegalPageRenderer } from "../legal-page";
 
@@ -194,7 +194,7 @@ describe("LegalPage renderer", () => {
     });
 
     const markup = renderToStaticMarkup(
-      <LegalPageRenderer page={page} settings={DEFAULT_SITE_SETTINGS} />,
+      <LegalPageRenderer page={page} settings={DEFAULT_SITE_CONTACT_SETTINGS} />,
     );
 
     expect(markup).toContain('data-legal-page-content="true"');

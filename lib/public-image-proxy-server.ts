@@ -1,5 +1,9 @@
 import "server-only";
 
+import {
+  buildAwsImageUrl,
+  getAwsImageLoaderOrigin,
+} from "@/lib/aws-image-url";
 import { normalizeDownloadImageUrl } from "@/lib/villas/image-download";
 import {
   PUBLIC_IMAGE_PROXY_CACHE_CONTROL,
@@ -106,7 +110,23 @@ export async function fetchPublicImageProxyResponse(
   }, IMAGE_PROXY_TIMEOUT_MS);
   let upstreamResponse: Response | null = null;
   let currentUrl = targetUrl;
-  const cloudflareImageOptions = toCloudflareImageOptions(transform);
+
+  try {
+    const loaderUrl = buildAwsImageUrl({
+      quality: transform.quality ?? 75,
+      src: targetUrl,
+      width: transform.width ?? 1920,
+    });
+
+    if (new URL(loaderUrl).origin === getAwsImageLoaderOrigin()) {
+      currentUrl = loaderUrl;
+    }
+  } catch {
+    // Non-loader image sources continue through the validated direct proxy.
+  }
+
+  const cloudflareImageOptions =
+    currentUrl === targetUrl ? toCloudflareImageOptions(transform) : null;
   const fetchInit: CloudflareFetchInit = {
     cache: "no-store",
     redirect: "manual",
@@ -122,6 +142,14 @@ export async function fetchPublicImageProxyResponse(
   try {
     for (let redirectCount = 0; redirectCount <= MAX_IMAGE_PROXY_REDIRECTS; redirectCount += 1) {
       upstreamResponse = await fetch(currentUrl, fetchInit);
+
+      if (
+        upstreamResponse.status === 429 ||
+        upstreamResponse.status >= 500
+      ) {
+        await cancelUpstreamResponseBody(upstreamResponse);
+        upstreamResponse = await fetch(currentUrl, fetchInit);
+      }
 
       const redirectUrl = getAllowedImageRedirectUrl(targetUrl, upstreamResponse);
 

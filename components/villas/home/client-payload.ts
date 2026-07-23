@@ -1,4 +1,5 @@
 import type { SiteSettings, SiteTikTokSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
 
 const HOMEPAGE_TIKTOK_VIDEO_LIMIT = 6;
@@ -9,8 +10,8 @@ type TikTokSectionVideo =
   | TikTokPreviewSettings["videos"][number];
 
 export interface HomePageSettings {
-  bank: SiteSettings["bank"];
-  contact: SiteSettings["contact"];
+  bank: SiteContactSettings["bank"];
+  contact: SiteContactSettings["contact"];
   heroImage: SiteSettings["heroImage"];
   siteName: SiteSettings["siteName"];
   tiktok: SiteTikTokSettings;
@@ -38,10 +39,13 @@ export function selectHomeTikTokVideos(tiktok: TikTokSettings) {
   return visibleVideos;
 }
 
-export function toHomePageSettings(settings: SiteSettings): HomePageSettings {
+export function toHomePageSettings(
+  settings: SiteSettings,
+  contactSettings: SiteContactSettings,
+): HomePageSettings {
   return {
-    bank: settings.bank,
-    contact: settings.contact,
+    bank: contactSettings.bank,
+    contact: contactSettings.contact,
     heroImage: settings.heroImage,
     siteName: settings.siteName,
     tiktok: {

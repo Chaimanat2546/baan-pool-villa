@@ -2,14 +2,16 @@
 
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { useEffect, useRef, useState } from "react";
-import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import { buildGalleryDisplaySrc } from "./gallery-urls";
 import type { GalleryCategory } from "./types";
 
 interface LazyCategorizedImagesProps {
+  listingId: string;
   previewCategories: GalleryCategory[];
 }
 
 export function LazyCategorizedImages({
+  listingId,
   previewCategories,
 }: LazyCategorizedImagesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,7 +65,7 @@ export function LazyCategorizedImages({
         const previewItem = category.items[0];
         const previewImageSrc =
           shouldRenderImages && previewItem
-            ? normalizePublicImageSourceUrl(previewItem.url)
+            ? buildGalleryDisplaySrc(listingId, previewItem)
             : null;
 
         if (!previewItem) {

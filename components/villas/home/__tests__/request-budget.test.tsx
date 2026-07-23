@@ -78,8 +78,8 @@ describe("homepage request budget", () => {
   it("honors the villa count provided by admin-resolved home sections", () => {
     const villas = Array.from({ length: 12 }, (_, index) => ({
       ...villa,
-      coverImage: `https://devillegroups.com/imgs/profile_imgs_large/${index}.jpg`,
-      id: String(index),
+      coverImage: `https://devillegroups.com/imgs/profile_imgs_large/${index + 1}.jpg`,
+      id: String(index + 1),
     }));
     const markup = renderToStaticMarkup(
       <VillaRail
@@ -95,13 +95,13 @@ describe("homepage request budget", () => {
     ) ?? [];
     const renderedImages =
       markup.match(
-        /data-src="https:\/\/devillegroups\.com\/imgs\/profile_imgs_large\/\d+\.jpg"/g,
+        /src="\/api\/houses\/images\/\d+"/g,
       ) ?? [];
 
     expect(renderedVillaCards).toHaveLength(12);
     expect(renderedImages).toHaveLength(12);
-    expect(markup).not.toContain("/api/houses/images");
-    expect(markup).toContain('href="/villas/11"');
+    expect(markup).not.toContain("devillegroups.com");
+    expect(markup).toContain('href="/villas/12"');
   });
 
   it("does not priority-preload article rail images and uses document navigation for guide routes", () => {

@@ -11,6 +11,7 @@ const EMPTY_ADVERTISEMENTS: NonNullable<VillaDetailPageProps["advertisements"]> 
 
 export function VillaDetailPage({
   advertisements = EMPTY_ADVERTISEMENTS,
+  contactSettings,
   galleryStyle,
   id,
   initialGalleryImages = EMPTY_INITIAL_GALLERY_IMAGES,
@@ -42,6 +43,7 @@ export function VillaDetailPage({
       <VillaDetailClientShell
         bookingSidebarId={bookingSidebarId}
         advertisements={advertisements}
+        contactSettings={contactSettings}
         content={content}
         galleryStyle={galleryStyle}
         id={id}
@@ -56,10 +58,10 @@ export function VillaDetailPage({
           {showMobileBookingContact ? (
             <div className="mt-4 lg:hidden" data-mobile-booking-contact="true">
               <BookingSidebar
+                contactSettings={contactSettings}
                 content={content}
                 id="contact"
                 listing={listing}
-                settings={settings}
               />
             </div>
           ) : null}

@@ -12,6 +12,7 @@ import type {
   DetailLayoutConfig,
   DetailLayoutV2Config,
 } from "../../../../lib/detail-layout/types";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "../../../../lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import { DEFAULT_SITE_WEB_STYLES } from "../../../../lib/site-web-styles/defaults";
 import type { VillaDetailContent } from "../../../../lib/villas/detail";
@@ -219,6 +220,7 @@ function render(
   return renderToStaticMarkup(
     <DetailLayoutRenderer
       advertisements={advertisements}
+      contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       content={{ ...content, ...overrides }}
       galleryCategories={galleryCategories}
       galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
@@ -274,6 +276,38 @@ describe("DetailLayoutRenderer", () => {
     expect(
       render(layout, { sections: [{ title: "ที่จอดรถ", lines: [] }] }),
     ).toBe("");
+  });
+
+  it("renders image tags in every shared detail text block as clickable previews", () => {
+    const sectionTypes = [
+      ["details", "รายละเอียดเพิ่มเติม"],
+      ["bedrooms", "รายละเอียดห้องนอน"],
+      ["pool", "สระว่ายน้ำ"],
+      ["kitchen", "ครัวและอุปกรณ์"],
+      ["parking", "ที่จอดรถ"],
+    ] as const;
+    const layout: DetailLayoutConfig = {
+      ...DEFAULT_DETAIL_LAYOUT,
+      rows: sectionTypes.map(([type], index) => ({
+        id: `inline_image_${index}`,
+        columns: 1,
+        enabled: true,
+        blocks: [block(type)],
+      })),
+    };
+    const sections = sectionTypes.map(([, title], index) => ({
+      title,
+      lines: [
+        `<img src='https://www.devillegroups.com/imgs/detail-${index}.jpg' width='100%'>`,
+      ],
+    }));
+    const markup = render(layout, { sections });
+
+    expect(markup.match(/data-detail-inline-image="true"/g) ?? []).toHaveLength(
+      sectionTypes.length,
+    );
+    expect(markup).toContain('aria-label="ดูรูปขนาดใหญ่"');
+    expect(markup).not.toContain("&lt;img");
   });
 
   it("renders the default detail layout blocks when data exists", () => {

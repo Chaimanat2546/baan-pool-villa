@@ -12,7 +12,6 @@ import { SEARCH_FACETS } from "@/lib/villas/search-options";
 
 import { ArticlesSection } from "./articles-section";
 import { CustomerReviewSection } from "./customer-review-section";
-import { DestinationsSection } from "./destinations-section";
 import { FaqSection } from "./faq-section";
 import { HeroSection } from "./hero-section";
 import { VillaRail } from "./villa-rail";
@@ -22,11 +21,6 @@ import { TikTokSection } from "./tiktok-section";
 type FilterSummary = {
   maxAvailablePrice: number;
   zones: Array<{ value: string; label: string }>;
-};
-
-type DestinationVilla = {
-  coverImage: string | null;
-  id: string;
 };
 
 export interface HomePageDegradedSources {
@@ -44,13 +38,11 @@ interface HomePageProps {
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   filterSummary?: FilterSummary;
-  destinationVillas?: DestinationVilla[];
   settings: HomePageSettings;
 }
 
 interface HomePageContentProps {
   customerReviews?: HomepageCustomerReviewData;
-  destinationVillas?: DestinationVilla[];
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   settings: HomePageSettings;
@@ -61,7 +53,6 @@ export function HomePageContent({
     images: [],
     layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
   },
-  destinationVillas = [],
   initialGuides = [],
   initialHomeSections = [],
   settings,
@@ -89,7 +80,6 @@ export function HomePageContent({
         <WhyChooseSection siteName={settings.siteName} />
       )}
 
-      <DestinationsSection villas={destinationVillas} />
       <TikTokSection tiktok={settings.tiktok} />
       <CustomerReviewSection data={customerReviews} />
       <ArticlesSection guides={initialGuides} />
@@ -103,13 +93,12 @@ export function HomePageContent({
  * Render the site's homepage with hero, villa rails, and supporting content sections.
  *
  * Renders a HeroSection (driving search filters), a sequence of VillaRail sections when available
- * (inserting WhyChooseSection after the first rail), and the Destinations, TikTok, Articles,
+ * (inserting WhyChooseSection after the first rail), and the TikTok, Articles,
  * FAQ, and Contact sections.
  *
  * @param initialGuides - Optional initial list of guide articles used to populate the ArticlesSection
  * @param initialHomeSections - Optional initial home sections used to build villa rails
  * @param filterSummary - Optional precomputed filter summary used to initialize hero filter defaults and price/zone controls
- * @param destinationVillas - Optional minimal villa records for destination cards
  * @param settings - Required site settings (visual assets, contact info, default TikTok settings, etc.)
  * @returns The React element tree for the homepage
  */
@@ -124,7 +113,6 @@ export function HomePage({
   initialGuides = [],
   initialHomeSections = [],
   filterSummary,
-  destinationVillas = [],
   settings,
 }: HomePageProps) {
   const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? SEARCH_FACETS.maxPrice;
@@ -155,7 +143,6 @@ export function HomePage({
       <div>
         {children ?? (
           <HomePageContent
-            destinationVillas={destinationVillas}
             customerReviews={customerReviews}
             initialGuides={initialGuides}
             initialHomeSections={initialHomeSections}

@@ -21,6 +21,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "../../../../lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import type { GuidePost } from "../../../../lib/guides/types";
 import type { ResolvedHomeSection } from "../../../../lib/home-sections/types";
@@ -28,6 +29,11 @@ import type { VillaListing } from "../../../../lib/villas/types";
 import { toHomePageSettings } from "../client-payload";
 import { selectHomeGuideSummaries } from "../articles-section";
 import { HomePage } from "../page";
+
+const DEFAULT_HOME_SETTINGS = toHomePageSettings(
+  DEFAULT_SITE_SETTINGS,
+  DEFAULT_SITE_CONTACT_SETTINGS,
+);
 
 const villa: VillaListing = {
   amenities: [],
@@ -55,12 +61,6 @@ const filterSummary = {
   zones: [{ value: "jomtien", label: "Jomtien" }],
 };
 
-const destinationVillas = [
-  {
-    coverImage: "https://devillegroups.com/imgs/profile_imgs_large/501-destination.jpg",
-    id: "501",
-  },
-];
 const customerReviews = {
   images: [
     {
@@ -115,8 +115,7 @@ describe("HomePage", () => {
       <HomePage
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
-        settings={DEFAULT_SITE_SETTINGS}
+        settings={DEFAULT_HOME_SETTINGS}
       />,
     );
 
@@ -126,11 +125,15 @@ describe("HomePage", () => {
     expect(markup).toContain("max=\"12000\"");
     expect(markup).not.toContain("max=\"1000\"");
     expect(markup).toContain('id="recommendations"');
+    expect(markup).not.toContain("สำรวจจุดหมายปลายทางของเรา");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("keeps the homepage client settings payload limited to rendered fields", () => {
-    const settings = toHomePageSettings(DEFAULT_SITE_SETTINGS);
+    const settings = toHomePageSettings(
+      DEFAULT_SITE_SETTINGS,
+      DEFAULT_SITE_CONTACT_SETTINGS,
+    );
 
     expect(Object.keys(settings).sort()).toEqual([
       "bank",
@@ -141,8 +144,8 @@ describe("HomePage", () => {
     ]);
     expect(settings.heroImage).toBe(DEFAULT_SITE_SETTINGS.heroImage);
     expect(settings.tiktok).toEqual(DEFAULT_SITE_SETTINGS.tiktok);
-    expect(settings.contact).toBe(DEFAULT_SITE_SETTINGS.contact);
-    expect(settings.bank).toBe(DEFAULT_SITE_SETTINGS.bank);
+    expect(settings.contact).toBe(DEFAULT_SITE_CONTACT_SETTINGS.contact);
+    expect(settings.bank).toBe(DEFAULT_SITE_CONTACT_SETTINGS.bank);
     expect(settings).not.toHaveProperty("seo");
     expect(settings).not.toHaveProperty("detailLayout");
     expect(settings).not.toHaveProperty("logoImage");
@@ -150,9 +153,10 @@ describe("HomePage", () => {
   });
 
   it("limits the homepage settings TikTok payload to the rendered videos", () => {
-    const settings = toHomePageSettings({
-      ...DEFAULT_SITE_SETTINGS,
-      tiktok: {
+    const settings = toHomePageSettings(
+      {
+        ...DEFAULT_SITE_SETTINGS,
+        tiktok: {
         accountUrl: "https://www.tiktok.com/@baanpoolvilla",
         videos: [
           {
@@ -188,8 +192,10 @@ describe("HomePage", () => {
             videoId: "7370000000000000007",
           },
         ],
+        },
       },
-    });
+      DEFAULT_SITE_CONTACT_SETTINGS,
+    );
 
     expect(settings.tiktok.videos.map((video) => video.videoId)).toEqual([
       "7370000000000000001",
@@ -206,8 +212,7 @@ describe("HomePage", () => {
       <HomePage
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
-        settings={DEFAULT_SITE_SETTINGS}
+        settings={DEFAULT_HOME_SETTINGS}
         degradedSources={{
           guidePosts: false,
           homeSections: true,
@@ -223,62 +228,14 @@ describe("HomePage", () => {
     );
   });
 
-  it("uses compact destinationVillas payload for destination cards", () => {
-    const compactDestinationVillas = [
-      { coverImage: "https://example.com/destination-1.jpg", id: "501" },
-      { coverImage: "https://example.com/destination-2.jpg", id: "502" },
-    ];
-
-    const markup = renderToStaticMarkup(
-      <HomePage
-        initialHomeSections={[homeSection]}
-        filterSummary={filterSummary}
-        destinationVillas={compactDestinationVillas}
-        settings={{
-          ...DEFAULT_SITE_SETTINGS,
-          tiktok: {
-            accountUrl: "https://www.tiktok.com/@baanpoolvilla",
-            videos: [
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000001000",
-                videoId: "7370000000000001000",
-              },
-            ],
-          },
-        }}
-      />,
-    );
-
-    const destinationHeader = "สำรวจจุดหมายปลายทางของเรา";
-    const destinationSectionStart = markup.indexOf(destinationHeader);
-    const tiktokSectionStart = markup.indexOf("data-home-tiktok");
-
-    const destinationsMarkup = markup.slice(
-      destinationSectionStart,
-      tiktokSectionStart,
-    );
-
-    expect(destinationSectionStart).toBeGreaterThan(-1);
-    expect(tiktokSectionStart).toBeGreaterThan(destinationSectionStart);
-
-    expect(destinationsMarkup).toContain(
-      'data-src="https://example.com/destination-1.jpg"',
-    );
-    expect(destinationsMarkup).toContain(
-      'data-src="https://example.com/destination-2.jpg"',
-    );
-    expect(destinationsMarkup).not.toContain("/api/houses/images");
-  });
-
   it("renders TikTok section from settings without server preview props and keeps guide placement after it", () => {
     const markup = renderToStaticMarkup(
       <HomePage
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -335,9 +292,8 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -372,9 +328,8 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -440,9 +395,8 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -499,9 +453,8 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [
@@ -540,9 +493,8 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
-          ...DEFAULT_SITE_SETTINGS,
+          ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
             videos: [],
@@ -567,8 +519,7 @@ describe("HomePage", () => {
         <HomePage
           initialHomeSections={[homeSection]}
           filterSummary={filterSummary}
-          destinationVillas={destinationVillas}
-          settings={DEFAULT_SITE_SETTINGS}
+          settings={DEFAULT_HOME_SETTINGS}
         />,
       );
     });

@@ -12,6 +12,7 @@ import type {
   DetailLayoutBlockType,
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
 import type {
   VillaDetailContent,
@@ -25,6 +26,7 @@ import {
   DeferredRecommendedVillas,
   LazyDetailBlock,
 } from "./deferred-detail-block";
+import { DetailSectionLines } from "./detail-section-lines";
 import { findFact, findSection } from "./helpers";
 import { LazyCategorizedImages } from "./lazy-categorized-images";
 import { NearbySection } from "./nearby-section";
@@ -33,6 +35,7 @@ import type { GalleryCategory } from "./types";
 interface DetailLayoutBlockContext {
   advertisements: PublicAdvertisement[];
   bookingSidebarId?: string;
+  contactSettings: SiteContactSettings;
   content: VillaDetailContent;
   galleryCategories: GalleryCategory[];
   galleryStyle: GalleryStyleSettings;
@@ -92,37 +95,51 @@ function DetailCard({
   );
 }
 
-function LineList({ lines }: { lines: string[] }) {
+function LineList({
+  galleryStyle,
+  lines,
+  listing,
+}: {
+  galleryStyle: GalleryStyleSettings;
+  lines: string[];
+  listing: VillaListing;
+}) {
   return (
-    <>
-      <ul className="space-y-2">
-        {lines.map((line, index) => (
-          <li key={`${index}-${line}`} className="flex gap-2">
-            <span>- {line}</span>
-          </li>
-        ))}
-      </ul>
-    </>
+    <DetailSectionLines
+      galleryStyle={galleryStyle}
+      lines={lines}
+      listing={listing}
+    />
   );
 }
 
 function CompactLineList({
+  galleryStyle,
   initialCount = DEFAULT_COMPACT_LINE_LIMIT,
   lines,
+  listing,
 }: {
+  galleryStyle: GalleryStyleSettings;
   initialCount?: number;
   lines: string[];
+  listing: VillaListing;
 }) {
   const visibleLines = lines.slice(0, initialCount);
   const hiddenLines = lines.slice(initialCount);
 
   if (hiddenLines.length === 0) {
-    return <LineList lines={lines} />;
+    return (
+      <LineList galleryStyle={galleryStyle} lines={lines} listing={listing} />
+    );
   }
 
   return (
     <>
-      <LineList lines={visibleLines} />
+      <LineList
+        galleryStyle={galleryStyle}
+        lines={visibleLines}
+        listing={listing}
+      />
       <details
         className="rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2"
         data-detail-compact-list="true"
@@ -132,7 +149,11 @@ function CompactLineList({
           รายการ
         </summary>
         <div className="mt-3 space-y-2">
-          <LineList lines={hiddenLines} />
+          <LineList
+            galleryStyle={galleryStyle}
+            lines={hiddenLines}
+            listing={listing}
+          />
         </div>
       </details>
     </>
@@ -140,10 +161,11 @@ function CompactLineList({
 }
 
 function renderSectionBlock(
-  content: VillaDetailContent,
+  context: DetailLayoutBlockContext,
   sourceTitle: string,
   publicTitle = sourceTitle,
 ) {
+  const { content, galleryStyle, listing } = context;
   const section = findSection(content, sourceTitle);
 
   if (!section || section.lines.length === 0) {
@@ -152,29 +174,33 @@ function renderSectionBlock(
 
   return (
     <DetailCard icon={<Info className="h-5 w-5" />} title={publicTitle}>
-      <CompactLineList lines={section.lines} />
+      <CompactLineList
+        galleryStyle={galleryStyle}
+        lines={section.lines}
+        listing={listing}
+      />
     </DetailCard>
   );
 }
 
-function renderDetails({ content }: DetailLayoutBlockContext) {
-  return renderSectionBlock(content, sectionTitles.details);
+function renderDetails(context: DetailLayoutBlockContext) {
+  return renderSectionBlock(context, sectionTitles.details);
 }
 
-function renderBedrooms({ content }: DetailLayoutBlockContext) {
-  return renderSectionBlock(content, sectionTitles.bedrooms);
+function renderBedrooms(context: DetailLayoutBlockContext) {
+  return renderSectionBlock(context, sectionTitles.bedrooms);
 }
 
-function renderPool({ content }: DetailLayoutBlockContext) {
-  return renderSectionBlock(content, sectionTitles.pool);
+function renderPool(context: DetailLayoutBlockContext) {
+  return renderSectionBlock(context, sectionTitles.pool);
 }
 
-function renderKitchen({ content }: DetailLayoutBlockContext) {
-  return renderSectionBlock(content, sectionTitles.kitchen);
+function renderKitchen(context: DetailLayoutBlockContext) {
+  return renderSectionBlock(context, sectionTitles.kitchen);
 }
 
-function renderParking({ content }: DetailLayoutBlockContext) {
-  return renderSectionBlock(content, sectionTitles.parking);
+function renderParking(context: DetailLayoutBlockContext) {
+  return renderSectionBlock(context, sectionTitles.parking);
 }
 
 function renderAmenities({ content, listing }: DetailLayoutBlockContext) {
@@ -190,6 +216,7 @@ function renderAmenities({ content, listing }: DetailLayoutBlockContext) {
 
 function renderCategorizedImages({
   galleryCategories,
+  listing,
 }: DetailLayoutBlockContext) {
   const previewCategories = galleryCategories
     .map((category) => ({
@@ -208,7 +235,10 @@ function renderCategorizedImages({
       icon={<ImageIcon className="h-5 w-5" />}
       title="รูปภาพตามหมวดหมู่"
     >
-      <LazyCategorizedImages previewCategories={previewCategories} />
+      <LazyCategorizedImages
+        listingId={listing.id}
+        previewCategories={previewCategories}
+      />
     </DetailCard>
   );
 }
@@ -219,7 +249,11 @@ function hasSectionLines(
   return Boolean(section && section.lines.length > 0);
 }
 
-function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
+function renderCostsPromotions({
+  content,
+  galleryStyle,
+  listing,
+}: DetailLayoutBlockContext) {
   const costs = findSection(content, sectionTitles.costs);
   const promotions = findSection(content, sectionTitles.promotions);
   const notes = findSection(content, sectionTitles.notes);
@@ -252,7 +286,12 @@ function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
             {section.title}
           </h3>
           <div className="mt-2 space-y-2">
-            <CompactLineList initialCount={2} lines={section.lines} />
+            <CompactLineList
+              galleryStyle={galleryStyle}
+              initialCount={2}
+              lines={section.lines}
+              listing={listing}
+            />
           </div>
         </div>
       ))}
@@ -260,7 +299,11 @@ function renderCostsPromotions({ content }: DetailLayoutBlockContext) {
   );
 }
 
-function renderRulesPetPolicy({ content }: DetailLayoutBlockContext) {
+function renderRulesPetPolicy({
+  content,
+  galleryStyle,
+  listing,
+}: DetailLayoutBlockContext) {
   const rules = findSection(content, sectionTitles.rules);
   const petPolicy = findSection(content, sectionTitles.petPolicy);
   const groups = [rules, petPolicy].filter(hasSectionLines);
@@ -280,7 +323,12 @@ function renderRulesPetPolicy({ content }: DetailLayoutBlockContext) {
             {section.title}
           </h3>
           <div className="mt-2 space-y-2">
-            <CompactLineList initialCount={4} lines={section.lines} />
+            <CompactLineList
+              galleryStyle={galleryStyle}
+              initialCount={4}
+              lines={section.lines}
+              listing={listing}
+            />
           </div>
         </div>
       ))}
@@ -336,16 +384,16 @@ function renderReviewVideos({ content }: DetailLayoutBlockContext) {
 
 function renderBookingContact({
   bookingSidebarId,
+  contactSettings,
   content,
   listing,
-  settings,
 }: DetailLayoutBlockContext) {
   return (
     <BookingSidebar
+      contactSettings={contactSettings}
       content={content}
       id={bookingSidebarId}
       listing={listing}
-      settings={settings}
     />
   );
 }

@@ -9,6 +9,7 @@ import {
 } from "../cache-policy";
 
 describe("cache policy", () => {
+  const FIFTEEN_MINUTES_SECONDS = 15 * 60;
   const SIX_HOURS_SECONDS = 6 * 60 * 60;
   const TWELVE_HOURS_SECONDS = 12 * 60 * 60;
 
@@ -25,8 +26,16 @@ describe("cache policy", () => {
     expect(CACHE_REVALIDATE_SECONDS.villaDetail).toBe(TWELVE_HOURS_SECONDS);
   });
 
+  it("keeps booking calendar data fresh for fifteen minutes", () => {
+    expect(CACHE_REVALIDATE_SECONDS.bookingCalendar).toBe(
+      FIFTEEN_MINUTES_SECONDS,
+    );
+    expect(CACHE_HEADERS.bookingCalendar).toBe("public, s-maxage=900");
+  });
+
   it("keeps public Supabase and third-party reads on twelve-hour TTLs", () => {
     expect(CACHE_REVALIDATE_SECONDS.siteSettings).toBe(TWELVE_HOURS_SECONDS);
+    expect(CACHE_REVALIDATE_SECONDS.siteContactSettings).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.siteWebStyles).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.homeSections).toBe(TWELVE_HOURS_SECONDS);
     expect(CACHE_REVALIDATE_SECONDS.customerReviews).toBe(TWELVE_HOURS_SECONDS);
@@ -54,6 +63,7 @@ describe("cache policy", () => {
       "villa-card-images:home:42",
     );
     expect(CACHE_TAGS.siteSettings).toBe("site-settings");
+    expect(CACHE_TAGS.siteContactSettings).toBe("site-contact-settings");
     expect(CACHE_TAGS.siteWebStyles).toBe("site-web-styles");
     expect(CACHE_TAGS.tiktokOEmbed).toBe("tiktok-oembed");
     expect(CACHE_TAGS.homeSections).toBe("home-sections");

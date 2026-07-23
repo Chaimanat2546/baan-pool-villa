@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import { pushVillaDetailView } from "@/lib/marketing-data-layer";
 import type { SiteSettings } from "@/lib/site-settings/types";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type {
@@ -34,6 +35,7 @@ interface VillaDetailClientShellProps {
   advertisements: PublicAdvertisement[];
   bookingSidebarId: string;
   children: ReactNode;
+  contactSettings: SiteContactSettings;
   content: VillaDetailContent;
   galleryStyle: GalleryStyleSettings;
   id: string;
@@ -47,6 +49,7 @@ export function VillaDetailClientShell({
   advertisements,
   bookingSidebarId,
   children,
+  contactSettings,
   content,
   galleryStyle,
   id,
@@ -138,6 +141,7 @@ export function VillaDetailClientShell({
       <DetailLayoutRenderer
         advertisements={advertisements}
         bookingSidebarId={bookingSidebarId}
+        contactSettings={contactSettings}
         content={content}
         galleryCategories={galleryCategories}
         galleryStyle={galleryStyle}

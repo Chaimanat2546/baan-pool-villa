@@ -5,8 +5,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { mountAdminPage } from "@/components/admin/__tests__/admin-page-dom-test-utils";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
+import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
-import type { SiteSettings } from "@/lib/site-settings/types";
 
 import { SiteFooter } from "../site-footer";
 
@@ -24,11 +25,11 @@ vi.mock("next/image", () => ({
   ),
 }));
 
-function publicSettingsWithDuplicatePhoneContacts(): SiteSettings {
+function contactSettingsWithDuplicatePhoneContacts(): SiteContactSettings {
   return {
-    ...DEFAULT_SITE_SETTINGS,
+    ...DEFAULT_SITE_CONTACT_SETTINGS,
     contact: {
-      ...DEFAULT_SITE_SETTINGS.contact,
+      ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
       phoneContacts: [
         {
           name: "คุณคลีน",
@@ -56,7 +57,10 @@ describe("SiteFooter", () => {
       .mockImplementation(() => undefined);
 
     const page = await mountAdminPage(
-      <SiteFooter settings={publicSettingsWithDuplicatePhoneContacts()} />,
+      <SiteFooter
+        contactSettings={contactSettingsWithDuplicatePhoneContacts()}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
     );
 
     expect(
@@ -70,17 +74,17 @@ describe("SiteFooter", () => {
 
   it("renders footer links and bank highlight with site color variables", () => {
     const markup = renderToStaticMarkup(
-      <SiteFooter settings={DEFAULT_SITE_SETTINGS} />,
+      <SiteFooter contactSettings={DEFAULT_SITE_CONTACT_SETTINGS} settings={DEFAULT_SITE_SETTINGS} />,
     );
 
     expect(markup).toContain("ชื่อบัญชี");
     expect(markup).toContain("ธนาคาร");
     expect(markup).toContain("เลขที่");
-    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountName);
-    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.bankName);
-    expect(markup).toContain(DEFAULT_SITE_SETTINGS.bank.accountNumber);
+    expect(markup).toContain(DEFAULT_SITE_CONTACT_SETTINGS.bank.accountName);
+    expect(markup).toContain(DEFAULT_SITE_CONTACT_SETTINGS.bank.bankName);
+    expect(markup).toContain(DEFAULT_SITE_CONTACT_SETTINGS.bank.accountNumber);
     expect(markup).not.toContain(
-      `${DEFAULT_SITE_SETTINGS.bank.bankName} เลขที่ ${DEFAULT_SITE_SETTINGS.bank.accountNumber}`,
+      `${DEFAULT_SITE_CONTACT_SETTINGS.bank.bankName} เลขที่ ${DEFAULT_SITE_CONTACT_SETTINGS.bank.accountNumber}`,
     );
     expect(markup).toContain("text-[var(--site-bank-account-highlight)]");
     expect(markup).toContain("text-[var(--site-bank-name-highlight)]");
@@ -94,6 +98,7 @@ describe("SiteFooter", () => {
   it("applies the readable primary text color directly to the footer", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         settings={{ ...DEFAULT_SITE_SETTINGS, primaryColor: "#f8fafc" }}
       />,
     );
@@ -104,6 +109,7 @@ describe("SiteFooter", () => {
   it("renders uploaded logos with the selected background and containment", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         settings={{
           ...DEFAULT_SITE_SETTINGS,
           logoBackground: "transparent",
@@ -119,6 +125,7 @@ describe("SiteFooter", () => {
   it("falls back to a white logo background for cached settings without a logo background", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         settings={{
           ...DEFAULT_SITE_SETTINGS,
           logoBackground: undefined,

@@ -1052,7 +1052,7 @@ describe("GET /api/villas/[id]/images", () => {
     expect(consoleError).toHaveBeenCalled();
   });
 
-  it("returns validated gallery image source URLs for the AWS image loader", async () => {
+  it("returns same-origin gallery image paths without source URLs", async () => {
     mockImagesQuery({
       data: [
         {
@@ -1079,7 +1079,7 @@ describe("GET /api/villas/[id]/images", () => {
     expect(body.images).toEqual([
       expect.objectContaining({
         id: 7,
-        imageUrl: "https://images.example.com/pool.jpg",
+        imageUrl: "/api/villas/9/images?imageId=7",
       }),
     ]);
   });
