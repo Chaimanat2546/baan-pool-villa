@@ -21,6 +21,7 @@ const section: AdminSectionDraft = {
   draftId: "draft-featured",
   fallbackMode: "fill_from_all",
   isActive: true,
+  isNew: false,
   items: [],
   limitCount: 24,
   mode: "slice",

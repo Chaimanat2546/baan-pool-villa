@@ -25,10 +25,11 @@ import { DEFAULT_SITE_CONTACT_SETTINGS } from "../../../../lib/site-contact-sett
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import type { GuidePost } from "../../../../lib/guides/types";
 import type { ResolvedHomeSection } from "../../../../lib/home-sections/types";
+import type { HomePageLayoutItem } from "../../../../lib/home-sections/types";
 import type { VillaListing } from "../../../../lib/villas/types";
 import { toHomePageSettings } from "../client-payload";
 import { selectHomeGuideSummaries } from "../articles-section";
-import { HomePage } from "../page";
+import { HomePage, HomePageContent } from "../page";
 
 const DEFAULT_HOME_SETTINGS = toHomePageSettings(
   DEFAULT_SITE_SETTINGS,
@@ -127,6 +128,54 @@ describe("HomePage", () => {
     expect(markup).toContain('id="recommendations"');
     expect(markup).not.toContain("สำรวจจุดหมายปลายทางของเรา");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("renders enabled homepage sections in the configured order", () => {
+    const layout: HomePageLayoutItem[] = [
+      { kind: "fixed", key: "contact", enabled: true },
+      { kind: "rail", key: "featured", enabled: true },
+      { kind: "fixed", key: "why_choose", enabled: true },
+      { kind: "fixed", key: "tiktok", enabled: false },
+      { kind: "fixed", key: "customer_reviews", enabled: false },
+      { kind: "fixed", key: "articles", enabled: false },
+      { kind: "fixed", key: "faq", enabled: false },
+    ];
+
+    const markup = renderToStaticMarkup(
+      <HomePageContent
+        homeLayout={layout}
+        initialHomeSections={[homeSection]}
+        settings={DEFAULT_HOME_SETTINGS}
+      />,
+    );
+
+    expect(markup.indexOf('id="contact"')).toBeLessThan(
+      markup.indexOf('id="featured"'),
+    );
+    expect(markup.indexOf('id="featured"')).toBeLessThan(
+      markup.indexOf('id="recommendations"'),
+    );
+    expect(markup).not.toContain("data-home-tiktok");
+  });
+
+  it("keeps hero markup before movable homepage sections", () => {
+    const markup = renderToStaticMarkup(
+      <HomePage
+        homeLayout={[
+          { kind: "fixed", key: "contact", enabled: true },
+          { kind: "fixed", key: "why_choose", enabled: false },
+          { kind: "fixed", key: "tiktok", enabled: false },
+          { kind: "fixed", key: "customer_reviews", enabled: false },
+          { kind: "fixed", key: "articles", enabled: false },
+          { kind: "fixed", key: "faq", enabled: false },
+        ]}
+        settings={DEFAULT_HOME_SETTINGS}
+      />,
+    );
+
+    expect(markup.indexOf("<section")).toBeLessThan(
+      markup.indexOf('id="contact"'),
+    );
   });
 
   it("keeps the homepage client settings payload limited to rendered fields", () => {

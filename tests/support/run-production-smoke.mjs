@@ -113,8 +113,8 @@ async function main() {
     [
       playwrightCliPath,
       "test",
-      ...smokeProjects.flatMap((project) => ["--project", project]),
       ...process.argv.slice(2),
+      ...smokeProjects.flatMap((project) => ["--project", project]),
     ],
     {
       env: testEnv,

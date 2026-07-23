@@ -1,5 +1,26 @@
 import type { VillaListing } from "../villas/types";
 
+export const FIXED_HOME_SECTION_KEYS = [
+  "why_choose",
+  "tiktok",
+  "customer_reviews",
+  "articles",
+  "faq",
+  "contact",
+] as const;
+
+export type FixedHomeSectionKey = (typeof FIXED_HOME_SECTION_KEYS)[number];
+
+export type HomePageLayoutItem =
+  | { kind: "fixed"; key: FixedHomeSectionKey; enabled: boolean }
+  | { kind: "rail"; key: string; enabled: boolean };
+
+export interface HomePageLayoutResult {
+  degraded: boolean;
+  items: HomePageLayoutItem[];
+  source: "config" | "fallback";
+}
+
 export type HomeSectionMode = "manual" | "near_sea" | "slice";
 
 export type HomeSectionFallbackMode = "none" | "fill_from_all" | "fill_near_sea";

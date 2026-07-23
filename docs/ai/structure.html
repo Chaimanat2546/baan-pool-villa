@@ -14,7 +14,7 @@
         for where things live.
       </p>
       <p>
-        Last reviewed: 2026-06-12. Next.js App Router route groups such as
+        Last reviewed: 2026-07-23. Next.js App Router route groups such as
         <code>(home)</code>, <code>(public)</code>, and <code>(admin)</code> do
         not appear in the public URL.
       </p>
@@ -143,7 +143,7 @@
               <tr>
                 <td><code>app/(public)/(home)/page.tsx</code></td>
                 <td><code>/</code></td>
-                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, bounded homepage villa listing, home-section, site-settings, and site-contact-settings reads come from tagged data caches. The route starts homepage data before awaiting settings, then streams the settings-backed hero shell first while the hero search and deferred homepage content resolve behind <code>Suspense</code> from the shared homepage data promise. General and contact settings load in parallel; metadata remains owned by the SEO/general settings path, while home JSON-LD receives the dedicated contact settings for its public telephone. The client <code>HomePage</code> receives only rendered fields: <code>heroImage</code>, <code>tiktok</code>, and <code>siteName</code> from general settings plus <code>contact</code> and <code>bank</code> from the contact domain. Guide summaries and public villa listing DTOs remain bounded before crossing into the client payload.</td>
+                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while guide, bounded homepage villa listing, home-section layout/config, site-settings, and site-contact-settings reads come from tagged data caches. The route starts homepage data before awaiting settings, then streams the settings-backed Hero first while the hero search and deferred homepage content resolve behind <code>Suspense</code> from the shared homepage data promise. Hero is fixed outside the saved layout; <code>HomePageContent</code> renders the enabled mixed fixed/rail items in exact saved order, skips missing or empty rails without gaps, and uses the current default ordering only when no layout prop is supplied or the server layout read degrades. General and contact settings load in parallel; metadata remains owned by the SEO/general settings path, while home JSON-LD receives the dedicated contact settings for its public telephone. The client <code>HomePage</code> receives only rendered fields: <code>heroImage</code>, <code>tiktok</code>, and <code>siteName</code> from general settings plus <code>contact</code> and <code>bank</code> from the contact domain. Guide summaries and public villa listing DTOs remain bounded before crossing into the client payload.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/(home)/loading.tsx</code></td>
@@ -358,7 +358,7 @@
               <tr>
                 <td><code>app/(admin)/admin/sections/page.tsx</code></td>
                 <td><code>/admin/sections</code></td>
-                <td><code>components/admin/sections/admin-sections-page</code> with draft mapping helpers in <code>components/admin/sections/section-draft-helpers</code>.</td>
+                <td><code>components/admin/sections/admin-sections-page</code> owns the two-column homepage editor: a mixed fixed/rail layout list with the locked Hero row and a rail editor or fixed-section ownership panel. Combined layout/rail mapping and save snapshots remain in <code>components/admin/sections/section-draft-helpers</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/sections/loading.tsx</code></td>
@@ -456,7 +456,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/home-sections/route.ts</code></td>
                 <td><code>/api/admin/home-sections</code></td>
-                <td>Admin auth and delegation for home section listing and snapshot saves. Admin row mapping, request payload parsing, validation orchestration, RPC payload shaping, Supabase persistence response handling, and home cache revalidation live in <code>lib/home-sections/admin-route.ts</code>.</td>
+                <td>Admin auth and delegation for the combined homepage snapshot. GET reads ordered <code>home_sections</code> rails and the <code>home_page_layout</code> singleton together, validates their relationship, and returns <code>{ layout, sections }</code>. PUT accepts that same exact snapshot, validates all fixed and rail identities, mirrors layout visibility/order into rail rows, and passes both arrays to the atomic <code>save_home_section_snapshot</code> RPC before home cache revalidation. Admin row mapping, request parsing, validation orchestration, RPC payload shaping, and structured Supabase responses live in <code>lib/home-sections/admin-route.ts</code>.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/home-sections/preview/route.ts</code></td>
@@ -626,8 +626,8 @@
             </tr>
             <tr>
               <td><code>lib/home-sections</code></td>
-              <td>Admin-managed home section config types, validation, admin route payload/row mapping, Supabase persistence, server reads, section resolution.</td>
-              <td><code>lib/home-sections/__tests__</code></td>
+              <td>Admin-managed homepage layout and rail config. <code>types.ts</code> owns the six fixed keys <code>why_choose</code>, <code>tiktok</code>, <code>customer_reviews</code>, <code>articles</code>, <code>faq</code>, and <code>contact</code>; <code>layout.ts</code> owns default seeding, strict mixed-item parsing, relational validation, and immutable movement. Admin route helpers own the combined layout/rail snapshot, while server reads load cached rail config and the <code>home_page_layout</code> singleton in parallel before section resolution.</td>
+              <td><code>lib/home-sections/__tests__</code>, especially <code>layout.test.ts</code>, plus the homepage and admin section component tests.</td>
             </tr>
             <tr>
               <td><code>lib/customer-reviews</code></td>
@@ -696,7 +696,7 @@
             </tr>
             <tr>
               <td><code>lib/cache-revalidation.ts</code> and <code>lib/html-edge-cache-version.ts</code></td>
-              <td>Shared tag revalidation helpers. Supabase CMS helpers for settings, site web styles, home sections, customer reviews, guides, legal pages, TikTok, and detail layout are tag-only for Next data cache, then bump the matching Cloudflare HTML cache version group where public HTML depends on the data. Villa card image config expires card-image, villa-image, villa-listing, and site-web-style tags as applicable, then bumps the <code>villa-images</code> and <code>villa-listings</code> JSON edge version groups used by gallery/detail and card/listing consumers. External villa refresh expires villa listing/detail/image/card-image tags, then bumps the JSON-only Cloudflare version groups (<code>villa-listings</code>, <code>villa-details</code>, and <code>villa-images</code>) without adding those groups to public HTML keys or calling <code>revalidatePath</code>.</td>
+              <td>Shared tag revalidation helpers. Homepage layout and rail reads share the existing <code>home-sections</code> data-cache tag and 12-hour policy; a successful combined admin save revalidates that tag and bumps the existing <code>home-sections</code> Cloudflare HTML cache version group without path regeneration. Other Supabase CMS helpers for settings, site web styles, customer reviews, guides, legal pages, TikTok, and detail layout are likewise tag-only for Next data cache, then bump the matching Cloudflare HTML cache version group where public HTML depends on the data. Villa card image config expires card-image, villa-image, villa-listing, and site-web-style tags as applicable, then bumps the <code>villa-images</code> and <code>villa-listings</code> JSON edge version groups used by gallery/detail and card/listing consumers. External villa refresh expires villa listing/detail/image/card-image tags, then bumps the JSON-only Cloudflare version groups (<code>villa-listings</code>, <code>villa-details</code>, and <code>villa-images</code>) without adding those groups to public HTML keys or calling <code>revalidatePath</code>.</td>
               <td><code>lib/cache-revalidation.test.ts</code></td>
             </tr>
             <tr>
@@ -768,9 +768,9 @@
             </tr>
               <tr>
                 <td>Home sections</td>
-                <td>Supabase home-section CMS project.</td>
-                <td><code>lib/home-sections/server.ts</code>, validation/resolve helpers, home sections cache tag. Results include <code>source</code>, <code>degraded</code>, and an optional fallback reason so callers can distinguish intentional empty-config fallback from config-load failure fallback.</td>
-                <td>Home page, villa detail recommendations from the first resolved section, and admin sections editor.</td>
+                <td>Supabase <code>home_sections</code>/<code>home_section_items</code> rails plus the singleton <code>home_page_layout</code> JSON array. The layout contains every rail identity and exactly the six fixed identities; Hero is intentionally not stored because it is always first and enabled.</td>
+                <td><code>lib/home-sections/server.ts</code> starts cached rail and layout reads in parallel under the existing home-sections tag. Public stored-layout validation checks strict item shape, all six fixed identities, and duplicate identities; its rail-key allowlist comes from the layout itself. Inactive or stale rail references hidden from or missing in the public config read therefore remain valid layout entries and are skipped by the renderer when no non-empty resolved rail exists. Only an unavailable query or invalid item shape, fixed completeness, or duplicate identity falls back safely to the current rail-aware default and marks the layout degraded. Resolved rail results separately report <code>source</code>, <code>degraded</code>, and an optional fallback reason. Valid configured layouts do not resurrect disabled or empty rails.</td>
+                <td>The homepage mixed renderer receives the saved layout and resolved rails in the server payload; villa detail recommendations consume the first resolved rail; the admin editor GET/PUT uses one combined layout/rail snapshot.</td>
               </tr>
               <tr>
                 <td>Site and SEO settings</td>
@@ -991,8 +991,8 @@
             </tr>
             <tr>
               <td>Home section config, server reads, route handlers, or admin section UI</td>
-              <td><code>npm.cmd test -- lib/home-sections</code>, <code>npm.cmd test -- lib/home-sections/__tests__/preview-route.test.ts</code>, and relevant <code>components/admin/sections</code> tests</td>
-              <td>Run lint and build before completion.</td>
+              <td><code>npm.cmd test -- lib/home-sections components/admin/sections components/villas/home/__tests__/page.test.tsx "app/(public)/(home)/page.test.ts" lib/cache-revalidation.test.ts</code>; <code>lib/home-sections/__tests__/layout.test.ts</code> is the focused mixed-layout contract test.</td>
+              <td>Run lint and build, inspect <code>/admin/sections</code> and <code>/</code> at mobile and desktop widths, then run <code>npm.cmd run test:e2e -- tests/production-smoke.spec.ts</code>. Initial homepage navigation must keep the duration budget and make no <code>_rsc</code>, <code>/_next/image</code>, <code>/api/home-sections</code>, or <code>/api/houses</code> request in both Chromium projects.</td>
             </tr>
             <tr>
               <td>Customer proof/review images, homepage layout, uploads, or public review section</td>
