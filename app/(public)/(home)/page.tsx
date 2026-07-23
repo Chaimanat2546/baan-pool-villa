@@ -39,12 +39,7 @@ type FilterSummary = {
   zones: Array<{ value: string; label: string }>;
 };
 
-type DestinationVilla = {
-  coverImage: string | null;
-  id: string;
-};
-
-const HOME_DESTINATION_LIMIT = 12;
+const HOME_FALLBACK_LISTING_LIMIT = 12;
 
 type HomePageData = {
   degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
@@ -52,7 +47,6 @@ type HomePageData = {
   guides: PublicGuideSummary[];
   homeSections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"];
   filterSummary: FilterSummary;
-  destinationVillas: DestinationVilla[];
 };
 
 function HomeDeferredContentSkeleton() {
@@ -106,7 +100,6 @@ async function HomeDeferredContent({
         customerReviews={homePageData.customerReviews}
         initialGuides={homePageData.guides}
         initialHomeSections={homePageData.homeSections}
-        destinationVillas={homePageData.destinationVillas}
         settings={settings}
       />
     </>
@@ -138,7 +131,7 @@ async function getHomePageData(): Promise<HomePageData> {
     (reason) => ({ reason, status: "rejected" as const }),
   );
   const homeSectionListingPlanResult = await getHomeSectionListingPlan(
-    HOME_DESTINATION_LIMIT,
+    HOME_FALLBACK_LISTING_LIMIT,
   ).then(
     (value) => ({ status: "fulfilled" as const, value }),
     (reason) => ({ reason, status: "rejected" as const }),
@@ -150,7 +143,7 @@ async function getHomePageData(): Promise<HomePageData> {
       : [],
     homeSectionListingPlanResult.status === "fulfilled"
       ? homeSectionListingPlanResult.value.listingLimit
-      : HOME_DESTINATION_LIMIT,
+      : HOME_FALLBACK_LISTING_LIMIT,
   ).then(
     (value) => ({ status: "fulfilled" as const, value }),
     (reason) => ({ reason, status: "rejected" as const }),
@@ -187,7 +180,6 @@ async function getHomePageData(): Promise<HomePageData> {
         maxAvailablePrice: SEARCH_FACETS.maxPrice,
         zones: SEARCH_FACETS.zones,
       },
-      destinationVillas: [],
     };
   }
 
@@ -222,14 +214,6 @@ async function getHomePageData(): Promise<HomePageData> {
       maxAvailablePrice: SEARCH_FACETS.maxPrice,
       zones: SEARCH_FACETS.zones,
     },
-    destinationVillas: villas.slice(0, HOME_DESTINATION_LIMIT).map((villa) => {
-      const publicVilla = toPublicVillaListing(villa);
-
-      return {
-        coverImage: publicVilla.coverImage,
-        id: publicVilla.id,
-      };
-    }),
   };
 }
 
@@ -247,7 +231,7 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * Render the homepage server component populated with site settings, guides, home sections, filter summary, and JSON-LD.
  *
- * Loads site settings and homepage data, builds JSON-LD for the site, injects the JSON-LD script into the page, and renders the HomePage component with resolved sections, filter summary, and destination villa payload.
+ * Loads site settings and homepage data, builds JSON-LD for the site, injects the JSON-LD script into the page, and renders the HomePage component with resolved sections and filter summary.
  *
  * @returns A React element for the homepage containing the injected JSON-LD script and the HomePage component initialized with fetched data and settings.
  */

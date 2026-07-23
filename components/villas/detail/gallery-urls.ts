@@ -1,4 +1,7 @@
-import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import {
+  buildVillaCoverImageProxyPath,
+  normalizePublicImageSourceUrl,
+} from "@/lib/public-image-proxy";
 import type { GalleryItem } from "./types";
 
 export function buildGalleryDownloadHref(
@@ -97,6 +100,12 @@ export function buildGalleryDisplaySrc(
   width = 828,
   quality = 60,
 ): string | null {
+  const coverProxyPath = buildVillaCoverImageProxyPath(listingId);
+
+  if (coverProxyPath && item.url.trim() === coverProxyPath) {
+    return buildVillaCoverImageProxyPath(listingId, { quality, width });
+  }
+
   const proxyUrl = normalizeGalleryProxyPath(item.url);
 
   if (proxyUrl) {

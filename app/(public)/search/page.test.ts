@@ -79,11 +79,11 @@ describe("getSearchPageData", () => {
       villas: [
         {
           ...villas[0],
-          coverImage: "https://devillegroups.com/imgs/profile_imgs_large/901.jpg",
+          coverImage: "/api/houses/images/901",
         },
         {
           ...villas[1],
-          coverImage: "https://devillegroups.com/imgs/profile_imgs_large/902.jpg",
+          coverImage: "/api/houses/images/902",
         },
       ],
       meta: {
@@ -117,7 +117,8 @@ describe("getSearchPageData", () => {
       zone: "pattaya",
     });
 
-    expect(JSON.stringify(result.villas)).toContain("devillegroups.com");
+    expect(JSON.stringify(result.villas)).toContain("/api/houses/images/902");
+    expect(JSON.stringify(result.villas)).not.toContain("devillegroups.com");
     expect(result.meta.resultCount).toBe(1);
     expect(fetchVillaSearchPageMock).toHaveBeenCalledWith(
       expect.objectContaining({

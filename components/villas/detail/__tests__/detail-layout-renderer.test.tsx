@@ -278,6 +278,38 @@ describe("DetailLayoutRenderer", () => {
     ).toBe("");
   });
 
+  it("renders image tags in every shared detail text block as clickable previews", () => {
+    const sectionTypes = [
+      ["details", "รายละเอียดเพิ่มเติม"],
+      ["bedrooms", "รายละเอียดห้องนอน"],
+      ["pool", "สระว่ายน้ำ"],
+      ["kitchen", "ครัวและอุปกรณ์"],
+      ["parking", "ที่จอดรถ"],
+    ] as const;
+    const layout: DetailLayoutConfig = {
+      ...DEFAULT_DETAIL_LAYOUT,
+      rows: sectionTypes.map(([type], index) => ({
+        id: `inline_image_${index}`,
+        columns: 1,
+        enabled: true,
+        blocks: [block(type)],
+      })),
+    };
+    const sections = sectionTypes.map(([, title], index) => ({
+      title,
+      lines: [
+        `<img src='https://www.devillegroups.com/imgs/detail-${index}.jpg' width='100%'>`,
+      ],
+    }));
+    const markup = render(layout, { sections });
+
+    expect(markup.match(/data-detail-inline-image="true"/g) ?? []).toHaveLength(
+      sectionTypes.length,
+    );
+    expect(markup).toContain('aria-label="ดูรูปขนาดใหญ่"');
+    expect(markup).not.toContain("&lt;img");
+  });
+
   it("renders the default detail layout blocks when data exists", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT);
 

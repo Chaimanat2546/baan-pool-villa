@@ -9,6 +9,7 @@ import {
 } from "../cache-policy";
 
 describe("cache policy", () => {
+  const FIFTEEN_MINUTES_SECONDS = 15 * 60;
   const SIX_HOURS_SECONDS = 6 * 60 * 60;
   const TWELVE_HOURS_SECONDS = 12 * 60 * 60;
 
@@ -23,6 +24,13 @@ describe("cache policy", () => {
 
   it("keeps public villa detail data cache durations at twelve hours", () => {
     expect(CACHE_REVALIDATE_SECONDS.villaDetail).toBe(TWELVE_HOURS_SECONDS);
+  });
+
+  it("keeps booking calendar data fresh for fifteen minutes", () => {
+    expect(CACHE_REVALIDATE_SECONDS.bookingCalendar).toBe(
+      FIFTEEN_MINUTES_SECONDS,
+    );
+    expect(CACHE_HEADERS.bookingCalendar).toBe("public, s-maxage=900");
   });
 
   it("keeps public Supabase and third-party reads on twelve-hour TTLs", () => {

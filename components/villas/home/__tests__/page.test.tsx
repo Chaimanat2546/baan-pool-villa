@@ -61,12 +61,6 @@ const filterSummary = {
   zones: [{ value: "jomtien", label: "Jomtien" }],
 };
 
-const destinationVillas = [
-  {
-    coverImage: "https://devillegroups.com/imgs/profile_imgs_large/501-destination.jpg",
-    id: "501",
-  },
-];
 const customerReviews = {
   images: [
     {
@@ -121,7 +115,6 @@ describe("HomePage", () => {
       <HomePage
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={DEFAULT_HOME_SETTINGS}
       />,
     );
@@ -132,6 +125,7 @@ describe("HomePage", () => {
     expect(markup).toContain("max=\"12000\"");
     expect(markup).not.toContain("max=\"1000\"");
     expect(markup).toContain('id="recommendations"');
+    expect(markup).not.toContain("สำรวจจุดหมายปลายทางของเรา");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -218,7 +212,6 @@ describe("HomePage", () => {
       <HomePage
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={DEFAULT_HOME_SETTINGS}
         degradedSources={{
           guidePosts: false,
@@ -235,60 +228,12 @@ describe("HomePage", () => {
     );
   });
 
-  it("uses compact destinationVillas payload for destination cards", () => {
-    const compactDestinationVillas = [
-      { coverImage: "https://example.com/destination-1.jpg", id: "501" },
-      { coverImage: "https://example.com/destination-2.jpg", id: "502" },
-    ];
-
-    const markup = renderToStaticMarkup(
-      <HomePage
-        initialHomeSections={[homeSection]}
-        filterSummary={filterSummary}
-        destinationVillas={compactDestinationVillas}
-        settings={{
-          ...DEFAULT_HOME_SETTINGS,
-          tiktok: {
-            accountUrl: "https://www.tiktok.com/@baanpoolvilla",
-            videos: [
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000001000",
-                videoId: "7370000000000001000",
-              },
-            ],
-          },
-        }}
-      />,
-    );
-
-    const destinationHeader = "สำรวจจุดหมายปลายทางของเรา";
-    const destinationSectionStart = markup.indexOf(destinationHeader);
-    const tiktokSectionStart = markup.indexOf("data-home-tiktok");
-
-    const destinationsMarkup = markup.slice(
-      destinationSectionStart,
-      tiktokSectionStart,
-    );
-
-    expect(destinationSectionStart).toBeGreaterThan(-1);
-    expect(tiktokSectionStart).toBeGreaterThan(destinationSectionStart);
-
-    expect(destinationsMarkup).toContain(
-      'data-src="https://example.com/destination-1.jpg"',
-    );
-    expect(destinationsMarkup).toContain(
-      'data-src="https://example.com/destination-2.jpg"',
-    );
-    expect(destinationsMarkup).not.toContain("/api/houses/images");
-  });
-
   it("renders TikTok section from settings without server preview props and keeps guide placement after it", () => {
     const markup = renderToStaticMarkup(
       <HomePage
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_HOME_SETTINGS,
           tiktok: {
@@ -347,7 +292,6 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_HOME_SETTINGS,
           tiktok: {
@@ -384,7 +328,6 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_HOME_SETTINGS,
           tiktok: {
@@ -452,7 +395,6 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_HOME_SETTINGS,
           tiktok: {
@@ -511,7 +453,6 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_HOME_SETTINGS,
           tiktok: {
@@ -552,7 +493,6 @@ describe("HomePage", () => {
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
         initialHomeSections={[homeSection]}
         filterSummary={filterSummary}
-        destinationVillas={destinationVillas}
         settings={{
           ...DEFAULT_HOME_SETTINGS,
           tiktok: {
@@ -579,8 +519,7 @@ describe("HomePage", () => {
         <HomePage
           initialHomeSections={[homeSection]}
           filterSummary={filterSummary}
-          destinationVillas={destinationVillas}
-        settings={DEFAULT_HOME_SETTINGS}
+          settings={DEFAULT_HOME_SETTINGS}
         />,
       );
     });

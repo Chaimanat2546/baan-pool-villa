@@ -76,6 +76,19 @@ describe("gallery URL helpers", () => {
     expect(displayUrl.searchParams.has("stale")).toBe(false);
   });
 
+  it("renders the resolved cover proxy for the current villa", () => {
+    const cover = galleryItem({
+      isCover: true,
+      url: "/api/houses/images/2970",
+      zone: "cover",
+    });
+
+    expect(buildGalleryDisplaySrc("2970", cover)).toBe(
+      "/api/houses/images/2970?w=828&q=60",
+    );
+    expect(buildGalleryDisplaySrc("88", cover)).toBeNull();
+  });
+
   it("rejects unsafe display image URLs before rendering", () => {
     expect(normalizeGalleryDisplayImageUrl(" https://cdn.test/pool.jpg ")).toBe(
       "https://cdn.test/pool.jpg",

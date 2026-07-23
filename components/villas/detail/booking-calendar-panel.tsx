@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   loadBookingCalendarMonth,
+  loadBookingCalendarMonths,
   peekBookingCalendarClientCache,
 } from "./booking-calendar-client-cache";
 import { BookingCalendarDayCell } from "./booking-calendar-day-cell";
@@ -58,6 +59,8 @@ export function BookingCalendarPanel({
     Record<string, BookingCalendarMonth>
   >({});
   const visibleMonthKey = formatCalendarMonthKey(visibleMonth);
+  const isCurrentVisibleMonth =
+    visibleMonthKey === formatCalendarMonthKey(currentMonth);
   const isPastVisibleMonth = visibleMonth < currentMonth;
   const bookingCalendarCacheKey = `${listingId}:${visibleMonthKey}`;
   const bookingCalendar =
@@ -91,23 +94,38 @@ export function BookingCalendarPanel({
     : null;
 
   useEffect(() => {
-    if (bookingCalendar?.month === visibleMonthKey) {
+    if (
+      !isCurrentVisibleMonth &&
+      bookingCalendar?.month === visibleMonthKey
+    ) {
       return;
     }
 
     let isActive = true;
 
-    void loadBookingCalendarMonth({
-      cacheKey: bookingCalendarCacheKey,
-      listingId,
-      monthKey: visibleMonthKey,
-    })
-      .then((calendar) => {
-        if (isActive && calendar.month === visibleMonthKey) {
-          setBookingCalendars((currentCalendars) => ({
-            ...currentCalendars,
-            [bookingCalendarCacheKey]: calendar,
-          }));
+    const calendarsRequest = isCurrentVisibleMonth
+      ? loadBookingCalendarMonths({
+          listingId,
+          startMonthKey: visibleMonthKey,
+        })
+      : loadBookingCalendarMonth({
+          cacheKey: bookingCalendarCacheKey,
+          listingId,
+          monthKey: visibleMonthKey,
+        }).then((calendar) => [calendar]);
+
+    void calendarsRequest
+      .then((calendars) => {
+        if (isActive) {
+          setBookingCalendars((currentCalendars) => {
+            const nextCalendars = { ...currentCalendars };
+
+            calendars.forEach((calendar) => {
+              nextCalendars[`${listingId}:${calendar.month}`] = calendar;
+            });
+
+            return nextCalendars;
+          });
         }
       })
       .catch(() => {
@@ -125,7 +143,13 @@ export function BookingCalendarPanel({
     return () => {
       isActive = false;
     };
-  }, [bookingCalendar?.month, bookingCalendarCacheKey, listingId, visibleMonthKey]);
+  }, [
+    bookingCalendar?.month,
+    bookingCalendarCacheKey,
+    isCurrentVisibleMonth,
+    listingId,
+    visibleMonthKey,
+  ]);
 
   useLockedBodyScroll(Boolean(selectedCalendarDate));
 

@@ -540,8 +540,8 @@ async function readJson<T>(response: Response): Promise<T> {
 }
 
 /**
- * Fetches one month of booking data through the same cache policy as villa
- * detail content while keeping the booking token server-only.
+ * Fetches one month of booking data through the fifteen-minute booking cache while
+ * keeping the booking token server-only.
  *
  * @param propertyId - The villa property id expected by the booking API.
  * @param month - The requested month in `YYYY-MM` format.
@@ -572,7 +572,7 @@ export async function fetchVillaBookingCalendar(
         Authorization: `Bearer ${token}`,
       },
       next: {
-        revalidate: CACHE_REVALIDATE_SECONDS.villaDetail,
+        revalidate: CACHE_REVALIDATE_SECONDS.bookingCalendar,
         tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail(propertyId)],
       },
       signal: controller.signal,

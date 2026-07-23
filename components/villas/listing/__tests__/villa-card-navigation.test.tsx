@@ -45,13 +45,11 @@ describe("VillaCard navigation", () => {
     expect(markup).not.toContain("data-next-link");
   });
 
-  it("passes listing cover images to the AWS image loader", () => {
+  it("renders listing covers through the same-origin image proxy", () => {
     const markup = renderToStaticMarkup(<VillaCard villa={villa} />);
 
-    expect(markup).toContain(
-      'data-src="https://devillegroups.com/imgs/profile_imgs_large/501.jpg"',
-    );
-    expect(markup).not.toContain("/api/houses/images");
+    expect(markup).toContain('src="/api/houses/images/501"');
+    expect(markup).not.toContain("devillegroups.com");
   });
 
   it("uses its server-provided style instead of the surrounding client context", () => {

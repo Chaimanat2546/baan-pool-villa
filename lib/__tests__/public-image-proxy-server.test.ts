@@ -26,6 +26,49 @@ describe("fetchPublicImageProxyResponse", () => {
     });
   });
 
+  it("fetches private poolvilla S3 images through the existing image loader", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("image bytes", {
+        headers: { "Content-Type": "image/webp" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchPublicImageProxyResponse(
+      "https://s3.ap-southeast-1.amazonaws.com/poolvillas.co.ltd/pool image.jpg",
+      { quality: 60, width: 828 },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws/pool%20image.jpg?w=828&q=60",
+      {
+        cache: "no-store",
+        redirect: "manual",
+        signal: expect.any(AbortSignal),
+      },
+    );
+  });
+
+  it("retries one transient upstream image failure", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("temporary", { status: 502 }))
+      .mockResolvedValueOnce(
+        new Response("image bytes", {
+          headers: { "Content-Type": "image/webp" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await fetchPublicImageProxyResponse(
+      "https://assets.example.com/image.webp",
+    );
+
+    expect(response).not.toBeNull();
+    await expect(response!.text()).resolves.toBe("image bytes");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("cancels non-image upstream response bodies before rejecting them", async () => {
     const cancel = vi.fn();
     const body = new ReadableStream({

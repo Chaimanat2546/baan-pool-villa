@@ -3,6 +3,7 @@ const VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS = 24 * 60 * 60;
 const IMAGE_EDGE_CACHE_SECONDS = 365 * 24 * 60 * 60;
 const IMAGE_EDGE_STALE_SECONDS = 365 * 24 * 60 * 60;
 const HOUSE_JSON_EDGE_CACHE_SECONDS = 6 * 60 * 60;
+const BOOKING_CALENDAR_JSON_EDGE_CACHE_SECONDS = 15 * 60;
 const JSON_EDGE_CACHE_SECONDS = 12 * 60 * 60;
 const IMAGE_TRANSFORM_WIDTHS = new Set([
   64,
@@ -37,6 +38,7 @@ export const HTML_EDGE_CACHE_VERSION_PARAM = "__bpv_html_v";
 export const IMAGE_EDGE_CACHE_CONTROL = `public, max-age=${IMAGE_EDGE_CACHE_SECONDS}, s-maxage=${IMAGE_EDGE_CACHE_SECONDS}, stale-while-revalidate=${IMAGE_EDGE_STALE_SECONDS}`;
 export const IMAGE_EDGE_CACHE_HEADER = "x-bpv-image-cache";
 export const HOUSE_JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${HOUSE_JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${HOUSE_JSON_EDGE_CACHE_SECONDS}`;
+export const BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${BOOKING_CALENDAR_JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_HEADER = "x-bpv-json-cache";
 export const JSON_EDGE_CACHE_VERSION_PARAM = "__bpv_json_v";
@@ -419,8 +421,12 @@ function getHtmlCacheControl(pathname) {
 }
 
 function getJsonCacheControl(pathname) {
-  return pathname === "/api/houses"
-    ? HOUSE_JSON_EDGE_CACHE_CONTROL
+  if (pathname === "/api/houses") {
+    return HOUSE_JSON_EDGE_CACHE_CONTROL;
+  }
+
+  return isVillaBookingCalendarApiPath(pathname)
+    ? BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL
     : JSON_EDGE_CACHE_CONTROL;
 }
 
@@ -464,6 +470,9 @@ export function createJsonEdgeCacheKey(request, versionToken = "") {
   const month = isVillaBookingCalendarApiPath(url.pathname)
     ? url.searchParams.get("month")
     : null;
+  const months = isVillaBookingCalendarApiPath(url.pathname)
+    ? url.searchParams.get("months")
+    : null;
   const isVillaCardImagesQuery = hasOnlyVillaCardImagesQuery(url);
 
   url.search = "";
@@ -471,6 +480,10 @@ export function createJsonEdgeCacheKey(request, versionToken = "") {
 
   if (isValidBookingCalendarMonth(month)) {
     url.searchParams.set("month", month);
+  }
+
+  if (months === "6") {
+    url.searchParams.set("months", months);
   }
 
   if (isVillaCardImagesQuery) {
@@ -593,11 +606,16 @@ export function getJsonEdgeCacheDecision(request) {
 
   if (isVillaBookingCalendarApiPath(url.pathname)) {
     const month = url.searchParams.get("month");
+    const months = url.searchParams.get("months");
     const searchParamCount = Array.from(url.searchParams.keys()).length;
     const hasOnlyMonth =
       searchParamCount === 1 && isValidBookingCalendarMonth(month);
+    const hasValidRange =
+      searchParamCount === 2 &&
+      isValidBookingCalendarMonth(month) &&
+      months === "6";
 
-    if (!hasOnlyMonth) {
+    if (!hasOnlyMonth && !hasValidRange) {
       return { cacheable: false, candidate: true, reason: "query" };
     }
   } else if (isVillaImagesApiPath(url.pathname)) {
