@@ -359,7 +359,7 @@ describe("fetchVillaBookingCalendar", () => {
       expect.objectContaining({
         headers: { Authorization: "Bearer calendar-token" },
         next: expect.objectContaining({
-          revalidate: expect.any(Number),
+          revalidate: 900,
           tags: expect.arrayContaining(["villa-details", "villa-detail:9"]),
         }),
       }),

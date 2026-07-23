@@ -95,7 +95,7 @@ describe("GET /api/houses", () => {
     expect(body.items).toHaveLength(12);
     expect(body.items[0]).toEqual({
       ...listings[0],
-      coverImage: "https://devillegroups.com/imgs/profile_imgs_large/1.jpg",
+      coverImage: "/api/houses/images/1",
     });
   });
 
@@ -269,7 +269,7 @@ describe("GET /api/houses", () => {
 });
 
 describe("GET /api/villas/[id]", () => {
-  it("returns public detail data with validated cover image sources", async () => {
+  it("returns public detail data without exposing cover image sources", async () => {
     fetchVillaDetailMock.mockResolvedValue({
       detail: null,
       detailStatus: "missing_token",
@@ -295,9 +295,7 @@ describe("GET /api/villas/[id]", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.listing.coverImage).toBe(
-      "https://devillegroups.com/imgs/profile_imgs_large/9.jpg",
-    );
+    expect(body.listing.coverImage).toBe("/api/houses/images/9");
   });
 
   it("rate limits repeated detail requests before loading villa detail", async () => {
@@ -463,7 +461,7 @@ describe("GET /api/villas/[id]/booking-calendar", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe(
-      "public, s-maxage=43200, stale-while-revalidate=43200",
+      "public, s-maxage=900",
     );
     expect(fetchVillaBookingCalendarMock).toHaveBeenCalledWith("9", "2026-06");
     expect(body).toMatchObject({
@@ -476,6 +474,61 @@ describe("GET /api/villas/[id]/booking-calendar", () => {
       month: "2026-06",
       status: "available",
     });
+  });
+
+  it("returns six consecutive calendar months in one response", async () => {
+    fetchVillaBookingCalendarMock.mockImplementation(
+      async (_id: string, month: string) => ({
+        calendar: { days: {}, month, status: "available" },
+        status: "available",
+      }),
+    );
+
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/booking-calendar?month=2026-10&months=6",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, s-maxage=900",
+    );
+    await expect(response.json()).resolves.toEqual([
+      expect.objectContaining({ month: "2026-10" }),
+      expect.objectContaining({ month: "2026-11" }),
+      expect.objectContaining({ month: "2026-12" }),
+      expect.objectContaining({ month: "2027-01" }),
+      expect.objectContaining({ month: "2027-02" }),
+      expect.objectContaining({ month: "2027-03" }),
+    ]);
+    expect(fetchVillaBookingCalendarMock.mock.calls).toEqual([
+      ["9", "2026-10"],
+      ["9", "2026-11"],
+      ["9", "2026-12"],
+      ["9", "2027-01"],
+      ["9", "2027-02"],
+      ["9", "2027-03"],
+    ]);
+  });
+
+  it("rejects unsupported booking calendar batch sizes", async () => {
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/booking-calendar/route"
+    );
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/booking-calendar?month=2026-06&months=5",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect(fetchVillaBookingCalendarMock).not.toHaveBeenCalled();
   });
 
   it("returns 503 when the server booking token is missing", async () => {

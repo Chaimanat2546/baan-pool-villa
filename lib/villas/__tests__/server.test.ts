@@ -889,9 +889,7 @@ describe("fetchVillaPageData", () => {
       recommendedSection: null,
     });
     expect(data?.initialGalleryImages).toHaveLength(4);
-    expect(data?.payload.listing.coverImage).toBe(
-      "https://example.supabase.co/storage/v1/object/public/villas/cover.jpg",
-    );
+    expect(data?.payload.listing.coverImage).toBe("/api/houses/images/9");
     expect(fetchVillaPreviewImagesMock).toHaveBeenCalledWith("9");
   });
 });

@@ -8,15 +8,32 @@ export async function buildVillaBookingCalendarResponse(
   request: Request,
   id: string,
 ) {
-  const month = new URL(request.url).searchParams.get("month") ?? "";
+  const searchParams = new URL(request.url).searchParams;
+  const month = searchParams.get("month") ?? "";
+  const requestedMonths = searchParams.get("months");
 
-  if (!isValidBookingCalendarMonth(month)) {
+  if (
+    !isValidBookingCalendarMonth(month) ||
+    (requestedMonths !== null && requestedMonths !== "6")
+  ) {
     return Response.json({ error: "Invalid month." }, { status: 400 });
   }
 
-  const result = await fetchVillaBookingCalendar(id, month);
+  const [year, monthNumber] = month.split("-").map(Number);
+  const monthCount = requestedMonths === "6" ? 6 : 1;
+  const monthKeys = Array.from({ length: monthCount }, (_, offset) => {
+    const date = new Date(Date.UTC(year, monthNumber - 1 + offset, 1));
 
-  if (result.status === "missing_token") {
+    return [
+      date.getUTCFullYear(),
+      String(date.getUTCMonth() + 1).padStart(2, "0"),
+    ].join("-");
+  });
+  const results = await Promise.all(
+    monthKeys.map((monthKey) => fetchVillaBookingCalendar(id, monthKey)),
+  );
+
+  if (results.some((result) => result.status === "missing_token")) {
     return Response.json(
       { error: "Booking calendar is not configured." },
       {
@@ -26,7 +43,7 @@ export async function buildVillaBookingCalendarResponse(
     );
   }
 
-  if (result.status === "unavailable") {
+  if (results.some((result) => result.status === "unavailable")) {
     return Response.json(
       { error: "Booking calendar is unavailable." },
       {
@@ -36,9 +53,13 @@ export async function buildVillaBookingCalendarResponse(
     );
   }
 
-  return Response.json(result.calendar, {
+  const calendars = results.flatMap((result) =>
+    result.calendar ? [result.calendar] : [],
+  );
+
+  return Response.json(monthCount === 1 ? calendars[0] : calendars, {
     headers: {
-      "Cache-Control": CACHE_HEADERS.villaDetail,
+      "Cache-Control": CACHE_HEADERS.bookingCalendar,
     },
   });
 }

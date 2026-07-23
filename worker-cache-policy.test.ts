@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL,
   HTML_BROWSER_CACHE_CONTROL,
   HOUSE_JSON_EDGE_CACHE_CONTROL,
   HTML_EDGE_CACHE_CONTROL,
@@ -469,6 +470,12 @@ describe("worker image edge cache policy", () => {
 });
 
 describe("worker JSON edge cache policy", () => {
+  it("keeps booking calendars for fifteen minutes without a stale window", () => {
+    expect(BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL).toBe(
+      "public, s-maxage=900",
+    );
+  });
+
   it("keeps the public house catalog JSON cache shared for six hours", () => {
     expect(HOUSE_JSON_EDGE_CACHE_CONTROL).toBe(
       "public, s-maxage=21600, stale-while-revalidate=21600",
@@ -501,6 +508,18 @@ describe("worker JSON edge cache policy", () => {
         request("/api/villas/9/booking-calendar?month=2026-06"),
       ),
     ).toMatchObject({
+      cacheControl: BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL,
+      cacheable: true,
+      candidate: true,
+      reason: "json",
+      versionGroups: ["villa-details"],
+    });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/villas/9/booking-calendar?month=2026-06&months=6"),
+      ),
+    ).toMatchObject({
+      cacheControl: BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL,
       cacheable: true,
       candidate: true,
       reason: "json",
@@ -547,6 +566,11 @@ describe("worker JSON edge cache policy", () => {
     expect(
       getJsonEdgeCacheDecision(
         request("/api/villas/9/booking-calendar?month=2026-06&debug=1"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/villas/9/booking-calendar?month=2026-06&months=5"),
       ),
     ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
     expect(
@@ -600,6 +624,20 @@ describe("worker JSON edge cache policy", () => {
     expect(url.searchParams.get("month")).toBe("2026-06");
     expect(url.searchParams.get("__bpv_json_v")).toBe("villa-details:42");
     expect(url.hash).toBe("");
+  });
+
+  it("keeps the six-month booking calendar range in JSON cache keys", () => {
+    const cacheKey = createJsonEdgeCacheKey(
+      request(
+        "/api/villas/9/booking-calendar?month=2026-06&months=6#top",
+      ),
+      "villa-details:42",
+    );
+    const url = new URL(cacheKey.url);
+
+    expect(url.searchParams.get("month")).toBe("2026-06");
+    expect(url.searchParams.get("months")).toBe("6");
+    expect(url.searchParams.get("__bpv_json_v")).toBe("villa-details:42");
   });
 
   it("keeps the villa card view in JSON cache keys", () => {
