@@ -374,7 +374,7 @@ function isVillaBookingCalendarApiPath(pathname) {
   return /^[1-9]\d*$/.test(id);
 }
 
-export function getBookingCalendarHostAccessDecision(
+export function getBookingCalendarAccessDecision(
   request,
   configuredSiteUrl,
 ) {
@@ -396,41 +396,27 @@ export function getBookingCalendarHostAccessDecision(
     return { allowed: false, candidate: true, reason: "config" };
   }
 
-  return {
-    // Exact equality is intentional: cl.example.com must not be accepted when
-    // the configured public hostname is www.example.com.
-    allowed: requestUrl.hostname === siteUrl.hostname,
-    candidate: true,
-    reason: "hostname",
-  };
-}
+  // A configured www hostname may also serve its one exact apex counterpart.
+  // Sibling hosts such as cl.example.com are never included.
+  const apexHostname = siteUrl.hostname.startsWith("www.")
+    ? siteUrl.hostname.slice("www.".length)
+    : null;
+  const isAllowedHostname =
+    requestUrl.hostname === siteUrl.hostname ||
+    requestUrl.hostname === apexHostname;
 
-export function getCanonicalHostRedirectUrl(request, configuredSiteUrl) {
-  let siteUrl;
-
-  try {
-    siteUrl = new URL(configuredSiteUrl);
-  } catch {
-    return null;
+  if (!isAllowedHostname) {
+    return { allowed: false, candidate: true, reason: "hostname" };
   }
 
-  if (!siteUrl.hostname.startsWith("www.")) {
-    return null;
+  // This marker is added only by the calendar client. It is not a secret, but
+  // it prevents direct URL use and forces cross-origin browsers into CORS
+  // preflight instead of reading the shared calendar response.
+  if (request.headers.get("X-BPV-Calendar") !== "1") {
+    return { allowed: false, candidate: true, reason: "header" };
   }
 
-  const requestUrl = new URL(request.url);
-  // Derive one exact apex hostname from the configured www hostname. This is
-  // not a catch-all redirect, so sibling or unrelated domains are left alone.
-  const apexHostname = siteUrl.hostname.slice("www.".length);
-
-  if (requestUrl.hostname !== apexHostname) {
-    return null;
-  }
-
-  requestUrl.protocol = siteUrl.protocol;
-  requestUrl.host = siteUrl.host;
-
-  return requestUrl.toString();
+  return { allowed: true, candidate: true, reason: "hostname" };
 }
 
 function isValidBookingCalendarMonth(value) {

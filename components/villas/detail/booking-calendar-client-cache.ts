@@ -3,6 +3,9 @@ import type { BookingCalendarMonth } from "./booking-calendar-ui";
 const BOOKING_CALENDAR_CLIENT_CACHE_LIMIT = 60;
 const BOOKING_CALENDAR_CLIENT_CACHE_TTL_MS = 15 * 60 * 1_000;
 const BOOKING_CALENDAR_CLIENT_TIMEOUT_MS = 8_000;
+const BOOKING_CALENDAR_CLIENT_HEADERS = {
+  "X-BPV-Calendar": "1",
+};
 const bookingCalendarClientCache = new Map<
   string,
   { calendar: BookingCalendarMonth; expiresAt: number }
@@ -115,7 +118,10 @@ export function loadBookingCalendarMonth({
   }, BOOKING_CALENDAR_CLIENT_TIMEOUT_MS);
   const request = fetch(
     `/api/villas/${encodeURIComponent(listingId)}/booking-calendar?month=${monthKey}`,
-    { signal: controller.signal },
+    {
+      headers: BOOKING_CALENDAR_CLIENT_HEADERS,
+      signal: controller.signal,
+    },
   )
     .then(async (response) => {
       if (!response.ok) {
@@ -176,7 +182,10 @@ export function loadBookingCalendarMonths({
   }, BOOKING_CALENDAR_CLIENT_TIMEOUT_MS);
   const request = fetch(
     `/api/villas/${encodeURIComponent(listingId)}/booking-calendar?month=${startMonthKey}&months=6`,
-    { signal: controller.signal },
+    {
+      headers: BOOKING_CALENDAR_CLIENT_HEADERS,
+      signal: controller.signal,
+    },
   )
     .then(async (response) => {
       if (!response.ok) {

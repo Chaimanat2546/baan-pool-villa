@@ -16,8 +16,7 @@ import {
   createHtmlEdgeVersionToken,
   createImageEdgeCacheKey,
   createJsonEdgeCacheKey,
-  getBookingCalendarHostAccessDecision,
-  getCanonicalHostRedirectUrl,
+  getBookingCalendarAccessDecision,
   getHtmlEdgeCacheDecision,
   getImageEdgeCacheDecision,
   getJsonEdgeCacheDecision,
@@ -472,26 +471,50 @@ describe("worker image edge cache policy", () => {
 });
 
 describe("worker booking calendar host access policy", () => {
-  it("allows only the exact configured public hostname", () => {
+  it("allows the configured www hostname and its exact apex hostname", () => {
     const path = "/api/villas/9/booking-calendar?month=2026-06";
+    const calendarHeaders = { "X-BPV-Calendar": "1" };
 
     expect(
-      getBookingCalendarHostAccessDecision(
-        new Request(`https://www.example.com${path}`),
+      getBookingCalendarAccessDecision(
+        new Request(`https://www.example.com${path}`, {
+          headers: calendarHeaders,
+        }),
         "https://www.example.com",
       ),
     ).toEqual({ allowed: true, candidate: true, reason: "hostname" });
     expect(
-      getBookingCalendarHostAccessDecision(
-        new Request(`https://cl.example.com${path}`),
+      getBookingCalendarAccessDecision(
+        new Request(`https://example.com${path}`, {
+          headers: calendarHeaders,
+        }),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: true, candidate: true, reason: "hostname" });
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(`https://cl.example.com${path}`, {
+          headers: calendarHeaders,
+        }),
         "https://www.example.com",
       ),
     ).toEqual({ allowed: false, candidate: true, reason: "hostname" });
   });
 
+  it("rejects exact-host calendar requests without the client marker", () => {
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(
+          "https://www.example.com/api/villas/9/booking-calendar?month=2026-06",
+        ),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: false, candidate: true, reason: "header" });
+  });
+
   it("fails closed when the configured public site URL is invalid", () => {
     expect(
-      getBookingCalendarHostAccessDecision(
+      getBookingCalendarAccessDecision(
         request("/api/villas/9/booking-calendar?month=2026-06"),
         "not-a-url",
       ),
@@ -500,49 +523,11 @@ describe("worker booking calendar host access policy", () => {
 
   it("does not guard unrelated paths", () => {
     expect(
-      getBookingCalendarHostAccessDecision(
+      getBookingCalendarAccessDecision(
         request("/api/villas/9"),
         "https://www.example.com",
       ),
     ).toEqual({ allowed: true, candidate: false, reason: "path" });
-  });
-});
-
-describe("worker canonical host redirect policy", () => {
-  it("redirects only the exact apex host to the configured www host", () => {
-    expect(
-      getCanonicalHostRedirectUrl(
-        new Request("https://example.com/villas/9?month=2026-06"),
-        "https://www.example.com",
-      ),
-    ).toBe("https://www.example.com/villas/9?month=2026-06");
-    expect(
-      getCanonicalHostRedirectUrl(
-        new Request("https://www.example.com/villas/9"),
-        "https://www.example.com",
-      ),
-    ).toBeNull();
-    expect(
-      getCanonicalHostRedirectUrl(
-        new Request("https://cl.example.com/villas/9"),
-        "https://www.example.com",
-      ),
-    ).toBeNull();
-  });
-
-  it("does not redirect when the configured site is invalid or has no www prefix", () => {
-    expect(
-      getCanonicalHostRedirectUrl(
-        new Request("https://example.com/villas/9"),
-        "not-a-url",
-      ),
-    ).toBeNull();
-    expect(
-      getCanonicalHostRedirectUrl(
-        new Request("https://example.com/villas/9"),
-        "https://example.com",
-      ),
-    ).toBeNull();
   });
 });
 
