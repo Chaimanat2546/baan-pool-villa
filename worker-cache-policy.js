@@ -374,15 +374,57 @@ function isVillaBookingCalendarApiPath(pathname) {
   return /^[1-9]\d*$/.test(id);
 }
 
+function isVillaBookingCalendarTokenApiPath(pathname) {
+  const prefix = "/api/villas/";
+  const suffix = "/booking-calendar-token";
+
+  if (!pathname.startsWith(prefix) || !pathname.endsWith(suffix)) {
+    return false;
+  }
+
+  const id = pathname.slice(prefix.length, -suffix.length);
+
+  return /^[1-9]\d*$/.test(id);
+}
+
+export function getBookingCalendarRequestTarget(request) {
+  const { pathname } = new URL(request.url);
+
+  if (isVillaBookingCalendarApiPath(pathname)) {
+    return {
+      candidate: true,
+      type: "calendar",
+      villaId: pathname.slice(
+        "/api/villas/".length,
+        -"/booking-calendar".length,
+      ),
+    };
+  }
+
+  if (isVillaBookingCalendarTokenApiPath(pathname)) {
+    return {
+      candidate: true,
+      type: "token",
+      villaId: pathname.slice(
+        "/api/villas/".length,
+        -"/booking-calendar-token".length,
+      ),
+    };
+  }
+
+  return { candidate: false, type: "other", villaId: null };
+}
+
 export function getBookingCalendarAccessDecision(
   request,
   configuredSiteUrl,
 ) {
   const requestUrl = new URL(request.url);
+  const target = getBookingCalendarRequestTarget(request);
 
   // This guard protects only the public booking-calendar API. Other routes
   // continue through the existing Worker cache and OpenNext flow unchanged.
-  if (!isVillaBookingCalendarApiPath(requestUrl.pathname)) {
+  if (!target.candidate) {
     return { allowed: true, candidate: false, reason: "path" };
   }
 

@@ -78,7 +78,11 @@ Copy-Item .env.example .env.baan03
     }
   ],
   "secrets": {
-    "required": ["DEVILLE_BEARER_TOKEN", "SUPABASE_PUBLISHABLE_KEY"]
+    "required": [
+      "CALENDAR_ACCESS_SECRET",
+      "DEVILLE_BEARER_TOKEN",
+      "SUPABASE_PUBLISHABLE_KEY"
+    ]
   }
 }
 ```
@@ -96,7 +100,45 @@ npx.cmd wrangler secret put DEVILLE_BEARER_TOKEN -e baan03
 npx.cmd wrangler secret put SUPABASE_PUBLISHABLE_KEY -e baan03
 npx.cmd wrangler secret put PATTAYA_BOOKINGS_API_TOKEN -e baan03
 npx.cmd wrangler secret put TURNSTILE_SECRET_KEY -e baan03
+npx.cmd wrangler secret put CALENDAR_ACCESS_SECRET -e baan03
 ```
+
+`CALENDAR_ACCESS_SECRET` ต้องเป็นค่าสุ่มอย่างน้อย 32 ตัวอักษร ใช้คนละค่าต่อ env
+และห้ามเก็บใน `.env`, `wrangler.jsonc`, source code หรือชื่อที่ขึ้นต้นด้วย
+`NEXT_PUBLIC_` การเปลี่ยนค่านี้จะทำให้ Calendar token เดิมหมดผลทันที
+
+สร้างและบันทึก secret โดยไม่แสดงค่าบนหน้าจอด้วย PowerShell:
+
+```powershell
+$calendarSecretBytes = New-Object byte[] 32
+$calendarRng = [Security.Cryptography.RandomNumberGenerator]::Create()
+
+try {
+  $calendarRng.GetBytes($calendarSecretBytes)
+
+  [Convert]::ToBase64String($calendarSecretBytes) |
+    npx.cmd wrangler secret put CALENDAR_ACCESS_SECRET -e baanparty
+}
+finally {
+  $calendarRng.Dispose()
+}
+```
+
+รันชุดคำสั่งนี้ใหม่ตั้งแต่บรรทัดแรกสำหรับแต่ละ env และเปลี่ยนชื่อหลัง `-e`
+เช่น `baan02` หรือ `baanPMhee` เพื่อให้แต่ละเว็บได้ secret คนละค่า
+
+ถ้าขั้นตอนสร้างค่าสุ่มเกิด error ให้หยุดทันที ห้ามนำ `$calendarSecretBytes`
+ไปใช้ต่อ เพราะอาจยังเป็น byte ศูนย์ทั้งหมดและคาดเดาได้
+
+ตรวจเฉพาะรายชื่อ secret หลังตั้งค่า:
+
+```powershell
+npx.cmd wrangler secret list -e baanparty
+npx.cmd wrangler secret list -e baan02
+npx.cmd wrangler secret list -e baanPMhee
+```
+
+คำสั่งตรวจจะแสดงเฉพาะชื่อ secret โดยไม่เปิดเผยค่าจริง
 
 9. ตั้ง public vars ใน Cloudflare dashboard ของ Worker/env นั้น:
 
@@ -205,6 +247,9 @@ IMAGES
 ASSETS
 CF_VERSION_METADATA
 NEXT_PUBLIC_SITE_URL
+CALENDAR_TOKEN_ISSUER_RATE_LIMITER
+CALENDAR_TOKEN_USAGE_RATE_LIMITER
+CALENDAR_IP_RATE_LIMITER
 ```
 
 ## ถ้า deploy แล้ว DB ผิดเว็บ

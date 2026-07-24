@@ -1,11 +1,12 @@
 import type { BookingCalendarMonth } from "./booking-calendar-ui";
+import {
+  clearBookingCalendarClientTokenCacheForTests,
+  fetchBookingCalendarWithToken,
+} from "./booking-calendar-client-token";
 
 const BOOKING_CALENDAR_CLIENT_CACHE_LIMIT = 60;
 const BOOKING_CALENDAR_CLIENT_CACHE_TTL_MS = 15 * 60 * 1_000;
 const BOOKING_CALENDAR_CLIENT_TIMEOUT_MS = 8_000;
-const BOOKING_CALENDAR_CLIENT_HEADERS = {
-  "X-BPV-Calendar": "1",
-};
 const bookingCalendarClientCache = new Map<
   string,
   { calendar: BookingCalendarMonth; expiresAt: number }
@@ -23,6 +24,7 @@ export function clearBookingCalendarClientCacheForTests() {
   bookingCalendarClientCache.clear();
   bookingCalendarClientRequests.clear();
   bookingCalendarClientBatchRequests.clear();
+  clearBookingCalendarClientTokenCacheForTests();
 }
 
 export function peekBookingCalendarClientCache(
@@ -116,12 +118,10 @@ export function loadBookingCalendarMonth({
   const timeout = globalThis.setTimeout(() => {
     controller.abort();
   }, BOOKING_CALENDAR_CLIENT_TIMEOUT_MS);
-  const request = fetch(
+  const request = fetchBookingCalendarWithToken(
     `/api/villas/${encodeURIComponent(listingId)}/booking-calendar?month=${monthKey}`,
-    {
-      headers: BOOKING_CALENDAR_CLIENT_HEADERS,
-      signal: controller.signal,
-    },
+    listingId,
+    controller.signal,
   )
     .then(async (response) => {
       if (!response.ok) {
@@ -180,12 +180,10 @@ export function loadBookingCalendarMonths({
   const timeout = globalThis.setTimeout(() => {
     controller.abort();
   }, BOOKING_CALENDAR_CLIENT_TIMEOUT_MS);
-  const request = fetch(
+  const request = fetchBookingCalendarWithToken(
     `/api/villas/${encodeURIComponent(listingId)}/booking-calendar?month=${startMonthKey}&months=6`,
-    {
-      headers: BOOKING_CALENDAR_CLIENT_HEADERS,
-      signal: controller.signal,
-    },
+    listingId,
+    controller.signal,
   )
     .then(async (response) => {
       if (!response.ok) {

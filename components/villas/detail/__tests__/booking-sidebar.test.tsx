@@ -145,6 +145,14 @@ function mockBookingCalendarFetch() {
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input), "https://example.com");
+
+      if (url.pathname.endsWith("/booking-calendar-token")) {
+        return Response.json({
+          expiresAt: Date.now() + 5 * 60_000,
+          token: "booking-sidebar-token",
+        });
+      }
+
       const month = url.searchParams.get("month") ?? "2026-06";
       const monthCount = url.searchParams.get("months") === "6" ? 6 : 1;
       const [year, monthNumber] = month.split("-").map(Number);
@@ -170,18 +178,28 @@ function mockBookingCalendarFetch() {
 }
 
 function getFetchedBookingCalendarMonths() {
-  return vi.mocked(fetch).mock.calls.map(([input]) => {
-    const url = input instanceof Request ? input.url : String(input);
+  return vi.mocked(fetch).mock.calls.flatMap(([input]) => {
+    const url = new URL(
+      input instanceof Request ? input.url : String(input),
+      "https://example.com",
+    );
 
-    return new URL(url, "https://example.com").searchParams.get("month");
+    return url.pathname.endsWith("/booking-calendar")
+      ? [url.searchParams.get("month")]
+      : [];
   });
 }
 
 function getFetchedBookingCalendarMonthCounts() {
-  return vi.mocked(fetch).mock.calls.map(([input]) => {
-    const url = input instanceof Request ? input.url : String(input);
+  return vi.mocked(fetch).mock.calls.flatMap(([input]) => {
+    const url = new URL(
+      input instanceof Request ? input.url : String(input),
+      "https://example.com",
+    );
 
-    return new URL(url, "https://example.com").searchParams.get("months");
+    return url.pathname.endsWith("/booking-calendar")
+      ? [url.searchParams.get("months")]
+      : [];
   });
 }
 
@@ -401,7 +419,7 @@ describe("BookingSidebar", () => {
       await Promise.resolve();
     });
 
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
     expect(getFetchedBookingCalendarMonthCounts()).toEqual(["6"]);
     await secondPage.cleanup();
   });

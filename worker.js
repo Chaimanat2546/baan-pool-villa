@@ -7,7 +7,6 @@ import {
   createHtmlEdgeCacheKey,
   createHtmlEdgeVersionToken,
   createJsonEdgeCacheKey,
-  getBookingCalendarAccessDecision,
   getHtmlEdgeCacheDecision,
   getImageEdgeCacheDecision,
   getJsonEdgeCacheDecision,
@@ -20,6 +19,7 @@ import {
   withJsonEdgeCacheHeader,
   withStaticAssetCacheHeaders,
 } from "./worker-cache-policy.js";
+import { handleBookingCalendarAccess } from "./worker-calendar-access.js";
 import { getHtmlEdgeCacheVersionToken } from "./worker-html-cache-version.js";
 
 const IMAGE_CACHE_CONTROL =
@@ -196,24 +196,15 @@ export { BucketCachePurge, DOQueueHandler, DOShardedTagCache };
 
 const worker = {
   async fetch(request, env, ctx) {
-    // Enforce the calendar hostname before every cache lookup. Otherwise an
-    // unauthorized hostname could receive a shared JSON cache HIT.
-    const bookingCalendarAccess = getBookingCalendarAccessDecision(
+    // Calendar host, token, and behavioral checks must run before every cache
+    // lookup. Otherwise an unauthorized request could receive a shared HIT.
+    const calendarAccessResponse = await handleBookingCalendarAccess(
       request,
-      env.NEXT_PUBLIC_SITE_URL,
+      env,
     );
 
-    if (bookingCalendarAccess.candidate && !bookingCalendarAccess.allowed) {
-      const isMissingClientMarker =
-        bookingCalendarAccess.reason === "header";
-
-      return Response.json(
-        { error: isMissingClientMarker ? "Forbidden." : "Not found." },
-        {
-          headers: { "Cache-Control": "no-store" },
-          status: isMissingClientMarker ? 403 : 404,
-        },
-      );
+    if (calendarAccessResponse) {
+      return calendarAccessResponse;
     }
 
     return fetchWithImageEdgeCache(request, env, ctx);
