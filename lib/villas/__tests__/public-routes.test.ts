@@ -366,7 +366,7 @@ describe("GET /api/villas/[id]/booking-calendar", () => {
 
     for (
       let index = 0;
-      index < PUBLIC_RATE_LIMIT_POLICIES.publicDetail.limit;
+      index < PUBLIC_RATE_LIMIT_POLICIES.publicCalendar.limit;
       index += 1
     ) {
       fetchVillaBookingCalendarMock.mockResolvedValue({
@@ -415,7 +415,7 @@ describe("GET /api/villas/[id]/booking-calendar", () => {
 
     for (
       let index = 0;
-      index < PUBLIC_RATE_LIMIT_POLICIES.publicDetail.limit;
+      index < PUBLIC_RATE_LIMIT_POLICIES.publicCalendar.limit;
       index += 1
     ) {
       const response = await GET(request, context);

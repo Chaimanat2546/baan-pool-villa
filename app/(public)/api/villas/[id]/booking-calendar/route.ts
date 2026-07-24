@@ -6,7 +6,7 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const rateLimitResponse = limitPublicApiRequest(request, "publicDetail");
+  const rateLimitResponse = limitPublicApiRequest(request, "publicCalendar");
 
   if (rateLimitResponse) {
     return rateLimitResponse;

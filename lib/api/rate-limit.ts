@@ -3,6 +3,7 @@ import "server-only";
 export type PublicRateLimitPolicy =
   | "publicCatalog"
   | "publicDetail"
+  | "publicCalendar"
   | "publicDownload";
 
 interface PublicRateLimitPolicyConfig {
@@ -26,6 +27,10 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   },
   publicDetail: {
     limit: 90,
+    windowMs: ONE_MINUTE_MS,
+  },
+  publicCalendar: {
+    limit: 120,
     windowMs: ONE_MINUTE_MS,
   },
   publicDownload: {
