@@ -16,6 +16,8 @@ import {
   createHtmlEdgeVersionToken,
   createImageEdgeCacheKey,
   createJsonEdgeCacheKey,
+  getBookingCalendarHostAccessDecision,
+  getCanonicalHostRedirectUrl,
   getHtmlEdgeCacheDecision,
   getImageEdgeCacheDecision,
   getJsonEdgeCacheDecision,
@@ -466,6 +468,81 @@ describe("worker image edge cache policy", () => {
 
     expect(response.status).toBe(203);
     expect(response.headers.get(IMAGE_EDGE_CACHE_HEADER)).toBe("HIT");
+  });
+});
+
+describe("worker booking calendar host access policy", () => {
+  it("allows only the exact configured public hostname", () => {
+    const path = "/api/villas/9/booking-calendar?month=2026-06";
+
+    expect(
+      getBookingCalendarHostAccessDecision(
+        new Request(`https://www.example.com${path}`),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: true, candidate: true, reason: "hostname" });
+    expect(
+      getBookingCalendarHostAccessDecision(
+        new Request(`https://cl.example.com${path}`),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: false, candidate: true, reason: "hostname" });
+  });
+
+  it("fails closed when the configured public site URL is invalid", () => {
+    expect(
+      getBookingCalendarHostAccessDecision(
+        request("/api/villas/9/booking-calendar?month=2026-06"),
+        "not-a-url",
+      ),
+    ).toEqual({ allowed: false, candidate: true, reason: "config" });
+  });
+
+  it("does not guard unrelated paths", () => {
+    expect(
+      getBookingCalendarHostAccessDecision(
+        request("/api/villas/9"),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: true, candidate: false, reason: "path" });
+  });
+});
+
+describe("worker canonical host redirect policy", () => {
+  it("redirects only the exact apex host to the configured www host", () => {
+    expect(
+      getCanonicalHostRedirectUrl(
+        new Request("https://example.com/villas/9?month=2026-06"),
+        "https://www.example.com",
+      ),
+    ).toBe("https://www.example.com/villas/9?month=2026-06");
+    expect(
+      getCanonicalHostRedirectUrl(
+        new Request("https://www.example.com/villas/9"),
+        "https://www.example.com",
+      ),
+    ).toBeNull();
+    expect(
+      getCanonicalHostRedirectUrl(
+        new Request("https://cl.example.com/villas/9"),
+        "https://www.example.com",
+      ),
+    ).toBeNull();
+  });
+
+  it("does not redirect when the configured site is invalid or has no www prefix", () => {
+    expect(
+      getCanonicalHostRedirectUrl(
+        new Request("https://example.com/villas/9"),
+        "not-a-url",
+      ),
+    ).toBeNull();
+    expect(
+      getCanonicalHostRedirectUrl(
+        new Request("https://example.com/villas/9"),
+        "https://example.com",
+      ),
+    ).toBeNull();
   });
 });
 

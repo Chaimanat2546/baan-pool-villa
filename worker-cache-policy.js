@@ -374,6 +374,65 @@ function isVillaBookingCalendarApiPath(pathname) {
   return /^[1-9]\d*$/.test(id);
 }
 
+export function getBookingCalendarHostAccessDecision(
+  request,
+  configuredSiteUrl,
+) {
+  const requestUrl = new URL(request.url);
+
+  // This guard protects only the public booking-calendar API. Other routes
+  // continue through the existing Worker cache and OpenNext flow unchanged.
+  if (!isVillaBookingCalendarApiPath(requestUrl.pathname)) {
+    return { allowed: true, candidate: false, reason: "path" };
+  }
+
+  let siteUrl;
+
+  try {
+    siteUrl = new URL(configuredSiteUrl);
+  } catch {
+    // Fail closed when production configuration is missing or malformed so a
+    // Worker alias or sibling subdomain cannot accidentally expose calendars.
+    return { allowed: false, candidate: true, reason: "config" };
+  }
+
+  return {
+    // Exact equality is intentional: cl.example.com must not be accepted when
+    // the configured public hostname is www.example.com.
+    allowed: requestUrl.hostname === siteUrl.hostname,
+    candidate: true,
+    reason: "hostname",
+  };
+}
+
+export function getCanonicalHostRedirectUrl(request, configuredSiteUrl) {
+  let siteUrl;
+
+  try {
+    siteUrl = new URL(configuredSiteUrl);
+  } catch {
+    return null;
+  }
+
+  if (!siteUrl.hostname.startsWith("www.")) {
+    return null;
+  }
+
+  const requestUrl = new URL(request.url);
+  // Derive one exact apex hostname from the configured www hostname. This is
+  // not a catch-all redirect, so sibling or unrelated domains are left alone.
+  const apexHostname = siteUrl.hostname.slice("www.".length);
+
+  if (requestUrl.hostname !== apexHostname) {
+    return null;
+  }
+
+  requestUrl.protocol = siteUrl.protocol;
+  requestUrl.host = siteUrl.host;
+
+  return requestUrl.toString();
+}
+
 function isValidBookingCalendarMonth(value) {
   return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }

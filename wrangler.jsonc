@@ -32,7 +32,7 @@
 				"binding": "IMAGES"
 			},
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://baanpartypattaya.com"
+				"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com"
 			},
 			"services": [
 				{
@@ -88,7 +88,7 @@
 				"binding": "IMAGES"
 			},
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa02.poolvilla.workers.dev"
+				"NEXT_PUBLIC_SITE_URL": "https://www.poolvillapattaya.co.th"
 			},
 			"services": [
 				{

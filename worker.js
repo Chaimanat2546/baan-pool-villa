@@ -7,6 +7,8 @@ import {
   createHtmlEdgeCacheKey,
   createHtmlEdgeVersionToken,
   createJsonEdgeCacheKey,
+  getBookingCalendarHostAccessDecision,
+  getCanonicalHostRedirectUrl,
   getHtmlEdgeCacheDecision,
   getImageEdgeCacheDecision,
   getJsonEdgeCacheDecision,
@@ -195,6 +197,34 @@ export { BucketCachePurge, DOQueueHandler, DOShardedTagCache };
 
 const worker = {
   async fetch(request, env, ctx) {
+    // Canonicalize the exact apex domain first. This lets example.com redirect
+    // to www.example.com instead of being rejected by the stricter API guard.
+    const canonicalRedirectUrl = getCanonicalHostRedirectUrl(
+      request,
+      env.NEXT_PUBLIC_SITE_URL,
+    );
+
+    if (canonicalRedirectUrl) {
+      return Response.redirect(canonicalRedirectUrl, 308);
+    }
+
+    // Enforce the calendar hostname before every cache lookup. Otherwise an
+    // unauthorized hostname could receive a shared JSON cache HIT.
+    const bookingCalendarAccess = getBookingCalendarHostAccessDecision(
+      request,
+      env.NEXT_PUBLIC_SITE_URL,
+    );
+
+    if (bookingCalendarAccess.candidate && !bookingCalendarAccess.allowed) {
+      return Response.json(
+        { error: "Not found." },
+        {
+          headers: { "Cache-Control": "no-store" },
+          status: 404,
+        },
+      );
+    }
+
     return fetchWithImageEdgeCache(request, env, ctx);
   },
 };

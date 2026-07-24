@@ -14,8 +14,8 @@
 
 | Site | Wrangler env | Worker | Public URL | R2 cache bucket | Local env file |
 | --- | --- | --- | --- | --- | --- |
-| Baan Party Pattaya | `baanparty` | `baan-pool-villa` | `https://baanpartypattaya.com` | `baan-pool-villa-next-cache` | `.env.baanparty` |
-| Baan 02 | `baan02` | `baan-pool-villa02` | `https://baan-pool-villa02.poolvilla.workers.dev` | `baan-pool-villa02-next-cache` | `.env.baan02` |
+| Baan Party Pattaya | `baanparty` | `baan-pool-villa` | `https://www.baanpartypattaya.com` | `baan-pool-villa-next-cache` | `.env.baanparty` |
+| Baan 02 | `baan02` | `baan-pool-villa02` | `https://www.poolvillapattaya.co.th` | `baan-pool-villa02-next-cache` | `.env.baan02` |
 
 ## เพิ่มเว็บใหม่
 
@@ -120,7 +120,7 @@ npm.cmd run lint
 npm.cmd test
 npx.cmd opennextjs-cloudflare build -e baanparty
 npx.cmd opennextjs-cloudflare deploy -e baanparty
-npm.cmd run prewarm:cf -- --url=https://baanpartypattaya.com
+npm.cmd run prewarm:cf -- --url=https://www.baanpartypattaya.com
 ```
 
 ### Deploy `baan02`
@@ -131,7 +131,7 @@ npm.cmd run lint
 npm.cmd test
 npx.cmd opennextjs-cloudflare build -e baan02
 npx.cmd opennextjs-cloudflare deploy -e baan02
-npm.cmd run prewarm:cf -- --url=https://baan-pool-villa02.poolvilla.workers.dev
+npm.cmd run prewarm:cf -- --url=https://www.poolvillapattaya.co.th
 ```
 
 ### Deploy เว็บใหม่
