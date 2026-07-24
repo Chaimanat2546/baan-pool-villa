@@ -51,7 +51,7 @@ export interface RawBookingCalendarResponse {
   base_price?: RawWeekdayPrice | null;
   bookings?: RawBooking[] | null;
   holidays?: RawHoliday[] | null;
-  hot_holidays?: RawHoliday[] | null;
+  hot_holidays?: RawHotHoliday[] | null;
   protime_promotions?: RawPromotion[] | null;
 }
 
@@ -84,6 +84,13 @@ interface RawHoliday {
   holiday_price?: number | null;
   holiday_start?: string | null;
   holiday_type?: string | null;
+}
+
+interface RawHotHoliday {
+  hot_holiday_end?: string | null;
+  hot_holiday_people?: string | null;
+  hot_holiday_price?: number | null;
+  hot_holiday_start?: string | null;
 }
 
 interface RawPromotion {
@@ -459,22 +466,25 @@ export function normalizeBookingCalendar(
   }
 
   for (const holiday of response.hot_holidays ?? []) {
-    const holidayAlert = holiday.holiday_alert?.trim() || null;
     for (const dateKey of eachDateInRange(
-      holiday.holiday_start,
-      holiday.holiday_end,
+      holiday.hot_holiday_start,
+      holiday.hot_holiday_end,
       month,
       true,
     )) {
       const price =
-        holiday.holiday_price ?? getWeekdayPrice(response.base_price, dateKey);
+        holiday.hot_holiday_price ??
+        getWeekdayPrice(response.base_price, dateKey);
+      const guestCapacity =
+        holiday.hot_holiday_people?.trim() ||
+        getWeekdayGuestCapacity(response.base_price, dateKey);
 
       setCalendarEvent(events, dateKey, {
         day: {
           disabled: false,
           displayPrice: formatCalendarDayDisplayPrice(price),
-          guestCapacity: getWeekdayGuestCapacity(response.base_price, dateKey),
-          holidayAlert,
+          guestCapacity,
+          holidayAlert: null,
           icons: ["fire"],
           kind: "hot_holiday",
           label: "โปรไฟลุกในวันหยุด",
