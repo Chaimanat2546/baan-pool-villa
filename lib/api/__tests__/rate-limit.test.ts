@@ -32,9 +32,9 @@ describe("public API rate limit helper", () => {
     vi.useRealTimers();
   });
 
-  it("defines a dedicated 120 requests per minute calendar policy", () => {
+  it("defines a dedicated 60 requests per minute calendar policy", () => {
     expect(PUBLIC_RATE_LIMIT_POLICIES.publicCalendar).toEqual({
-      limit: 120,
+      limit: 60,
       windowMs: 60_000,
     });
   });

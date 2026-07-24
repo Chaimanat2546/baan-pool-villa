@@ -3,21 +3,24 @@
 import { buildContactLinks, withPhoneHref } from "@/lib/site-contact";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
+import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type { VillaListing } from "@/lib/villas/types";
 import { formatVillaPrice } from "../listing/villa-price";
 import { BookingCalendarPanel } from "./booking-calendar-panel";
 import { BookingSidebarContactActions } from "./booking-sidebar-contact-actions";
 import { findFact } from "./helpers";
 
-export { clearBookingCalendarClientCacheForTests } from "./booking-calendar-client-cache";
-
 export function BookingSidebar({
+  bookingCalendars,
   content,
+  currentBookingMonthKey,
   id = "contact",
   listing,
   contactSettings,
 }: {
+  bookingCalendars: Record<string, BookingCalendarMonth>;
   content: VillaDetailContent;
+  currentBookingMonthKey: string;
   id?: string;
   listing: VillaListing;
   contactSettings: SiteContactSettings;
@@ -35,9 +38,10 @@ export function BookingSidebar({
         data-booking-card-shell="true"
       >
         <BookingCalendarPanel
+          bookingCalendars={bookingCalendars}
           contactLinks={contactLinks}
+          currentBookingMonthKey={currentBookingMonthKey}
           fallbackPrice={listing.price}
-          listingId={listing.id}
           primaryPhoneContact={primaryPhoneContact}
         />
 

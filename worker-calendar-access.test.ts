@@ -1,191 +1,339 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { handleBookingCalendarAccess } from "./worker-calendar-access.js";
 
-const secret = "calendar-access-secret-with-at-least-32-characters";
-const headers = {
-  "CF-Connecting-IP": "203.0.113.10",
-  "User-Agent": "Calendar Browser/1.0",
-  "X-BPV-Calendar": "1",
-};
+const secret = "calendar-internal-token-with-at-least-32-characters";
+const clientIp = "203.0.113.10";
 
-function createRateLimiter(success = true) {
+function bytes(value: ArrayBuffer | ArrayBufferView) {
+  return value instanceof ArrayBuffer
+    ? new Uint8Array(value)
+    : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+}
+
+const timingSafeEqual = vi.fn(
+  (left: ArrayBuffer | ArrayBufferView, right: ArrayBuffer | ArrayBufferView) => {
+    const leftBytes = bytes(left);
+    const rightBytes = bytes(right);
+
+    if (leftBytes.byteLength !== rightBytes.byteLength) {
+      return false;
+    }
+
+    let difference = 0;
+
+    for (let index = 0; index < leftBytes.byteLength; index += 1) {
+      difference |= leftBytes[index] ^ rightBytes[index];
+    }
+
+    return difference === 0;
+  },
+);
+
+beforeAll(() => {
+  Object.defineProperty(globalThis.crypto.subtle, "timingSafeEqual", {
+    configurable: true,
+    value: timingSafeEqual,
+  });
+});
+
+beforeEach(() => {
+  timingSafeEqual.mockClear();
+});
+
+function createRateLimiter(allowedRequests = Number.POSITIVE_INFINITY) {
+  let requestCount = 0;
+
   return {
-    limit: vi.fn().mockResolvedValue({ success }),
+    limit: vi.fn(async () => {
+      requestCount += 1;
+
+      return { success: requestCount <= allowedRequests };
+    }),
   };
 }
 
-function createEnv() {
+function createEnv(allowedRequests?: number) {
   return {
-    CALENDAR_ACCESS_SECRET: secret,
-    CALENDAR_IP_RATE_LIMITER: createRateLimiter(),
-    CALENDAR_TOKEN_ISSUER_RATE_LIMITER: createRateLimiter(),
-    CALENDAR_TOKEN_USAGE_RATE_LIMITER: createRateLimiter(),
+    CALENDAR_API_RATE_LIMITER: createRateLimiter(allowedRequests),
+    CALENDAR_INTERNAL_API_TOKEN: secret,
     NEXT_PUBLIC_SITE_URL: "https://www.example.com",
   };
 }
 
-function tokenRequest(host = "www.example.com") {
-  return new Request(
-    `https://${host}/api/villas/1981/booking-calendar-token`,
-    {
-      headers,
-      method: "POST",
-    },
-  );
-}
+function calendarRequest({
+  authorization = `Bearer ${secret}`,
+  clientIpHeader = clientIp,
+  host = "www.example.com",
+  method = "GET",
+  path = "/api/villas/1981/booking-calendar?month=2026-07",
+  protocol = "https:",
+}: {
+  authorization?: string | null;
+  clientIpHeader?: string | null;
+  host?: string;
+  method?: string;
+  path?: string;
+  protocol?: string;
+} = {}) {
+  const headers = new Headers();
 
-function calendarRequest(token?: string) {
-  return new Request(
-    "https://www.example.com/api/villas/1981/booking-calendar?month=2026-07",
-    {
-      headers: token
-        ? {
-            ...headers,
-            "X-BPV-Calendar-Token": token,
-          }
-        : headers,
-    },
-  );
-}
+  if (authorization !== null) {
+    headers.set("Authorization", authorization);
+  }
 
-async function issueToken(env = createEnv()) {
-  const response = await handleBookingCalendarAccess(tokenRequest(), env);
-  const body = (await response?.json()) as {
-    expiresAt: number;
-    token: string;
-  };
+  if (clientIpHeader !== null) {
+    headers.set("CF-Connecting-IP", clientIpHeader);
+  }
 
-  return { body, env, response };
-}
-
-function tamperToken(token: string) {
-  const parts = token.split(".");
-  const signature = parts[3] ?? "";
-
-  parts[3] = `${signature.startsWith("A") ? "B" : "A"}${signature.slice(1)}`;
-
-  return parts.join(".");
+  return new Request(`${protocol}//${host}${path}`, {
+    headers,
+    method,
+  });
 }
 
 describe("booking calendar Worker access guard", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
+  it.each(["www.example.com", "example.com"])(
+    "allows a valid private request on the exact supported host %s",
+    async (host) => {
+      const env = createEnv();
 
-  it("issues a no-store token after the host, marker, and issuer limit pass", async () => {
-    const { body, env, response } = await issueToken();
+      await expect(
+        handleBookingCalendarAccess(calendarRequest({ host }), env),
+      ).resolves.toBeNull();
+      expect(env.CALENDAR_API_RATE_LIMITER.limit).toHaveBeenCalledWith({
+        key: clientIp,
+      });
+      expect(timingSafeEqual).toHaveBeenCalled();
+    },
+  );
 
-    expect(response?.status).toBe(200);
-    expect(response?.headers.get("Cache-Control")).toBe("no-store");
-    expect(body.token).toMatch(/^v1\./);
-    expect(body.expiresAt).toBeGreaterThan(Date.now());
-    expect(env.CALENDAR_TOKEN_ISSUER_RATE_LIMITER.limit).toHaveBeenCalledOnce();
-    expect(env.CALENDAR_TOKEN_USAGE_RATE_LIMITER.limit).not.toHaveBeenCalled();
-    expect(env.CALENDAR_IP_RATE_LIMITER.limit).not.toHaveBeenCalled();
-  });
-
-  it("allows a valid token only after token and IP limits pass", async () => {
-    const { body } = await issueToken();
+  it("returns a private no-store 404 for a sibling host before checking credentials", async () => {
     const env = createEnv();
+    const response = await handleBookingCalendarAccess(
+      calendarRequest({
+        authorization: "Bearer leaked-sibling-value",
+        host: "cl.example.com",
+      }),
+      env,
+    );
+
+    expect(response?.status).toBe(404);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(env.CALENDAR_API_RATE_LIMITER.limit).not.toHaveBeenCalled();
+  });
+
+  it("guards a malformed villa id on a sibling host before checking credentials", async () => {
+    const env = createEnv();
+    const response = await handleBookingCalendarAccess(
+      calendarRequest({
+        authorization: "Bearer leaked-sibling-value",
+        host: "cl.example.com",
+        path: "/api/villas/not-a-number/booking-calendar?month=2026-07",
+      }),
+      env,
+    );
+
+    expect(response?.status).toBe(404);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(timingSafeEqual).not.toHaveBeenCalled();
+    expect(env.CALENDAR_API_RATE_LIMITER.limit).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with 503 when the configured public site URL is missing", async () => {
+    const env = createEnv();
+    delete (env as Partial<typeof env>).NEXT_PUBLIC_SITE_URL;
+
+    const response = await handleBookingCalendarAccess(
+      calendarRequest(),
+      env,
+    );
+
+    expect(response?.status).toBe(503);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(env.CALENDAR_API_RATE_LIMITER.limit).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with 503 when the configured public site URL is not HTTPS", async () => {
+    const env = createEnv();
+    env.NEXT_PUBLIC_SITE_URL = "http://www.example.com";
+
+    const response = await handleBookingCalendarAccess(
+      calendarRequest({ authorization: null }),
+      env,
+    );
+
+    expect(response?.status).toBe(503);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(timingSafeEqual).not.toHaveBeenCalled();
+    expect(env.CALENDAR_API_RATE_LIMITER.limit).not.toHaveBeenCalled();
+  });
+
+  it("returns a private no-store 404 for HTTP on an official hostname before credentials", async () => {
+    const env = createEnv();
+    const response = await handleBookingCalendarAccess(
+      calendarRequest({
+        authorization: null,
+        protocol: "http:",
+      }),
+      env,
+    );
+
+    expect(response?.status).toBe(404);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(timingSafeEqual).not.toHaveBeenCalled();
+    expect(env.CALENDAR_API_RATE_LIMITER.limit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["missing", null],
+    ["wrong", "Bearer wrong"],
+    ["malformed", `Bearer  ${secret}`],
+  ])(
+    "returns a private no-store 401 for a %s Bearer credential before rate limiting",
+    async (_label, authorization) => {
+      const env = createEnv();
+      const response = await handleBookingCalendarAccess(
+        calendarRequest({ authorization }),
+        env,
+      );
+
+      expect(response?.status).toBe(401);
+      expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(response?.headers.get("WWW-Authenticate")).toBe("Bearer");
+      expect(env.CALENDAR_API_RATE_LIMITER.limit).not.toHaveBeenCalled();
+    },
+  );
+
+  it("returns 405 for non-GET calendar requests", async () => {
+    const response = await handleBookingCalendarAccess(
+      calendarRequest({ method: "POST" }),
+      createEnv(),
+    );
+
+    expect(response?.status).toBe(405);
+    expect(response?.headers.get("Allow")).toBe("GET");
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+
+  it("fails closed with 503 when the private secret is missing", async () => {
+    const env = createEnv();
+    delete (env as Partial<typeof env>).CALENDAR_INTERNAL_API_TOKEN;
+
+    const response = await handleBookingCalendarAccess(
+      calendarRequest(),
+      env,
+    );
+
+    expect(response?.status).toBe(503);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(env.CALENDAR_API_RATE_LIMITER.limit).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with 503 when the rate-limit binding is missing", async () => {
+    const env = createEnv();
+    delete (env as Partial<typeof env>).CALENDAR_API_RATE_LIMITER;
+
+    const response = await handleBookingCalendarAccess(
+      calendarRequest(),
+      env,
+    );
+
+    expect(response?.status).toBe(503);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+
+  it("rejects the 61st request from one IP with 429", async () => {
+    const env = createEnv(60);
+
+    for (let requestNumber = 1; requestNumber <= 60; requestNumber += 1) {
+      await expect(
+        handleBookingCalendarAccess(calendarRequest(), env),
+      ).resolves.toBeNull();
+    }
+
+    const blocked = await handleBookingCalendarAccess(
+      calendarRequest(),
+      env,
+    );
+
+    expect(blocked?.status).toBe(429);
+    expect(blocked?.headers.get("Retry-After")).toBe("60");
+    expect(blocked?.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(env.CALENDAR_API_RATE_LIMITER.limit).toHaveBeenCalledTimes(61);
+  });
+
+  it("fails closed with 503 when the rate-limit binding rejects", async () => {
+    const env = createEnv();
+    env.CALENDAR_API_RATE_LIMITER.limit.mockRejectedValueOnce(
+      new Error("rate-limit unavailable"),
+    );
+
+    const response = await handleBookingCalendarAccess(
+      calendarRequest(),
+      env,
+    );
+
+    expect(response?.status).toBe(503);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+
+  it.each([
+    ["missing", null],
+    ["blank", "   "],
+  ])(
+    "fails closed with 503 when CF-Connecting-IP is %s",
+    async (_label, clientIpHeader) => {
+      const env = createEnv();
+      const response = await handleBookingCalendarAccess(
+        calendarRequest({ clientIpHeader }),
+        env,
+      );
+
+      expect(response?.status).toBe(503);
+      expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(env.CALENDAR_API_RATE_LIMITER.limit).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not guard the removed browser token endpoint", async () => {
+    const removedPath = `/api/villas/1981/${[
+      "booking-calendar",
+      "token",
+    ].join("-")}`;
 
     await expect(
-      handleBookingCalendarAccess(calendarRequest(body.token), env),
-    ).resolves.toBeNull();
-    expect(env.CALENDAR_TOKEN_USAGE_RATE_LIMITER.limit).toHaveBeenCalledOnce();
-    expect(env.CALENDAR_IP_RATE_LIMITER.limit).toHaveBeenCalledOnce();
-  });
-
-  it("rejects missing and tampered tokens before rate-limit or cache flow", async () => {
-    const env = createEnv();
-    const missing = await handleBookingCalendarAccess(calendarRequest(), env);
-    const { body } = await issueToken();
-    const tampered = await handleBookingCalendarAccess(
-      calendarRequest(tamperToken(body.token)),
-      env,
-    );
-
-    expect(missing?.status).toBe(403);
-    expect(tampered?.status).toBe(403);
-    expect(missing?.headers.get("Cache-Control")).toBe("no-store");
-    expect(env.CALENDAR_TOKEN_USAGE_RATE_LIMITER.limit).not.toHaveBeenCalled();
-    expect(env.CALENDAR_IP_RATE_LIMITER.limit).not.toHaveBeenCalled();
-  });
-
-  it("applies the existing exact host and marker guard to token issuance", async () => {
-    const env = createEnv();
-    const wrongHost = await handleBookingCalendarAccess(
-      tokenRequest("cl.example.com"),
-      env,
-    );
-    const missingMarker = await handleBookingCalendarAccess(
-      new Request(
-        "https://www.example.com/api/villas/1981/booking-calendar-token",
-        {
-          headers: {
-            "CF-Connecting-IP": headers["CF-Connecting-IP"],
-            "User-Agent": headers["User-Agent"],
-          },
+      handleBookingCalendarAccess(
+        calendarRequest({
+          authorization: null,
           method: "POST",
-        },
+          path: removedPath,
+        }),
+        createEnv(),
       ),
-      env,
-    );
-
-    expect(wrongHost?.status).toBe(404);
-    expect(missingMarker?.status).toBe(403);
+    ).resolves.toBeNull();
   });
 
-  it("fails closed when a required secret or binding is missing", async () => {
-    const missingSecret = createEnv();
-    delete (missingSecret as Partial<typeof missingSecret>)
-      .CALENDAR_ACCESS_SECRET;
-    const missingBinding = createEnv();
-    delete (missingBinding as Partial<typeof missingBinding>)
-      .CALENDAR_TOKEN_ISSUER_RATE_LIMITER;
-
-    expect(
-      (await handleBookingCalendarAccess(tokenRequest(), missingSecret))?.status,
-    ).toBe(503);
-    expect(
-      (await handleBookingCalendarAccess(tokenRequest(), missingBinding))
-        ?.status,
-    ).toBe(503);
-  });
-
-  it("returns 429 with Retry-After when any behavioral limit is exceeded", async () => {
-    const issuerEnv = createEnv();
-    issuerEnv.CALENDAR_TOKEN_ISSUER_RATE_LIMITER = createRateLimiter(false);
-    const issuerBlocked = await handleBookingCalendarAccess(
-      tokenRequest(),
-      issuerEnv,
-    );
-
-    const { body } = await issueToken();
-    const tokenEnv = createEnv();
-    tokenEnv.CALENDAR_TOKEN_USAGE_RATE_LIMITER = createRateLimiter(false);
-    const tokenBlocked = await handleBookingCalendarAccess(
-      calendarRequest(body.token),
-      tokenEnv,
-    );
-
-    expect(issuerBlocked?.status).toBe(429);
-    expect(issuerBlocked?.headers.get("Retry-After")).toBe("60");
-    expect(tokenBlocked?.status).toBe(429);
-    expect(tokenBlocked?.headers.get("Retry-After")).toBe("60");
-    expect(tokenEnv.CALENDAR_IP_RATE_LIMITER.limit).not.toHaveBeenCalled();
-  });
-
-  it("does not write a raw token or IP in rejection logs", async () => {
+  it("never logs the Authorization credential", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
     const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { body } = await issueToken();
-    const env = createEnv();
-    env.CALENDAR_TOKEN_USAGE_RATE_LIMITER = createRateLimiter(false);
+    const authorization = "Bearer value-that-must-never-be-logged";
 
-    await handleBookingCalendarAccess(calendarRequest(body.token), env);
+    await handleBookingCalendarAccess(
+      calendarRequest({ authorization }),
+      createEnv(),
+    );
 
-    const serializedLogs = JSON.stringify(consoleWarn.mock.calls);
-    expect(serializedLogs).not.toContain(body.token);
-    expect(serializedLogs).not.toContain(headers["CF-Connecting-IP"]);
+    const serializedLogs = JSON.stringify([
+      ...consoleError.mock.calls,
+      ...consoleLog.mock.calls,
+      ...consoleWarn.mock.calls,
+    ]);
+
+    expect(serializedLogs).not.toContain(authorization);
+    consoleError.mockRestore();
+    consoleLog.mockRestore();
+    consoleWarn.mockRestore();
   });
 });

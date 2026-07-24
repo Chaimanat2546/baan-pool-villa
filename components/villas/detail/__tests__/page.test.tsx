@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
+import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type {
   VillaDetailPayload,
   VillaImage,
@@ -132,6 +133,15 @@ const listing: VillaListing = {
   zoneLabel: "Pattaya",
 };
 
+const currentBookingMonthKey = "2026-07";
+const bookingCalendars = {
+  [currentBookingMonthKey]: {
+    days: {},
+    month: currentBookingMonthKey,
+    status: "available",
+  },
+} satisfies Record<string, BookingCalendarMonth>;
+
 const apiImage: VillaImage = {
   caption: "Pool",
   id: 2,
@@ -192,7 +202,9 @@ async function flushReact() {
 function makePage(id = listing.id, activeListing = listing) {
   return (
     <VillaDetailPage
+      bookingCalendars={bookingCalendars}
       contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+      currentBookingMonthKey={currentBookingMonthKey}
       id={id}
       galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
       payload={makePayload(activeListing)}
@@ -209,7 +221,9 @@ function makePageWithInitialGalleryImages(
 ) {
   return (
     <VillaDetailPage
+      bookingCalendars={bookingCalendars}
       contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+      currentBookingMonthKey={currentBookingMonthKey}
       id={id}
       galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
       initialGalleryImages={initialGalleryImages}
@@ -548,7 +562,9 @@ describe("VillaDetailPage deferred gallery loader", () => {
 
     await page.render(
       <VillaDetailPage
+        bookingCalendars={bookingCalendars}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={{ variant: "categorized-grid" }}
         id={listing.id}
         initialGalleryImages={[apiCoverImage]}
@@ -593,7 +609,9 @@ describe("VillaDetailPage deferred gallery loader", () => {
 
     await page.render(
       <VillaDetailPage
+        bookingCalendars={bookingCalendars}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={{ variant: "categorized-grid" }}
         id={listing.id}
         initialGalleryImages={[apiCoverImage]}

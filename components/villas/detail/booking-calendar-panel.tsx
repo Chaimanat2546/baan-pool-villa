@@ -1,12 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  loadBookingCalendarMonth,
-  loadBookingCalendarMonths,
-  peekBookingCalendarClientCache,
-} from "./booking-calendar-client-cache";
 import { BookingCalendarDayCell } from "./booking-calendar-day-cell";
 import { CalendarDayDetailDialog } from "./booking-calendar-day-detail-dialog";
 import { BookingCalendarMonthCaption } from "./booking-calendar-month-caption";
@@ -25,9 +20,10 @@ import {
 import { useLockedBodyScroll } from "./use-locked-body-scroll";
 
 interface BookingCalendarPanelProps {
+  bookingCalendars: Record<string, BookingCalendarMonth>;
   contactLinks: { line: string; messenger: string };
+  currentBookingMonthKey: string;
   fallbackPrice: number | null;
-  listingId: string;
   primaryPhoneContact?: { href: string; phone: string };
 }
 
@@ -43,30 +39,25 @@ function isSameCalendarDay(date: Date, day: Date) {
 }
 
 export function BookingCalendarPanel({
+  bookingCalendars,
   contactLinks,
+  currentBookingMonthKey,
   fallbackPrice,
-  listingId,
   primaryPhoneContact,
 }: BookingCalendarPanelProps) {
   const today = new Date();
   const todayStart = startOfCalendarDate(today);
-  const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const [currentYear, currentMonthNumber] = currentBookingMonthKey
+    .split("-")
+    .map(Number);
+  const currentMonth = new Date(currentYear, currentMonthNumber - 1, 1);
   const [visibleMonth, setVisibleMonth] = useState(() => currentMonth);
   const [selectedCalendarDate, setSelectedCalendarDate] =
     useState<Date | null>(null);
   const [isCalendarTipDismissed, setIsCalendarTipDismissed] = useState(false);
-  const [bookingCalendars, setBookingCalendars] = useState<
-    Record<string, BookingCalendarMonth>
-  >({});
   const visibleMonthKey = formatCalendarMonthKey(visibleMonth);
-  const isCurrentVisibleMonth =
-    visibleMonthKey === formatCalendarMonthKey(currentMonth);
   const isPastVisibleMonth = visibleMonth < currentMonth;
-  const bookingCalendarCacheKey = `${listingId}:${visibleMonthKey}`;
-  const bookingCalendar =
-    bookingCalendars[bookingCalendarCacheKey] ??
-    peekBookingCalendarClientCache(bookingCalendarCacheKey) ??
-    null;
+  const bookingCalendar = bookingCalendars[visibleMonthKey] ?? null;
   const firstAvailableCalendarDateKey = findFirstAvailableCalendarDateKey({
     bookingCalendar,
     fallbackPrice,
@@ -92,64 +83,6 @@ export function BookingCalendarPanel({
   const selectedCalendarDay = selectedCalendarDate
     ? getCalendarDay(selectedCalendarDate)
     : null;
-
-  useEffect(() => {
-    if (
-      !isCurrentVisibleMonth &&
-      bookingCalendar?.month === visibleMonthKey
-    ) {
-      return;
-    }
-
-    let isActive = true;
-
-    const calendarsRequest = isCurrentVisibleMonth
-      ? loadBookingCalendarMonths({
-          listingId,
-          startMonthKey: visibleMonthKey,
-        })
-      : loadBookingCalendarMonth({
-          cacheKey: bookingCalendarCacheKey,
-          listingId,
-          monthKey: visibleMonthKey,
-        }).then((calendar) => [calendar]);
-
-    void calendarsRequest
-      .then((calendars) => {
-        if (isActive) {
-          setBookingCalendars((currentCalendars) => {
-            const nextCalendars = { ...currentCalendars };
-
-            calendars.forEach((calendar) => {
-              nextCalendars[`${listingId}:${calendar.month}`] = calendar;
-            });
-
-            return nextCalendars;
-          });
-        }
-      })
-      .catch(() => {
-        if (isActive) {
-          setBookingCalendars((currentCalendars) => {
-            const nextCalendars = { ...currentCalendars };
-
-            delete nextCalendars[bookingCalendarCacheKey];
-
-            return nextCalendars;
-          });
-        }
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [
-    bookingCalendar?.month,
-    bookingCalendarCacheKey,
-    isCurrentVisibleMonth,
-    listingId,
-    visibleMonthKey,
-  ]);
 
   useLockedBodyScroll(Boolean(selectedCalendarDate));
 

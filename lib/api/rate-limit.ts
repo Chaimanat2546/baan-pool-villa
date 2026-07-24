@@ -30,7 +30,7 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
     windowMs: ONE_MINUTE_MS,
   },
   publicCalendar: {
-    limit: 120,
+    limit: 60,
     windowMs: ONE_MINUTE_MS,
   },
   publicDownload: {

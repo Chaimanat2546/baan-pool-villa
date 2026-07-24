@@ -15,6 +15,7 @@ import type {
 import { DEFAULT_SITE_CONTACT_SETTINGS } from "../../../../lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import { DEFAULT_SITE_WEB_STYLES } from "../../../../lib/site-web-styles/defaults";
+import type { BookingCalendarMonth } from "../../../../lib/villas/booking-calendar";
 import type { VillaDetailContent } from "../../../../lib/villas/detail";
 import type {
   RecommendedVillaSection,
@@ -39,6 +40,15 @@ const listing: VillaListing = {
   ],
   poolType: "private",
 };
+
+const currentBookingMonthKey = "2026-07";
+const bookingCalendars = {
+  [currentBookingMonthKey]: {
+    days: {},
+    month: currentBookingMonthKey,
+    status: "available",
+  },
+} satisfies Record<string, BookingCalendarMonth>;
 
 const recommendedVilla: VillaListing = {
   ...listing,
@@ -220,8 +230,10 @@ function render(
   return renderToStaticMarkup(
     <DetailLayoutRenderer
       advertisements={advertisements}
+      bookingCalendars={bookingCalendars}
       contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       content={{ ...content, ...overrides }}
+      currentBookingMonthKey={currentBookingMonthKey}
       galleryCategories={galleryCategories}
       galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
       layout={layout}

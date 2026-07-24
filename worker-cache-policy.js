@@ -1,9 +1,8 @@
 const HTML_EDGE_CACHE_SECONDS = 6 * 60 * 60;
-const VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS = 24 * 60 * 60;
+const VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS = 15 * 60;
 const IMAGE_EDGE_CACHE_SECONDS = 365 * 24 * 60 * 60;
 const IMAGE_EDGE_STALE_SECONDS = 365 * 24 * 60 * 60;
 const HOUSE_JSON_EDGE_CACHE_SECONDS = 6 * 60 * 60;
-const BOOKING_CALENDAR_JSON_EDGE_CACHE_SECONDS = 15 * 60;
 const JSON_EDGE_CACHE_SECONDS = 12 * 60 * 60;
 const IMAGE_TRANSFORM_WIDTHS = new Set([
   64,
@@ -38,7 +37,6 @@ export const HTML_EDGE_CACHE_VERSION_PARAM = "__bpv_html_v";
 export const IMAGE_EDGE_CACHE_CONTROL = `public, max-age=${IMAGE_EDGE_CACHE_SECONDS}, s-maxage=${IMAGE_EDGE_CACHE_SECONDS}, stale-while-revalidate=${IMAGE_EDGE_STALE_SECONDS}`;
 export const IMAGE_EDGE_CACHE_HEADER = "x-bpv-image-cache";
 export const HOUSE_JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${HOUSE_JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${HOUSE_JSON_EDGE_CACHE_SECONDS}`;
-export const BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${BOOKING_CALENDAR_JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_HEADER = "x-bpv-json-cache";
 export const JSON_EDGE_CACHE_VERSION_PARAM = "__bpv_json_v";
@@ -371,48 +369,9 @@ function isVillaBookingCalendarApiPath(pathname) {
 
   const id = pathname.slice(prefix.length, -suffix.length);
 
-  return /^[1-9]\d*$/.test(id);
-}
-
-function isVillaBookingCalendarTokenApiPath(pathname) {
-  const prefix = "/api/villas/";
-  const suffix = "/booking-calendar-token";
-
-  if (!pathname.startsWith(prefix) || !pathname.endsWith(suffix)) {
-    return false;
-  }
-
-  const id = pathname.slice(prefix.length, -suffix.length);
-
-  return /^[1-9]\d*$/.test(id);
-}
-
-export function getBookingCalendarRequestTarget(request) {
-  const { pathname } = new URL(request.url);
-
-  if (isVillaBookingCalendarApiPath(pathname)) {
-    return {
-      candidate: true,
-      type: "calendar",
-      villaId: pathname.slice(
-        "/api/villas/".length,
-        -"/booking-calendar".length,
-      ),
-    };
-  }
-
-  if (isVillaBookingCalendarTokenApiPath(pathname)) {
-    return {
-      candidate: true,
-      type: "token",
-      villaId: pathname.slice(
-        "/api/villas/".length,
-        -"/booking-calendar-token".length,
-      ),
-    };
-  }
-
-  return { candidate: false, type: "other", villaId: null };
+  // Classify every non-empty single ID segment here. Validation belongs to
+  // the Next handler after the Worker host, Bearer, and rate-limit guards.
+  return id.length > 0 && !id.includes("/");
 }
 
 export function getBookingCalendarAccessDecision(
@@ -420,11 +379,10 @@ export function getBookingCalendarAccessDecision(
   configuredSiteUrl,
 ) {
   const requestUrl = new URL(request.url);
-  const target = getBookingCalendarRequestTarget(request);
 
-  // This guard protects only the public booking-calendar API. Other routes
+  // This guard protects only the private booking-calendar API. Other routes
   // continue through the existing Worker cache and OpenNext flow unchanged.
-  if (!target.candidate) {
+  if (!isVillaBookingCalendarApiPath(requestUrl.pathname)) {
     return { allowed: true, candidate: false, reason: "path" };
   }
 
@@ -436,6 +394,17 @@ export function getBookingCalendarAccessDecision(
     // Fail closed when production configuration is missing or malformed so a
     // Worker alias or sibling subdomain cannot accidentally expose calendars.
     return { allowed: false, candidate: true, reason: "config" };
+  }
+
+  if (
+    siteUrl.protocol !== "https:" ||
+    !siteUrl.hostname.startsWith("www.")
+  ) {
+    return { allowed: false, candidate: true, reason: "config" };
+  }
+
+  if (requestUrl.protocol !== "https:") {
+    return { allowed: false, candidate: true, reason: "protocol" };
   }
 
   // A configured www hostname may also serve its one exact apex counterpart.
@@ -451,18 +420,7 @@ export function getBookingCalendarAccessDecision(
     return { allowed: false, candidate: true, reason: "hostname" };
   }
 
-  // This marker is added only by the calendar client. It is not a secret, but
-  // it prevents direct URL use and forces cross-origin browsers into CORS
-  // preflight instead of reading the shared calendar response.
-  if (request.headers.get("X-BPV-Calendar") !== "1") {
-    return { allowed: false, candidate: true, reason: "header" };
-  }
-
   return { allowed: true, candidate: true, reason: "hostname" };
-}
-
-function isValidBookingCalendarMonth(value) {
-  return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
 
 function hasOnlyVillaCardImagesQuery(url) {
@@ -490,10 +448,6 @@ function getJsonCacheVersionGroups(pathname) {
     return [HTML_CACHE_VERSION_GROUPS.villaDetails];
   }
 
-  if (isVillaBookingCalendarApiPath(pathname)) {
-    return [HTML_CACHE_VERSION_GROUPS.villaDetails];
-  }
-
   if (isVillaImagesApiPath(pathname)) {
     return [HTML_CACHE_VERSION_GROUPS.villaImages];
   }
@@ -512,9 +466,7 @@ function getJsonCacheControl(pathname) {
     return HOUSE_JSON_EDGE_CACHE_CONTROL;
   }
 
-  return isVillaBookingCalendarApiPath(pathname)
-    ? BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL
-    : JSON_EDGE_CACHE_CONTROL;
+  return JSON_EDGE_CACHE_CONTROL;
 }
 
 export function createImageEdgeCacheKey(request) {
@@ -554,24 +506,10 @@ export function createImageEdgeCacheKey(request) {
 
 export function createJsonEdgeCacheKey(request, versionToken = "") {
   const url = new URL(request.url);
-  const month = isVillaBookingCalendarApiPath(url.pathname)
-    ? url.searchParams.get("month")
-    : null;
-  const months = isVillaBookingCalendarApiPath(url.pathname)
-    ? url.searchParams.get("months")
-    : null;
   const isVillaCardImagesQuery = hasOnlyVillaCardImagesQuery(url);
 
   url.search = "";
   url.hash = "";
-
-  if (isValidBookingCalendarMonth(month)) {
-    url.searchParams.set("month", month);
-  }
-
-  if (months === "6") {
-    url.searchParams.set("months", months);
-  }
 
   if (isVillaCardImagesQuery) {
     url.searchParams.set("view", "card");
@@ -680,7 +618,6 @@ export function getJsonEdgeCacheDecision(request) {
     url.pathname === "/api/houses" ||
     url.pathname === "/api/home-sections" ||
     isVillaDetailApiPath(url.pathname) ||
-    isVillaBookingCalendarApiPath(url.pathname) ||
     isVillaImagesApiPath(url.pathname);
 
   if (!isCandidatePath) {
@@ -691,21 +628,7 @@ export function getJsonEdgeCacheDecision(request) {
     return { cacheable: false, candidate: true, reason: "method" };
   }
 
-  if (isVillaBookingCalendarApiPath(url.pathname)) {
-    const month = url.searchParams.get("month");
-    const months = url.searchParams.get("months");
-    const searchParamCount = Array.from(url.searchParams.keys()).length;
-    const hasOnlyMonth =
-      searchParamCount === 1 && isValidBookingCalendarMonth(month);
-    const hasValidRange =
-      searchParamCount === 2 &&
-      isValidBookingCalendarMonth(month) &&
-      months === "6";
-
-    if (!hasOnlyMonth && !hasValidRange) {
-      return { cacheable: false, candidate: true, reason: "query" };
-    }
-  } else if (isVillaImagesApiPath(url.pathname)) {
+  if (isVillaImagesApiPath(url.pathname)) {
     if (url.search.length > 0 && !hasOnlyVillaCardImagesQuery(url)) {
       return { cacheable: false, candidate: true, reason: "query" };
     }

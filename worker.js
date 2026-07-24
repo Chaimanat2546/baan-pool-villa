@@ -196,8 +196,8 @@ export { BucketCachePurge, DOQueueHandler, DOShardedTagCache };
 
 const worker = {
   async fetch(request, env, ctx) {
-    // Calendar host, token, and behavioral checks must run before every cache
-    // lookup. Otherwise an unauthorized request could receive a shared HIT.
+    // Calendar host, Bearer, and rate-limit checks must run before OpenNext
+    // and every cache lookup. Calendar responses are never shared Edge JSON.
     const calendarAccessResponse = await handleBookingCalendarAccess(
       request,
       env,

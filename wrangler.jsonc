@@ -33,26 +33,10 @@
 			},
 			"ratelimits": [
 				{
-					"name": "CALENDAR_TOKEN_ISSUER_RATE_LIMITER",
-					"namespace_id": "91011",
-					"simple": {
-						"limit": 20,
-						"period": 60
-					}
-				},
-				{
-					"name": "CALENDAR_TOKEN_USAGE_RATE_LIMITER",
-					"namespace_id": "91012",
-					"simple": {
-						"limit": 12,
-						"period": 60
-					}
-				},
-				{
-					"name": "CALENDAR_IP_RATE_LIMITER",
+					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "91013",
 					"simple": {
-						"limit": 120,
+						"limit": 60,
 						"period": 60
 					}
 				}
@@ -100,7 +84,7 @@
 			],
 			"secrets": {
 				"required": [
-					"CALENDAR_ACCESS_SECRET",
+					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY"
 				]
@@ -116,26 +100,10 @@
 			},
 			"ratelimits": [
 				{
-					"name": "CALENDAR_TOKEN_ISSUER_RATE_LIMITER",
-					"namespace_id": "92011",
-					"simple": {
-						"limit": 20,
-						"period": 60
-					}
-				},
-				{
-					"name": "CALENDAR_TOKEN_USAGE_RATE_LIMITER",
-					"namespace_id": "92012",
-					"simple": {
-						"limit": 12,
-						"period": 60
-					}
-				},
-				{
-					"name": "CALENDAR_IP_RATE_LIMITER",
+					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "92013",
 					"simple": {
-						"limit": 120,
+						"limit": 60,
 						"period": 60
 					}
 				}
@@ -183,7 +151,7 @@
 			],
 			"secrets": {
 				"required": [
-					"CALENDAR_ACCESS_SECRET",
+					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY"
 				]
@@ -199,26 +167,10 @@
 			},
 			"ratelimits": [
 				{
-					"name": "CALENDAR_TOKEN_ISSUER_RATE_LIMITER",
-					"namespace_id": "93011",
-					"simple": {
-						"limit": 20,
-						"period": 60
-					}
-				},
-				{
-					"name": "CALENDAR_TOKEN_USAGE_RATE_LIMITER",
-					"namespace_id": "93012",
-					"simple": {
-						"limit": 12,
-						"period": 60
-					}
-				},
-				{
-					"name": "CALENDAR_IP_RATE_LIMITER",
+					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "93013",
 					"simple": {
-						"limit": 120,
+						"limit": 60,
 						"period": 60
 					}
 				}
@@ -266,7 +218,7 @@
 			],
 			"secrets": {
 				"required": [
-					"CALENDAR_ACCESS_SECRET",
+					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY"
 				]

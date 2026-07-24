@@ -1,30 +1,31 @@
 import {
   getBookingCalendarAccessDecision,
-  getBookingCalendarRequestTarget,
 } from "./worker-cache-policy.js";
-import {
-  createBookingCalendarHmacIdentifier,
-  createBookingCalendarToken,
-  verifyBookingCalendarToken,
-} from "./worker-calendar-token.js";
 
-const CALENDAR_CLIENT_MARKER_HEADER = "X-BPV-Calendar";
-const CALENDAR_TOKEN_HEADER = "X-BPV-Calendar-Token";
 const RATE_LIMIT_RETRY_SECONDS = 60;
-const MINIMUM_SECRET_LENGTH = 32;
+const MINIMUM_TOKEN_LENGTH = 32;
+const textEncoder = new TextEncoder();
 
 function noStoreJson(body, status, extraHeaders = {}) {
   return Response.json(body, {
     headers: {
-      "Cache-Control": "no-store",
+      "Cache-Control": "private, no-store",
       ...extraHeaders,
     },
     status,
   });
 }
 
-function forbiddenResponse() {
-  return noStoreJson({ error: "Forbidden." }, 403);
+function notFoundResponse() {
+  return noStoreJson({ error: "Not found." }, 404);
+}
+
+function unauthorizedResponse() {
+  return noStoreJson(
+    { error: "Unauthorized." },
+    401,
+    { "WWW-Authenticate": "Bearer" },
+  );
 }
 
 function unavailableResponse() {
@@ -47,11 +48,11 @@ function rateLimitedResponse() {
   );
 }
 
-function methodNotAllowedResponse(allowedMethod) {
+function methodNotAllowedResponse() {
   return noStoreJson(
     { error: "Method not allowed." },
     405,
-    { Allow: allowedMethod },
+    { Allow: "GET" },
   );
 }
 
@@ -61,184 +62,86 @@ function hasRateLimiter(binding) {
 
 function hasValidEnvironment(env) {
   return (
-    typeof env?.CALENDAR_ACCESS_SECRET === "string" &&
-    env.CALENDAR_ACCESS_SECRET.length >= MINIMUM_SECRET_LENGTH &&
-    hasRateLimiter(env.CALENDAR_TOKEN_ISSUER_RATE_LIMITER) &&
-    hasRateLimiter(env.CALENDAR_TOKEN_USAGE_RATE_LIMITER) &&
-    hasRateLimiter(env.CALENDAR_IP_RATE_LIMITER)
+    typeof env?.CALENDAR_INTERNAL_API_TOKEN === "string" &&
+    env.CALENDAR_INTERNAL_API_TOKEN.length >= MINIMUM_TOKEN_LENGTH &&
+    hasRateLimiter(env.CALENDAR_API_RATE_LIMITER)
   );
 }
 
-function readRequestBinding(request) {
-  const clientIp = request.headers.get("CF-Connecting-IP")?.trim() ?? "";
-  const userAgent = request.headers.get("User-Agent")?.trim() ?? "";
+function readBearerCredential(request) {
+  const authorization = request.headers.get("Authorization");
+  const match = authorization?.match(/^Bearer ([^\s,]+)$/u);
 
-  return clientIp && userAgent ? { clientIp, userAgent } : null;
+  return match?.[1] ?? null;
 }
 
-async function createClientIdentifier(secret, requestBinding) {
-  return createBookingCalendarHmacIdentifier({
-    parts: [
-      "calendar-client",
-      requestBinding.clientIp,
-      requestBinding.userAgent,
-    ],
-    secret,
-  });
+async function hashCredential(value) {
+  return crypto.subtle.digest("SHA-256", textEncoder.encode(value));
 }
 
-function logRejection({ clientId, reason, villaId }) {
-  console.warn(
-    JSON.stringify({
-      clientId: clientId ? clientId.slice(0, 16) : "unavailable",
-      event: "booking_calendar_access_rejected",
-      reason,
-      villaId,
-    }),
-  );
-}
+async function hasValidBearerCredential(request, expected) {
+  const supplied = readBearerCredential(request);
 
-async function issueToken(env, villaId, requestBinding, clientId) {
-  const issuerLimit = await env.CALENDAR_TOKEN_ISSUER_RATE_LIMITER.limit({
-    key: clientId,
-  });
-
-  if (!issuerLimit.success) {
-    logRejection({ clientId, reason: "token_issuance_rate", villaId });
-    return rateLimitedResponse();
+  if (!supplied) {
+    return false;
   }
 
-  const token = await createBookingCalendarToken({
-    ...requestBinding,
-    secret: env.CALENDAR_ACCESS_SECRET,
-    villaId,
-  });
+  const [suppliedHash, expectedHash] = await Promise.all([
+    hashCredential(supplied),
+    hashCredential(expected),
+  ]);
 
-  return noStoreJson(token, 200);
-}
-
-async function validateCalendarToken(
-  request,
-  env,
-  villaId,
-  requestBinding,
-  clientId,
-) {
-  const token = request.headers.get(CALENDAR_TOKEN_HEADER)?.trim();
-
-  if (!token) {
-    logRejection({ clientId, reason: "token_missing", villaId });
-    return forbiddenResponse();
-  }
-
-  const verification = await verifyBookingCalendarToken({
-    ...requestBinding,
-    secret: env.CALENDAR_ACCESS_SECRET,
-    token,
-    villaId,
-  });
-
-  if (!verification.valid) {
-    logRejection({
-      clientId,
-      reason: `token_${verification.reason}`,
-      villaId,
-    });
-    return forbiddenResponse();
-  }
-
-  const tokenLimit = await env.CALENDAR_TOKEN_USAGE_RATE_LIMITER.limit({
-    key: verification.tokenId,
-  });
-
-  if (!tokenLimit.success) {
-    logRejection({ clientId, reason: "token_usage_rate", villaId });
-    return rateLimitedResponse();
-  }
-
-  const ipLimit = await env.CALENDAR_IP_RATE_LIMITER.limit({
-    key: clientId,
-  });
-
-  if (!ipLimit.success) {
-    logRejection({ clientId, reason: "calendar_ip_rate", villaId });
-    return rateLimitedResponse();
-  }
-
-  return null;
+  return crypto.subtle.timingSafeEqual(suppliedHash, expectedHash);
 }
 
 export async function handleBookingCalendarAccess(request, env) {
-  const target = getBookingCalendarRequestTarget(request);
-
-  if (!target.candidate) {
-    return null;
-  }
-
   const access = getBookingCalendarAccessDecision(
     request,
     env?.NEXT_PUBLIC_SITE_URL,
   );
 
-  if (!access.allowed) {
-    const isMissingClientMarker = access.reason === "header";
-
-    return noStoreJson(
-      { error: isMissingClientMarker ? "Forbidden." : "Not found." },
-      isMissingClientMarker ? 403 : 404,
-    );
+  if (!access.candidate) {
+    return null;
   }
 
-  const expectedMethod = target.type === "token" ? "POST" : "GET";
+  if (!access.allowed) {
+    return access.reason === "config"
+      ? unavailableResponse()
+      : notFoundResponse();
+  }
 
-  if (request.method !== expectedMethod) {
-    return methodNotAllowedResponse(expectedMethod);
+  if (request.method !== "GET") {
+    return methodNotAllowedResponse();
   }
 
   if (!hasValidEnvironment(env)) {
-    logRejection({
-      clientId: null,
-      reason: "configuration",
-      villaId: target.villaId,
-    });
     return unavailableResponse();
   }
 
-  const requestBinding = readRequestBinding(request);
+  if (
+    !(await hasValidBearerCredential(
+      request,
+      env.CALENDAR_INTERNAL_API_TOKEN,
+    ))
+  ) {
+    return unauthorizedResponse();
+  }
 
-  if (!requestBinding) {
-    logRejection({
-      clientId: null,
-      reason: "request_binding",
-      villaId: target.villaId,
+  const clientIp = request.headers.get("CF-Connecting-IP")?.trim();
+
+  if (!clientIp) {
+    return unavailableResponse();
+  }
+
+  let rateLimit;
+
+  try {
+    rateLimit = await env.CALENDAR_API_RATE_LIMITER.limit({
+      key: clientIp,
     });
-    return forbiddenResponse();
+  } catch {
+    return unavailableResponse();
   }
 
-  const clientId = await createClientIdentifier(
-    env.CALENDAR_ACCESS_SECRET,
-    requestBinding,
-  );
-
-  if (target.type === "token") {
-    return issueToken(
-      env,
-      target.villaId,
-      requestBinding,
-      clientId,
-    );
-  }
-
-  return validateCalendarToken(
-    request,
-    env,
-    target.villaId,
-    requestBinding,
-    clientId,
-  );
+  return rateLimit.success ? null : rateLimitedResponse();
 }
-
-export {
-  CALENDAR_CLIENT_MARKER_HEADER,
-  CALENDAR_TOKEN_HEADER,
-};
