@@ -130,6 +130,19 @@ describe("HomePage", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("renders streamed villa cards from the explicit server style snapshot", () => {
+    const markup = renderToStaticMarkup(
+      <HomePageContent
+        initialHomeSections={[homeSection]}
+        settings={DEFAULT_HOME_SETTINGS}
+        villaCardStyle="gallery"
+      />,
+    );
+
+    expect(markup).toContain('data-villa-card-style="gallery"');
+    expect(markup).not.toContain('data-villa-card-style="classic"');
+  });
+
   it("renders enabled homepage sections in the configured order", () => {
     const layout: HomePageLayoutItem[] = [
       { kind: "fixed", key: "contact", enabled: true },

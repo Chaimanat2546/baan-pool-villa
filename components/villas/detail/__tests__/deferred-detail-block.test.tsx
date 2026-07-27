@@ -115,7 +115,7 @@ describe("deferred detail blocks", () => {
     const showLazyBlock = stubIntersectionObserver();
     const page = render(
       <LazyDetailBlock name="recommended_villas">
-        <DeferredRecommendedVillas />
+        <DeferredRecommendedVillas villaCardStyle="gallery" />
       </LazyDetailBlock>,
     );
 
@@ -129,6 +129,16 @@ describe("deferred detail blocks", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/home-sections");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(page.container.querySelectorAll("button")).toHaveLength(2);
+    expect(
+      page.container.querySelector(
+        '[data-villa-card-style="gallery"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      page.container.querySelector(
+        '[data-villa-card-style="classic"]',
+      ),
+    ).toBeNull();
 
     await page.unmount();
   });

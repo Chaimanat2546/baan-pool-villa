@@ -12,6 +12,7 @@ import type {
   HomePageLayoutItem,
   ResolvedHomeSection,
 } from "@/lib/home-sections/types";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import { SEARCH_FACETS } from "@/lib/villas/search-options";
 
 import { ArticlesSection } from "./articles-section";
@@ -44,6 +45,7 @@ interface HomePageProps {
   filterSummary?: FilterSummary;
   homeLayout?: HomePageLayoutItem[];
   settings: HomePageSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 interface HomePageContentProps {
@@ -52,6 +54,7 @@ interface HomePageContentProps {
   initialHomeSections?: ResolvedHomeSection[];
   homeLayout?: HomePageLayoutItem[];
   settings: HomePageSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 export function HomePageContent({
@@ -63,6 +66,7 @@ export function HomePageContent({
   initialHomeSections = [],
   homeLayout,
   settings,
+  villaCardStyle,
 }: HomePageContentProps) {
   const railsBySlug = new Map(
     initialHomeSections
@@ -86,6 +90,7 @@ export function HomePageContent({
               id={section.slug}
               title={section.title}
               description={section.description}
+              villaCardStyle={villaCardStyle}
               villas={section.villas}
             />
           ) : null;
@@ -135,6 +140,7 @@ export function HomePage({
   homeLayout,
   filterSummary,
   settings,
+  villaCardStyle,
 }: HomePageProps) {
   const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? SEARCH_FACETS.maxPrice;
   const zones = filterSummary?.zones ?? SEARCH_FACETS.zones;
@@ -169,6 +175,7 @@ export function HomePage({
             initialHomeSections={initialHomeSections}
             homeLayout={homeLayout}
             settings={settings}
+            villaCardStyle={villaCardStyle}
           />
         )}
       </div>

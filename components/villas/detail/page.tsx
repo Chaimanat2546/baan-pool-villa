@@ -21,6 +21,7 @@ export function VillaDetailPage({
   payload,
   recommendedSection,
   settings,
+  villaCardStyle,
 }: VillaDetailPageProps) {
   const { listing } = payload;
   const content = buildVillaDetailContent(payload.detail);
@@ -58,6 +59,7 @@ export function VillaDetailPage({
         listing={listing}
         recommendedSection={recommendedSection}
         settings={settings}
+        villaCardStyle={villaCardStyle}
       >
         <div className="mx-auto w-full max-w-[402px] px-[22.5px] py-8 sm:max-w-7xl sm:px-6 lg:px-8">
           <VillaIntro content={content} listing={listing} />

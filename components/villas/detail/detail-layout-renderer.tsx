@@ -9,7 +9,10 @@ import type {
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
-import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
+import type {
+  GalleryStyleSettings,
+  SiteVillaCardStyle,
+} from "@/lib/site-web-styles/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
@@ -44,6 +47,7 @@ export interface DetailLayoutRendererProps {
   listing: VillaListing;
   recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 interface DetailLayoutRenderContext {
@@ -58,6 +62,7 @@ interface DetailLayoutRenderContext {
   listing: VillaListing;
   recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 function renderRowBlocks(
@@ -261,6 +266,7 @@ export function DetailLayoutRenderer({
   listing,
   recommendedSection,
   settings,
+  villaCardStyle,
 }: DetailLayoutRendererProps) {
   const context = {
     advertisements,
@@ -274,6 +280,7 @@ export function DetailLayoutRenderer({
     listing,
     recommendedSection,
     settings,
+    villaCardStyle,
   };
   const renderedRows =
     layout.version === 2

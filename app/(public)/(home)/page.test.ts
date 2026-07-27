@@ -9,6 +9,8 @@ import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defau
 import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import { fetchHomeListings } from "@/lib/villas/server";
 
 vi.mock("server-only", () => ({}));
@@ -55,6 +57,9 @@ vi.mock("@/lib/site-settings/server", () => ({
 vi.mock("@/lib/site-contact-settings/server", () => ({
   getSiteContactSettings: vi.fn(),
 }));
+vi.mock("@/lib/site-web-styles/server", () => ({
+  getSiteWebStyles: vi.fn(),
+}));
 
 vi.mock("@/lib/villas/public-dto", () => ({
   toPublicVillaListing: vi.fn((villa: unknown) => villa),
@@ -69,6 +74,7 @@ const getHomeSectionListingPlanMock = vi.mocked(getHomeSectionListingPlan);
 const getResolvedHomeSectionsMock = vi.mocked(getResolvedHomeSections);
 const getSiteContactSettingsMock = vi.mocked(getSiteContactSettings);
 const getSiteSettingsMock = vi.mocked(getSiteSettings);
+const getSiteWebStylesMock = vi.mocked(getSiteWebStyles);
 const fetchHomeListingsMock = vi.mocked(fetchHomeListings);
 
 describe("HomePageRoute", () => {
@@ -78,6 +84,8 @@ describe("HomePageRoute", () => {
     getResolvedHomeSectionsMock.mockReset();
     getSiteContactSettingsMock.mockReset();
     getSiteSettingsMock.mockReset();
+    getSiteWebStylesMock.mockReset();
+    getSiteWebStylesMock.mockResolvedValue(DEFAULT_SITE_WEB_STYLES);
     fetchHomeListingsMock.mockReset();
   });
 

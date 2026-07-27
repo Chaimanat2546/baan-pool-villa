@@ -150,6 +150,7 @@ export default async function Page({ params }: VillaPageProps) {
         recommendedSection={data.recommendedSection}
         contactSettings={contactSettingsResult.settings}
         settings={siteSettingsResult.settings}
+        villaCardStyle={siteWebStylesResult.houseCard.variant}
       />
     </>
   );

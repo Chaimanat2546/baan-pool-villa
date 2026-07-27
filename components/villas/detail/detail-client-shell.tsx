@@ -7,7 +7,10 @@ import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import { pushVillaDetailView } from "@/lib/marketing-data-layer";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
-import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
+import type {
+  GalleryStyleSettings,
+  SiteVillaCardStyle,
+} from "@/lib/site-web-styles/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type {
@@ -47,6 +50,7 @@ interface VillaDetailClientShellProps {
   listing: PublicVillaListing;
   recommendedSection: PublicRecommendedVillaSection | null;
   settings: SiteSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 export function VillaDetailClientShell({
@@ -64,6 +68,7 @@ export function VillaDetailClientShell({
   listing,
   recommendedSection,
   settings,
+  villaCardStyle,
 }: VillaDetailClientShellProps) {
   const pushedViewItemIdRef = useRef<string | null>(null);
   const [galleryModalState, setGalleryModalState] = useState<GalleryModalState>(
@@ -160,6 +165,7 @@ export function VillaDetailClientShell({
         listing={listing}
         recommendedSection={recommendedSection}
         settings={settings}
+        villaCardStyle={villaCardStyle}
       />
 
       {galleryModalView === "overview" ? (

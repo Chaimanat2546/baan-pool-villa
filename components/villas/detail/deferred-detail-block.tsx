@@ -3,6 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ScrollRail } from "@/components/ui/scroll-rail";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import type { PublicRecommendedVillaSection } from "@/lib/villas/public-dto";
 import { VillaCard } from "../listing/villa-card";
 
@@ -112,7 +113,11 @@ function loadRecommendedSection() {
   return recommendedSectionPromise;
 }
 
-export function DeferredRecommendedVillas() {
+export function DeferredRecommendedVillas({
+  villaCardStyle,
+}: {
+  villaCardStyle?: SiteVillaCardStyle;
+}) {
   const [recommendedSection, setRecommendedSection] =
     useState<PublicRecommendedVillaSection | null>(null);
 
@@ -163,7 +168,11 @@ export function DeferredRecommendedVillas() {
         >
           {recommendedSection.villas.slice(0, 12).map((villa) => (
             <div key={villa.id} className="w-[290px] shrink-0 snap-start">
-              <VillaCard villa={villa} titleHeadingLevel="h3" />
+              <VillaCard
+                villa={villa}
+                titleHeadingLevel="h3"
+                villaCardStyle={villaCardStyle}
+              />
             </div>
           ))}
         </ScrollRail>

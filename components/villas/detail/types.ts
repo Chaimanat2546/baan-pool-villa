@@ -6,7 +6,10 @@ import type {
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
-import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
+import type {
+  GalleryStyleSettings,
+  SiteVillaCardStyle,
+} from "@/lib/site-web-styles/types";
 import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 
 export interface VillaDetailPageProps {
@@ -21,6 +24,7 @@ export interface VillaDetailPageProps {
   payload: PublicVillaDetailPayload;
   recommendedSection: PublicRecommendedVillaSection | null;
   settings: SiteSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 export interface GalleryItem {

@@ -13,7 +13,10 @@ import type {
 } from "@/lib/detail-layout/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
-import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
+import type {
+  GalleryStyleSettings,
+  SiteVillaCardStyle,
+} from "@/lib/site-web-styles/types";
 import type {
   VillaDetailContent,
   VillaDetailSection,
@@ -45,6 +48,7 @@ interface DetailLayoutBlockContext {
   listing: VillaListing;
   recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 type BlockRenderer = (context: DetailLayoutBlockContext) => ReactNode | null;
@@ -405,8 +409,10 @@ function renderBookingContact({
   );
 }
 
-function renderRecommendedVillas() {
-  return <DeferredRecommendedVillas />;
+function renderRecommendedVillas({
+  villaCardStyle,
+}: DetailLayoutBlockContext) {
+  return <DeferredRecommendedVillas villaCardStyle={villaCardStyle} />;
 }
 
 const blockRenderers = {
