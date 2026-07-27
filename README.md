@@ -51,6 +51,7 @@ Required local keys from `.env.example`:
 
 | Variable | Used For | Exposure |
 | --- | --- | --- |
+| `CALENDAR_INTERNAL_API_TOKEN` | Private booking-calendar Worker/route authentication | Server-only secret |
 | `DEVILLE_BEARER_TOKEN` | Deville Central villa detail API | Server-only secret |
 | `PATTAYA_BOOKINGS_API_TOKEN` | Pattaya booking calendar API | Server-only secret |
 | `SUPABASE_PUBLISHABLE_KEY` | Villa gallery Supabase reads | Publishable key, still keep out of logs |
@@ -86,6 +87,9 @@ Use `npm.cmd` in PowerShell.
 | `npm.cmd run preview:cf` | Build OpenNext Cloudflare output and run Wrangler preview |
 | `npm.cmd run deploy:cf` | Build and deploy to Cloudflare |
 | `npm.cmd run deploy:cf:prewarm` | Build, deploy, then prewarm public HTML cache |
+| `npm.cmd run build:cf` | Build OpenNext Cloudflare output without deploying |
+| `npm.cmd run deploy:cf:built -- --env baanparty` | Deploy existing OpenNext output to the named approved Wrangler environment; use `baan02` or `baanPMhee` only with its matching build |
+| `npm.cmd run validate:deploy:cf` | Validate production target URLs and required secret declarations |
 | `npm.cmd run prewarm:cf` | Prewarm public HTML cache for an already deployed site |
 | `npm.cmd run upload:cf` | Build and upload Cloudflare worker assets |
 
@@ -159,16 +163,21 @@ Deployment uses OpenNext Cloudflare and Wrangler:
 
 - `open-next.config.ts` configures R2 incremental cache, Durable Object queue, and sharded tag cache.
 - `wrangler.jsonc` points the worker to `worker.js`, binds `.open-next/assets`, R2 cache buckets, Durable Objects, `IMAGES`, service self-reference, and version metadata.
-- `wrangler.jsonc` marks `DEVILLE_BEARER_TOKEN` and `SUPABASE_PUBLISHABLE_KEY` as required secrets. Other env vars used by app features still need to be configured in the Cloudflare environment when those features are enabled.
+- `wrangler.jsonc` marks `CALENDAR_INTERNAL_API_TOKEN`, `DEVILLE_BEARER_TOKEN`, `PATTAYA_BOOKINGS_API_TOKEN`, `SUPABASE_PUBLISHABLE_KEY`, and `TURNSTILE_SECRET_KEY` as required secrets.
 
-Typical release path:
+Normal production releases run through
+`.github/workflows/deploy-production.yml`: on push to `master` (normally when a PR is merged), verify once, then build/deploy/prewarm all three clients through isolated matrix jobs.
 
-```powershell
-npm.cmd run lint
-npm.cmd test
-npm.cmd run build
-npm.cmd run deploy:cf:prewarm
-```
+The build receives `SUPABASE_PUBLISHABLE_KEY` from the matching GitHub
+Environment secret because the villa catalog and `/sitemap.xml` need it at
+build time. The matching Cloudflare Worker secret remains runtime-owned; keep
+the two copies synchronized and never print either value. The three
+home/Turnstile public variables remain owned by their matching GitHub
+Environment.
+
+Complete one-time GitHub and Cloudflare setup before the workflow's first
+merge. See [`docs/deployment.md`](docs/deployment.md) for configuration
+ownership, retry, rollback, and emergency recovery.
 
 For a cache-only prewarm after deploy:
 

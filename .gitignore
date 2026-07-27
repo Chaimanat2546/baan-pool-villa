@@ -6,7 +6,7 @@ docs/mockups
 /.agents
 /.superpowers
 /node_modules
-docs/superpowers
+
 /.pnp
 .open-next
 .wrangler

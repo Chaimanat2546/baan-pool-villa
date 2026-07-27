@@ -1,0 +1,139 @@
+name: Deploy production clients
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate production deployment config
+        run: npm run validate:deploy:cf
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Vitest
+        run: npm test
+
+      - name: Build deployment matrix
+        id: matrix
+        shell: bash
+        run: |
+          matrix="$(node scripts/production-deploy-config.mjs matrix)"
+          printf 'matrix=%s\n' "$matrix" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy ${{ matrix.target }}
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.verify.outputs.matrix) }}
+    environment:
+      name: ${{ matrix.target }}
+      url: ${{ matrix.siteUrl }}
+    env:
+      BPV_DEPLOY_TARGET: ${{ matrix.target }}
+      BPV_DEPLOY_SITE_URL: ${{ matrix.siteUrl }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate target configuration
+        id: validate
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          NEXT_PUBLIC_SITE_URL: ${{ matrix.siteUrl }}
+          NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL }}
+          NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run validate:deploy:cf -- "$BPV_DEPLOY_TARGET"
+
+      - name: Build OpenNext
+        id: build
+        env:
+          NEXT_PUBLIC_SITE_URL: ${{ matrix.siteUrl }}
+          NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL }}
+          NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build:cf
+
+      - name: Deploy Worker
+        id: deploy
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET"
+
+      - name: Prewarm and verify public HTML
+        id: prewarm
+        shell: bash
+        run: npm run prewarm:cf -- --url="$BPV_DEPLOY_SITE_URL"
+
+      - name: Write deployment summary
+        if: ${{ always() }}
+        shell: bash
+        env:
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          PREWARM_OUTCOME: ${{ steps.prewarm.outcome }}
+        run: |
+          {
+            echo "### Production deployment: \`$BPV_DEPLOY_TARGET\`"
+            echo
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- URL: $BPV_DEPLOY_SITE_URL"
+            echo "- Validate: ${VALIDATE_OUTCOME:-not-run}"
+            echo "- Build: ${BUILD_OUTCOME:-not-run}"
+            echo "- Deploy: ${DEPLOY_OUTCOME:-not-run}"
+            echo "- Prewarm: ${PREWARM_OUTCOME:-not-run}"
+          } >> "$GITHUB_STEP_SUMMARY"
