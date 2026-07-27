@@ -448,7 +448,6 @@ export function parseVillaId(id: string): number {
 }
 
 async function fetchVillaImagesFromSupabase(
-  id: string,
   villaId: number,
   limit?: number,
 ): Promise<VillaImage[]> {
@@ -497,7 +496,7 @@ async function fetchVillaImagesWithCoverOverrideFromSupabase(
   villaId: number,
 ): Promise<VillaImage[]> {
   const [images, config] = await Promise.all([
-    fetchVillaImagesFromSupabase(id, villaId),
+    fetchVillaImagesFromSupabase(villaId),
     fetchVillaCardImageConfig(id),
   ]);
 
