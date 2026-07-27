@@ -1056,6 +1056,62 @@ describe("GET /api/villas/[id]/images", () => {
     });
   });
 
+  it("proxies a ranked source image even when an uploaded cover hides it from the gallery", async () => {
+    mockCardImageConfigQuery({
+      config: {
+        data: {
+          cover_image_alt: "Custom cover",
+          cover_image_path: "villa-cover/9/custom.webp",
+          cover_image_url:
+            "https://assets.example.com/villa-cover/9/custom.webp",
+        },
+        error: null,
+      },
+    });
+    const { query } = mockImagesQuery({
+      data: [
+        {
+          id: 127120,
+          property_id: 9,
+          cover_select: 7,
+          image_name: "ranked.jpg",
+          image_url: "https://images.example.com/ranked.jpg",
+          caption: null,
+          image_zone: "outside",
+        },
+      ],
+      error: null,
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("ranked photo", {
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/images/route"
+    );
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/images?imageId=127120",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    await expect(response.text()).resolves.toBe("ranked photo");
+    expect(response.status).toBe(200);
+    expect(query.eq).toHaveBeenCalledWith("property_id", 9);
+    expect(query.eq).toHaveBeenCalledWith("id", 127120);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://images.example.com/ranked.jpg",
+      expect.objectContaining({
+        cache: "no-store",
+        redirect: "manual",
+      }),
+    );
+  });
+
   it("proxies an allowed gallery image from the parent images route", async () => {
     mockImagesQuery({
       data: [

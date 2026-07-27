@@ -10,7 +10,7 @@ import {
 import { SITE_ASSETS_BUCKET } from "@/lib/site-settings/defaults";
 import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import {
-  fetchVillaImages,
+  fetchVillaSourceImages,
   validateCustomDisplayImageIds,
 } from "@/lib/villas/images";
 import {
@@ -363,7 +363,7 @@ export async function buildAdminVillaCardImageConfigsResponse(
       try {
         images = toPublicVillaImages(
           requestedHouseId,
-          await fetchVillaImages(requestedHouseId),
+          await fetchVillaSourceImages(requestedHouseId),
         );
       } catch (error) {
         return adminSupabaseErrorResponse(

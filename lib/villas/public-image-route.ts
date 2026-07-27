@@ -13,6 +13,7 @@ import {
   normalizeDownloadImageUrl,
 } from "@/lib/villas/image-download";
 import {
+  fetchVillaImageById,
   fetchVillaImages,
   parseVillaId,
   resolveDisplayImages,
@@ -136,12 +137,10 @@ export async function buildVillaImagesRouteResponse(
     );
   }
 
-  const images = await fetchVillaImages(id);
-
   if (mode === "display") {
     if (requestUrl.searchParams.has("imageId")) {
-      const image = findVillaImageById(
-        images,
+      const image = await fetchVillaImageById(
+        id,
         requestUrl.searchParams.get("imageId"),
       );
 
@@ -149,16 +148,17 @@ export async function buildVillaImagesRouteResponse(
         return Response.json({ error: "Image not found" }, { status: 404 });
       }
 
-      return proxyVillaImage(request, requestUrl, images, image.imageUrl);
+      return proxyVillaImage(request, requestUrl, [image], image.imageUrl);
     }
 
+    const images = await fetchVillaImages(id);
     return proxyVillaImage(request, requestUrl, images);
   }
 
   if (mode === "download") {
     if (requestUrl.searchParams.has("imageId")) {
-      const image = findVillaImageById(
-        images,
+      const image = await fetchVillaImageById(
+        id,
         requestUrl.searchParams.get("imageId"),
       );
 
@@ -166,9 +166,10 @@ export async function buildVillaImagesRouteResponse(
         return Response.json({ error: "Image not found" }, { status: 404 });
       }
 
-      return downloadVillaImage(requestUrl, id, images, image.imageUrl);
+      return downloadVillaImage(requestUrl, id, [image], image.imageUrl);
     }
 
+    const images = await fetchVillaImages(id);
     return downloadVillaImage(requestUrl, id, images);
   }
 
@@ -308,14 +309,4 @@ async function downloadVillaImage(
       "Content-Type": contentType,
     },
   });
-}
-
-function findVillaImageById(images: VillaImages, imageIdValue: string | null) {
-  if (!imageIdValue || !/^[1-9]\d*$/.test(imageIdValue)) {
-    return null;
-  }
-
-  const imageId = Number.parseInt(imageIdValue, 10);
-
-  return images.find((image) => image.id === imageId) ?? null;
 }

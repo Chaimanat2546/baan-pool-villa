@@ -4,7 +4,10 @@ import {
   revalidateSiteWebStylesCache,
   revalidateVillaCardImagesCache,
 } from "@/lib/cache-revalidation";
-import { fetchVillaImages } from "@/lib/villas/images";
+import {
+  fetchVillaImages,
+  fetchVillaSourceImages,
+} from "@/lib/villas/images";
 import {
   fetchVillaCardHouseOptionPage,
   getListingById,
@@ -31,6 +34,16 @@ vi.mock("@/lib/villas/images", async (importOriginal) => {
   return {
     ...actual,
     fetchVillaImages: vi.fn().mockResolvedValue([
+      {
+        caption: "Filtered gallery",
+        id: 99,
+        imageName: "filtered.jpg",
+        imageUrl: "https://images.example.com/filtered.jpg",
+        isCover: false,
+        zone: "outside",
+      },
+    ]),
+    fetchVillaSourceImages: vi.fn().mockResolvedValue([
       {
         caption: "Pool",
         id: 7,
@@ -106,6 +119,7 @@ const revalidateVillaCardImagesCacheMock = vi.mocked(
 );
 const revalidateSiteWebStylesCacheMock = vi.mocked(revalidateSiteWebStylesCache);
 const fetchVillaImagesMock = vi.mocked(fetchVillaImages);
+const fetchVillaSourceImagesMock = vi.mocked(fetchVillaSourceImages);
 const fetchVillaCardHouseOptionPageMock = vi.mocked(
   fetchVillaCardHouseOptionPage,
 );
@@ -259,8 +273,9 @@ describe("admin villa card image config route helpers", () => {
 
     expect(response.status).toBe(200);
     expect(fetchVillaCardHouseOptionPageMock).not.toHaveBeenCalled();
-    expect(fetchVillaImagesMock).toHaveBeenCalledOnce();
-    expect(fetchVillaImagesMock).toHaveBeenCalledWith("9");
+    expect(fetchVillaSourceImagesMock).toHaveBeenCalledOnce();
+    expect(fetchVillaSourceImagesMock).toHaveBeenCalledWith("9");
+    expect(fetchVillaImagesMock).not.toHaveBeenCalled();
     expect(eq).toHaveBeenCalledOnce();
     expect(eq).toHaveBeenCalledWith("page_key", "default");
     expect(inHouse).toHaveBeenCalledWith("house_id", ["9"]);
@@ -380,7 +395,7 @@ describe("admin villa card image config route helpers", () => {
   });
 
   it("returns a structured server error when the requested gallery cannot load", async () => {
-    fetchVillaImagesMock.mockRejectedValueOnce(
+    fetchVillaSourceImagesMock.mockRejectedValueOnce(
       Object.assign(new Error("Gallery dependency unavailable"), {
         code: "GALLERY_DOWN",
         details: "Timed out while loading villa 9 images",

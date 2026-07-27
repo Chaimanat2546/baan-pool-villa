@@ -424,6 +424,48 @@ async function fetchVillaImagesFromSupabase(
   return normalizeImageRows((data ?? []) as unknown as SupabaseImageRow[], supabaseUrl);
 }
 
+async function fetchVillaImageByIdFromSupabase(
+  villaId: number,
+  imageId: number,
+): Promise<VillaImage | null> {
+  const { supabaseUrl, supabaseKey } = getSupabaseConfig();
+
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  const queryImage = async (columns: string) =>
+    supabase
+      .from("images")
+      .select(columns)
+      .eq("property_id", villaId)
+      .eq("id", imageId)
+      .limit(1);
+
+  let { data, error } = await queryImage(IMAGE_SELECT_COLUMNS);
+
+  if (error && isMissingImageUrlColumnError(error)) {
+    const legacyResponse = await queryImage(LEGACY_IMAGE_SELECT_COLUMNS);
+    data = legacyResponse.data;
+    error = legacyResponse.error;
+  }
+
+  if (error) {
+    throw new Error(getSupabaseErrorText(error));
+  }
+
+  return (
+    normalizeImageRows(
+      (data ?? []) as unknown as SupabaseImageRow[],
+      supabaseUrl,
+    )[0] ?? null
+  );
+}
+
 async function fetchVillaImagesWithCoverOverrideFromSupabase(
   id: string,
   villaId: number,
@@ -646,6 +688,60 @@ export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   );
 
   return getCachedVillaImages();
+}
+
+export async function fetchVillaSourceImages(id: string): Promise<VillaImage[]> {
+  const villaId = parseVillaId(id);
+  const tag = CACHE_TAGS.villaImage(id);
+  const getCachedVillaSourceImages = unstable_cache(
+    () => fetchVillaImagesFromSupabase(villaId),
+    [`${tag}:source`],
+    {
+      revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
+      tags: [
+        CACHE_TAGS.villaImages,
+        CACHE_TAGS.villaCardImages,
+        tag,
+        CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id),
+      ],
+    },
+  );
+
+  return getCachedVillaSourceImages();
+}
+
+export async function fetchVillaImageById(
+  id: string,
+  imageIdValue: string | null,
+): Promise<VillaImage | null> {
+  const villaId = parseVillaId(id);
+
+  if (!imageIdValue || !/^[1-9]\d*$/.test(imageIdValue)) {
+    return null;
+  }
+
+  const imageId = Number(imageIdValue);
+
+  if (!Number.isSafeInteger(imageId)) {
+    return null;
+  }
+
+  const tag = CACHE_TAGS.villaImage(id);
+  const getCachedVillaImage = unstable_cache(
+    () => fetchVillaImageByIdFromSupabase(villaId, imageId),
+    [`${tag}:image:${imageId}`],
+    {
+      revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
+      tags: [
+        CACHE_TAGS.villaImages,
+        CACHE_TAGS.villaCardImages,
+        tag,
+        CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id),
+      ],
+    },
+  );
+
+  return getCachedVillaImage();
 }
 
 export async function resolveDisplayImages(id: string): Promise<VillaImage[]> {
