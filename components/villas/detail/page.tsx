@@ -11,13 +11,17 @@ const EMPTY_ADVERTISEMENTS: NonNullable<VillaDetailPageProps["advertisements"]> 
 
 export function VillaDetailPage({
   advertisements = EMPTY_ADVERTISEMENTS,
+  bookingCalendars,
   contactSettings,
+  currentBookingMonthKey,
   galleryStyle,
   id,
   initialGalleryImages = EMPTY_INITIAL_GALLERY_IMAGES,
+  initialGalleryLoadFailed = false,
   payload,
   recommendedSection,
   settings,
+  villaCardStyle,
 }: VillaDetailPageProps) {
   const { listing } = payload;
   const content = buildVillaDetailContent(payload.detail);
@@ -41,16 +45,21 @@ export function VillaDetailPage({
       </div>
 
       <VillaDetailClientShell
+        key={id}
         bookingSidebarId={bookingSidebarId}
         advertisements={advertisements}
+        bookingCalendars={bookingCalendars}
         contactSettings={contactSettings}
         content={content}
+        currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={galleryStyle}
         id={id}
         initialGalleryImages={initialGalleryImages}
+        initialGalleryLoadFailed={initialGalleryLoadFailed}
         listing={listing}
         recommendedSection={recommendedSection}
         settings={settings}
+        villaCardStyle={villaCardStyle}
       >
         <div className="mx-auto w-full max-w-[402px] px-[22.5px] py-8 sm:max-w-7xl sm:px-6 lg:px-8">
           <VillaIntro content={content} listing={listing} />
@@ -58,8 +67,10 @@ export function VillaDetailPage({
           {showMobileBookingContact ? (
             <div className="mt-4 lg:hidden" data-mobile-booking-contact="true">
               <BookingSidebar
+                bookingCalendars={bookingCalendars}
                 contactSettings={contactSettings}
                 content={content}
+                currentBookingMonthKey={currentBookingMonthKey}
                 id="contact"
                 listing={listing}
               />

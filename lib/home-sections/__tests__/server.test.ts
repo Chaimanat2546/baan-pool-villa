@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import type { VillaListing } from "../../villas/types";
+import { buildDefaultHomePageLayout } from "../layout";
 import {
   getActiveHomeSectionHouseIds,
   getHomeSectionListingPlan,
@@ -23,6 +24,16 @@ vi.mock("../supabase", () => ({
 const createHomeConfigClientMock = vi.mocked(createHomeConfigClient);
 const unstableCacheMock = vi.mocked(unstable_cache);
 
+const savedLayout = [
+  { kind: "rail" as const, key: "featured", enabled: false },
+  { kind: "fixed" as const, key: "why_choose", enabled: true },
+  { kind: "fixed" as const, key: "tiktok", enabled: true },
+  { kind: "fixed" as const, key: "customer_reviews", enabled: true },
+  { kind: "fixed" as const, key: "articles", enabled: true },
+  { kind: "fixed" as const, key: "faq", enabled: true },
+  { kind: "fixed" as const, key: "contact", enabled: true },
+];
+
 const villa: VillaListing = {
   amenities: [],
   bathrooms: 4,
@@ -37,18 +48,38 @@ const villa: VillaListing = {
   zoneLabel: "จอมเทียน",
 };
 
-function mockHomeSectionsQuery(result: { data: unknown; error: unknown }) {
+function mockHomeSectionsQuery(
+  result: { data: unknown; error: unknown },
+  layoutResult: { data: unknown; error: unknown } = {
+    data: { layout: buildDefaultHomePageLayout([]) },
+    error: null,
+  },
+) {
   const orderItems = vi.fn().mockResolvedValue(result);
   const orderSections = vi.fn().mockReturnValue({ order: orderItems });
-  const eq = vi.fn().mockReturnValue({ order: orderSections });
-  const select = vi.fn().mockReturnValue({ eq });
-  const from = vi.fn().mockReturnValue({ select });
+  const sectionsEq = vi.fn().mockReturnValue({ order: orderSections });
+  const sectionsSelect = vi.fn().mockReturnValue({ eq: sectionsEq });
+  const maybeSingle = vi.fn().mockResolvedValue(layoutResult);
+  const layoutEq = vi.fn().mockReturnValue({ maybeSingle });
+  const layoutSelect = vi.fn().mockReturnValue({ eq: layoutEq });
+  const from = vi.fn((table: string) => ({
+    select: table === "home_page_layout" ? layoutSelect : sectionsSelect,
+  }));
 
   createHomeConfigClientMock.mockReturnValue({
     from,
   } as ReturnType<typeof createHomeConfigClient>);
 
-  return { eq, from, orderItems, orderSections, select };
+  return {
+    from,
+    layoutEq,
+    layoutSelect,
+    maybeSingle,
+    orderItems,
+    orderSections,
+    sectionsEq,
+    sectionsSelect,
+  };
 }
 
 describe("getResolvedHomeSections", () => {
@@ -194,6 +225,67 @@ describe("getResolvedHomeSections", () => {
     });
   });
 
+  it("loads and validates the saved homepage layout", async () => {
+    const query = mockHomeSectionsQuery(
+      { data: [], error: null },
+      { data: { layout: savedLayout }, error: null },
+    );
+
+    await expect(getHomeSectionListingPlan()).resolves.toMatchObject({
+      layout: {
+        degraded: false,
+        items: savedLayout,
+        source: "config",
+      },
+    });
+    expect(query.layoutSelect).toHaveBeenCalledWith("layout");
+    expect(query.layoutEq).toHaveBeenCalledWith("id", "main");
+    expect(unstableCacheMock).toHaveBeenCalledWith(
+      expect.any(Function),
+      [CACHE_TAGS.homeSections, "layout"],
+      {
+        revalidate: CACHE_REVALIDATE_SECONDS.homeSections,
+        tags: [CACHE_TAGS.homeSections],
+      },
+    );
+  });
+
+  it("falls back to the current order when the layout query fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockHomeSectionsQuery(
+      { data: [], error: null },
+      { data: null, error: { message: "RLS denied" } },
+    );
+
+    await expect(getHomeSectionListingPlan()).resolves.toMatchObject({
+      layout: {
+        degraded: true,
+        items: buildDefaultHomePageLayout([]),
+        source: "fallback",
+      },
+    });
+
+    consoleError.mockRestore();
+  });
+
+  it("falls back to the current order when the saved layout is invalid", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockHomeSectionsQuery(
+      { data: [], error: null },
+      { data: { layout: { invalid: true } }, error: null },
+    );
+
+    await expect(getHomeSectionListingPlan()).resolves.toMatchObject({
+      layout: {
+        degraded: true,
+        items: buildDefaultHomePageLayout([]),
+        source: "fallback",
+      },
+    });
+
+    consoleError.mockRestore();
+  });
+
   it("returns intentional fallback sections when no config rows resolve", async () => {
     mockHomeSectionsQuery({
       data: [],
@@ -206,6 +298,14 @@ describe("getResolvedHomeSections", () => {
     expect(result.degraded).toBe(false);
     expect(result.fallbackReason).toBe("empty_config");
     expect(result.sections[0]?.villas).toEqual([villa]);
+  });
+
+  it("keeps an intentionally empty configured result when fallback is disabled", async () => {
+    await expect(getResolvedHomeSections([villa], [], false)).resolves.toEqual({
+      degraded: false,
+      sections: [],
+      source: "config",
+    });
   });
 
   it("marks fallback sections as degraded when config rows cannot be loaded", async () => {

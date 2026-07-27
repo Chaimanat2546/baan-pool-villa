@@ -7,10 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
-import {
-  BookingSidebar,
-  clearBookingCalendarClientCacheForTests,
-} from "../booking-sidebar";
+import { BookingSidebar } from "../booking-sidebar";
+import type { BookingCalendarMonth } from "../booking-calendar-ui";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -39,6 +37,27 @@ const content: VillaDetailContent = {
   sections: [],
   videos: [],
 };
+
+const bookingCalendars = {
+  "2026-07": {
+    days: {
+      "2026-07-15": {
+        disabled: false,
+        displayPrice: "9,900",
+        guestCapacity: "12",
+        holidayAlert: null,
+        icons: [],
+        kind: "base",
+        label: "เธงเธฑเธเธเธฃเธฃเธกเธ”เธฒ",
+        price: 9900,
+        promotionMessage: null,
+        tone: "default",
+      },
+    },
+    month: "2026-07",
+    status: "available",
+  },
+} satisfies Record<string, BookingCalendarMonth>;
 
 function buildCalendarResponse(month: string) {
   const days: Record<string, unknown> = {};
@@ -140,52 +159,28 @@ function buildCalendarResponse(month: string) {
   };
 }
 
-function mockBookingCalendarFetch() {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input: RequestInfo | URL) => {
-      const url = new URL(String(input), "https://example.com");
-      const month = url.searchParams.get("month") ?? "2026-06";
-      const monthCount = url.searchParams.get("months") === "6" ? 6 : 1;
-      const [year, monthNumber] = month.split("-").map(Number);
-      const calendars = Array.from({ length: monthCount }, (_, offset) => {
-        const date = new Date(year, monthNumber - 1 + offset, 1);
-        const monthKey = [
-          date.getFullYear(),
-          String(date.getMonth() + 1).padStart(2, "0"),
-        ].join("-");
+const testBookingCalendars = Object.fromEntries(
+  [
+    "2026-05",
+    "2026-06",
+    "2026-07",
+    "2026-08",
+    "2026-09",
+    "2026-10",
+    "2026-11",
+    "2026-12",
+    "2027-01",
+    "2027-02",
+    "2027-03",
+    "2027-04",
+    "2027-05",
+    "2027-06",
+  ].map((month) => [month, buildCalendarResponse(month)]),
+) as Record<string, BookingCalendarMonth>;
 
-        return buildCalendarResponse(monthKey);
-      });
-
-      return new Response(
-        JSON.stringify(monthCount === 1 ? calendars[0] : calendars),
-        {
-          headers: { "Content-Type": "application/json" },
-          status: 200,
-        },
-      );
-    }),
-  );
-}
-
-function getFetchedBookingCalendarMonths() {
-  return vi.mocked(fetch).mock.calls.map(([input]) => {
-    const url = input instanceof Request ? input.url : String(input);
-
-    return new URL(url, "https://example.com").searchParams.get("month");
-  });
-}
-
-function getFetchedBookingCalendarMonthCounts() {
-  return vi.mocked(fetch).mock.calls.map(([input]) => {
-    const url = input instanceof Request ? input.url : String(input);
-
-    return new URL(url, "https://example.com").searchParams.get("months");
-  });
-}
-
-async function renderBookingSidebar() {
+async function renderBookingSidebar(
+  calendars: Record<string, BookingCalendarMonth> = testBookingCalendars,
+) {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -193,7 +188,9 @@ async function renderBookingSidebar() {
   await act(async () => {
     root.render(
       <BookingSidebar
+        bookingCalendars={calendars}
         content={content}
+        currentBookingMonthKey="2026-06"
         listing={listing}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
@@ -247,11 +244,10 @@ function clickCalendarNavButton(
 
 describe("BookingSidebar", () => {
   beforeEach(() => {
-    mockBookingCalendarFetch();
+    vi.stubGlobal("fetch", vi.fn());
   });
 
   afterEach(() => {
-    clearBookingCalendarClientCacheForTests();
     vi.useRealTimers();
     vi.unstubAllGlobals();
     delete (window as typeof window & { dataLayer?: unknown[] }).dataLayer;
@@ -262,7 +258,9 @@ describe("BookingSidebar", () => {
   it("keeps contact actions in the booking sidebar", () => {
     const markup = renderToStaticMarkup(
       <BookingSidebar
+        bookingCalendars={testBookingCalendars}
         content={content}
+        currentBookingMonthKey="2026-07"
         listing={listing}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
@@ -275,6 +273,7 @@ describe("BookingSidebar", () => {
   it("uses the canonical checkout fact instead of the default time", () => {
     const markup = renderToStaticMarkup(
       <BookingSidebar
+        bookingCalendars={testBookingCalendars}
         content={{
           ...content,
           facts: [
@@ -282,6 +281,7 @@ describe("BookingSidebar", () => {
             { label: "เช็คเอาต์", value: "11:00" },
           ],
         }}
+        currentBookingMonthKey="2026-07"
         listing={listing}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       />,
@@ -322,7 +322,40 @@ describe("BookingSidebar", () => {
     await page.cleanup();
   });
 
-  it("dedupes duplicate booking calendar requests across mounted sidebars", async () => {
+  it("uses initial booking calendars without browser fetching when changing months", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-16T04:00:00.000Z"));
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <BookingSidebar
+          bookingCalendars={bookingCalendars}
+          contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+          content={content}
+          currentBookingMonthKey="2026-07"
+          listing={listing}
+        />,
+      );
+    });
+
+    await act(async () => {
+      clickCalendarNavButton(container, "next");
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("uses the passed Bangkok current month instead of the browser month", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
     const container = document.createElement("div");
@@ -331,24 +364,23 @@ describe("BookingSidebar", () => {
 
     await act(async () => {
       root.render(
-        <>
-          <BookingSidebar
-            content={content}
-            listing={listing}
-        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
-          />
-          <BookingSidebar
-            content={content}
-            listing={listing}
-        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
-          />
-        </>,
+        <BookingSidebar
+          bookingCalendars={bookingCalendars}
+          contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+          content={content}
+          currentBookingMonthKey="2026-07"
+          listing={listing}
+        />,
       );
-      await Promise.resolve();
     });
 
-    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
-    expect(getFetchedBookingCalendarMonthCounts()).toEqual(["6"]);
+    const bangkokMonthDateButton =
+      container.querySelector<HTMLButtonElement>(
+        'button[data-day="2026-07-15"]',
+      );
+
+    expect(bangkokMonthDateButton).not.toBeNull();
+    expect(bangkokMonthDateButton?.disabled).toBe(false);
 
     await act(async () => {
       root.unmount();
@@ -356,86 +388,43 @@ describe("BookingSidebar", () => {
     container.remove();
   });
 
-  it("reuses a cached booking calendar after the sidebar remounts", async () => {
+  it("keeps date buttons disabled when the visible month is missing", async () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-18T04:00:00.000Z"));
-    const firstPage = await renderBookingSidebar();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
-    await firstPage.cleanup();
-    vi.mocked(fetch).mockClear();
-
-    const secondPage = await renderBookingSidebar();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(fetch).not.toHaveBeenCalled();
-    expect(
-      secondPage.container.querySelector("[data-calendar-first-available='true']"),
-    ).not.toBeNull();
-
-    await secondPage.cleanup();
-  });
-
-  it("expires the client booking calendar cache after fifteen minutes", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-18T04:00:00.000Z"));
-    const firstPage = await renderBookingSidebar();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-    await firstPage.cleanup();
-    vi.mocked(fetch).mockClear();
-    vi.setSystemTime(new Date("2026-06-18T04:15:00.001Z"));
-
-    const secondPage = await renderBookingSidebar();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(getFetchedBookingCalendarMonthCounts()).toEqual(["6"]);
-    await secondPage.cleanup();
-  });
-
-  it("clears aborted booking calendar requests so a remount can retry", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-18T04:00:00.000Z"));
-    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
-      new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => {
-          reject(new DOMException("The operation was aborted.", "AbortError"));
-        });
-      }),
-    );
+    vi.setSystemTime(new Date("2026-07-16T04:00:00.000Z"));
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-
-    const firstPage = await renderBookingSidebar();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(8_000);
-      await Promise.resolve();
-    });
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    await firstPage.cleanup();
-
-    const secondPage = await renderBookingSidebar();
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
 
     await act(async () => {
-      await Promise.resolve();
+      root.render(
+        <BookingSidebar
+          bookingCalendars={bookingCalendars}
+          contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+          content={content}
+          currentBookingMonthKey="2026-07"
+          listing={listing}
+        />,
+      );
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    await secondPage.cleanup();
+    await act(async () => {
+      clickCalendarNavButton(container, "next");
+    });
+
+    const dateButtons = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(".rdp-day_button"),
+    );
+
+    expect(dateButtons.length).toBeGreaterThan(0);
+    expect(dateButtons.every((button) => button.disabled)).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 
   it("renders calendar navigation inside the caption and can return to the current month", async () => {
@@ -520,35 +509,6 @@ describe("BookingSidebar", () => {
     expect(page.container.textContent).toContain("มิถุนายน 2570");
     expect(getCalendarNavButton(page.container, "next")?.disabled).toBe(true);
 
-    await page.cleanup();
-  });
-
-  it("reuses booking calendar months already fetched in the current page", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
-    const page = await renderBookingSidebar();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
-
-    await act(async () => {
-      clickCalendarNavButton(page.container, "next");
-      await Promise.resolve();
-    });
-    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
-
-    await act(async () => {
-      clickCalendarNavButton(page.container, "today");
-      await Promise.resolve();
-    });
-    await act(async () => {
-      clickCalendarNavButton(page.container, "next");
-      await Promise.resolve();
-    });
-
-    expect(getFetchedBookingCalendarMonths()).toEqual(["2026-06"]);
     await page.cleanup();
   });
 

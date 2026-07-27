@@ -24,6 +24,8 @@ import {
 } from "@/lib/guides/server";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import type { GuidePost } from "@/lib/guides/types";
 import { fetchHouseListings } from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
@@ -34,8 +36,10 @@ interface GuidePageProps {
 
 async function GuideRecommendedVillasSection({
   guide,
+  villaCardStyle,
 }: {
   guide: GuidePost;
+  villaCardStyle: SiteVillaCardStyle;
 }) {
   let recommendedVillas: VillaListing[] = [];
 
@@ -49,7 +53,12 @@ async function GuideRecommendedVillasSection({
     console.error("Unable to load guide villa recommendations", error);
   }
 
-  return <RecommendedVillaSidebar villas={recommendedVillas} />;
+  return (
+    <RecommendedVillaSidebar
+      villas={recommendedVillas}
+      villaCardStyle={villaCardStyle}
+    />
+  );
 }
 
 async function GuideBottomSections({ guide }: { guide: GuidePost }) {
@@ -118,7 +127,10 @@ export async function generateMetadata({
  */
 export default async function GuideDetailRoute({ params }: GuidePageProps) {
   const { slug } = await params;
-  const guide = await getGuideBySlug(slug);
+  const [guide, siteWebStyles] = await Promise.all([
+    getGuideBySlug(slug),
+    getSiteWebStyles(),
+  ]);
 
   if (!guide) {
     notFound();
@@ -161,10 +173,14 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
         guide={guide}
         recommendedVillas={[]}
         relatedGuides={[]}
+        villaCardStyle={siteWebStyles.houseCard.variant}
         sidebar={
           hasConfiguredRecommendedVillas ? (
             <Suspense fallback={<RecommendedVillaSidebarSkeleton />}>
-              <GuideRecommendedVillasSection guide={guide} />
+              <GuideRecommendedVillasSection
+                guide={guide}
+                villaCardStyle={siteWebStyles.houseCard.variant}
+              />
             </Suspense>
           ) : undefined
         }

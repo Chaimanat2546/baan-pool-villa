@@ -9,8 +9,14 @@ import {
 } from "@/lib/cache-revalidation";
 import { SITE_ASSETS_BUCKET } from "@/lib/site-settings/defaults";
 import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
-import { validateCustomDisplayImageIds } from "@/lib/villas/images";
-import { toPublicVillaListings } from "@/lib/villas/public-dto";
+import {
+  fetchVillaSourceImages,
+  validateCustomDisplayImageIds,
+} from "@/lib/villas/images";
+import {
+  toPublicVillaImages,
+  toPublicVillaListings,
+} from "@/lib/villas/public-dto";
 import {
   fetchVillaCardHouseOptionPage,
   getListingById,
@@ -250,14 +256,24 @@ function toHouseOption(
   };
 }
 
+function getRequestedHouseId(request?: Request): string | null {
+  if (!request) {
+    return null;
+  }
+
+  const houseId = new URL(request.url).searchParams.get("houseId")?.trim();
+
+  return houseId && /^[1-9]\d*$/.test(houseId) ? houseId : null;
+}
+
 async function mapVillaCardHouseOptions(request?: Request): Promise<{
   houses: AdminVillaCardHouseOption[];
   pagination: AdminVillaCardHousePagination;
 }> {
   const url = request ? new URL(request.url) : null;
-  const houseId = url?.searchParams.get("houseId")?.trim();
+  const houseId = getRequestedHouseId(request);
 
-  if (houseId && /^[1-9]\d*$/.test(houseId)) {
+  if (houseId) {
     const listing = await getListingById(houseId);
     const houses = listing
       ? toPublicVillaListings([listing]).map(toHouseOption)
@@ -301,6 +317,7 @@ export async function buildAdminVillaCardImageConfigsResponse(
   supabase: HomeConfigSupabaseClient,
   request?: Request,
 ) {
+  const requestedHouseId = getRequestedHouseId(request);
   const housePage = await mapVillaCardHouseOptions(request);
   const houseIds = housePage.houses.map((house) => house.id);
   const configsResponse =
@@ -333,10 +350,35 @@ export async function buildAdminVillaCardImageConfigsResponse(
     );
   }
 
+  let images: ReturnType<typeof toPublicVillaImages> | undefined;
+
+  if (requestedHouseId) {
+    const hasRequestedHouse = housePage.houses.some(
+      (house) => house.id === requestedHouseId,
+    );
+
+    if (!hasRequestedHouse) {
+      images = [];
+    } else {
+      try {
+        images = toPublicVillaImages(
+          requestedHouseId,
+          await fetchVillaSourceImages(requestedHouseId),
+        );
+      } catch (error) {
+        return adminSupabaseErrorResponse(
+          error as SupabaseLikeError,
+          "Unable to load villa images.",
+        );
+      }
+    }
+  }
+
   try {
     return Response.json({
       configs: (data as VillaCardImageConfigRow[]).map(mapVillaCardImageConfigRow),
       houses: housePage.houses,
+      ...(images === undefined ? {} : { images }),
       pagination: housePage.pagination,
       villaCardStyle: toVillaCardStyle(styleResult.data?.style_variant),
     });

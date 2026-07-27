@@ -6,9 +6,7 @@ import type {
 } from "@/lib/detail-layout/types";
 import type { VillaImage } from "@/lib/villas/types";
 import {
-  getActiveGalleryLoadState,
-  getInitialGalleryLoadState,
-  getPreviewGalleryLoadState,
+  getServerGalleryLoadState,
   hasEnabledBookingContact,
   hasEnabledDetailLayoutBlock,
 } from "../detail-page-helpers";
@@ -35,25 +33,21 @@ function detailBlock(
 }
 
 describe("detail page helpers", () => {
-  it("builds stable gallery load states for idle, preview, and mismatched villas", () => {
-    const idleState = getInitialGalleryLoadState("9");
-    const previewState = getPreviewGalleryLoadState("9", [image]);
-
-    expect(idleState).toEqual({
-      error: null,
-      images: [],
-      status: "idle",
-      villaId: "9",
-    });
-    expect(previewState).toEqual({
+  it("maps successful server gallery data to a loaded state", () => {
+    expect(getServerGalleryLoadState("9", [image], false)).toEqual({
       error: null,
       images: [image],
-      status: "preview",
+      status: "loaded",
       villaId: "9",
     });
-    expect(getActiveGalleryLoadState(previewState, "10")).toEqual(
-      getInitialGalleryLoadState("10"),
-    );
+  });
+
+  it("maps an explicit server gallery failure to an error state", () => {
+    expect(getServerGalleryLoadState("9", [], true)).toMatchObject({
+      images: [],
+      status: "error",
+      villaId: "9",
+    });
   });
 
   it("finds enabled booking contact blocks in v1 and v2 layouts only", () => {

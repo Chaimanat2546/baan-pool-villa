@@ -170,6 +170,36 @@ describe("normalizeBookingCalendar", () => {
     });
   });
 
+  it("keeps confirmed bookings above overlapping hot holidays", () => {
+    const calendar = normalizeBookingCalendar(
+      {
+        ...baseResponse,
+        bookings: [
+          {
+            book_checkin: "2026-06-05",
+            book_checkout: "2026-06-06",
+            book_type: "deville",
+          },
+        ],
+        hot_holidays: [
+          {
+            hot_holiday_end: "2026-06-05",
+            hot_holiday_people: "10",
+            hot_holiday_price: 15900,
+            hot_holiday_start: "2026-06-05",
+          },
+        ],
+      },
+      "2026-06",
+    );
+
+    expect(calendar.days["2026-06-05"]).toMatchObject({
+      disabled: true,
+      kind: "booking_confirmed",
+      tone: "booked",
+    });
+  });
+
   it("ignores calendar-invalid booking date ranges", () => {
     const calendar = normalizeBookingCalendar(
       {
@@ -213,12 +243,19 @@ describe("normalizeBookingCalendar", () => {
             holiday_start: "2026-06-04",
             holiday_type: "hotpro",
           },
+          {
+            holiday_end: "2026-06-05",
+            holiday_price: 18900,
+            holiday_start: "2026-06-05",
+            holiday_type: "holiday",
+          },
         ],
         hot_holidays: [
           {
-            holiday_end: "2026-06-05",
-            holiday_price: 15900,
-            holiday_start: "2026-06-05",
+            hot_holiday_end: "2026-06-05",
+            hot_holiday_people: "10",
+            hot_holiday_price: 15900,
+            hot_holiday_start: "2026-06-05",
           },
         ],
       },
@@ -242,6 +279,7 @@ describe("normalizeBookingCalendar", () => {
       tone: "hotpro",
     });
     expect(calendar.days["2026-06-05"]).toMatchObject({
+      guestCapacity: "10",
       icons: ["fire"],
       kind: "hot_holiday",
       label: "โปรไฟลุกในวันหยุด",

@@ -4,7 +4,14 @@ import {
   revalidateSiteWebStylesCache,
   revalidateVillaCardImagesCache,
 } from "@/lib/cache-revalidation";
-import { fetchVillaCardHouseOptionPage } from "@/lib/villas/server";
+import {
+  fetchVillaImages,
+  fetchVillaSourceImages,
+} from "@/lib/villas/images";
+import {
+  fetchVillaCardHouseOptionPage,
+  getListingById,
+} from "@/lib/villas/server";
 import {
   buildAdminVillaCardImageConfigsResponse,
   deleteAdminVillaCardCoverImage,
@@ -19,6 +26,35 @@ vi.mock("@/lib/cache-revalidation", () => ({
   revalidateSiteWebStylesCache: vi.fn(),
   revalidateVillaCardImagesCache: vi.fn(),
 }));
+
+vi.mock("@/lib/villas/images", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/villas/images")>();
+
+  return {
+    ...actual,
+    fetchVillaImages: vi.fn().mockResolvedValue([
+      {
+        caption: "Filtered gallery",
+        id: 99,
+        imageName: "filtered.jpg",
+        imageUrl: "https://images.example.com/filtered.jpg",
+        isCover: false,
+        zone: "outside",
+      },
+    ]),
+    fetchVillaSourceImages: vi.fn().mockResolvedValue([
+      {
+        caption: "Pool",
+        id: 7,
+        imageName: "pool.jpg",
+        imageUrl: "https://images.example.com/pool.jpg",
+        isCover: false,
+        zone: "outside",
+      },
+    ]),
+  };
+});
 
 vi.mock("@/lib/villas/server", () => ({
   fetchVillaCardHouseOptionPage: vi.fn(
@@ -47,6 +83,19 @@ vi.mock("@/lib/villas/server", () => ({
 }));
 
 vi.mock("@/lib/villas/public-dto", () => ({
+  toPublicVillaImages: vi.fn(
+    (
+      houseId: string,
+      images: Array<{
+        imageUrl: string;
+        id: number;
+      }>,
+    ) =>
+      images.map((image) => ({
+        ...image,
+        imageUrl: `/api/villas/${houseId}/images?imageId=${image.id}`,
+      })),
+  ),
   toPublicVillaListings: vi.fn(
     (
       listings: Array<{
@@ -69,9 +118,12 @@ const revalidateVillaCardImagesCacheMock = vi.mocked(
   revalidateVillaCardImagesCache,
 );
 const revalidateSiteWebStylesCacheMock = vi.mocked(revalidateSiteWebStylesCache);
+const fetchVillaImagesMock = vi.mocked(fetchVillaImages);
+const fetchVillaSourceImagesMock = vi.mocked(fetchVillaSourceImages);
 const fetchVillaCardHouseOptionPageMock = vi.mocked(
   fetchVillaCardHouseOptionPage,
 );
+const getListingByIdMock = vi.mocked(getListingById);
 
 function request(body: unknown) {
   return new Request("https://example.com/api/admin/villa-card-images", {
@@ -177,7 +229,7 @@ describe("admin villa card image config route helpers", () => {
     });
   });
 
-  it("loads configs without querying a removed mode column", async () => {
+  it("loads configs and normalized gallery images for one requested house", async () => {
     const nestedOrder = vi.fn().mockResolvedValue({
       data: [
         {
@@ -214,14 +266,16 @@ describe("admin villa card image config route helpers", () => {
 
     const response = await buildAdminVillaCardImageConfigsResponse(
       supabase as never,
+      new Request(
+        "https://example.com/api/admin/villa-card-images?houseId=9",
+      ),
     );
 
     expect(response.status).toBe(200);
-    expect(fetchVillaCardHouseOptionPageMock).toHaveBeenCalledWith({
-      page: 1,
-      pageSize: 10,
-      search: "",
-    });
+    expect(fetchVillaCardHouseOptionPageMock).not.toHaveBeenCalled();
+    expect(fetchVillaSourceImagesMock).toHaveBeenCalledOnce();
+    expect(fetchVillaSourceImagesMock).toHaveBeenCalledWith("9");
+    expect(fetchVillaImagesMock).not.toHaveBeenCalled();
     expect(eq).toHaveBeenCalledOnce();
     expect(eq).toHaveBeenCalledWith("page_key", "default");
     expect(inHouse).toHaveBeenCalledWith("house_id", ["9"]);
@@ -253,11 +307,17 @@ describe("admin villa card image config route helpers", () => {
           zoneLabel: "outside",
         },
       ],
+      images: [
+        expect.objectContaining({
+          id: 7,
+          imageUrl: "/api/villas/9/images?imageId=7",
+        }),
+      ],
       pagination: {
         hasMore: false,
         page: 1,
         pageCount: 1,
-        pageSize: 10,
+        pageSize: 1,
         search: "",
         total: 1,
       },
@@ -310,6 +370,7 @@ describe("admin villa card image config route helpers", () => {
       pageSize: 25,
       search: "pool",
     });
+    expect(fetchVillaImagesMock).not.toHaveBeenCalled();
     expect(inHouse).toHaveBeenCalledWith("house_id", ["9"]);
     await expect(response.json()).resolves.toEqual({
       configs: [],
@@ -328,6 +389,86 @@ describe("admin villa card image config route helpers", () => {
         pageSize: 25,
         search: "pool",
         total: 61,
+      },
+      villaCardStyle: "classic",
+    });
+  });
+
+  it("returns a structured server error when the requested gallery cannot load", async () => {
+    fetchVillaSourceImagesMock.mockRejectedValueOnce(
+      Object.assign(new Error("Gallery dependency unavailable"), {
+        code: "GALLERY_DOWN",
+        details: "Timed out while loading villa 9 images",
+        hint: "Retry later",
+      }),
+    );
+    const nestedOrder = vi.fn().mockResolvedValue({ data: [], error: null });
+    const houseOrder = vi.fn().mockReturnValue({ order: nestedOrder });
+    const inHouse = vi.fn().mockReturnValue({ order: houseOrder });
+    const eq = vi.fn().mockReturnValue({ in: inHouse });
+    const select = vi.fn().mockReturnValue({ eq });
+    const maybeSingleStyle = vi.fn().mockResolvedValue({
+      data: { options: {}, style_type: "house_card", style_variant: "classic" },
+      error: null,
+    });
+    const eqStyle = vi.fn(() => ({ maybeSingle: maybeSingleStyle }));
+    const selectStyle = vi.fn(() => ({ eq: eqStyle }));
+    const supabase = {
+      from: vi.fn((table: string) =>
+        table === "site_web_styles" ? { select: selectStyle } : { select },
+      ),
+    };
+
+    const response = await buildAdminVillaCardImageConfigsResponse(
+      supabase as never,
+      new Request(
+        "https://example.com/api/admin/villa-card-images?houseId=9",
+      ),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(response.status).not.toBe(401);
+    expect(body).toEqual({
+      code: "GALLERY_DOWN",
+      details: "Timed out while loading villa 9 images",
+      error: "Gallery dependency unavailable",
+      hint: "Retry later",
+    });
+  });
+
+  it("returns an empty image list without fetching a missing requested house gallery", async () => {
+    getListingByIdMock.mockResolvedValueOnce(null);
+    const maybeSingleStyle = vi.fn().mockResolvedValue({
+      data: { options: {}, style_type: "house_card", style_variant: "classic" },
+      error: null,
+    });
+    const eqStyle = vi.fn(() => ({ maybeSingle: maybeSingleStyle }));
+    const selectStyle = vi.fn(() => ({ eq: eqStyle }));
+    const supabase = {
+      from: vi.fn(() => ({ select: selectStyle })),
+    };
+
+    const response = await buildAdminVillaCardImageConfigsResponse(
+      supabase as never,
+      new Request(
+        "https://example.com/api/admin/villa-card-images?houseId=404",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchVillaImagesMock).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({
+      configs: [],
+      houses: [],
+      images: [],
+      pagination: {
+        hasMore: false,
+        page: 1,
+        pageCount: 1,
+        pageSize: 1,
+        search: "",
+        total: 0,
       },
       villaCardStyle: "classic",
     });

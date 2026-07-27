@@ -5,6 +5,10 @@ import type {
 import { adminSupabaseErrorResponse } from "@/lib/admin/route-helpers";
 import { revalidateHomeSectionsCache } from "@/lib/cache-revalidation";
 import {
+  parseHomePageLayout,
+  validateHomePageLayout,
+} from "@/lib/home-sections/layout";
+import {
   normalizeHomeSectionDraftsForSave,
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
@@ -12,11 +16,13 @@ import type {
   HomeSectionDraft,
   HomeSectionFallbackMode,
   HomeSectionMode,
+  HomePageLayoutItem,
   HomeSectionSavePayload,
 } from "./types";
 
 export const HOME_SECTIONS_ADMIN_SELECT =
   "slug,title,description,display_order,is_active,mode,limit_count,cta_enabled,cta_label,cta_href,fallback_mode,slice_offset,home_section_items(house_id,position,is_active)";
+export const HOME_PAGE_LAYOUT_ADMIN_SELECT = "layout";
 
 interface HomeSectionItemRow {
   house_id: unknown;
@@ -190,22 +196,56 @@ export function mapHomeSectionRow(row: HomeSectionRow): AdminHomeSectionDraft {
 export async function buildAdminHomeSectionsResponse(
   supabase: HomeConfigSupabaseClient,
 ) {
-  const { data, error } = await supabase
-    .from("home_sections")
-    .select(HOME_SECTIONS_ADMIN_SELECT)
-    .order("display_order", { ascending: true })
-    .order("position", {
-      ascending: true,
-      referencedTable: "home_section_items",
-    });
+  const [
+    { data, error },
+    { data: layoutData, error: layoutError },
+  ] = await Promise.all([
+    supabase
+      .from("home_sections")
+      .select(HOME_SECTIONS_ADMIN_SELECT)
+      .order("display_order", { ascending: true })
+      .order("position", {
+        ascending: true,
+        referencedTable: "home_section_items",
+      }),
+    supabase
+      .from("home_page_layout")
+      .select(HOME_PAGE_LAYOUT_ADMIN_SELECT)
+      .eq("id", "main")
+      .maybeSingle(),
+  ]);
 
   if (error || !Array.isArray(data)) {
     return adminSupabaseErrorResponse(error, "Unable to load home sections.");
   }
 
+  if (layoutError) {
+    return adminSupabaseErrorResponse(
+      layoutError,
+      "Unable to load home page layout.",
+    );
+  }
+
   try {
+    const sections = (data as HomeSectionRow[]).map(mapHomeSectionRow);
+    const parsedLayout = parseHomePageLayout(
+      (layoutData as { layout?: unknown } | null)?.layout,
+    );
+    const layoutErrors = [
+      ...parsedLayout.errors,
+      ...validateHomePageLayout(
+        parsedLayout.items,
+        sections.map((section) => section.slug),
+      ),
+    ];
+
+    if (layoutErrors.length > 0) {
+      throw new Error(layoutErrors.join(" "));
+    }
+
     return Response.json({
-      sections: (data as HomeSectionRow[]).map(mapHomeSectionRow),
+      layout: parsedLayout.items,
+      sections,
     });
   } catch (error) {
     return Response.json(
@@ -294,13 +334,6 @@ export function parseSectionsPayload(payload: unknown): ParsedSectionsPayload {
     return {
       sections: [],
       errors: ["sections must be an array."],
-    };
-  }
-
-  if (payload.sections.length === 0) {
-    return {
-      sections: [],
-      errors: ["At least one section is required."],
     };
   }
 
@@ -460,24 +493,62 @@ export async function saveAdminHomeSections(
 
   const sections = parsedPayload.sections;
   const errors = validateHomeSectionDrafts(sections);
+  const parsedLayout = parseHomePageLayout(
+    isRecord(payload) ? payload.layout : undefined,
+  );
+  errors.push(
+    ...parsedLayout.errors,
+    ...validateHomePageLayout(
+      parsedLayout.items,
+      sections.map((section) => section.slug.trim()),
+    ),
+  );
 
   if (errors.length > 0) {
     return Response.json({ errors }, { status: 400 });
   }
 
-  const normalizedSections = normalizeHomeSectionDraftsForSave(sections);
+  const normalizedBySlug = new Map(
+    normalizeHomeSectionDraftsForSave(sections).map((section) => [
+      section.slug,
+      section,
+    ]),
+  );
+  const normalizedSections = parsedLayout.items
+    .filter(
+      (item): item is Extract<HomePageLayoutItem, { kind: "rail" }> =>
+        item.kind === "rail",
+    )
+    .map((item, displayOrder) => ({
+      ...normalizedBySlug.get(item.key)!,
+      display_order: displayOrder,
+      isActive: item.enabled,
+    }));
   const rpcPayload = toRpcPayload(normalizedSections);
   const { error } = await supabase.rpc("save_home_section_snapshot", {
-    snapshot: rpcPayload,
+    snapshot: {
+      layout: parsedLayout.items,
+      sections: rpcPayload,
+    },
   }) as { error: SupabaseLikeError | null };
 
   if (error) {
     return adminSupabaseErrorResponse(error, "Unable to save home sections.");
   }
 
-  await revalidateHomeSectionsCache();
-
-  return Response.json({
+  const response = {
+    layout: parsedLayout.items,
     sections: rpcPayload.map(mapSavedHomeSectionPayload),
-  });
+  };
+
+  try {
+    await revalidateHomeSectionsCache();
+  } catch {
+    return Response.json({
+      ...response,
+      warnings: ["บันทึกหน้าแรกแล้ว แต่การรีเฟรชแคชไม่สำเร็จ"],
+    });
+  }
+
+  return Response.json(response);
 }

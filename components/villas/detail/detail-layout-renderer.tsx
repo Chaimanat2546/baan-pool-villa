@@ -9,8 +9,12 @@ import type {
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
-import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
+import type {
+  GalleryStyleSettings,
+  SiteVillaCardStyle,
+} from "@/lib/site-web-styles/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
+import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import type { ReactNode } from "react";
 import { renderDetailLayoutBlock } from "./detail-layout-blocks";
@@ -32,27 +36,33 @@ import type { GalleryCategory } from "./types";
 
 export interface DetailLayoutRendererProps {
   advertisements: PublicAdvertisement[];
+  bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId?: string;
   contactSettings: SiteContactSettings;
   content: VillaDetailContent;
+  currentBookingMonthKey: string;
   galleryCategories: GalleryCategory[];
   galleryStyle: GalleryStyleSettings;
   layout: AnyDetailLayoutConfig;
   listing: VillaListing;
   recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 interface DetailLayoutRenderContext {
   advertisements: PublicAdvertisement[];
+  bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId?: string;
   contactSettings: SiteContactSettings;
   content: VillaDetailContent;
+  currentBookingMonthKey: string;
   galleryCategories: GalleryCategory[];
   galleryStyle: GalleryStyleSettings;
   listing: VillaListing;
   recommendedSection: RecommendedVillaSection | null;
   settings: SiteSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 function renderRowBlocks(
@@ -245,26 +255,32 @@ function renderV2Layout(
 
 export function DetailLayoutRenderer({
   advertisements,
+  bookingCalendars,
   bookingSidebarId,
   contactSettings,
   content,
+  currentBookingMonthKey,
   galleryCategories,
   galleryStyle,
   layout,
   listing,
   recommendedSection,
   settings,
+  villaCardStyle,
 }: DetailLayoutRendererProps) {
   const context = {
     advertisements,
+    bookingCalendars,
     bookingSidebarId,
     contactSettings,
     content,
+    currentBookingMonthKey,
     galleryCategories,
     galleryStyle,
     listing,
     recommendedSection,
     settings,
+    villaCardStyle,
   };
   const renderedRows =
     layout.version === 2

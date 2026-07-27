@@ -1,4 +1,7 @@
-import type { HomeSectionDraft } from "@/lib/home-sections/types";
+import type {
+  HomePageLayoutItem,
+  HomeSectionDraft,
+} from "@/lib/home-sections/types";
 
 import type { AdminHomeSectionsResponse, AdminSectionDraft } from "./types";
 import { normalizeAdminFallbackMode } from "./section-helpers";
@@ -76,6 +79,7 @@ export function mapResponseSections(
         ...section,
         fallbackMode: normalizeAdminFallbackMode(section.fallbackMode),
         draftId: existingDraftIdsBySlug.get(section.slug) ?? makeDraftId(),
+        isNew: false,
         items: section.items.map((item, itemIndex) => ({
           houseId: item.houseId,
           position: item.position ?? itemIndex,
@@ -84,6 +88,46 @@ export function mapResponseSections(
       }))
       .sort((left, right) => left.displayOrder - right.displayOrder),
   );
+}
+
+export function mapResponseHomePageConfig(
+  payload: AdminHomeSectionsResponse,
+  existingSections: AdminSectionDraft[] = [],
+) {
+  return {
+    layout: payload.layout,
+    sections: mapResponseSections(payload, existingSections),
+  };
+}
+
+export function makeHomePageConfigSnapshot(
+  layout: HomePageLayoutItem[],
+  sections: AdminSectionDraft[],
+) {
+  const sectionsBySlug = new Map(
+    sections.map((section) => [section.slug, section]),
+  );
+  const orderedSections = layout
+    .filter(
+      (item): item is Extract<HomePageLayoutItem, { kind: "rail" }> =>
+        item.kind === "rail",
+    )
+    .map((item, displayOrder) => {
+      const section = sectionsBySlug.get(item.key);
+      if (!section) {
+        throw new Error(`Missing draft for layout rail: ${item.key}`);
+      }
+
+      return { ...section, isActive: item.enabled, displayOrder };
+    });
+
+  return {
+    layout,
+    sections: orderedSections.map((section) => ({
+      ...toHomeSectionDraft(section),
+      displayOrder: section.displayOrder,
+    })),
+  };
 }
 
 export function makeNewSection(
@@ -113,6 +157,7 @@ export function makeNewSection(
     ctaHref: "",
     items: [],
     displayOrder: existingSections.length,
+    isNew: true,
   };
 }
 

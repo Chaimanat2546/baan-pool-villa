@@ -24,6 +24,31 @@ const assertHomeConfigAdminMock = vi.mocked(assertHomeConfigAdmin);
 const getBearerTokenMock = vi.mocked(getBearerToken);
 const revalidateHomeSectionsCacheMock = vi.mocked(revalidateHomeSectionsCache);
 
+const layout = [
+  { kind: "rail", key: "featured", enabled: true },
+  { kind: "fixed", key: "why_choose", enabled: true },
+  { kind: "fixed", key: "tiktok", enabled: true },
+  { kind: "fixed", key: "customer_reviews", enabled: true },
+  { kind: "fixed", key: "articles", enabled: true },
+  { kind: "fixed", key: "faq", enabled: true },
+  { kind: "fixed", key: "contact", enabled: true },
+] as const;
+
+const featuredSection = {
+  slug: "featured",
+  title: "Featured villas",
+  description: "Recommended villas",
+  mode: "manual",
+  limitCount: 1,
+  fallbackMode: "none",
+  sliceOffset: 0,
+  isActive: true,
+  ctaEnabled: false,
+  ctaLabel: "",
+  ctaHref: "",
+  items: [{ houseId: "901", isActive: true }],
+};
+
 function putRequest(body: unknown) {
   return new Request("https://example.com/api/admin/home-sections", {
     body: JSON.stringify(body),
@@ -55,6 +80,65 @@ describe("admin home sections route", () => {
     getBearerTokenMock.mockReturnValue("token");
   });
 
+  it("loads the saved layout with the editable rails", async () => {
+    const sectionOrder = vi
+      .fn()
+      .mockReturnValueOnce({ order: vi.fn().mockResolvedValue({
+        data: [{
+          slug: "featured",
+          title: "Featured villas",
+          description: "Recommended villas",
+          display_order: 0,
+          is_active: true,
+          mode: "manual",
+          limit_count: 1,
+          cta_enabled: false,
+          cta_label: null,
+          cta_href: null,
+          fallback_mode: "none",
+          slice_offset: 0,
+          home_section_items: [],
+        }],
+        error: null,
+      }) });
+    const from = vi.fn((table: string) => table === "home_sections"
+      ? { select: vi.fn(() => ({ order: sectionOrder })) }
+      : {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { layout },
+                error: null,
+              }),
+            })),
+          })),
+        });
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase: { from },
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const { GET } = await import(
+      "../../../app/(admin)/api/admin/home-sections/route"
+    );
+    const response = await GET(new Request(
+      "https://example.com/api/admin/home-sections",
+      {
+        headers: {
+          authorization: "Bearer token",
+          origin: "https://example.com",
+        },
+      },
+    ));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      layout,
+      sections: [{ slug: "featured" }],
+    });
+    expect(from).toHaveBeenCalledWith("home_page_layout");
+  });
+
   it("revalidates public home section cache after a successful save", async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null });
     assertHomeConfigAdminMock.mockResolvedValue({
@@ -67,27 +151,14 @@ describe("admin home sections route", () => {
     );
     const response = await PUT(
       putRequest({
-        sections: [
-          {
-            slug: "featured",
-            title: "Featured villas",
-            description: "Recommended villas",
-            mode: "manual",
-            limitCount: 1,
-            fallbackMode: "none",
-            sliceOffset: 0,
-            isActive: true,
-            ctaEnabled: false,
-            ctaLabel: "",
-            ctaHref: "",
-            items: [{ houseId: "901", isActive: true }],
-          },
-        ],
+        layout,
+        sections: [featuredSection],
       }),
     );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
+      layout,
       sections: [
         {
           slug: "featured",
@@ -113,31 +184,122 @@ describe("admin home sections route", () => {
       ],
     });
     expect(rpc).toHaveBeenCalledWith("save_home_section_snapshot", {
-      snapshot: [
+      snapshot: {
+        layout,
+        sections: [
+          expect.objectContaining({
+            slug: "featured",
+            display_order: 0,
+            is_active: true,
+          }),
+        ],
+      },
+    });
+    expect(revalidateHomeSectionsCacheMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves a fixed-only layout after deleting the final rail", async () => {
+    const fixedOnlyLayout = layout.filter((item) => item.kind === "fixed");
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase: { rpc },
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/home-sections/route"
+    );
+    const response = await PUT(
+      putRequest({
+        layout: fixedOnlyLayout,
+        sections: [],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      layout: fixedOnlyLayout,
+      sections: [],
+    });
+    expect(rpc).toHaveBeenCalledWith("save_home_section_snapshot", {
+      snapshot: {
+        layout: fixedOnlyLayout,
+        sections: [],
+      },
+    });
+    expect(revalidateHomeSectionsCacheMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a layout that omits a fixed section", async () => {
+    const rpc = vi.fn();
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase: { rpc },
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/home-sections/route"
+    );
+    const response = await PUT(
+      putRequest({
+        layout: layout.filter((item) => item.key !== "contact"),
+        sections: [featuredSection],
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(revalidateHomeSectionsCacheMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a warning when cache revalidation fails after the save", async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    revalidateHomeSectionsCacheMock.mockRejectedValueOnce(
+      new Error("cache unavailable"),
+    );
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: true,
+      supabase: { rpc },
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const { PUT } = await import(
+      "../../../app/(admin)/api/admin/home-sections/route"
+    );
+    const response = await PUT(
+      putRequest({
+        layout,
+        sections: [featuredSection],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      layout,
+      sections: [
         {
           slug: "featured",
           title: "Featured villas",
           description: "Recommended villas",
           mode: "manual",
-          fallback_mode: "none",
-          slice_offset: 0,
-          is_active: true,
-          limit_count: 1,
-          display_order: 0,
-          cta_enabled: false,
-          cta_label: null,
-          cta_href: null,
+          fallbackMode: "none",
+          sliceOffset: 0,
+          isActive: true,
+          limitCount: 1,
+          displayOrder: 0,
+          ctaEnabled: false,
+          ctaLabel: "",
+          ctaHref: "",
           items: [
             {
-              house_id: "901",
+              houseId: "901",
               position: 0,
-              is_active: true,
+              isActive: true,
             },
           ],
         },
       ],
+      warnings: ["บันทึกหน้าแรกแล้ว แต่การรีเฟรชแคชไม่สำเร็จ"],
     });
-    expect(revalidateHomeSectionsCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("passes disabled item state to the home section RPC payload", async () => {
@@ -152,6 +314,7 @@ describe("admin home sections route", () => {
     );
     const response = await PUT(
       putRequest({
+        layout,
         sections: [
           {
             slug: "featured",
@@ -173,16 +336,19 @@ describe("admin home sections route", () => {
 
     expect(response.status).toBe(200);
     expect(rpc).toHaveBeenCalledWith("save_home_section_snapshot", {
-      snapshot: [
-        expect.objectContaining({
-          items: [
-            expect.objectContaining({
-              house_id: "901",
-              is_active: false,
-            }),
-          ],
-        }),
-      ],
+      snapshot: {
+        layout,
+        sections: [
+          expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                house_id: "901",
+                is_active: false,
+              }),
+            ],
+          }),
+        ],
+      },
     });
   });
 

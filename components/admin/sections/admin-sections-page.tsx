@@ -1,11 +1,8 @@
 "use client";
 
 import {
-  ArrowDown,
-  ArrowUp,
   CheckCircle2,
   Eye,
-  Layers3,
   Plus,
   Save,
   Trash2,
@@ -16,13 +13,13 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 
 import {
-  moveHomeSectionDraft,
   validateHomeSectionDrafts,
 } from "@/lib/home-sections/validation";
 import {
@@ -35,9 +32,17 @@ import {
 } from "@/components/admin/admin-api-client";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
-import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
 import { AdminSectionsSkeleton } from "@/components/admin/loading/admin-sections-skeleton";
+import {
+  moveHomePageLayoutItem,
+  parseHomePageLayout,
+  validateHomePageLayout,
+} from "@/lib/home-sections/layout";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
+import type {
+  FixedHomeSectionKey,
+  HomePageLayoutItem,
+} from "@/lib/home-sections/types";
 
 import type {
   AdminHomeSectionsResponse,
@@ -50,10 +55,8 @@ import {
   ManualIdsEditor,
 } from "./manual-ids-editor";
 import { SectionConfigForm } from "./section-config-form";
-import { SectionHomePreview } from "./section-home-preview";
-import { SectionList } from "./section-list";
+import { FIXED_SECTION_LABELS, SectionList } from "./section-list";
 import {
-  getFallbackModeLabel,
   getManualIdStatus,
   getPreviewForSection,
   getSectionLabel,
@@ -61,11 +64,9 @@ import {
 } from "./section-helpers";
 import {
   isAbortSignalAborted,
+  makeHomePageConfigSnapshot,
   makeNewSection,
-  makeSectionsSnapshot,
-  mapResponseSections,
-  normalizeDisplayOrder,
-  toHomeSectionDraft,
+  mapResponseHomePageConfig,
 } from "./section-draft-helpers";
 
 type LoginRedirectReason = "admin-access";
@@ -207,16 +208,191 @@ function SectionEditorGroup({
   );
 }
 
+const FIXED_SECTION_GUIDANCE: Record<
+  FixedHomeSectionKey,
+  { description: string; ownerHref?: string; ownerLabel?: string }
+> = {
+  why_choose: {
+    description:
+      "ส่วนนี้ใช้ข้อมูลและรูปแบบที่ระบบหน้าแรกกำหนดไว้ เลือกเปิด ปิด หรือจัดลำดับได้จากรายการด้านซ้าย",
+  },
+  tiktok: {
+    description:
+      "คลิปและบัญชีที่แสดงในส่วนนี้จัดการจากหน้าคอนเทนต์ TikTok",
+    ownerHref: "/admin/tiktok",
+    ownerLabel: "ไปจัดการ TikTok",
+  },
+  customer_reviews: {
+    description:
+      "ข้อความรีวิวและสถานะเผยแพร่จัดการจากหน้าความคิดเห็นลูกค้า",
+    ownerHref: "/admin/customer-reviews",
+    ownerLabel: "ไปจัดการรีวิวจากลูกค้า",
+  },
+  articles: {
+    description:
+      "บทความที่แสดงในส่วนนี้มาจากรายการบทความแนะนำที่เผยแพร่แล้ว",
+    ownerHref: "/admin/guides",
+    ownerLabel: "ไปจัดการบทความ",
+  },
+  faq: {
+    description:
+      "คำถามที่พบบ่อยเป็นส่วนของระบบหน้าแรก หน้านี้จัดการได้เฉพาะลำดับและการแสดงผล",
+  },
+  contact: {
+    description:
+      "ช่องทางติดต่อและข้อมูลที่แสดงในส่วนนี้ใช้ค่าจากการตั้งค่าการติดต่อ",
+    ownerHref: "/admin/settings/contact",
+    ownerLabel: "ไปตั้งค่าการติดต่อ",
+  },
+};
+
+function FixedSectionPanel({
+  sectionKey,
+}: {
+  sectionKey: FixedHomeSectionKey;
+}) {
+  const guidance = FIXED_SECTION_GUIDANCE[sectionKey];
+
+  return (
+    <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
+      <span className="rounded bg-[var(--site-primary-soft)] px-2 py-1 text-xs font-semibold text-[var(--site-primary)]">
+        ส่วนของระบบ
+      </span>
+      <h2 className="mt-4 text-2xl font-semibold text-[var(--site-text)]">
+        {FIXED_SECTION_LABELS[sectionKey]}
+      </h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--site-muted)]">
+        {guidance.description}
+      </p>
+      {guidance.ownerHref ? (
+        <a
+          className="mt-5 inline-flex h-10 items-center rounded-md border border-[var(--site-border-strong)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-primary)]"
+          href={guidance.ownerHref}
+        >
+          {guidance.ownerLabel}
+        </a>
+      ) : null}
+    </section>
+  );
+}
+
+function mapValidatedHomePageConfig(
+  payload: unknown,
+  existingSections: AdminSectionDraft[] = [],
+) {
+  try {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("Invalid response");
+    }
+
+    const response = payload as Record<string, unknown>;
+    const parsedLayout = parseHomePageLayout(response.layout);
+    if (
+      parsedLayout.errors.length > 0 ||
+      !Array.isArray(response.sections) ||
+      !response.sections.every(isAdminHomeSectionRow)
+    ) {
+      throw new Error("Invalid response");
+    }
+
+    const config = mapResponseHomePageConfig(
+      {
+        layout: parsedLayout.items,
+        sections: response.sections,
+      },
+      existingSections,
+    );
+    const snapshot = makeHomePageConfigSnapshot(
+      config.layout,
+      config.sections,
+    );
+    const validationErrors = validateHomePageLayout(
+      config.layout,
+      config.sections.map((section) => section.slug),
+    );
+
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors.join("\n"));
+    }
+
+    return {
+      ...config,
+      snapshot: JSON.stringify(snapshot),
+    };
+  } catch {
+    throw new Error("ไม่สามารถใช้ข้อมูลหน้าแรกที่เซิร์ฟเวอร์ส่งกลับได้");
+  }
+}
+
+function isAdminHomeSectionRow(
+  value: unknown,
+): value is AdminHomeSectionsResponse["sections"][number] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const row = value as Record<string, unknown>;
+  return (
+    typeof row.slug === "string" &&
+    typeof row.title === "string" &&
+    typeof row.description === "string" &&
+    typeof row.mode === "string" &&
+    typeof row.fallbackMode === "string" &&
+    typeof row.sliceOffset === "number" &&
+    Number.isSafeInteger(row.sliceOffset) &&
+    typeof row.isActive === "boolean" &&
+    typeof row.limitCount === "number" &&
+    Number.isSafeInteger(row.limitCount) &&
+    typeof row.displayOrder === "number" &&
+    Number.isSafeInteger(row.displayOrder) &&
+    typeof row.ctaEnabled === "boolean" &&
+    typeof row.ctaLabel === "string" &&
+    typeof row.ctaHref === "string" &&
+    Array.isArray(row.items) &&
+    row.items.every((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return false;
+      }
+
+      const sectionItem = item as Record<string, unknown>;
+      return (
+        typeof sectionItem.houseId === "string" &&
+        typeof sectionItem.isActive === "boolean" &&
+        (sectionItem.position === undefined ||
+          (typeof sectionItem.position === "number" &&
+            Number.isSafeInteger(sectionItem.position)))
+      );
+    })
+  );
+}
+
+function readResponseWarnings(payload: unknown): string[] {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return [];
+  }
+
+  const warnings = (payload as Record<string, unknown>).warnings;
+  return Array.isArray(warnings)
+    ? warnings.filter(
+        (warning): warning is string => typeof warning === "string",
+      )
+    : [];
+}
+
 export function AdminSectionsPage() {
-  const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();
   const titleErrorTargetRef = useRef<HTMLLabelElement | null>(null);
   const descriptionErrorTargetRef = useRef<HTMLLabelElement | null>(null);
   const limitCountErrorTargetRef = useRef<HTMLDivElement | null>(null);
   const manualIdsErrorTargetRef = useRef<HTMLDivElement | null>(null);
+  const [layout, setLayout] = useState<HomePageLayoutItem[]>([]);
   const [sections, setSections] = useState<AdminSectionDraft[]>([]);
-  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
-  const [draggedDraftId, setDraggedDraftId] = useState<string | null>(null);
+  const [activeLayoutIdentity, setActiveLayoutIdentity] = useState<
+    string | null
+  >(null);
+  const [draggedLayoutIdentity, setDraggedLayoutIdentity] = useState<
+    string | null
+  >(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -231,38 +407,41 @@ export function AdminSectionsPage() {
     string | null
   >(null);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
-  const [preview, setPreview] = useState<AdminManualPreviewResponse | null>(
-    null,
-  );
-  const [previewDraftId, setPreviewDraftId] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
 
+  const activeLayoutItem =
+    layout.find(
+      (item) => `${item.kind}:${item.key}` === activeLayoutIdentity,
+    ) ?? null;
   const activeSection = useMemo(
     () =>
-      sections.find((section) => section.draftId === activeDraftId) ??
-      sections[0] ??
-      null,
-    [activeDraftId, sections],
+      activeLayoutItem?.kind === "rail"
+        ? (sections.find(
+            (section) => section.slug === activeLayoutItem.key,
+          ) ?? null)
+        : null,
+    [activeLayoutItem, sections],
   );
-  const activeIndex = activeSection
-    ? sections.findIndex((section) => section.draftId === activeSection.draftId)
+  const activeIndex = activeLayoutItem
+    ? layout.indexOf(activeLayoutItem)
     : -1;
   const hasErrors = errors.length > 0;
   const currentSnapshot = useMemo(
-    () => makeSectionsSnapshot(sections),
-    [sections],
+    () => JSON.stringify(makeHomePageConfigSnapshot(layout, sections)),
+    [layout, sections],
   );
+  const currentSnapshotRef = useRef(currentSnapshot);
+  const sectionsRef = useRef(sections);
+  const activeLayoutIdentityRef = useRef(activeLayoutIdentity);
+  const saveInFlightRef = useRef(false);
   const hasUnsavedChanges =
     savedSnapshot !== null && currentSnapshot !== savedSnapshot;
   const activeSectionsCount = useMemo(
-    () => sections.filter((section) => section.isActive).length,
-    [sections],
+    () => layout.filter((item) => item.enabled).length + 1,
+    [layout],
   );
   const deleteNeedsConfirmation =
     activeSection !== null && pendingDeleteDraftId === activeSection.draftId;
-  const activePreview =
-    activeSection !== null && previewDraftId === activeSection.draftId
-      ? preview
-      : null;
   const activeManualDraftId =
     activeSection?.mode === "manual" ? activeSection.draftId : null;
   const activeManualHouseIdsKey =
@@ -272,15 +451,15 @@ export function AdminSectionsPage() {
   const activeModeLabel = activeSection
     ? (MODE_LABELS.get(activeSection.mode) ?? activeSection.mode)
     : null;
-  const activeManualStatus =
-    activeSection?.mode === "manual" ? getManualIdStatus(activeSection) : null;
-  const duplicateManualIds = activeManualStatus?.duplicateIds.length ?? 0;
-  const invalidManualIds = activeManualStatus?.invalidIds.length ?? 0;
-  const hasValidatedManualIds =
-    activeSection?.mode === "manual" && activePreview !== null;
   const activeFieldErrors = activeSection
     ? (fieldErrors[activeSection.draftId] ?? {})
     : {};
+
+  useLayoutEffect(() => {
+    currentSnapshotRef.current = currentSnapshot;
+    sectionsRef.current = sections;
+    activeLayoutIdentityRef.current = activeLayoutIdentity;
+  }, [activeLayoutIdentity, currentSnapshot, sections]);
 
   useEffect(() => {
     if (
@@ -312,6 +491,7 @@ export function AdminSectionsPage() {
 
   function clearValidationFeedback() {
     setErrors([]);
+    setWarnings([]);
     setFieldErrors({});
     setPendingErrorTarget(null);
   }
@@ -348,13 +528,14 @@ export function AdminSectionsPage() {
     async (
       token: string,
       showLoading: boolean,
-      activeSectionDraftId: string | null,
+      selectedLayoutIdentity: string | null,
     ) => {
       if (showLoading) {
         setIsLoading(true);
       }
 
       setErrors([]);
+      setWarnings([]);
       setFieldErrors({});
       setPendingErrorTarget(null);
 
@@ -365,9 +546,7 @@ export function AdminSectionsPage() {
           },
         });
 
-        const payload = (await readJsonPayload(
-          response,
-        )) as AdminHomeSectionsResponse | null;
+        const payload = await readJsonPayload(response);
 
         if (shouldRedirectToLogin(response.status, payload)) {
           redirectToLogin("admin-access");
@@ -379,22 +558,24 @@ export function AdminSectionsPage() {
           return;
         }
 
-        const mappedSections = mapResponseSections(payload);
-        const nextActiveDraftId =
-          mappedSections.find(
-            (section) => section.draftId === activeSectionDraftId,
-          )?.draftId ??
-          mappedSections[0]?.draftId ??
-          null;
+        const mappedConfig = mapValidatedHomePageConfig(payload);
+        const nextActiveLayoutIdentity =
+          mappedConfig.layout.some(
+            (item) =>
+              `${item.kind}:${item.key}` === selectedLayoutIdentity,
+          )
+            ? selectedLayoutIdentity
+            : mappedConfig.layout[0]
+              ? `${mappedConfig.layout[0].kind}:${mappedConfig.layout[0].key}`
+              : null;
 
-        setSections(mappedSections);
-        setSavedSnapshot(makeSectionsSnapshot(mappedSections));
+        setLayout(mappedConfig.layout);
+        setSections(mappedConfig.sections);
+        setSavedSnapshot(mappedConfig.snapshot);
         setManualHouses([]);
         setFieldErrors({});
         setPendingErrorTarget(null);
-        setActiveDraftId(nextActiveDraftId);
-        setPreview(null);
-        setPreviewDraftId(null);
+        setActiveLayoutIdentity(nextActiveLayoutIdentity);
         setPendingDeleteDraftId(null);
       } catch (caughtError) {
         setErrors([
@@ -451,8 +632,7 @@ export function AdminSectionsPage() {
     clearValidationFeedback();
     setPendingDeleteDraftId(null);
     if ("items" in changes || "mode" in changes) {
-      setPreview(null);
-      setPreviewDraftId(null);
+      setWarnings([]);
     }
     setSections((currentSections) =>
       currentSections.map((section) =>
@@ -465,81 +645,100 @@ export function AdminSectionsPage() {
     setNotice(null);
     clearValidationFeedback();
     setPendingDeleteDraftId(null);
-    setSections((currentSections) => {
-      const nextSection = makeNewSection(currentSections);
-
-      setActiveDraftId(nextSection.draftId);
-      return [...currentSections, nextSection];
-    });
+    const nextSection = makeNewSection(sections);
+    setSections([...sections, nextSection]);
+    setLayout([
+      ...layout,
+      { enabled: true, key: nextSection.slug, kind: "rail" },
+    ]);
+    setActiveLayoutIdentity(`rail:${nextSection.slug}`);
   }
 
   function deleteSection(draftId: string) {
     setNotice(null);
     clearValidationFeedback();
     setPendingDeleteDraftId(null);
-    setSections((currentSections) => {
-      const nextSections = normalizeDisplayOrder(
-        currentSections.filter((section) => section.draftId !== draftId),
-      );
+    const deletedSection = sections.find(
+      (section) => section.draftId === draftId,
+    );
+    if (!deletedSection) return;
 
-      if (activeDraftId === draftId) {
-        setActiveDraftId(nextSections[0]?.draftId ?? null);
-      }
-
-      return nextSections;
-    });
+    const nextLayout = layout.filter(
+      (item) =>
+        !(item.kind === "rail" && item.key === deletedSection.slug),
+    );
+    setSections(
+      sections.filter((section) => section.draftId !== draftId),
+    );
+    setLayout(nextLayout);
+    setActiveLayoutIdentity(
+      nextLayout[0]
+        ? `${nextLayout[0].kind}:${nextLayout[0].key}`
+        : null,
+    );
   }
 
-  function moveSection(fromIndex: number, toIndex: number) {
+  function moveLayoutItem(fromIndex: number, toIndex: number) {
     setNotice(null);
     clearValidationFeedback();
     setPendingDeleteDraftId(null);
-    setSections((currentSections) => {
-      const activeId = currentSections[activeIndex]?.draftId ?? activeDraftId;
-      const movedSections = moveHomeSectionDraft(
-        currentSections,
-        fromIndex,
-        toIndex,
-      );
-
-      if (activeId) {
-        setActiveDraftId(activeId);
-      }
-
-      return movedSections;
-    });
+    setLayout((currentLayout) =>
+      moveHomePageLayoutItem(currentLayout, fromIndex, toIndex),
+    );
   }
 
-  function handleDragStart(draftId: string) {
+  function handleDragStart(identity: string) {
     setPendingDeleteDraftId(null);
-    setDraggedDraftId(draftId);
+    setDraggedLayoutIdentity(identity);
   }
 
-  function handleDragOver(event: DragEvent<HTMLButtonElement>) {
+  function handleDragOver(event: DragEvent<HTMLElement>) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   }
 
-  function handleDrop(targetDraftId: string) {
-    if (!draggedDraftId || draggedDraftId === targetDraftId) {
-      setDraggedDraftId(null);
+  function handleDrop(targetIdentity: string) {
+    if (!draggedLayoutIdentity || draggedLayoutIdentity === targetIdentity) {
+      setDraggedLayoutIdentity(null);
       return;
     }
 
-    const fromIndex = sections.findIndex(
-      (section) => section.draftId === draggedDraftId,
+    const fromIndex = layout.findIndex(
+      (item) => `${item.kind}:${item.key}` === draggedLayoutIdentity,
     );
-    const toIndex = sections.findIndex(
-      (section) => section.draftId === targetDraftId,
+    const toIndex = layout.findIndex(
+      (item) => `${item.kind}:${item.key}` === targetIdentity,
     );
 
-    moveSection(fromIndex, toIndex);
-    setDraggedDraftId(null);
+    moveLayoutItem(fromIndex, toIndex);
+    setDraggedLayoutIdentity(null);
   }
 
-  function selectSection(draftId: string) {
-    setActiveDraftId(draftId);
+  function selectLayoutItem(identity: string) {
+    setActiveLayoutIdentity(identity);
     setPendingDeleteDraftId(null);
+  }
+
+  function toggleLayoutItem(identity: string, enabled: boolean) {
+    setNotice(null);
+    clearValidationFeedback();
+    setPendingDeleteDraftId(null);
+    setLayout((currentLayout) =>
+      currentLayout.map((item) =>
+        `${item.kind}:${item.key}` === identity
+          ? { ...item, enabled }
+          : item,
+      ),
+    );
+
+    if (identity.startsWith("rail:")) {
+      const slug = identity.slice("rail:".length);
+      setSections((currentSections) =>
+        currentSections.map((section) =>
+          section.slug === slug ? { ...section, isActive: enabled } : section,
+        ),
+      );
+    }
   }
 
   function requestDeleteSection(draftId: string) {
@@ -646,17 +845,19 @@ export function AdminSectionsPage() {
     async ({
       draftId,
       houseIds,
+      houseIdsKey,
+      layoutIdentity,
       showErrors,
       signal,
     }: {
       draftId: string;
       houseIds: string[];
+      houseIdsKey: string;
+      layoutIdentity: string;
       showErrors: boolean;
       signal?: AbortSignal;
     }) => {
       if (houseIds.length === 0) {
-        setPreview(null);
-        setPreviewDraftId(null);
         setIsPreviewing(false);
         return;
       }
@@ -680,8 +881,45 @@ export function AdminSectionsPage() {
           return;
         }
 
-        setPreview(payload);
-        setPreviewDraftId(draftId);
+        const currentSection = sectionsRef.current.find(
+          (section) => section.draftId === draftId,
+        );
+        const currentHouseIdsKey = currentSection?.items
+          .map((item) => item.houseId)
+          .join("\n");
+        if (
+          activeLayoutIdentityRef.current !== layoutIdentity ||
+          currentHouseIdsKey !== houseIdsKey
+        ) {
+          return;
+        }
+
+        const manualIdsErrors = [
+          ...(payload.missingIds.length > 0
+            ? [
+                `ไม่พบเลขบ้านในรายการบ้าน: ${payload.missingIds.join(", ")}`,
+              ]
+            : []),
+          ...(payload.invalidIds.length > 0
+            ? [
+                `เลขบ้านรูปแบบไม่ถูกต้อง: ${payload.invalidIds.join(", ")}`,
+              ]
+            : []),
+        ];
+
+        if (manualIdsErrors.length > 0) {
+          setFieldErrors((currentErrors) => ({
+            ...currentErrors,
+            [draftId]: {
+              ...currentErrors[draftId],
+              manualIds: manualIdsErrors,
+            },
+          }));
+          setPendingErrorTarget({ draftId, field: "manualIds" });
+          setNotice(null);
+        } else {
+          setNotice("ตรวจเลขบ้านแล้ว");
+        }
       } catch (caughtError) {
         const isAbortError =
           caughtError instanceof DOMException &&
@@ -703,20 +941,24 @@ export function AdminSectionsPage() {
 
   async function handlePreviewActiveManualIds() {
     if (!activeManualDraftId || !activeManualHouseIdsKey) {
-      setPreview(null);
-      setPreviewDraftId(null);
       return;
     }
 
     await previewManualIds({
       draftId: activeManualDraftId,
       houseIds: activeManualHouseIdsKey.split("\n"),
+      houseIdsKey: activeManualHouseIdsKey,
+      layoutIdentity: activeLayoutIdentity ?? "",
       showErrors: true,
     });
   }
 
-  async function validateManualSectionsBeforeSave(token: string) {
-    const manualSections = sections
+  async function validateManualSectionsBeforeSave(
+    token: string,
+    submittedSections: AdminSectionDraft[],
+    submittedSnapshot: string,
+  ) {
+    const manualSections = submittedSections
       .map((section, sectionIndex) => ({ section, sectionIndex }))
       .filter(
         ({ section }) => section.mode === "manual" && section.items.length > 0,
@@ -739,10 +981,7 @@ export function AdminSectionsPage() {
 
     const previewFieldErrors: SectionFieldErrorsByDraftId = {};
     let firstPreviewTarget: SectionErrorTarget | null = null;
-    let firstProblem: {
-      section: AdminSectionDraft;
-      sectionPreview: AdminManualPreviewResponse;
-    } | null = null;
+    let firstProblem: AdminSectionDraft | null = null;
 
     for (const { section, sectionIndex } of manualSections) {
       const sectionPreview = getPreviewForSection(section, combinedPreview);
@@ -753,7 +992,7 @@ export function AdminSectionsPage() {
         continue;
       }
 
-      firstProblem ??= { section, sectionPreview };
+      firstProblem ??= section;
       const sectionLabel = getSectionLabel(section, sectionIndex);
 
       if (sectionPreview.missingIds.length > 0) {
@@ -777,25 +1016,25 @@ export function AdminSectionsPage() {
       }
     }
 
-    const activeManualSection =
-      activeSection?.mode === "manual" && activeSection.items.length > 0
-        ? activeSection
-        : null;
-    const previewSection = firstProblem?.section ?? activeManualSection;
-
-    if (previewSection) {
-      setPreview(getPreviewForSection(previewSection, combinedPreview));
-      setPreviewDraftId(previewSection.draftId);
-    }
-
     if (firstProblem) {
-      setActiveDraftId(firstProblem.section.draftId);
+      if (currentSnapshotRef.current !== submittedSnapshot) {
+        return false;
+      }
+      setActiveLayoutIdentity(`rail:${firstProblem.slug}`);
     }
 
     if (firstPreviewTarget) {
+      if (currentSnapshotRef.current !== submittedSnapshot) {
+        return false;
+      }
       setErrors([]);
       setFieldErrors(previewFieldErrors);
-      setActiveDraftId(firstPreviewTarget.draftId);
+      const targetSection = submittedSections.find(
+        (section) => section.draftId === firstPreviewTarget.draftId,
+      );
+      setActiveLayoutIdentity(
+        targetSection ? `rail:${targetSection.slug}` : activeLayoutIdentity,
+      );
       setPendingErrorTarget(firstPreviewTarget);
       return false;
     }
@@ -804,22 +1043,40 @@ export function AdminSectionsPage() {
   }
 
   async function handleSave() {
+    if (saveInFlightRef.current) {
+      return;
+    }
+
+    saveInFlightRef.current = true;
+    setIsSaving(true);
+
+    try {
     if (!hasUnsavedChanges) {
       setNotice("ยังไม่มีรายการที่เปลี่ยนใหม่");
       return;
     }
 
-    const sectionDrafts = sections.map(toHomeSectionDraft);
+    const submittedSections = sections;
+    const configSnapshot = makeHomePageConfigSnapshot(layout, sections);
+    const submittedSnapshot = JSON.stringify(configSnapshot);
+    const sectionDrafts = configSnapshot.sections;
     const validationErrors = validateHomeSectionDrafts(sectionDrafts);
     const sectionFieldErrors = getSectionFieldErrors(sections);
 
     setNotice(null);
+    setWarnings([]);
     setErrors(sectionFieldErrors.firstTarget ? [] : validationErrors);
     setFieldErrors(sectionFieldErrors.fieldErrors);
 
     if (validationErrors.length > 0) {
       if (sectionFieldErrors.firstTarget) {
-        setActiveDraftId(sectionFieldErrors.firstTarget.draftId);
+        const targetSection = sections.find(
+          (section) =>
+            section.draftId === sectionFieldErrors.firstTarget?.draftId,
+        );
+        setActiveLayoutIdentity(
+          targetSection ? `rail:${targetSection.slug}` : activeLayoutIdentity,
+        );
         setPendingErrorTarget(sectionFieldErrors.firstTarget);
       }
       return;
@@ -831,11 +1088,12 @@ export function AdminSectionsPage() {
       return;
     }
 
-    setIsSaving(true);
-
-    try {
       const manualSectionsAreReady =
-        await validateManualSectionsBeforeSave(token);
+        await validateManualSectionsBeforeSave(
+          token,
+          submittedSections,
+          submittedSnapshot,
+        );
 
       if (!manualSectionsAreReady) {
         return;
@@ -847,7 +1105,7 @@ export function AdminSectionsPage() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ sections: sectionDrafts }),
+        body: JSON.stringify(configSnapshot),
       });
       const payload = await readJsonPayload(response);
 
@@ -865,25 +1123,34 @@ export function AdminSectionsPage() {
         return;
       }
 
+      const mappedConfig = mapValidatedHomePageConfig(
+        payload,
+        submittedSections,
+      );
+
       setNotice("บันทึกการจัดหน้าแรกแล้ว");
-      setFieldErrors({});
-      setPendingErrorTarget(null);
-      const mappedSections = mapResponseSections(
-        payload as AdminHomeSectionsResponse,
-        sections,
-      );
-      setSections(mappedSections);
-      setSavedSnapshot(makeSectionsSnapshot(mappedSections));
-      setManualHouses([]);
-      setActiveDraftId(
-        mappedSections.find((section) => section.draftId === activeDraftId)
-          ?.draftId ??
-          mappedSections[0]?.draftId ??
-          null,
-      );
-      setPreview(null);
-      setPreviewDraftId(null);
-      setPendingDeleteDraftId(null);
+      setSavedSnapshot(mappedConfig.snapshot);
+      setWarnings(readResponseWarnings(payload));
+      if (currentSnapshotRef.current === submittedSnapshot) {
+        const currentActiveLayoutIdentity =
+          activeLayoutIdentityRef.current;
+        setFieldErrors({});
+        setPendingErrorTarget(null);
+        setLayout(mappedConfig.layout);
+        setSections(mappedConfig.sections);
+        setManualHouses([]);
+        setActiveLayoutIdentity(
+          mappedConfig.layout.some(
+            (item) =>
+              `${item.kind}:${item.key}` === currentActiveLayoutIdentity,
+          )
+            ? currentActiveLayoutIdentity
+            : mappedConfig.layout[0]
+              ? `${mappedConfig.layout[0].kind}:${mappedConfig.layout[0].key}`
+              : null,
+        );
+        setPendingDeleteDraftId(null);
+      }
     } catch (caughtError) {
       setFieldErrors({});
       setPendingErrorTarget(null);
@@ -891,6 +1158,7 @@ export function AdminSectionsPage() {
         getAdminErrorMessage(caughtError, "ไม่สามารถบันทึกการจัดหน้าแรกได้"),
       ]);
     } finally {
+      saveInFlightRef.current = false;
       setIsSaving(false);
     }
   }
@@ -910,8 +1178,8 @@ export function AdminSectionsPage() {
               จัดชุดบ้านพักหน้าแรก
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
-              จัดลำดับแต่ละชุด กำหนดวิธีคัดบ้าน
-              และเช็กภาพรวมก่อนบันทึกให้หน้าแรกแสดงผลตามที่ต้องการ
+              จัดลำดับส่วนต่าง ๆ เปิดหรือปิดการแสดงผล
+              และกำหนดวิธีคัดบ้านก่อนบันทึก
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
               <span
@@ -930,7 +1198,7 @@ export function AdminSectionsPage() {
                 ทั้งหมด {sections.length} ชุด
               </span>
               <span className="rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-text)] ring-1 ring-[var(--site-border)]">
-                เปิดใช้งาน {activeSectionsCount} ชุด
+                เปิดใช้งาน {activeSectionsCount} ส่วน
               </span>
             </div>
           </div>
@@ -975,43 +1243,42 @@ export function AdminSectionsPage() {
         errors={hasErrors ? errors : []}
         errorTitle="แก้รายการเหล่านี้ก่อนบันทึก:"
         notice={notice}
+        warnings={warnings}
       />
 
       {isLoading ? (
         <AdminSectionsSkeleton />
       ) : (
-        <div
-          className={`grid min-h-0 gap-4 ${
-            isDesktopNavCollapsed
-              ? "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_400px]"
-              : "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]"
-          }`}
-        >
-          <aside className="grid content-start gap-3 xl:sticky xl:top-24 xl:self-start">
+        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
+          <aside className="grid content-start gap-3 lg:sticky lg:top-24 lg:self-start">
             <div className="px-1">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-muted)]">
                 Master
               </p>
               <h2 className="mt-1 text-lg font-semibold text-[var(--site-text)]">
-                รายการชุดบนหน้าแรก
+                ส่วนต่าง ๆ บนหน้าแรก
               </h2>
               <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
-                เลือกชุดที่ต้องการแก้ไข หรือลากเพื่อเปลี่ยนลำดับการแสดงผล
+                Hero อยู่บนสุดเสมอ ส่วนด้านล่างเรียงลำดับและเปิดปิดได้
               </p>
             </div>
             <SectionList
-              activeDraftId={activeSection?.draftId ?? null}
-              onDragEnd={() => setDraggedDraftId(null)}
+              activeLayoutIdentity={activeLayoutIdentity}
+              layout={layout}
+              onDragEnd={() => setDraggedLayoutIdentity(null)}
               onDragOver={handleDragOver}
               onDragStart={handleDragStart}
               onDrop={handleDrop}
-              onSelect={selectSection}
+              onMove={moveLayoutItem}
+              onSelect={selectLayoutItem}
+              onToggle={toggleLayoutItem}
               sections={sections}
             />
           </aside>
 
-          {activeSection ? (
-            <>
+          {activeLayoutItem?.kind === "fixed" ? (
+            <FixedSectionPanel sectionKey={activeLayoutItem.key} />
+          ) : activeSection ? (
               <section className="overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
                 <div className="border-b border-[var(--site-border)] bg-[var(--site-surface-soft)]/80 px-4 py-4 sm:px-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1021,7 +1288,7 @@ export function AdminSectionsPage() {
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold">
                         <span className="rounded-full bg-[var(--site-surface)] px-2.5 py-1 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
-                          ชุดที่ {activeIndex + 1}
+                          ลำดับที่ {activeIndex + 2}
                         </span>
                         <span className="rounded-full bg-[var(--site-surface)] px-2.5 py-1 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
                           {activeModeLabel}
@@ -1046,45 +1313,6 @@ export function AdminSectionsPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                      <label className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-text)] shadow-sm">
-                        <input
-                          checked={activeSection.isActive}
-                          className="size-4 accent-[var(--site-primary)]"
-                          onChange={(event) => {
-                            updateSection(activeSection.draftId, {
-                              isActive: event.target.checked,
-                            });
-                          }}
-                          type="checkbox"
-                        />
-                        แสดงบนหน้าแรก
-                      </label>
-                      <button
-                        aria-label="เลื่อนชุดบ้านพักที่เลือกขึ้น"
-                        className="inline-flex size-10 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={activeIndex <= 0}
-                        onClick={() => {
-                          moveSection(activeIndex, activeIndex - 1);
-                        }}
-                        title="เลื่อนขึ้น"
-                        type="button"
-                      >
-                        <ArrowUp aria-hidden="true" className="size-4" />
-                      </button>
-                      <button
-                        aria-label="เลื่อนชุดบ้านพักที่เลือกลง"
-                        className="inline-flex size-10 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={
-                          activeIndex < 0 || activeIndex >= sections.length - 1
-                        }
-                        onClick={() => {
-                          moveSection(activeIndex, activeIndex + 1);
-                        }}
-                        title="เลื่อนลง"
-                        type="button"
-                      >
-                        <ArrowDown aria-hidden="true" className="size-4" />
-                      </button>
                       <button
                         className={`inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-semibold shadow-sm transition ${
                           deleteNeedsConfirmation
@@ -1262,115 +1490,14 @@ export function AdminSectionsPage() {
                   </SectionEditorGroup>
                 </div>
               </section>
-
-              <aside className="grid content-start gap-4 xl:col-start-2 2xl:sticky 2xl:top-24 2xl:col-start-auto 2xl:self-start">
-                <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--site-primary)]">
-                        Prototype
-                      </p>
-                      <h3 className="mt-2 text-lg font-semibold text-[var(--site-text)]">
-                        สรุปก่อนบันทึก
-                      </h3>
-                    </div>
-                    <Layers3
-                      aria-hidden="true"
-                      className="size-5 text-[var(--site-primary)]"
-                    />
-                  </div>
-
-                  <dl className="mt-4 grid gap-3 text-sm">
-                    <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                      <dt className="text-[var(--site-muted)]">ลำดับแสดงผล</dt>
-                      <dd className="text-right font-semibold text-[var(--site-text)]">
-                        ชุดที่ {activeIndex + 1}
-                      </dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                      <dt className="text-[var(--site-muted)]">รูปแบบการคัด</dt>
-                      <dd className="text-right font-semibold text-[var(--site-text)]">
-                        {activeModeLabel}
-                      </dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                      <dt className="text-[var(--site-muted)]">
-                        จำนวนที่ตั้งไว้
-                      </dt>
-                      <dd className="text-right font-semibold text-[var(--site-text)]">
-                        {activeSection.limitCount.toLocaleString("th-TH")} หลัง
-                      </dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                      <dt className="text-[var(--site-muted)]">
-                        การเติมรายการ
-                      </dt>
-                      <dd className="max-w-[14rem] text-right font-semibold text-[var(--site-text)]">
-                        {getFallbackModeLabel(activeSection.fallbackMode)}
-                      </dd>
-                    </div>
-                    {activeSection.mode === "manual" ? (
-                      <>
-                        <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                          <dt className="text-[var(--site-muted)]">
-                            เลขบ้านที่กรอก
-                          </dt>
-                          <dd className="text-right font-semibold text-[var(--site-text)]">
-                            {activeSection.items.length.toLocaleString("th-TH")}{" "}
-                            รายการ
-                          </dd>
-                        </div>
-                        <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] pb-3">
-                          <dt className="text-[var(--site-muted)]">
-                            เลขซ้ำ / ไม่ถูกต้อง
-                          </dt>
-                          <dd className="text-right font-semibold text-[var(--site-text)]">
-                            {duplicateManualIds.toLocaleString("th-TH")} /{" "}
-                            {invalidManualIds.toLocaleString("th-TH")}
-                          </dd>
-                        </div>
-                        <div className="flex items-start justify-between gap-4">
-                          <dt className="text-[var(--site-muted)]">
-                            สถานะเลขบ้าน
-                          </dt>
-                          <dd className="text-right font-semibold text-[var(--site-text)]">
-                            {hasValidatedManualIds
-                              ? "ตรวจเลขบ้านแล้ว"
-                              : "รอตรวจเลขบ้าน"}
-                          </dd>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex items-start justify-between gap-4">
-                        <dt className="text-[var(--site-muted)]">
-                          เลื่อนรายการเริ่มที่
-                        </dt>
-                        <dd className="text-right font-semibold text-[var(--site-text)]">
-                          {activeSection.sliceOffset.toLocaleString("th-TH")}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
-                </section>
-
-                <SectionHomePreview
-                  preview={activePreview}
-                  section={activeSection}
-                />
-              </aside>
-            </>
           ) : (
-            <div className="grid place-items-center rounded-2xl border border-dashed border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-10 text-center xl:col-span-2">
+            <div className="grid place-items-center rounded-2xl border border-dashed border-[var(--site-border)] bg-[var(--site-surface)] px-4 py-10 text-center">
               <div className="max-w-md">
-                <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
-                  <Layers3 aria-hidden="true" className="size-6" />
-                </div>
-                <h2 className="mt-4 text-xl font-semibold text-[var(--site-text)]">
+                <h2 className="text-xl font-semibold text-[var(--site-text)]">
                   ยังไม่มีชุดบ้านพัก
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--site-muted)]">
-                  เริ่มจากเพิ่มชุดบ้านพักชุดแรก แล้วค่อยกำหนดข้อความ
-                  รูปแบบคัดบ้าน และพรีวิวก่อนบันทึก
+                  เพิ่มชุดบ้านพักเพื่อเริ่มกำหนดข้อความและวิธีคัดบ้าน
                 </p>
                 <button
                   className="mt-5 inline-flex h-11 items-center gap-2 rounded-md bg-[var(--site-primary)] px-5 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)]"

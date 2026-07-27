@@ -7,6 +7,8 @@ import {
 } from "@/lib/guides/server";
 import type { GuidePost } from "@/lib/guides/types";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import { fetchHouseListings } from "@/lib/villas/server";
 
 vi.mock("server-only", () => ({}));
@@ -33,6 +35,10 @@ vi.mock("@/lib/site-settings/server", () => ({
   getSiteSettings: vi.fn(),
 }));
 
+vi.mock("@/lib/site-web-styles/server", () => ({
+  getSiteWebStyles: vi.fn(),
+}));
+
 vi.mock("@/lib/villas/server", () => ({
   fetchHouseListings: vi.fn(),
 }));
@@ -57,10 +63,12 @@ const fetchHouseListingsMock = vi.mocked(fetchHouseListings);
 const getGuideBySlugMock = vi.mocked(getGuideBySlug);
 const getPublishedGuidesMock = vi.mocked(getPublishedGuides);
 const getSiteSettingsMock = vi.mocked(getSiteSettings);
+const getSiteWebStylesMock = vi.mocked(getSiteWebStyles);
 const resolveGuideRecommendedVillasMock = vi.mocked(resolveGuideRecommendedVillas);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getSiteWebStylesMock.mockResolvedValue(DEFAULT_SITE_WEB_STYLES);
 });
 
 describe("guide detail route config", () => {

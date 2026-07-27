@@ -17,6 +17,7 @@ import {
   type VillaSortKey,
 } from "@/lib/villas/filters";
 import { SEARCH_FACETS } from "@/lib/villas/search-options";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import type { VillaFilters, VillaListing } from "@/lib/villas/types";
 
 import { VillaGrid } from "../listing/villa-grid";
@@ -41,6 +42,7 @@ interface SearchPageProps {
   initialSearchParams?: string;
   initialVillas?: VillaListing[];
   initialMeta?: SearchPageInitialMeta;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 interface SearchPageSnapshot {
@@ -202,6 +204,7 @@ export function SearchPage({
   initialLoadError = null,
   initialSearchParams,
   initialVillas = [],
+  villaCardStyle,
   initialMeta,
 }: SearchPageProps) {
   const browserSearchParams = useSearchParams();
@@ -737,7 +740,10 @@ export function SearchPage({
             </div>
           ) : (
             <>
-              <VillaGrid villas={visibleVillas} />
+              <VillaGrid
+                villas={visibleVillas}
+                villaCardStyle={villaCardStyle}
+              />
               {isCatalogAppending ? (
                 <div className="mt-6">
                   <VillaGridSkeleton

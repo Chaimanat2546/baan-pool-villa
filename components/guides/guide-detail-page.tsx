@@ -15,6 +15,7 @@ import {
   normalizePublicImageSourceUrl,
 } from "@/lib/public-image-proxy";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import type { VillaListing } from "@/lib/villas/types";
 
 interface GuideDetailPageProps {
@@ -24,6 +25,7 @@ interface GuideDetailPageProps {
   relatedGuides: GuidePost[];
   settings?: SiteContactSettings;
   sidebar?: ReactNode;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 interface GuideBlock {
@@ -516,7 +518,13 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
  * @param villas - Array of villa listings to show; only the first six items are displayed
  * @returns A sidebar JSX element containing the recommended villa cards, or `null` when `villas` is empty
  */
-export function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) {
+export function RecommendedVillaSidebar({
+  villas,
+  villaCardStyle,
+}: {
+  villas: VillaListing[];
+  villaCardStyle?: SiteVillaCardStyle;
+}) {
   if (villas.length === 0) {
     return null;
   }
@@ -541,7 +549,7 @@ export function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) 
         >
           {villas.slice(0, 6).map((villa) => (
             <div key={villa.id} className="w-[290px] shrink-0 snap-start">
-              <VillaCard villa={villa} />
+              <VillaCard villa={villa} villaCardStyle={villaCardStyle} />
             </div>
           ))}
         </ScrollRail>
@@ -549,7 +557,11 @@ export function RecommendedVillaSidebar({ villas }: { villas: VillaListing[] }) 
 
       <div className="hidden gap-4 lg:grid lg:grid-cols-1">
         {villas.slice(0, 6).map((villa) => (
-          <VillaCard key={villa.id} villa={villa} />
+          <VillaCard
+            key={villa.id}
+            villa={villa}
+            villaCardStyle={villaCardStyle}
+          />
         ))}
       </div>
     </aside>
@@ -636,6 +648,7 @@ export function GuideDetailPage({
   relatedGuides,
   settings,
   sidebar,
+  villaCardStyle,
 }: GuideDetailPageProps) {
   const coverImageUrl = normalizePublicImageSourceUrl(guide.coverImage?.url ?? null);
   const hasRecommendedVillas = recommendedVillas.length > 0 || sidebar !== undefined;
@@ -703,7 +716,12 @@ export function GuideDetailPage({
           data-guide-detail-layout
         >
           <GuideContent blocks={guide.contentBlocks} />
-          {sidebar ?? <RecommendedVillaSidebar villas={recommendedVillas} />}
+          {sidebar ?? (
+            <RecommendedVillaSidebar
+              villas={recommendedVillas}
+              villaCardStyle={villaCardStyle}
+            />
+          )}
         </div>
       </article>
       {bottomSections ?? (

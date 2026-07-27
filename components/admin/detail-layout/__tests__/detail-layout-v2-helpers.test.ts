@@ -74,6 +74,7 @@ describe("detail layout V2 helpers", () => {
       throw new Error("Expected a wide draft row");
     }
 
+    const gapMessage = `ฝั่ง 70 แถวที่ ${draft.mainSplit.wideRows.length} มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง`;
     const withBlock = putDetailLayoutV2WideBlockInSlot(
       draft,
       row.id,
@@ -86,12 +87,9 @@ describe("detail layout V2 helpers", () => {
         (block) => block?.type ?? null,
       ),
     ).toEqual([null, "pool"]);
-    expect(validateDetailLayoutV2DraftForSave(withBlock)).toContain(
-      "ฝั่ง 70 แถวที่ 5 มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง",
-    );
+    expect(validateDetailLayoutV2DraftForSave(withBlock)).toContain(gapMessage);
     expect(validateDetailLayoutV2DraftForSaveDetails(withBlock)).toContainEqual({
-      message:
-        "ฝั่ง 70 แถวที่ 5 มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง",
+      message: gapMessage,
       target: `${row.id}:slot:0`,
     });
 

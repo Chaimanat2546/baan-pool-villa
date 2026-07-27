@@ -40,9 +40,24 @@ async function expectReferencedScriptsLoad(
 test("public home renders SEO metadata and stays within a production smoke budget", async ({
   page,
 }, testInfo) => {
+  const requests: string[] = [];
+  page.on("request", (request) => requests.push(request.url()));
+
   const response = await page.goto("/", { waitUntil: "networkidle" });
 
   expect(response?.ok()).toBe(true);
+  expect(
+    requests.filter((url) => new URL(url).searchParams.has("_rsc")),
+  ).toEqual([]);
+  expect(
+    requests.filter((url) => new URL(url).pathname === "/_next/image"),
+  ).toEqual([]);
+  expect(
+    requests.filter((url) => new URL(url).pathname === "/api/home-sections"),
+  ).toEqual([]);
+  expect(
+    requests.filter((url) => new URL(url).pathname === "/api/houses"),
+  ).toEqual([]);
   await expectHealthyPage(page);
   await expectReferencedScriptsLoad(page);
   await expect.poll(() => page.title()).not.toBe("");
@@ -62,7 +77,6 @@ test("public home renders SEO metadata and stays within a production smoke budge
 
   expect(navigationDuration).toBeGreaterThan(0);
   expect(navigationDuration).toBeLessThan(maxNavigationDurationMs);
-  await expect(page.getByRole("button", { name: /ค้นหาบ้านพัก/i }).first()).toBeVisible();
 
   const mobileSearch = page.locator('[data-home-mobile-search="true"]');
   const isMobileProject =
@@ -73,8 +87,14 @@ test("public home renders SEO metadata and stays within a production smoke budge
 
   if (isMobileProject) {
     await expect(mobileSearch).toBeVisible();
+    await expect(
+      mobileSearch.getByRole("button", { name: /^ค้นหา$/i }),
+    ).toBeVisible();
   } else {
     await expect(mobileSearch).not.toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /ค้นหาบ้านพัก/i }).first(),
+    ).toBeVisible();
   }
 
   const bodyUserSelect = await page.locator("body").evaluate((element) => {

@@ -26,11 +26,14 @@ import {
   getHomeSectionListingPlan,
   getResolvedHomeSections,
 } from "@/lib/home-sections/server";
+import { buildDefaultHomePageLayout } from "@/lib/home-sections/layout";
+import type { HomePageLayoutResult } from "@/lib/home-sections/types";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
 import { SEARCH_FACETS } from "@/lib/villas/search-options";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import { fetchHomeListings } from "@/lib/villas/server";
 import { toPublicVillaListing } from "@/lib/villas/public-dto";
 
@@ -45,6 +48,7 @@ type HomePageData = {
   degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
   customerReviews: HomepageCustomerReviewData;
   guides: PublicGuideSummary[];
+  homeLayout: HomePageLayoutResult;
   homeSections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"];
   filterSummary: FilterSummary;
 };
@@ -85,9 +89,11 @@ function HomeDeferredDegradedMarker({
 async function HomeDeferredContent({
   homePageDataPromise,
   settings,
+  villaCardStyle,
 }: {
   homePageDataPromise: Promise<HomePageData>;
   settings: HomePageSettings;
+  villaCardStyle: Awaited<ReturnType<typeof getSiteWebStyles>>["houseCard"]["variant"];
 }) {
   const homePageData = await homePageDataPromise;
 
@@ -100,7 +106,9 @@ async function HomeDeferredContent({
         customerReviews={homePageData.customerReviews}
         initialGuides={homePageData.guides}
         initialHomeSections={homePageData.homeSections}
+        homeLayout={homePageData.homeLayout.items}
         settings={settings}
+        villaCardStyle={villaCardStyle}
       />
     </>
   );
@@ -170,11 +178,21 @@ async function getHomePageData(): Promise<HomePageData> {
     return {
       degradedSources: {
         guidePosts: guidesResult.status === "rejected",
-        homeSections: false,
+        homeSections:
+          homeSectionListingPlanResult.status === "rejected" ||
+          homeSectionListingPlanResult.value.layout.degraded,
         villaCatalog: true,
       },
       customerReviews,
       guides: selectHomeGuideSummaries(guides),
+      homeLayout:
+        homeSectionListingPlanResult.status === "fulfilled"
+          ? homeSectionListingPlanResult.value.layout
+          : {
+              degraded: true,
+              items: buildDefaultHomePageLayout([]),
+              source: "fallback",
+            },
       homeSections: [],
       filterSummary: {
         maxAvailablePrice: SEARCH_FACETS.maxPrice,
@@ -184,12 +202,24 @@ async function getHomePageData(): Promise<HomePageData> {
   }
 
   const villas = villasResult.value;
-  const homeSectionsResult = await getResolvedHomeSections(
-    villas,
+  const homeSectionsResult =
     homeSectionListingPlanResult.status === "fulfilled"
-      ? homeSectionListingPlanResult.value.configs
-      : undefined,
-  );
+      ? await getResolvedHomeSections(
+          villas,
+          homeSectionListingPlanResult.value.configs,
+          homeSectionListingPlanResult.value.layout.source === "fallback",
+        )
+      : await getResolvedHomeSections(villas);
+  const homeLayout =
+    homeSectionListingPlanResult.status === "fulfilled"
+      ? homeSectionListingPlanResult.value.layout
+      : {
+          degraded: true as const,
+          items: buildDefaultHomePageLayout(
+            homeSectionsResult.sections.map(({ slug }) => slug),
+          ),
+          source: "fallback" as const,
+        };
 
   if (homeSectionsResult.degraded) {
     console.error(
@@ -201,11 +231,12 @@ async function getHomePageData(): Promise<HomePageData> {
   return {
     degradedSources: {
       guidePosts: guidesResult.status === "rejected",
-      homeSections: homeSectionsResult.degraded,
+      homeSections: homeSectionsResult.degraded || homeLayout.degraded,
       villaCatalog: false,
     },
     customerReviews,
     guides: selectHomeGuideSummaries(guides),
+    homeLayout,
     homeSections: homeSectionsResult.sections.map((section) => ({
       ...section,
       villas: section.villas.map(toPublicVillaListing),
@@ -237,9 +268,10 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function Page() {
   const homePageDataPromise = getHomePageData();
-  const [settingsResult, contactSettingsResult] = await Promise.all([
+  const [settingsResult, contactSettingsResult, siteWebStyles] = await Promise.all([
     getSiteSettings(),
     getSiteContactSettings(),
+    getSiteWebStyles(),
   ]);
   const { settings } = settingsResult;
   const homePageSettings = toHomePageSettings(
@@ -274,6 +306,7 @@ export default async function Page() {
           <HomeDeferredContent
             homePageDataPromise={homePageDataPromise}
             settings={homePageSettings}
+            villaCardStyle={siteWebStyles.houseCard.variant}
           />
         </Suspense>
       </HomePage>

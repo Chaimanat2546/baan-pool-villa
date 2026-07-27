@@ -13,6 +13,9 @@ describe("production smoke runner", () => {
       /const\s+smokeProjects\s*=\s*\[\s*"chromium"\s*,\s*"mobile-chromium"\s*\]/,
     );
     expect(script).toMatch(/smokeProjects\.flatMap/);
+    expect(script.indexOf("...process.argv.slice(2)")).toBeLessThan(
+      script.indexOf("...smokeProjects.flatMap"),
+    );
   });
 
   it("keeps Playwright from collecting Vitest support tests", async () => {

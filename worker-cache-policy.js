@@ -1,9 +1,8 @@
 const HTML_EDGE_CACHE_SECONDS = 6 * 60 * 60;
-const VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS = 24 * 60 * 60;
+const VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS = 15 * 60;
 const IMAGE_EDGE_CACHE_SECONDS = 365 * 24 * 60 * 60;
 const IMAGE_EDGE_STALE_SECONDS = 365 * 24 * 60 * 60;
 const HOUSE_JSON_EDGE_CACHE_SECONDS = 6 * 60 * 60;
-const BOOKING_CALENDAR_JSON_EDGE_CACHE_SECONDS = 15 * 60;
 const JSON_EDGE_CACHE_SECONDS = 12 * 60 * 60;
 const IMAGE_TRANSFORM_WIDTHS = new Set([
   64,
@@ -28,6 +27,7 @@ const IMAGE_TRANSFORM_WIDTHS = new Set([
   1920,
 ]);
 const IMAGE_TRANSFORM_QUALITIES = new Set([60, 75]);
+const VILLA_IMAGE_DISPLAY_QUERY_KEYS = new Set(["imageId", "url", "w", "q"]);
 
 export const HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${HTML_EDGE_CACHE_SECONDS}`;
 export const VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS}`;
@@ -38,7 +38,6 @@ export const HTML_EDGE_CACHE_VERSION_PARAM = "__bpv_html_v";
 export const IMAGE_EDGE_CACHE_CONTROL = `public, max-age=${IMAGE_EDGE_CACHE_SECONDS}, s-maxage=${IMAGE_EDGE_CACHE_SECONDS}, stale-while-revalidate=${IMAGE_EDGE_STALE_SECONDS}`;
 export const IMAGE_EDGE_CACHE_HEADER = "x-bpv-image-cache";
 export const HOUSE_JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${HOUSE_JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${HOUSE_JSON_EDGE_CACHE_SECONDS}`;
-export const BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${BOOKING_CALENDAR_JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_HEADER = "x-bpv-json-cache";
 export const JSON_EDGE_CACHE_VERSION_PARAM = "__bpv_json_v";
@@ -283,6 +282,35 @@ function getVillaImageId(url) {
     : "";
 }
 
+function hasValidVillaImageDisplayQuery(url) {
+  const entries = Array.from(url.searchParams.entries());
+  const seenKeys = new Set();
+
+  for (const [key] of entries) {
+    if (!VILLA_IMAGE_DISPLAY_QUERY_KEYS.has(key) || seenKeys.has(key)) {
+      return false;
+    }
+
+    seenKeys.add(key);
+  }
+
+  const hasImageId = url.searchParams.has("imageId");
+  const hasSourceUrl = url.searchParams.has("url");
+
+  if (hasImageId === hasSourceUrl) {
+    return false;
+  }
+
+  const imageId = getVillaImageId(url);
+  const sourceUrl = url.searchParams.get("url") ?? "";
+
+  return (
+    (!hasImageId || Boolean(imageId)) &&
+    (!hasSourceUrl || Boolean(sourceUrl)) &&
+    getImageTransformDecision(url).valid
+  );
+}
+
 function isHouseCoverImageProxyPath(pathname) {
   const prefix = "/api/houses/images/";
   const id = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : "";
@@ -371,23 +399,69 @@ function isVillaBookingCalendarApiPath(pathname) {
 
   const id = pathname.slice(prefix.length, -suffix.length);
 
-  return /^[1-9]\d*$/.test(id);
+  // Classify every non-empty single ID segment here. Validation belongs to
+  // the Next handler after the Worker host, Bearer, and rate-limit guards.
+  return id.length > 0 && !id.includes("/");
 }
 
-function isValidBookingCalendarMonth(value) {
-  return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+export function getBookingCalendarAccessDecision(
+  request,
+  configuredSiteUrl,
+) {
+  const requestUrl = new URL(request.url);
+
+  // This guard protects only the private booking-calendar API. Other routes
+  // continue through the existing Worker cache and OpenNext flow unchanged.
+  if (!isVillaBookingCalendarApiPath(requestUrl.pathname)) {
+    return { allowed: true, candidate: false, reason: "path" };
+  }
+
+  let siteUrl;
+
+  try {
+    siteUrl = new URL(configuredSiteUrl);
+  } catch {
+    // Fail closed when production configuration is missing or malformed so a
+    // Worker alias or sibling subdomain cannot accidentally expose calendars.
+    return { allowed: false, candidate: true, reason: "config" };
+  }
+
+  if (
+    siteUrl.protocol !== "https:" ||
+    !siteUrl.hostname.startsWith("www.")
+  ) {
+    return { allowed: false, candidate: true, reason: "config" };
+  }
+
+  if (requestUrl.protocol !== "https:") {
+    return { allowed: false, candidate: true, reason: "protocol" };
+  }
+
+  // A configured www hostname may also serve its one exact apex counterpart.
+  // Sibling hosts such as cl.example.com are never included.
+  const apexHostname = siteUrl.hostname.startsWith("www.")
+    ? siteUrl.hostname.slice("www.".length)
+    : null;
+  const isAllowedHostname =
+    requestUrl.hostname === siteUrl.hostname ||
+    requestUrl.hostname === apexHostname;
+
+  if (!isAllowedHostname) {
+    return { allowed: false, candidate: true, reason: "hostname" };
+  }
+
+  return { allowed: true, candidate: true, reason: "hostname" };
 }
 
 function hasOnlyVillaCardImagesQuery(url) {
-  if (!isVillaImagesApiPath(url.pathname)) {
-    return false;
-  }
+  const entries = Array.from(url.searchParams.entries());
 
-  if (url.searchParams.get("view") !== "card") {
-    return false;
-  }
-
-  return Array.from(url.searchParams.keys()).every((key) => key === "view");
+  return (
+    isVillaImagesApiPath(url.pathname) &&
+    entries.length === 1 &&
+    entries[0][0] === "view" &&
+    entries[0][1] === "card"
+  );
 }
 
 function getJsonCacheVersionGroups(pathname) {
@@ -400,10 +474,6 @@ function getJsonCacheVersionGroups(pathname) {
   }
 
   if (isVillaDetailApiPath(pathname)) {
-    return [HTML_CACHE_VERSION_GROUPS.villaDetails];
-  }
-
-  if (isVillaBookingCalendarApiPath(pathname)) {
     return [HTML_CACHE_VERSION_GROUPS.villaDetails];
   }
 
@@ -425,13 +495,19 @@ function getJsonCacheControl(pathname) {
     return HOUSE_JSON_EDGE_CACHE_CONTROL;
   }
 
-  return isVillaBookingCalendarApiPath(pathname)
-    ? BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL
-    : JSON_EDGE_CACHE_CONTROL;
+  return JSON_EDGE_CACHE_CONTROL;
 }
 
 export function createImageEdgeCacheKey(request) {
   const url = new URL(request.url);
+
+  if (
+    isVillaImageProxyPath(url.pathname) &&
+    !hasValidVillaImageDisplayQuery(url)
+  ) {
+    return null;
+  }
+
   const sourceUrl = url.searchParams.get("url") ?? "";
   const imageId = getVillaImageId(url);
   const transformDecision = getImageTransformDecision(url);
@@ -467,24 +543,10 @@ export function createImageEdgeCacheKey(request) {
 
 export function createJsonEdgeCacheKey(request, versionToken = "") {
   const url = new URL(request.url);
-  const month = isVillaBookingCalendarApiPath(url.pathname)
-    ? url.searchParams.get("month")
-    : null;
-  const months = isVillaBookingCalendarApiPath(url.pathname)
-    ? url.searchParams.get("months")
-    : null;
   const isVillaCardImagesQuery = hasOnlyVillaCardImagesQuery(url);
 
   url.search = "";
   url.hash = "";
-
-  if (isValidBookingCalendarMonth(month)) {
-    url.searchParams.set("month", month);
-  }
-
-  if (months === "6") {
-    url.searchParams.set("months", months);
-  }
 
   if (isVillaCardImagesQuery) {
     url.searchParams.set("view", "card");
@@ -547,6 +609,13 @@ export function getImageEdgeCacheDecision(request) {
     return { cacheable: false, candidate: true, reason: "method" };
   }
 
+  if (
+    isVillaImageProxyPath(url.pathname) &&
+    !hasValidVillaImageDisplayQuery(url)
+  ) {
+    return { cacheable: false, candidate: false, reason: "path" };
+  }
+
   if (isVillaImageProxyPath(url.pathname) && url.searchParams.get("download") === "1") {
     return { cacheable: false, candidate: false, reason: "path" };
   }
@@ -593,8 +662,7 @@ export function getJsonEdgeCacheDecision(request) {
     url.pathname === "/api/houses" ||
     url.pathname === "/api/home-sections" ||
     isVillaDetailApiPath(url.pathname) ||
-    isVillaBookingCalendarApiPath(url.pathname) ||
-    isVillaImagesApiPath(url.pathname);
+    hasOnlyVillaCardImagesQuery(url);
 
   if (!isCandidatePath) {
     return { cacheable: false, candidate: false, reason: "path" };
@@ -604,21 +672,7 @@ export function getJsonEdgeCacheDecision(request) {
     return { cacheable: false, candidate: true, reason: "method" };
   }
 
-  if (isVillaBookingCalendarApiPath(url.pathname)) {
-    const month = url.searchParams.get("month");
-    const months = url.searchParams.get("months");
-    const searchParamCount = Array.from(url.searchParams.keys()).length;
-    const hasOnlyMonth =
-      searchParamCount === 1 && isValidBookingCalendarMonth(month);
-    const hasValidRange =
-      searchParamCount === 2 &&
-      isValidBookingCalendarMonth(month) &&
-      months === "6";
-
-    if (!hasOnlyMonth && !hasValidRange) {
-      return { cacheable: false, candidate: true, reason: "query" };
-    }
-  } else if (isVillaImagesApiPath(url.pathname)) {
+  if (isVillaImagesApiPath(url.pathname)) {
     if (url.search.length > 0 && !hasOnlyVillaCardImagesQuery(url)) {
       return { cacheable: false, candidate: true, reason: "query" };
     }

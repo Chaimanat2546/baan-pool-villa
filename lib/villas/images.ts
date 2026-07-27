@@ -81,73 +81,6 @@ function isCoverZone(zone: string | null): boolean {
   );
 }
 
-function getPreviewCoverPriority(image: VillaImage): number {
-  if (isCoverZone(image.zone)) {
-    return 2;
-  }
-
-  return image.isCover ? 1 : 0;
-}
-
-function getBentoZonePriority(zone: string | null): number {
-  const zoneKey = getPreviewZoneKey(zone);
-
-  if (zoneKey === "outside") {
-    return 0;
-  }
-
-  if (zoneKey === "inside") {
-    return 1;
-  }
-
-  if (zoneKey === "review") {
-    return 2;
-  }
-
-  return 3;
-}
-
-function selectPreviewImages(images: VillaImage[]): VillaImage[] {
-  const seenUrls = new Set<string>();
-  const sortedImages = [...images].sort((a, b) => {
-    const aCoverPriority = getPreviewCoverPriority(a);
-    const bCoverPriority = getPreviewCoverPriority(b);
-
-    if (aCoverPriority === bCoverPriority) {
-      return aCoverPriority > 0 ? b.id - a.id : a.id - b.id;
-    }
-
-    return bCoverPriority - aCoverPriority;
-  });
-  const uniqueImages = sortedImages.filter((image) => {
-    if (seenUrls.has(image.imageUrl)) {
-      return false;
-    }
-
-    seenUrls.add(image.imageUrl);
-    return true;
-  });
-  const [mainImage, ...sideImages] = uniqueImages;
-
-  if (!mainImage) {
-    return [];
-  }
-
-  return [
-    mainImage,
-    ...sideImages
-      .map((image, index) => ({ image, index }))
-      .sort((a, b) => {
-        const priorityDiff =
-          getBentoZonePriority(a.image.zone) - getBentoZonePriority(b.image.zone);
-
-        return priorityDiff || a.index - b.index;
-      })
-      .slice(0, 3)
-      .map(({ image }) => image),
-  ];
-}
-
 function dedupeImagesById(images: VillaImage[]): VillaImage[] {
   const seenIds = new Set<number>();
   const selectedImages: VillaImage[] = [];
@@ -448,7 +381,6 @@ export function parseVillaId(id: string): number {
 }
 
 async function fetchVillaImagesFromSupabase(
-  id: string,
   villaId: number,
   limit?: number,
 ): Promise<VillaImage[]> {
@@ -492,12 +424,54 @@ async function fetchVillaImagesFromSupabase(
   return normalizeImageRows((data ?? []) as unknown as SupabaseImageRow[], supabaseUrl);
 }
 
+async function fetchVillaImageByIdFromSupabase(
+  villaId: number,
+  imageId: number,
+): Promise<VillaImage | null> {
+  const { supabaseUrl, supabaseKey } = getSupabaseConfig();
+
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  const queryImage = async (columns: string) =>
+    supabase
+      .from("images")
+      .select(columns)
+      .eq("property_id", villaId)
+      .eq("id", imageId)
+      .limit(1);
+
+  let { data, error } = await queryImage(IMAGE_SELECT_COLUMNS);
+
+  if (error && isMissingImageUrlColumnError(error)) {
+    const legacyResponse = await queryImage(LEGACY_IMAGE_SELECT_COLUMNS);
+    data = legacyResponse.data;
+    error = legacyResponse.error;
+  }
+
+  if (error) {
+    throw new Error(getSupabaseErrorText(error));
+  }
+
+  return (
+    normalizeImageRows(
+      (data ?? []) as unknown as SupabaseImageRow[],
+      supabaseUrl,
+    )[0] ?? null
+  );
+}
+
 async function fetchVillaImagesWithCoverOverrideFromSupabase(
   id: string,
   villaId: number,
 ): Promise<VillaImage[]> {
   const [images, config] = await Promise.all([
-    fetchVillaImagesFromSupabase(id, villaId),
+    fetchVillaImagesFromSupabase(villaId),
     fetchVillaCardImageConfig(id),
   ]);
 
@@ -678,15 +652,16 @@ async function resolveDisplayImagesFromSupabase(
     ),
   ];
 
-  if (customImages.length >= VILLA_CARD_DISPLAY_IMAGE_MIN) {
-    return customImages;
-  }
+  const resolvedImages =
+    customImages.length >= VILLA_CARD_DISPLAY_IMAGE_MIN
+      ? customImages
+      : config.coverImage
+        ? defaultImages
+        : recommendedImages.length > 0
+          ? recommendedImages
+          : defaultImages;
 
-  if (config.coverImage) {
-    return defaultImages;
-  }
-
-  return recommendedImages.length > 0 ? recommendedImages : defaultImages;
+  return resolvedImages.slice(0, VILLA_CARD_DISPLAY_IMAGE_MAX);
 }
 
 /**
@@ -715,22 +690,12 @@ export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   return getCachedVillaImages();
 }
 
-/**
- * Loads only the first gallery rows needed to render the above-the-fold detail
- * preview without putting the complete gallery in the server render path.
- *
- * @param id - The villa id from the public route.
- * @returns Up to four normalized gallery images for the requested villa.
- */
-export async function fetchVillaPreviewImages(id: string): Promise<VillaImage[]> {
+export async function fetchVillaSourceImages(id: string): Promise<VillaImage[]> {
   const villaId = parseVillaId(id);
   const tag = CACHE_TAGS.villaImage(id);
-  const getCachedVillaPreviewImages = unstable_cache(
-    async () =>
-      selectPreviewImages(
-        await fetchVillaImagesWithCoverOverrideFromSupabase(id, villaId),
-      ),
-    [`${tag}:preview`],
+  const getCachedVillaSourceImages = unstable_cache(
+    () => fetchVillaImagesFromSupabase(villaId),
+    [`${tag}:source`],
     {
       revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
       tags: [
@@ -742,7 +707,41 @@ export async function fetchVillaPreviewImages(id: string): Promise<VillaImage[]>
     },
   );
 
-  return getCachedVillaPreviewImages();
+  return getCachedVillaSourceImages();
+}
+
+export async function fetchVillaImageById(
+  id: string,
+  imageIdValue: string | null,
+): Promise<VillaImage | null> {
+  const villaId = parseVillaId(id);
+
+  if (!imageIdValue || !/^[1-9]\d*$/.test(imageIdValue)) {
+    return null;
+  }
+
+  const imageId = Number(imageIdValue);
+
+  if (!Number.isSafeInteger(imageId)) {
+    return null;
+  }
+
+  const tag = CACHE_TAGS.villaImage(id);
+  const getCachedVillaImage = unstable_cache(
+    () => fetchVillaImageByIdFromSupabase(villaId, imageId),
+    [`${tag}:image:${imageId}`],
+    {
+      revalidate: CACHE_REVALIDATE_SECONDS.villaImages,
+      tags: [
+        CACHE_TAGS.villaImages,
+        CACHE_TAGS.villaCardImages,
+        tag,
+        CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id),
+      ],
+    },
+  );
+
+  return getCachedVillaImage();
 }
 
 export async function resolveDisplayImages(id: string): Promise<VillaImage[]> {
