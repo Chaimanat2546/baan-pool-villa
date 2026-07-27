@@ -5,8 +5,7 @@ import type {
 } from "@/lib/detail-layout/types";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
 
-export type GalleryLoadStatus = "idle" | "preview" | "loading" | "loaded" | "error";
-export type GalleryLoadMode = "background" | "interactive";
+export type GalleryLoadStatus = "loaded" | "error";
 
 export interface GalleryLoadState {
   error: string | null;
@@ -15,36 +14,17 @@ export interface GalleryLoadState {
   villaId: string;
 }
 
-export interface LoadGalleryImagesOptions {
-  mode?: GalleryLoadMode;
-}
-
-export function getInitialGalleryLoadState(villaId: string): GalleryLoadState {
-  return {
-    error: null,
-    images: [],
-    status: "idle",
-    villaId,
-  };
-}
-
-export function getPreviewGalleryLoadState(
+export function getServerGalleryLoadState(
   villaId: string,
   images: PublicVillaImage[],
+  failed: boolean,
 ): GalleryLoadState {
   return {
-    error: null,
+    error: failed ? "โหลดรูปไม่สำเร็จ ลองใหม่ได้" : null,
     images,
-    status: "preview",
+    status: failed ? "error" : "loaded",
     villaId,
   };
-}
-
-export function getActiveGalleryLoadState(
-  state: GalleryLoadState,
-  villaId: string,
-): GalleryLoadState {
-  return state.villaId === villaId ? state : getInitialGalleryLoadState(villaId);
 }
 
 function hasEnabledBlockType(

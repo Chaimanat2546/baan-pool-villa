@@ -67,6 +67,7 @@ interface AdminVillaCardHousePagination {
 interface AdminVillaCardImagesResponse {
   configs?: AdminVillaCardImageConfig[];
   houses?: AdminVillaCardHouseOption[];
+  images?: PublicVillaImage[];
   pagination?: AdminVillaCardHousePagination;
   villaCardStyle?: SiteVillaCardStyle;
 }
@@ -76,10 +77,6 @@ interface AdminVillaCardImageSaveResponse {
   error?: string;
   errors?: string[];
   villaCardStyle?: SiteVillaCardStyle;
-}
-
-interface VillaImagesResponse {
-  images?: PublicVillaImage[];
 }
 
 const ALL_ZONE_KEY = "__all__";
@@ -553,6 +550,7 @@ function useVillaCardConfigs(
   const { getAccessToken, redirectToLogin } = useAdminToken();
   const [configs, setConfigs] = useState<AdminVillaCardImageConfig[]>([]);
   const [houses, setHouses] = useState<AdminVillaCardHouseOption[]>([]);
+  const [images, setImages] = useState<PublicVillaImage[]>([]);
   const [pagination, setPagination] =
     useState<AdminVillaCardHousePagination | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -570,6 +568,7 @@ function useVillaCardConfigs(
 
     setIsLoading(true);
     setErrors([]);
+    setImages([]);
 
     const token = await getAccessToken();
 
@@ -620,12 +619,16 @@ function useVillaCardConfigs(
         return;
       }
 
+      const hasRequiredImages =
+        !params.houseId || Array.isArray(payload?.images);
+
       if (
         !response.ok ||
         !payload ||
         !Array.isArray(payload.configs) ||
         !Array.isArray(payload.houses) ||
-        !payload.pagination
+        !payload.pagination ||
+        !hasRequiredImages
       ) {
         setErrors(extractAdminErrors(payload, "ไม่สามารถโหลด config รูปการ์ดได้"));
         return;
@@ -633,6 +636,11 @@ function useVillaCardConfigs(
 
       setConfigs(payload.configs);
       setHouses(payload.houses);
+      setImages(
+        Array.isArray(payload.images)
+          ? payload.images.filter(isUsableImage)
+          : [],
+      );
       setPagination(payload.pagination);
       onLoaded?.(payload.configs);
     } catch (error) {
@@ -678,6 +686,7 @@ function useVillaCardConfigs(
     errors,
     getAccessToken,
     houses,
+    images,
     isLoading,
     loadConfigs,
     pagination,
@@ -1036,6 +1045,7 @@ export function AdminVillaCardHouseCustomPage({
     errors,
     getAccessToken,
     houses,
+    images,
     isLoading,
     redirectToLogin,
     setConfigs,
@@ -1044,7 +1054,6 @@ export function AdminVillaCardHouseCustomPage({
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingCover, setIsSavingCover] = useState(false);
-  const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [selectedZone, setSelectedZone] = useState(ALL_ZONE_KEY);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isDeleteCoverDialogOpen, setIsDeleteCoverDialogOpen] = useState(false);
@@ -1055,7 +1064,6 @@ export function AdminVillaCardHouseCustomPage({
   const draggedSelectedImageIdRef = useRef<number | null>(null);
   const sortDialogInitialImageIdsRef = useRef<number[]>([]);
   const activeZoneButtonRef = useRef<HTMLButtonElement | null>(null);
-  const [images, setImages] = useState<PublicVillaImage[]>([]);
   const currentConfig = useMemo(
     () => configs.find((config) => config.houseId === houseId) ?? null,
     [configs, houseId],
@@ -1147,35 +1155,18 @@ export function AdminVillaCardHouseCustomPage({
   }, [selectedZone, imageZoneOptions.length]);
 
   useEffect(() => {
-    async function loadHouseImages() {
-      setIsLoadingImages(true);
-      setErrors([]);
-      setNotice(null);
+    let shouldUpdate = true;
 
-      try {
-        const response = await fetch(
-          `/api/villas/${encodeURIComponent(houseId)}/images`,
-        );
-        const payload =
-          (await readJsonPayload(response)) as VillaImagesResponse | null;
-
-        if (!response.ok || !payload || !Array.isArray(payload.images)) {
-          setErrors(["ไม่สามารถโหลดรูปบ้านนี้ได้"]);
-          return;
-        }
-
-        const usableImages = payload.images.filter(isUsableImage);
-        setImages(usableImages);
-        setSelectedZone(getInitialImageZone(usableImages));
-      } catch {
-        setErrors(["ไม่สามารถโหลดรูปบ้านนี้ได้"]);
-      } finally {
-        setIsLoadingImages(false);
+    queueMicrotask(() => {
+      if (shouldUpdate) {
+        setSelectedZone(getInitialImageZone(images));
       }
-    }
+    });
 
-    void loadHouseImages();
-  }, [houseId, setErrors]);
+    return () => {
+      shouldUpdate = false;
+    };
+  }, [images]);
 
   function replaceCoverFile(nextFile: File | null) {
     const previousPreviewUrl = coverPreviewUrlRef.current;
@@ -1476,7 +1467,6 @@ export function AdminVillaCardHouseCustomPage({
                 isSavingCover ||
                 isSaving ||
                 isLoading ||
-                isLoadingImages ||
                 selectedImageIds.length < 1
               }
               onClick={() => {
@@ -1490,7 +1480,7 @@ export function AdminVillaCardHouseCustomPage({
               type="button"
               className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
               data-villa-card-save-custom
-              disabled={isSavingCover || isSaving || isLoading || isLoadingImages}
+              disabled={isSavingCover || isSaving || isLoading}
               onClick={() => {
                 requestSaveConfig();
               }}
@@ -1594,7 +1584,7 @@ export function AdminVillaCardHouseCustomPage({
         </section>
 
       <section className="grid h-[calc(100dvh-14rem)] min-h-[32rem] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
-        {isLoadingImages ? (
+        {isLoading ? (
           <VillaCardImagePickerSkeleton />
         ) : images.length === 0 ? (
           <p className="rounded-xl bg-[var(--site-surface-soft)] p-4 text-sm text-[var(--site-muted)]">

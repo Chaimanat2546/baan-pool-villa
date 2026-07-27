@@ -17,6 +17,7 @@ export function VillaDetailPage({
   galleryStyle,
   id,
   initialGalleryImages = EMPTY_INITIAL_GALLERY_IMAGES,
+  initialGalleryLoadFailed = false,
   payload,
   recommendedSection,
   settings,
@@ -43,6 +44,7 @@ export function VillaDetailPage({
       </div>
 
       <VillaDetailClientShell
+        key={id}
         bookingSidebarId={bookingSidebarId}
         advertisements={advertisements}
         bookingCalendars={bookingCalendars}
@@ -52,6 +54,7 @@ export function VillaDetailPage({
         galleryStyle={galleryStyle}
         id={id}
         initialGalleryImages={initialGalleryImages}
+        initialGalleryLoadFailed={initialGalleryLoadFailed}
         listing={listing}
         recommendedSection={recommendedSection}
         settings={settings}

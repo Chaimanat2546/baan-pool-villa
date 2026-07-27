@@ -145,6 +145,7 @@ export default async function Page({ params }: VillaPageProps) {
         galleryStyle={siteWebStylesResult.gallery}
         id={id}
         initialGalleryImages={data.initialGalleryImages}
+        initialGalleryLoadFailed={data.initialGalleryLoadFailed}
         payload={data.payload}
         recommendedSection={data.recommendedSection}
         contactSettings={contactSettingsResult.settings}
