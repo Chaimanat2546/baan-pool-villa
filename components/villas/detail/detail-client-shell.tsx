@@ -43,6 +43,7 @@ interface VillaDetailClientShellProps {
   galleryStyle: GalleryStyleSettings;
   id: string;
   initialGalleryImages?: PublicVillaImage[];
+  initialGalleryLoadFailed?: boolean;
   listing: PublicVillaListing;
   recommendedSection: PublicRecommendedVillaSection | null;
   settings: SiteSettings;
@@ -59,6 +60,7 @@ export function VillaDetailClientShell({
   galleryStyle,
   id,
   initialGalleryImages = [],
+  initialGalleryLoadFailed = false,
   listing,
   recommendedSection,
   settings,
@@ -74,17 +76,20 @@ export function VillaDetailClientShell({
     galleryLoadError,
     galleryLoadStatus,
     handleGalleryImageClick,
-    handleGalleryRetry,
     handleImageError,
-    loadGalleryImages,
     setActiveGalleryItem,
     shouldShowGallerySkeleton,
     visibleGalleryItemCount,
-  } = useVillaGallery({ id, initialGalleryImages });
+  } = useVillaGallery({
+    id,
+    initialGalleryImages,
+    initialGalleryLoadFailed,
+  });
 
   const galleryModalView =
     galleryModalState.villaId === id ? galleryModalState.view : "closed";
   const isCategorizedGallery = galleryStyle.variant === "categorized-grid";
+  const galleryRetryHref = `/villas/${encodeURIComponent(id)}`;
 
   const handleDirectImageClick = (item: (typeof galleryItems)[number]) => {
     setGalleryModalState({
@@ -102,7 +107,6 @@ export function VillaDetailClientShell({
         villaId: id,
         view: "overview",
       });
-      void loadGalleryImages().catch(() => undefined);
       return;
     }
 
@@ -128,8 +132,8 @@ export function VillaDetailClientShell({
         listing={listing}
         onImageClick={handleDirectImageClick}
         onImageError={handleImageError}
-        onRetry={handleGalleryRetry}
         onViewAll={handleViewAll}
+        retryHref={galleryRetryHref}
         showSkeleton={shouldShowGallerySkeleton}
         totalImageCount={
           galleryLoadStatus === "loaded" ? visibleGalleryItemCount : null
@@ -138,7 +142,7 @@ export function VillaDetailClientShell({
 
       <VillaDetailGalleryError
         error={galleryLoadStatus === "error" ? galleryLoadError : null}
-        onRetry={handleGalleryRetry}
+        retryHref={galleryRetryHref}
       />
 
       {children}

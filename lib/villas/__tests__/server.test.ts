@@ -26,8 +26,8 @@ const { createHomeConfigClientMock } = vi.hoisted(() => ({
   createHomeConfigClientMock: vi.fn(),
 }));
 
-const { fetchVillaPreviewImagesMock } = vi.hoisted(() => ({
-  fetchVillaPreviewImagesMock: vi.fn(),
+const { fetchVillaImagesMock } = vi.hoisted(() => ({
+  fetchVillaImagesMock: vi.fn(),
 }));
 
 vi.mock("@supabase/supabase-js", () => ({
@@ -43,7 +43,7 @@ vi.mock("../images", async () => {
 
   return {
     ...actual,
-    fetchVillaPreviewImages: fetchVillaPreviewImagesMock,
+    fetchVillaImages: fetchVillaImagesMock,
   };
 });
 
@@ -291,7 +291,7 @@ afterEach(() => {
   createClientMock.mockReset();
   createHomeConfigClientMock.mockReset();
   fetchMock.mockReset();
-  fetchVillaPreviewImagesMock.mockReset();
+  fetchVillaImagesMock.mockReset();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -301,7 +301,7 @@ beforeEach(() => {
   vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "publishable");
   vi.stubGlobal("fetch", fetchMock);
   mockCoverOverrides();
-  fetchVillaPreviewImagesMock.mockResolvedValue([]);
+  fetchVillaImagesMock.mockResolvedValue([]);
 });
 
 describe("fetchHouseListings", () => {
@@ -819,7 +819,7 @@ describe("fetchVillaPageData", () => {
     await vi.waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();
     });
-    expect(fetchVillaPreviewImagesMock).toHaveBeenCalledWith("9");
+    expect(fetchVillaImagesMock).toHaveBeenCalledWith("9");
 
     resolveDetailResponse(
       new Response(JSON.stringify(devilleDetail), { status: 200 }),
@@ -829,13 +829,13 @@ describe("fetchVillaPageData", () => {
     });
   });
 
-  it("returns server-fetched detail payload with up to four initial gallery images", async () => {
+  it("returns every server-fetched gallery image through its same-origin id route", async () => {
     mockSupabase();
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify(devilleDetail), { status: 200 }),
     );
-    fetchVillaPreviewImagesMock.mockResolvedValue([
+    fetchVillaImagesMock.mockResolvedValue([
       {
         caption: null,
         id: 1,
@@ -888,8 +888,43 @@ describe("fetchVillaPageData", () => {
       },
       recommendedSection: null,
     });
-    expect(data?.initialGalleryImages).toHaveLength(4);
+    expect(fetchVillaImagesMock).toHaveBeenCalledWith("9");
+    expect(data?.initialGalleryImages).toHaveLength(5);
+    expect(data?.initialGalleryLoadFailed).toBe(false);
+    expect(data?.initialGalleryImages.map((image) => image.imageUrl)).toEqual([
+      "/api/villas/9/images?imageId=1",
+      "/api/villas/9/images?imageId=2",
+      "/api/villas/9/images?imageId=3",
+      "/api/villas/9/images?imageId=4",
+      "/api/villas/9/images?imageId=5",
+    ]);
+    expect(JSON.stringify(data?.initialGalleryImages)).not.toContain(
+      "images.example.com",
+    );
     expect(data?.payload.listing.coverImage).toBe("/api/houses/images/9");
-    expect(fetchVillaPreviewImagesMock).toHaveBeenCalledWith("9");
+  });
+
+  it("keeps the detail payload when the gallery dependency fails", async () => {
+    mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(devilleDetail), { status: 200 }),
+    );
+    fetchVillaImagesMock.mockRejectedValueOnce(
+      new Error("gallery unavailable"),
+    );
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    await expect(fetchVillaPageData("9")).resolves.toMatchObject({
+      initialGalleryImages: [],
+      initialGalleryLoadFailed: true,
+      payload: expect.any(Object),
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "Unable to load villa detail gallery images",
+      expect.objectContaining({ message: "gallery unavailable" }),
+    );
   });
 });

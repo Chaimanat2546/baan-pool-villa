@@ -357,6 +357,43 @@ describe("worker image edge cache policy", () => {
     ).toMatchObject({ cacheable: false, candidate: true, reason: "accept" });
   });
 
+  it.each([
+    "/api/villas/9/images?imageId=7&debug=1",
+    "/api/villas/9/images?imageId=7&imageId=8",
+    "/api/villas/9/images?imageId=7&w=828&w=1080",
+    "/api/villas/9/images?imageId=7&url=https%3A%2F%2Fx.test%2Fa.jpg",
+    "/api/villas/9/images?imageId=0&url=https%3A%2F%2Fx.test%2Fa.jpg",
+    "/api/villas/9/images?imageId=7&download=0",
+  ])("does not create an image-cache candidate or key for unsupported villa display query %s", (path) => {
+    const imageRequest = request(path, {
+      headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+    });
+
+    expect(getImageEdgeCacheDecision(imageRequest)).toMatchObject({
+      cacheable: false,
+      candidate: false,
+    });
+    expect(createImageEdgeCacheKey(imageRequest)).toBeNull();
+  });
+
+  it.each([
+    "/api/villas/9/images?imageId=7",
+    "/api/villas/9/images?imageId=7&w=828&q=60",
+    "/api/villas/9/images?url=https%3A%2F%2Fx.test%2Fa.jpg",
+    "/api/villas/9/images?url=https%3A%2F%2Fx.test%2Fa.jpg&w=828&q=60",
+  ])("creates an image-cache candidate and key for a valid villa display query %s", (path) => {
+    const imageRequest = request(path, {
+      headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+    });
+
+    expect(getImageEdgeCacheDecision(imageRequest)).toMatchObject({
+      cacheable: true,
+      candidate: true,
+      reason: "image",
+    });
+    expect(createImageEdgeCacheKey(imageRequest)).toBeInstanceOf(Request);
+  });
+
   it("builds an image cache key that keeps only the source URL query and drops hash", () => {
     const cacheKey = createImageEdgeCacheKey(
       request(
@@ -396,7 +433,7 @@ describe("worker image edge cache policy", () => {
 
   it("builds an image cache key for villa gallery image-id paths", () => {
     const cacheKey = createImageEdgeCacheKey(
-      request("/api/villas/9/images?imageId=7&foo=1&w=828&q=60#top", {
+      request("/api/villas/9/images?imageId=7&w=828&q=60#top", {
         headers: { Accept: "image/avif,image/webp,image/*,*/*" },
       }),
     );
@@ -409,7 +446,6 @@ describe("worker image edge cache policy", () => {
     expect(url.searchParams.get("q")).toBe("60");
     expect(url.searchParams.get("f")).toBe("avif");
     expect(url.searchParams.has("url")).toBe(false);
-    expect(url.searchParams.has("foo")).toBe(false);
     expect(url.hash).toBe("");
   });
 
@@ -620,10 +656,9 @@ describe("worker JSON edge cache policy", () => {
       reason: "path",
     });
     expect(getJsonEdgeCacheDecision(request("/api/villas/9/images"))).toMatchObject({
-      cacheable: true,
-      candidate: true,
-      reason: "json",
-      versionGroups: ["villa-images"],
+      cacheable: false,
+      candidate: false,
+      reason: "path",
     });
     expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?view=card")),
@@ -654,13 +689,18 @@ describe("worker JSON edge cache policy", () => {
     });
     expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?imageId=7")),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
     expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?view=card&page=home")),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
     expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?view=card&debug=1")),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/villas/9/images?view=card&view=card"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
     expect(
       getJsonEdgeCacheDecision(
         request("/api/houses", { headers: { Cookie: "session=1" } }),

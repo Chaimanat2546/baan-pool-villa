@@ -27,6 +27,7 @@ const IMAGE_TRANSFORM_WIDTHS = new Set([
   1920,
 ]);
 const IMAGE_TRANSFORM_QUALITIES = new Set([60, 75]);
+const VILLA_IMAGE_DISPLAY_QUERY_KEYS = new Set(["imageId", "url", "w", "q"]);
 
 export const HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${HTML_EDGE_CACHE_SECONDS}`;
 export const VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS}`;
@@ -281,6 +282,35 @@ function getVillaImageId(url) {
     : "";
 }
 
+function hasValidVillaImageDisplayQuery(url) {
+  const entries = Array.from(url.searchParams.entries());
+  const seenKeys = new Set();
+
+  for (const [key] of entries) {
+    if (!VILLA_IMAGE_DISPLAY_QUERY_KEYS.has(key) || seenKeys.has(key)) {
+      return false;
+    }
+
+    seenKeys.add(key);
+  }
+
+  const hasImageId = url.searchParams.has("imageId");
+  const hasSourceUrl = url.searchParams.has("url");
+
+  if (hasImageId === hasSourceUrl) {
+    return false;
+  }
+
+  const imageId = getVillaImageId(url);
+  const sourceUrl = url.searchParams.get("url") ?? "";
+
+  return (
+    (!hasImageId || Boolean(imageId)) &&
+    (!hasSourceUrl || Boolean(sourceUrl)) &&
+    getImageTransformDecision(url).valid
+  );
+}
+
 function isHouseCoverImageProxyPath(pathname) {
   const prefix = "/api/houses/images/";
   const id = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : "";
@@ -424,15 +454,14 @@ export function getBookingCalendarAccessDecision(
 }
 
 function hasOnlyVillaCardImagesQuery(url) {
-  if (!isVillaImagesApiPath(url.pathname)) {
-    return false;
-  }
+  const entries = Array.from(url.searchParams.entries());
 
-  if (url.searchParams.get("view") !== "card") {
-    return false;
-  }
-
-  return Array.from(url.searchParams.keys()).every((key) => key === "view");
+  return (
+    isVillaImagesApiPath(url.pathname) &&
+    entries.length === 1 &&
+    entries[0][0] === "view" &&
+    entries[0][1] === "card"
+  );
 }
 
 function getJsonCacheVersionGroups(pathname) {
@@ -471,6 +500,14 @@ function getJsonCacheControl(pathname) {
 
 export function createImageEdgeCacheKey(request) {
   const url = new URL(request.url);
+
+  if (
+    isVillaImageProxyPath(url.pathname) &&
+    !hasValidVillaImageDisplayQuery(url)
+  ) {
+    return null;
+  }
+
   const sourceUrl = url.searchParams.get("url") ?? "";
   const imageId = getVillaImageId(url);
   const transformDecision = getImageTransformDecision(url);
@@ -572,6 +609,13 @@ export function getImageEdgeCacheDecision(request) {
     return { cacheable: false, candidate: true, reason: "method" };
   }
 
+  if (
+    isVillaImageProxyPath(url.pathname) &&
+    !hasValidVillaImageDisplayQuery(url)
+  ) {
+    return { cacheable: false, candidate: false, reason: "path" };
+  }
+
   if (isVillaImageProxyPath(url.pathname) && url.searchParams.get("download") === "1") {
     return { cacheable: false, candidate: false, reason: "path" };
   }
@@ -618,7 +662,7 @@ export function getJsonEdgeCacheDecision(request) {
     url.pathname === "/api/houses" ||
     url.pathname === "/api/home-sections" ||
     isVillaDetailApiPath(url.pathname) ||
-    isVillaImagesApiPath(url.pathname);
+    hasOnlyVillaCardImagesQuery(url);
 
   if (!isCandidatePath) {
     return { cacheable: false, candidate: false, reason: "path" };

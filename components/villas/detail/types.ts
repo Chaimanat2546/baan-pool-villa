@@ -17,6 +17,7 @@ export interface VillaDetailPageProps {
   galleryStyle: GalleryStyleSettings;
   id: string;
   initialGalleryImages?: PublicVillaImage[];
+  initialGalleryLoadFailed?: boolean;
   payload: PublicVillaDetailPayload;
   recommendedSection: PublicRecommendedVillaSection | null;
   settings: SiteSettings;
