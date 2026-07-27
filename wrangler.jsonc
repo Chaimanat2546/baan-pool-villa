@@ -176,7 +176,7 @@
 				}
 			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa03.poolvilla.workers.dev"
+				"NEXT_PUBLIC_SITE_URL": "https://www.pmheevilla.com"
 			},
 			"services": [
 				{
