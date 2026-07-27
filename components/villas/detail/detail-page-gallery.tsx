@@ -9,15 +9,15 @@ interface VillaDetailGalleryProps {
   listing: VillaListing;
   onImageClick: (item: GalleryItem) => void;
   onImageError: (imageUrl: string) => void;
-  onRetry: () => void;
   onViewAll: () => void;
+  retryHref: string;
   showSkeleton: boolean;
   totalImageCount: number | null;
 }
 
 interface VillaDetailGalleryErrorProps {
   error: string | null;
-  onRetry: () => void;
+  retryHref: string;
 }
 
 export function VillaDetailGallery({
@@ -25,8 +25,8 @@ export function VillaDetailGallery({
   listing,
   onImageClick,
   onImageError,
-  onRetry,
   onViewAll,
+  retryHref,
   showSkeleton,
   totalImageCount,
 }: VillaDetailGalleryProps) {
@@ -52,14 +52,13 @@ export function VillaDetailGallery({
       <div className="grid aspect-[16/7] place-items-center rounded-2xl bg-[var(--site-surface-tint)] text-[var(--site-muted)]">
         <div className="flex flex-col items-center gap-3">
           <ImageOff className="h-10 w-10" />
-          <button
+          <a
             className="rounded-full bg-[var(--site-primary)] px-4 py-2 text-sm font-black text-[var(--site-on-primary)]"
             data-gallery-retry="true"
-            type="button"
-            onClick={onRetry}
+            href={retryHref}
           >
             โหลดรูปอีกครั้ง
-          </button>
+          </a>
         </div>
       </div>
     </section>
@@ -68,7 +67,7 @@ export function VillaDetailGallery({
 
 export function VillaDetailGalleryError({
   error,
-  onRetry,
+  retryHref,
 }: VillaDetailGalleryErrorProps) {
   if (error === null) {
     return null;
@@ -81,14 +80,13 @@ export function VillaDetailGalleryError({
         data-gallery-load-status="error"
       >
         <span>{error}</span>
-        <button
+        <a
           className="rounded-full bg-[var(--site-primary)] px-3 py-1.5 text-xs font-black text-[var(--site-on-primary)]"
           data-gallery-retry="true"
-          type="button"
-          onClick={onRetry}
+          href={retryHref}
         >
           ลองใหม่
-        </button>
+        </a>
       </div>
     </section>
   );

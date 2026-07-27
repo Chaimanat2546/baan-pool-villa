@@ -31,8 +31,18 @@
 			"images": {
 				"binding": "IMAGES"
 			},
+			"ratelimits": [
+				{
+					"name": "CALENDAR_API_RATE_LIMITER",
+					"namespace_id": "91013",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
+				}
+			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://baanpartypattaya.com"
+				"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com"
 			},
 			"services": [
 				{
@@ -74,6 +84,7 @@
 			],
 			"secrets": {
 				"required": [
+					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY"
 				]
@@ -87,8 +98,18 @@
 			"images": {
 				"binding": "IMAGES"
 			},
+			"ratelimits": [
+				{
+					"name": "CALENDAR_API_RATE_LIMITER",
+					"namespace_id": "92013",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
+				}
+			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa02.poolvilla.workers.dev"
+				"NEXT_PUBLIC_SITE_URL": "https://www.poolvillapattaya.co.th"
 			},
 			"services": [
 				{
@@ -130,6 +151,7 @@
 			],
 			"secrets": {
 				"required": [
+					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY"
 				]
@@ -143,8 +165,18 @@
 			"images": {
 				"binding": "IMAGES"
 			},
+			"ratelimits": [
+				{
+					"name": "CALENDAR_API_RATE_LIMITER",
+					"namespace_id": "93013",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
+				}
+			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa03.poolvilla.workers.dev"
+				"NEXT_PUBLIC_SITE_URL": "https://www.pmheevilla.com"
 			},
 			"services": [
 				{
@@ -186,6 +218,7 @@
 			],
 			"secrets": {
 				"required": [
+					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY"
 				]

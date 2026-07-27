@@ -5,6 +5,7 @@ import { getSearchPageData } from "@/components/villas/search/page-data";
 import { SearchPage } from "@/components/villas/search/page";
 import { buildSiteSettingsPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { settings } = await getSiteSettings();
@@ -38,7 +39,10 @@ function toInitialSearchParams(
 
 export default async function Page({ searchParams }: SearchPageRouteProps) {
   const resolvedSearchParams = (await searchParams) ?? {};
-  const { error, villas, meta } = await getSearchPageData(resolvedSearchParams);
+  const [{ error, villas, meta }, siteWebStyles] = await Promise.all([
+    getSearchPageData(resolvedSearchParams),
+    getSiteWebStyles(),
+  ]);
 
   return (
     <Suspense fallback={null}>
@@ -47,6 +51,7 @@ export default async function Page({ searchParams }: SearchPageRouteProps) {
         initialVillas={villas}
         initialMeta={meta}
         initialSearchParams={toInitialSearchParams(resolvedSearchParams)}
+        villaCardStyle={siteWebStyles.houseCard.variant}
       />
     </Suspense>
   );

@@ -3,7 +3,6 @@ import {
   AdminHeaderSkeleton,
   AdminListSkeleton,
   AdminPanelSkeleton,
-  AdminPreviewSkeleton,
 } from "./admin-loading-primitives";
 
 export function AdminSectionsSkeleton() {
@@ -14,10 +13,21 @@ export function AdminSectionsSkeleton() {
     >
       <AdminHeaderSkeleton actionCount={3} chipCount={2} />
 
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_360px]">
-        <div className="min-w-0 xl:sticky xl:top-36 xl:self-start">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
+        <div className="min-w-0 lg:sticky lg:top-36 lg:self-start">
           <AdminPanelSkeleton titleWidth="w-32">
-            <AdminListSkeleton items={6} />
+            <div className="mb-3 flex items-center gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-3">
+              <div className="size-4 rounded bg-[var(--site-surface-tint)]" />
+              <div>
+                <p className="text-sm font-semibold text-[var(--site-muted)]">
+                  Hero
+                </p>
+                <p className="text-xs text-[var(--site-muted)]">
+                  อยู่บนสุดเสมอ
+                </p>
+              </div>
+            </div>
+            <AdminListSkeleton items={7} />
           </AdminPanelSkeleton>
         </div>
 
@@ -53,21 +63,6 @@ export function AdminSectionsSkeleton() {
           </AdminPanelSkeleton>
         </main>
 
-        <aside className="grid content-start gap-4 2xl:sticky 2xl:top-24 2xl:self-start">
-          <AdminPanelSkeleton titleWidth="w-24">
-            <AdminPreviewSkeleton rows={5} />
-          </AdminPanelSkeleton>
-          <AdminPanelSkeleton titleWidth="w-32">
-            <div className="space-y-3">
-              <div className="h-40 rounded-xl bg-[var(--site-surface-tint)]" />
-              <div className="grid gap-2">
-                <div className="h-4 w-full rounded-md bg-[var(--site-surface-tint)]" />
-                <div className="h-4 w-4/5 rounded-md bg-[var(--site-surface-tint)]" />
-                <div className="h-4 w-2/3 rounded-md bg-[var(--site-surface-tint)]" />
-              </div>
-            </div>
-          </AdminPanelSkeleton>
-        </aside>
       </div>
     </div>
   );

@@ -610,31 +610,6 @@ describe("AdminVillaCardImagesPage", () => {
       const requestUrl = input instanceof Request ? input.url : String(input);
 
       if (requestUrl === "/api/admin/villa-card-images?houseId=9") {
-        return Promise.resolve(
-          makeJsonResponse({
-            body: {
-              configs: [],
-              houses: [
-                {
-                  id: "9",
-                  title: "House 9",
-                  zoneLabel: "Pattaya",
-                },
-              ],
-              pagination: {
-                hasMore: false,
-                page: 1,
-                pageCount: 1,
-                pageSize: 1,
-                search: "",
-                total: 1,
-              },
-            },
-          }),
-        );
-      }
-
-      if (requestUrl === "/api/villas/9/images") {
         return new Promise<Response>(() => undefined);
       }
 
@@ -658,6 +633,15 @@ describe("AdminVillaCardImagesPage", () => {
     expect(
       page.container.querySelector("[data-villa-card-image-grid-skeleton]"),
     ).not.toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/villa-card-images?houseId=9",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer admin-token" },
+      }),
+    );
+    expect(
+      fetchMock.mock.calls.some(([url]) => String(url) === "/api/villas/9/images"),
+    ).toBe(false);
     expect(page.container.textContent).not.toContain("กำลังโหลดรูป");
 
     await page.unmount();
@@ -697,23 +681,6 @@ describe("AdminVillaCardImagesPage", () => {
                   zoneLabel: "Pattaya",
                 },
               ],
-              pagination: {
-                hasMore: false,
-                page: 1,
-                pageCount: 1,
-                pageSize: 1,
-                search: "",
-                total: 1,
-              },
-            },
-          }),
-        );
-      }
-
-      if (requestUrl === "/api/villas/9/images" && requestMethod === "GET") {
-        return Promise.resolve(
-          makeJsonResponse({
-            body: {
               images: [
                 {
                   id: 10,
@@ -722,6 +689,14 @@ describe("AdminVillaCardImagesPage", () => {
                   zone: "outside",
                 },
               ],
+              pagination: {
+                hasMore: false,
+                page: 1,
+                pageCount: 1,
+                pageSize: 1,
+                search: "",
+                total: 1,
+              },
             },
           }),
         );
@@ -874,6 +849,7 @@ describe("AdminVillaCardImagesPage", () => {
                   zoneLabel: "Pattaya",
                 },
               ],
+              images: [],
               pagination: {
                 hasMore: false,
                 page: 1,
@@ -885,10 +861,6 @@ describe("AdminVillaCardImagesPage", () => {
             },
           }),
         );
-      }
-
-      if (requestUrl === "/api/villas/9/images" && requestMethod === "GET") {
-        return Promise.resolve(makeJsonResponse({ body: { images: [] } }));
       }
 
       if (
@@ -987,19 +959,6 @@ describe("AdminVillaCardImagesPage", () => {
               zoneLabel: "พัทยา",
             },
           ],
-          pagination: {
-            hasMore: false,
-            page: 1,
-            pageCount: 1,
-            pageSize: 1,
-            search: "",
-            total: 1,
-          },
-        },
-        url: "/api/admin/villa-card-images?houseId=9",
-      },
-      {
-        body: {
           images: [
             {
               id: 10,
@@ -1020,8 +979,16 @@ describe("AdminVillaCardImagesPage", () => {
               zone: "inside",
             },
           ],
+          pagination: {
+            hasMore: false,
+            page: 1,
+            pageCount: 1,
+            pageSize: 1,
+            search: "",
+            total: 1,
+          },
         },
-        url: "/api/villas/9/images",
+        url: "/api/admin/villa-card-images?houseId=9",
       },
       {
         body: {
@@ -1047,7 +1014,24 @@ describe("AdminVillaCardImagesPage", () => {
       />,
     );
     await flushEffects();
+    await flushEffects();
 
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/villa-card-images?houseId=9",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer admin-token" },
+      }),
+    );
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url, init]) =>
+          url === "/api/admin/villa-card-images?houseId=9" &&
+          ((init as RequestInit | undefined)?.method ?? "GET") === "GET",
+      ),
+    ).toHaveLength(1);
+    expect(
+      fetchMock.mock.calls.some(([url]) => String(url) === "/api/villas/9/images"),
+    ).toBe(false);
     expect(
       page.container.querySelector("[data-villa-card-house-id-input]"),
     ).toBeNull();

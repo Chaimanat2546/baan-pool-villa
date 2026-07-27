@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL,
   HTML_BROWSER_CACHE_CONTROL,
   HOUSE_JSON_EDGE_CACHE_CONTROL,
   HTML_EDGE_CACHE_CONTROL,
@@ -16,6 +15,7 @@ import {
   createHtmlEdgeVersionToken,
   createImageEdgeCacheKey,
   createJsonEdgeCacheKey,
+  getBookingCalendarAccessDecision,
   getHtmlEdgeCacheDecision,
   getImageEdgeCacheDecision,
   getJsonEdgeCacheDecision,
@@ -42,9 +42,9 @@ describe("worker HTML edge cache policy", () => {
     expect(HTML_EDGE_CACHE_CONTROL).toBe("public, max-age=0, s-maxage=21600");
   });
 
-  it("keeps villa detail HTML edge cache shared for twenty-four hours", () => {
+  it("keeps villa detail HTML edge cache shared for fifteen minutes", () => {
     expect(VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL).toBe(
-      "public, max-age=0, s-maxage=86400",
+      "public, max-age=0, s-maxage=900",
     );
   });
 
@@ -357,6 +357,43 @@ describe("worker image edge cache policy", () => {
     ).toMatchObject({ cacheable: false, candidate: true, reason: "accept" });
   });
 
+  it.each([
+    "/api/villas/9/images?imageId=7&debug=1",
+    "/api/villas/9/images?imageId=7&imageId=8",
+    "/api/villas/9/images?imageId=7&w=828&w=1080",
+    "/api/villas/9/images?imageId=7&url=https%3A%2F%2Fx.test%2Fa.jpg",
+    "/api/villas/9/images?imageId=0&url=https%3A%2F%2Fx.test%2Fa.jpg",
+    "/api/villas/9/images?imageId=7&download=0",
+  ])("does not create an image-cache candidate or key for unsupported villa display query %s", (path) => {
+    const imageRequest = request(path, {
+      headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+    });
+
+    expect(getImageEdgeCacheDecision(imageRequest)).toMatchObject({
+      cacheable: false,
+      candidate: false,
+    });
+    expect(createImageEdgeCacheKey(imageRequest)).toBeNull();
+  });
+
+  it.each([
+    "/api/villas/9/images?imageId=7",
+    "/api/villas/9/images?imageId=7&w=828&q=60",
+    "/api/villas/9/images?url=https%3A%2F%2Fx.test%2Fa.jpg",
+    "/api/villas/9/images?url=https%3A%2F%2Fx.test%2Fa.jpg&w=828&q=60",
+  ])("creates an image-cache candidate and key for a valid villa display query %s", (path) => {
+    const imageRequest = request(path, {
+      headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+    });
+
+    expect(getImageEdgeCacheDecision(imageRequest)).toMatchObject({
+      cacheable: true,
+      candidate: true,
+      reason: "image",
+    });
+    expect(createImageEdgeCacheKey(imageRequest)).toBeInstanceOf(Request);
+  });
+
   it("builds an image cache key that keeps only the source URL query and drops hash", () => {
     const cacheKey = createImageEdgeCacheKey(
       request(
@@ -396,7 +433,7 @@ describe("worker image edge cache policy", () => {
 
   it("builds an image cache key for villa gallery image-id paths", () => {
     const cacheKey = createImageEdgeCacheKey(
-      request("/api/villas/9/images?imageId=7&foo=1&w=828&q=60#top", {
+      request("/api/villas/9/images?imageId=7&w=828&q=60#top", {
         headers: { Accept: "image/avif,image/webp,image/*,*/*" },
       }),
     );
@@ -409,7 +446,6 @@ describe("worker image edge cache policy", () => {
     expect(url.searchParams.get("q")).toBe("60");
     expect(url.searchParams.get("f")).toBe("avif");
     expect(url.searchParams.has("url")).toBe(false);
-    expect(url.searchParams.has("foo")).toBe(false);
     expect(url.hash).toBe("");
   });
 
@@ -469,13 +505,120 @@ describe("worker image edge cache policy", () => {
   });
 });
 
-describe("worker JSON edge cache policy", () => {
-  it("keeps booking calendars for fifteen minutes without a stale window", () => {
-    expect(BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL).toBe(
-      "public, s-maxage=900",
-    );
+describe("worker booking calendar host access policy", () => {
+  it("allows the configured www hostname and its exact apex hostname", () => {
+    const path = "/api/villas/9/booking-calendar?month=2026-06";
+
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(`https://www.example.com${path}`),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: true, candidate: true, reason: "hostname" });
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(`https://example.com${path}`),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: true, candidate: true, reason: "hostname" });
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(`https://cl.example.com${path}`),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: false, candidate: true, reason: "hostname" });
   });
 
+  it.each(["villa-nine", "0", "01", "-1"])(
+    "guards a malformed single-segment villa id before it can reach OpenNext: %s",
+    (id) => {
+      const path = `/api/villas/${id}/booking-calendar?month=2026-06`;
+
+      expect(
+        getBookingCalendarAccessDecision(
+          new Request(`https://cl.example.com${path}`),
+          "https://www.example.com",
+        ),
+      ).toEqual({ allowed: false, candidate: true, reason: "hostname" });
+    },
+  );
+
+  it("does not classify a multi-segment path as the booking-calendar route", () => {
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(
+          "https://www.example.com/api/villas/foo/bar/booking-calendar",
+        ),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: true, candidate: false, reason: "path" });
+  });
+
+  it("does not guard the removed booking calendar token endpoint", () => {
+    const removedPath = [
+      "/api/villas/9/booking-calendar",
+      "token",
+    ].join("-");
+
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(`https://www.example.com${removedPath}`),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: true, candidate: false, reason: "path" });
+  });
+
+  it("fails closed when the configured public site URL is invalid", () => {
+    expect(
+      getBookingCalendarAccessDecision(
+        request("/api/villas/9/booking-calendar?month=2026-06"),
+        "not-a-url",
+      ),
+    ).toEqual({ allowed: false, candidate: true, reason: "config" });
+  });
+
+  it("fails closed when the configured public site URL is not HTTPS", () => {
+    expect(
+      getBookingCalendarAccessDecision(
+        request("/api/villas/9/booking-calendar?month=2026-06"),
+        "http://www.example.com",
+      ),
+    ).toEqual({ allowed: false, candidate: true, reason: "config" });
+  });
+
+  it("fails closed when a non-www Worker alias is configured as the official site", () => {
+    const path = "/api/villas/9/booking-calendar?month=2026-06";
+
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(`https://site.example.workers.dev${path}`),
+        "https://site.example.workers.dev",
+      ),
+    ).toEqual({ allowed: false, candidate: true, reason: "config" });
+  });
+
+  it("rejects HTTP requests on an otherwise official hostname", () => {
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(
+          "http://www.example.com/api/villas/9/booking-calendar?month=2026-06",
+        ),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: false, candidate: true, reason: "protocol" });
+  });
+
+  it("does not guard unrelated paths", () => {
+    expect(
+      getBookingCalendarAccessDecision(
+        request("/api/villas/9"),
+        "https://www.example.com",
+      ),
+    ).toEqual({ allowed: true, candidate: false, reason: "path" });
+  });
+});
+
+describe("worker JSON edge cache policy", () => {
   it("keeps the public house catalog JSON cache shared for six hours", () => {
     expect(HOUSE_JSON_EDGE_CACHE_CONTROL).toBe(
       "public, s-maxage=21600, stale-while-revalidate=21600",
@@ -508,28 +651,14 @@ describe("worker JSON edge cache policy", () => {
         request("/api/villas/9/booking-calendar?month=2026-06"),
       ),
     ).toMatchObject({
-      cacheControl: BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL,
-      cacheable: true,
-      candidate: true,
-      reason: "json",
-      versionGroups: ["villa-details"],
-    });
-    expect(
-      getJsonEdgeCacheDecision(
-        request("/api/villas/9/booking-calendar?month=2026-06&months=6"),
-      ),
-    ).toMatchObject({
-      cacheControl: BOOKING_CALENDAR_JSON_EDGE_CACHE_CONTROL,
-      cacheable: true,
-      candidate: true,
-      reason: "json",
-      versionGroups: ["villa-details"],
+      cacheable: false,
+      candidate: false,
+      reason: "path",
     });
     expect(getJsonEdgeCacheDecision(request("/api/villas/9/images"))).toMatchObject({
-      cacheable: true,
-      candidate: true,
-      reason: "json",
-      versionGroups: ["villa-images"],
+      cacheable: false,
+      candidate: false,
+      reason: "path",
     });
     expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?view=card")),
@@ -559,29 +688,19 @@ describe("worker JSON edge cache policy", () => {
       reason: "query",
     });
     expect(
-      getJsonEdgeCacheDecision(
-        request("/api/villas/9/booking-calendar?month=2026-13"),
-      ),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
-    expect(
-      getJsonEdgeCacheDecision(
-        request("/api/villas/9/booking-calendar?month=2026-06&debug=1"),
-      ),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
-    expect(
-      getJsonEdgeCacheDecision(
-        request("/api/villas/9/booking-calendar?month=2026-06&months=5"),
-      ),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
-    expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?imageId=7")),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
     expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?view=card&page=home")),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
     expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?view=card&debug=1")),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/villas/9/images?view=card&view=card"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
     expect(
       getJsonEdgeCacheDecision(
         request("/api/houses", { headers: { Cookie: "session=1" } }),
@@ -612,21 +731,7 @@ describe("worker JSON edge cache policy", () => {
     expect(url.hash).toBe("");
   });
 
-  it("keeps the booking calendar month in JSON cache keys", () => {
-    const cacheKey = createJsonEdgeCacheKey(
-      request("/api/villas/9/booking-calendar?month=2026-06#top"),
-      "villa-details:42",
-    );
-    const url = new URL(cacheKey.url);
-
-    expect(cacheKey.method).toBe("GET");
-    expect(url.pathname).toBe("/api/villas/9/booking-calendar");
-    expect(url.searchParams.get("month")).toBe("2026-06");
-    expect(url.searchParams.get("__bpv_json_v")).toBe("villa-details:42");
-    expect(url.hash).toBe("");
-  });
-
-  it("keeps the six-month booking calendar range in JSON cache keys", () => {
+  it("drops booking calendar query values from generic JSON cache keys", () => {
     const cacheKey = createJsonEdgeCacheKey(
       request(
         "/api/villas/9/booking-calendar?month=2026-06&months=6#top",
@@ -635,9 +740,12 @@ describe("worker JSON edge cache policy", () => {
     );
     const url = new URL(cacheKey.url);
 
-    expect(url.searchParams.get("month")).toBe("2026-06");
-    expect(url.searchParams.get("months")).toBe("6");
+    expect(cacheKey.method).toBe("GET");
+    expect(url.pathname).toBe("/api/villas/9/booking-calendar");
+    expect(url.searchParams.has("month")).toBe(false);
+    expect(url.searchParams.has("months")).toBe(false);
     expect(url.searchParams.get("__bpv_json_v")).toBe("villa-details:42");
+    expect(url.hash).toBe("");
   });
 
   it("keeps the villa card view in JSON cache keys", () => {

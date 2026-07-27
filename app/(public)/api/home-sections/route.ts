@@ -1,4 +1,5 @@
 import {
+  getHomeSectionListingPlan,
   getResolvedHomeSections,
   type HomeSectionsSource,
 } from "@/lib/home-sections/server";
@@ -28,8 +29,26 @@ export async function GET(request: Request) {
     return rateLimitResponse;
   }
 
+  const planResult = await getHomeSectionListingPlan().then(
+    (value) => ({ status: "fulfilled" as const, value }),
+    (reason) => ({ reason, status: "rejected" as const }),
+  );
   const villas = await fetchHouseListings();
-  const { sections, source } = await getResolvedHomeSections(villas);
+  const { sections, source } =
+    planResult.status === "fulfilled"
+      ? await getResolvedHomeSections(
+          villas,
+          planResult.value.configs,
+          planResult.value.layout.source === "fallback",
+        )
+      : await getResolvedHomeSections(villas);
+
+  if (planResult.status === "rejected") {
+    console.error(
+      "Unable to load home section listing plan",
+      planResult.reason,
+    );
+  }
 
   return jsonHomeSections(sections, source);
 }

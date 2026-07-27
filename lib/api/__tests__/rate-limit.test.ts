@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -30,6 +30,17 @@ describe("public API rate limit helper", () => {
   beforeEach(() => {
     resetPublicRateLimitForTests();
     vi.useRealTimers();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("defines a dedicated 60 requests per minute calendar policy", () => {
+    expect(PUBLIC_RATE_LIMIT_POLICIES.publicCalendar).toEqual({
+      limit: 60,
+      windowMs: 60_000,
+    });
   });
 
   it("uses Cloudflare client IP before forwarded IP", () => {
@@ -87,6 +98,96 @@ describe("public API rate limit helper", () => {
     );
     expect(limitPublicApiRequest(firstClient, "publicDetail")).toBeNull();
     expect(limitPublicApiRequest(secondClient, "publicDownload")).toBeNull();
+  });
+
+  it("allows 120 image manifest requests and blocks the next request", () => {
+    const manifestRequest = requestWithHeaders({
+      "CF-Connecting-IP": "203.0.113.42",
+    });
+
+    for (let index = 0; index < 120; index += 1) {
+      expect(
+        limitPublicApiRequest(manifestRequest, "publicImageManifest"),
+      ).toBeNull();
+    }
+
+    expect(
+      limitPublicApiRequest(manifestRequest, "publicImageManifest")?.status,
+    ).toBe(429);
+  });
+
+  it("allows 600 image delivery requests and blocks the next request", () => {
+    const deliveryRequest = requestWithHeaders({
+      "CF-Connecting-IP": "203.0.113.43",
+    });
+
+    for (let index = 0; index < 600; index += 1) {
+      expect(
+        limitPublicApiRequest(deliveryRequest, "publicImageDelivery"),
+      ).toBeNull();
+    }
+
+    expect(
+      limitPublicApiRequest(deliveryRequest, "publicImageDelivery")?.status,
+    ).toBe(429);
+  });
+
+  it("keeps image manifest, delivery, and download counters isolated from detail requests", () => {
+    const request = requestWithHeaders({ "CF-Connecting-IP": "203.0.113.44" });
+
+    for (let index = 0; index < 90; index += 1) {
+      expect(limitPublicApiRequest(request, "publicDetail")).toBeNull();
+    }
+
+    expect(limitPublicApiRequest(request, "publicDetail")?.status).toBe(429);
+    expect(limitPublicApiRequest(request, "publicImageManifest")).toBeNull();
+    expect(limitPublicApiRequest(request, "publicImageDelivery")).toBeNull();
+    expect(limitPublicApiRequest(request, "publicDownload")).toBeNull();
+  });
+
+  it("allows a representative homepage image workload for one client", () => {
+    const manifestRequest = requestWithHeaders({
+      "CF-Connecting-IP": "203.0.113.45",
+    });
+    const deliveryRequest = requestWithHeaders({
+      "CF-Connecting-IP": "203.0.113.45",
+    });
+
+    for (let index = 0; index < 12; index += 1) {
+      expect(
+        limitPublicApiRequest(manifestRequest, "publicImageManifest"),
+      ).toBeNull();
+    }
+
+    for (let index = 0; index < 120; index += 1) {
+      expect(
+        limitPublicApiRequest(deliveryRequest, "publicImageDelivery"),
+      ).toBeNull();
+    }
+  });
+
+  it("bypasses headerless requests only in development", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const request = new Request("https://example.com/api/villas/9/images");
+
+    for (let index = 0; index < 700; index += 1) {
+      expect(limitPublicApiRequest(request, "publicImageDelivery")).toBeNull();
+    }
+  });
+
+  it("still limits development requests with CF-Connecting-IP", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const request = new Request("https://example.com/api/villas/9/images", {
+      headers: { "CF-Connecting-IP": "203.0.113.20" },
+    });
+
+    for (let index = 0; index < 120; index += 1) {
+      expect(limitPublicApiRequest(request, "publicImageManifest")).toBeNull();
+    }
+
+    expect(
+      limitPublicApiRequest(request, "publicImageManifest")?.status,
+    ).toBe(429);
   });
 
   it("resets the fixed window and reports retry seconds from the current time", async () => {

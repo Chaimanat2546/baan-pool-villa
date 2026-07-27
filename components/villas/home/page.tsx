@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
 import type { HomePageSettings } from "@/components/villas/home/client-payload";
@@ -7,7 +7,12 @@ import {
   type HomepageCustomerReviewData,
 } from "@/lib/customer-reviews/types";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
-import type { ResolvedHomeSection } from "@/lib/home-sections/types";
+import { buildDefaultHomePageLayout } from "@/lib/home-sections/layout";
+import type {
+  HomePageLayoutItem,
+  ResolvedHomeSection,
+} from "@/lib/home-sections/types";
+import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import { SEARCH_FACETS } from "@/lib/villas/search-options";
 
 import { ArticlesSection } from "./articles-section";
@@ -38,14 +43,18 @@ interface HomePageProps {
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   filterSummary?: FilterSummary;
+  homeLayout?: HomePageLayoutItem[];
   settings: HomePageSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 interface HomePageContentProps {
   customerReviews?: HomepageCustomerReviewData;
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
+  homeLayout?: HomePageLayoutItem[];
   settings: HomePageSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 export function HomePageContent({
@@ -55,36 +64,53 @@ export function HomePageContent({
   },
   initialGuides = [],
   initialHomeSections = [],
+  homeLayout,
   settings,
+  villaCardStyle,
 }: HomePageContentProps) {
-  const railSections = initialHomeSections.filter(
-    (section) => section.villas.length > 0,
+  const railsBySlug = new Map(
+    initialHomeSections
+      .filter((section) => section.villas.length > 0)
+      .map((section) => [section.slug, section]),
   );
+  const layout =
+    homeLayout ?? buildDefaultHomePageLayout([...railsBySlug.keys()]);
 
   return (
     <>
-      {railSections.length > 0 ? (
-        railSections.map((section, index) => (
-          <Fragment key={section.slug}>
+      {layout.map((item) => {
+        if (!item.enabled) return null;
+
+        if (item.kind === "rail") {
+          const section = railsBySlug.get(item.key);
+          return section ? (
             <VillaRail
+              key={`rail:${item.key}`}
               cta={section.cta}
               id={section.slug}
               title={section.title}
               description={section.description}
+              villaCardStyle={villaCardStyle}
               villas={section.villas}
             />
-            {index === 0 ? <WhyChooseSection siteName={settings.siteName} /> : null}
-          </Fragment>
-        ))
-      ) : (
-        <WhyChooseSection siteName={settings.siteName} />
-      )}
+          ) : null;
+        }
 
-      <TikTokSection tiktok={settings.tiktok} />
-      <CustomerReviewSection data={customerReviews} />
-      <ArticlesSection guides={initialGuides} />
-      <FaqSection />
-      <ContactSection settings={settings} />
+        switch (item.key) {
+          case "why_choose":
+            return <WhyChooseSection key={item.key} siteName={settings.siteName} />;
+          case "tiktok":
+            return <TikTokSection key={item.key} tiktok={settings.tiktok} />;
+          case "customer_reviews":
+            return <CustomerReviewSection key={item.key} data={customerReviews} />;
+          case "articles":
+            return <ArticlesSection key={item.key} guides={initialGuides} />;
+          case "faq":
+            return <FaqSection key={item.key} />;
+          case "contact":
+            return <ContactSection key={item.key} settings={settings} />;
+        }
+      })}
     </>
   );
 }
@@ -92,9 +118,8 @@ export function HomePageContent({
 /**
  * Render the site's homepage with hero, villa rails, and supporting content sections.
  *
- * Renders a HeroSection (driving search filters), a sequence of VillaRail sections when available
- * (inserting WhyChooseSection after the first rail), and the TikTok, Articles,
- * FAQ, and Contact sections.
+ * Renders a HeroSection (driving search filters), then renders enabled villa
+ * rails and fixed supporting sections in the supplied homepage layout order.
  *
  * @param initialGuides - Optional initial list of guide articles used to populate the ArticlesSection
  * @param initialHomeSections - Optional initial home sections used to build villa rails
@@ -112,8 +137,10 @@ export function HomePage({
   heroSearch,
   initialGuides = [],
   initialHomeSections = [],
+  homeLayout,
   filterSummary,
   settings,
+  villaCardStyle,
 }: HomePageProps) {
   const maxAvailablePrice = filterSummary?.maxAvailablePrice ?? SEARCH_FACETS.maxPrice;
   const zones = filterSummary?.zones ?? SEARCH_FACETS.zones;
@@ -146,7 +173,9 @@ export function HomePage({
             customerReviews={customerReviews}
             initialGuides={initialGuides}
             initialHomeSections={initialHomeSections}
+            homeLayout={homeLayout}
             settings={settings}
+            villaCardStyle={villaCardStyle}
           />
         )}
       </div>

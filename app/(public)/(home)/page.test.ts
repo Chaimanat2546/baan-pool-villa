@@ -9,6 +9,8 @@ import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defau
 import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { getSiteSettings } from "@/lib/site-settings/server";
+import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import { fetchHomeListings } from "@/lib/villas/server";
 
 vi.mock("server-only", () => ({}));
@@ -55,6 +57,9 @@ vi.mock("@/lib/site-settings/server", () => ({
 vi.mock("@/lib/site-contact-settings/server", () => ({
   getSiteContactSettings: vi.fn(),
 }));
+vi.mock("@/lib/site-web-styles/server", () => ({
+  getSiteWebStyles: vi.fn(),
+}));
 
 vi.mock("@/lib/villas/public-dto", () => ({
   toPublicVillaListing: vi.fn((villa: unknown) => villa),
@@ -69,6 +74,7 @@ const getHomeSectionListingPlanMock = vi.mocked(getHomeSectionListingPlan);
 const getResolvedHomeSectionsMock = vi.mocked(getResolvedHomeSections);
 const getSiteContactSettingsMock = vi.mocked(getSiteContactSettings);
 const getSiteSettingsMock = vi.mocked(getSiteSettings);
+const getSiteWebStylesMock = vi.mocked(getSiteWebStyles);
 const fetchHomeListingsMock = vi.mocked(fetchHomeListings);
 
 describe("HomePageRoute", () => {
@@ -78,6 +84,8 @@ describe("HomePageRoute", () => {
     getResolvedHomeSectionsMock.mockReset();
     getSiteContactSettingsMock.mockReset();
     getSiteSettingsMock.mockReset();
+    getSiteWebStylesMock.mockReset();
+    getSiteWebStylesMock.mockResolvedValue(DEFAULT_SITE_WEB_STYLES);
     fetchHomeListingsMock.mockReset();
   });
 
@@ -85,6 +93,11 @@ describe("HomePageRoute", () => {
     let resolveListingPlan: (plan: {
       configs: [];
       houseIds: string[];
+      layout: {
+        degraded: false;
+        items: [];
+        source: "config";
+      };
       listingLimit: number;
     }) => void = () => {};
     getPublishedGuidesMock.mockResolvedValue([]);
@@ -120,7 +133,12 @@ describe("HomePageRoute", () => {
       }),
     ]);
 
-    resolveListingPlan({ configs: [], houseIds: [], listingLimit: 12 });
+    resolveListingPlan({
+      configs: [],
+      houseIds: [],
+      layout: { degraded: false, items: [], source: "config" },
+      listingLimit: 12,
+    });
 
     expect(pageResult).toBe("resolved");
     expect(fetchHomeListingsMock).not.toHaveBeenCalled();
@@ -135,6 +153,11 @@ describe("HomePageRoute", () => {
     getHomeSectionListingPlanMock.mockResolvedValue({
       configs: [],
       houseIds: ["1328"],
+      layout: {
+        degraded: false,
+        items: [],
+        source: "config",
+      },
       listingLimit: 12,
     });
     fetchHomeListingsMock.mockResolvedValue([]);
@@ -166,7 +189,51 @@ describe("HomePageRoute", () => {
       );
     } finally {
       resolveGuides([]);
+      await vi.waitFor(() => {
+        expect(getResolvedHomeSectionsMock).toHaveBeenCalledWith(
+          [],
+          [],
+          false,
+        );
+      });
       await pagePromise;
     }
+  });
+
+  it("allows fallback recommendations when the layout is degraded", async () => {
+    getPublishedGuidesMock.mockResolvedValue([]);
+    getHomeSectionListingPlanMock.mockResolvedValue({
+      configs: [],
+      houseIds: [],
+      layout: {
+        degraded: true,
+        items: [],
+        source: "fallback",
+      },
+      listingLimit: 12,
+    });
+    fetchHomeListingsMock.mockResolvedValue([]);
+    getResolvedHomeSectionsMock.mockResolvedValue({
+      degraded: false,
+      sections: [],
+      source: "fallback",
+    });
+    getSiteContactSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: DEFAULT_SITE_CONTACT_SETTINGS,
+      source: "config",
+    });
+    getSiteSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: DEFAULT_SITE_SETTINGS,
+      source: "config",
+    });
+
+    const { default: HomePageRoute } = await import("./page");
+    await HomePageRoute();
+
+    await vi.waitFor(() => {
+      expect(getResolvedHomeSectionsMock).toHaveBeenCalledWith([], [], true);
+    });
   });
 });

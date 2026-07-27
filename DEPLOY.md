@@ -14,8 +14,8 @@
 
 | Site | Wrangler env | Worker | Public URL | R2 cache bucket | Local env file |
 | --- | --- | --- | --- | --- | --- |
-| Baan Party Pattaya | `baanparty` | `baan-pool-villa` | `https://baanpartypattaya.com` | `baan-pool-villa-next-cache` | `.env.baanparty` |
-| Baan 02 | `baan02` | `baan-pool-villa02` | `https://baan-pool-villa02.poolvilla.workers.dev` | `baan-pool-villa02-next-cache` | `.env.baan02` |
+| Baan Party Pattaya | `baanparty` | `baan-pool-villa` | `https://www.baanpartypattaya.com` | `baan-pool-villa-next-cache` | `.env.baanparty` |
+| Baan 02 | `baan02` | `baan-pool-villa02` | `https://www.poolvillapattaya.co.th` | `baan-pool-villa02-next-cache` | `.env.baan02` |
 
 ## เพิ่มเว็บใหม่
 
@@ -41,7 +41,7 @@ Copy-Item .env.example .env.baan03
     "binding": "IMAGES"
   },
   "vars": {
-    "NEXT_PUBLIC_SITE_URL": "https://your-new-site.example"
+    "NEXT_PUBLIC_SITE_URL": "https://www.your-new-site.example"
   },
   "services": [
     {
@@ -78,7 +78,11 @@ Copy-Item .env.example .env.baan03
     }
   ],
   "secrets": {
-    "required": ["DEVILLE_BEARER_TOKEN", "SUPABASE_PUBLISHABLE_KEY"]
+    "required": [
+      "CALENDAR_INTERNAL_API_TOKEN",
+      "DEVILLE_BEARER_TOKEN",
+      "SUPABASE_PUBLISHABLE_KEY"
+    ]
   }
 }
 ```
@@ -92,11 +96,51 @@ npx.cmd wrangler r2 bucket create baan-pool-villa03-next-cache
 8. ตั้ง Cloudflare secrets ต่อ env:
 
 ```powershell
-npx.cmd wrangler secret put DEVILLE_BEARER_TOKEN -e baan03
-npx.cmd wrangler secret put SUPABASE_PUBLISHABLE_KEY -e baan03
-npx.cmd wrangler secret put PATTAYA_BOOKINGS_API_TOKEN -e baan03
-npx.cmd wrangler secret put TURNSTILE_SECRET_KEY -e baan03
+npx.cmd wrangler secret put DEVILLE_BEARER_TOKEN -e baanparty
+npx.cmd wrangler secret put SUPABASE_PUBLISHABLE_KEY -e baanparty
+npx.cmd wrangler secret put PATTAYA_BOOKINGS_API_TOKEN -e baanparty
+npx.cmd wrangler secret put TURNSTILE_SECRET_KEY -e baanparty
 ```
+
+`CALENDAR_INTERNAL_API_TOKEN` เป็น Bearer token สำหรับ Private Calendar API เท่านั้น
+ไม่ใช่ `PATTAYA_BOOKINGS_API_TOKEN` ซึ่งใช้เรียก upstream Pattaya bookings API ใช้คนละค่าต่อ env
+และห้ามเก็บใน `.env`, `wrangler.jsonc`, source code, URL, log หรือชื่อที่ขึ้นต้นด้วย
+`NEXT_PUBLIC_` Browser ไม่เรียก Calendar API และไม่ได้รับ token นี้
+ตั้งค่า token นี้ด้วย PowerShell RNG snippet ด้านล่างเท่านั้น
+
+สร้างและบันทึก secret โดยไม่แสดงค่าบนหน้าจอด้วย PowerShell:
+
+```powershell
+$calendarInternalTokenBytes = New-Object byte[] 32
+$calendarInternalTokenRng = [Security.Cryptography.RandomNumberGenerator]::Create()
+try {
+  $calendarInternalTokenRng.GetBytes($calendarInternalTokenBytes)
+  [Convert]::ToBase64String($calendarInternalTokenBytes) |
+    npx.cmd wrangler secret put CALENDAR_INTERNAL_API_TOKEN -e baanparty
+} finally {
+  $calendarInternalTokenRng.Dispose()
+}
+```
+
+รันชุดคำสั่งสร้างค่านี้ใหม่ตั้งแต่บรรทัดแรกสำหรับแต่ละ Wrangler env ที่ใช้งาน:
+`baanparty`, `baan02`, และ `baanPMhee` โดยเปลี่ยนหลัง `-e` ให้ตรงกับ env นั้น
+ทุก env ต้องได้ค่าที่สุ่มแยกกัน ห้ามคัดลอก Bearer token ระหว่างกัน
+
+ต้องตั้ง `CALENDAR_INTERNAL_API_TOKEN` ใหม่ใน env เป้าหมายก่อน deploy โค้ดใหม่นี้
+หลัง deploy และยืนยันการทำงานสำเร็จแล้วเท่านั้น จึงลบ `CALENDAR_ACCESS_SECRET` เดิมได้
+
+ถ้าขั้นตอนสร้างค่าสุ่มเกิด error ให้หยุดทันที ห้ามนำ `$calendarInternalTokenBytes`
+ไปใช้ต่อ เพราะอาจยังเป็น byte ศูนย์ทั้งหมดและคาดเดาได้
+
+ตรวจเฉพาะรายชื่อ secret หลังตั้งค่า:
+
+```powershell
+npx.cmd wrangler secret list -e baanparty
+npx.cmd wrangler secret list -e baan02
+npx.cmd wrangler secret list -e baanPMhee
+```
+
+คำสั่งตรวจจะแสดงเฉพาะชื่อ secret โดยไม่เปิดเผยค่าจริง
 
 9. ตั้ง public vars ใน Cloudflare dashboard ของ Worker/env นั้น:
 
@@ -107,6 +151,13 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY
 ```
 
 `NEXT_PUBLIC_SITE_URL` อยู่ใน `wrangler.jsonc` แล้ว แต่ต้องมีค่าเดียวกันใน `.env.<site>` สำหรับตอน build
+
+สำหรับ Private Calendar API ค่านี้ต้องเป็น HTTPS official domain ที่ขึ้นต้นด้วย
+`www.` เท่านั้น Worker จะอนุญาต host นี้และ apex คู่กันแบบ exact match
+เช่น `https://www.example.com` จะอนุญาตเฉพาะ `www.example.com` กับ
+`example.com` ส่วน sibling subdomain และ `*.workers.dev` alias จะถูกปฏิเสธ
+ถ้ายังไม่มี official `www` domain ห้ามเดาหรือใช้ Workers.dev alias แทน เพราะ
+Calendar API จะ fail closed ด้วย `503` จนกว่าจะตั้งค่า domain ที่อนุมัติแล้ว
 
 ## Deploy ทีละเว็บ
 
@@ -120,7 +171,7 @@ npm.cmd run lint
 npm.cmd test
 npx.cmd opennextjs-cloudflare build -e baanparty
 npx.cmd opennextjs-cloudflare deploy -e baanparty
-npm.cmd run prewarm:cf -- --url=https://baanpartypattaya.com
+npm.cmd run prewarm:cf -- --url=https://www.baanpartypattaya.com
 ```
 
 ### Deploy `baan02`
@@ -131,7 +182,7 @@ npm.cmd run lint
 npm.cmd test
 npx.cmd opennextjs-cloudflare build -e baan02
 npx.cmd opennextjs-cloudflare deploy -e baan02
-npm.cmd run prewarm:cf -- --url=https://baan-pool-villa02.poolvilla.workers.dev
+npm.cmd run prewarm:cf -- --url=https://www.poolvillapattaya.co.th
 ```
 
 ### Deploy เว็บใหม่
@@ -205,6 +256,7 @@ IMAGES
 ASSETS
 CF_VERSION_METADATA
 NEXT_PUBLIC_SITE_URL
+CALENDAR_API_RATE_LIMITER
 ```
 
 ## ถ้า deploy แล้ว DB ผิดเว็บ

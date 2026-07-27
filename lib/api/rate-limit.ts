@@ -3,7 +3,10 @@ import "server-only";
 export type PublicRateLimitPolicy =
   | "publicCatalog"
   | "publicDetail"
-  | "publicDownload";
+  | "publicCalendar"
+  | "publicDownload"
+  | "publicImageManifest"
+  | "publicImageDelivery";
 
 interface PublicRateLimitPolicyConfig {
   limit: number;
@@ -28,8 +31,20 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
     limit: 90,
     windowMs: ONE_MINUTE_MS,
   },
+  publicCalendar: {
+    limit: 60,
+    windowMs: ONE_MINUTE_MS,
+  },
   publicDownload: {
     limit: 20,
+    windowMs: ONE_MINUTE_MS,
+  },
+  publicImageManifest: {
+    limit: 120,
+    windowMs: ONE_MINUTE_MS,
+  },
+  publicImageDelivery: {
+    limit: 600,
     windowMs: ONE_MINUTE_MS,
   },
 } satisfies Record<PublicRateLimitPolicy, PublicRateLimitPolicyConfig>;
@@ -101,6 +116,13 @@ export function limitPublicApiRequest(
   request: Request,
   policy: PublicRateLimitPolicy,
 ): Response | null {
+  if (
+    process.env.NODE_ENV === "development" &&
+    readTrimmedHeader(request.headers, "CF-Connecting-IP") === null
+  ) {
+    return null;
+  }
+
   const config = PUBLIC_RATE_LIMIT_POLICIES[policy];
   const now = Date.now();
   const clientKey = getPublicRateLimitClientKey(request);

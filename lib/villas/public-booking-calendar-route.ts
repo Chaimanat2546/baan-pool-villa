@@ -1,26 +1,51 @@
-import { CACHE_HEADERS } from "@/lib/cache-policy";
 import {
   fetchVillaBookingCalendar,
   isValidBookingCalendarMonth,
 } from "@/lib/villas/booking-calendar";
 
+const PRIVATE_CALENDAR_HEADERS = {
+  "Cache-Control": "private, no-store",
+};
+
 export async function buildVillaBookingCalendarResponse(
   request: Request,
   id: string,
 ) {
+  if (!/^[1-9]\d*$/.test(id)) {
+    return Response.json(
+      { error: "Invalid villa id." },
+      {
+        headers: PRIVATE_CALENDAR_HEADERS,
+        status: 400,
+      },
+    );
+  }
+
   const searchParams = new URL(request.url).searchParams;
-  const month = searchParams.get("month") ?? "";
-  const requestedMonths = searchParams.get("months");
+  const monthValues = searchParams.getAll("month");
+  const requestedMonthValues = searchParams.getAll("months");
+  const month = monthValues[0] ?? "";
+  const requestedMonths = requestedMonthValues[0];
 
   if (
+    monthValues.length !== 1 ||
+    requestedMonthValues.length > 1 ||
     !isValidBookingCalendarMonth(month) ||
-    (requestedMonths !== null && requestedMonths !== "6")
+    (requestedMonths !== undefined &&
+      !/^(?:[1-9]|1[0-4])$/.test(requestedMonths))
   ) {
-    return Response.json({ error: "Invalid month." }, { status: 400 });
+    return Response.json(
+      { error: "Invalid month." },
+      {
+        headers: PRIVATE_CALENDAR_HEADERS,
+        status: 400,
+      },
+    );
   }
 
   const [year, monthNumber] = month.split("-").map(Number);
-  const monthCount = requestedMonths === "6" ? 6 : 1;
+  const monthCount =
+    requestedMonths === undefined ? 1 : Number(requestedMonths);
   const monthKeys = Array.from({ length: monthCount }, (_, offset) => {
     const date = new Date(Date.UTC(year, monthNumber - 1 + offset, 1));
 
@@ -37,7 +62,7 @@ export async function buildVillaBookingCalendarResponse(
     return Response.json(
       { error: "Booking calendar is not configured." },
       {
-        headers: { "Cache-Control": "no-store" },
+        headers: PRIVATE_CALENDAR_HEADERS,
         status: 503,
       },
     );
@@ -47,7 +72,7 @@ export async function buildVillaBookingCalendarResponse(
     return Response.json(
       { error: "Booking calendar is unavailable." },
       {
-        headers: { "Cache-Control": "no-store" },
+        headers: PRIVATE_CALENDAR_HEADERS,
         status: 502,
       },
     );
@@ -58,8 +83,6 @@ export async function buildVillaBookingCalendarResponse(
   );
 
   return Response.json(monthCount === 1 ? calendars[0] : calendars, {
-    headers: {
-      "Cache-Control": CACHE_HEADERS.bookingCalendar,
-    },
+    headers: PRIVATE_CALENDAR_HEADERS,
   });
 }

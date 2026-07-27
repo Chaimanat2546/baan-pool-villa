@@ -7,8 +7,12 @@ import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import { pushVillaDetailView } from "@/lib/marketing-data-layer";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
-import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
+import type {
+  GalleryStyleSettings,
+  SiteVillaCardStyle,
+} from "@/lib/site-web-styles/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
+import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type {
   PublicRecommendedVillaSection,
   PublicVillaImage,
@@ -33,30 +37,38 @@ interface GalleryModalState {
 
 interface VillaDetailClientShellProps {
   advertisements: PublicAdvertisement[];
+  bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId: string;
   children: ReactNode;
   contactSettings: SiteContactSettings;
   content: VillaDetailContent;
+  currentBookingMonthKey: string;
   galleryStyle: GalleryStyleSettings;
   id: string;
   initialGalleryImages?: PublicVillaImage[];
+  initialGalleryLoadFailed?: boolean;
   listing: PublicVillaListing;
   recommendedSection: PublicRecommendedVillaSection | null;
   settings: SiteSettings;
+  villaCardStyle?: SiteVillaCardStyle;
 }
 
 export function VillaDetailClientShell({
   advertisements,
+  bookingCalendars,
   bookingSidebarId,
   children,
   contactSettings,
   content,
+  currentBookingMonthKey,
   galleryStyle,
   id,
   initialGalleryImages = [],
+  initialGalleryLoadFailed = false,
   listing,
   recommendedSection,
   settings,
+  villaCardStyle,
 }: VillaDetailClientShellProps) {
   const pushedViewItemIdRef = useRef<string | null>(null);
   const [galleryModalState, setGalleryModalState] = useState<GalleryModalState>(
@@ -69,17 +81,20 @@ export function VillaDetailClientShell({
     galleryLoadError,
     galleryLoadStatus,
     handleGalleryImageClick,
-    handleGalleryRetry,
     handleImageError,
-    loadGalleryImages,
     setActiveGalleryItem,
     shouldShowGallerySkeleton,
     visibleGalleryItemCount,
-  } = useVillaGallery({ id, initialGalleryImages });
+  } = useVillaGallery({
+    id,
+    initialGalleryImages,
+    initialGalleryLoadFailed,
+  });
 
   const galleryModalView =
     galleryModalState.villaId === id ? galleryModalState.view : "closed";
   const isCategorizedGallery = galleryStyle.variant === "categorized-grid";
+  const galleryRetryHref = `/villas/${encodeURIComponent(id)}`;
 
   const handleDirectImageClick = (item: (typeof galleryItems)[number]) => {
     setGalleryModalState({
@@ -97,7 +112,6 @@ export function VillaDetailClientShell({
         villaId: id,
         view: "overview",
       });
-      void loadGalleryImages().catch(() => undefined);
       return;
     }
 
@@ -123,8 +137,8 @@ export function VillaDetailClientShell({
         listing={listing}
         onImageClick={handleDirectImageClick}
         onImageError={handleImageError}
-        onRetry={handleGalleryRetry}
         onViewAll={handleViewAll}
+        retryHref={galleryRetryHref}
         showSkeleton={shouldShowGallerySkeleton}
         totalImageCount={
           galleryLoadStatus === "loaded" ? visibleGalleryItemCount : null
@@ -133,22 +147,25 @@ export function VillaDetailClientShell({
 
       <VillaDetailGalleryError
         error={galleryLoadStatus === "error" ? galleryLoadError : null}
-        onRetry={handleGalleryRetry}
+        retryHref={galleryRetryHref}
       />
 
       {children}
 
       <DetailLayoutRenderer
         advertisements={advertisements}
+        bookingCalendars={bookingCalendars}
         bookingSidebarId={bookingSidebarId}
         contactSettings={contactSettings}
         content={content}
+        currentBookingMonthKey={currentBookingMonthKey}
         galleryCategories={galleryCategories}
         galleryStyle={galleryStyle}
         layout={settings.detailLayout}
         listing={listing}
         recommendedSection={recommendedSection}
         settings={settings}
+        villaCardStyle={villaCardStyle}
       />
 
       {galleryModalView === "overview" ? (

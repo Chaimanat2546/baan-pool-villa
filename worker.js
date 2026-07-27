@@ -19,6 +19,7 @@ import {
   withJsonEdgeCacheHeader,
   withStaticAssetCacheHeaders,
 } from "./worker-cache-policy.js";
+import { handleBookingCalendarAccess } from "./worker-calendar-access.js";
 import { getHtmlEdgeCacheVersionToken } from "./worker-html-cache-version.js";
 
 const IMAGE_CACHE_CONTROL =
@@ -195,6 +196,17 @@ export { BucketCachePurge, DOQueueHandler, DOShardedTagCache };
 
 const worker = {
   async fetch(request, env, ctx) {
+    // Calendar host, Bearer, and rate-limit checks must run before OpenNext
+    // and every cache lookup. Calendar responses are never shared Edge JSON.
+    const calendarAccessResponse = await handleBookingCalendarAccess(
+      request,
+      env,
+    );
+
+    if (calendarAccessResponse) {
+      return calendarAccessResponse;
+    }
+
     return fetchWithImageEdgeCache(request, env, ctx);
   },
 };

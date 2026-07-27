@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getSearchPageData } from "@/components/villas/search/page-data";
 import { SEARCH_FACETS } from "@/lib/villas/search-options";
+import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
+import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import type { VillaListing } from "@/lib/villas/types";
 import { fetchVillaSearchPage } from "@/lib/villas/server";
 
@@ -20,7 +22,12 @@ vi.mock("@/lib/site-settings/server", () => ({
   getSiteSettings: vi.fn(),
 }));
 
+vi.mock("@/lib/site-web-styles/server", () => ({
+  getSiteWebStyles: vi.fn(),
+}));
+
 const fetchVillaSearchPageMock = vi.mocked(fetchVillaSearchPage);
+const getSiteWebStylesMock = vi.mocked(getSiteWebStyles);
 
 const villas: VillaListing[] = [
   {
@@ -147,6 +154,10 @@ describe("getSearchPageData", () => {
 describe("SearchPage route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getSiteWebStylesMock.mockResolvedValue({
+      ...DEFAULT_SITE_WEB_STYLES,
+      houseCard: { variant: "gallery" },
+    });
     fetchVillaSearchPageMock.mockResolvedValue({
       facets: {
         maxPrice: 18000,
@@ -178,5 +189,6 @@ describe("SearchPage route", () => {
       }),
     );
     expect(searchPageElement.props.initialSearchParams).toBe("id=902&sort=price_desc");
+    expect(searchPageElement.props.villaCardStyle).toBe("gallery");
   });
 });

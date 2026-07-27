@@ -5,7 +5,7 @@ import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import {
   fetchVillaCoverOverrideUrls,
-  fetchVillaPreviewImages,
+  fetchVillaImages,
   normalizeImageRows,
 } from "./images";
 import { AMENITY_OPTIONS, normalizeAmenityKey } from "./amenities";
@@ -1456,13 +1456,14 @@ export async function fetchVillaDetail(
 
 export type VillaPageData = {
   initialGalleryImages: PublicVillaImage[];
+  initialGalleryLoadFailed: boolean;
   payload: PublicVillaDetailPayload;
   recommendedSection: null;
 };
 
 /**
- * Combines villa detail data with the initial gallery preview used on the
- * public detail page.
+ * Combines villa detail data with the complete gallery used on the public
+ * detail page.
  *
  * @param id - The villa id to resolve for the public detail page.
  * @returns The page payload, or `null` when the villa id is not found.
@@ -1476,15 +1477,15 @@ export async function fetchVillaPageData(
     return null;
   }
 
-  const initialGalleryImagesPromise = fetchVillaPreviewImages(id).catch(
-    (error: unknown) => {
-      console.error("Unable to load villa detail initial gallery images", error);
-      return [];
-    },
-  );
-  const [payload, initialGalleryImages] = await Promise.all([
+  const initialGalleryPromise = fetchVillaImages(id)
+    .then((images) => ({ failed: false as const, images }))
+    .catch((error: unknown) => {
+      console.error("Unable to load villa detail gallery images", error);
+      return { failed: true as const, images: [] };
+    });
+  const [payload, galleryResult] = await Promise.all([
     fetchVillaDetail(id, [listing]),
-    initialGalleryImagesPromise,
+    initialGalleryPromise,
   ]);
 
   if (!payload) {
@@ -1492,7 +1493,8 @@ export async function fetchVillaPageData(
   }
 
   return {
-    initialGalleryImages: toPublicVillaImages(id, initialGalleryImages.slice(0, 4)),
+    initialGalleryImages: toPublicVillaImages(id, galleryResult.images),
+    initialGalleryLoadFailed: galleryResult.failed,
     payload: toPublicVillaDetailPayload(payload),
     recommendedSection: null,
   };

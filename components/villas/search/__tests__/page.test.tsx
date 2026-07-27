@@ -130,6 +130,15 @@ describe("SearchPage", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("renders initial villa cards from the explicit server style snapshot", () => {
+    const markup = renderToStaticMarkup(
+      <SearchPage initialVillas={[villa]} villaCardStyle="gallery" />,
+    );
+
+    expect(markup).toContain('data-villa-card-style="gallery"');
+    expect(markup).not.toContain('data-villa-card-style="classic"');
+  });
+
   it("applies server-provided search params during the first render", () => {
     const otherVilla: VillaListing = {
       ...villa,

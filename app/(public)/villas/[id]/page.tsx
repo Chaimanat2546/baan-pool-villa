@@ -19,6 +19,10 @@ import {
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
+import {
+  getBangkokBookingCalendarMonthKeys,
+  preloadVillaBookingCalendars,
+} from "@/lib/villas/booking-calendar-preload";
 import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
 interface VillaPageProps {
@@ -63,11 +67,21 @@ export async function generateMetadata({
 
 export default async function Page({ params }: VillaPageProps) {
   const { id } = await params;
-  const [data, siteSettingsResult, contactSettingsResult, siteWebStylesResult] = await Promise.all([
+  const now = new Date();
+  const currentBookingMonthKey =
+    getBangkokBookingCalendarMonthKeys(now)[1];
+  const [
+    data,
+    siteSettingsResult,
+    contactSettingsResult,
+    siteWebStylesResult,
+    calendarPreload,
+  ] = await Promise.all([
     fetchVillaPageData(id),
     getSiteSettings(),
     getSiteContactSettings(),
     getSiteWebStyles(),
+    preloadVillaBookingCalendars(id, now),
   ]);
 
   if (!data) {
@@ -126,13 +140,17 @@ export default async function Page({ params }: VillaPageProps) {
       />
       <VillaDetailPage
         advertisements={advertisements}
+        bookingCalendars={calendarPreload.calendars}
+        currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={siteWebStylesResult.gallery}
         id={id}
         initialGalleryImages={data.initialGalleryImages}
+        initialGalleryLoadFailed={data.initialGalleryLoadFailed}
         payload={data.payload}
         recommendedSection={data.recommendedSection}
         contactSettings={contactSettingsResult.settings}
         settings={siteSettingsResult.settings}
+        villaCardStyle={siteWebStylesResult.houseCard.variant}
       />
     </>
   );

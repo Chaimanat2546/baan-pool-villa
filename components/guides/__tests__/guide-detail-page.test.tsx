@@ -267,6 +267,20 @@ describe("getYouTubeEmbedUrl", () => {
     expect(markup).toContain("lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]");
   });
 
+  it("renders recommended villa cards from the explicit server style snapshot", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={makeGuide([{ type: "paragraph", content: [] }])}
+        recommendedVillas={[villa]}
+        relatedGuides={[]}
+        villaCardStyle="gallery"
+      />,
+    );
+
+    expect(markup).toContain('data-villa-card-style="gallery"');
+    expect(markup).not.toContain('data-villa-card-style="classic"');
+  });
+
   it("renders YouTube links as thumbnail posters before play", () => {
     const markup = renderToStaticMarkup(
       <GuideDetailPage
