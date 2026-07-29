@@ -18,3 +18,39 @@ export async function readAdminAccessToken(): Promise<string | null> {
     return null;
   }
 }
+
+export type AdminSessionState =
+  | "active"
+  | "forced"
+  | "inactive"
+  | "invalid"
+  | "version_mismatch"
+  | "verification_failed";
+
+export async function readAdminSessionState(
+  accessToken?: string,
+): Promise<AdminSessionState> {
+  const token = accessToken ?? (await readAdminAccessToken());
+  if (!token) {
+    return "invalid";
+  }
+
+  try {
+    const response = await fetch("/api/admin/session", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const body = (await response.json()) as { state?: unknown };
+    return [
+      "active",
+      "forced",
+      "inactive",
+      "invalid",
+      "version_mismatch",
+      "verification_failed",
+    ].includes(body.state as string)
+      ? (body.state as AdminSessionState)
+      : "invalid";
+  } catch {
+    return "verification_failed";
+  }
+}

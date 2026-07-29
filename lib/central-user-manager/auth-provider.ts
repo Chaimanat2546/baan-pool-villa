@@ -123,7 +123,6 @@ function providerFailure(
 
 interface DefiniteCustomAuthErrorAllowlist {
   weakPassword?: true;
-  sessionMissing?: true;
 }
 
 function classifyReturnedAuthError(
@@ -137,9 +136,7 @@ function classifyReturnedAuthError(
     (allowlist.weakPassword === true &&
       isAuthWeakPasswordError(error) &&
       error.status >= 400 &&
-      error.status < 500) ||
-    (allowlist.sessionMissing === true &&
-      isAuthSessionMissingError(error))
+      error.status < 500)
   ) {
     return providerFailure("provider_rejected", false);
   }
@@ -582,10 +579,12 @@ export async function globallySignOutAccessToken(
     return dispatched;
   }
 
+  if (isAuthSessionMissingError(dispatched.data.error)) {
+    return { ok: true, data: null };
+  }
+
   return dispatched.data.error
-    ? classifyReturnedAuthError(dispatched.data.error, {
-        sessionMissing: true,
-      })
+    ? classifyReturnedAuthError(dispatched.data.error)
     : { ok: true, data: null };
 }
 

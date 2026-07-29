@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import {
   click,
+  flushEffects,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   pathname: "/admin/settings",
   replace: vi.fn(),
   signOut: vi.fn(),
+  readState: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -29,6 +31,9 @@ vi.mock("@/lib/home-sections/supabase", () => ({
     },
   }),
 }));
+vi.mock("@/components/admin/admin-auth", () => ({
+  readAdminSessionState: mocks.readState,
+}));
 
 import { AdminShell } from "../admin-shell";
 
@@ -37,6 +42,8 @@ describe("AdminShell", () => {
     mocks.pathname = "/admin/settings";
     mocks.replace.mockReset();
     mocks.signOut.mockReset();
+    mocks.readState.mockReset();
+    mocks.readState.mockResolvedValue("active");
     window.localStorage.clear();
     document.cookie = "admin-sidebar-collapsed=; path=/; max-age=0";
   });
@@ -158,6 +165,55 @@ describe("AdminShell", () => {
       page.container.querySelector('[data-admin-sidebar-state]'),
     ).toBeNull();
 
+    await page.unmount();
+  });
+
+  it("renders the forced password page without the admin navigation shell", async () => {
+    mocks.pathname = "/admin/change-password";
+
+    const page = await mountAdminPage(
+      <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+        <div>forced form</div>
+      </AdminShell>,
+    );
+
+    expect(page.container.textContent).toContain("forced form");
+    expect(page.container.querySelector("nav")).toBeNull();
+    expect(mocks.readState).not.toHaveBeenCalled();
+    await page.unmount();
+  });
+
+  it("redirects a forced session before exposing protected shell mutations", async () => {
+    mocks.readState.mockResolvedValue("forced");
+
+    const page = await mountAdminPage(
+      <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+        <div>settings</div>
+      </AdminShell>,
+    );
+    await flushEffects();
+
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/change-password");
+    expect(page.container.querySelector("nav")).toBeNull();
+    expect(page.container.querySelector("button")).toBeNull();
+    await page.unmount();
+  });
+
+  it("surfaces verification failure without redirecting it to login", async () => {
+    mocks.readState.mockResolvedValue("verification_failed");
+
+    const page = await mountAdminPage(
+      <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+        <div>settings</div>
+      </AdminShell>,
+    );
+    await flushEffects();
+
+    expect(page.container.textContent).toContain(
+      "ไม่สามารถตรวจสอบสิทธิ์แอดมินได้",
+    );
+    expect(mocks.replace).not.toHaveBeenCalled();
+    expect(page.container.querySelector("nav")).toBeNull();
     await page.unmount();
   });
 });

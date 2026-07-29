@@ -9,11 +9,14 @@ import {
   commitAdminUserProviderIntent,
   commitAdminUserProviderOutcome,
   completeAdminUserOperationV2,
+  completeForcedPasswordChangeV2,
   quarantineAdminUserOperation,
   markAdminUserOperationNeedsReview,
   recordAdminUserLateFence,
   resumeAdminUserOperation,
   renewAdminUserOperationLease,
+  releaseForcedPasswordChangeV2,
+  rollbackForcedPasswordChangeV2,
 } from "../operation-repository";
 
 const OPERATION_ID = "123e4567-e89b-42d3-a456-426614174001";
@@ -240,6 +243,101 @@ describe("Central User Manager operation repository", () => {
       p_stage: "completed",
       p_safe_result: { credentialVersion: 2 },
     });
+    expect(JSON.stringify(rpc.mock.calls)).not.toContain(RAW_TOKEN);
+  });
+
+  it.each([
+    [
+      "complete",
+      completeForcedPasswordChangeV2,
+      "complete_forced_password_change_v2",
+      {
+        p_operation_id: OPERATION_ID,
+        p_fence_version: 1,
+        p_lease_token_hash: RAW_TOKEN_HASH,
+        p_user_id: TARGET_USER_ID,
+        p_email_normalized: "admin@example.com",
+        p_credential_version: 3,
+      },
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        leaseToken: RAW_TOKEN,
+        userId: TARGET_USER_ID,
+        email: "admin@example.com",
+        credentialVersion: 3,
+      },
+    ],
+    [
+      "release",
+      releaseForcedPasswordChangeV2,
+      "release_forced_password_change_v2",
+      {
+        p_operation_id: OPERATION_ID,
+        p_fence_version: 1,
+        p_lease_token_hash: RAW_TOKEN_HASH,
+        p_user_id: TARGET_USER_ID,
+        p_email_normalized: "admin@example.com",
+        p_stage: "temporary_password_rejected",
+      },
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        leaseToken: RAW_TOKEN,
+        userId: TARGET_USER_ID,
+        email: "admin@example.com",
+        stage: "temporary_password_rejected",
+      },
+    ],
+    [
+      "rollback",
+      rollbackForcedPasswordChangeV2,
+      "rollback_forced_password_change_v2",
+      {
+        p_operation_id: OPERATION_ID,
+        p_fence_version: 1,
+        p_lease_token_hash: RAW_TOKEN_HASH,
+        p_user_id: TARGET_USER_ID,
+        p_email_normalized: "admin@example.com",
+        p_expected_credential_version: 3,
+        p_next_credential_version: 2,
+        p_stage: "auth_n2_rejected",
+      },
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        leaseToken: RAW_TOKEN,
+        userId: TARGET_USER_ID,
+        email: "admin@example.com",
+        expectedCredentialVersion: 3,
+        nextCredentialVersion: 2,
+        stage: "auth_n2_rejected",
+      },
+    ],
+  ] as const)("calls the narrow forced-password %s RPC without exposing the raw lease", async (
+    _name,
+    operation,
+    rpcName,
+    expectedParameters,
+    input,
+  ) => {
+    const { client, rpc } = fakeClient({
+      data: {
+        ...baseRpcOperation,
+        actor_kind: "target_admin",
+        action: "complete_password_change",
+        status: "completed",
+        stage: "completed",
+        lease_expires_at: null,
+      },
+      error: null,
+    });
+
+    await expect(operation(input as never, { client })).resolves.toMatchObject({
+      ok: true,
+      data: { status: "completed" },
+    });
+    expect(rpc).toHaveBeenCalledWith(rpcName, expectedParameters);
     expect(JSON.stringify(rpc.mock.calls)).not.toContain(RAW_TOKEN);
   });
 

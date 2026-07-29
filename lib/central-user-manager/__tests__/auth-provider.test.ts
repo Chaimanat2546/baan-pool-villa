@@ -951,7 +951,7 @@ describe("Central User Manager Supabase Auth provider", () => {
     expect(JSON.stringify(result)).not.toContain("access-token-secret");
   });
 
-  it("treats a missing-session global signout rejection as definite and secret-safe", async () => {
+  it("treats a missing-session global signout response as already cleaned", async () => {
     const signOut = vi.fn().mockResolvedValue({
       data: null,
       error: new AuthSessionMissingError(),
@@ -965,14 +965,7 @@ describe("Central User Manager Supabase Auth provider", () => {
       deps,
     );
 
-    expect(result).toEqual({
-      ok: false,
-      error: {
-        code: "provider_rejected",
-        message: "Supabase Auth rejected the operation.",
-      },
-      ambiguous: false,
-    });
+    expect(result).toEqual({ ok: true, data: null });
     expect(JSON.stringify(result)).not.toContain(
       "missing-session-access-token-secret",
     );

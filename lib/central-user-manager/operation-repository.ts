@@ -440,7 +440,10 @@ async function runOperationRpc(
     | "mark_admin_user_operation_needs_review"
     | "record_admin_user_late_fence"
     | "record_admin_user_late_fence_v2"
-    | "advance_forced_password_change",
+    | "advance_forced_password_change"
+    | "complete_forced_password_change_v2"
+    | "release_forced_password_change_v2"
+    | "rollback_forced_password_change_v2",
   params: Record<string, unknown>,
   deps: OperationRepositoryDependencies,
 ): Promise<RepositoryResult<AdminUserOperationRecord>> {
@@ -727,4 +730,86 @@ export async function advanceForcedPasswordChange(
   } catch {
     return failure("database_unavailable");
   }
+}
+
+interface ForcedPasswordLeaseInput {
+  operationId: string;
+  fenceVersion: number;
+  leaseToken: string;
+  userId: string;
+  email: string;
+}
+
+async function runForcedPasswordLeaseRpc(
+  name:
+    | "complete_forced_password_change_v2"
+    | "release_forced_password_change_v2"
+    | "rollback_forced_password_change_v2",
+  input: ForcedPasswordLeaseInput,
+  extra: Record<string, unknown>,
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  try {
+    return runOperationRpc(
+      name,
+      {
+        p_operation_id: input.operationId,
+        p_fence_version: input.fenceVersion,
+        p_lease_token_hash: await hashLeaseToken(
+          input.leaseToken,
+          getCrypto(deps),
+        ),
+        p_user_id: input.userId,
+        p_email_normalized: input.email,
+        ...extra,
+      },
+      deps,
+    );
+  } catch {
+    return failure("database_unavailable");
+  }
+}
+
+export function completeForcedPasswordChangeV2(
+  input: ForcedPasswordLeaseInput & { credentialVersion: number },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  return runForcedPasswordLeaseRpc(
+    "complete_forced_password_change_v2",
+    input,
+    { p_credential_version: input.credentialVersion },
+    deps,
+  );
+}
+
+export function releaseForcedPasswordChangeV2(
+  input: ForcedPasswordLeaseInput & { stage: string },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  return runForcedPasswordLeaseRpc(
+    "release_forced_password_change_v2",
+    input,
+    { p_stage: input.stage },
+    deps,
+  );
+}
+
+export function rollbackForcedPasswordChangeV2(
+  input: ForcedPasswordLeaseInput & {
+    expectedCredentialVersion: number;
+    nextCredentialVersion: number;
+    stage: string;
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  return runForcedPasswordLeaseRpc(
+    "rollback_forced_password_change_v2",
+    input,
+    {
+      p_expected_credential_version: input.expectedCredentialVersion,
+      p_next_credential_version: input.nextCredentialVersion,
+      p_stage: input.stage,
+    },
+    deps,
+  );
 }

@@ -44,3 +44,50 @@ describe("readAdminAccessToken", () => {
     await expect(readAdminAccessToken()).resolves.toBeNull();
   });
 });
+
+describe("readAdminSessionState", () => {
+  it("returns the server-inspected forced state", async () => {
+    mocks.createBrowserHomeConfigClient.mockReturnValue({
+      auth: { getSession: mocks.getSession },
+    });
+    mocks.getSession.mockResolvedValue({
+      data: { session: { access_token: "admin-token" } },
+      error: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ state: "forced" }), {
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    const { readAdminSessionState } = await import("../admin-auth");
+
+    await expect(readAdminSessionState()).resolves.toBe("forced");
+    expect(fetch).toHaveBeenCalledWith("/api/admin/session", {
+      headers: { Authorization: "Bearer admin-token" },
+    });
+    vi.unstubAllGlobals();
+  });
+
+  it("fails closed when the session response is malformed", async () => {
+    mocks.createBrowserHomeConfigClient.mockReturnValue({
+      auth: { getSession: mocks.getSession },
+    });
+    mocks.getSession.mockResolvedValue({
+      data: { session: { access_token: "admin-token" } },
+      error: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ state: "unexpected" })),
+      ),
+    );
+    const { readAdminSessionState } = await import("../admin-auth");
+
+    await expect(readAdminSessionState()).resolves.toBe("invalid");
+    vi.unstubAllGlobals();
+  });
+});

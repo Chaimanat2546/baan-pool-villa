@@ -8,8 +8,9 @@ import {
   X,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { readAdminSessionState } from "@/components/admin/admin-auth";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
@@ -139,7 +140,42 @@ export function AdminShell({
   const activeItem = getActiveAdminNavItem(pathname);
   const compactSiteMark = getCompactSiteMark(settings.siteName);
   const isAuthPage =
-    pathname === "/admin/login" || pathname === "/admin/reset-password";
+    pathname === "/admin/login" ||
+    pathname === "/admin/reset-password" ||
+    pathname === "/admin/change-password";
+  const [sessionGate, setSessionGate] = useState<
+    "checking" | "ready" | "redirecting" | "verification_failed"
+  >(isAuthPage ? "ready" : "checking");
+
+  useEffect(() => {
+    if (isAuthPage) {
+      return;
+    }
+    let mounted = true;
+    void readAdminSessionState().then(async (state) => {
+      if (!mounted) {
+        return;
+      }
+      if (state === "active") {
+        setSessionGate("ready");
+        return;
+      }
+      if (state === "verification_failed") {
+        setSessionGate("verification_failed");
+        return;
+      }
+      setSessionGate("redirecting");
+      if (state === "forced") {
+        router.replace("/admin/change-password");
+        return;
+      }
+      await createBrowserHomeConfigClient().auth.signOut({ scope: "local" });
+      router.replace("/admin/login?error=admin-access");
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthPage, pathname, router]);
 
   async function handleLogout() {
     const supabase = createBrowserHomeConfigClient();
@@ -151,6 +187,25 @@ export function AdminShell({
     return (
       <main className="min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)]">
         {children}
+      </main>
+    );
+  }
+
+  if (sessionGate !== "ready") {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-[var(--site-surface-soft)] px-4 text-[var(--site-text)]">
+        {sessionGate === "verification_failed" ? (
+          <p
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            role="alert"
+          >
+            ไม่สามารถตรวจสอบสิทธิ์แอดมินได้ กรุณาลองใหม่ภายหลัง
+          </p>
+        ) : (
+          <p className="text-sm text-[var(--site-muted)]">
+            กำลังตรวจสอบสิทธิ์...
+          </p>
+        )}
       </main>
     );
   }
