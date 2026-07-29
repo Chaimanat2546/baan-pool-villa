@@ -53,20 +53,29 @@ export interface OperationStateRepository {
     fenceVersion: number;
     leaseToken: string;
   }): Promise<RepositoryResult<ClaimedOperation>>;
-  commitProviderStage(input: {
+  commitProviderIntent(input: {
     operationId: string;
     fenceVersion: number;
     leaseToken: string;
     providerStep: AdminUserProviderStep;
-    stage: "intent" | "outcome";
-    targetUserId?: string | null;
-    safeResult?: Record<string, unknown> | null;
+  }): Promise<RepositoryResult<AdminUserOperationRecord>>;
+  commitProviderOutcome(input: {
+    operationId: string;
+    fenceVersion: number;
+    leaseToken: string;
+    providerStep: AdminUserProviderStep;
+    outcome: "succeeded" | "rejected";
+    targetUserId: string | null;
+    credentialVersion: number;
+    providerErrorCode: string | null;
   }): Promise<RepositoryResult<AdminUserOperationRecord>>;
   complete(input: {
     operationId: string;
     fenceVersion: number;
     leaseToken: string;
-    safeResult: Record<string, unknown>;
+    terminalKind: "success" | "duplicate" | "compensated";
+    user: CentralAdminUser | null;
+    errorCode: "user_exists" | "create_compensated" | null;
   }): Promise<RepositoryResult<AdminUserOperationRecord>>;
   quarantine(input: {
     operationId: string;
@@ -92,9 +101,9 @@ export interface OperationStateRepository {
 }
 
 export interface OperationProfileRepository {
-  listPage(input: {
-    page: number;
-    pageSize: number;
+  listRange(input: {
+    offset: number;
+    limit: number;
   }): Promise<
     ProfileRepositoryResult<{
       profiles: CentralAdminProfile[];
@@ -135,18 +144,25 @@ export interface OperationProfileRepository {
     email: string;
     credentialVersion: number;
   }): Promise<ProfileRepositoryResult<CentralAdminProfile>>;
+  prepareCompensation(input: {
+    operationId: string;
+    fenceVersion: number;
+    leaseToken: string;
+    userId: string;
+    email: string;
+  }): Promise<ProfileRepositoryResult<{ stage: "compensation_ready" }>>;
 }
 
 export interface OperationAuthProvider {
-  listPage(input: {
-    page: number;
-    pageSize: number;
+  listRange(input: {
+    offset: number;
+    limit: number;
   }): Promise<
     ProviderResult<{ users: ProviderUser[]; hasMore: boolean }>
   >;
   findByNormalizedEmail(
     input: { email: string },
-    deadline?: ProviderDeadlineControls,
+    deadline: ProviderDeadlineControls,
   ): Promise<ProviderResult<ProviderUser[]>>;
   createManagedUser(
     input: { email: string; password: string; operationId: string },
@@ -267,6 +283,20 @@ function isCentralAdminUser(value: unknown): value is CentralAdminUser {
   );
 }
 
+function projectCentralAdminUser(
+  user: CentralAdminUser,
+): CentralAdminUser {
+  return {
+    userId: user.userId,
+    email: user.email,
+    status: user.status,
+    createdAt: user.createdAt,
+    lastSignInAt: user.lastSignInAt,
+    credentialVersion: user.credentialVersion,
+    authCredentialVersion: user.authCredentialVersion,
+  };
+}
+
 function parsePersistedSafeResult(
   value: Record<string, unknown> | null,
 ): Pick<AgentOperationResponse, "result" | "error"> {
@@ -274,7 +304,9 @@ function parsePersistedSafeResult(
     return {};
   }
 
-  const user = isCentralAdminUser(value.user) ? value.user : undefined;
+  const user = isCentralAdminUser(value.user)
+    ? projectCentralAdminUser(value.user)
+    : undefined;
   const errorCode =
     typeof value.errorCode === "string" &&
     value.errorCode in SAFE_AGENT_ERROR_CATALOG
@@ -338,13 +370,22 @@ async function executeList(
     payload: { page: number; pageSize: number };
   },
 ): Promise<AgentOperationResponse> {
-  const input = {
+  const pagination = {
     page: request.payload.page,
     pageSize: Math.min(request.payload.pageSize, 100),
   };
+  const globalOffset = (pagination.page - 1) * pagination.pageSize;
+  const globalEnd = globalOffset + pagination.pageSize;
+  const authOffset = Math.ceil(globalOffset / 2);
+  const profileOffset = Math.floor(globalOffset / 2);
+  const authLimit = Math.ceil(globalEnd / 2) - authOffset;
+  const profileLimit = Math.floor(globalEnd / 2) - profileOffset;
   const [authResult, profileResult] = await Promise.all([
-    context.auth.listPage(input),
-    context.profiles.listPage(input),
+    context.auth.listRange({ offset: authOffset, limit: authLimit }),
+    context.profiles.listRange({
+      offset: profileOffset,
+      limit: profileLimit,
+    }),
   ]);
 
   if (!authResult.ok) {
@@ -364,9 +405,7 @@ async function executeList(
   const authByUid = new Map(
     authResult.data.users.map((user) => [user.id, user]),
   );
-  const includedAuth = authResult.data.users.filter(
-    (user) => isManaged(user) || profilesByUid.has(user.id),
-  );
+  const includedAuth = authResult.data.users;
   const emailCounts = new Map<string, number>();
   for (const item of [
     ...includedAuth.map((user) => normalizedEmail(user.email)),
@@ -379,7 +418,7 @@ async function executeList(
     }
   }
 
-  const users: CentralAdminUser[] = [];
+  const authUsers: CentralAdminUser[] = [];
   const seen = new Set<string>();
   for (const provider of includedAuth) {
     const profile = profilesByUid.get(provider.id) ?? null;
@@ -394,13 +433,14 @@ async function executeList(
       version === null ||
       version !== profile.credentialVersion ||
       (emailCounts.get(providerEmail) ?? 0) > 2;
-    users.push(toJoinedUser(provider, profile, abnormal));
+    authUsers.push(toJoinedUser(provider, profile, abnormal));
     seen.add(provider.id);
   }
+  const profileUsers: CentralAdminUser[] = [];
   for (const profile of profileResult.data.profiles) {
     if (!seen.has(profile.userId)) {
       const email = normalizedEmail(profile.email);
-      users.push(
+      profileUsers.push(
         toJoinedUser(
           authByUid.get(profile.userId) ?? null,
           profile,
@@ -410,19 +450,33 @@ async function executeList(
     }
   }
 
-  const boundedUsers = users.slice(0, input.pageSize);
+  const users: CentralAdminUser[] = [];
+  let authIndex = 0;
+  let profileIndex = 0;
+  for (
+    let position = globalOffset;
+    position < globalEnd;
+    position += 1
+  ) {
+    const next =
+      position % 2 === 0
+        ? authUsers[authIndex++]
+        : profileUsers[profileIndex++];
+    if (next) {
+      users.push(next);
+    }
+  }
   return {
     operationId: request.operationId,
     status: "completed",
     stage: "listed",
     result: {
-      users: boundedUsers,
+      users,
       pagination: {
-        ...input,
+        ...pagination,
         hasMore:
           authResult.data.hasMore ||
-          profileResult.data.hasMore ||
-          users.length > boundedUsers.length,
+          profileResult.data.hasMore,
       },
     },
   };
@@ -461,44 +515,52 @@ function exactIdentity(
 
 async function readIdentity(
   context: CentralUserOperationContext,
+  lease: LeaseState,
   email: string,
 ): Promise<
   | {
       ok: true;
       providerUsers: ProviderUser[];
       profiles: CentralAdminProfile[];
+      lease: LeaseState;
     }
-  | { ok: false; error: SafeAgentError }
+  | { ok: false; response: AgentOperationResponse }
 > {
-  const providerResult = await context.auth.findByNormalizedEmail({ email });
+  const renewed = await renew(context, lease);
+  if (!renewed.ok) {
+    return { ok: false, response: renewed.response };
+  }
+  const providerResult = await context.auth.findByNormalizedEmail(
+    { email },
+    renewed.deadline,
+  );
   if (!providerResult.ok) {
-    return { ok: false, error: safeError("provider_failure") };
+    return {
+      ok: false,
+      response: await needsReview(
+        context,
+        renewed.lease,
+        "identity_mismatch",
+      ),
+    };
   }
   const profileResult =
     await context.profiles.findByNormalizedEmail({ email });
   if (!profileResult.ok) {
-    return { ok: false, error: profileResult.error };
+    return {
+      ok: false,
+      response: await needsReview(
+        context,
+        renewed.lease,
+        "identity_mismatch",
+      ),
+    };
   }
   return {
     ok: true,
     providerUsers: providerResult.data,
     profiles: profileResult.data,
-  };
-}
-
-function providerSafeOutcome(
-  providerStep: AdminUserProviderStep,
-  outcome: "succeeded" | "rejected",
-  userId: string,
-  credentialVersion: number,
-  errorCode?: string,
-): Record<string, unknown> {
-  return {
-    providerStep,
-    outcome,
-    userId,
-    credentialVersion,
-    ...(errorCode ? { errorCode } : {}),
+    lease: renewed.lease,
   };
 }
 
@@ -587,13 +649,11 @@ async function journaledProviderMutation<T>(
     return { ok: false, response: renewed.response, lease };
   }
   lease = renewed.lease;
-  const intent = await context.operations.commitProviderStage({
+  const intent = await context.operations.commitProviderIntent({
     operationId: lease.operation.operationId,
     fenceVersion: lease.operation.fenceVersion,
     leaseToken: lease.leaseToken,
     providerStep,
-    stage: "intent",
-    targetUserId,
   });
   if (!intent.ok) {
     return {
@@ -638,20 +698,15 @@ async function journaledProviderMutation<T>(
     provider.ok && resolveOutcome
       ? resolveOutcome(provider.data)
       : { targetUserId: targetUserId ?? "", credentialVersion };
-  const outcome = await context.operations.commitProviderStage({
+  const outcome = await context.operations.commitProviderOutcome({
     operationId: lease.operation.operationId,
     fenceVersion: lease.operation.fenceVersion,
     leaseToken: lease.leaseToken,
     providerStep,
-    stage: "outcome",
     targetUserId: resolvedOutcome.targetUserId || null,
-    safeResult: providerSafeOutcome(
-      providerStep,
-      provider.ok ? "succeeded" : "rejected",
-      resolvedOutcome.targetUserId,
-      resolvedOutcome.credentialVersion,
-      provider.ok ? undefined : provider.error.code,
-    ),
+    outcome: provider.ok ? "succeeded" : "rejected",
+    credentialVersion: resolvedOutcome.credentialVersion,
+    providerErrorCode: provider.ok ? null : provider.error.code,
   });
   if (!outcome.ok) {
     return {
@@ -671,11 +726,7 @@ async function journaledProviderMutation<T>(
 
   return {
     ok: false,
-    response: await needsReview(
-      context,
-      lease,
-      "profile_state_conflict",
-    ),
+    response: terminalResponse(outcome.data),
     lease,
   };
 }
@@ -691,7 +742,18 @@ async function complete(
     operationId: lease.operation.operationId,
     fenceVersion: lease.operation.fenceVersion,
     leaseToken: lease.leaseToken,
-    safeResult,
+    terminalKind:
+      error?.code === "user_exists"
+        ? "duplicate"
+        : error?.code === "create_compensated"
+          ? "compensated"
+          : "success",
+    user: result?.user ?? null,
+    errorCode:
+      error?.code === "user_exists" ||
+      error?.code === "create_compensated"
+        ? error.code
+        : null,
   });
   if (!completed.ok) {
     return failureResponse(
@@ -734,21 +796,60 @@ async function needsReview(
 
 async function verifyFinalIdentity(
   context: CentralUserOperationContext,
+  lease: LeaseState,
   email: string,
   userId: string,
-): Promise<{ provider: ProviderUser; profile: CentralAdminProfile } | null> {
-  const providerResult = await context.auth.findByNormalizedEmail({ email });
+  expected: {
+    isActive: boolean;
+    mustChangePassword: boolean | null;
+    confirmationRequired?: boolean;
+    ban: "future" | "none" | "any";
+  },
+): Promise<
+  | {
+      ok: true;
+      data: {
+        provider: ProviderUser;
+        profile: CentralAdminProfile;
+      } | null;
+      lease: LeaseState;
+    }
+  | { ok: false; response: AgentOperationResponse }
+> {
+  const renewed = await renew(context, lease);
+  if (!renewed.ok) {
+    return { ok: false, response: renewed.response };
+  }
+  const providerResult = await context.auth.findByNormalizedEmail(
+    { email },
+    renewed.deadline,
+  );
   if (!providerResult.ok || providerResult.data.length !== 1) {
-    return null;
+    return { ok: true, data: null, lease: renewed.lease };
   }
   const profileResult = await context.profiles.findByUserId({ userId });
   if (!profileResult.ok || !profileResult.data) {
-    return null;
+    return { ok: true, data: null, lease: renewed.lease };
   }
   const provider = providerResult.data[0];
-  return exactIdentity([provider], [profileResult.data])
+  const exact = exactIdentity([provider], [profileResult.data]);
+  const banMatches =
+    expected.ban === "any" ||
+    (expected.ban === "none" && provider.bannedUntil === null) ||
+    (expected.ban === "future" &&
+      provider.bannedUntil !== null &&
+      Date.parse(provider.bannedUntil) > context.now());
+  const identity = exact &&
+    profileResult.data.isActive === expected.isActive &&
+    (expected.mustChangePassword === null ||
+      profileResult.data.mustChangePassword ===
+        expected.mustChangePassword) &&
+    (!expected.confirmationRequired ||
+      provider.emailConfirmedAt !== null) &&
+    banMatches
     ? { provider, profile: profileResult.data }
     : null;
+  return { ok: true, data: identity, lease: renewed.lease };
 }
 
 async function executeCreate(
@@ -773,10 +874,11 @@ async function executeCreate(
   }
 
   if (!recoveredCreate && lease.operation.stage === "claimed") {
-    const identity = await readIdentity(context, email);
+    const identity = await readIdentity(context, lease, email);
     if (!identity.ok) {
-      return failureResponse(request.operationId, identity.error);
+      return identity.response;
     }
+    lease = identity.lease;
     const exact = exactIdentity(identity.providerUsers, identity.profiles);
     if (exact) {
       const user = safeUser(exact.provider, exact.profile);
@@ -842,23 +944,60 @@ async function executeCreate(
     if (!createdProfile.ok) {
       const existingProfile =
         await context.profiles.findByUserId({ userId });
+      if (!existingProfile.ok) {
+        return needsReview(context, lease, "profile_write_failed");
+      }
       if (
-        existingProfile.ok &&
         existingProfile.data?.email === email &&
         existingProfile.data.credentialVersion === 1
       ) {
         // The profile RPC may have committed before its response was lost.
       } else {
+        if (existingProfile.data !== null) {
+          return needsReview(context, lease, "identity_mismatch");
+        }
+        if (createdProfile.error.code !== "profile_write_failed") {
+          return needsReview(context, lease, "profile_write_failed");
+        }
+        const prepared =
+          await context.profiles.prepareCompensation({
+            operationId: request.operationId,
+            fenceVersion: lease.operation.fenceVersion,
+            leaseToken: lease.leaseToken,
+            userId,
+            email,
+          });
+        if (!prepared.ok) {
+          return needsReview(context, lease, "profile_write_failed");
+        }
         return compensateCreate(context, request, lease, userId);
       }
     }
   }
 
-  const verified = await verifyFinalIdentity(context, email, userId);
-  if (!verified) {
+  const verified = await verifyFinalIdentity(
+    context,
+    lease,
+    email,
+    userId,
+    {
+      isActive: true,
+      mustChangePassword: true,
+      confirmationRequired: true,
+      ban: "none",
+    },
+  );
+  if (!verified.ok) {
+    return verified.response;
+  }
+  lease = verified.lease;
+  if (!verified.data) {
     return needsReview(context, lease, "identity_mismatch");
   }
-  const user = safeUser(verified.provider, verified.profile);
+  const user = safeUser(
+    verified.data.provider,
+    verified.data.profile,
+  );
   return complete(
     context,
     lease,
@@ -889,9 +1028,15 @@ async function compensateCreate(
   lease: LeaseState,
   userId: string,
 ): Promise<AgentOperationResponse> {
-  const lookup = await context.auth.findByNormalizedEmail({
-    email: request.payload.email,
-  });
+  const renewed = await renew(context, lease);
+  if (!renewed.ok) {
+    return renewed.response;
+  }
+  lease = renewed.lease;
+  const lookup = await context.auth.findByNormalizedEmail(
+    { email: request.payload.email },
+    renewed.deadline,
+  );
   if (
     !lookup.ok ||
     lookup.data.length !== 1 ||
@@ -980,18 +1125,31 @@ async function executeLifecycle(
   ) {
     const verified = await verifyFinalIdentity(
       context,
+      lease,
       email,
       recoveredSignout.userId,
+      {
+        isActive: true,
+        mustChangePassword: true,
+        ban: "none",
+      },
     );
+    if (!verified.ok) {
+      return verified.response;
+    }
+    lease = verified.lease;
     if (
-      !verified ||
-      !verified.profile.isActive ||
-      verified.profile.credentialVersion !==
+      !verified.data ||
+      !verified.data.profile.isActive ||
+      verified.data.profile.credentialVersion !==
         recoveredSignout.credentialVersion
     ) {
       return needsReview(context, lease, "identity_mismatch");
     }
-    const user = safeUser(verified.provider, verified.profile);
+    const user = safeUser(
+      verified.data.provider,
+      verified.data.profile,
+    );
     return complete(
       context,
       lease,
@@ -1011,13 +1169,23 @@ async function executeLifecycle(
   if (action === "reactivate_user" && recoveredSignout) {
     const beforeActivation = await verifyFinalIdentity(
       context,
+      lease,
       email,
       recoveredSignout.userId,
+      {
+        isActive: false,
+        mustChangePassword: true,
+        ban: "none",
+      },
     );
+    if (!beforeActivation.ok) {
+      return beforeActivation.response;
+    }
+    lease = beforeActivation.lease;
     if (
-      !beforeActivation ||
-      beforeActivation.profile.isActive ||
-      beforeActivation.profile.credentialVersion !==
+      !beforeActivation.data ||
+      beforeActivation.data.profile.isActive ||
+      beforeActivation.data.profile.credentialVersion !==
         recoveredSignout.credentialVersion
     ) {
       return needsReview(context, lease, "identity_mismatch");
@@ -1035,13 +1203,26 @@ async function executeLifecycle(
     }
     const verified = await verifyFinalIdentity(
       context,
+      lease,
       email,
       recoveredSignout.userId,
+      {
+        isActive: true,
+        mustChangePassword: true,
+        ban: "none",
+      },
     );
-    if (!verified) {
+    if (!verified.ok) {
+      return verified.response;
+    }
+    lease = verified.lease;
+    if (!verified.data) {
       return needsReview(context, lease, "identity_mismatch");
     }
-    const user = safeUser(verified.provider, verified.profile);
+    const user = safeUser(
+      verified.data.provider,
+      verified.data.profile,
+    );
     return complete(
       context,
       lease,
@@ -1051,10 +1232,11 @@ async function executeLifecycle(
   }
 
   if (lease.operation.stage === "claimed") {
-    const identity = await readIdentity(context, email);
+    const identity = await readIdentity(context, lease, email);
     if (!identity.ok) {
-      return failureResponse(request.operationId, identity.error);
+      return identity.response;
     }
+    lease = identity.lease;
     const exact = exactIdentity(identity.providerUsers, identity.profiles);
     if (!exact || !lifecyclePrecondition(action, exact.profile)) {
       return needsReview(context, lease, "identity_mismatch");
@@ -1087,8 +1269,16 @@ async function executeLifecycle(
     if (!userId || !storedVersion) {
       return needsReview(context, lease, "profile_state_conflict");
     }
+    const renewedRead = await renew(context, lease);
+    if (!renewedRead.ok) {
+      return renewedRead.response;
+    }
+    lease = renewedRead.lease;
     const [providerResult, profileResult] = await Promise.all([
-      context.auth.findByNormalizedEmail({ email }),
+      context.auth.findByNormalizedEmail(
+        { email },
+        renewedRead.deadline,
+      ),
       context.profiles.findByUserId({ userId }),
     ]);
     if (
@@ -1102,6 +1292,30 @@ async function executeLifecycle(
     provider = providerResult.data[0];
     profile = profileResult.data;
     credentialVersion = storedVersion;
+    const durableProfileCheckpoint =
+      lease.operation.stage === "profile_advanced";
+    const checkpointIsActive =
+      lease.operation.safeResult?.profileIsActive;
+    const checkpointMustChange =
+      lease.operation.safeResult?.profileMustChangePassword;
+    const authVersion = authCredentialVersion(provider);
+    const exactRecoveredIdentity =
+      provider.id === userId &&
+      profile.userId === userId &&
+      normalizedEmail(provider.email) === email &&
+      profile.email === email &&
+      isManaged(provider) &&
+      profile.credentialVersion === storedVersion &&
+      (durableProfileCheckpoint
+        ? authVersion === storedVersion - 1 &&
+          typeof checkpointIsActive === "boolean" &&
+          typeof checkpointMustChange === "boolean" &&
+          profile.isActive === checkpointIsActive &&
+          profile.mustChangePassword === checkpointMustChange
+        : authVersion === storedVersion);
+    if (!exactRecoveredIdentity) {
+      return needsReview(context, lease, "identity_mismatch");
+    }
   }
 
   if (!recoveredUpdate && !recoveredSignout) {
@@ -1206,13 +1420,24 @@ async function executeLifecycle(
   if (action === "reactivate_user") {
     const beforeActivation = await verifyFinalIdentity(
       context,
+      lease,
       email,
       provider.id,
+      {
+        isActive: false,
+        mustChangePassword: true,
+        ban: "none",
+      },
     );
+    if (!beforeActivation.ok) {
+      return beforeActivation.response;
+    }
+    lease = beforeActivation.lease;
     if (
-      !beforeActivation ||
-      beforeActivation.profile.isActive ||
-      beforeActivation.profile.credentialVersion !== credentialVersion
+      !beforeActivation.data ||
+      beforeActivation.data.profile.isActive ||
+      beforeActivation.data.profile.credentialVersion !==
+        credentialVersion
     ) {
       return needsReview(context, lease, "identity_mismatch");
     }
@@ -1232,14 +1457,30 @@ async function executeLifecycle(
 
   const verified = await verifyFinalIdentity(
     context,
+    lease,
     email,
     provider.id,
+    action === "suspend_user"
+      ? {
+          isActive: false,
+          mustChangePassword: null,
+          ban: "future",
+        }
+      : {
+          isActive: true,
+          mustChangePassword: true,
+          ban: "none",
+        },
   );
-  if (!verified) {
+  if (!verified.ok) {
+    return verified.response;
+  }
+  lease = verified.lease;
+  if (!verified.data) {
     return needsReview(context, lease, "identity_mismatch");
   }
-  profile = verified.profile;
-  const user = safeUser(verified.provider, profile);
+  profile = verified.data.profile;
+  const user = safeUser(verified.data.provider, profile);
   return complete(
     context,
     lease,

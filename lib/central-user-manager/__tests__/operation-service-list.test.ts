@@ -27,20 +27,24 @@ describe("Central User Manager list operation", () => {
   it("joins exact UIDs, keeps one-sided rows abnormal, and never claims a lease", async () => {
     const context = operationContext({
       auth: {
-        listPage: async () =>
+        listRange: async () =>
           providerSuccess({
             users: [
               providerUser(),
               providerUser({
                 id: OTHER_USER_ID,
                 email: "auth-only@example.com",
+                appMetadata: {
+                  bpv_admin_managed: false,
+                  credential_version: 0,
+                },
               }),
             ],
             hasMore: false,
           }),
       },
       profiles: {
-        listPage: async () => ({
+        listRange: async () => ({
           ok: true,
           data: {
             profiles: [
@@ -65,13 +69,13 @@ describe("Central User Manager list operation", () => {
         status: "password_change_required",
       }),
       expect.objectContaining({
-        userId: OTHER_USER_ID,
-        email: "auth-only@example.com",
+        userId: "123e4567-e89b-42d3-a456-426614174005",
+        email: "profile-only@example.com",
         status: "abnormal",
       }),
       expect.objectContaining({
-        userId: "123e4567-e89b-42d3-a456-426614174005",
-        email: "profile-only@example.com",
+        userId: OTHER_USER_ID,
+        email: "auth-only@example.com",
         status: "abnormal",
       }),
     ]);
@@ -82,7 +86,7 @@ describe("Central User Manager list operation", () => {
     const conflictingUid = "123e4567-e89b-42d3-a456-426614174006";
     const context = operationContext({
       auth: {
-        listPage: async () =>
+        listRange: async () =>
           providerSuccess({
             users: [
               providerUser(),
@@ -107,7 +111,7 @@ describe("Central User Manager list operation", () => {
           }),
       },
       profiles: {
-        listPage: async () => ({
+        listRange: async () => ({
           ok: true,
           data: {
             profiles: [
@@ -144,7 +148,7 @@ describe("Central User Manager list operation", () => {
     async (isActive, mustChangePassword, expectedStatus) => {
       const context = operationContext({
         profiles: {
-          listPage: async () => ({
+          listRange: async () => ({
             ok: true,
             data: {
               profiles: [profile({ isActive, mustChangePassword })],
@@ -177,14 +181,14 @@ describe("Central User Manager list operation", () => {
     );
     const context = operationContext({
       auth: {
-        listPage: async (input) => {
-          expect(input).toEqual({ page: 1, pageSize: 100 });
+        listRange: async (input) => {
+          expect(input).toEqual({ offset: 0, limit: 50 });
           return providerSuccess({ users: providerUsers, hasMore: true });
         },
       },
       profiles: {
-        listPage: async (input) => {
-          expect(input).toEqual({ page: 1, pageSize: 100 });
+        listRange: async (input) => {
+          expect(input).toEqual({ offset: 0, limit: 50 });
           return { ok: true, data: { profiles, hasMore: true } };
         },
       },
@@ -193,7 +197,8 @@ describe("Central User Manager list operation", () => {
     const response = await executeCentralUserOperation(context, request);
     const serialized = JSON.stringify(response);
 
-    expect(response.result?.users).toHaveLength(100);
+    expect(response.result?.users).toHaveLength(50);
+    expect(response.result?.users?.length).toBeLessThanOrEqual(100);
     expect(response.result?.pagination).toEqual({
       page: 1,
       pageSize: 100,
@@ -210,5 +215,58 @@ describe("Central User Manager list operation", () => {
     ]);
     expect(serialized).not.toContain("appMetadata");
     expect(serialized).not.toContain("bpv_created_operation_id");
+  });
+
+  it("reserves deterministic slots for disjoint sources across pages", async () => {
+    const authUsers = Array.from({ length: 100 }, (_, index) =>
+      providerUser({
+        id: `10000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        email: `auth-${index}@example.com`,
+      }),
+    );
+    const profileUsers = Array.from({ length: 100 }, (_, index) =>
+      profile({
+        userId: `20000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        email: `profile-${index}@example.com`,
+      }),
+    );
+    const context = operationContext({
+      auth: {
+        listRange: async ({ offset, limit }) =>
+          providerSuccess({
+            users: authUsers.slice(offset, offset + limit),
+            hasMore: offset + limit < authUsers.length,
+          }),
+      },
+      profiles: {
+        listRange: async ({ offset, limit }) => ({
+          ok: true,
+          data: {
+            profiles: profileUsers.slice(offset, offset + limit),
+            hasMore: offset + limit < profileUsers.length,
+          },
+        }),
+      },
+    });
+
+    const first = await executeCentralUserOperation(context, {
+      ...request,
+      payload: { page: 1, pageSize: 100 },
+    });
+    const second = await executeCentralUserOperation(context, {
+      ...request,
+      operationId: "123e4567-e89b-42d3-a456-426614174099",
+      payload: { page: 2, pageSize: 100 },
+    });
+    const firstIds = first.result?.users?.map((user) => user.userId) ?? [];
+    const secondIds = second.result?.users?.map((user) => user.userId) ?? [];
+
+    expect(firstIds).toHaveLength(100);
+    expect(secondIds).toHaveLength(100);
+    expect(new Set([...firstIds, ...secondIds]).size).toBe(200);
+    expect(firstIds[0]).toBe(authUsers[0]?.id);
+    expect(firstIds[1]).toBe(profileUsers[0]?.userId);
+    expect(secondIds[0]).toBe(authUsers[50]?.id);
+    expect(secondIds[1]).toBe(profileUsers[50]?.userId);
   });
 });

@@ -40,6 +40,7 @@ export interface ProviderUser {
   id: string;
   email: string;
   createdAt: string;
+  emailConfirmedAt: string | null;
   lastSignInAt: string | null;
   bannedUntil: string | null;
   appMetadata: Record<string, unknown>;
@@ -70,6 +71,11 @@ export interface AuthProviderDependencies {
 interface ListAuthUsersPageInput {
   page: number;
   pageSize: number;
+}
+
+interface ListAuthUsersRangeInput {
+  offset: number;
+  limit: number;
 }
 
 interface FindAuthUserByNormalizedEmailInput {
@@ -167,6 +173,7 @@ function toProviderUser(value: unknown): ProviderUser | null {
     id: value.id,
     email: typeof value.email === "string" ? value.email : "",
     createdAt: value.created_at,
+    emailConfirmedAt: nullableString(value.email_confirmed_at),
     lastSignInAt: nullableString(value.last_sign_in_at),
     bannedUntil: nullableString(value.banned_until),
     appMetadata: isRecord(value.app_metadata)
@@ -246,6 +253,47 @@ function isNormalizedEmailMatch(email: string, normalizedEmail: string) {
   }
 }
 
+function isExactUpdatedManagedUser(
+  returnedUser: ProviderUser,
+  input: UpdateManagedAuthUserInput,
+  deps: AuthProviderDependencies,
+): boolean {
+  const expectedProvenance =
+    input.user.appMetadata.bpv_created_operation_id;
+  const returnedProvenance =
+    returnedUser.appMetadata.bpv_created_operation_id;
+  const banMatches =
+    input.banDuration === undefined ||
+    (input.banDuration === "none" && returnedUser.bannedUntil === null) ||
+    (input.banDuration === "876000h" &&
+      returnedUser.bannedUntil !== null &&
+      Date.parse(returnedUser.bannedUntil) >
+        (deps.deadline.now ?? Date.now)());
+
+  return (
+    returnedUser.id === input.user.id &&
+    isNormalizedEmailMatch(returnedUser.email, input.user.email) &&
+    returnedUser.appMetadata.bpv_admin_managed === true &&
+    returnedUser.appMetadata.credential_version ===
+      input.credentialVersion &&
+    returnedProvenance === expectedProvenance &&
+    banMatches
+  );
+}
+
+function isExactCreatedManagedUser(
+  user: ProviderUser,
+  input: CreateManagedAuthUserInput,
+): boolean {
+  return (
+    isNormalizedEmailMatch(user.email, input.email) &&
+    user.emailConfirmedAt !== null &&
+    user.appMetadata.bpv_admin_managed === true &&
+    user.appMetadata.credential_version === 1 &&
+    user.appMetadata.bpv_created_operation_id === input.operationId
+  );
+}
+
 export async function listAuthUsersPage(
   input: ListAuthUsersPageInput,
   deps: AuthProviderDependencies,
@@ -299,6 +347,62 @@ export async function listAuthUsersPage(
     data: {
       users,
       hasMore: typeof response.data.nextPage === "number",
+    },
+  };
+}
+
+export async function listAuthUsersRange(
+  input: ListAuthUsersRangeInput,
+  deps: AuthProviderDependencies,
+): Promise<
+  ProviderResult<{
+    users: ProviderUser[];
+    hasMore: boolean;
+  }>
+> {
+  if (
+    !Number.isSafeInteger(input.offset) ||
+    input.offset < 0 ||
+    !isPositiveInteger(input.limit) ||
+    input.limit > 100
+  ) {
+    return providerFailure("provider_rejected", false);
+  }
+
+  const firstPage = Math.floor(input.offset / 100) + 1;
+  const withinFirstPage = input.offset % 100;
+  const users: ProviderUser[] = [];
+  let page = firstPage;
+  let skip = withinFirstPage;
+  let sourceHasMore = false;
+
+  while (users.length <= input.limit) {
+    const listed = await listAuthUsersPage(
+      { page, pageSize: 100 },
+      deps,
+    );
+    if (!listed.ok) {
+      return listed;
+    }
+
+    users.push(...listed.data.users.slice(skip));
+    sourceHasMore = listed.data.hasMore;
+    if (
+      users.length > input.limit ||
+      !sourceHasMore ||
+      listed.data.users.length < 100
+    ) {
+      break;
+    }
+    page += 1;
+    skip = 0;
+  }
+
+  return {
+    ok: true,
+    data: {
+      users: users.slice(0, input.limit),
+      hasMore: users.length > input.limit || sourceHasMore,
     },
   };
 }
@@ -395,9 +499,9 @@ export async function createManagedAuthUser(
 
   const user = toProviderUser(dispatched.data.data.user);
 
-  return user
+  return user && isExactCreatedManagedUser(user, input)
     ? { ok: true, data: user }
-    : providerFailure("provider_rejected", false);
+    : providerFailure("provider_identity_mismatch", false);
 }
 
 export async function updateManagedAuthUser(
@@ -445,9 +549,9 @@ export async function updateManagedAuthUser(
 
   const user = toProviderUser(dispatched.data.data.user);
 
-  return user
+  return user && isExactUpdatedManagedUser(user, input, deps)
     ? { ok: true, data: user }
-    : providerFailure("provider_rejected", false);
+    : providerFailure("provider_identity_mismatch", false);
 }
 
 export async function transientlyVerifyPassword(

@@ -7,9 +7,12 @@ import {
   advanceForcedPasswordChange,
   claimAdminUserOperation,
   claimForcedPasswordChange,
+  commitAdminUserProviderIntent,
+  commitAdminUserProviderOutcome,
   commitAdminUserProviderStage,
   commitAdminUserOperationStage,
   completeAdminUserOperation,
+  completeAdminUserOperationV2,
   quarantineAdminUserOperation,
   markAdminUserOperationNeedsReview,
   recordAdminUserLateFence,
@@ -625,7 +628,7 @@ describe("Central User Manager operation repository", () => {
         leaseToken: RAW_TOKEN,
       },
     });
-    expect(rpc).toHaveBeenCalledWith("resume_admin_user_operation", {
+    expect(rpc).toHaveBeenCalledWith("resume_admin_user_operation_v2", {
       p_operation_id: OPERATION_ID,
       p_actor_uid: ACTOR_UID,
       p_action: "create_user",
@@ -690,6 +693,141 @@ describe("Central User Manager operation repository", () => {
     );
   });
 
+  it("uses scalar v2 provider intent/outcome RPCs without caller JSON", async () => {
+    const intent = fakeClient({
+      data: {
+        ...baseRpcOperation,
+        status: "provider_intent",
+        stage: "auth_update_intent",
+      },
+      error: null,
+    });
+
+    await expect(
+      commitAdminUserProviderIntent(
+        {
+          operationId: OPERATION_ID,
+          fenceVersion: 1,
+          leaseToken: RAW_TOKEN,
+          providerStep: "auth_update",
+        },
+        { client: intent.client },
+      ),
+    ).resolves.toMatchObject({
+      ok: true,
+      data: { stage: "auth_update_intent" },
+    });
+    expect(intent.rpc).toHaveBeenCalledWith(
+      "commit_admin_user_provider_intent_v2",
+      {
+        p_operation_id: OPERATION_ID,
+        p_fence_version: 1,
+        p_lease_token_hash: RAW_TOKEN_HASH,
+        p_provider_step: "auth_update",
+      },
+    );
+
+    const outcome = fakeClient({
+      data: {
+        ...baseRpcOperation,
+        status: "provider_outcome",
+        stage: "auth_update_succeeded",
+        safe_result: {
+          providerStep: "auth_update",
+          outcome: "succeeded",
+          userId: TARGET_USER_ID,
+          credentialVersion: 2,
+        },
+      },
+      error: null,
+    });
+    await commitAdminUserProviderOutcome(
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        leaseToken: RAW_TOKEN,
+        providerStep: "auth_update",
+        outcome: "succeeded",
+        targetUserId: TARGET_USER_ID,
+        credentialVersion: 2,
+        providerErrorCode: null,
+      },
+      { client: outcome.client },
+    );
+    expect(outcome.rpc).toHaveBeenCalledWith(
+      "commit_admin_user_provider_outcome_v2",
+      {
+        p_operation_id: OPERATION_ID,
+        p_fence_version: 1,
+        p_lease_token_hash: RAW_TOKEN_HASH,
+        p_provider_step: "auth_update",
+        p_outcome: "succeeded",
+        p_target_user_id: TARGET_USER_ID,
+        p_credential_version: 2,
+        p_provider_error_code: null,
+      },
+    );
+  });
+
+  it("completes through the exact scalar v2 terminal schema", async () => {
+    const { client, rpc } = fakeClient({
+      data: {
+        ...baseRpcOperation,
+        status: "completed",
+        stage: "completed",
+        lease_expires_at: null,
+        safe_result: {
+          outcome: "success",
+          user: {
+            userId: TARGET_USER_ID,
+            email: "admin@example.com",
+            status: "password_change_required",
+            createdAt: "2026-07-29T00:00:00.000Z",
+            lastSignInAt: null,
+            credentialVersion: 2,
+            authCredentialVersion: 2,
+          },
+        },
+      },
+      error: null,
+    });
+
+    await completeAdminUserOperationV2(
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        leaseToken: RAW_TOKEN,
+        terminalKind: "success",
+        user: {
+          userId: TARGET_USER_ID,
+          email: "admin@example.com",
+          status: "password_change_required",
+          createdAt: "2026-07-29T00:00:00.000Z",
+          lastSignInAt: null,
+          credentialVersion: 2,
+          authCredentialVersion: 2,
+        },
+        errorCode: null,
+      },
+      { client },
+    );
+
+    expect(rpc).toHaveBeenCalledWith("complete_admin_user_operation_v2", {
+      p_operation_id: OPERATION_ID,
+      p_fence_version: 1,
+      p_lease_token_hash: RAW_TOKEN_HASH,
+      p_terminal_kind: "success",
+      p_user_id: TARGET_USER_ID,
+      p_email_normalized: "admin@example.com",
+      p_user_status: "password_change_required",
+      p_created_at: "2026-07-29T00:00:00.000Z",
+      p_last_sign_in_at: null,
+      p_credential_version: 2,
+      p_auth_credential_version: 2,
+      p_error_code: null,
+    });
+  });
+
   it.each([
     [
       "mark_admin_user_operation_needs_review",
@@ -708,7 +846,7 @@ describe("Central User Manager operation repository", () => {
       },
     ],
     [
-      "record_admin_user_late_fence",
+      "record_admin_user_late_fence_v2",
       recordAdminUserLateFence,
       {
         operationId: OPERATION_ID,
@@ -731,16 +869,16 @@ describe("Central User Manager operation repository", () => {
           ...baseRpcOperation,
           status: "needs_review",
           stage:
-            rpcName === "record_admin_user_late_fence"
+            rpcName === "record_admin_user_late_fence_v2"
               ? "late_fence"
               : "needs_review",
           lease_expires_at: null,
           safe_error_code:
-            rpcName === "record_admin_user_late_fence"
+            rpcName === "record_admin_user_late_fence_v2"
               ? "credential_version_mismatch"
               : "identity_mismatch",
           safe_error_message:
-            rpcName === "record_admin_user_late_fence"
+            rpcName === "record_admin_user_late_fence_v2"
               ? "Credential versions do not match."
               : "The Auth user and admin profile do not match.",
         },

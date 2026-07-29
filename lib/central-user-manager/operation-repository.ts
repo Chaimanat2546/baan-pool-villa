@@ -345,7 +345,8 @@ async function runClaim(
   rpcName:
     | "claim_admin_user_operation"
     | "claim_forced_password_change"
-    | "resume_admin_user_operation",
+    | "resume_admin_user_operation"
+    | "resume_admin_user_operation_v2",
   params: Record<string, unknown>,
   deps: OperationRepositoryDependencies,
 ): Promise<RepositoryResult<ClaimedOperation>> {
@@ -410,7 +411,7 @@ export async function resumeAdminUserOperation(
   deps: OperationRepositoryDependencies,
 ): Promise<RepositoryResult<ClaimedOperation>> {
   return runClaim(
-    "resume_admin_user_operation",
+    "resume_admin_user_operation_v2",
     {
       p_operation_id: input.operationId,
       p_actor_uid: input.actorUid,
@@ -465,10 +466,14 @@ async function runOperationRpc(
   rpcName:
     | "commit_admin_user_operation_stage"
     | "commit_admin_user_provider_stage"
+    | "commit_admin_user_provider_intent_v2"
+    | "commit_admin_user_provider_outcome_v2"
     | "complete_admin_user_operation"
+    | "complete_admin_user_operation_v2"
     | "quarantine_admin_user_operation"
     | "mark_admin_user_operation_needs_review"
     | "record_admin_user_late_fence"
+    | "record_admin_user_late_fence_v2"
     | "advance_forced_password_change",
   params: Record<string, unknown>,
   deps: OperationRepositoryDependencies,
@@ -527,6 +532,77 @@ export type AdminUserProviderStep =
   | "auth_update"
   | "password_verify"
   | "global_signout";
+
+export type AdminUserProviderOutcomeErrorCode =
+  | "provider_timeout"
+  | "provider_unavailable"
+  | "provider_rejected"
+  | "provider_identity_mismatch"
+  | "provider_pagination_limit";
+
+export async function commitAdminUserProviderIntent(
+  input: {
+    operationId: string;
+    fenceVersion: number;
+    leaseToken: string;
+    providerStep: AdminUserProviderStep;
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  try {
+    return runOperationRpc(
+      "commit_admin_user_provider_intent_v2",
+      {
+        p_operation_id: input.operationId,
+        p_fence_version: input.fenceVersion,
+        p_lease_token_hash: await hashLeaseToken(
+          input.leaseToken,
+          getCrypto(deps),
+        ),
+        p_provider_step: input.providerStep,
+      },
+      deps,
+    );
+  } catch {
+    return failure("database_unavailable");
+  }
+}
+
+export async function commitAdminUserProviderOutcome(
+  input: {
+    operationId: string;
+    fenceVersion: number;
+    leaseToken: string;
+    providerStep: AdminUserProviderStep;
+    outcome: "succeeded" | "rejected";
+    targetUserId: string | null;
+    credentialVersion: number;
+    providerErrorCode: AdminUserProviderOutcomeErrorCode | null;
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  try {
+    return runOperationRpc(
+      "commit_admin_user_provider_outcome_v2",
+      {
+        p_operation_id: input.operationId,
+        p_fence_version: input.fenceVersion,
+        p_lease_token_hash: await hashLeaseToken(
+          input.leaseToken,
+          getCrypto(deps),
+        ),
+        p_provider_step: input.providerStep,
+        p_outcome: input.outcome,
+        p_target_user_id: input.targetUserId,
+        p_credential_version: input.credentialVersion,
+        p_provider_error_code: input.providerErrorCode,
+      },
+      deps,
+    );
+  } catch {
+    return failure("database_unavailable");
+  }
+}
 
 export async function commitAdminUserProviderStage(
   input: {
@@ -628,6 +704,60 @@ export async function quarantineAdminUserOperation(
   }
 }
 
+export interface CompletedAdminUser {
+  userId: string;
+  email: string;
+  status:
+    | "active"
+    | "password_change_required"
+    | "suspended"
+    | "abnormal";
+  createdAt: string | null;
+  lastSignInAt: string | null;
+  credentialVersion: number;
+  authCredentialVersion: number;
+}
+
+export async function completeAdminUserOperationV2(
+  input: {
+    operationId: string;
+    fenceVersion: number;
+    leaseToken: string;
+    terminalKind: "success" | "duplicate" | "compensated";
+    user: CompletedAdminUser | null;
+    errorCode: "user_exists" | "create_compensated" | null;
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  try {
+    const user = input.user;
+    return runOperationRpc(
+      "complete_admin_user_operation_v2",
+      {
+        p_operation_id: input.operationId,
+        p_fence_version: input.fenceVersion,
+        p_lease_token_hash: await hashLeaseToken(
+          input.leaseToken,
+          getCrypto(deps),
+        ),
+        p_terminal_kind: input.terminalKind,
+        p_user_id: user?.userId ?? null,
+        p_email_normalized: user?.email ?? null,
+        p_user_status: user?.status ?? null,
+        p_created_at: user?.createdAt ?? null,
+        p_last_sign_in_at: user?.lastSignInAt ?? null,
+        p_credential_version: user?.credentialVersion ?? null,
+        p_auth_credential_version:
+          user?.authCredentialVersion ?? null,
+        p_error_code: input.errorCode,
+      },
+      deps,
+    );
+  } catch {
+    return failure("database_unavailable");
+  }
+}
+
 export async function markAdminUserOperationNeedsReview(
   input: {
     operationId: string;
@@ -670,7 +800,7 @@ export async function recordAdminUserLateFence(
   deps: OperationRepositoryDependencies,
 ): Promise<RepositoryResult<AdminUserOperationRecord>> {
   return runOperationRpc(
-    "record_admin_user_late_fence",
+    "record_admin_user_late_fence_v2",
     {
       p_operation_id: input.operationId,
       p_fence_version: input.fenceVersion,

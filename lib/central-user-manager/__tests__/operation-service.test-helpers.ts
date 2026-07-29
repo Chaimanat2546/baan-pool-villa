@@ -33,6 +33,7 @@ export function providerUser(
     id: USER_ID,
     email: EMAIL,
     createdAt: "2026-07-29T00:00:00.000Z",
+    emailConfirmedAt: "2026-07-29T00:00:00.000Z",
     lastSignInAt: "2026-07-29T00:30:00.000Z",
     bannedUntil: null,
     appMetadata: {
@@ -152,19 +153,49 @@ export function operationContext(overrides: {
         }),
       );
     }),
-    commitProviderStage: vi.fn(async (input) => {
-      events.push(`${input.providerStep}:${input.stage}`);
-      if (overrides.operations?.commitProviderStage) {
-        return overrides.operations.commitProviderStage(input);
+    commitProviderIntent: vi.fn(async (input) => {
+      events.push(`${input.providerStep}:intent`);
+      if (overrides.operations?.commitProviderIntent) {
+        return overrides.operations.commitProviderIntent(input);
+      }
+      return repositorySuccess(
+        operation({
+          status: "provider_intent",
+          stage: `${input.providerStep}_intent`,
+        }),
+      );
+    }),
+    commitProviderOutcome: vi.fn(async (input) => {
+      events.push(`${input.providerStep}:outcome`);
+      if (overrides.operations?.commitProviderOutcome) {
+        return overrides.operations.commitProviderOutcome(input);
       }
       return repositorySuccess(
         operation({
           status:
-            input.stage === "intent" ? "provider_intent" : "provider_outcome",
-          stage:
-            input.stage === "intent" ? "provider_intent" : "provider_outcome",
-          targetUserId: input.targetUserId ?? baseOperation.targetUserId,
-          safeResult: input.safeResult ?? baseOperation.safeResult,
+            input.outcome === "rejected"
+              ? "needs_review"
+              : "provider_outcome",
+          stage: `${input.providerStep}_${input.outcome === "rejected" ? "rejected" : "succeeded"}`,
+          targetUserId: input.targetUserId,
+          leaseExpiresAt:
+            input.outcome === "rejected" ? null : LEASE_EXPIRES_AT,
+          safeResult: {
+            providerStep: input.providerStep,
+            outcome: input.outcome,
+            userId: input.targetUserId,
+            credentialVersion: input.credentialVersion,
+            ...(input.providerErrorCode
+              ? { errorCode: input.providerErrorCode }
+              : {}),
+          },
+          safeError:
+            input.outcome === "rejected"
+              ? {
+                  code: "provider_failure",
+                  message: "Unable to complete request.",
+                }
+              : null,
         }),
       );
     }),
@@ -178,7 +209,14 @@ export function operationContext(overrides: {
           status: "completed",
           stage: "completed",
           leaseExpiresAt: null,
-          safeResult: input.safeResult,
+          safeResult: {
+            outcome:
+              input.terminalKind === "success" ? "success" : "failed",
+            ...(input.user ? { user: input.user } : {}),
+            ...(input.errorCode
+              ? { errorCode: input.errorCode }
+              : {}),
+          },
         }),
       );
     }),
@@ -224,10 +262,10 @@ export function operationContext(overrides: {
   };
 
   const profiles: OperationProfileRepository = {
-    listPage: vi.fn(async (input) => {
+    listRange: vi.fn(async (input) => {
       events.push("profiles:list");
-      if (overrides.profiles?.listPage) {
-        return overrides.profiles.listPage(input);
+      if (overrides.profiles?.listRange) {
+        return overrides.profiles.listRange(input);
       }
       return { ok: true, data: { profiles: [currentProfile], hasMore: false } };
     }),
@@ -277,13 +315,23 @@ export function operationContext(overrides: {
       });
       return { ok: true, data: currentProfile };
     }),
+    prepareCompensation: vi.fn(async (input) => {
+      events.push("profiles:prepare_compensation");
+      if (overrides.profiles?.prepareCompensation) {
+        return overrides.profiles.prepareCompensation(input);
+      }
+      return {
+        ok: true,
+        data: { stage: "compensation_ready" as const },
+      };
+    }),
   };
 
   const auth: OperationAuthProvider = {
-    listPage: vi.fn(async (input) => {
+    listRange: vi.fn(async (input) => {
       events.push("auth:list");
-      if (overrides.auth?.listPage) {
-        return overrides.auth.listPage(input);
+      if (overrides.auth?.listRange) {
+        return overrides.auth.listRange(input);
       }
       return providerSuccess({ users: [currentProviderUser], hasMore: false });
     }),

@@ -10,6 +10,8 @@ import {
   findAdminProfileByUserId,
   findAdminProfilesByNormalizedEmail,
   listAdminProfilesPage,
+  listAdminProfilesRange,
+  prepareAdminUserCreateCompensation,
 } from "../profile-repository";
 import {
   EMAIL,
@@ -100,7 +102,24 @@ describe("Central User Manager profile repository", () => {
     expect(fake.order).toHaveBeenCalledWith("created_at", {
       ascending: true,
     });
-    expect(fake.range).toHaveBeenCalledWith(25, 49);
+    expect(fake.range).toHaveBeenCalledWith(25, 50);
+  });
+
+  it("reads an arbitrary profile range with an exact lookahead", async () => {
+    const rows = [
+      profileRow(),
+      profileRow({ user_id: "123e4567-e89b-42d3-a456-426614174099" }),
+    ];
+    const fake = fakeClient({ rows });
+
+    const result = await listAdminProfilesRange(
+      { offset: 7, limit: 1 },
+      { client: fake.client },
+    );
+
+    expect(result.ok && result.data.profiles).toHaveLength(1);
+    expect(result.ok && result.data.hasMore).toBe(true);
+    expect(fake.range).toHaveBeenCalledWith(7, 8);
   });
 
   it("uses exact normalized email/UID filters and fails closed on duplicate rows", async () => {
@@ -134,7 +153,7 @@ describe("Central User Manager profile repository", () => {
 
   it.each([
     [
-      "create_admin_user_profile_for_operation",
+      "create_admin_user_profile_for_operation_v2",
       createAdminProfileForOperation,
       {
         operationId: OPERATION_ID,
@@ -152,7 +171,7 @@ describe("Central User Manager profile repository", () => {
       },
     ],
     [
-      "advance_admin_user_profile_for_operation",
+      "advance_admin_user_profile_for_operation_v2",
       advanceAdminProfileForOperation,
       {
         operationId: OPERATION_ID,
@@ -182,7 +201,7 @@ describe("Central User Manager profile repository", () => {
       },
     ],
     [
-      "activate_admin_user_profile_for_operation",
+      "activate_admin_user_profile_for_operation_v2",
       activateAdminProfileForOperation,
       {
         operationId: OPERATION_ID,
@@ -244,5 +263,104 @@ describe("Central User Manager profile repository", () => {
       },
     });
     expect(JSON.stringify(result)).not.toContain("sensitive");
+  });
+
+  it("prepares create compensation only through the operation-bound absence RPC", async () => {
+    const fake = fakeClient({
+      rpcData: {
+        operation_id: OPERATION_ID,
+        actor_kind: "central_admin",
+        actor_uid: USER_ID,
+        action: "create_user",
+        target_user_id: USER_ID,
+        target_email_normalized: EMAIL,
+        request_hash: "a".repeat(64),
+        status: "leased",
+        stage: "compensation_ready",
+        fence_version: 1,
+        attempt_count: 1,
+        lease_expires_at: "2026-07-29T01:00:30.000Z",
+        safe_result: null,
+        safe_error_code: null,
+        safe_error_message: null,
+      },
+    });
+
+    await expect(
+      prepareAdminUserCreateCompensation(
+        {
+          operationId: OPERATION_ID,
+          fenceVersion: 1,
+          leaseToken: LEASE_TOKEN,
+          userId: USER_ID,
+          email: EMAIL,
+        },
+        { client: fake.client },
+      ),
+    ).resolves.toMatchObject({
+      ok: true,
+      data: { stage: "compensation_ready" },
+    });
+    expect(fake.rpc).toHaveBeenCalledWith(
+      "prepare_admin_user_create_compensation_v2",
+      {
+        p_operation_id: OPERATION_ID,
+        p_fence_version: 1,
+        p_lease_token_hash: RAW_TOKEN_HASH,
+        p_user_id: USER_ID,
+        p_email_normalized: EMAIL,
+      },
+    );
+  });
+
+  it("maps a corrupt database email to a static failure instead of throwing", async () => {
+    const fake = fakeClient({ rows: [profileRow({ email: "" })] });
+
+    await expect(
+      listAdminProfilesPage(
+        { page: 1, pageSize: 25 },
+        { client: fake.client },
+      ),
+    ).resolves.toEqual({
+      ok: false,
+      error: {
+        code: "profile_data_invalid",
+        message: "Admin profile data is invalid.",
+      },
+    });
+  });
+
+  it("uses one-row lookahead so an exactly full final page has no next page", async () => {
+    const rows = Array.from({ length: 25 }, (_, index) =>
+      profileRow({
+        user_id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        email: `admin-${index}@example.com`,
+      }),
+    );
+    const finalPage = fakeClient({ rows });
+
+    await expect(
+      listAdminProfilesPage(
+        { page: 1, pageSize: 25 },
+        { client: finalPage.client },
+      ),
+    ).resolves.toMatchObject({
+      ok: true,
+      data: { profiles: expect.any(Array), hasMore: false },
+    });
+    expect(finalPage.range).toHaveBeenCalledWith(0, 25);
+
+    const nextPage = fakeClient({
+      rows: [...rows, profileRow({ user_id: "lookahead" })],
+    });
+    await expect(
+      listAdminProfilesPage(
+        { page: 1, pageSize: 25 },
+        { client: nextPage.client },
+      ),
+    ).resolves.toMatchObject({
+      ok: true,
+      data: { profiles: expect.any(Array), hasMore: true },
+    });
   });
 });

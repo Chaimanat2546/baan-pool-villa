@@ -47,6 +47,7 @@ describe("Central User Manager lifecycle operations", () => {
 
     expect(events).toEqual([
       "claim",
+      "renew",
       "auth:find_email",
       "profiles:find_email",
       "profiles:advance",
@@ -62,6 +63,7 @@ describe("Central User Manager lifecycle operations", () => {
       "global_signout:intent",
       "auth:signout",
       "global_signout:outcome",
+      "renew",
       "auth:find_email",
       "profiles:find_uid",
       "complete",
@@ -93,9 +95,9 @@ describe("Central User Manager lifecycle operations", () => {
         temporaryPassword: TEMPORARY_PASSWORD,
       },
     });
-    expect(JSON.stringify(context.operations.complete.mock.calls)).not.toContain(
-      TEMPORARY_PASSWORD,
-    );
+    expect(
+      JSON.stringify(vi.mocked(context.operations.complete).mock.calls),
+    ).not.toContain(TEMPORARY_PASSWORD);
   });
 
   it("suspends in the database before banning Auth and never returns a password", async () => {
@@ -105,7 +107,7 @@ describe("Central User Manager lifecycle operations", () => {
       profiles: {
         advanceForOperation: vi.fn(async (input) => {
           return {
-            ok: true,
+            ok: true as const,
             data: profile({
               isActive: false,
               mustChangePassword: input.nextMustChangePassword,
@@ -128,8 +130,9 @@ describe("Central User Manager lifecycle operations", () => {
       request("suspend_user"),
     );
 
-    expect(events.slice(0, 5)).toEqual([
+    expect(events.slice(0, 6)).toEqual([
       "claim",
+      "renew",
       "auth:find_email",
       "profiles:find_email",
       "profiles:advance",
@@ -217,6 +220,7 @@ describe("Central User Manager lifecycle operations", () => {
 
     expect(events).toEqual([
       "claim",
+      "renew",
       "auth:find_email",
       "profiles:find_email",
       "profiles:advance",
@@ -232,9 +236,11 @@ describe("Central User Manager lifecycle operations", () => {
       "global_signout:intent",
       "auth:signout",
       "global_signout:outcome",
+      "renew",
       "auth:find_email",
       "profiles:find_uid",
       "profiles:activate",
+      "renew",
       "auth:find_email",
       "profiles:find_uid",
       "complete",
@@ -306,6 +312,41 @@ describe("Central User Manager lifecycle operations", () => {
       });
       expect(JSON.stringify(response)).not.toContain(TEMPORARY_PASSWORD);
       expect(context.profiles.activateForOperation).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["password_verify", false],
+    ["global_signout", true],
+  ] as const)(
+    "quarantines an ambiguous %s timeout and never advances the profile",
+    async (step, verificationSucceeds) => {
+      const context = operationContext({
+        auth: {
+          verifyPassword: async () =>
+            verificationSucceeds
+              ? providerSuccess({ accessToken: "transient-access-token" })
+              : providerFailure(true, "provider_timeout"),
+          globallySignOut: async () =>
+            providerFailure(true, "provider_timeout"),
+        },
+      });
+
+      const response = await executeCentralUserOperation(
+        context,
+        request("reissue_temporary_password"),
+      );
+
+      expect(response).toMatchObject({
+        status: "quarantined",
+        error: { code: "provider_ambiguous" },
+      });
+      expect(context.operations.quarantine).toHaveBeenCalledOnce();
+      expect(context.profiles.activateForOperation).not.toHaveBeenCalled();
+      if (!verificationSucceeds) {
+        expect(context.auth.globallySignOut).not.toHaveBeenCalled();
+      }
+      expect(JSON.stringify(response)).not.toContain(TEMPORARY_PASSWORD);
     },
   );
 
@@ -564,5 +605,141 @@ describe("Central User Manager lifecycle operations", () => {
     expect(context.profiles.activateForOperation).not.toHaveBeenCalled();
     expect(context.generateTemporaryPassword).not.toHaveBeenCalled();
     expect(JSON.stringify(response)).not.toContain("temporaryPassword");
+  });
+
+  it.each([
+    "auth_update",
+    "password_verify",
+    "global_signout",
+  ] as const)(
+    "never replays a recovered rejected %s outcome",
+    async (providerStep) => {
+      const context = operationContext({
+        operations: {
+          claim: vi.fn(async () =>
+            repositorySuccess(
+              claimed({
+                leaseToken: null,
+                operation: operation({
+                  action: "reissue_temporary_password",
+                  targetUserId: USER_ID,
+                  status: "needs_review",
+                  stage: `${providerStep}_rejected`,
+                  safeResult: {
+                    providerStep,
+                    outcome: "rejected",
+                    userId: USER_ID,
+                    credentialVersion: 2,
+                    errorCode: "provider_rejected",
+                  },
+                  safeError: {
+                    code: "provider_failure",
+                    message: "Unable to complete request.",
+                  },
+                }),
+              }),
+            ),
+          ),
+        },
+      });
+
+      const response = await executeCentralUserOperation(
+        context,
+        request("reissue_temporary_password"),
+      );
+
+      expect(response.status).toBe("needs_review");
+      expect(context.generateTemporaryPassword).not.toHaveBeenCalled();
+      expect(context.auth.updateManagedUser).not.toHaveBeenCalled();
+      expect(context.auth.verifyPassword).not.toHaveBeenCalled();
+      expect(context.auth.globallySignOut).not.toHaveBeenCalled();
+      expect(context.operations.commitProviderOutcome).not.toHaveBeenCalled();
+    },
+  );
+
+  it("quarantines profile-advanced recovery when email lookup resolves a different UID", async () => {
+    const context = operationContext({
+      operations: {
+        claim: vi.fn(async () =>
+          repositorySuccess(
+            claimed({
+              operation: operation({
+                action: "suspend_user",
+                targetUserId: USER_ID,
+                status: "leased",
+                stage: "profile_advanced",
+                safeResult: {
+                  userId: USER_ID,
+                  credentialVersion: 2,
+                  profileIsActive: false,
+                  profileMustChangePassword: true,
+                },
+              }),
+            }),
+          ),
+        ),
+      },
+      auth: {
+        findByNormalizedEmail: async () =>
+          providerSuccess([
+            providerUser({
+              id: "123e4567-e89b-42d3-a456-426614174099",
+            }),
+          ]),
+      },
+      profiles: {
+        findByUserId: async () => ({
+          ok: true,
+          data: profile({
+            isActive: false,
+            mustChangePassword: true,
+            credentialVersion: 2,
+          }),
+        }),
+      },
+    });
+
+    const response = await executeCentralUserOperation(
+      context,
+      request("suspend_user"),
+    );
+
+    expect(response.status).toBe("needs_review");
+    expect(context.auth.updateManagedUser).not.toHaveBeenCalled();
+    expect(context.operations.markNeedsReview).toHaveBeenCalledOnce();
+  });
+
+  it("does not complete suspension until Auth has a future ban and DB remains inactive", async () => {
+    const context = operationContext({
+      auth: {
+        updateManagedUser: async () =>
+          providerSuccess(
+            providerUser({
+              bannedUntil: null,
+              appMetadata: {
+                bpv_admin_managed: true,
+                credential_version: 2,
+              },
+            }),
+          ),
+      },
+      profiles: {
+        findByUserId: async () => ({
+          ok: true,
+          data: profile({
+            isActive: false,
+            credentialVersion: 2,
+          }),
+        }),
+      },
+    });
+
+    const response = await executeCentralUserOperation(
+      context,
+      request("suspend_user"),
+    );
+
+    expect(response.status).toBe("needs_review");
+    expect(context.operations.complete).not.toHaveBeenCalled();
   });
 });

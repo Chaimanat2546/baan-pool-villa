@@ -86,11 +86,18 @@ function mapProfile(value: unknown): CentralAdminProfile | null {
     credential_version: credentialVersion,
     created_at: createdAt,
   } = value;
+  let normalizedEmail: string;
+
+  try {
+    normalizedEmail = normalizeAdminEmail(email);
+  } catch {
+    return null;
+  }
 
   if (
     typeof userId !== "string" ||
     typeof email !== "string" ||
-    normalizeAdminEmail(email) !== email ||
+    normalizedEmail !== email ||
     role !== "admin" ||
     typeof isActive !== "boolean" ||
     typeof mustChangePassword !== "boolean" ||
@@ -196,6 +203,31 @@ export async function listAdminProfilesPage(
   }
 
   const from = (input.page - 1) * input.pageSize;
+  return listAdminProfilesRange(
+    { offset: from, limit: input.pageSize },
+    deps,
+  );
+}
+
+export async function listAdminProfilesRange(
+  input: { offset: number; limit: number },
+  deps: ProfileRepositoryDependencies,
+): Promise<
+  ProfileRepositoryResult<{
+    profiles: CentralAdminProfile[];
+    hasMore: boolean;
+  }>
+> {
+  if (
+    !Number.isSafeInteger(input.offset) ||
+    input.offset < 0 ||
+    !Number.isSafeInteger(input.limit) ||
+    input.limit < 1 ||
+    input.limit > 100
+  ) {
+    return failure("profile_data_invalid");
+  }
+
   let response: { data: unknown; error: unknown };
 
   try {
@@ -203,7 +235,7 @@ export async function listAdminProfilesPage(
       .from("admin_users")
       .select(PROFILE_PROJECTION)
       .order("created_at", { ascending: true })
-      .range(from, from + input.pageSize - 1);
+      .range(input.offset, input.offset + input.limit);
   } catch {
     return failure("database_unavailable");
   }
@@ -217,8 +249,8 @@ export async function listAdminProfilesPage(
     ? {
         ok: true,
         data: {
-          profiles,
-          hasMore: profiles.length === input.pageSize,
+          profiles: profiles.slice(0, input.limit),
+          hasMore: profiles.length > input.limit,
         },
       }
     : failure("profile_data_invalid");
@@ -285,7 +317,7 @@ export async function createAdminProfileForOperation(
 ): Promise<ProfileRepositoryResult<CentralAdminProfile>> {
   try {
     return callRpc(
-      "create_admin_user_profile_for_operation",
+      "create_admin_user_profile_for_operation_v2",
       {
         p_operation_id: input.operationId,
         p_fence_version: input.fenceVersion,
@@ -306,7 +338,7 @@ export async function advanceAdminProfileForOperation(
 ): Promise<ProfileRepositoryResult<CentralAdminProfile>> {
   try {
     return callRpc(
-      "advance_admin_user_profile_for_operation",
+      "advance_admin_user_profile_for_operation_v2",
       {
         p_operation_id: input.operationId,
         p_fence_version: input.fenceVersion,
@@ -333,7 +365,7 @@ export async function activateAdminProfileForOperation(
 ): Promise<ProfileRepositoryResult<CentralAdminProfile>> {
   try {
     return callRpc(
-      "activate_admin_user_profile_for_operation",
+      "activate_admin_user_profile_for_operation_v2",
       {
         p_operation_id: input.operationId,
         p_fence_version: input.fenceVersion,
@@ -347,4 +379,40 @@ export async function activateAdminProfileForOperation(
   } catch {
     return failure("profile_data_invalid");
   }
+}
+
+export async function prepareAdminUserCreateCompensation(
+  input: OperationLeaseInput,
+  deps: ProfileRepositoryDependencies,
+): Promise<ProfileRepositoryResult<{ stage: "compensation_ready" }>> {
+  let response: { data: unknown; error: unknown };
+
+  try {
+    response = await deps.client.rpc(
+      "prepare_admin_user_create_compensation_v2",
+      {
+        p_operation_id: input.operationId,
+        p_fence_version: input.fenceVersion,
+        p_lease_token_hash: await hashLeaseToken(input.leaseToken, deps),
+        p_user_id: input.userId,
+        p_email_normalized: normalizeAdminEmail(input.email),
+      },
+    );
+  } catch {
+    return failure("database_unavailable");
+  }
+
+  if (response.error) {
+    return mapDatabaseError(response.error);
+  }
+  if (
+    !isRecord(response.data) ||
+    response.data.operation_id !== input.operationId ||
+    response.data.status !== "leased" ||
+    response.data.stage !== "compensation_ready"
+  ) {
+    return failure("profile_state_conflict");
+  }
+
+  return { ok: true, data: { stage: "compensation_ready" } };
 }

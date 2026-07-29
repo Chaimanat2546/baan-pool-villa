@@ -16,6 +16,7 @@ import {
   findAuthUsersByNormalizedEmail,
   globallySignOutAccessToken,
   listAuthUsersPage,
+  listAuthUsersRange,
   transientlyVerifyPassword,
   updateManagedAuthUser,
   type AuthProviderDependencies,
@@ -57,6 +58,7 @@ function providerUser(overrides: Partial<ProviderUser> = {}): ProviderUser {
     id: USER_ID,
     email: "admin@example.com",
     createdAt: "2026-07-29T00:00:00.000Z",
+    emailConfirmedAt: "2026-07-29T00:00:00.000Z",
     lastSignInAt: "2026-07-29T00:30:00.000Z",
     bannedUntil: null,
     appMetadata: {
@@ -130,6 +132,7 @@ describe("Central User Manager Supabase Auth provider", () => {
             id: USER_ID,
             email: "admin@example.com",
             createdAt: "2026-07-29T00:00:00.000Z",
+            emailConfirmedAt: "2026-07-29T00:00:00.000Z",
             lastSignInAt: "2026-07-29T00:30:00.000Z",
             bannedUntil: "2026-08-29T00:00:00.000Z",
             appMetadata: {
@@ -166,6 +169,35 @@ describe("Central User Manager Supabase Auth provider", () => {
       expect(listUsers).not.toHaveBeenCalled();
     },
   );
+
+  it("reads an arbitrary bounded range without losing the next source row", async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) =>
+      authUser({
+        id: `range-${index}`,
+        email: `range-${index}@example.com`,
+      }),
+    );
+    const listUsers = vi.fn().mockResolvedValue({
+      data: {
+        users: firstPage,
+        nextPage: null,
+      },
+      error: null,
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { listUsers } } },
+    });
+
+    const result = await listAuthUsersRange(
+      { offset: 25, limit: 50 },
+      deps,
+    );
+
+    expect(result.ok && result.data.users[0]?.id).toBe("range-25");
+    expect(result.ok && result.data.users.at(-1)?.id).toBe("range-74");
+    expect(result.ok && result.data.hasMore).toBe(true);
+    expect(listUsers).toHaveBeenCalledWith({ page: 1, perPage: 100 });
+  });
 
   it("finds an exact normalized email across 100-user pages", async () => {
     const firstPage = Array.from({ length: 100 }, (_, index) =>
@@ -539,6 +571,67 @@ describe("Central User Manager Supabase Auth provider", () => {
     expect(updateUserById.mock.calls[0][1]).not.toHaveProperty("user_metadata");
   });
 
+  it.each([
+    ["UID", { id: "different-user" }],
+    ["email", { email: "different@example.com" }],
+    [
+      "managed marker",
+      {
+        app_metadata: {
+          bpv_admin_managed: false,
+          credential_version: 4,
+        },
+      },
+    ],
+    [
+      "credential version",
+      {
+        app_metadata: {
+          bpv_admin_managed: true,
+          credential_version: 3,
+        },
+      },
+    ],
+  ])(
+    "rejects an update response with mismatched owned %s",
+    async (_label, returnedOverride) => {
+      const current = providerUser({
+        appMetadata: {
+          bpv_admin_managed: true,
+          credential_version: 3,
+        },
+      });
+      const updateUserById = vi.fn().mockResolvedValue({
+        data: {
+          user: authUser({
+            app_metadata: {
+              bpv_admin_managed: true,
+              credential_version: 4,
+            },
+            ...returnedOverride,
+          }),
+        },
+        error: null,
+      });
+
+      const result = await updateManagedAuthUser(
+        { user: current, credentialVersion: 4 },
+        dependencies({
+          client: { auth: { admin: { updateUserById } } },
+        }),
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        error: {
+          code: "provider_identity_mismatch",
+          message: "Supabase Auth identity did not match.",
+        },
+        ambiguous: false,
+      });
+    },
+  );
+
   it("quarantines a retryable update error returned after dispatch", async () => {
     const updateUserById = vi.fn().mockResolvedValue({
       data: { user: null },
@@ -650,7 +743,18 @@ describe("Central User Manager Supabase Auth provider", () => {
     "sends the exact Supabase ban duration %s",
     async (banDuration) => {
       const updateUserById = vi.fn().mockResolvedValue({
-        data: { user: authUser() },
+        data: {
+          user: authUser({
+            banned_until:
+              banDuration === "876000h"
+                ? "2126-07-29T00:00:00.000Z"
+                : null,
+            app_metadata: {
+              bpv_admin_managed: true,
+              credential_version: 2,
+            },
+          }),
+        },
         error: null,
       });
       const deps = dependencies({

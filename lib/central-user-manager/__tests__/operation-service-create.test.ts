@@ -51,6 +51,7 @@ describe("Central User Manager create operation", () => {
 
     expect(events).toEqual([
       "claim",
+      "renew",
       "auth:find_email",
       "profiles:find_email",
       "renew",
@@ -58,6 +59,7 @@ describe("Central User Manager create operation", () => {
       "auth:create",
       "auth_create:outcome",
       "profiles:create",
+      "renew",
       "auth:find_email",
       "profiles:find_uid",
       "complete",
@@ -95,18 +97,17 @@ describe("Central User Manager create operation", () => {
         leaseExpiresAt: "2026-07-29T01:00:30.000Z",
       }),
     );
-    expect(context.operations.commitProviderStage).toHaveBeenNthCalledWith(
-      2,
+    expect(context.operations.commitProviderOutcome).toHaveBeenCalledWith(
       expect.objectContaining({
         providerStep: "auth_create",
-        stage: "outcome",
+        outcome: "succeeded",
         targetUserId: USER_ID,
-        safeResult: expect.objectContaining({ userId: USER_ID }),
+        credentialVersion: 1,
       }),
     );
-    expect(JSON.stringify(context.operations.complete.mock.calls)).not.toContain(
-      TEMPORARY_PASSWORD,
-    );
+    expect(
+      JSON.stringify(vi.mocked(context.operations.complete).mock.calls),
+    ).not.toContain(TEMPORARY_PASSWORD);
   });
 
   it("returns a completed retry from persisted safe state without a password", async () => {
@@ -148,6 +149,52 @@ describe("Central User Manager create operation", () => {
     });
     expect(context.auth.createManagedUser).not.toHaveBeenCalled();
     expect(JSON.stringify(response)).not.toContain("temporaryPassword");
+  });
+
+  it("projects completed retry users to exact DTO keys", async () => {
+    const context = operationContext({
+      operations: {
+        claim: vi.fn(async () =>
+          repositorySuccess(
+            claimed({
+              disposition: "completed_retry",
+              leaseToken: null,
+              operation: operation({
+                status: "completed",
+                stage: "completed",
+                leaseExpiresAt: null,
+                safeResult: {
+                  outcome: "success",
+                  user: {
+                    userId: USER_ID,
+                    email: EMAIL,
+                    status: "password_change_required",
+                    createdAt: "2026-07-29T00:00:00.000Z",
+                    lastSignInAt: null,
+                    credentialVersion: 1,
+                    authCredentialVersion: 1,
+                    metadata: { note: TEMPORARY_PASSWORD },
+                  },
+                },
+              }),
+            }),
+          ),
+        ),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, request);
+
+    expect(Object.keys(response.result?.user ?? {}).sort()).toEqual([
+      "authCredentialVersion",
+      "createdAt",
+      "credentialVersion",
+      "email",
+      "lastSignInAt",
+      "status",
+      "userId",
+    ]);
+    expect(JSON.stringify(response)).not.toContain(TEMPORARY_PASSWORD);
   });
 
   it("returns a stable duplicate when the same exact pair already exists", async () => {
@@ -228,6 +275,7 @@ describe("Central User Manager create operation", () => {
 
     expect(events).toEqual([
       "claim",
+      "renew",
       "auth:find_email",
       "profiles:find_email",
       "renew",
@@ -236,6 +284,8 @@ describe("Central User Manager create operation", () => {
       "auth_create:outcome",
       "profiles:create",
       "profiles:find_uid",
+      "profiles:prepare_compensation",
+      "renew",
       "auth:find_email",
       "renew",
       "auth_delete:intent",
@@ -252,6 +302,34 @@ describe("Central User Manager create operation", () => {
       error: { code: "create_compensated" },
     });
     expect(JSON.stringify(response)).not.toContain(TEMPORARY_PASSWORD);
+  });
+
+  it("recovers a committed profile write whose response was lost", async () => {
+    const context = operationContext({
+      auth: {
+        findByNormalizedEmail: vi
+          .fn()
+          .mockResolvedValueOnce(providerSuccess([]))
+          .mockResolvedValueOnce(providerSuccess([providerUser()])),
+      },
+      profiles: {
+        findByNormalizedEmail: async () => ({ ok: true, data: [] }),
+        createForOperation: async () => ({
+          ok: false,
+          error: {
+            code: "database_unavailable",
+            message: "The admin profile database is unavailable.",
+          },
+        }),
+        findByUserId: async () => ({ ok: true, data: profile() }),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, request);
+
+    expect(response.status).toBe("completed");
+    expect(context.profiles.prepareCompensation).not.toHaveBeenCalled();
+    expect(context.auth.deleteManagedUser).not.toHaveBeenCalled();
   });
 
   it("never deletes when UID, email, managed marker, and provenance do not all prove ownership", async () => {
@@ -296,6 +374,63 @@ describe("Central User Manager create operation", () => {
     expect(context.operations.markNeedsReview).toHaveBeenCalledOnce();
   });
 
+  it("never compensates after an ambiguous profile write and failed reconciliation read", async () => {
+    const context = operationContext({
+      auth: {
+        findByNormalizedEmail: vi
+          .fn()
+          .mockResolvedValueOnce(providerSuccess([]))
+          .mockResolvedValueOnce(providerSuccess([providerUser()])),
+      },
+      profiles: {
+        findByNormalizedEmail: async () => ({ ok: true, data: [] }),
+        createForOperation: async () => ({
+          ok: false,
+          error: {
+            code: "database_unavailable",
+            message: "The operation database is unavailable.",
+          },
+        }),
+        findByUserId: async () => ({
+          ok: false,
+          error: {
+            code: "database_unavailable",
+            message: "The operation database is unavailable.",
+          },
+        }),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, request);
+
+    expect(response.status).toBe("needs_review");
+    expect(context.auth.deleteManagedUser).not.toHaveBeenCalled();
+    expect(context.profiles.prepareCompensation).not.toHaveBeenCalled();
+  });
+
+  it("does not complete create when Auth confirmation is absent", async () => {
+    const context = operationContext({
+      auth: {
+        findByNormalizedEmail: vi
+          .fn()
+          .mockResolvedValueOnce(providerSuccess([]))
+          .mockResolvedValueOnce(
+            providerSuccess([
+              providerUser({ emailConfirmedAt: null }),
+            ]),
+          ),
+      },
+      profiles: {
+        findByNormalizedEmail: async () => ({ ok: true, data: [] }),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, request);
+
+    expect(response.status).toBe("needs_review");
+    expect(context.operations.complete).not.toHaveBeenCalled();
+  });
+
   it("permanently quarantines an ambiguous create result without returning a password", async () => {
     const context = operationContext({
       auth: {
@@ -315,7 +450,8 @@ describe("Central User Manager create operation", () => {
       error: { code: "provider_ambiguous" },
     });
     expect(context.operations.quarantine).toHaveBeenCalledOnce();
-    expect(context.operations.commitProviderStage).toHaveBeenCalledTimes(1);
+    expect(context.operations.commitProviderIntent).toHaveBeenCalledTimes(1);
+    expect(context.operations.commitProviderOutcome).not.toHaveBeenCalled();
     expect(JSON.stringify(response)).not.toContain(TEMPORARY_PASSWORD);
   });
 
@@ -368,6 +504,7 @@ describe("Central User Manager create operation", () => {
       [
         "claim",
         "profiles:create",
+        "renew",
         "auth:find_email",
         "profiles:find_uid",
         "complete",
@@ -386,7 +523,13 @@ describe("Central User Manager create operation", () => {
           credentialVersion: 1,
         },
       }),
-      ["claim", "auth:find_email", "profiles:find_uid", "complete"],
+      [
+        "claim",
+        "renew",
+        "auth:find_email",
+        "profiles:find_uid",
+        "complete",
+      ],
     ],
   ])(
     "recovers from %s without repeating Auth creation or returning a password",
@@ -473,5 +616,42 @@ describe("Central User Manager create operation", () => {
     expect(context.auth.createManagedUser).not.toHaveBeenCalled();
     expect(context.auth.deleteManagedUser).not.toHaveBeenCalled();
     expect(context.generateTemporaryPassword).not.toHaveBeenCalled();
+  });
+
+  it("never replays a recovered rejected compensation delete", async () => {
+    const context = operationContext({
+      operations: {
+        claim: vi.fn(async () =>
+          repositorySuccess(
+            claimed({
+              leaseToken: null,
+              operation: operation({
+                status: "needs_review",
+                stage: "auth_delete_rejected",
+                targetUserId: USER_ID,
+                safeResult: {
+                  providerStep: "auth_delete",
+                  outcome: "rejected",
+                  userId: USER_ID,
+                  credentialVersion: 1,
+                  errorCode: "provider_rejected",
+                },
+                safeError: {
+                  code: "provider_failure",
+                  message: "Unable to complete request.",
+                },
+              }),
+            }),
+          ),
+        ),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, request);
+
+    expect(response.status).toBe("needs_review");
+    expect(context.auth.deleteManagedUser).not.toHaveBeenCalled();
+    expect(context.auth.createManagedUser).not.toHaveBeenCalled();
+    expect(context.operations.commitProviderOutcome).not.toHaveBeenCalled();
   });
 });
