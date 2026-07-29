@@ -79,6 +79,12 @@ const PASSWORD_RESPONSE_ACTIONS = new Set([
   "reissue_temporary_password",
   "reactivate_user",
 ]);
+const SAFE_AGENT_ERRORS_BY_CODE = new Map<string, SafeAgentError>(
+  Object.values(SAFE_AGENT_ERROR_CATALOG).map((error) => [
+    error.code,
+    error,
+  ]),
+);
 const CENTRAL_ADMIN_USER_KEYS = [
   "userId",
   "email",
@@ -396,10 +402,10 @@ function projectError(error: SafeAgentError | undefined): ErrorProjection {
   if (!isRecord(error) || !hasExactKeys(error, ["code", "message"])) {
     return { ok: false };
   }
-  const catalogError =
-    SAFE_AGENT_ERROR_CATALOG[
-      error.code as keyof typeof SAFE_AGENT_ERROR_CATALOG
-    ];
+  if (typeof error.code !== "string" || typeof error.message !== "string") {
+    return { ok: false };
+  }
+  const catalogError = SAFE_AGENT_ERRORS_BY_CODE.get(error.code);
 
   return catalogError && error.message === catalogError.message
     ? {

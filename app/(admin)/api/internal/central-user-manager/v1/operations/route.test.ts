@@ -691,6 +691,31 @@ describe("Central User Manager operations route", () => {
     },
   );
 
+  it.each(["toString", "__proto__", "constructor"])(
+    "fails closed when the service error code is inherited key %s",
+    async (code) => {
+      const execute = vi.fn(async () => ({
+        operationId: OPERATION_ID,
+        status: "needs_review" as const,
+        stage: "claimed",
+        error: { code, message: undefined },
+      }));
+
+      const response = await createOperationsRouteHandlers(
+        dependencies({ execute }),
+      ).POST(request());
+
+      expect(response.status).toBe(503);
+      expectAgentHeaders(response);
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: "agent_unavailable",
+          message: "Central User Manager Agent is unavailable.",
+        },
+      });
+    },
+  );
+
   it.each(["database_unavailable", "provider_failure"])(
     "maps a safe %s availability failure to 503 without raw details",
     async (code) => {

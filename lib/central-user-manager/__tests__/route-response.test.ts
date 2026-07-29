@@ -359,4 +359,24 @@ describe("Central User Manager route response helpers", () => {
       },
     }, MUTATION_REQUEST));
   });
+
+  it.each([
+    ["prototype toString", "toString", undefined],
+    ["prototype constructor", "constructor", undefined],
+    ["prototype __proto__", "__proto__", undefined],
+    ["undefined code", undefined, undefined],
+    ["non-string code", 17, "Unable to complete request."],
+    ["undefined message", "provider_failure", undefined],
+    ["non-string message", "provider_failure", 17],
+  ])(
+    "fails closed for a %s safe-error field",
+    async (_label, code, message) => {
+      await expectStaticUnavailable(operationResponse({
+        operationId: OPERATION_ID,
+        status: "needs_review",
+        stage: "claimed",
+        error: { code, message },
+      } as never));
+    },
+  );
 });
