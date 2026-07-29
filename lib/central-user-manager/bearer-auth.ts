@@ -3,6 +3,7 @@ import "server-only";
 import { SAFE_AGENT_ERROR_CATALOG } from "./safe-errors";
 
 const BASE64URL_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const CANONICAL_BASE64URL_FINAL_CHARACTER_PATTERN = /^[AEIMQUYcgkosw048]$/;
 const SHA_256_DIGEST_BYTES = 32;
 const PRIVATE_NO_STORE_NOSNIFF_HEADERS = {
   "Cache-Control": "private, no-store",
@@ -16,7 +17,10 @@ export interface VerifiedCentralBearerRequest {
 type WebCryptoDependency = Pick<Crypto, "subtle">;
 
 function isValidToken(value: string): boolean {
-  return BASE64URL_TOKEN_PATTERN.test(value);
+  return (
+    BASE64URL_TOKEN_PATTERN.test(value) &&
+    CANONICAL_BASE64URL_FINAL_CHARACTER_PATTERN.test(value.charAt(42))
+  );
 }
 
 function errorResponse(status: 401 | 503): Response {

@@ -71,6 +71,7 @@ describe("central user manager bearer authorization", () => {
     ["invalid base64url character", requestWithAuthorization(`Bearer ${"!".repeat(43)}`)],
     ["42-character token", requestWithAuthorization(`Bearer ${"A".repeat(42)}`)],
     ["44-character token", requestWithAuthorization(`Bearer ${"A".repeat(44)}`)],
+    ["noncanonical final base64url pad bits", requestWithAuthorization(`Bearer ${"A".repeat(42)}B`)],
     ["wrong token", requestWithAuthorization(`Bearer ${DIFFERENT_VALID_TOKEN}`)],
   ])("returns 401 for %s", async (_description, request) => {
     await expectUnauthorized(request);
@@ -96,6 +97,36 @@ describe("central user manager bearer authorization", () => {
     await expect((response as Response).text()).resolves.not.toContain(
       malformedExpected,
     );
+  });
+
+  it.each(["B", "_"])(
+    "returns 503 for expected configuration with noncanonical final base64url pad bits: %s",
+    async (finalCharacter) => {
+      const malformedExpected = `${"A".repeat(42)}${finalCharacter}`;
+      const response = await requireCentralBearer(
+        requestWithAuthorization(`Bearer ${malformedExpected}`),
+        malformedExpected,
+        7,
+      );
+
+      expect(response).toMatchObject({ status: 503 });
+    },
+  );
+
+  it("does not hash a supplied token with noncanonical final base64url pad bits", async () => {
+    const digest = vi.fn(async () => new Uint8Array(32).buffer);
+    const cryptoDependency = { subtle: { digest } } as Pick<Crypto, "subtle">;
+
+    await expect(
+      requireCentralBearer(
+        requestWithAuthorization(`Bearer ${"A".repeat(42)}B`),
+        VALID_TOKEN,
+        7,
+        cryptoDependency,
+      ),
+    ).resolves.toMatchObject({ status: 401 });
+
+    expect(digest).not.toHaveBeenCalled();
   });
 
   it("hashes both valid token strings and compares all 32 SHA-256 digest bytes", async () => {
