@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isAuthApiError } from "@supabase/supabase-js";
+
 import { normalizeAdminEmail } from "./email";
 import type { CentralUserManagerAdminClient } from "./operation-repository";
 
@@ -105,6 +107,18 @@ function providerFailure(
     error: { ...PROVIDER_ERRORS[code] },
     ambiguous,
   };
+}
+
+function classifyReturnedAuthError(error: unknown): ProviderFailure {
+  if (
+    isAuthApiError(error) &&
+    error.status >= 400 &&
+    error.status < 500
+  ) {
+    return providerFailure("provider_rejected", false);
+  }
+
+  return providerFailure("provider_unavailable", true);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -278,7 +292,10 @@ export async function findAuthUserByNormalizedEmail(
 
   const maxPages = input.maxPages ?? DEFAULT_LOOKUP_MAX_PAGES;
 
-  if (!isPositiveInteger(maxPages)) {
+  if (
+    !isPositiveInteger(maxPages) ||
+    maxPages > DEFAULT_LOOKUP_MAX_PAGES
+  ) {
     return providerFailure("provider_rejected", false);
   }
 
@@ -332,7 +349,7 @@ export async function createManagedAuthUser(
   }
 
   if (dispatched.data.error) {
-    return providerFailure("provider_rejected", false);
+    return classifyReturnedAuthError(dispatched.data.error);
   }
 
   const user = toProviderUser(dispatched.data.data.user);
@@ -380,7 +397,7 @@ export async function updateManagedAuthUser(
   }
 
   if (dispatched.data.error) {
-    return providerFailure("provider_rejected", false);
+    return classifyReturnedAuthError(dispatched.data.error);
   }
 
   const user = toProviderUser(dispatched.data.data.user);
@@ -419,7 +436,7 @@ export async function transientlyVerifyPassword(
   const accessToken = response.data?.session?.access_token;
 
   if (response.error) {
-    return providerFailure("provider_rejected", false);
+    return classifyReturnedAuthError(response.error);
   }
 
   if (
@@ -450,6 +467,6 @@ export async function globallySignOutAccessToken(
   }
 
   return dispatched.data.error
-    ? providerFailure("provider_rejected", false)
+    ? classifyReturnedAuthError(dispatched.data.error)
     : { ok: true, data: null };
 }

@@ -1,4 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import {
+  AuthApiError,
+  AuthRetryableFetchError,
+  AuthUnknownError,
+} from "@supabase/supabase-js";
 
 vi.mock("server-only", () => ({}));
 
@@ -244,6 +249,42 @@ describe("Central User Manager Supabase Auth provider", () => {
     });
   });
 
+  it("rejects a lookup cap above 100 before dispatch", async () => {
+    const listUsers = vi.fn().mockResolvedValue({
+      data: {
+        users: Array.from({ length: 100 }, (_, index) =>
+          authUser({
+            id: `over-cap-page-${index}`,
+            email: `over-cap-${index}@example.com`,
+          }),
+        ),
+        aud: "authenticated",
+        nextPage: 2,
+        lastPage: 101,
+        total: 10_100,
+      },
+      error: null,
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { listUsers } } },
+    });
+
+    await expect(
+      findAuthUserByNormalizedEmail(
+        { email: "missing@example.com", maxPages: 101 },
+        deps,
+      ),
+    ).resolves.toEqual({
+      ok: false,
+      error: {
+        code: "provider_rejected",
+        message: "Supabase Auth rejected the operation.",
+      },
+      ambiguous: false,
+    });
+    expect(listUsers).not.toHaveBeenCalled();
+  });
+
   it("creates a confirmed managed user with exactly the provenance metadata", async () => {
     const created = authUser({
       app_metadata: {
@@ -281,6 +322,36 @@ describe("Central User Manager Supabase Auth provider", () => {
       },
     });
     expect(createUser.mock.calls[0][0]).not.toHaveProperty("user_metadata");
+  });
+
+  it("quarantines a retryable create error returned after dispatch", async () => {
+    const rawSecret = "create-password-and-provider-secret";
+    const createUser = vi.fn().mockResolvedValue({
+      data: { user: null },
+      error: new AuthRetryableFetchError(rawSecret, 503),
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { createUser } } },
+    });
+
+    const result = await createManagedAuthUser(
+      {
+        email: "admin@example.com",
+        password: rawSecret,
+        operationId: OPERATION_ID,
+      },
+      deps,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_unavailable",
+        message: "Supabase Auth is unavailable.",
+      },
+      ambiguous: true,
+    });
+    expect(JSON.stringify(result)).not.toContain(rawSecret);
   });
 
   it("preserves unrelated app metadata while advancing managed credentials", async () => {
@@ -332,6 +403,38 @@ describe("Central User Manager Supabase Auth provider", () => {
       },
     });
     expect(updateUserById.mock.calls[0][1]).not.toHaveProperty("user_metadata");
+  });
+
+  it("quarantines a retryable update error returned after dispatch", async () => {
+    const updateUserById = vi.fn().mockResolvedValue({
+      data: { user: null },
+      error: new AuthRetryableFetchError(
+        "update response contained a sensitive provider detail",
+        504,
+      ),
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { updateUserById } } },
+    });
+
+    const result = await updateManagedAuthUser(
+      {
+        user: providerUser(),
+        password: "replacement-password",
+        credentialVersion: 2,
+      },
+      deps,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_unavailable",
+        message: "Supabase Auth is unavailable.",
+      },
+      ambiguous: true,
+    });
+    expect(JSON.stringify(result)).not.toContain("sensitive");
   });
 
   it("never creates or replaces immutable provenance during update", async () => {
@@ -483,6 +586,40 @@ describe("Central User Manager Supabase Auth provider", () => {
     });
   });
 
+  it("quarantines a retryable password verification error returned after dispatch", async () => {
+    const signInWithPassword = vi.fn().mockResolvedValue({
+      data: { user: null, session: null },
+      error: new AuthRetryableFetchError(
+        "sign-in response contained a refresh-token-secret",
+        520,
+      ),
+    });
+    const deps = dependencies({
+      createTransientClient: () => ({
+        auth: { signInWithPassword },
+      }),
+    });
+
+    const result = await transientlyVerifyPassword(
+      {
+        email: "admin@example.com",
+        password: "current-password",
+        expectedUserId: USER_ID,
+      },
+      deps,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_unavailable",
+        message: "Supabase Auth is unavailable.",
+      },
+      ambiguous: true,
+    });
+    expect(JSON.stringify(result)).not.toContain("refresh-token-secret");
+  });
+
   it("globally signs out the transient access token", async () => {
     const signOut = vi.fn().mockResolvedValue({
       data: null,
@@ -499,6 +636,63 @@ describe("Central User Manager Supabase Auth provider", () => {
 
     expect(result).toEqual({ ok: true, data: null });
     expect(signOut).toHaveBeenCalledWith("access-token-value", "global");
+  });
+
+  it("quarantines a retryable global signout error returned after dispatch", async () => {
+    const signOut = vi.fn().mockResolvedValue({
+      data: null,
+      error: new AuthRetryableFetchError(
+        "signout response contained an access-token-secret",
+        502,
+      ),
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { signOut } } },
+    });
+
+    const result = await globallySignOutAccessToken(
+      { accessToken: "access-token-secret" },
+      deps,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_unavailable",
+        message: "Supabase Auth is unavailable.",
+      },
+      ambiguous: true,
+    });
+    expect(JSON.stringify(result)).not.toContain("access-token-secret");
+  });
+
+  it("quarantines an unknown Auth error returned after global signout dispatch", async () => {
+    const signOut = vi.fn().mockResolvedValue({
+      data: null,
+      error: new AuthUnknownError(
+        "unknown signout failure with secret",
+        new Error("private transport cause"),
+      ),
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { signOut } } },
+    });
+
+    const result = await globallySignOutAccessToken(
+      { accessToken: "access-token-value" },
+      deps,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_unavailable",
+        message: "Supabase Auth is unavailable.",
+      },
+      ambiguous: true,
+    });
+    expect(JSON.stringify(result)).not.toContain("secret");
+    expect(JSON.stringify(result)).not.toContain("private");
   });
 
   it("reports a dispatched SDK timeout as ambiguous without claiming abort", async () => {
@@ -558,12 +752,11 @@ describe("Central User Manager Supabase Auth provider", () => {
     const serviceSecret = "sb_secret_service-value";
     const createUser = vi.fn().mockResolvedValue({
       data: { user: null },
-      error: {
-        code: "provider_raw_code",
-        message: `${password} ${accessToken} ${refreshToken} ${serviceSecret}`,
-        details: "sensitive provider details",
-        hint: "sensitive provider hint",
-      },
+      error: new AuthApiError(
+        `${password} ${accessToken} ${refreshToken} ${serviceSecret}`,
+        400,
+        "provider_raw_code",
+      ),
     });
     const deps = dependencies({
       client: { auth: { admin: { createUser } } },
