@@ -350,6 +350,68 @@ describe("Central User Manager lifecycle operations", () => {
     },
   );
 
+  it("does not replay a rejected provider outcome after its committed response is lost", async () => {
+    const updateManagedUser = vi.fn(async () =>
+      providerFailure(false, "provider_rejected"),
+    );
+    const context = operationContext({
+      operations: {
+        claim: vi
+          .fn()
+          .mockResolvedValueOnce(
+            repositorySuccess(
+              claimed({
+                operation: operation({
+                  action: "suspend_user",
+                  targetUserId: USER_ID,
+                }),
+              }),
+            ),
+          )
+          .mockResolvedValueOnce(
+            repositorySuccess(
+              claimed({
+                leaseToken: null,
+                operation: operation({
+                  action: "suspend_user",
+                  targetUserId: USER_ID,
+                  status: "needs_review",
+                  stage: "auth_update_rejected",
+                  safeResult: {
+                    providerStep: "auth_update",
+                    outcome: "rejected",
+                    userId: USER_ID,
+                    credentialVersion: 2,
+                    errorCode: "provider_rejected",
+                  },
+                }),
+              }),
+            ),
+          ),
+        commitProviderOutcome: vi.fn(async () => ({
+          ok: false as const,
+          error: {
+            code: "database_unavailable" as const,
+            message: "The operation database is unavailable.",
+          },
+        })),
+      },
+      auth: { updateManagedUser },
+    });
+
+    await executeCentralUserOperation(context, request("suspend_user"));
+    const retry = await executeCentralUserOperation(
+      context,
+      request("suspend_user"),
+    );
+
+    expect(retry).toMatchObject({
+      status: "needs_review",
+      stage: "auth_update_rejected",
+    });
+    expect(updateManagedUser).toHaveBeenCalledOnce();
+  });
+
   it("records a late lower credential fence without lowering or activating profile state", async () => {
     const context = operationContext({
       auth: {
@@ -405,6 +467,49 @@ describe("Central User Manager lifecycle operations", () => {
     expect(response.status).toBe("needs_review");
     expect(context.operations.markNeedsReview).toHaveBeenCalledOnce();
     expect(context.operations.recordLateFence).not.toHaveBeenCalled();
+  });
+
+  it("does not complete suspension when must-change-password drifts", async () => {
+    const context = operationContext({
+      auth: {
+        findByNormalizedEmail: vi
+          .fn()
+          .mockResolvedValueOnce(providerSuccess([providerUser()]))
+          .mockResolvedValueOnce(
+            providerSuccess([
+              providerUser({
+                bannedUntil: "2126-07-29T00:00:00.000Z",
+                appMetadata: {
+                  bpv_admin_managed: true,
+                  credential_version: 2,
+                },
+              }),
+            ]),
+          ),
+      },
+      profiles: {
+        findByNormalizedEmail: async () => ({
+          ok: true,
+          data: [profile({ mustChangePassword: true })],
+        }),
+        findByUserId: async () => ({
+          ok: true,
+          data: profile({
+            isActive: false,
+            mustChangePassword: false,
+            credentialVersion: 2,
+          }),
+        }),
+      },
+    });
+
+    const response = await executeCentralUserOperation(
+      context,
+      request("suspend_user"),
+    );
+
+    expect(response.status).toBe("needs_review");
+    expect(context.operations.complete).not.toHaveBeenCalled();
   });
 
   it("fails closed when another email operation owns the active lease", async () => {

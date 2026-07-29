@@ -12,8 +12,10 @@ import type {
 } from "./auth-provider";
 import type {
   AdminUserOperationRecord,
+  AdminUserProviderOutcomeErrorCode,
   AdminUserProviderStep,
   ClaimedOperation,
+  CompletedAdminUser,
   RepositoryResult,
 } from "./operation-repository";
 import type {
@@ -67,14 +69,14 @@ export interface OperationStateRepository {
     outcome: "succeeded" | "rejected";
     targetUserId: string | null;
     credentialVersion: number;
-    providerErrorCode: string | null;
+    providerErrorCode: AdminUserProviderOutcomeErrorCode | null;
   }): Promise<RepositoryResult<AdminUserOperationRecord>>;
   complete(input: {
     operationId: string;
     fenceVersion: number;
     leaseToken: string;
     terminalKind: "success" | "duplicate" | "compensated";
-    user: CentralAdminUser | null;
+    user: CompletedAdminUser | null;
     errorCode: "user_exists" | "create_compensated" | null;
   }): Promise<RepositoryResult<AdminUserOperationRecord>>;
   quarantine(input: {
@@ -160,6 +162,9 @@ export interface OperationAuthProvider {
   }): Promise<
     ProviderResult<{ users: ProviderUser[]; hasMore: boolean }>
   >;
+  findByUserId(input: {
+    userId: string;
+  }): Promise<ProviderResult<ProviderUser | null>>;
   findByNormalizedEmail(
     input: { email: string },
     deadline: ProviderDeadlineControls,
@@ -381,10 +386,13 @@ async function executeList(
   const authLimit = Math.ceil(globalEnd / 2) - authOffset;
   const profileLimit = Math.floor(globalEnd / 2) - profileOffset;
   const [authResult, profileResult] = await Promise.all([
-    context.auth.listRange({ offset: authOffset, limit: authLimit }),
+    context.auth.listRange({
+      offset: authOffset,
+      limit: Math.max(authLimit, 1),
+    }),
     context.profiles.listRange({
       offset: profileOffset,
-      limit: profileLimit,
+      limit: Math.max(profileLimit, 1),
     }),
   ]);
 
@@ -399,17 +407,16 @@ async function executeList(
     return failureResponse(request.operationId, profileResult.error, "list");
   }
 
+  const authWindow = authResult.data.users.slice(0, authLimit);
+  const profileWindow = profileResult.data.profiles.slice(0, profileLimit);
   const profilesByUid = new Map(
-    profileResult.data.profiles.map((profile) => [profile.userId, profile]),
+    profileWindow.map((profile) => [profile.userId, profile]),
   );
-  const authByUid = new Map(
-    authResult.data.users.map((user) => [user.id, user]),
-  );
-  const includedAuth = authResult.data.users;
+  const authByUid = new Map(authWindow.map((user) => [user.id, user]));
   const emailCounts = new Map<string, number>();
   for (const item of [
-    ...includedAuth.map((user) => normalizedEmail(user.email)),
-    ...profileResult.data.profiles.map((profile) =>
+    ...authWindow.map((user) => normalizedEmail(user.email)),
+    ...profileWindow.map((profile) =>
       normalizedEmail(profile.email),
     ),
   ]) {
@@ -419,9 +426,17 @@ async function executeList(
   }
 
   const authUsers: CentralAdminUser[] = [];
-  const seen = new Set<string>();
-  for (const provider of includedAuth) {
-    const profile = profilesByUid.get(provider.id) ?? null;
+  for (const provider of authWindow) {
+    const profileLookup = profilesByUid.has(provider.id)
+      ? { ok: true as const, data: profilesByUid.get(provider.id) ?? null }
+      : await context.profiles.findByUserId({ userId: provider.id });
+    if (!profileLookup.ok) {
+      return failureResponse(request.operationId, profileLookup.error, "list");
+    }
+    const profile =
+      profileLookup.data?.userId === provider.id
+        ? profileLookup.data
+        : null;
     const providerEmail = normalizedEmail(provider.email);
     const profileEmail = profile ? normalizedEmail(profile.email) : null;
     const version = authCredentialVersion(provider);
@@ -434,18 +449,33 @@ async function executeList(
       version !== profile.credentialVersion ||
       (emailCounts.get(providerEmail) ?? 0) > 2;
     authUsers.push(toJoinedUser(provider, profile, abnormal));
-    seen.add(provider.id);
   }
   const profileUsers: CentralAdminUser[] = [];
-  for (const profile of profileResult.data.profiles) {
-    if (!seen.has(profile.userId)) {
+  for (const profile of profileWindow) {
+    const providerLookup = authByUid.has(profile.userId)
+      ? { ok: true as const, data: authByUid.get(profile.userId) ?? null }
+      : await context.auth.findByUserId({ userId: profile.userId });
+    if (!providerLookup.ok) {
+      return failureResponse(
+        request.operationId,
+        safeError("provider_failure"),
+        "list",
+      );
+    }
+    if (
+      providerLookup.data !== null &&
+      providerLookup.data.id !== profile.userId
+    ) {
+      return failureResponse(
+        request.operationId,
+        safeError("provider_failure"),
+        "list",
+      );
+    }
+    if (providerLookup.data === null) {
       const email = normalizedEmail(profile.email);
       profileUsers.push(
-        toJoinedUser(
-          authByUid.get(profile.userId) ?? null,
-          profile,
-          !email || (emailCounts.get(email) ?? 0) > 1,
-        ),
+        toJoinedUser(null, profile, !email || (emailCounts.get(email) ?? 0) > 1),
       );
     }
   }
@@ -476,7 +506,10 @@ async function executeList(
         ...pagination,
         hasMore:
           authResult.data.hasMore ||
-          profileResult.data.hasMore,
+          profileResult.data.hasMore ||
+          (authLimit === 0 && authResult.data.users.length > 0) ||
+          (profileLimit === 0 &&
+            profileResult.data.profiles.length > 0),
       },
     },
   };
@@ -485,15 +518,19 @@ async function executeList(
 function safeUser(
   provider: ProviderUser,
   profile: CentralAdminProfile,
-): CentralAdminUser {
-  return toJoinedUser(
-    provider,
-    profile,
-    !isManaged(provider) ||
-      provider.id !== profile.userId ||
-      normalizedEmail(provider.email) !== profile.email ||
-      authCredentialVersion(provider) !== profile.credentialVersion,
-  );
+): CompletedAdminUser {
+  return {
+    ...toJoinedUser(
+      provider,
+      profile,
+      !isManaged(provider) ||
+        provider.id !== profile.userId ||
+        normalizedEmail(provider.email) !== profile.email ||
+        authCredentialVersion(provider) !== profile.credentialVersion,
+    ),
+    credentialVersion: profile.credentialVersion,
+    authCredentialVersion: authCredentialVersion(provider) as number,
+  };
 }
 
 function exactIdentity(
@@ -931,6 +968,10 @@ async function executeCreate(
     lease.operation.targetUserId;
   if (!userId) {
     return needsReview(context, lease, "identity_mismatch");
+  }
+
+  if (lease.operation.stage === "compensation_ready") {
+    return compensateCreate(context, request, lease, userId);
   }
 
   if (lease.operation.stage !== "profile_created") {
@@ -1463,7 +1504,7 @@ async function executeLifecycle(
     action === "suspend_user"
       ? {
           isActive: false,
-          mustChangePassword: null,
+          mustChangePassword: profile.mustChangePassword,
           ban: "future",
         }
       : {

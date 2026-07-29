@@ -7,6 +7,7 @@ import {
   OPERATION_ID,
   OTHER_USER_ID,
   TENANT_ID,
+  USER_ID,
   operationContext,
   profile,
   providerSuccess,
@@ -268,5 +269,89 @@ describe("Central User Manager list operation", () => {
     expect(firstIds[1]).toBe(profileUsers[0]?.userId);
     expect(secondIds[0]).toBe(authUsers[50]?.id);
     expect(secondIds[1]).toBe(profileUsers[50]?.userId);
+  });
+
+  it("uses positive lookahead ranges and reports the next source for pageSize one", async () => {
+    const context = operationContext({
+      profiles: {
+        listRange: vi.fn(async ({ limit }) => ({
+          ok: true,
+          data: {
+            profiles: limit > 0 ? [profile()] : [],
+            hasMore: false,
+          },
+        })),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, {
+      ...request,
+      payload: { page: 1, pageSize: 1 },
+    });
+
+    expect(response.status).toBe("completed");
+    expect(response.result?.pagination?.hasMore).toBe(true);
+    expect(
+      vi.mocked(context.profiles.listRange).mock.calls.every(
+        ([input]) => input.limit > 0,
+      ),
+    ).toBe(true);
+  });
+
+  it("joins cross-window exact UID pairs once through canonical Auth ownership", async () => {
+    const a = providerUser({
+      id: USER_ID,
+      email: "a@example.com",
+    });
+    const b = providerUser({
+      id: OTHER_USER_ID,
+      email: "b@example.com",
+    });
+    const profiles = [
+      profile({ userId: b.id, email: b.email }),
+      profile({ userId: a.id, email: a.email }),
+    ];
+    const context = operationContext({
+      auth: {
+        listRange: async ({ offset, limit }) =>
+          providerSuccess({
+            users: [a, b].slice(offset, offset + limit),
+            hasMore: offset + limit < 2,
+          }),
+        findByUserId: async ({ userId }) =>
+          providerSuccess([a, b].find((user) => user.id === userId) ?? null),
+      },
+      profiles: {
+        listRange: async ({ offset, limit }) => ({
+          ok: true,
+          data: {
+            profiles: profiles.slice(offset, offset + limit),
+            hasMore: offset + limit < 2,
+          },
+        }),
+        findByUserId: async ({ userId }) => ({
+          ok: true,
+          data:
+            profiles.find((item) => item.userId === userId) ?? null,
+        }),
+      },
+    });
+
+    const first = await executeCentralUserOperation(context, {
+      ...request,
+      payload: { page: 1, pageSize: 2 },
+    });
+    const second = await executeCentralUserOperation(context, {
+      ...request,
+      operationId: "123e4567-e89b-42d3-a456-426614174098",
+      payload: { page: 2, pageSize: 2 },
+    });
+    const users = [
+      ...(first.result?.users ?? []),
+      ...(second.result?.users ?? []),
+    ];
+
+    expect(users.map((user) => user.userId)).toEqual([a.id, b.id]);
+    expect(users.every((user) => user.status !== "abnormal")).toBe(true);
   });
 });

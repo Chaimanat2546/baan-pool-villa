@@ -332,6 +332,37 @@ describe("Central User Manager create operation", () => {
     expect(context.auth.deleteManagedUser).not.toHaveBeenCalled();
   });
 
+  it("resumes compensation_ready without replaying profile create", async () => {
+    const context = operationContext({
+      operations: {
+        claim: vi.fn(async () =>
+          repositorySuccess(
+            claimed({
+              operation: operation({
+                action: "create_user",
+                targetUserId: USER_ID,
+                stage: "compensation_ready",
+              }),
+            }),
+          ),
+        ),
+      },
+      auth: {
+        findByNormalizedEmail: async () =>
+          providerSuccess([providerUser()]),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, request);
+
+    expect(response).toMatchObject({
+      status: "completed",
+      error: { code: "create_compensated" },
+    });
+    expect(context.profiles.createForOperation).not.toHaveBeenCalled();
+    expect(context.auth.deleteManagedUser).toHaveBeenCalledOnce();
+  });
+
   it("never deletes when UID, email, managed marker, and provenance do not all prove ownership", async () => {
     const context = operationContext({
       auth: {

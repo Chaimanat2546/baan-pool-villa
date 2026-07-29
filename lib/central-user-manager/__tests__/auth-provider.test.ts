@@ -12,6 +12,7 @@ vi.mock("server-only", () => ({}));
 import {
   createManagedAuthUser,
   deleteManagedAuthUser,
+  findAuthUserById,
   findAuthUserByNormalizedEmail,
   findAuthUsersByNormalizedEmail,
   globallySignOutAccessToken,
@@ -197,6 +198,27 @@ describe("Central User Manager Supabase Auth provider", () => {
     expect(result.ok && result.data.users.at(-1)?.id).toBe("range-74");
     expect(result.ok && result.data.hasMore).toBe(true);
     expect(listUsers).toHaveBeenCalledWith({ page: 1, perPage: 100 });
+  });
+
+  it("gets one exact Auth identity by UID through the closed projection", async () => {
+    const getUserById = vi.fn().mockResolvedValue({
+      data: { user: authUser() },
+      error: null,
+    });
+
+    const result = await findAuthUserById(
+      { userId: USER_ID },
+      dependencies({
+        client: { auth: { admin: { getUserById } } },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { id: USER_ID, email: "admin@example.com" },
+    });
+    expect(getUserById).toHaveBeenCalledWith(USER_ID);
+    expect(JSON.stringify(result)).not.toContain("user_metadata");
   });
 
   it("finds an exact normalized email across 100-user pages", async () => {
@@ -631,6 +653,31 @@ describe("Central User Manager Supabase Auth provider", () => {
       });
     },
   );
+
+  it("accepts normalized-equivalent current and returned update emails", async () => {
+    const current = providerUser({ email: " ADMIN@example.com " });
+    const updateUserById = vi.fn().mockResolvedValue({
+      data: {
+        user: authUser({
+          email: "admin@example.com",
+          app_metadata: {
+            ...current.appMetadata,
+            credential_version: 2,
+          },
+        }),
+      },
+      error: null,
+    });
+
+    const result = await updateManagedAuthUser(
+      { user: current, credentialVersion: 2 },
+      dependencies({
+        client: { auth: { admin: { updateUserById } } },
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+  });
 
   it("quarantines a retryable update error returned after dispatch", async () => {
     const updateUserById = vi.fn().mockResolvedValue({

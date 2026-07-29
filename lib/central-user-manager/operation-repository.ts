@@ -343,9 +343,7 @@ function getCrypto(
 
 async function runClaim(
   rpcName:
-    | "claim_admin_user_operation"
-    | "claim_forced_password_change"
-    | "resume_admin_user_operation"
+    | "claim_forced_password_change_v2"
     | "resume_admin_user_operation_v2",
   params: Record<string, unknown>,
   deps: OperationRepositoryDependencies,
@@ -367,35 +365,6 @@ async function runClaim(
   } catch {
     return failure("database_unavailable");
   }
-}
-
-export async function claimAdminUserOperation(
-  input: {
-    operationId: string;
-    actorKind: "central_admin" | "target_admin";
-    actorUid: string;
-    action: CentralUserAction;
-    targetUserId?: string | null;
-    targetEmailNormalized?: string | null;
-    requestHash: string;
-    leaseSeconds?: number;
-  },
-  deps: OperationRepositoryDependencies,
-): Promise<RepositoryResult<ClaimedOperation>> {
-  return runClaim(
-    "claim_admin_user_operation",
-    {
-      p_operation_id: input.operationId,
-      p_actor_kind: input.actorKind,
-      p_actor_uid: input.actorUid,
-      p_action: input.action,
-      p_target_user_id: input.targetUserId ?? null,
-      p_target_email_normalized: input.targetEmailNormalized ?? null,
-      p_request_hash: input.requestHash,
-      p_lease_seconds: input.leaseSeconds ?? DEFAULT_LEASE_SECONDS,
-    },
-    deps,
-  );
 }
 
 export async function resumeAdminUserOperation(
@@ -464,11 +433,8 @@ export async function renewAdminUserOperationLease(
 
 async function runOperationRpc(
   rpcName:
-    | "commit_admin_user_operation_stage"
-    | "commit_admin_user_provider_stage"
     | "commit_admin_user_provider_intent_v2"
     | "commit_admin_user_provider_outcome_v2"
-    | "complete_admin_user_operation"
     | "complete_admin_user_operation_v2"
     | "quarantine_admin_user_operation"
     | "mark_admin_user_operation_needs_review"
@@ -487,43 +453,6 @@ async function runOperationRpc(
   return operation
     ? { ok: true, data: operation }
     : failure("database_unavailable");
-}
-
-export async function commitAdminUserOperationStage(
-  input: {
-    operationId: string;
-    fenceVersion: number;
-    leaseToken: string;
-    stage: "provider_intent" | "provider_outcome";
-    targetUserId?: string | null;
-    safeResult?: Record<string, unknown> | null;
-  },
-  deps: OperationRepositoryDependencies,
-): Promise<RepositoryResult<AdminUserOperationRecord>> {
-  if (!isSafeResult(input.safeResult ?? null)) {
-    return failure("operation_conflict");
-  }
-
-  try {
-    const leaseTokenHash = await hashLeaseToken(
-      input.leaseToken,
-      getCrypto(deps),
-    );
-    return runOperationRpc(
-      "commit_admin_user_operation_stage",
-      {
-        p_operation_id: input.operationId,
-        p_fence_version: input.fenceVersion,
-        p_lease_token_hash: leaseTokenHash,
-        p_stage: input.stage,
-        p_target_user_id: input.targetUserId ?? null,
-        p_safe_result: input.safeResult ?? null,
-      },
-      deps,
-    );
-  } catch {
-    return failure("database_unavailable");
-  }
 }
 
 export type AdminUserProviderStep =
@@ -596,77 +525,6 @@ export async function commitAdminUserProviderOutcome(
         p_target_user_id: input.targetUserId,
         p_credential_version: input.credentialVersion,
         p_provider_error_code: input.providerErrorCode,
-      },
-      deps,
-    );
-  } catch {
-    return failure("database_unavailable");
-  }
-}
-
-export async function commitAdminUserProviderStage(
-  input: {
-    operationId: string;
-    fenceVersion: number;
-    leaseToken: string;
-    providerStep: AdminUserProviderStep;
-    stage: "intent" | "outcome";
-    targetUserId?: string | null;
-    safeResult?: Record<string, unknown> | null;
-  },
-  deps: OperationRepositoryDependencies,
-): Promise<RepositoryResult<AdminUserOperationRecord>> {
-  if (!isSafeResult(input.safeResult ?? null)) {
-    return failure("operation_conflict");
-  }
-
-  try {
-    const leaseTokenHash = await hashLeaseToken(
-      input.leaseToken,
-      getCrypto(deps),
-    );
-    return runOperationRpc(
-      "commit_admin_user_provider_stage",
-      {
-        p_operation_id: input.operationId,
-        p_fence_version: input.fenceVersion,
-        p_lease_token_hash: leaseTokenHash,
-        p_provider_step: input.providerStep,
-        p_stage: input.stage,
-        p_target_user_id: input.targetUserId ?? null,
-        p_safe_result: input.safeResult ?? null,
-      },
-      deps,
-    );
-  } catch {
-    return failure("database_unavailable");
-  }
-}
-
-export async function completeAdminUserOperation(
-  input: {
-    operationId: string;
-    fenceVersion?: number;
-    leaseToken?: string;
-    safeResult?: Record<string, unknown> | null;
-  },
-  deps: OperationRepositoryDependencies,
-): Promise<RepositoryResult<AdminUserOperationRecord>> {
-  if (!isSafeResult(input.safeResult ?? null)) {
-    return failure("operation_conflict");
-  }
-
-  try {
-    const leaseTokenHash = input.leaseToken
-      ? await hashLeaseToken(input.leaseToken, getCrypto(deps))
-      : null;
-    return runOperationRpc(
-      "complete_admin_user_operation",
-      {
-        p_operation_id: input.operationId,
-        p_fence_version: input.fenceVersion ?? null,
-        p_lease_token_hash: leaseTokenHash,
-        p_safe_result: input.safeResult ?? null,
       },
       deps,
     );
@@ -811,7 +669,7 @@ export async function recordAdminUserLateFence(
   );
 }
 
-export async function claimForcedPasswordChange(
+export async function claimForcedPasswordChangeV2(
   input: {
     operationId: string;
     actorUid: string;
@@ -823,7 +681,7 @@ export async function claimForcedPasswordChange(
   deps: OperationRepositoryDependencies,
 ): Promise<RepositoryResult<ClaimedOperation>> {
   return runClaim(
-    "claim_forced_password_change",
+    "claim_forced_password_change_v2",
     {
       p_operation_id: input.operationId,
       p_actor_uid: input.actorUid,

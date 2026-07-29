@@ -49,7 +49,9 @@ function fakeClient(options: {
   const range = vi.fn().mockResolvedValue(response);
   const limit = vi.fn().mockResolvedValue(response);
   const eq = vi.fn(() => ({ limit }));
-  const order = vi.fn(() => ({ range }));
+  const ordered = { order: undefined as unknown, range };
+  const order = vi.fn(() => ordered);
+  ordered.order = order;
   const select = vi.fn(() => ({ order, eq }));
   const from = vi.fn(() => ({ select }));
   const rpc = vi.fn().mockResolvedValue({
@@ -99,7 +101,10 @@ describe("Central User Manager profile repository", () => {
     expect(fake.select).toHaveBeenCalledWith(
       "user_id,email,role,is_active,must_change_password,credential_version,created_at",
     );
-    expect(fake.order).toHaveBeenCalledWith("created_at", {
+    expect(fake.order).toHaveBeenNthCalledWith(1, "created_at", {
+      ascending: true,
+    });
+    expect(fake.order).toHaveBeenNthCalledWith(2, "user_id", {
       ascending: true,
     });
     expect(fake.range).toHaveBeenCalledWith(25, 50);

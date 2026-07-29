@@ -272,7 +272,10 @@ function isExactUpdatedManagedUser(
 
   return (
     returnedUser.id === input.user.id &&
-    isNormalizedEmailMatch(returnedUser.email, input.user.email) &&
+    isNormalizedEmailMatch(
+      returnedUser.email,
+      normalizeAdminEmail(input.user.email),
+    ) &&
     returnedUser.appMetadata.bpv_admin_managed === true &&
     returnedUser.appMetadata.credential_version ===
       input.credentialVersion &&
@@ -405,6 +408,33 @@ export async function listAuthUsersRange(
       hasMore: users.length > input.limit || sourceHasMore,
     },
   };
+}
+
+export async function findAuthUserById(
+  input: { userId: string },
+  deps: AuthProviderDependencies,
+): Promise<ProviderResult<ProviderUser | null>> {
+  if (!input.userId) {
+    return providerFailure("provider_rejected", false);
+  }
+  const dispatched = await dispatchWithDeadline(
+    () => deps.client.auth.admin.getUserById(input.userId),
+    deps,
+  );
+  if (!dispatched.ok) {
+    return dispatched;
+  }
+  const response = dispatched.data;
+  if (response.error) {
+    const status = (response.error as { status?: number }).status;
+    return status === 404
+      ? { ok: true, data: null }
+      : providerFailure("provider_rejected", false);
+  }
+  const user = toProviderUser(response.data?.user);
+  return user
+    ? { ok: true, data: user }
+    : providerFailure("provider_rejected", false);
 }
 
 export async function findAuthUserByNormalizedEmail(

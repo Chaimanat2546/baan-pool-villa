@@ -235,6 +235,7 @@ export async function listAdminProfilesRange(
       .from("admin_users")
       .select(PROFILE_PROJECTION)
       .order("created_at", { ascending: true })
+      .order("user_id", { ascending: true })
       .range(input.offset, input.offset + input.limit);
   } catch {
     return failure("database_unavailable");

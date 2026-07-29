@@ -335,6 +335,17 @@ export function operationContext(overrides: {
       }
       return providerSuccess({ users: [currentProviderUser], hasMore: false });
     }),
+    findByUserId: vi.fn(async (input) => {
+      events.push("auth:find_uid");
+      if (overrides.auth?.findByUserId) {
+        return overrides.auth.findByUserId(input);
+      }
+      return providerSuccess(
+        currentProviderUser.id === input.userId
+          ? currentProviderUser
+          : null,
+      );
+    }),
     findByNormalizedEmail: vi.fn(async (input, deadline) => {
       events.push("auth:find_email");
       if (overrides.auth?.findByNormalizedEmail) {
