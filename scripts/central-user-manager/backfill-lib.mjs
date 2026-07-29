@@ -4,7 +4,10 @@ const PROJECT_REF_PATTERN = /^[a-z0-9]{20}$/;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PROFILE_PROJECTION = "user_id,email";
+const PROFILE_PROJECTION =
+  "user_id,email,is_active,credential_version";
+const DEFAULT_PROFILE_PAGE_SIZE = 500;
+const DEFAULT_PROFILE_MAX_PAGES = 20;
 const DEFAULT_AUTH_PAGE_SIZE = 1_000;
 const DEFAULT_AUTH_MAX_PAGES = 100;
 const INVALID_ARGUMENTS = "Invalid backfill arguments.";
@@ -116,6 +119,29 @@ export function buildBackfillPreflight(
         seenIssues,
         "malformed_profile",
         typeof rawUserId === "string" ? rawUserId : `profile-${index}`,
+        hashUid,
+      );
+      continue;
+    }
+    if (typeof row.is_active !== "boolean") {
+      addIssue(
+        issues,
+        seenIssues,
+        "malformed_profile",
+        userId,
+        hashUid,
+      );
+      continue;
+    }
+    if (
+      !Number.isSafeInteger(row.credential_version) ||
+      row.credential_version !== 1
+    ) {
+      addIssue(
+        issues,
+        seenIssues,
+        "database_credential_version_mismatch",
+        userId,
         hashUid,
       );
       continue;
@@ -392,20 +418,65 @@ export function resolveBackfillConfig({ argv, env }) {
   };
 }
 
-async function readProfiles(client) {
-  const response = await client
-    .from("admin_users")
-    .select(PROFILE_PROJECTION);
-
+export async function enumerateProfiles(
+  client,
+  {
+    pageSize = DEFAULT_PROFILE_PAGE_SIZE,
+    maxPages = DEFAULT_PROFILE_MAX_PAGES,
+  } = {},
+) {
   if (
-    !isRecord(response) ||
-    response.error !== null ||
-    !Array.isArray(response.data)
+    !Number.isSafeInteger(pageSize) ||
+    pageSize < 1 ||
+    pageSize > DEFAULT_PROFILE_PAGE_SIZE ||
+    !Number.isSafeInteger(maxPages) ||
+    maxPages < 1 ||
+    maxPages > DEFAULT_PROFILE_MAX_PAGES
+  ) {
+    throw new Error("Admin profile pagination configuration is invalid.");
+  }
+
+  const profiles = [];
+  for (let page = 0; page < maxPages; page += 1) {
+    const from = page * pageSize;
+    const response = await client
+      .from("admin_users")
+      .select(PROFILE_PROJECTION)
+      .order("user_id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (
+      !isRecord(response) ||
+      response.error !== null ||
+      !Array.isArray(response.data)
+    ) {
+      throw new Error("Admin profile enumeration failed.");
+    }
+
+    profiles.push(...response.data);
+    if (response.data.length < pageSize) {
+      return profiles;
+    }
+  }
+
+  const maximumRows = pageSize * maxPages;
+  const sentinel = await client
+    .from("admin_users")
+    .select(PROFILE_PROJECTION)
+    .order("user_id", { ascending: true })
+    .range(maximumRows, maximumRows);
+  if (
+    !isRecord(sentinel) ||
+    sentinel.error !== null ||
+    !Array.isArray(sentinel.data)
   ) {
     throw new Error("Admin profile enumeration failed.");
   }
+  if (sentinel.data.length > 0) {
+    throw new Error("Admin profile pagination limit exceeded.");
+  }
 
-  return response.data;
+  return profiles;
 }
 
 export async function enumerateAuthUsers(
@@ -499,6 +570,8 @@ export async function runAdminAuthMetadataBackfill({
   hashUid = defaultHashUid,
   authPageSize = DEFAULT_AUTH_PAGE_SIZE,
   authMaxPages = DEFAULT_AUTH_MAX_PAGES,
+  profilePageSize = DEFAULT_PROFILE_PAGE_SIZE,
+  profileMaxPages = DEFAULT_PROFILE_MAX_PAGES,
 }) {
   if (
     (mode !== "dry-run" && mode !== "apply") ||
@@ -507,7 +580,10 @@ export async function runAdminAuthMetadataBackfill({
     throw new Error(INVALID_CONFIGURATION);
   }
 
-  const profiles = await readProfiles(client);
+  const profiles = await enumerateProfiles(client, {
+    pageSize: profilePageSize,
+    maxPages: profileMaxPages,
+  });
   const authUsers = await enumerateAuthUsers(client, {
     perPage: authPageSize,
     maxPages: authMaxPages,
@@ -602,7 +678,10 @@ export async function runAdminAuthMetadataBackfill({
   let verifiedProfiles;
   let verifiedAuthUsers;
   try {
-    verifiedProfiles = await readProfiles(client);
+    verifiedProfiles = await enumerateProfiles(client, {
+      pageSize: profilePageSize,
+      maxPages: profileMaxPages,
+    });
     verifiedAuthUsers = await enumerateAuthUsers(client, {
       perPage: authPageSize,
       maxPages: authMaxPages,

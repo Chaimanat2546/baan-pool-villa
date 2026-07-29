@@ -6,6 +6,7 @@ import {
   buildBackfillPreflight,
   deriveProjectRef,
   enumerateAuthUsers,
+  enumerateProfiles,
   parseBackfillArgs,
   resolveBackfillConfig,
   runAdminAuthMetadataBackfill,
@@ -19,7 +20,12 @@ const USER_B = "22222222-2222-4222-8222-222222222222";
 const USER_C = "33333333-3333-4333-8333-333333333333";
 
 function profile(userId = USER_A, email = " Admin@Example.com ") {
-  return { user_id: userId, email };
+  return {
+    user_id: userId,
+    email,
+    is_active: true,
+    credential_version: 1,
+  };
 }
 
 function authUser(
@@ -55,16 +61,38 @@ function issueCategories(result: ReturnType<typeof preflight>) {
 
 function createClientFixture({
   profiles = [profile()],
+  profilePages,
   authPages = [[authUser()], []],
   updateErrorAt,
 }: {
   profiles?: unknown[];
+  profilePages?: unknown[][];
   authPages?: unknown[][];
   updateErrorAt?: number;
 } = {}) {
-  const select = vi.fn(async (projection: string) => {
-    expect(projection).toBe("user_id,email");
-    return { data: profiles, error: null };
+  const range = vi.fn(
+    async (
+      from: number,
+      to: number,
+    ): Promise<{ data: unknown[]; error: Error | null }> => {
+      const pageSize = to - from + 1;
+      const page = Math.floor(from / pageSize);
+      return {
+        data: profilePages?.[page] ?? (page === 0 ? profiles : []),
+        error: null,
+      };
+    },
+  );
+  const order = vi.fn((column: string, options: { ascending: boolean }) => {
+    expect(column).toBe("user_id");
+    expect(options).toEqual({ ascending: true });
+    return { range };
+  });
+  const select = vi.fn((projection: string) => {
+    expect(projection).toBe(
+      "user_id,email,is_active,credential_version",
+    );
+    return { order };
   });
   const from = vi.fn((table: string) => {
     expect(table).toBe("admin_users");
@@ -102,6 +130,8 @@ function createClientFixture({
     },
     from,
     listUsers,
+    order,
+    range,
     select,
     updateUserById,
   };
@@ -205,6 +235,69 @@ describe("Central User Manager Auth metadata backfill preflight", () => {
     ],
   ])("blocks %s", (category, profiles, users) => {
     expect(issueCategories(preflight(profiles, users))).toContain(category);
+  });
+
+  it.each([
+    [
+      "database_credential_version_mismatch",
+      {
+        ...profile(USER_A, "admin@example.com"),
+        credential_version: undefined,
+      },
+    ],
+    [
+      "database_credential_version_mismatch",
+      { ...profile(USER_A, "admin@example.com"), credential_version: 2 },
+    ],
+    [
+      "database_credential_version_mismatch",
+      { ...profile(USER_A, "admin@example.com"), credential_version: "1" },
+    ],
+    [
+      "database_credential_version_mismatch",
+      { ...profile(USER_A, "admin@example.com"), credential_version: 0 },
+    ],
+    [
+      "database_credential_version_mismatch",
+      { ...profile(USER_A, "admin@example.com"), credential_version: 1.5 },
+    ],
+    [
+      "database_credential_version_mismatch",
+      {
+        ...profile(USER_A, "admin@example.com"),
+        credential_version: Number.MAX_SAFE_INTEGER + 1,
+      },
+    ],
+    [
+      "malformed_profile",
+      { ...profile(USER_A, "admin@example.com"), is_active: "true" },
+    ],
+  ])("blocks invalid database fence state as %s", (category, row) => {
+    const result = preflight(
+      [row],
+      [authUser(USER_A, "admin@example.com")],
+    );
+
+    expect(issueCategories(result)).toContain(category);
+    expect(result.matches).toEqual([]);
+  });
+
+  it("blocks database version 2 for inactive profiles before planning an Auth downgrade", () => {
+    const result = preflight(
+      [
+        {
+          ...profile(USER_A, "admin@example.com"),
+          is_active: false,
+          credential_version: 2,
+        },
+      ],
+      [authUser(USER_A, "admin@example.com")],
+    );
+
+    expect(issueCategories(result)).toContain(
+      "database_credential_version_mismatch",
+    );
+    expect(result.matches).toEqual([]);
   });
 
   it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, "1", null])(
@@ -397,6 +490,76 @@ describe("Central User Manager backfill CLI contract", () => {
 });
 
 describe("Central User Manager backfill execution", () => {
+  it("enumerates profiles with stable bounded pagination and accepts an exact boundary", async () => {
+    const fixture = createClientFixture({
+      profilePages: [
+        [profile(USER_A)],
+        [profile(USER_B, "second@example.com")],
+        [],
+      ],
+    });
+
+    await expect(
+      enumerateProfiles(fixture.client, { pageSize: 1, maxPages: 2 }),
+    ).resolves.toHaveLength(2);
+    expect(fixture.range.mock.calls).toEqual([
+      [0, 0],
+      [1, 1],
+      [2, 2],
+    ]);
+    expect(fixture.order).toHaveBeenCalledTimes(3);
+  });
+
+  it("fails closed when profile pagination exceeds the hard row cap", async () => {
+    const fixture = createClientFixture({
+      profilePages: [
+        [profile(USER_A)],
+        [profile(USER_B, "second@example.com")],
+      ],
+    });
+
+    await expect(
+      enumerateProfiles(fixture.client, { pageSize: 1, maxPages: 1 }),
+    ).rejects.toThrow("Admin profile pagination limit exceeded.");
+  });
+
+  it("fails closed when any profile page returns an error", async () => {
+    const fixture = createClientFixture();
+    fixture.range.mockResolvedValueOnce({
+      data: [],
+      error: new Error("raw profile error"),
+    });
+
+    await expect(enumerateProfiles(fixture.client)).rejects.toThrow(
+      "Admin profile enumeration failed.",
+    );
+  });
+
+  it("finds a profile-only row beyond the first page before any Auth write", async () => {
+    const fixture = createClientFixture({
+      profilePages: [
+        [profile(USER_A)],
+        [profile(USER_B, "second@example.com")],
+        [],
+      ],
+      authPages: [[authUser(USER_A)], []],
+    });
+
+    const outcome = await runAdminAuthMetadataBackfill({
+      client: fixture.client,
+      mode: "apply",
+      projectRef: PROJECT_REF,
+      supabaseUrl: SUPABASE_URL,
+      profilePageSize: 1,
+      profileMaxPages: 2,
+      clock: () => new Date("2026-07-30T01:02:03.000Z"),
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.report.categories.profile_only).toBe(1);
+    expect(fixture.updateUserById).not.toHaveBeenCalled();
+  });
+
   it("enumerates Auth users with explicit bounded pagination", async () => {
     const fixture = createClientFixture({
       authPages: [[authUser(USER_A)], [authUser(USER_B)], []],
@@ -564,7 +727,6 @@ describe("Central User Manager backfill execution", () => {
       data: { users: page === 1 ? [authUser()] : [] },
       error: null,
     }));
-
     const outcome = await runAdminAuthMetadataBackfill({
       client: fixture.client,
       mode: "apply",
@@ -575,6 +737,45 @@ describe("Central User Manager backfill execution", () => {
 
     expect(outcome.ok).toBe(false);
     expect(outcome.report.categories.verification_mismatch).toBe(1);
+  });
+
+  it("fails post-apply verification when the database credential version drifts", async () => {
+    const fixture = createClientFixture({
+      profilePages: [
+        [profile()],
+        [
+          {
+            ...profile(),
+            credential_version: 2,
+          },
+        ],
+      ],
+      authPages: [[authUser()], [], [authUser()], []],
+    });
+    fixture.listUsers.mockImplementation(async ({ page }) => ({
+      data: { users: page === 1 ? [authUser()] : [] },
+      error: null,
+    }));
+    fixture.range
+      .mockResolvedValueOnce({ data: [profile()], error: null })
+      .mockResolvedValueOnce({
+        data: [{ ...profile(), credential_version: 2 }],
+        error: null,
+      });
+
+    const outcome = await runAdminAuthMetadataBackfill({
+      client: fixture.client,
+      mode: "apply",
+      projectRef: PROJECT_REF,
+      supabaseUrl: SUPABASE_URL,
+      profilePageSize: 2,
+      clock: () => new Date("2026-07-30T01:02:03.000Z"),
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(
+      outcome.report.categories.database_credential_version_mismatch,
+    ).toBe(1);
   });
 
   it("reports completed updates when post-apply provider verification fails", async () => {
