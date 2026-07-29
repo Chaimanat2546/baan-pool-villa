@@ -393,12 +393,15 @@ function projectError(error: SafeAgentError | undefined): ErrorProjection {
   if (!error) {
     return { ok: true };
   }
+  if (!isRecord(error) || !hasExactKeys(error, ["code", "message"])) {
+    return { ok: false };
+  }
   const catalogError =
     SAFE_AGENT_ERROR_CATALOG[
       error.code as keyof typeof SAFE_AGENT_ERROR_CATALOG
     ];
 
-  return catalogError
+  return catalogError && error.message === catalogError.message
     ? {
         ok: true,
         error: { code: catalogError.code, message: catalogError.message },
@@ -417,10 +420,12 @@ function projectListResult(
 ): ResultProjection {
   if (
     !result ||
+    !isRecord(result) ||
+    !hasExactKeys(result, ["users", "pagination"]) ||
     !Array.isArray(result.users) ||
     result.users.length > expectedPageSize ||
     !isRecord(result.pagination) ||
-    result.user !== undefined
+    !hasExactKeys(result.pagination, ["page", "pageSize", "hasMore"])
   ) {
     return { ok: false };
   }
@@ -454,67 +459,120 @@ function projectListResult(
 
 function projectMutationResult(
   request: AgentOperationRequest,
-  status: AgentOperationResponse["status"],
   result: AgentOperationResponse["result"],
+  error: SafeAgentError | undefined,
 ): ResultProjection {
-  if (!result || status !== "completed") {
-    return { ok: true };
-  }
   if (
+    !result ||
+    !isRecord(result) ||
     request.action === "list_users" ||
     !("email" in request.payload) ||
-    result.users !== undefined ||
-    result.pagination !== undefined
+    !hasExactKeys(
+      result,
+      result.temporaryPassword === undefined
+        ? ["user"]
+        : ["user", "temporaryPassword"],
+    )
   ) {
     return { ok: false };
   }
-  const projected: NonNullable<AgentOperationResponse["result"]> = {};
-  if (result.user) {
-    const user = projectUser(result.user);
-    if (
-      !user ||
-      user.email !== request.payload.email ||
-      (request.action === "suspend_user"
+  const user = projectUser(result.user);
+  const duplicateCreate =
+    request.action === "create_user" && error?.code === "user_exists";
+  if (
+    !user ||
+    user.email !== request.payload.email ||
+    (duplicateCreate
+      ? !["active", "password_change_required", "suspended"].includes(
+          user.status,
+        )
+      : request.action === "suspend_user"
         ? user.status !== "suspended"
         : user.status !== "password_change_required")
-    ) {
-      return { ok: false };
-    }
-    projected.user = user;
-  }
-  if (
-    typeof result.temporaryPassword === "string" &&
-    PASSWORD_RESPONSE_ACTIONS.has(request.action) &&
-    TEMPORARY_PASSWORD.test(result.temporaryPassword)
   ) {
-    projected.temporaryPassword = result.temporaryPassword;
+    return { ok: false };
+  }
+  const hasPassword = result.temporaryPassword !== undefined;
+  if (
+    hasPassword &&
+    (typeof result.temporaryPassword !== "string" ||
+      !PASSWORD_RESPONSE_ACTIONS.has(request.action) ||
+      !TEMPORARY_PASSWORD.test(result.temporaryPassword) ||
+      error !== undefined)
+  ) {
+    return { ok: false };
   }
 
   return {
     ok: true,
-    ...(Object.keys(projected).length > 0 ? { result: projected } : {}),
+    result: {
+      user,
+      ...(hasPassword
+        ? { temporaryPassword: result.temporaryPassword as string }
+        : {}),
+    },
   };
 }
 
-function projectResult(
+type PayloadProjection =
+  | {
+      ok: true;
+      result?: AgentOperationResponse["result"];
+      error?: SafeAgentError;
+    }
+  | { ok: false };
+
+function projectPayload(
   request: AgentOperationRequest,
   operation: AgentOperationResponse,
-): ResultProjection {
+): PayloadProjection {
+  const errorProjection = projectError(operation.error);
+  if (!errorProjection.ok) {
+    return { ok: false };
+  }
+  const { error } = errorProjection;
+
+  if (operation.status !== "completed") {
+    return operation.result === undefined && error !== undefined
+      ? { ok: true, error }
+      : { ok: false };
+  }
+
   if (request.action === "list_users") {
-    if (operation.status !== "completed") {
-      return { ok: true };
-    }
-    if (!("page" in request.payload)) {
+    if (!("page" in request.payload) || error !== undefined) {
       return { ok: false };
     }
-    return projectListResult(
+    const projected = projectListResult(
       request.payload.page,
       request.payload.pageSize,
       operation.result,
     );
+    return projected.ok ? projected : { ok: false };
   }
 
-  return projectMutationResult(request, operation.status, operation.result);
+  if (error?.code === "create_compensated") {
+    return request.action === "create_user" && operation.result === undefined
+      ? { ok: true, error }
+      : { ok: false };
+  }
+  if (
+    error !== undefined &&
+    !(
+      request.action === "create_user" &&
+      error.code === "user_exists"
+    )
+  ) {
+    return { ok: false };
+  }
+
+  const projected = projectMutationResult(
+    request,
+    operation.result,
+    error,
+  );
+  return projected.ok
+    ? { ok: true, result: projected.result, ...(error ? { error } : {}) }
+    : { ok: false };
 }
 
 export function operationRouteResponse(
@@ -540,17 +598,15 @@ export function operationRouteResponse(
     );
   }
 
-  const errorProjection = projectError(operation.error);
-  const resultProjection = projectResult(request, operation);
-  if (!errorProjection.ok || !resultProjection.ok) {
+  const payloadProjection = projectPayload(request, operation);
+  if (!payloadProjection.ok) {
     return agentErrorResponse(
       503,
       "agent_unavailable",
       "Central User Manager Agent is unavailable.",
     );
   }
-  const { error } = errorProjection;
-  const { result } = resultProjection;
+  const { error, result } = payloadProjection;
   const status = AVAILABILITY_ERROR_CODES.has(error?.code ?? "")
     ? 503
     : operation.status === "completed"

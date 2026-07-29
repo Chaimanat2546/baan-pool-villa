@@ -11,6 +11,9 @@ const baseMigrationName = migrationNames.find((name) =>
 const hardeningMigrationName = migrationNames.find((name) =>
   /^\d+_harden_central_user_manager_health_probe\.sql$/.test(name),
 );
+const checkpointMigrationName = migrationNames.find((name) =>
+  /^\d+_complete_central_user_manager_health_probe_contract\.sql$/.test(name),
+);
 
 function normalizedSql(name: string | undefined): string {
   return name
@@ -23,8 +26,10 @@ function normalizedSql(name: string | undefined): string {
 
 const baseSql = normalizedSql(baseMigrationName);
 const hardeningSql = normalizedSql(hardeningMigrationName);
-const composedSql = `${baseSql} ${hardeningSql}`;
-const normalizedContractValues = hardeningSql.replace(
+const checkpointSql = normalizedSql(checkpointMigrationName);
+const composedSql = `${baseSql} ${hardeningSql} ${checkpointSql}`;
+const contractSql = `${hardeningSql} ${checkpointSql}`;
+const normalizedContractValues = contractSql.replace(
   /::text(?:\[\])?/g,
   "",
 );
@@ -67,6 +72,7 @@ const REQUIRED_COLUMNS = [
   "public.admin_user_operations.created_at:timestamp with time zone:true",
   "public.admin_user_operations.updated_at:timestamp with time zone:true",
   "public.admin_user_operations.completed_at:timestamp with time zone:false",
+  "public.admin_user_operations.suspension_expected_forced_flag:boolean:false",
   "public.admin_user_mutation_locks.target_email_normalized:text:true",
   "public.admin_user_mutation_locks.operation_id:uuid:true",
   "public.admin_user_mutation_locks.owner_kind:text:true",
@@ -93,6 +99,7 @@ const REQUIRED_COLUMNS = [
   "public.admin_user_provider_events.provider_error_code:text:false",
   "public.admin_user_provider_events.intent_at:timestamp with time zone:true",
   "public.admin_user_provider_events.outcome_at:timestamp with time zone:false",
+  "public.admin_user_provider_events.suspension_expected_forced_flag:boolean:false",
 ] as const;
 
 const REQUIRED_ROUTINES = [
@@ -161,17 +168,18 @@ function catalogSatisfiesRuntimeContract(catalog: CatalogFixture): boolean {
 }
 
 describe("Central User Manager health probe migration", () => {
-  it("composes an unapplied hardening migration over the original probe", () => {
+  it("composes an unapplied checkpoint follow-up over the hardened probe", () => {
     expect(baseMigrationName).toBeDefined();
     expect(hardeningMigrationName).toBeDefined();
-    expect(hardeningSql).toContain(
-      "create or replace function private.central_user_manager_health_probe_v1_impl()",
+    expect(checkpointMigrationName).toBeDefined();
+    expect(checkpointSql).toContain(
+      "private.central_user_manager_suspension_checkpoint_health_v1()",
     );
-    expect(hardeningSql).toContain(
+    expect(checkpointSql).toContain(
       "create or replace function public.central_user_manager_health_probe_v1()",
     );
-    expect(hardeningSql.match(/security definer/g)).toHaveLength(2);
-    expect(hardeningSql.match(/set search_path = ''/g)).toHaveLength(2);
+    expect(checkpointSql.match(/security definer/g)).toHaveLength(2);
+    expect(checkpointSql.match(/set search_path = ''/g)).toHaveLength(2);
   });
 
   it("declares every runtime relation, column type/nullability, and exact RPC identity", () => {
@@ -190,7 +198,7 @@ describe("Central User Manager health probe migration", () => {
       );
     }
     for (const identity of REQUIRED_ROUTINES) {
-      expect(hardeningSql).toContain(`'${identity}'`);
+      expect(contractSql).toContain(`'${identity}'`);
     }
   });
 
@@ -214,7 +222,7 @@ describe("Central User Manager health probe migration", () => {
       "procedure.oid",
       "'execute'",
     ]) {
-      expect(hardeningSql).toContain(predicate);
+      expect(contractSql).toContain(predicate);
     }
   });
 
@@ -225,6 +233,32 @@ describe("Central User Manager health probe migration", () => {
     ["wrong column type", (catalog: CatalogFixture) => {
       catalog.columns.delete("public.admin_user_operations.safe_result:jsonb:false");
       catalog.columns.add("public.admin_user_operations.safe_result:text:false");
+    }],
+    ["missing operation suspension checkpoint", (catalog: CatalogFixture) => {
+      catalog.columns.delete(
+        "public.admin_user_operations.suspension_expected_forced_flag:boolean:false",
+      );
+    }],
+    ["mistyped operation suspension checkpoint", (catalog: CatalogFixture) => {
+      catalog.columns.delete(
+        "public.admin_user_operations.suspension_expected_forced_flag:boolean:false",
+      );
+      catalog.columns.add(
+        "public.admin_user_operations.suspension_expected_forced_flag:text:false",
+      );
+    }],
+    ["missing provider suspension checkpoint", (catalog: CatalogFixture) => {
+      catalog.columns.delete(
+        "public.admin_user_provider_events.suspension_expected_forced_flag:boolean:false",
+      );
+    }],
+    ["mistyped provider suspension checkpoint", (catalog: CatalogFixture) => {
+      catalog.columns.delete(
+        "public.admin_user_provider_events.suspension_expected_forced_flag:boolean:false",
+      );
+      catalog.columns.add(
+        "public.admin_user_provider_events.suspension_expected_forced_flag:text:false",
+      );
     }],
     ["wrong relation kind", (catalog: CatalogFixture) => {
       catalog.relations.delete("public.admin_user_operations:r");
@@ -273,19 +307,19 @@ describe("Central User Manager health probe migration", () => {
       "'adminuserstable'",
       "'operationtables'",
     ]) {
-      expect(hardeningSql).toContain(key);
+      expect(contractSql).toContain(key);
     }
     expect(composedSql).not.toMatch(
       /\b(insert|update|delete|merge|truncate|lock|for update|create trigger)\b/,
     );
     expect(composedSql).not.toMatch(/\bexecute\s+(format|immediate)\b/);
-    expect(hardeningSql).toMatch(
-      /revoke all on function private\.central_user_manager_health_probe_v1_impl\(\) from public, anon, authenticated, service_role/,
+    expect(checkpointSql).toMatch(
+      /revoke all on function private\.central_user_manager_suspension_checkpoint_health_v1\(\) from public, anon, authenticated, service_role/,
     );
-    expect(hardeningSql).toMatch(
+    expect(checkpointSql).toMatch(
       /revoke all on function public\.central_user_manager_health_probe_v1\(\) from public, anon, authenticated, service_role/,
     );
-    expect(hardeningSql).toContain(
+    expect(checkpointSql).toContain(
       "grant execute on function public.central_user_manager_health_probe_v1() to service_role",
     );
   });

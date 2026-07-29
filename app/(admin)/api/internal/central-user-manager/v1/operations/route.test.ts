@@ -34,6 +34,13 @@ const LIST_BODY = JSON.stringify({
   action: "list_users",
   payload: { page: 1, pageSize: 25 },
 });
+const MUTATION_BODY = JSON.stringify({
+  tenantId: TENANT_ID,
+  operationId: OPERATION_ID,
+  actorUid: ACTOR_UID,
+  action: "reissue_temporary_password",
+  payload: { email: "admin@example.com" },
+});
 
 function request(
   body: BodyInit | null = LIST_BODY,
@@ -434,12 +441,29 @@ describe("Central User Manager operations route", () => {
     const deps = dependencies({ execute });
 
     const response = await createOperationsRouteHandlers(deps).POST(
-      request(LIST_BODY),
+      request(MUTATION_BODY),
     );
-    const body = await response.json();
 
     expect(execute).toHaveBeenCalledOnce();
-    expect(JSON.stringify(body)).not.toContain("temporaryPassword");
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      tenantId: TENANT_ID,
+      protocolVersion: 1,
+      operationId: OPERATION_ID,
+      status: "completed",
+      stage: "completed",
+      result: {
+        user: {
+          userId: "123e4567-e89b-42d3-a456-426614174003",
+          email: "admin@example.com",
+          status: "password_change_required",
+          createdAt: "2026-07-29T00:00:00.000Z",
+          lastSignInAt: null,
+          credentialVersion: 1,
+          authCredentialVersion: 1,
+        },
+      },
+    });
   });
 
   it("rejects a service operation ID that differs from the parsed request", async () => {
@@ -475,7 +499,21 @@ describe("Central User Manager operations route", () => {
         status === "in_progress"
           ? "claimed"
           : status,
-      error: { code: "lease_conflict", message: "Safe message." },
+      error:
+        status === "in_progress"
+          ? {
+              code: "lease_conflict",
+              message: "The operation lease is owned by another request.",
+            }
+          : status === "needs_review"
+            ? {
+                code: "identity_mismatch",
+                message: "The Auth user and admin profile do not match.",
+              }
+            : {
+                code: "operation_quarantined",
+                message: "The operation is permanently quarantined.",
+              },
     }));
 
     const response = await createOperationsRouteHandlers(
@@ -486,7 +524,7 @@ describe("Central User Manager operations route", () => {
     expectAgentHeaders(response);
   });
 
-  it("suppresses a temporary password from a completed list response", async () => {
+  it("fails closed on a temporary password in a completed list response", async () => {
     const password = "Temp-Password-123!Aa";
     const execute = vi.fn(async () => ({
       operationId: OPERATION_ID,
@@ -506,12 +544,14 @@ describe("Central User Manager operations route", () => {
     const response = await createOperationsRouteHandlers(
       dependencies({ execute }),
     ).POST(request());
-    const text = await response.text();
-
-    expect(response.status).toBe(200);
-    expect(text).not.toContain(password);
-    expect(text).not.toContain("access-token");
-    expect(text).not.toContain("refresh-token");
+    expect(response.status).toBe(503);
+    expectAgentHeaders(response);
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: "agent_unavailable",
+        message: "Central User Manager Agent is unavailable.",
+      },
+    });
   });
 
   it.each([
@@ -560,7 +600,7 @@ describe("Central User Manager operations route", () => {
     ["suspend_user", "completed"],
     ["reissue_temporary_password", "needs_review"],
   ] as const)(
-    "suppresses a temporary password for %s in %s state",
+    "fails closed on a temporary password for %s in %s state",
     async (action, status) => {
       const password = "Temp-Password-123!Aa";
       const body = JSON.stringify({
@@ -589,7 +629,65 @@ describe("Central User Manager operations route", () => {
         dependencies({ execute }),
       ).POST(request(body));
 
-      expect(await response.text()).not.toContain(password);
+      expect(response.status).toBe(503);
+      expectAgentHeaders(response);
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: "agent_unavailable",
+          message: "Central User Manager Agent is unavailable.",
+        },
+      });
+    },
+  );
+
+  it.each(["active", "suspended"] as const)(
+    "returns an exact password-free create duplicate for an existing %s user",
+    async (status) => {
+      const duplicateBody = JSON.stringify({
+        tenantId: TENANT_ID,
+        operationId: OPERATION_ID,
+        actorUid: ACTOR_UID,
+        action: "create_user",
+        payload: { email: "admin@example.com" },
+      });
+      const user = {
+        userId: "123e4567-e89b-42d3-a456-426614174003",
+        email: "admin@example.com",
+        status,
+        createdAt: "2026-07-29T00:00:00.000Z",
+        lastSignInAt: null,
+        credentialVersion: 1,
+        authCredentialVersion: 1,
+      };
+      const execute = vi.fn(async () => ({
+        operationId: OPERATION_ID,
+        status: "completed" as const,
+        stage: "completed",
+        result: { user },
+        error: {
+          code: "user_exists",
+          message: "An admin user already exists for this email.",
+        },
+      }));
+
+      const response = await createOperationsRouteHandlers(
+        dependencies({ execute }),
+      ).POST(request(duplicateBody));
+
+      expect(response.status).toBe(200);
+      expectAgentHeaders(response);
+      await expect(response.json()).resolves.toEqual({
+        tenantId: TENANT_ID,
+        protocolVersion: 1,
+        operationId: OPERATION_ID,
+        status: "completed",
+        stage: "completed",
+        result: { user },
+        error: {
+          code: "user_exists",
+          message: "An admin user already exists for this email.",
+        },
+      });
     },
   );
 

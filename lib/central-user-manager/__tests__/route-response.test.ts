@@ -26,12 +26,52 @@ const LIST_REQUEST: AgentOperationRequest = {
 const CONFIG = {
   tenantId: TENANT_ID,
 } as CentralUserManagerAgentConfig;
+const MUTATION_REQUEST: AgentOperationRequest = {
+  ...LIST_REQUEST,
+  action: "reissue_temporary_password",
+  payload: { email: "admin@example.com" },
+};
+const USER = {
+  userId: "123e4567-e89b-42d3-a456-426614174003",
+  email: "admin@example.com",
+  status: "password_change_required" as const,
+  createdAt: "2026-07-29T00:00:00.000Z",
+  lastSignInAt: null,
+  credentialVersion: 1,
+  authCredentialVersion: 1,
+};
+const TEMPORARY_PASSWORD = "Temp-Password-123!Aa";
 
 function operationResponse(
   operation: AgentOperationResponse,
   request: AgentOperationRequest = LIST_REQUEST,
 ) {
   return operationRouteResponse(CONFIG, request, operation);
+}
+
+async function expectStaticUnavailable(response: Response) {
+  expect(response.status).toBe(503);
+  expect(Object.fromEntries(
+    Object.entries({
+      "Cache-Control": "private, no-store, max-age=0",
+      Pragma: "no-cache",
+      Expires: "0",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+    }).map(([name]) => [name, response.headers.get(name)]),
+  )).toEqual({
+    "Cache-Control": "private, no-store, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+  });
+  await expect(response.json()).resolves.toEqual({
+    error: {
+      code: "agent_unavailable",
+      message: "Central User Manager Agent is unavailable.",
+    },
+  });
 }
 
 describe("Central User Manager route response helpers", () => {
@@ -116,7 +156,20 @@ describe("Central User Manager route response helpers", () => {
       error:
         status === "completed"
           ? undefined
-          : { code: "lease_conflict", message: "Safe message." },
+          : status === "in_progress"
+            ? {
+                code: "lease_conflict",
+                message: "The operation lease is owned by another request.",
+              }
+            : status === "needs_review"
+              ? {
+                  code: "identity_mismatch",
+                  message: "The Auth user and admin profile do not match.",
+                }
+              : {
+                  code: "operation_quarantined",
+                  message: "The operation is permanently quarantined.",
+                },
       providerMetadata: { access_token: "must-not-escape" },
     } as never);
 
@@ -139,14 +192,20 @@ describe("Central User Manager route response helpers", () => {
     expect(JSON.stringify(body)).not.toContain("access_token");
   });
 
-  it.each(["database_unavailable", "provider_failure"])(
+  it.each([
+    [
+      "database_unavailable",
+      "The operation database is unavailable.",
+    ],
+    ["provider_failure", "Unable to complete request."],
+  ])(
     "maps safe pre-dispatch availability error %s to 503",
-    (code) => {
+    (code, message) => {
       const response = operationResponse({
         operationId: OPERATION_ID,
         status: "needs_review",
         stage: "claimed",
-        error: { code, message: "Unable to complete request." },
+        error: { code, message },
       });
 
       expect(response.status).toBe(503);
@@ -221,5 +280,83 @@ describe("Central User Manager route response helpers", () => {
     }, createRequest);
 
     expect(response.status).toBe(503);
+  });
+
+  it("fails closed when a completed list result carries a password", async () => {
+    await expectStaticUnavailable(operationResponse({
+      operationId: OPERATION_ID,
+      status: "completed",
+      stage: "listed",
+      result: {
+        users: [],
+        pagination: { page: 1, pageSize: 25, hasMore: false },
+        temporaryPassword: TEMPORARY_PASSWORD,
+      },
+    }));
+  });
+
+  it("fails closed when a completed suspend result carries a password", async () => {
+    await expectStaticUnavailable(operationResponse({
+      operationId: OPERATION_ID,
+      status: "completed",
+      stage: "completed",
+      result: {
+        user: { ...USER, status: "suspended" },
+        temporaryPassword: TEMPORARY_PASSWORD,
+      },
+    }, {
+      ...MUTATION_REQUEST,
+      action: "suspend_user",
+    }));
+  });
+
+  it.each(["in_progress", "needs_review", "quarantined"] as const)(
+    "fails closed when a %s result carries a password",
+    async (status) => {
+      await expectStaticUnavailable(operationResponse({
+        operationId: OPERATION_ID,
+        status,
+        stage: status === "in_progress" ? "claimed" : status,
+        result: { temporaryPassword: TEMPORARY_PASSWORD },
+        error: {
+          code: "lease_conflict",
+          message: "The operation lease is owned by another request.",
+        },
+      }, MUTATION_REQUEST));
+    },
+  );
+
+  it.each([
+    ["wrong length", "short"],
+    ["non-printable", `Temp-Password-123!A\n`],
+  ])("fails closed for a %s temporary password", async (_label, password) => {
+    await expectStaticUnavailable(operationResponse({
+      operationId: OPERATION_ID,
+      status: "completed",
+      stage: "completed",
+      result: { user: USER, temporaryPassword: password },
+    }, MUTATION_REQUEST));
+  });
+
+  it("fails closed for a password without a valid bound user", async () => {
+    await expectStaticUnavailable(operationResponse({
+      operationId: OPERATION_ID,
+      status: "completed",
+      stage: "completed",
+      result: { temporaryPassword: TEMPORARY_PASSWORD },
+    }, MUTATION_REQUEST));
+  });
+
+  it("fails closed for a password combined with an error", async () => {
+    await expectStaticUnavailable(operationResponse({
+      operationId: OPERATION_ID,
+      status: "completed",
+      stage: "completed",
+      result: { user: USER, temporaryPassword: TEMPORARY_PASSWORD },
+      error: {
+        code: "provider_failure",
+        message: "Unable to complete request.",
+      },
+    }, MUTATION_REQUEST));
   });
 });
