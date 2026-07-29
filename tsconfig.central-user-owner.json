@@ -7,7 +7,14 @@
   },
   "include": [
     "next-env.d.ts",
-    "lib/central-user-manager/__tests__/typecheck/operation-owner-assignability.ts"
+    "lib/central-user-manager/__tests__/typecheck/operation-owner-assignability.ts",
+    "lib/central-user-manager/route-response.ts",
+    "lib/central-user-manager/health-service.ts",
+    "lib/central-user-manager/production-context.ts",
+    "lib/central-user-manager/health-route-handler.ts",
+    "lib/central-user-manager/operations-route-handler.ts",
+    "app/(admin)/api/internal/central-user-manager/v1/health/route.ts",
+    "app/(admin)/api/internal/central-user-manager/v1/operations/route.ts"
   ],
   "exclude": [".next", "node_modules"]
 }
