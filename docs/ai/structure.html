@@ -432,12 +432,16 @@
         <section id="admin-route-handlers">
           <h3>Admin Route Handlers</h3>
           <p>
-            Shared admin bearer-token checks, mutation origin checks,
-            Turnstile login challenge verification, and Supabase-style error responses live in
-            <code>lib/admin/route-helpers.ts</code> and
-            <code>lib/admin/request-origin.ts</code>, with Turnstile Siteverify
-            owned by <code>lib/admin/turnstile.ts</code>. Keep route handlers focused
-            on request parsing, validation, persistence, and cache invalidation.
+            Shared admin authorization lives in
+            <code>lib/admin/home-config-auth.ts</code> and
+            <code>lib/admin/route-helpers.ts</code>: mutation origin checks run
+            before Bearer parsing, then every parsed token is verified without
+            a positive cache against both Supabase Auth claims and the current
+            Auth user before the exact local admin profile fence is read.
+            <code>lib/admin/request-origin.ts</code> owns origin matching and
+            <code>lib/admin/turnstile.ts</code> owns Turnstile Siteverify. Keep
+            route handlers focused on request parsing, validation, persistence,
+            and cache invalidation.
           </p>
           <table>
             <thead>
@@ -721,8 +725,8 @@
             </tr>
             <tr>
               <td><code>lib/admin</code></td>
-              <td>Admin authentication/config helpers, mutation request origin checks, Turnstile login challenge verification, and shared admin route auth/error response utilities. Successful admin bearer checks use a short in-memory TTL cache keyed by a token hash; failed checks are not cached. Admin <code>POST</code>, <code>PUT</code>, and <code>DELETE</code> requests allow missing <code>Origin</code>, the configured <code>NEXT_PUBLIC_SITE_URL</code> origin, the request host, and localhost origins in development. Turnstile login verification uses <code>NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in the browser and keeps <code>TURNSTILE_SECRET_KEY</code> server-only.</td>
-              <td><code>lib/admin/__tests__</code> plus targeted admin API route tests around auth, mutation origin checks, Turnstile verification, and Supabase error behavior.</td>
+              <td>Admin authentication/config helpers, mutation request origin checks, Turnstile login challenge verification, and shared admin route auth/error response utilities. <code>home-config-auth.ts</code> creates one request-scoped client for each parsed Bearer token, contains and requires both <code>auth.getClaims(token)</code> and <code>auth.getUser(token)</code>, binds the verified nonblank subject to the exact current user, then reads at most two exact-self <code>admin_users</code> rows with only the authorization projection. Access requires one structurally valid active row, no forced password change, and the same positive safe <code>credential_version</code> in verified JWT metadata, current Auth metadata, and the database; there is no positive authorization cache or local JWT payload decode. Stable session, inactivity, password-change, credential-version, and database-verification codes let callers distinguish login failures from storage failures while preserving safe <code>supabaseCode</code>, <code>details</code>, and <code>hint</code> diagnostics. Admin <code>POST</code>, <code>PUT</code>, and <code>DELETE</code> requests allow missing <code>Origin</code>, the configured <code>NEXT_PUBLIC_SITE_URL</code> origin, the request host, and localhost origins in development. Turnstile login verification uses <code>NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in the browser and keeps <code>TURNSTILE_SECRET_KEY</code> server-only.</td>
+              <td>Start shared authorization changes with <code>npm.cmd test -- lib/admin/__tests__/home-config-auth.test.ts lib/admin/__tests__/route-helpers.test.ts</code>; add targeted admin API route tests for touched callers, mutation origin checks, Turnstile verification, and Supabase error behavior as applicable.</td>
             </tr>
             <tr>
               <td><code>lib/central-user-manager</code> and the central user manager prepare/state-machine migrations</td>
@@ -1066,8 +1070,8 @@
             </tr>
             <tr>
               <td>Admin API auth, mutation origin guard, or shared Supabase error response behavior</td>
-              <td><code>npm.cmd test -- lib/admin/__tests__</code> plus the touched admin route test files</td>
-              <td>Verify missing-token/admin-denied/cross-origin responses do not call persistence helpers and Supabase errors preserve <code>message</code>, <code>code</code>, <code>details</code>, and <code>hint</code>.</td>
+              <td><code>npm.cmd test -- lib/admin/__tests__/home-config-auth.test.ts lib/admin/__tests__/route-helpers.test.ts</code> plus the touched admin route test files</td>
+              <td>Verify origin rejection runs before Bearer parsing; missing/invalid sessions, inactive/duplicate/malformed profiles, forced password changes, and all credential-version mismatches keep their stable codes; repeated identical tokens still create a client and call both Auth verifiers plus the bounded exact profile query again; and database verification errors remain non-session failures with safe <code>message</code>, <code>supabaseCode</code>, <code>details</code>, and <code>hint</code> metadata.</td>
             </tr>
             <tr>
               <td>Central User Manager Tenant Agent routes, health, production context, or lifecycle owner composition</td>

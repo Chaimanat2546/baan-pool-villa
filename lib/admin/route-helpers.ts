@@ -50,7 +50,12 @@ export async function requireHomeConfigAdmin(
   const token = getBearerToken(request);
 
   if (!token) {
-    return { ok: false, response: jsonError("Missing bearer token.", 401) };
+    return {
+      ok: false,
+      response: jsonError("Missing bearer token.", 401, {
+        code: "session_invalid",
+      }),
+    };
   }
 
   const adminCheck = await assertHomeConfigAdmin(token);
@@ -58,7 +63,12 @@ export async function requireHomeConfigAdmin(
   if (!adminCheck.ok) {
     return {
       ok: false,
-      response: jsonError(adminCheck.message, adminCheck.status),
+      response: jsonError(adminCheck.message, adminCheck.status, {
+        code: adminCheck.code,
+        supabaseCode: adminCheck.supabaseCode,
+        details: adminCheck.details,
+        hint: adminCheck.hint,
+      }),
     };
   }
 
