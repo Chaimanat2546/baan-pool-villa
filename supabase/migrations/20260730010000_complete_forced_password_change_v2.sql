@@ -444,10 +444,11 @@ begin
   end if;
 
   v_message := case p_reason
-    when 'identity_mismatch' then 'The target identity changed after claim.'
+    when 'identity_mismatch' then
+      'The Auth user and admin profile do not match.'
     when 'credential_version_mismatch' then
-      'The credential version changed after claim.'
-    else 'The target profile state changed after claim.'
+      'Credential versions do not match.'
+    else 'Admin profile state changed.'
   end;
 
   perform pg_advisory_xact_lock(hashtextextended(p_email_normalized, 0));

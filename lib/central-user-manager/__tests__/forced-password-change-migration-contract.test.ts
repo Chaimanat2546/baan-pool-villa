@@ -110,6 +110,18 @@ describe("forced-password completion migration", () => {
     expect(sql).toContain("and lease_token_hash = p_lease_token_hash");
   });
 
+  it("returns only catalog-backed late-fence safe errors", () => {
+    expect(sql).toContain(
+      "when 'identity_mismatch' then 'the auth user and admin profile do not match.'",
+    );
+    expect(sql).toContain(
+      "when 'credential_version_mismatch' then 'credential versions do not match.'",
+    );
+    expect(sql).toContain(
+      "else 'admin profile state changed.'",
+    );
+  });
+
   it("health-attests fixed search paths, owners, and private implementation ACLs", () => {
     expect(sql).toContain("routine.proconfig");
     expect(sql).toContain("pg_catalog.pg_get_userbyid(routine.proowner)");

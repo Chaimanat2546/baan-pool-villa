@@ -62,6 +62,7 @@ function failureStatus(code: string): number {
   }
   if (
     code === "provider_ambiguous" ||
+    code === "quarantine_failed" ||
     code === "database_unavailable" ||
     code === "verification_failed"
   ) {

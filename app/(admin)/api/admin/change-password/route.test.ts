@@ -97,4 +97,21 @@ describe("POST /api/admin/change-password", () => {
     expect(text).not.toContain("TempPass1!");
     expect(text).not.toContain("NewPass2@");
   });
+
+  it("returns a fail-closed service status when quarantine cannot be proven", async () => {
+    mocks.change.mockResolvedValue({
+      ok: false,
+      code: "quarantine_failed",
+      clearSession: true,
+    });
+
+    const response = await POST(request(validBody));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      ok: false,
+      code: "quarantine_failed",
+      clearSession: true,
+    });
+  });
 });

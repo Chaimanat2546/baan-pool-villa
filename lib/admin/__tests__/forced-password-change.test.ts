@@ -1,12 +1,49 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 vi.mock("server-only", () => ({}));
+
+import {
+  recordForcedPasswordLateFenceV2,
+  type CentralUserManagerAdminClient,
+} from "@/lib/central-user-manager/operation-repository";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_ID = "22222222-2222-4222-8222-222222222222";
 const OPERATION_ID = "33333333-3333-4333-8333-333333333333";
 const EMAIL = "admin@example.com";
 const TOKEN = "browser-access-token";
+const FORCED_PASSWORD_MIGRATION = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260730010000_complete_forced_password_change_v2.sql",
+  ),
+  "utf8",
+);
+
+function migrationLateFenceMessage(
+  reason:
+    | "identity_mismatch"
+    | "profile_state_conflict"
+    | "credential_version_mismatch",
+) {
+  const caseBlock = /v_message := case p_reason([\s\S]*?)end;/i.exec(
+    FORCED_PASSWORD_MIGRATION,
+  )?.[1];
+  if (!caseBlock) {
+    throw new Error("Missing late-fence safe-message case expression.");
+  }
+  const pattern =
+    reason === "profile_state_conflict"
+      ? /else\s+'([^']+)'\s+/i
+      : new RegExp(`when '${reason}' then\\s+'([^']+)'`, "i");
+  const message = pattern.exec(caseBlock)?.[1];
+  if (!message) {
+    throw new Error(`Missing migration safe message for ${reason}.`);
+  }
+  return message;
+}
 
 function makeSessionClient(options?: {
   claimsVersion?: number;
@@ -393,6 +430,98 @@ describe("changeForcedPassword", () => {
     expect(deps.complete).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [
+      "identity_mismatch",
+      {
+        state: "forced",
+        userId: OTHER_ID,
+        email: EMAIL,
+        credentialVersion: 7,
+      },
+    ],
+    [
+      "profile_state_conflict",
+      {
+        state: "inactive",
+        code: "admin_inactive",
+        status: 403,
+        message: "inactive",
+      },
+    ],
+    [
+      "credential_version_mismatch",
+      {
+        state: "forced",
+        userId: USER_ID,
+        email: EMAIL,
+        credentialVersion: 8,
+      },
+    ],
+  ] as const)(
+    "maps the migration %s result through the repository before returning late_fence",
+    async (reason, fencedSession) => {
+      const rpc = vi.fn().mockResolvedValue({
+        data: {
+          operation_id: OPERATION_ID,
+          actor_kind: "target_admin",
+          actor_uid: USER_ID,
+          action: "complete_password_change",
+          target_user_id: USER_ID,
+          target_email_normalized: EMAIL,
+          request_hash: "a".repeat(64),
+          status: "needs_review",
+          stage: "late_fence",
+          fence_version: 4,
+          attempt_count: 1,
+          lease_expires_at: null,
+          safe_result: {
+            outcome: "late_fence",
+            reason,
+            expectedCredentialVersion: 7,
+            observedCredentialVersion:
+              "credentialVersion" in fencedSession
+                ? fencedSession.credentialVersion
+                : null,
+          },
+          safe_error_code: reason,
+          safe_error_message: migrationLateFenceMessage(reason),
+        },
+        error: null,
+      });
+      const { deps } = makeChangeDependencies({
+        recordLateFence: (input: Parameters<
+          typeof recordForcedPasswordLateFenceV2
+        >[0]) =>
+          recordForcedPasswordLateFenceV2(input, {
+            client: { rpc } as unknown as CentralUserManagerAdminClient,
+          }),
+      });
+      deps.inspectSession
+        .mockResolvedValueOnce({
+          state: "forced",
+          userId: USER_ID,
+          email: EMAIL,
+          credentialVersion: 7,
+        })
+        .mockResolvedValueOnce(fencedSession);
+      const { changeForcedPassword } = await loadModule();
+
+      await expect(
+        changeForcedPassword(changeInput, deps as never),
+      ).resolves.toMatchObject({
+        ok: false,
+        code: "late_fence",
+        clearSession: true,
+      });
+      expect(deps.quarantine).not.toHaveBeenCalled();
+      expect(rpc).toHaveBeenCalledWith(
+        "record_forced_password_late_fence_v2",
+        expect.objectContaining({ p_reason: reason }),
+      );
+    },
+  );
+
   it("quarantines when durable late-fence recording cannot be proven", async () => {
     const { deps } = makeChangeDependencies({
       recordLateFence: vi.fn(async () => ({
@@ -422,6 +551,29 @@ describe("changeForcedPassword", () => {
     });
     expect(deps.quarantine).toHaveBeenCalled();
     expect(deps.verifyPassword).not.toHaveBeenCalled();
+  });
+
+  it("returns quarantine_failed when durable quarantine cannot be proven", async () => {
+    const { deps } = makeChangeDependencies({
+      verifyPassword: vi.fn(async () => ({
+        ok: false as const,
+        ambiguous: true,
+        error: { code: "provider_unavailable", message: "ambiguous" },
+      })),
+      quarantine: vi.fn(async () => ({
+        ok: false as const,
+        error: { code: "database_unavailable", message: "unavailable" },
+      })),
+    });
+    const { changeForcedPassword } = await loadModule();
+
+    await expect(
+      changeForcedPassword(changeInput, deps as never),
+    ).resolves.toEqual({
+      ok: false,
+      code: "quarantine_failed",
+      clearSession: true,
+    });
   });
 
   it("rolls DB N+1 back to N after a definite Auth password rejection", async () => {

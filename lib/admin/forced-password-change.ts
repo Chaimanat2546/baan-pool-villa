@@ -342,13 +342,15 @@ async function quarantine(
   deps: ForcedPasswordChangeDependencies,
   lease: OperationLease,
 ): Promise<ForcedPasswordChangeResult> {
-  await deps.quarantine({
+  const quarantined = await deps.quarantine({
     operationId: lease.operationId,
     fenceVersion: lease.fenceVersion,
     leaseToken: lease.leaseToken,
     errorCode: "provider_ambiguous",
   });
-  return rejected("provider_ambiguous", true);
+  return quarantined.ok
+    ? rejected("provider_ambiguous", true)
+    : rejected("quarantine_failed", true);
 }
 
 function providerLeaseExpiresAt(
