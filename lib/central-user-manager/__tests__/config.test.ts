@@ -70,6 +70,8 @@ describe("Central User Manager Agent configuration", () => {
     [undefined],
     ["9F3C3A5B-483D-4F49-A5EB-E0509FF82EB4"],
     ["9f3c3a5b483d4f49a5ebe0509ff82eb4"],
+    ["9f3c3a5b-483d-ff49-a5eb-e0509ff82eb4"],
+    ["9f3c3a5b-483d-4f49-f5eb-e0509ff82eb4"],
   ])("rejects a missing or noncanonical Tenant UUID: %s", (tenantId) => {
     vi.stubEnv("CENTRAL_USER_MANAGER_TENANT_ID", tenantId ?? "");
 
@@ -121,6 +123,15 @@ describe("Central User Manager Agent configuration", () => {
 
     expectInvalidConfig();
   });
+
+  it.each([undefined, ""])(
+    "rejects an unset or blank Bearer token without exposing it: %s",
+    (bearerToken) => {
+      vi.stubEnv("CENTRAL_USER_MANAGER_BEARER_TOKEN", bearerToken);
+
+      expectInvalidConfig();
+    },
+  );
 
   it.each([["0"], ["1.5"], ["9007199254740992"]])(
     "rejects a non-positive or unsafe token version: %s",
