@@ -223,7 +223,11 @@ advance_forced_password_change
 
 **Files:**
 - Create: `lib/central-user-manager/operation-service.ts`
+- Create: `lib/central-user-manager/reconciled-list-repository.ts`
+- Create with CLI: `supabase/migrations/<CLI-generated>_list_reconciled_admin_users.sql`
 - Test: `lib/central-user-manager/__tests__/operation-service-list.test.ts`
+- Test: `lib/central-user-manager/__tests__/reconciled-list-repository.test.ts`
+- Test: `lib/central-user-manager/__tests__/task6-round5-list-migration-contract.test.ts`
 - Test: `lib/central-user-manager/__tests__/operation-service-create.test.ts`
 - Test: `lib/central-user-manager/__tests__/operation-service-lifecycle.test.ts`
 
@@ -232,6 +236,14 @@ advance_forced_password_change
 - Produces: `executeCentralUserOperation(context, request): Promise<AgentOperationResponse>`.
 
 - [ ] Write failing list tests for exact UID joins, one-sided rows, version mismatch, max 100 rows, and four Thai status mappings.
+- [ ] Implement `list_users` through one narrow server-only repository and one
+  service-role-only public RPC. Its private fixed/empty-search-path
+  `SECURITY DEFINER` implementation may only `SELECT` the required documented
+  `auth.users` fields and `public.admin_users`, `FULL OUTER JOIN` exact UIDs,
+  compute global normalized-email ownership, and page by normalized display
+  email then UID. Revoke direct private/public execution from all roles before
+  granting only the public wrapper to `service_role`. This read-only SQL
+  exception is list-only; mutations retain Auth Admin API ownership.
 - [ ] Write failing create tests for success, existing email, exact completed retry without password, proven compensation, unproven ownership, provider timeout, and recovery at every durable stage.
 - [ ] Write failing reissue/suspend/reactivate tests for version advancement, DB-first denial, new-password-only reactivation, lower-fence late outcome, timeout, quarantine, and concurrent email operations.
 - [ ] Implement durable `provider_intent` before every provider mutation and `provider_outcome` after every definite result.

@@ -17,7 +17,6 @@ import {
   findAuthUsersByNormalizedEmail,
   globallySignOutAccessToken,
   listAuthUsersPage,
-  listAuthUsersRange,
   transientlyVerifyPassword,
   updateManagedAuthUser,
   type AuthProviderDependencies,
@@ -170,35 +169,6 @@ describe("Central User Manager Supabase Auth provider", () => {
       expect(listUsers).not.toHaveBeenCalled();
     },
   );
-
-  it("reads an arbitrary bounded range without losing the next source row", async () => {
-    const firstPage = Array.from({ length: 100 }, (_, index) =>
-      authUser({
-        id: `range-${index}`,
-        email: `range-${index}@example.com`,
-      }),
-    );
-    const listUsers = vi.fn().mockResolvedValue({
-      data: {
-        users: firstPage,
-        nextPage: null,
-      },
-      error: null,
-    });
-    const deps = dependencies({
-      client: { auth: { admin: { listUsers } } },
-    });
-
-    const result = await listAuthUsersRange(
-      { offset: 25, limit: 50 },
-      deps,
-    );
-
-    expect(result.ok && result.data.users[0]?.id).toBe("range-25");
-    expect(result.ok && result.data.users.at(-1)?.id).toBe("range-74");
-    expect(result.ok && result.data.hasMore).toBe(true);
-    expect(listUsers).toHaveBeenCalledWith({ page: 1, perPage: 100 });
-  });
 
   it("gets one exact Auth identity by UID through the closed projection", async () => {
     const getUserById = vi.fn().mockResolvedValue({

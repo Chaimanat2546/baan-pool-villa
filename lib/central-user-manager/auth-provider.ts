@@ -73,11 +73,6 @@ interface ListAuthUsersPageInput {
   pageSize: number;
 }
 
-interface ListAuthUsersRangeInput {
-  offset: number;
-  limit: number;
-}
-
 interface FindAuthUserByNormalizedEmailInput {
   email: string;
   maxPages?: number;
@@ -350,62 +345,6 @@ export async function listAuthUsersPage(
     data: {
       users,
       hasMore: typeof response.data.nextPage === "number",
-    },
-  };
-}
-
-export async function listAuthUsersRange(
-  input: ListAuthUsersRangeInput,
-  deps: AuthProviderDependencies,
-): Promise<
-  ProviderResult<{
-    users: ProviderUser[];
-    hasMore: boolean;
-  }>
-> {
-  if (
-    !Number.isSafeInteger(input.offset) ||
-    input.offset < 0 ||
-    !isPositiveInteger(input.limit) ||
-    input.limit > 100
-  ) {
-    return providerFailure("provider_rejected", false);
-  }
-
-  const firstPage = Math.floor(input.offset / 100) + 1;
-  const withinFirstPage = input.offset % 100;
-  const users: ProviderUser[] = [];
-  let page = firstPage;
-  let skip = withinFirstPage;
-  let sourceHasMore = false;
-
-  while (users.length <= input.limit) {
-    const listed = await listAuthUsersPage(
-      { page, pageSize: 100 },
-      deps,
-    );
-    if (!listed.ok) {
-      return listed;
-    }
-
-    users.push(...listed.data.users.slice(skip));
-    sourceHasMore = listed.data.hasMore;
-    if (
-      users.length > input.limit ||
-      !sourceHasMore ||
-      listed.data.users.length < 100
-    ) {
-      break;
-    }
-    page += 1;
-    skip = 0;
-  }
-
-  return {
-    ok: true,
-    data: {
-      users: users.slice(0, input.limit),
-      hasMore: users.length > input.limit || sourceHasMore,
     },
   };
 }

@@ -331,12 +331,22 @@ interface VerifiedCentralRequest {
 **Files:**
 
 - Create: `lib/central-user-manager/operation-service.ts`
+- Create: `lib/central-user-manager/reconciled-list-repository.ts`
+- Create with CLI: `supabase/migrations/<CLI-generated>_list_reconciled_admin_users.sql`
 - Test: `lib/central-user-manager/__tests__/operation-service-create.test.ts`
 - Test: `lib/central-user-manager/__tests__/operation-service-list.test.ts`
+- Test: `lib/central-user-manager/__tests__/reconciled-list-repository.test.ts`
 
 - [ ] Write failing list tests for max 100 rows, joined Auth/profile state mapping, one-sided records, normalized-email conflict, and no secret fields.
 - [ ] Write failing create tests for clean success, exact completed retry, existing email, Auth-created/profile-failed compensation, unproven ownership, provider timeout, and crash recovery at each durable stage.
-- [ ] Implement `list_users` as read-only reconciliation: combine `auth.admin.listUsers` with `admin_users` by exact UID, report one-sided rows as `ข้อมูลผิดปกติ`, and never mutate.
+- [ ] Implement `list_users` as one read-only SQL reconciliation exception:
+  call a narrow server-only repository/RPC whose private fixed/empty-search-path
+  definer selects only required documented `auth.users` and
+  `public.admin_users` fields, full-joins exact UIDs, computes global
+  normalized-email ownership, reports every one-sided/conflicting row as
+  `ข้อมูลผิดปกติ`, and pages by normalized display email then UID. Revoke the
+  private function from every API role and `service_role`; grant only its
+  public wrapper to `service_role`. Never mutate or lock either source.
 - [ ] Map UI statuses:
 
 ```text

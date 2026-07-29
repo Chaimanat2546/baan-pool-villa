@@ -4,6 +4,7 @@ import type {
   CentralAdminProfile,
   CentralUserOperationContext,
   OperationAuthProvider,
+  OperationListRepository,
   OperationProfileRepository,
   OperationStateRepository,
 } from "../operation-service";
@@ -126,6 +127,7 @@ export function operationContext(overrides: {
   operations?: Partial<OperationStateRepository>;
   profiles?: Partial<OperationProfileRepository>;
   auth?: Partial<OperationAuthProvider>;
+  list?: OperationListRepository;
   password?: string;
   events?: string[];
 } = {}): CentralUserOperationContext {
@@ -133,6 +135,25 @@ export function operationContext(overrides: {
   const baseOperation = operation();
   let currentProfile = profile();
   let currentProviderUser = providerUser();
+  const list = overrides.list ?? {
+    listPage: async () => ({
+      ok: true as const,
+      data: {
+        users: [
+          {
+            userId: currentProviderUser.id,
+            email: currentProviderUser.email,
+            status: "password_change_required" as const,
+            createdAt: currentProviderUser.createdAt,
+            lastSignInAt: currentProviderUser.lastSignInAt,
+            credentialVersion: currentProfile.credentialVersion,
+            authCredentialVersion: 1,
+          },
+        ],
+        hasMore: false,
+      },
+    }),
+  };
 
   const operations: OperationStateRepository = {
     claim: vi.fn(async (input) => {
@@ -262,13 +283,6 @@ export function operationContext(overrides: {
   };
 
   const profiles: OperationProfileRepository = {
-    listRange: vi.fn(async (input) => {
-      events.push("profiles:list");
-      if (overrides.profiles?.listRange) {
-        return overrides.profiles.listRange(input);
-      }
-      return { ok: true, data: { profiles: [currentProfile], hasMore: false } };
-    }),
     findByNormalizedEmail: vi.fn(async (input) => {
       events.push("profiles:find_email");
       if (overrides.profiles?.findByNormalizedEmail) {
@@ -328,13 +342,6 @@ export function operationContext(overrides: {
   };
 
   const auth: OperationAuthProvider = {
-    listRange: vi.fn(async (input) => {
-      events.push("auth:list");
-      if (overrides.auth?.listRange) {
-        return overrides.auth.listRange(input);
-      }
-      return providerSuccess({ users: [currentProviderUser], hasMore: false });
-    }),
     findByUserId: vi.fn(async (input) => {
       events.push("auth:find_uid");
       if (overrides.auth?.findByUserId) {
@@ -408,6 +415,7 @@ export function operationContext(overrides: {
     operations,
     profiles,
     auth,
+    list,
     now: () => NOW_MS,
     providerTimeoutMs: 10_000,
     generateTemporaryPassword: vi.fn(

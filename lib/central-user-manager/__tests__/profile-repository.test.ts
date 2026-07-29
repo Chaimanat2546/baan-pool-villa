@@ -9,8 +9,6 @@ import {
   createAdminProfileForOperation,
   findAdminProfileByUserId,
   findAdminProfilesByNormalizedEmail,
-  listAdminProfilesPage,
-  listAdminProfilesRange,
   prepareAdminUserCreateCompensation,
 } from "../profile-repository";
 import {
@@ -72,61 +70,6 @@ function fakeClient(options: {
 }
 
 describe("Central User Manager profile repository", () => {
-  it("maps a bounded admin profile page through an exact projection", async () => {
-    const fake = fakeClient({ rows: [profileRow()] });
-
-    const result = await listAdminProfilesPage(
-      { page: 2, pageSize: 25 },
-      { client: fake.client },
-    );
-
-    expect(result).toEqual({
-      ok: true,
-      data: {
-        profiles: [
-          {
-            userId: USER_ID,
-            email: EMAIL,
-            role: "admin",
-            isActive: true,
-            mustChangePassword: true,
-            credentialVersion: 1,
-            createdAt: "2026-07-29T00:00:00.000Z",
-          },
-        ],
-        hasMore: false,
-      },
-    });
-    expect(fake.from).toHaveBeenCalledWith("admin_users");
-    expect(fake.select).toHaveBeenCalledWith(
-      "user_id,email,role,is_active,must_change_password,credential_version,created_at",
-    );
-    expect(fake.order).toHaveBeenNthCalledWith(1, "created_at", {
-      ascending: true,
-    });
-    expect(fake.order).toHaveBeenNthCalledWith(2, "user_id", {
-      ascending: true,
-    });
-    expect(fake.range).toHaveBeenCalledWith(25, 50);
-  });
-
-  it("reads an arbitrary profile range with an exact lookahead", async () => {
-    const rows = [
-      profileRow(),
-      profileRow({ user_id: "123e4567-e89b-42d3-a456-426614174099" }),
-    ];
-    const fake = fakeClient({ rows });
-
-    const result = await listAdminProfilesRange(
-      { offset: 7, limit: 1 },
-      { client: fake.client },
-    );
-
-    expect(result.ok && result.data.profiles).toHaveLength(1);
-    expect(result.ok && result.data.hasMore).toBe(true);
-    expect(fake.range).toHaveBeenCalledWith(7, 8);
-  });
-
   it("uses exact normalized email/UID filters and fails closed on duplicate rows", async () => {
     const emailFake = fakeClient({
       rows: [profileRow(), profileRow({ user_id: "duplicate" })],
@@ -358,54 +301,4 @@ describe("Central User Manager profile repository", () => {
     );
   });
 
-  it("maps a corrupt database email to a static failure instead of throwing", async () => {
-    const fake = fakeClient({ rows: [profileRow({ email: "" })] });
-
-    await expect(
-      listAdminProfilesPage(
-        { page: 1, pageSize: 25 },
-        { client: fake.client },
-      ),
-    ).resolves.toEqual({
-      ok: false,
-      error: {
-        code: "profile_data_invalid",
-        message: "Admin profile data is invalid.",
-      },
-    });
-  });
-
-  it("uses one-row lookahead so an exactly full final page has no next page", async () => {
-    const rows = Array.from({ length: 25 }, (_, index) =>
-      profileRow({
-        user_id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
-        email: `admin-${index}@example.com`,
-      }),
-    );
-    const finalPage = fakeClient({ rows });
-
-    await expect(
-      listAdminProfilesPage(
-        { page: 1, pageSize: 25 },
-        { client: finalPage.client },
-      ),
-    ).resolves.toMatchObject({
-      ok: true,
-      data: { profiles: expect.any(Array), hasMore: false },
-    });
-    expect(finalPage.range).toHaveBeenCalledWith(0, 25);
-
-    const nextPage = fakeClient({
-      rows: [...rows, profileRow({ user_id: "lookahead" })],
-    });
-    await expect(
-      listAdminProfilesPage(
-        { page: 1, pageSize: 25 },
-        { client: nextPage.client },
-      ),
-    ).resolves.toMatchObject({
-      ok: true,
-      data: { profiles: expect.any(Array), hasMore: true },
-    });
-  });
 });

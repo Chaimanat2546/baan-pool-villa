@@ -371,6 +371,18 @@ The credential-version fence, target `admin_users` checks, target RLS
 hardening, operation locks, quarantine, and forced-password-change flow remain
 as specified in the original approved design.
 
+The approved `list_users` implementation has one narrow read-only exception to
+the Auth Admin API boundary: a server-only repository calls a service-role-only
+public RPC whose private `SECURITY DEFINER` implementation performs one
+snapshot `FULL OUTER JOIN` of documented `auth.users` fields and
+`public.admin_users` by exact UID. It computes global normalized-email
+ownership before stable `(normalized display email, UID)` pagination and
+returns only the strict safe list DTO. The function may only `SELECT`; it may
+not write or lock Auth/profile data, return raw metadata, use dynamic SQL, or
+be executed directly by `PUBLIC`, `anon`, `authenticated`, or `service_role`.
+This exception applies only to `list_users`. All Auth mutation and mutation
+reconciliation paths continue to use the Auth Admin API.
+
 ## 11. Provisioning and Onboarding
 
 For a new Tenant:

@@ -22,6 +22,10 @@ import type {
   CentralAdminProfile,
   ProfileRepositoryResult,
 } from "./profile-repository";
+import type {
+  ReconciledAdminUserPage,
+  ReconciledListRepositoryResult,
+} from "./reconciled-list-repository";
 import {
   createSafeAgentError,
   SAFE_AGENT_ERROR_CATALOG,
@@ -103,15 +107,6 @@ export interface OperationStateRepository {
 }
 
 export interface OperationProfileRepository {
-  listRange(input: {
-    offset: number;
-    limit: number;
-  }): Promise<
-    ProfileRepositoryResult<{
-      profiles: CentralAdminProfile[];
-      hasMore: boolean;
-    }>
-  >;
   findByNormalizedEmail(input: {
     email: string;
   }): Promise<ProfileRepositoryResult<CentralAdminProfile[]>>;
@@ -156,12 +151,6 @@ export interface OperationProfileRepository {
 }
 
 export interface OperationAuthProvider {
-  listRange(input: {
-    offset: number;
-    limit: number;
-  }): Promise<
-    ProviderResult<{ users: ProviderUser[]; hasMore: boolean }>
-  >;
   findByUserId(input: {
     userId: string;
   }): Promise<ProviderResult<ProviderUser | null>>;
@@ -196,11 +185,21 @@ export interface OperationAuthProvider {
   ): Promise<ProviderResult<null>>;
 }
 
+export interface OperationListRepository {
+  listPage(input: {
+    page: number;
+    pageSize: number;
+  }): Promise<
+    ReconciledListRepositoryResult<ReconciledAdminUserPage>
+  >;
+}
+
 export interface CentralUserOperationContext {
   requestHash: string;
   operations: OperationStateRepository;
   profiles: OperationProfileRepository;
   auth: OperationAuthProvider;
+  list: OperationListRepository;
   now: () => number;
   providerTimeoutMs: number;
   generateTemporaryPassword: () => string;
@@ -375,181 +374,25 @@ async function executeList(
     payload: { page: number; pageSize: number };
   },
 ): Promise<AgentOperationResponse> {
-  // The public contract caps page and pageSize at 100. The source row ceiling
-  // is 10,000 per side, while the stricter aggregate call budget fails closed
-  // before the provider/database adapters can exceed 40 charged calls.
-  const LIST_SOURCE_CHUNK = 100;
-  const LIST_SOURCE_ROW_CAP = 10_000;
-  const LIST_EXTERNAL_CALL_CAP = 40;
-  let externalCallCost = 0;
-  const reserveCalls = (cost: number) => {
-    if (externalCallCost + cost > LIST_EXTERNAL_CALL_CAP) {
-      return false;
-    }
-    externalCallCost += cost;
-    return true;
-  };
   const pagination = {
     page: request.payload.page,
-    pageSize: Math.min(request.payload.pageSize, 100),
+    pageSize: request.payload.pageSize,
   };
-  const resultOffset = (pagination.page - 1) * pagination.pageSize;
-  const resultEnd = resultOffset + pagination.pageSize;
-  type ListCandidate = {
-    provider: ProviderUser | null;
-    profile: CentralAdminProfile | null;
-    abnormal: boolean;
-    emails: string[];
-  };
-  let candidates: ListCandidate[] = [];
-  const scannedProviders: ProviderUser[] = [];
-  const scannedProfiles: CentralAdminProfile[] = [];
-  let uniquenessProven = false;
-
-  for (
-    let sourceOffset = 0;
-    sourceOffset < LIST_SOURCE_ROW_CAP &&
-    candidates.length <= resultEnd;
-    sourceOffset += LIST_SOURCE_CHUNK
-  ) {
-    // Auth range may dispatch two provider pages for lookahead; profile range
-    // is one database call.
-    if (!reserveCalls(3)) {
-      return failureResponse(
-        request.operationId,
-        safeError("provider_failure"),
-        "list",
-      );
-    }
-    const [authResult, profileResult] = await Promise.all([
-      context.auth.listRange({
-        offset: sourceOffset,
-        limit: LIST_SOURCE_CHUNK,
-      }),
-      context.profiles.listRange({
-        offset: sourceOffset,
-        limit: LIST_SOURCE_CHUNK,
-      }),
-    ]);
-    if (!authResult.ok) {
-      return failureResponse(
-        request.operationId,
-        safeError("provider_failure"),
-        "list",
-      );
-    }
-    if (!profileResult.ok) {
-      return failureResponse(request.operationId, profileResult.error, "list");
-    }
-
-    scannedProviders.push(...authResult.data.users);
-    scannedProfiles.push(...profileResult.data.profiles);
-    const authByUid = new Map(
-      scannedProviders.map((user) => [user.id, user]),
-    );
-    const profilesByUid = new Map(
-      scannedProfiles.map((profile) => [profile.userId, profile]),
-    );
-    const batchLength = Math.max(
-      authResult.data.users.length,
-      profileResult.data.profiles.length,
-    );
-
-    candidates = [];
-    let processedEntries = 0;
-    for (
-      let index = 0;
-      index < Math.max(scannedProviders.length, scannedProfiles.length) &&
-      candidates.length <= resultEnd;
-      index += 1
-    ) {
-      processedEntries += 1;
-      const provider = scannedProviders[index];
-      if (provider) {
-        const profile = profilesByUid.get(provider.id) ?? null;
-        const providerEmail = normalizedEmail(provider.email);
-        const profileEmail = profile
-          ? normalizedEmail(profile.email)
-          : null;
-        candidates.push({
-          provider,
-          profile,
-          emails: Array.from(
-            new Set(
-              [providerEmail, profileEmail].filter(
-                (email): email is string => Boolean(email),
-              ),
-            ),
-          ),
-          abnormal:
-            !profile ||
-            !isManaged(provider) ||
-            !providerEmail ||
-            providerEmail !== profileEmail ||
-            authCredentialVersion(provider) !== profile.credentialVersion,
-        });
-      }
-
-      const profile = scannedProfiles[index];
-      if (profile && candidates.length <= resultEnd) {
-        if (!authByUid.has(profile.userId)) {
-          candidates.push({
-            provider: null,
-            profile,
-            emails: [normalizedEmail(profile.email)].filter(
-              (email): email is string => Boolean(email),
-            ),
-            abnormal: true,
-          });
-        }
-      }
-    }
-
-    if (
-      batchLength === 0 ||
-      (!authResult.data.hasMore && !profileResult.data.hasMore)
-    ) {
-      uniquenessProven =
-        batchLength === 0 ||
-        processedEntries ===
-          Math.max(scannedProviders.length, scannedProfiles.length);
-      break;
-    }
+  const listed = await context.list.listPage(pagination);
+  if (!listed.ok) {
+    return failureResponse(request.operationId, listed.error, "list");
   }
 
-  const emailCounts = new Map<string, number>();
-  for (const candidate of candidates) {
-    for (const email of candidate.emails) {
-      emailCounts.set(
-        email,
-        (emailCounts.get(email) ?? 0) + 1,
-      );
-    }
-  }
-  const users = candidates
-    .slice(resultOffset, resultEnd)
-    .map((candidate) =>
-      toJoinedUser(
-        candidate.provider,
-        candidate.profile,
-        candidate.abnormal ||
-          !uniquenessProven ||
-          candidate.emails.length === 0 ||
-          candidate.emails.some(
-            (email) => (emailCounts.get(email) ?? 0) > 1,
-          ),
-      ),
-    );
   return {
     operationId: request.operationId,
     status: "completed",
     stage: "listed",
     result: {
-      users,
+      users: listed.data.users,
       pagination: {
         ...pagination,
         hasMore:
-          pagination.page < 100 && candidates.length > resultEnd,
+          pagination.page < 100 && listed.data.hasMore,
       },
     },
   };

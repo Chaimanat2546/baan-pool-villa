@@ -4,7 +4,11 @@ import {
   commitAdminUserProviderOutcome,
   completeAdminUserOperationV2,
 } from "../operation-repository";
-import type { OperationStateRepository } from "../operation-service";
+import { listReconciledAdminUsers } from "../reconciled-list-repository";
+import type {
+  OperationListRepository,
+  OperationStateRepository,
+} from "../operation-service";
 
 it("keeps service owner inputs directly assignable to repository owners", () => {
   type ServiceOutcome = Parameters<
@@ -19,7 +23,14 @@ it("keeps service owner inputs directly assignable to repository owners", () => 
   type RepositoryCompletion = Parameters<
     typeof completeAdminUserOperationV2
   >[0];
+  type ServiceList = Parameters<
+    OperationListRepository["listPage"]
+  >[0];
+  type RepositoryList = Parameters<
+    typeof listReconciledAdminUsers
+  >[0];
 
   expectTypeOf<ServiceOutcome>().toEqualTypeOf<RepositoryOutcome>();
   expectTypeOf<ServiceCompletion>().toEqualTypeOf<RepositoryCompletion>();
+  expectTypeOf<ServiceList>().toEqualTypeOf<RepositoryList>();
 });
