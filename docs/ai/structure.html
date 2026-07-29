@@ -714,6 +714,11 @@
               <td>Admin authentication/config helpers, mutation request origin checks, Turnstile login challenge verification, and shared admin route auth/error response utilities. Successful admin bearer checks use a short in-memory TTL cache keyed by a token hash; failed checks are not cached. Admin <code>POST</code>, <code>PUT</code>, and <code>DELETE</code> requests allow missing <code>Origin</code>, the configured <code>NEXT_PUBLIC_SITE_URL</code> origin, the request host, and localhost origins in development. Turnstile login verification uses <code>NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in the browser and keeps <code>TURNSTILE_SECRET_KEY</code> server-only.</td>
               <td><code>lib/admin/__tests__</code> plus targeted admin API route tests around auth, mutation origin checks, Turnstile verification, and Supabase error behavior.</td>
             </tr>
+            <tr>
+              <td><code>lib/central-user-manager</code> and the central user manager prepare migration</td>
+              <td>Server-only tenant Agent contracts, configuration, Bearer verification, privileged Supabase client creation, and fenced operation RPC wrappers. The prepare migration normalizes admin email identity, adds credential-version/password-change fences, and owns the RLS-protected operation and normalized-email mutation-lock tables. Mutation RPCs serialize each target with a transaction-scoped advisory lock, keep provider calls outside SQL transactions, rotate hashed lease tokens, use monotonically increasing fences for safe pre-intent takeover, and permanently quarantine ambiguous provider-intent state.</td>
+              <td><code>lib/central-user-manager/__tests__/migration-contract.test.ts</code> and <code>lib/central-user-manager/__tests__/operation-repository.test.ts</code> for the migration/RPC repository slice.</td>
+            </tr>
           </tbody>
         </table>
       </section>
