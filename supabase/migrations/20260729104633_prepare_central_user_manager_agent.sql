@@ -3,7 +3,8 @@ begin
   if exists (
     select 1
     from public.admin_users
-    where btrim(email) = ''
+    where email is null
+      or btrim(email) = ''
       or lower(btrim(email)) !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
   ) then
     raise exception 'invalid admin_users email';
@@ -30,6 +31,53 @@ alter table public.admin_users
 create unique index admin_users_email_normalized_key
   on public.admin_users (lower(btrim(email)));
 
+create or replace function private.admin_user_safe_json(p_value jsonb)
+returns boolean
+language plpgsql
+immutable
+set search_path = pg_catalog, public, private, extensions
+as $$
+declare
+  v_type text;
+  v_key text;
+  v_normalized_key text;
+  v_child jsonb;
+begin
+  if p_value is null then
+    return true;
+  end if;
+
+  v_type := jsonb_typeof(p_value);
+  if v_type = 'object' then
+    for v_key, v_child in
+      select key, value
+      from jsonb_each(p_value)
+    loop
+      v_normalized_key := regexp_replace(lower(v_key), '[^a-z0-9]', '', 'g');
+      if v_normalized_key ~ '(password|token|secret|authorization|hash|rawerror|stack|details|hint)' then
+        return false;
+      end if;
+      if not private.admin_user_safe_json(v_child) then
+        return false;
+      end if;
+    end loop;
+  elsif v_type = 'array' then
+    for v_child in
+      select value
+      from jsonb_array_elements(p_value)
+    loop
+      if not private.admin_user_safe_json(v_child) then
+        return false;
+      end if;
+    end loop;
+  end if;
+
+  return true;
+end;
+$$;
+
+revoke all on function private.admin_user_safe_json(jsonb) from public, anon, authenticated, service_role;
+
 create table public.admin_user_operations (
   operation_id uuid primary key,
   actor_kind text not null check (actor_kind in ('central_admin', 'target_admin')),
@@ -46,7 +94,7 @@ create table public.admin_user_operations (
   lease_expires_at timestamptz,
   provider_intent_at timestamptz,
   provider_outcome_at timestamptz,
-  safe_result jsonb check (safe_result is null or not (safe_result ? 'temporaryPassword')),
+  safe_result jsonb check (safe_result is null or private.admin_user_safe_json(safe_result)),
   safe_error_code text check (safe_error_code is null or (char_length(safe_error_code) between 1 and 64 and safe_error_code ~ '^[a-z0-9_]+$')),
   safe_error_message text check (safe_error_message is null or char_length(safe_error_message) between 1 and 240),
   created_at timestamptz not null default now(),
@@ -125,7 +173,7 @@ as $$
 $$;
 
 revoke all on function private.admin_user_operation_record(public.admin_user_operations) from public, anon, authenticated;
-grant execute on function private.admin_user_operation_record(public.admin_user_operations) to service_role;
+revoke all on function private.admin_user_operation_record(public.admin_user_operations) from service_role;
 
 create or replace function private.claim_admin_user_operation_impl(
   p_operation_id uuid,
@@ -360,6 +408,7 @@ create or replace function public.claim_admin_user_operation(
 )
 returns jsonb
 language plpgsql
+security definer
 set search_path = pg_catalog, public, private, extensions
 as $$
 begin
@@ -489,6 +538,7 @@ create or replace function public.renew_admin_user_operation_lease(
 )
 returns jsonb
 language plpgsql
+security definer
 set search_path = pg_catalog, public, private, extensions
 as $$
 begin
@@ -521,7 +571,10 @@ declare
   v_target_email_normalized text;
 begin
   if p_stage not in ('provider_intent', 'provider_outcome')
-    or (p_safe_result is not null and p_safe_result ? 'temporaryPassword')
+    or (
+      p_safe_result is not null
+      and not private.admin_user_safe_json(p_safe_result)
+    )
   then
     raise exception using errcode = 'P0001', message = 'operation_conflict';
   end if;
@@ -562,6 +615,21 @@ begin
     raise exception using errcode = 'P0001', message = 'operation_conflict';
   end if;
 
+  if p_target_user_id is not null then
+    if v_operation.target_user_id is not null
+      and v_operation.target_user_id <> p_target_user_id
+    then
+      raise exception using errcode = 'P0001', message = 'operation_conflict';
+    elsif v_operation.target_user_id is null
+      and (
+        v_operation.action <> 'create_user'
+        or p_stage <> 'provider_outcome'
+      )
+    then
+      raise exception using errcode = 'P0001', message = 'operation_conflict';
+    end if;
+  end if;
+
   if v_target_email_normalized is not null then
     perform 1
     from public.admin_user_mutation_locks
@@ -580,7 +648,13 @@ begin
   update public.admin_user_operations
   set status = p_stage,
       stage = p_stage,
-      target_user_id = coalesce(p_target_user_id, target_user_id),
+      target_user_id = case
+        when target_user_id is null
+          and action = 'create_user'
+          and p_stage = 'provider_outcome'
+        then p_target_user_id
+        else target_user_id
+      end,
       safe_result = case when p_stage = 'provider_outcome' then p_safe_result else safe_result end,
       provider_intent_at = case when p_stage = 'provider_intent' then v_now else provider_intent_at end,
       provider_outcome_at = case when p_stage = 'provider_outcome' then v_now else provider_outcome_at end,
@@ -602,6 +676,7 @@ create or replace function public.commit_admin_user_operation_stage(
 )
 returns jsonb
 language plpgsql
+security definer
 set search_path = pg_catalog, public, private, extensions
 as $$
 begin
@@ -632,7 +707,9 @@ declare
   v_now timestamptz := clock_timestamp();
   v_target_email_normalized text;
 begin
-  if p_safe_result is not null and p_safe_result ? 'temporaryPassword' then
+  if p_safe_result is not null
+    and not private.admin_user_safe_json(p_safe_result)
+  then
     raise exception using errcode = 'P0001', message = 'operation_conflict';
   end if;
 
@@ -716,6 +793,7 @@ create or replace function public.complete_admin_user_operation(
 )
 returns jsonb
 language plpgsql
+security definer
 set search_path = pg_catalog, public, private, extensions
 as $$
 begin
@@ -832,6 +910,7 @@ create or replace function public.quarantine_admin_user_operation(
 )
 returns jsonb
 language plpgsql
+security definer
 set search_path = pg_catalog, public, private, extensions
 as $$
 begin
@@ -893,6 +972,7 @@ create or replace function public.claim_forced_password_change(
 )
 returns jsonb
 language plpgsql
+security definer
 set search_path = pg_catalog, public, private, extensions
 as $$
 begin
@@ -925,8 +1005,12 @@ declare
   v_now timestamptz := clock_timestamp();
   v_target_email_normalized text;
 begin
-  if p_stage !~ '^[a-z0-9_]{1,64}$'
-    or (p_safe_result is not null and p_safe_result ? 'temporaryPassword')
+  if p_stage in ('provider_intent', 'provider_outcome')
+    or p_stage !~ '^[a-z0-9_]{1,64}$'
+    or (
+      p_safe_result is not null
+      and not private.admin_user_safe_json(p_safe_result)
+    )
   then
     raise exception using errcode = 'P0001', message = 'operation_conflict';
   end if;
@@ -1027,6 +1111,7 @@ create or replace function public.advance_forced_password_change(
 )
 returns jsonb
 language plpgsql
+security definer
 set search_path = pg_catalog, public, private, extensions
 as $$
 begin
@@ -1056,15 +1141,15 @@ revoke all on function public.quarantine_admin_user_operation(uuid, integer, tex
 revoke all on function public.claim_forced_password_change(uuid, uuid, uuid, text, text, text, integer) from public, anon, authenticated;
 revoke all on function public.advance_forced_password_change(uuid, integer, text, text, jsonb) from public, anon, authenticated;
 
-grant usage on schema private to service_role;
+revoke usage on schema private from service_role;
 
-grant execute on function private.claim_admin_user_operation_impl(uuid, text, uuid, text, uuid, text, text, text, integer) to service_role;
-grant execute on function private.renew_admin_user_operation_lease_impl(uuid, integer, text, text, integer) to service_role;
-grant execute on function private.commit_admin_user_operation_stage_impl(uuid, integer, text, text, uuid, jsonb) to service_role;
-grant execute on function private.complete_admin_user_operation_impl(uuid, integer, text, jsonb) to service_role;
-grant execute on function private.quarantine_admin_user_operation_impl(uuid, integer, text, text) to service_role;
-grant execute on function private.claim_forced_password_change_impl(uuid, uuid, uuid, text, text, text, integer) to service_role;
-grant execute on function private.advance_forced_password_change_impl(uuid, integer, text, text, jsonb) to service_role;
+revoke all on function private.claim_admin_user_operation_impl(uuid, text, uuid, text, uuid, text, text, text, integer) from service_role;
+revoke all on function private.renew_admin_user_operation_lease_impl(uuid, integer, text, text, integer) from service_role;
+revoke all on function private.commit_admin_user_operation_stage_impl(uuid, integer, text, text, uuid, jsonb) from service_role;
+revoke all on function private.complete_admin_user_operation_impl(uuid, integer, text, jsonb) from service_role;
+revoke all on function private.quarantine_admin_user_operation_impl(uuid, integer, text, text) from service_role;
+revoke all on function private.claim_forced_password_change_impl(uuid, uuid, uuid, text, text, text, integer) from service_role;
+revoke all on function private.advance_forced_password_change_impl(uuid, integer, text, text, jsonb) from service_role;
 
 grant execute on function public.claim_admin_user_operation(uuid, text, uuid, text, uuid, text, text, text, integer) to service_role;
 grant execute on function public.renew_admin_user_operation_lease(uuid, integer, text, text, integer) to service_role;

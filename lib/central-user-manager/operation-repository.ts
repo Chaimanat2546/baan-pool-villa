@@ -90,6 +90,17 @@ const MAPPED_DATABASE_ERRORS = new Set<SafeAgentErrorCode>([
   "provider_ambiguous",
   "lease_lost",
 ]);
+const FORBIDDEN_RESULT_KEY_PARTS = [
+  "password",
+  "token",
+  "secret",
+  "authorization",
+  "hash",
+  "rawerror",
+  "stack",
+  "details",
+  "hint",
+] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -102,11 +113,44 @@ function isNullableString(value: unknown): value is string | null {
 function isSafeResult(
   value: unknown,
 ): value is Record<string, unknown> | null {
-  return (
-    value === null ||
-    (isRecord(value) &&
-      !Object.prototype.hasOwnProperty.call(value, "temporaryPassword"))
-  );
+  if (value === null) {
+    return true;
+  }
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const pending: unknown[] = [value];
+  const seen = new WeakSet<object>();
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (typeof current !== "object" || current === null) {
+      continue;
+    }
+    if (seen.has(current)) {
+      return false;
+    }
+    seen.add(current);
+
+    if (Array.isArray(current)) {
+      pending.push(...current);
+      continue;
+    }
+
+    for (const [key, child] of Object.entries(current)) {
+      const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (
+        FORBIDDEN_RESULT_KEY_PARTS.some((part) =>
+          normalizedKey.includes(part),
+        )
+      ) {
+        return false;
+      }
+      pending.push(child);
+    }
+  }
+
+  return true;
 }
 
 function failure<T>(code: SafeAgentErrorCode): RepositoryResult<T> {

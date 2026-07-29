@@ -20,6 +20,9 @@ const REQUEST_HASH = "a".repeat(64);
 const RAW_TOKEN = "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA";
 const RAW_TOKEN_HASH =
   "eb9f16800c9029ffca85695763d23c3ace71011cf40e9354acd810205e250f87";
+const NEXT_RAW_TOKEN = "ISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-P0A";
+const NEXT_RAW_TOKEN_HASH =
+  "22852e30bbb85708e400ba2942aa82704c519e006a7ccfe9f6547b8d136fd624";
 
 const baseRpcOperation = {
   operation_id: OPERATION_ID,
@@ -39,11 +42,16 @@ const baseRpcOperation = {
   safe_error_message: null,
 } as const;
 
-function deterministicCrypto(): Pick<Crypto, "getRandomValues" | "subtle"> {
+function deterministicCrypto(
+  starts: readonly number[] = [1],
+): Pick<Crypto, "getRandomValues" | "subtle"> {
+  let callIndex = 0;
   return {
     getRandomValues<T extends ArrayBufferView | null>(array: T): T {
       if (array instanceof Uint8Array) {
-        array.set(Array.from({ length: 32 }, (_, index) => index + 1));
+        const start = starts[Math.min(callIndex, starts.length - 1)];
+        array.set(Array.from({ length: 32 }, (_, index) => index + start));
+        callIndex += 1;
       }
       return array;
     },
@@ -229,6 +237,22 @@ describe("Central User Manager operation repository", () => {
   it("renews by proving the current token and rotating to a fresh token hash", async () => {
     const { client, rpc } = fakeClient({
       data: {
+        operation: baseRpcOperation,
+        disposition: "first_claim",
+        lease_token_accepted: true,
+      },
+      error: null,
+    });
+    rpc.mockResolvedValueOnce({
+      data: {
+        operation: baseRpcOperation,
+        disposition: "first_claim",
+        lease_token_accepted: true,
+      },
+      error: null,
+    });
+    rpc.mockResolvedValueOnce({
+      data: {
         operation: {
           ...baseRpcOperation,
           lease_expires_at: "2026-07-29T01:01:00.000Z",
@@ -239,24 +263,45 @@ describe("Central User Manager operation repository", () => {
       error: null,
     });
 
+    const crypto = deterministicCrypto([1, 33]);
+    const claimed = await claimAdminUserOperation(
+      {
+        operationId: OPERATION_ID,
+        actorKind: "central_admin",
+        actorUid: ACTOR_UID,
+        action: "create_user",
+        targetUserId: TARGET_USER_ID,
+        targetEmailNormalized: "admin@example.com",
+        requestHash: REQUEST_HASH,
+      },
+      { client, crypto },
+    );
+    if (!claimed.ok) {
+      throw new Error("Expected deterministic first claim.");
+    }
+
     const result = await renewAdminUserOperationLease(
       {
         operationId: OPERATION_ID,
         fenceVersion: 1,
-        leaseToken: RAW_TOKEN,
+        leaseToken: claimed.data.leaseToken as string,
       },
-      { client, crypto: deterministicCrypto() },
+      { client, crypto },
     );
 
     expect(result).toMatchObject({
       ok: true,
-      data: { leaseToken: RAW_TOKEN },
+      data: { leaseToken: NEXT_RAW_TOKEN },
     });
-    expect(rpc).toHaveBeenCalledWith("renew_admin_user_operation_lease", {
+    expect(claimed.data.leaseToken).toBe(RAW_TOKEN);
+    expect(result.ok && result.data.leaseToken).not.toBe(
+      claimed.data.leaseToken,
+    );
+    expect(rpc).toHaveBeenNthCalledWith(2, "renew_admin_user_operation_lease", {
       p_operation_id: OPERATION_ID,
       p_fence_version: 1,
       p_current_lease_token_hash: RAW_TOKEN_HASH,
-      p_new_lease_token_hash: RAW_TOKEN_HASH,
+      p_new_lease_token_hash: NEXT_RAW_TOKEN_HASH,
       p_lease_seconds: 30,
     });
   });
@@ -326,6 +371,100 @@ describe("Central User Manager operation repository", () => {
       p_stage: "provider_intent",
       p_target_user_id: TARGET_USER_ID,
       p_safe_result: null,
+    });
+  });
+
+  it.each([
+    { audit: { temporary_password: "never" } },
+    { audit: [{ Authorization: "Bearer never" }] },
+    { result: { providerDetails: "never" } },
+    { diagnostics: [{ raw_error: "never" }, { stackTrace: "never" }] },
+    { nested: { accessTokenHash: "never" } },
+  ])("rejects nested sensitive result keys before RPC", async (safeResult) => {
+    const { client, rpc } = fakeClient({
+      data: null,
+      error: null,
+    });
+
+    const result = await completeAdminUserOperation(
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        leaseToken: RAW_TOKEN,
+        safeResult,
+      },
+      { client },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "operation_conflict",
+        message: "Operation conflicts with an existing request.",
+      },
+    });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects nested sensitive result keys returned by SQL", async () => {
+    const { client } = fakeClient({
+      data: {
+        ...baseRpcOperation,
+        safe_result: { audit: [{ client_secret: "never" }] },
+      },
+      error: null,
+    });
+
+    const result = await completeAdminUserOperation(
+      { operationId: OPERATION_ID },
+      { client },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "database_unavailable",
+        message: "The operation database is unavailable.",
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain("never");
+  });
+
+  it("keeps nested non-sensitive action results", async () => {
+    const safeResult = {
+      user: {
+        userId: TARGET_USER_ID,
+        credentialVersion: 2,
+      },
+      events: [{ type: "completed" }],
+    };
+    const { client, rpc } = fakeClient({
+      data: {
+        ...baseRpcOperation,
+        status: "completed",
+        stage: "completed",
+        lease_expires_at: null,
+        safe_result: safeResult,
+      },
+      error: null,
+    });
+
+    const result = await completeAdminUserOperation(
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        leaseToken: RAW_TOKEN,
+        safeResult,
+      },
+      { client },
+    );
+
+    expect(result).toMatchObject({ ok: true, data: { safeResult } });
+    expect(rpc).toHaveBeenCalledWith("complete_admin_user_operation", {
+      p_operation_id: OPERATION_ID,
+      p_fence_version: 1,
+      p_lease_token_hash: RAW_TOKEN_HASH,
+      p_safe_result: safeResult,
     });
   });
 

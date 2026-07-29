@@ -21,6 +21,7 @@ function expectSql(pattern: RegExp) {
 
 describe("Central User Manager prepare migration contract", () => {
   it("preflights and normalizes admin email before adding credential fences", () => {
+    expectSql(/where email is null or btrim\(email\) = ''/);
     expectSql(/do \$\$.+admin_users.+raise exception.+invalid.+raise exception.+duplicate/);
     expectSql(/update public\.admin_users set email = lower\(btrim\(email\)\)/);
     expectSql(/must_change_password boolean not null default false/);
@@ -47,9 +48,7 @@ describe("Central User Manager prepare migration contract", () => {
     expectSql(/attempt_count integer not null.+check \(attempt_count >= 0\)/);
     expectSql(/request_hash text not null.+\^\[0-9a-f\]\{64\}\$/);
     expectSql(/lease_token_hash text.+\^\[0-9a-f\]\{64\}\$/);
-    expectSql(
-      /safe_result jsonb.+not \(safe_result \? 'temporarypassword'\)/,
-    );
+    expectSql(/safe_result jsonb.+private\.admin_user_safe_json\(safe_result\)/);
     expectSql(
       /\(action = 'list_users' and target_email_normalized is null\) or \(\s*action <> 'list_users' and target_email_normalized is not null and target_email_normalized = lower\(btrim\(target_email_normalized\)\)/,
     );
@@ -112,7 +111,7 @@ describe("Central User Manager prepare migration contract", () => {
       );
       expectSql(
         new RegExp(
-          `create (?:or replace )?function public\\.${functionName}\\([^;]+return private\\.${functionName}_impl\\(`,
+          `create (?:or replace )?function public\\.${functionName}\\([^;]+security definer set search_path = pg_catalog, public, private, extensions[^;]+return private\\.${functionName}_impl\\(`,
         ),
       );
       expectSql(
@@ -123,6 +122,89 @@ describe("Central User Manager prepare migration contract", () => {
       expectSql(
         new RegExp(
           `grant execute on function public\\.${functionName}\\([^)]*\\) to service_role`,
+        ),
+      );
+    }
+  });
+
+  it("recursively rejects normalized sensitive result keys", () => {
+    expectSql(
+      /create or replace function private\.admin_user_safe_json\(p_value jsonb\)/,
+    );
+    expectSql(/jsonb_each\(p_value\)/);
+    expectSql(/jsonb_array_elements\(p_value\)/);
+    expectSql(/regexp_replace\(lower\(v_key\), '\[\^a-z0-9\]', '', 'g'\)/);
+    expectSql(
+      /password\|token\|secret\|authorization\|hash\|rawerror\|stack\|details\|hint/,
+    );
+    expectSql(
+      /p_safe_result is not null and not private\.admin_user_safe_json\(p_safe_result\)/,
+    );
+  });
+
+  it("sets a provider target once only for create-user provider outcome", () => {
+    expectSql(
+      /if p_target_user_id is not null then if v_operation\.target_user_id is not null and v_operation\.target_user_id <> p_target_user_id then raise exception.+operation_conflict/,
+    );
+    expectSql(
+      /elsif v_operation\.target_user_id is null and \(\s*v_operation\.action <> 'create_user' or p_stage <> 'provider_outcome'\s*\) then raise exception.+operation_conflict/,
+    );
+    expectSql(
+      /target_user_id = case when target_user_id is null and action = 'create_user' and p_stage = 'provider_outcome' then p_target_user_id else target_user_id end/,
+    );
+    expect(normalizedSql).not.toContain(
+      "target_user_id = coalesce(p_target_user_id, target_user_id)",
+    );
+  });
+
+  it("quarantines provider ambiguity permanently and gives generic stage commit sole provider-transition ownership", () => {
+    expectSql(
+      /v_operation\.status in \('provider_intent', 'provider_outcome', 'needs_review', 'quarantined'\).+set state = 'quarantined'.+quarantine_code = 'provider_ambiguous'/,
+    );
+    expectSql(
+      /if p_stage in \('provider_intent', 'provider_outcome'\).+raise exception.+operation_conflict/,
+    );
+    expectSql(
+      /commit_admin_user_operation_stage_impl.+set status = p_stage,.+provider_intent_at = case when p_stage = 'provider_intent'.+provider_outcome_at = case when p_stage = 'provider_outcome'/,
+    );
+  });
+
+  it("exposes exact security-definer wrappers without private service-role access", () => {
+    const signatures = {
+      claim_admin_user_operation:
+        "uuid, text, uuid, text, uuid, text, text, text, integer",
+      renew_admin_user_operation_lease: "uuid, integer, text, text, integer",
+      commit_admin_user_operation_stage:
+        "uuid, integer, text, text, uuid, jsonb",
+      complete_admin_user_operation: "uuid, integer, text, jsonb",
+      quarantine_admin_user_operation: "uuid, integer, text, text",
+      claim_forced_password_change:
+        "uuid, uuid, uuid, text, text, text, integer",
+      advance_forced_password_change: "uuid, integer, text, text, jsonb",
+    } as const;
+
+    expectSql(/revoke usage on schema private from service_role/);
+    expect(normalizedSql).not.toContain(
+      "grant usage on schema private to service_role",
+    );
+
+    for (const [name, signature] of Object.entries(signatures)) {
+      expectSql(
+        new RegExp(
+          `revoke all on function private\\.${name}_impl\\(${signature}\\) from service_role`,
+        ),
+      );
+      expect(normalizedSql).not.toContain(
+        `grant execute on function private.${name}_impl(${signature}) to service_role`,
+      );
+      expectSql(
+        new RegExp(
+          `revoke all on function public\\.${name}\\(${signature}\\) from public, anon, authenticated`,
+        ),
+      );
+      expectSql(
+        new RegExp(
+          `grant execute on function public\\.${name}\\(${signature}\\) to service_role`,
         ),
       );
     }
