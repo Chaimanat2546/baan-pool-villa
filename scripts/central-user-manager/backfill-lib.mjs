@@ -437,13 +437,13 @@ export async function enumerateProfiles(
   }
 
   const profiles = [];
-  for (let page = 0; page < maxPages; page += 1) {
-    const from = page * pageSize;
+
+  async function readRange(from, to) {
     const response = await client
       .from("admin_users")
       .select(PROFILE_PROJECTION)
       .order("user_id", { ascending: true })
-      .range(from, from + pageSize - 1);
+      .range(from, to);
 
     if (
       !isRecord(response) ||
@@ -453,26 +453,27 @@ export async function enumerateProfiles(
       throw new Error("Admin profile enumeration failed.");
     }
 
-    profiles.push(...response.data);
-    if (response.data.length < pageSize) {
-      return profiles;
+    return response.data;
+  }
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const from = page * pageSize;
+    const rows = await readRange(from, from + pageSize - 1);
+
+    profiles.push(...rows);
+    if (rows.length < pageSize) {
+      const nextOffset = from + rows.length;
+      const sentinelRows = await readRange(nextOffset, nextOffset);
+      if (sentinelRows.length === 0) {
+        return profiles;
+      }
+      throw new Error("Admin profile pagination incomplete.");
     }
   }
 
   const maximumRows = pageSize * maxPages;
-  const sentinel = await client
-    .from("admin_users")
-    .select(PROFILE_PROJECTION)
-    .order("user_id", { ascending: true })
-    .range(maximumRows, maximumRows);
-  if (
-    !isRecord(sentinel) ||
-    sentinel.error !== null ||
-    !Array.isArray(sentinel.data)
-  ) {
-    throw new Error("Admin profile enumeration failed.");
-  }
-  if (sentinel.data.length > 0) {
+  const sentinelRows = await readRange(maximumRows, maximumRows);
+  if (sentinelRows.length > 0) {
     throw new Error("Admin profile pagination limit exceeded.");
   }
 

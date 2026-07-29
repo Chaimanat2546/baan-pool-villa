@@ -487,6 +487,39 @@ describe("Central User Manager backfill CLI contract", () => {
       expect(output).not.toContain(forbidden);
     }
   });
+
+  it("emits a stable redacted report for an incomplete short profile page", async () => {
+    const fixture = createClientFixture({
+      profilePages: [
+        [profile(USER_A)],
+        [profile(USER_B, "hidden@example.com")],
+      ],
+    });
+    const write = vi.fn();
+
+    await expect(
+      runBackfillCli({
+        argv: [],
+        env: {
+          NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL: SUPABASE_URL,
+          SUPABASE_SECRET_KEY: "sb_secret_example",
+        },
+        createClient: () => fixture.client,
+        write,
+        clock: () => new Date("2026-07-30T01:02:03.000Z"),
+      }),
+    ).resolves.toBe(1);
+
+    const output = write.mock.calls[0][0] as string;
+    expect(JSON.parse(output)).toMatchObject({
+      projectRef: PROJECT_REF,
+      mode: "dry-run",
+      categories: { execution_failed: 1 },
+    });
+    expect(output).not.toContain("hidden@example.com");
+    expect(output).not.toContain(USER_B);
+    expect(fixture.updateUserById).not.toHaveBeenCalled();
+  });
 });
 
 describe("Central User Manager backfill execution", () => {
@@ -510,6 +543,47 @@ describe("Central User Manager backfill execution", () => {
     expect(fixture.order).toHaveBeenCalledTimes(3);
   });
 
+  it("proves an empty first page with a sentinel at the same offset", async () => {
+    const fixture = createClientFixture({ profiles: [] });
+
+    await expect(enumerateProfiles(fixture.client)).resolves.toEqual([]);
+    expect(fixture.range.mock.calls).toEqual([
+      [0, 499],
+      [0, 0],
+    ]);
+  });
+
+  it("proves a normal short final page with a sentinel at the exact next offset", async () => {
+    const fixture = createClientFixture({
+      profilePages: [[profile(USER_A)], []],
+    });
+
+    await expect(
+      enumerateProfiles(fixture.client, { pageSize: 2 }),
+    ).resolves.toHaveLength(1);
+    expect(fixture.range.mock.calls).toEqual([
+      [0, 1],
+      [1, 1],
+    ]);
+  });
+
+  it("fails closed when a server-capped short page hides the next profile", async () => {
+    const fixture = createClientFixture({
+      profilePages: [
+        [profile(USER_A)],
+        [profile(USER_B, "second@example.com")],
+      ],
+    });
+
+    await expect(
+      enumerateProfiles(fixture.client, { pageSize: 3 }),
+    ).rejects.toThrow("Admin profile pagination incomplete.");
+    expect(fixture.range.mock.calls).toEqual([
+      [0, 2],
+      [1, 1],
+    ]);
+  });
+
   it("fails closed when profile pagination exceeds the hard row cap", async () => {
     const fixture = createClientFixture({
       profilePages: [
@@ -529,6 +603,20 @@ describe("Central User Manager backfill execution", () => {
       data: [],
       error: new Error("raw profile error"),
     });
+
+    await expect(enumerateProfiles(fixture.client)).rejects.toThrow(
+      "Admin profile enumeration failed.",
+    );
+  });
+
+  it("fails closed when the short-page sentinel query returns an error", async () => {
+    const fixture = createClientFixture();
+    fixture.range
+      .mockResolvedValueOnce({ data: [profile()], error: null })
+      .mockResolvedValueOnce({
+        data: [],
+        error: new Error("raw sentinel error"),
+      });
 
     await expect(enumerateProfiles(fixture.client)).rejects.toThrow(
       "Admin profile enumeration failed.",
@@ -558,6 +646,65 @@ describe("Central User Manager backfill execution", () => {
     expect(outcome.ok).toBe(false);
     expect(outcome.report.categories.profile_only).toBe(1);
     expect(fixture.updateUserById).not.toHaveBeenCalled();
+  });
+
+  it("blocks writes when a server-capped first profile page has a hidden row", async () => {
+    const fixture = createClientFixture({
+      profilePages: [
+        [profile(USER_A)],
+        [profile(USER_B, "second@example.com")],
+      ],
+      authPages: [[authUser(USER_A)], []],
+    });
+
+    await expect(
+      runAdminAuthMetadataBackfill({
+        client: fixture.client,
+        mode: "apply",
+        projectRef: PROJECT_REF,
+        supabaseUrl: SUPABASE_URL,
+        profilePageSize: 3,
+        clock: () => new Date("2026-07-30T01:02:03.000Z"),
+      }),
+    ).rejects.toThrow("Admin profile pagination incomplete.");
+    expect(fixture.updateUserById).not.toHaveBeenCalled();
+  });
+
+  it("fails post-apply verification when its short-page sentinel finds a hidden row", async () => {
+    const fixture = createClientFixture();
+    fixture.range
+      .mockResolvedValueOnce({ data: [profile()], error: null })
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({ data: [profile()], error: null })
+      .mockResolvedValueOnce({
+        data: [profile(USER_B, "second@example.com")],
+        error: null,
+      });
+    const exactAuth = authUser(USER_A, "admin@example.com", {
+      credential_version: 1,
+      bpv_admin_managed: true,
+    });
+    fixture.listUsers
+      .mockResolvedValueOnce({
+        data: { users: [authUser()] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { users: [exactAuth] },
+        error: null,
+      });
+
+    const outcome = await runAdminAuthMetadataBackfill({
+      client: fixture.client,
+      mode: "apply",
+      projectRef: PROJECT_REF,
+      supabaseUrl: SUPABASE_URL,
+      clock: () => new Date("2026-07-30T01:02:03.000Z"),
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.report.counts.updated).toBe(1);
+    expect(outcome.report.categories.verification_failed).toBe(1);
   });
 
   it("enumerates Auth users with explicit bounded pagination", async () => {
@@ -676,7 +823,7 @@ describe("Central User Manager backfill execution", () => {
       },
     });
     expect(fixture.listUsers).toHaveBeenCalledTimes(4);
-    expect(fixture.select).toHaveBeenCalledTimes(2);
+    expect(fixture.select).toHaveBeenCalledTimes(4);
     expect(outcome.report.counts).toMatchObject({ updated: 1, verified: 1 });
   });
 
@@ -758,10 +905,12 @@ describe("Central User Manager backfill execution", () => {
     }));
     fixture.range
       .mockResolvedValueOnce({ data: [profile()], error: null })
+      .mockResolvedValueOnce({ data: [], error: null })
       .mockResolvedValueOnce({
         data: [{ ...profile(), credential_version: 2 }],
         error: null,
-      });
+      })
+      .mockResolvedValueOnce({ data: [], error: null });
 
     const outcome = await runAdminAuthMetadataBackfill({
       client: fixture.client,
