@@ -136,4 +136,52 @@ describe("AdminForcedPasswordChangeForm", () => {
     expect(mocks.replace).not.toHaveBeenCalled();
     await page.unmount();
   });
+
+  it("uses a new operation UUID after a definitive wrong-password response", async () => {
+    vi.stubGlobal("crypto", {
+      randomUUID: vi
+        .fn()
+        .mockReturnValueOnce(OPERATION_ID)
+        .mockReturnValueOnce("44444444-4444-4444-8444-444444444444"),
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeJsonResponse({
+          body: {
+            ok: false,
+            code: "temporary_password_invalid",
+            clearSession: false,
+          },
+          status: 401,
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeJsonResponse({
+          body: { ok: true, code: "password_changed", clearSession: true },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await mountAdminPage(<AdminForcedPasswordChangeForm />);
+    const inputs = page.container.querySelectorAll("input");
+    await changeInput(inputs[0] as HTMLInputElement, "WrongPass1!");
+    await changeInput(inputs[1] as HTMLInputElement, "NewPass2@");
+    await changeInput(inputs[2] as HTMLInputElement, "NewPass2@");
+    const submit = page.container.querySelector(
+      "button[type='submit']",
+    ) as HTMLButtonElement;
+
+    await click(submit);
+    await changeInput(inputs[0] as HTMLInputElement, "TempPass1!");
+    await click(submit);
+
+    const bodies = fetchMock.mock.calls.map(([, init]) =>
+      JSON.parse(String((init as RequestInit).body)),
+    );
+    expect(bodies.map((body) => body.operationId)).toEqual([
+      OPERATION_ID,
+      "44444444-4444-4444-8444-444444444444",
+    ]);
+    await page.unmount();
+  });
 });

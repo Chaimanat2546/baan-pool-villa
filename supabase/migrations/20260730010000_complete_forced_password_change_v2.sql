@@ -124,7 +124,11 @@ begin
     or p_user_id is null
     or p_email_normalized is null
     or p_email_normalized is distinct from lower(btrim(p_email_normalized))
-    or p_stage is distinct from 'temporary_password_rejected'
+    or p_stage not in (
+      'temporary_password_rejected',
+      'provider_unavailable',
+      'provider_timeout'
+    )
   then
     raise exception using errcode = 'P0001', message = 'operation_conflict';
   end if;
@@ -172,7 +176,7 @@ begin
   update public.admin_user_operations
   set status = 'completed',
       stage = p_stage,
-      safe_result = jsonb_build_object('outcome', 'rejected'),
+      safe_result = jsonb_build_object('outcome', p_stage),
       lease_token_hash = null,
       lease_expires_at = null,
       completed_at = v_now,
@@ -295,6 +299,223 @@ begin
 end;
 $$;
 
+create or replace function private.advance_forced_password_profile_v2_impl(
+  p_operation_id uuid,
+  p_fence_version integer,
+  p_lease_token_hash text,
+  p_user_id uuid,
+  p_email_normalized text,
+  p_expected_credential_version integer,
+  p_next_credential_version integer,
+  p_expected_stage text,
+  p_next_stage text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private, extensions
+as $$
+declare
+  v_operation public.admin_user_operations%rowtype;
+  v_profile public.admin_users%rowtype;
+  v_now timestamptz := clock_timestamp();
+begin
+  if p_operation_id is null
+    or p_fence_version is null
+    or p_fence_version <= 0
+    or p_lease_token_hash is null
+    or p_lease_token_hash !~ '^[0-9a-f]{64}$'
+    or p_user_id is null
+    or p_email_normalized is null
+    or p_email_normalized is distinct from lower(btrim(p_email_normalized))
+    or p_expected_credential_version is null
+    or p_expected_credential_version <= 0
+    or p_next_credential_version is distinct from
+      p_expected_credential_version + 1
+    or not (
+      (p_expected_stage = 'claimed' and p_next_stage = 'profile_n1')
+      or
+      (p_expected_stage = 'auth_n1_aligned' and p_next_stage = 'profile_n2')
+    )
+  then
+    raise exception using errcode = 'P0001', message = 'operation_conflict';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(p_email_normalized, 0));
+  select * into v_operation
+  from public.admin_user_operations
+  where operation_id = p_operation_id
+  for update;
+
+  if not found
+    or v_operation.actor_kind is distinct from 'target_admin'
+    or v_operation.actor_uid is distinct from p_user_id
+    or v_operation.action is distinct from 'complete_password_change'
+    or v_operation.target_user_id is distinct from p_user_id
+    or v_operation.target_email_normalized is distinct from p_email_normalized
+    or v_operation.status is distinct from 'leased'
+    or v_operation.stage is distinct from p_expected_stage
+    or v_operation.fence_version is distinct from p_fence_version
+    or v_operation.lease_token_hash is distinct from p_lease_token_hash
+    or v_operation.lease_expires_at <= v_now
+  then
+    raise exception using errcode = 'P0001', message = 'lease_lost';
+  end if;
+
+  perform 1 from public.admin_user_mutation_locks
+  where target_email_normalized = p_email_normalized
+    and operation_id = p_operation_id
+    and owner_kind = 'password_change'
+    and state = 'leased'
+    and fence_version = p_fence_version
+    and lease_token_hash = p_lease_token_hash
+    and lease_expires_at > v_now
+  for update;
+  if not found then
+    raise exception using errcode = 'P0001', message = 'lease_lost';
+  end if;
+
+  update public.admin_users
+  set credential_version = p_next_credential_version
+  where user_id = p_user_id
+    and email = p_email_normalized
+    and is_active = true
+    and must_change_password = true
+    and credential_version = p_expected_credential_version
+  returning * into v_profile;
+  if not found then
+    raise exception using errcode = 'P0001', message = 'profile_state_conflict';
+  end if;
+
+  update public.admin_user_operations
+  set stage = p_next_stage,
+      safe_result = jsonb_build_object(
+        'outcome', p_next_stage,
+        'credentialVersion', p_next_credential_version
+      ),
+      updated_at = v_now
+  where operation_id = p_operation_id;
+
+  return to_jsonb(v_profile);
+end;
+$$;
+
+create or replace function private.record_forced_password_late_fence_v2_impl(
+  p_operation_id uuid,
+  p_fence_version integer,
+  p_lease_token_hash text,
+  p_user_id uuid,
+  p_email_normalized text,
+  p_reason text,
+  p_expected_credential_version integer,
+  p_observed_credential_version integer
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private, extensions
+as $$
+declare
+  v_operation public.admin_user_operations%rowtype;
+  v_now timestamptz := clock_timestamp();
+  v_message text;
+begin
+  if p_operation_id is null
+    or p_fence_version is null
+    or p_fence_version <= 0
+    or p_lease_token_hash is null
+    or p_lease_token_hash !~ '^[0-9a-f]{64}$'
+    or p_user_id is null
+    or p_email_normalized is null
+    or p_email_normalized is distinct from lower(btrim(p_email_normalized))
+    or p_reason not in (
+      'identity_mismatch',
+      'profile_state_conflict',
+      'credential_version_mismatch'
+    )
+    or p_expected_credential_version is null
+    or p_expected_credential_version <= 0
+    or (
+      p_observed_credential_version is not null
+      and p_observed_credential_version <= 0
+    )
+  then
+    raise exception using errcode = 'P0001', message = 'operation_conflict';
+  end if;
+
+  v_message := case p_reason
+    when 'identity_mismatch' then 'The target identity changed after claim.'
+    when 'credential_version_mismatch' then
+      'The credential version changed after claim.'
+    else 'The target profile state changed after claim.'
+  end;
+
+  perform pg_advisory_xact_lock(hashtextextended(p_email_normalized, 0));
+  select * into v_operation
+  from public.admin_user_operations
+  where operation_id = p_operation_id
+  for update;
+
+  if not found
+    or v_operation.actor_kind is distinct from 'target_admin'
+    or v_operation.actor_uid is distinct from p_user_id
+    or v_operation.action is distinct from 'complete_password_change'
+    or v_operation.target_user_id is distinct from p_user_id
+    or v_operation.target_email_normalized is distinct from p_email_normalized
+    or v_operation.status is distinct from 'leased'
+    or v_operation.stage is distinct from 'claimed'
+    or v_operation.fence_version is distinct from p_fence_version
+    or v_operation.lease_token_hash is distinct from p_lease_token_hash
+    or v_operation.lease_expires_at <= v_now
+  then
+    raise exception using errcode = 'P0001', message = 'lease_lost';
+  end if;
+
+  perform 1 from public.admin_user_mutation_locks
+  where target_email_normalized = p_email_normalized
+    and operation_id = p_operation_id
+    and owner_kind = 'password_change'
+    and state = 'leased'
+    and fence_version = p_fence_version
+    and lease_token_hash = p_lease_token_hash
+    and lease_expires_at > v_now
+  for update;
+  if not found then
+    raise exception using errcode = 'P0001', message = 'lease_lost';
+  end if;
+
+  update public.admin_user_mutation_locks
+  set state = 'quarantined',
+      quarantine_code = p_reason,
+      quarantine_reason = v_message,
+      updated_at = v_now
+  where target_email_normalized = p_email_normalized
+    and operation_id = p_operation_id
+    and owner_kind = 'password_change'
+    and fence_version = p_fence_version
+    and lease_token_hash = p_lease_token_hash;
+
+  update public.admin_user_operations
+  set status = 'needs_review',
+      stage = 'late_fence',
+      safe_result = jsonb_build_object(
+        'outcome', 'late_fence',
+        'reason', p_reason,
+        'expectedCredentialVersion', p_expected_credential_version,
+        'observedCredentialVersion', p_observed_credential_version
+      ),
+      safe_error_code = p_reason,
+      safe_error_message = v_message,
+      lease_token_hash = null,
+      lease_expires_at = null,
+      updated_at = v_now
+  where operation_id = p_operation_id
+  returning * into strict v_operation;
+
+  return private.admin_user_operation_record(v_operation);
+end;
+$$;
+
 create or replace function public.complete_forced_password_change_v2(
   p_operation_id uuid, p_fence_version integer, p_lease_token_hash text,
   p_user_id uuid, p_email_normalized text, p_credential_version integer
@@ -349,17 +570,62 @@ begin
 end;
 $$;
 
+create or replace function public.advance_forced_password_profile_v2(
+  p_operation_id uuid, p_fence_version integer, p_lease_token_hash text,
+  p_user_id uuid, p_email_normalized text,
+  p_expected_credential_version integer, p_next_credential_version integer,
+  p_expected_stage text, p_next_stage text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private, extensions
+as $$
+begin
+  return private.advance_forced_password_profile_v2_impl(
+    p_operation_id, p_fence_version, p_lease_token_hash, p_user_id,
+    p_email_normalized, p_expected_credential_version,
+    p_next_credential_version, p_expected_stage, p_next_stage
+  );
+end;
+$$;
+
+create or replace function public.record_forced_password_late_fence_v2(
+  p_operation_id uuid, p_fence_version integer, p_lease_token_hash text,
+  p_user_id uuid, p_email_normalized text, p_reason text,
+  p_expected_credential_version integer, p_observed_credential_version integer
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private, extensions
+as $$
+begin
+  return private.record_forced_password_late_fence_v2_impl(
+    p_operation_id, p_fence_version, p_lease_token_hash, p_user_id,
+    p_email_normalized, p_reason, p_expected_credential_version,
+    p_observed_credential_version
+  );
+end;
+$$;
+
 revoke all on function private.complete_forced_password_change_v2_impl(uuid, integer, text, uuid, text, integer) from public, anon, authenticated, service_role;
 revoke all on function private.release_forced_password_change_v2_impl(uuid, integer, text, uuid, text, text) from public, anon, authenticated, service_role;
 revoke all on function private.rollback_forced_password_change_v2_impl(uuid, integer, text, uuid, text, integer, integer, text) from public, anon, authenticated, service_role;
+revoke all on function private.advance_forced_password_profile_v2_impl(uuid, integer, text, uuid, text, integer, integer, text, text) from public, anon, authenticated, service_role;
+revoke all on function private.record_forced_password_late_fence_v2_impl(uuid, integer, text, uuid, text, text, integer, integer) from public, anon, authenticated, service_role;
 
 revoke all on function public.complete_forced_password_change_v2(uuid, integer, text, uuid, text, integer) from public, anon, authenticated;
 revoke all on function public.release_forced_password_change_v2(uuid, integer, text, uuid, text, text) from public, anon, authenticated;
 revoke all on function public.rollback_forced_password_change_v2(uuid, integer, text, uuid, text, integer, integer, text) from public, anon, authenticated;
+revoke all on function public.advance_forced_password_profile_v2(uuid, integer, text, uuid, text, integer, integer, text, text) from public, anon, authenticated;
+revoke all on function public.record_forced_password_late_fence_v2(uuid, integer, text, uuid, text, text, integer, integer) from public, anon, authenticated;
 
 grant execute on function public.complete_forced_password_change_v2(uuid, integer, text, uuid, text, integer) to service_role;
 grant execute on function public.release_forced_password_change_v2(uuid, integer, text, uuid, text, text) to service_role;
 grant execute on function public.rollback_forced_password_change_v2(uuid, integer, text, uuid, text, integer, integer, text) to service_role;
+grant execute on function public.advance_forced_password_profile_v2(uuid, integer, text, uuid, text, integer, integer, text, text) to service_role;
+grant execute on function public.record_forced_password_late_fence_v2(uuid, integer, text, uuid, text, text, integer, integer) to service_role;
 
 create or replace function
   private.central_user_manager_forced_password_health_v1()
@@ -369,30 +635,81 @@ stable
 security definer
 set search_path = ''
 as $function$
-  with required_routines(procedure_identity, argument_names) as (
+  with required_routines(
+    procedure_identity,
+    argument_names,
+    expected_search_path,
+    owner_name,
+    runtime_execute
+  ) as (
     values
       (
         'public.complete_forced_password_change_v2(uuid,integer,text,uuid,text,integer)'::text,
-        array[
-          'p_operation_id', 'p_fence_version', 'p_lease_token_hash',
-          'p_user_id', 'p_email_normalized', 'p_credential_version'
-        ]::text[]
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_credential_version']::text[],
+        'search_path=pg_catalog, public, private, extensions'::text,
+        'postgres'::text,
+        true
+      ),
+      (
+        'private.complete_forced_password_change_v2_impl(uuid,integer,text,uuid,text,integer)',
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_credential_version']::text[],
+        'search_path=pg_catalog, public, private, extensions', 'postgres', false
       ),
       (
         'public.release_forced_password_change_v2(uuid,integer,text,uuid,text,text)',
-        array[
-          'p_operation_id', 'p_fence_version', 'p_lease_token_hash',
-          'p_user_id', 'p_email_normalized', 'p_stage'
-        ]::text[]
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_stage']::text[],
+        'search_path=pg_catalog, public, private, extensions', 'postgres', true
+      ),
+      (
+        'private.release_forced_password_change_v2_impl(uuid,integer,text,uuid,text,text)',
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_stage']::text[],
+        'search_path=pg_catalog, public, private, extensions', 'postgres', false
       ),
       (
         'public.rollback_forced_password_change_v2(uuid,integer,text,uuid,text,integer,integer,text)',
-        array[
-          'p_operation_id', 'p_fence_version', 'p_lease_token_hash',
-          'p_user_id', 'p_email_normalized',
-          'p_expected_credential_version', 'p_next_credential_version',
-          'p_stage'
-        ]::text[]
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_expected_credential_version',
+          'p_next_credential_version', 'p_stage']::text[],
+        'search_path=pg_catalog, public, private, extensions', 'postgres', true
+      ),
+      (
+        'private.rollback_forced_password_change_v2_impl(uuid,integer,text,uuid,text,integer,integer,text)',
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_expected_credential_version',
+          'p_next_credential_version', 'p_stage']::text[],
+        'search_path=pg_catalog, public, private, extensions', 'postgres', false
+      ),
+      (
+        'public.advance_forced_password_profile_v2(uuid,integer,text,uuid,text,integer,integer,text,text)',
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_expected_credential_version',
+          'p_next_credential_version', 'p_expected_stage', 'p_next_stage']::text[],
+        'search_path=pg_catalog, public, private, extensions', 'postgres', true
+      ),
+      (
+        'private.advance_forced_password_profile_v2_impl(uuid,integer,text,uuid,text,integer,integer,text,text)',
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_expected_credential_version',
+          'p_next_credential_version', 'p_expected_stage', 'p_next_stage']::text[],
+        'search_path=pg_catalog, public, private, extensions', 'postgres', false
+      ),
+      (
+        'public.record_forced_password_late_fence_v2(uuid,integer,text,uuid,text,text,integer,integer)',
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_reason',
+          'p_expected_credential_version', 'p_observed_credential_version']::text[],
+        'search_path=pg_catalog, public, private, extensions', 'postgres', true
+      ),
+      (
+        'private.record_forced_password_late_fence_v2_impl(uuid,integer,text,uuid,text,text,integer,integer)',
+        array['p_operation_id', 'p_fence_version', 'p_lease_token_hash',
+          'p_user_id', 'p_email_normalized', 'p_reason',
+          'p_expected_credential_version', 'p_observed_credential_version']::text[],
+        'search_path=pg_catalog, public, private, extensions', 'postgres', false
       )
   )
   select not exists (
@@ -413,11 +730,17 @@ as $function$
         and routine.prokind = 'f'
         and pg_catalog.format_type(routine.prorettype, null) = 'jsonb'
         and routine.prosecdef = true
-        and pg_catalog.has_function_privilege(
-          'service_role',
-          routine.oid,
-          'EXECUTE'
+        and routine.proconfig @> array[required.expected_search_path]
+        and pg_catalog.pg_get_userbyid(routine.proowner) =
+          required.owner_name
+        and (
+          (required.runtime_execute = false and namespace.nspname = 'private')
+          or
+          (required.runtime_execute = true and namespace.nspname = 'public')
         )
+        and pg_catalog.has_function_privilege(
+          'service_role', routine.oid, 'EXECUTE'
+        ) = required.runtime_execute
         and not pg_catalog.has_function_privilege(
           'anon',
           routine.oid,

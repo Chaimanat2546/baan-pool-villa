@@ -10,15 +10,15 @@ import {
 } from "@/lib/central-user-manager/auth-provider";
 import { getCentralUserManagerAgentConfig } from "@/lib/central-user-manager/config";
 import {
+  advanceForcedPasswordProfileV2,
   advanceForcedPasswordChange,
   claimForcedPasswordChangeV2,
   completeForcedPasswordChangeV2,
   quarantineAdminUserOperation,
-  recordAdminUserLateFence,
+  recordForcedPasswordLateFenceV2,
   releaseForcedPasswordChangeV2,
   rollbackForcedPasswordChangeV2,
 } from "@/lib/central-user-manager/operation-repository";
-import { advanceAdminProfileForOperation } from "@/lib/central-user-manager/profile-repository";
 import { createCentralUserManagerAdminClient } from "@/lib/central-user-manager/supabase-admin";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 
@@ -259,6 +259,8 @@ export interface ForcedPasswordChangeDependencies {
     input: OperationLease & {
       expectedCredentialVersion: number;
       nextCredentialVersion: number;
+      expectedStage: "claimed" | "auth_n1_aligned";
+      nextStage: "profile_n1" | "profile_n2";
     },
   ) => Promise<RepositoryResult>;
   advanceStage: (
@@ -297,8 +299,15 @@ export interface ForcedPasswordChangeDependencies {
   recordLateFence: (input: {
     operationId: string;
     fenceVersion: number;
+    leaseToken: string;
+    userId: string;
+    email: string;
+    reason:
+      | "identity_mismatch"
+      | "profile_state_conflict"
+      | "credential_version_mismatch";
     expectedCredentialVersion: number;
-    observedCredentialVersion: number;
+    observedCredentialVersion: number | null;
   }) => Promise<RepositoryResult>;
   hashRequest: (input: {
     operationId: string;
@@ -403,9 +412,17 @@ export async function changeForcedPassword(
     return rejected(claimed.error.code, true);
   }
   if (claimed.data.disposition === "completed_retry") {
-    return claimed.data.operation.safeResult?.outcome === "password_changed"
-      ? { ok: true, code: "password_changed", clearSession: true }
-      : rejected("temporary_password_invalid", false);
+    const outcome = claimed.data.operation.safeResult?.outcome;
+    if (outcome === "password_changed") {
+      return { ok: true, code: "password_changed", clearSession: true };
+    }
+    if (outcome === "temporary_password_rejected" || outcome === "rejected") {
+      return rejected("temporary_password_invalid", false);
+    }
+    if (outcome === "provider_unavailable" || outcome === "provider_timeout") {
+      return rejected(outcome, false);
+    }
+    return rejected("operation_conflict", true);
   }
   const leaseToken = claimed.data.leaseToken;
   const leaseExpiresAt = providerLeaseExpiresAt(claimed.data.operation, deps);
@@ -427,16 +444,27 @@ export async function changeForcedPassword(
     fenced.email !== initial.email ||
     fenced.credentialVersion !== initial.credentialVersion
   ) {
-    await deps.recordLateFence({
-      operationId: input.operationId,
-      fenceVersion: lease.fenceVersion,
+    const reason =
+      "userId" in fenced &&
+      (fenced.userId !== initial.userId || fenced.email !== initial.email)
+        ? "identity_mismatch"
+        : fenced.state === "version_mismatch" ||
+            ("credentialVersion" in fenced &&
+              fenced.credentialVersion !== initial.credentialVersion)
+          ? "credential_version_mismatch"
+          : "profile_state_conflict";
+    const recorded = await deps.recordLateFence({
+      ...lease,
+      reason,
       expectedCredentialVersion: initial.credentialVersion,
       observedCredentialVersion:
         "credentialVersion" in fenced
           ? fenced.credentialVersion
-          : initial.credentialVersion,
+          : null,
     });
-    return rejected("late_fence", true);
+    return recorded.ok
+      ? rejected("late_fence", true)
+      : quarantine(deps, lease);
   }
 
   const verifiedTemporary = await deps.verifyPassword({
@@ -449,12 +477,30 @@ export async function changeForcedPassword(
     if (verifiedTemporary.ambiguous) {
       return quarantine(deps, lease);
     }
+    if (verifiedTemporary.error.code === "provider_identity_mismatch") {
+      return quarantine(deps, lease);
+    }
+    const releaseStage =
+      verifiedTemporary.error.code === "provider_rejected"
+        ? "temporary_password_rejected"
+        : verifiedTemporary.error.code === "provider_unavailable" ||
+            verifiedTemporary.error.code === "provider_timeout"
+          ? verifiedTemporary.error.code
+          : null;
+    if (!releaseStage) {
+      return quarantine(deps, lease);
+    }
     const released = await deps.release({
       ...lease,
-      stage: "temporary_password_rejected",
+      stage: releaseStage,
     });
     return released.ok
-      ? rejected("temporary_password_invalid", false)
+      ? rejected(
+          releaseStage === "temporary_password_rejected"
+            ? "temporary_password_invalid"
+            : releaseStage,
+          false,
+        )
       : quarantine(deps, lease);
   }
 
@@ -479,16 +525,13 @@ export async function changeForcedPassword(
     ...lease,
     expectedCredentialVersion: n,
     nextCredentialVersion: n1,
+    expectedStage: "claimed",
+    nextStage: "profile_n1",
   });
   if (!profileN1.ok) {
     await cleanTransientSessions();
     return quarantine(deps, lease);
   }
-  if (!(await deps.advanceStage({ ...lease, stage: "profile_n1" })).ok) {
-    await cleanTransientSessions();
-    return quarantine(deps, lease);
-  }
-
   const authN1 = await deps.updateAuth({
     userId: initial.userId,
     password: input.newPassword,
@@ -545,14 +588,12 @@ export async function changeForcedPassword(
     ...lease,
     expectedCredentialVersion: n1,
     nextCredentialVersion: n2,
+    expectedStage: "auth_n1_aligned",
+    nextStage: "profile_n2",
   });
   if (!profileN2.ok) {
     return quarantine(deps, lease);
   }
-  if (!(await deps.advanceStage({ ...lease, stage: "profile_n2" })).ok) {
-    return quarantine(deps, lease);
-  }
-
   const authN2 = await deps.updateAuth({
     userId: initial.userId,
     credentialVersion: n2,
@@ -654,22 +695,7 @@ export function createForcedPasswordChangeDependencies(): ForcedPasswordChangeDe
         providerDependencies(leaseExpiresAt),
       ),
     advanceProfile: (input) =>
-      advanceAdminProfileForOperation(
-        {
-          operationId: input.operationId,
-          fenceVersion: input.fenceVersion,
-          leaseToken: input.leaseToken,
-          userId: input.userId,
-          email: input.email,
-          expectedIsActive: true,
-          expectedMustChangePassword: true,
-          expectedCredentialVersion: input.expectedCredentialVersion,
-          nextIsActive: true,
-          nextMustChangePassword: true,
-          nextCredentialVersion: input.nextCredentialVersion,
-        },
-        repositoryDependencies,
-      ),
+      advanceForcedPasswordProfileV2(input, repositoryDependencies),
     advanceStage: (input) =>
       advanceForcedPasswordChange(input, repositoryDependencies),
     updateAuth: async ({
@@ -716,7 +742,7 @@ export function createForcedPasswordChangeDependencies(): ForcedPasswordChangeDe
     quarantine: (input) =>
       quarantineAdminUserOperation(input, repositoryDependencies),
     recordLateFence: (input) =>
-      recordAdminUserLateFence(input, repositoryDependencies),
+      recordForcedPasswordLateFenceV2(input, repositoryDependencies),
     hashRequest: hashCanonicalRequest,
     now: Date.now,
     providerTimeoutMs,

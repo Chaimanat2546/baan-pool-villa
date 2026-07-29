@@ -5,6 +5,7 @@ vi.mock("server-only", () => ({}));
 import type { CentralUserManagerAdminClient } from "../operation-repository";
 import {
   advanceForcedPasswordChange,
+  advanceForcedPasswordProfileV2,
   claimForcedPasswordChangeV2,
   commitAdminUserProviderIntent,
   commitAdminUserProviderOutcome,
@@ -13,6 +14,7 @@ import {
   quarantineAdminUserOperation,
   markAdminUserOperationNeedsReview,
   recordAdminUserLateFence,
+  recordForcedPasswordLateFenceV2,
   resumeAdminUserOperation,
   renewAdminUserOperationLease,
   releaseForcedPasswordChangeV2,
@@ -244,6 +246,90 @@ describe("Central User Manager operation repository", () => {
       p_safe_result: { credentialVersion: 2 },
     });
     expect(JSON.stringify(rpc.mock.calls)).not.toContain(RAW_TOKEN);
+  });
+
+  it("uses the dedicated forced-password profile CAS with exact stages", async () => {
+    const { client, rpc } = fakeClient({
+      data: {
+        user_id: TARGET_USER_ID,
+        email: "admin@example.com",
+        role: "admin",
+        is_active: true,
+        must_change_password: true,
+        credential_version: 2,
+        created_at: "2026-07-29T00:00:00.000Z",
+      },
+      error: null,
+    });
+
+    await expect(
+      advanceForcedPasswordProfileV2(
+        {
+          operationId: OPERATION_ID,
+          fenceVersion: 1,
+          leaseToken: RAW_TOKEN,
+          userId: TARGET_USER_ID,
+          email: "admin@example.com",
+          expectedCredentialVersion: 1,
+          nextCredentialVersion: 2,
+          expectedStage: "claimed",
+          nextStage: "profile_n1",
+        },
+        { client },
+      ),
+    ).resolves.toMatchObject({
+      ok: true,
+      data: { credentialVersion: 2, mustChangePassword: true },
+    });
+    expect(rpc).toHaveBeenCalledWith(
+      "advance_forced_password_profile_v2",
+      expect.objectContaining({
+        p_expected_stage: "claimed",
+        p_next_stage: "profile_n1",
+        p_lease_token_hash: RAW_TOKEN_HASH,
+      }),
+    );
+  });
+
+  it("records every forced-password late fence under the exact lease", async () => {
+    const { client, rpc } = fakeClient({
+      data: {
+        ...baseRpcOperation,
+        actor_kind: "target_admin",
+        action: "complete_password_change",
+        status: "needs_review",
+        stage: "late_fence",
+        lease_expires_at: null,
+      },
+      error: null,
+    });
+
+    await expect(
+      recordForcedPasswordLateFenceV2(
+        {
+          operationId: OPERATION_ID,
+          fenceVersion: 1,
+          leaseToken: RAW_TOKEN,
+          userId: TARGET_USER_ID,
+          email: "admin@example.com",
+          reason: "identity_mismatch",
+          expectedCredentialVersion: 2,
+          observedCredentialVersion: null,
+        },
+        { client },
+      ),
+    ).resolves.toMatchObject({
+      ok: true,
+      data: { status: "needs_review", stage: "late_fence" },
+    });
+    expect(rpc).toHaveBeenCalledWith(
+      "record_forced_password_late_fence_v2",
+      expect.objectContaining({
+        p_reason: "identity_mismatch",
+        p_observed_credential_version: null,
+        p_lease_token_hash: RAW_TOKEN_HASH,
+      }),
+    );
   });
 
   it.each([

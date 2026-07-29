@@ -143,28 +143,46 @@ export function AdminShell({
     pathname === "/admin/login" ||
     pathname === "/admin/reset-password" ||
     pathname === "/admin/change-password";
-  const [sessionGate, setSessionGate] = useState<
-    "checking" | "ready" | "redirecting" | "verification_failed"
-  >(isAuthPage ? "ready" : "checking");
+  type SessionGateStatus =
+    | "checking"
+    | "ready"
+    | "redirecting"
+    | "verification_failed";
+  const [sessionGate, setSessionGate] = useState<{
+    pathname: string;
+    status: SessionGateStatus;
+  }>({
+    pathname,
+    status: isAuthPage ? "ready" : "checking",
+  });
+  const sessionGateStatus =
+    sessionGate.pathname === pathname ? sessionGate.status : "checking";
 
   useEffect(() => {
     if (isAuthPage) {
       return;
     }
     let mounted = true;
+    function updateSessionGate(status: SessionGateStatus) {
+      setSessionGate((current) =>
+        current.pathname === pathname && current.status === status
+          ? current
+          : { pathname, status },
+      );
+    }
     void readAdminSessionState().then(async (state) => {
       if (!mounted) {
         return;
       }
       if (state === "active") {
-        setSessionGate("ready");
+        updateSessionGate("ready");
         return;
       }
       if (state === "verification_failed") {
-        setSessionGate("verification_failed");
+        updateSessionGate("verification_failed");
         return;
       }
-      setSessionGate("redirecting");
+      updateSessionGate("redirecting");
       if (state === "forced") {
         router.replace("/admin/change-password");
         return;
@@ -191,10 +209,10 @@ export function AdminShell({
     );
   }
 
-  if (sessionGate !== "ready") {
+  if (sessionGateStatus !== "ready") {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[var(--site-surface-soft)] px-4 text-[var(--site-text)]">
-        {sessionGate === "verification_failed" ? (
+        {sessionGateStatus === "verification_failed" ? (
           <p
             className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
             role="alert"

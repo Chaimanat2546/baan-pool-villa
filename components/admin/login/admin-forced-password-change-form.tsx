@@ -117,6 +117,7 @@ export function AdminForcedPasswordChangeForm() {
         router.replace("/admin/login?error=admin-access");
         return;
       }
+      operationIdRef.current = null;
       setError(
         (result.code && ERROR_MESSAGES[result.code]) ??
           "เปลี่ยนรหัสผ่านไม่สำเร็จ กรุณาลองใหม่",

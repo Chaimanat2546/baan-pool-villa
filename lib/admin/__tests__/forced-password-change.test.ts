@@ -264,13 +264,11 @@ describe("changeForcedPassword", () => {
       "claim",
       "verify_temp",
       "db_8",
-      "stage_profile_n1",
       "auth_8_password",
       "stage_auth_n1_aligned",
       "verify_new",
       "global_signout",
       "db_9",
-      "stage_profile_n2",
       "auth_9",
       "stage_auth_n2_aligned",
       "complete",
@@ -395,6 +393,37 @@ describe("changeForcedPassword", () => {
     expect(deps.complete).not.toHaveBeenCalled();
   });
 
+  it("quarantines when durable late-fence recording cannot be proven", async () => {
+    const { deps } = makeChangeDependencies({
+      recordLateFence: vi.fn(async () => ({
+        ok: false as const,
+        error: { code: "database_unavailable", message: "unavailable" },
+      })),
+    });
+    deps.inspectSession
+      .mockResolvedValueOnce({
+        state: "forced",
+        userId: USER_ID,
+        email: EMAIL,
+        credentialVersion: 7,
+      })
+      .mockResolvedValueOnce({
+        state: "invalid",
+        code: "session_invalid",
+        status: 401,
+        message: "invalid",
+      });
+    const { changeForcedPassword } = await loadModule();
+
+    await expect(changeForcedPassword(changeInput, deps as never)).resolves.toMatchObject({
+      ok: false,
+      code: "provider_ambiguous",
+      clearSession: true,
+    });
+    expect(deps.quarantine).toHaveBeenCalled();
+    expect(deps.verifyPassword).not.toHaveBeenCalled();
+  });
+
   it("rolls DB N+1 back to N after a definite Auth password rejection", async () => {
     const { deps, events } = makeChangeDependencies({
       updateAuth: vi.fn(async () => ({
@@ -439,6 +468,51 @@ describe("changeForcedPassword", () => {
     });
     expect(deps.quarantine).toHaveBeenCalled();
     expect(deps.rollbackAndRelease).not.toHaveBeenCalled();
+  });
+
+  it.each(["provider_unavailable", "provider_timeout"] as const)(
+    "does not mislabel a definite %s setup/deadline failure as a bad password",
+    async (code) => {
+      const { deps } = makeChangeDependencies({
+        verifyPassword: vi.fn(async () => ({
+          ok: false as const,
+          ambiguous: false,
+          error: { code, message: "system failure" },
+        })),
+      });
+      const { changeForcedPassword } = await loadModule();
+
+      await expect(changeForcedPassword(changeInput, deps as never)).resolves.toMatchObject({
+        ok: false,
+        code,
+        clearSession: false,
+      });
+      expect(deps.release).toHaveBeenCalledWith(
+        expect.objectContaining({ stage: code }),
+      );
+    },
+  );
+
+  it("quarantines a temporary-signin identity mismatch instead of calling it a bad password", async () => {
+    const { deps } = makeChangeDependencies({
+      verifyPassword: vi.fn(async () => ({
+        ok: false as const,
+        ambiguous: false,
+        error: {
+          code: "provider_identity_mismatch",
+          message: "identity mismatch",
+        },
+      })),
+    });
+    const { changeForcedPassword } = await loadModule();
+
+    await expect(changeForcedPassword(changeInput, deps as never)).resolves.toMatchObject({
+      ok: false,
+      code: "provider_ambiguous",
+      clearSession: true,
+    });
+    expect(deps.quarantine).toHaveBeenCalled();
+    expect(deps.release).not.toHaveBeenCalled();
   });
 
   it("globally cleans the temporary session before quarantining a DB boundary failure", async () => {
@@ -486,12 +560,10 @@ describe("changeForcedPassword", () => {
 
   it.each([
     ["DB N+1", "advanceProfile", 1],
-    ["stage after DB N+1", "advanceStage", 1],
-    ["stage after Auth N+1", "advanceStage", 2],
+    ["stage after Auth N+1", "advanceStage", 1],
     ["DB N+2", "advanceProfile", 2],
-    ["stage after DB N+2", "advanceStage", 3],
     ["Auth N+2", "updateAuth", 2],
-    ["stage after Auth N+2", "advanceStage", 4],
+    ["stage after Auth N+2", "advanceStage", 2],
     ["final clear", "complete", 1],
   ] as const)("never clears after an ambiguous %s boundary", async (
     _name,

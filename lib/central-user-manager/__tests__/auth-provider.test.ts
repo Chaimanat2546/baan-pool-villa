@@ -846,7 +846,9 @@ describe("Central User Manager Supabase Auth provider", () => {
       },
       error: null,
     });
+    const signOut = vi.fn().mockResolvedValue({ data: null, error: null });
     const deps = dependencies({
+      client: { auth: { admin: { signOut } } },
       createTransientClient: () => ({
         auth: { signInWithPassword },
       }),
@@ -869,6 +871,7 @@ describe("Central User Manager Supabase Auth provider", () => {
       },
       ambiguous: false,
     });
+    expect(signOut).toHaveBeenCalledWith("access-token-value", "global");
   });
 
   it("quarantines a retryable password verification error returned after dispatch", async () => {
@@ -921,6 +924,52 @@ describe("Central User Manager Supabase Auth provider", () => {
 
     expect(result).toEqual({ ok: true, data: null });
     expect(signOut).toHaveBeenCalledWith("access-token-value", "global");
+  });
+
+  it.each([
+    ["top-level user", "other-user", USER_ID],
+    ["session user", USER_ID, "other-user"],
+  ])("globally cleans a transient token when the %s UID mismatches", async (
+    _name,
+    userId,
+    sessionUserId,
+  ) => {
+    const signInWithPassword = vi.fn().mockResolvedValue({
+      data: {
+        user: { id: userId },
+        session: {
+          access_token: "mismatched-access-token",
+          user: { id: sessionUserId },
+        },
+      },
+      error: null,
+    });
+    const signOut = vi.fn().mockResolvedValue({ data: null, error: null });
+    const deps = dependencies({
+      client: { auth: { admin: { signOut } } },
+      createTransientClient: () => ({
+        auth: { signInWithPassword },
+      }),
+    });
+
+    await expect(
+      transientlyVerifyPassword(
+        {
+          email: "admin@example.com",
+          password: "TempPass1!",
+          expectedUserId: USER_ID,
+        },
+        deps,
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      ambiguous: false,
+      error: { code: "provider_identity_mismatch" },
+    });
+    expect(signOut).toHaveBeenCalledWith(
+      "mismatched-access-token",
+      "global",
+    );
   });
 
   it("quarantines a retryable global signout error returned after dispatch", async () => {

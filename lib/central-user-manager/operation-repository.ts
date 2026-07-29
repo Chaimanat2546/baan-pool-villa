@@ -443,7 +443,8 @@ async function runOperationRpc(
     | "advance_forced_password_change"
     | "complete_forced_password_change_v2"
     | "release_forced_password_change_v2"
-    | "rollback_forced_password_change_v2",
+    | "rollback_forced_password_change_v2"
+    | "record_forced_password_late_fence_v2",
   params: Record<string, unknown>,
   deps: OperationRepositoryDependencies,
 ): Promise<RepositoryResult<AdminUserOperationRecord>> {
@@ -744,7 +745,8 @@ async function runForcedPasswordLeaseRpc(
   name:
     | "complete_forced_password_change_v2"
     | "release_forced_password_change_v2"
-    | "rollback_forced_password_change_v2",
+    | "rollback_forced_password_change_v2"
+    | "record_forced_password_late_fence_v2",
   input: ForcedPasswordLeaseInput,
   extra: Record<string, unknown>,
   deps: OperationRepositoryDependencies,
@@ -809,6 +811,92 @@ export function rollbackForcedPasswordChangeV2(
       p_expected_credential_version: input.expectedCredentialVersion,
       p_next_credential_version: input.nextCredentialVersion,
       p_stage: input.stage,
+    },
+    deps,
+  );
+}
+
+export interface ForcedPasswordProfile {
+  userId: string;
+  email: string;
+  credentialVersion: number;
+  mustChangePassword: true;
+}
+
+export async function advanceForcedPasswordProfileV2(
+  input: ForcedPasswordLeaseInput & {
+    expectedCredentialVersion: number;
+    nextCredentialVersion: number;
+    expectedStage: "claimed" | "auth_n1_aligned";
+    nextStage: "profile_n1" | "profile_n2";
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<ForcedPasswordProfile>> {
+  try {
+    const response = await callRpc(
+      deps.client,
+      "advance_forced_password_profile_v2",
+      {
+        p_operation_id: input.operationId,
+        p_fence_version: input.fenceVersion,
+        p_lease_token_hash: await hashLeaseToken(
+          input.leaseToken,
+          getCrypto(deps),
+        ),
+        p_user_id: input.userId,
+        p_email_normalized: input.email,
+        p_expected_credential_version: input.expectedCredentialVersion,
+        p_next_credential_version: input.nextCredentialVersion,
+        p_expected_stage: input.expectedStage,
+        p_next_stage: input.nextStage,
+      },
+    );
+    if (response.error) {
+      return mapDatabaseError(response.error);
+    }
+    const row = response.data;
+    if (
+      !isRecord(row) ||
+      row.user_id !== input.userId ||
+      row.email !== input.email ||
+      row.is_active !== true ||
+      row.must_change_password !== true ||
+      row.credential_version !== input.nextCredentialVersion
+    ) {
+      return failure("database_unavailable");
+    }
+    return {
+      ok: true,
+      data: {
+        userId: input.userId,
+        email: input.email,
+        credentialVersion: input.nextCredentialVersion,
+        mustChangePassword: true,
+      },
+    };
+  } catch {
+    return failure("database_unavailable");
+  }
+}
+
+export async function recordForcedPasswordLateFenceV2(
+  input: ForcedPasswordLeaseInput & {
+    reason:
+      | "identity_mismatch"
+      | "profile_state_conflict"
+      | "credential_version_mismatch";
+    expectedCredentialVersion: number;
+    observedCredentialVersion: number | null;
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  return runForcedPasswordLeaseRpc(
+    "record_forced_password_late_fence_v2",
+    input,
+    {
+      p_reason: input.reason,
+      p_expected_credential_version: input.expectedCredentialVersion,
+      p_observed_credential_version: input.observedCredentialVersion,
     },
     deps,
   );

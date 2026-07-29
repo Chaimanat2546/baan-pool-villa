@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, useState } from "react";
 
 import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import {
@@ -10,18 +11,20 @@ import {
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 
-const mocks = vi.hoisted(() => ({
-  pathname: "/admin/settings",
-  replace: vi.fn(),
-  signOut: vi.fn(),
-  readState: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const replace = vi.fn();
+  return {
+    pathname: "/admin/settings",
+    replace,
+    router: { replace },
+    signOut: vi.fn(),
+    readState: vi.fn(),
+  };
+});
 
 vi.mock("next/navigation", () => ({
   usePathname: () => mocks.pathname,
-  useRouter: () => ({
-    replace: mocks.replace,
-  }),
+  useRouter: () => mocks.router,
 }));
 
 vi.mock("@/lib/home-sections/supabase", () => ({
@@ -214,6 +217,45 @@ describe("AdminShell", () => {
     );
     expect(mocks.replace).not.toHaveBeenCalled();
     expect(page.container.querySelector("nav")).toBeNull();
+    await page.unmount();
+  });
+
+  it("hides a newly navigated protected page until its pathname-specific check completes", async () => {
+    let navigate: (() => void) | undefined;
+    function Harness() {
+      const [, rerender] = useState(0);
+      navigate = () => {
+        mocks.pathname = "/admin/guides";
+        rerender((value) => value + 1);
+      };
+      return (
+        <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+          <button type="button">mutate protected data</button>
+        </AdminShell>
+      );
+    }
+
+    const page = await mountAdminPage(<Harness />);
+    expect(page.container.querySelector("nav")).not.toBeNull();
+
+    let resolveNext: ((state: string) => void) | undefined;
+    mocks.readState.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveNext = resolve;
+      }),
+    );
+    act(() => navigate?.());
+
+    expect(page.container.querySelector("nav")).toBeNull();
+    expect(page.container.textContent).not.toContain("mutate protected data");
+
+    await flushEffects();
+    expect(resolveNext).toBeTypeOf("function");
+    await act(async () => {
+      resolveNext?.("forced");
+      await Promise.resolve();
+    });
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/change-password");
     await page.unmount();
   });
 });

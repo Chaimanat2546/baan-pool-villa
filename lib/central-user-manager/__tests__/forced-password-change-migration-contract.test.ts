@@ -83,4 +83,38 @@ describe("forced-password completion migration", () => {
       "pg_catalog.has_function_privilege( 'service_role', routine.oid, 'execute' )",
     );
   });
+
+  it("owns both forced-password profile CAS transitions instead of using the incompatible generic RPC", () => {
+    expect(sql).toContain("function private.advance_forced_password_profile_v2_impl(");
+    expect(sql).toContain("v_operation.action is distinct from 'complete_password_change'");
+    expect(sql).toContain(
+      "(p_expected_stage = 'claimed' and p_next_stage = 'profile_n1')",
+    );
+    expect(sql).toContain(
+      "(p_expected_stage = 'auth_n1_aligned' and p_next_stage = 'profile_n2')",
+    );
+    expect(sql).toContain("and is_active = true");
+    expect(sql).toContain("and must_change_password = true");
+    expect(sql).toContain(
+      "and credential_version = p_expected_credential_version",
+    );
+  });
+
+  it("records every forced-password late-fence reason under the exact lease", () => {
+    expect(sql).toContain("function private.record_forced_password_late_fence_v2_impl(");
+    expect(sql).toContain(
+      "p_reason not in ( 'identity_mismatch', 'profile_state_conflict', 'credential_version_mismatch' )",
+    );
+    expect(sql).toContain("p_observed_credential_version is not null");
+    expect(sql).toContain("set status = 'needs_review', stage = 'late_fence'");
+    expect(sql).toContain("and lease_token_hash = p_lease_token_hash");
+  });
+
+  it("health-attests fixed search paths, owners, and private implementation ACLs", () => {
+    expect(sql).toContain("routine.proconfig");
+    expect(sql).toContain("pg_catalog.pg_get_userbyid(routine.proowner)");
+    expect(sql).toContain("private.advance_forced_password_profile_v2_impl");
+    expect(sql).toContain("private.record_forced_password_late_fence_v2_impl");
+    expect(sql).toContain("runtime_execute = false");
+  });
 });

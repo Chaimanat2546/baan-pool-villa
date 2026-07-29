@@ -560,6 +560,15 @@ export async function transientlyVerifyPassword(
     typeof accessToken !== "string" ||
     accessToken.length === 0
   ) {
+    if (typeof accessToken === "string" && accessToken.length > 0) {
+      const cleaned = await globallySignOutAccessToken(
+        { accessToken },
+        deps,
+      );
+      if (!cleaned.ok) {
+        return providerFailure("provider_unavailable", true);
+      }
+    }
     return providerFailure("provider_identity_mismatch", false);
   }
 
