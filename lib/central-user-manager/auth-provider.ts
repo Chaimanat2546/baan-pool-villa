@@ -1,6 +1,10 @@
 import "server-only";
 
-import { isAuthApiError } from "@supabase/supabase-js";
+import {
+  isAuthApiError,
+  isAuthSessionMissingError,
+  isAuthWeakPasswordError,
+} from "@supabase/supabase-js";
 
 import { normalizeAdminEmail } from "./email";
 import type { CentralUserManagerAdminClient } from "./operation-repository";
@@ -109,11 +113,22 @@ function providerFailure(
   };
 }
 
-function classifyReturnedAuthError(error: unknown): ProviderFailure {
+interface DefiniteCustomAuthErrorAllowlist {
+  weakPassword?: true;
+  sessionMissing?: true;
+}
+
+function classifyReturnedAuthError(
+  error: unknown,
+  allowlist: DefiniteCustomAuthErrorAllowlist = {},
+): ProviderFailure {
   if (
-    isAuthApiError(error) &&
-    error.status >= 400 &&
-    error.status < 500
+    (isAuthApiError(error) &&
+      error.status >= 400 &&
+      error.status < 500) ||
+    (allowlist.weakPassword === true && isAuthWeakPasswordError(error)) ||
+    (allowlist.sessionMissing === true &&
+      isAuthSessionMissingError(error))
   ) {
     return providerFailure("provider_rejected", false);
   }
@@ -349,7 +364,9 @@ export async function createManagedAuthUser(
   }
 
   if (dispatched.data.error) {
-    return classifyReturnedAuthError(dispatched.data.error);
+    return classifyReturnedAuthError(dispatched.data.error, {
+      weakPassword: true,
+    });
   }
 
   const user = toProviderUser(dispatched.data.data.user);
@@ -397,7 +414,9 @@ export async function updateManagedAuthUser(
   }
 
   if (dispatched.data.error) {
-    return classifyReturnedAuthError(dispatched.data.error);
+    return classifyReturnedAuthError(dispatched.data.error, {
+      weakPassword: true,
+    });
   }
 
   const user = toProviderUser(dispatched.data.data.user);
@@ -467,6 +486,8 @@ export async function globallySignOutAccessToken(
   }
 
   return dispatched.data.error
-    ? classifyReturnedAuthError(dispatched.data.error)
+    ? classifyReturnedAuthError(dispatched.data.error, {
+        sessionMissing: true,
+      })
     : { ok: true, data: null };
 }

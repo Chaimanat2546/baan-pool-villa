@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AuthApiError,
   AuthRetryableFetchError,
+  AuthSessionMissingError,
   AuthUnknownError,
+  AuthWeakPasswordError,
 } from "@supabase/supabase-js";
 
 vi.mock("server-only", () => ({}));
@@ -354,6 +356,36 @@ describe("Central User Manager Supabase Auth provider", () => {
     expect(JSON.stringify(result)).not.toContain(rawSecret);
   });
 
+  it("treats a weak-password create rejection as definite and secret-safe", async () => {
+    const rawSecret = "weak create password with provider secret";
+    const createUser = vi.fn().mockResolvedValue({
+      data: { user: null },
+      error: new AuthWeakPasswordError(rawSecret, 422, ["length"]),
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { createUser } } },
+    });
+
+    const result = await createManagedAuthUser(
+      {
+        email: "admin@example.com",
+        password: rawSecret,
+        operationId: OPERATION_ID,
+      },
+      deps,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_rejected",
+        message: "Supabase Auth rejected the operation.",
+      },
+      ambiguous: false,
+    });
+    expect(JSON.stringify(result)).not.toContain(rawSecret);
+  });
+
   it("preserves unrelated app metadata while advancing managed credentials", async () => {
     const current = providerUser({
       appMetadata: {
@@ -435,6 +467,36 @@ describe("Central User Manager Supabase Auth provider", () => {
       ambiguous: true,
     });
     expect(JSON.stringify(result)).not.toContain("sensitive");
+  });
+
+  it("treats a weak-password update rejection as definite and secret-safe", async () => {
+    const rawSecret = "weak update password with provider secret";
+    const updateUserById = vi.fn().mockResolvedValue({
+      data: { user: null },
+      error: new AuthWeakPasswordError(rawSecret, 422, ["pwned"]),
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { updateUserById } } },
+    });
+
+    const result = await updateManagedAuthUser(
+      {
+        user: providerUser(),
+        password: rawSecret,
+        credentialVersion: 2,
+      },
+      deps,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_rejected",
+        message: "Supabase Auth rejected the operation.",
+      },
+      ambiguous: false,
+    });
+    expect(JSON.stringify(result)).not.toContain(rawSecret);
   });
 
   it("never creates or replaces immutable provenance during update", async () => {
@@ -664,6 +726,34 @@ describe("Central User Manager Supabase Auth provider", () => {
       ambiguous: true,
     });
     expect(JSON.stringify(result)).not.toContain("access-token-secret");
+  });
+
+  it("treats a missing-session global signout rejection as definite and secret-safe", async () => {
+    const signOut = vi.fn().mockResolvedValue({
+      data: null,
+      error: new AuthSessionMissingError(),
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { signOut } } },
+    });
+
+    const result = await globallySignOutAccessToken(
+      { accessToken: "missing-session-access-token-secret" },
+      deps,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_rejected",
+        message: "Supabase Auth rejected the operation.",
+      },
+      ambiguous: false,
+    });
+    expect(JSON.stringify(result)).not.toContain(
+      "missing-session-access-token-secret",
+    );
+    expect(JSON.stringify(result)).not.toContain("Auth session missing");
   });
 
   it("quarantines an unknown Auth error returned after global signout dispatch", async () => {
