@@ -6,29 +6,31 @@ export interface SafeAgentError {
   message: string;
 }
 
-const SAFE_ERROR_CODE = /^[a-z0-9_]+$/;
+export const SAFE_AGENT_ERROR_CATALOG = {
+  invalid_request: {
+    code: "invalid_request",
+    message: "Invalid agent operation request.",
+  },
+  provider_failure: {
+    code: "provider_failure",
+    message: "Unable to complete request.",
+  },
+} as const;
 
-function isSafeErrorCode(value: string) {
-  return (
-    value.length > 0 &&
-    value.length <= MAX_SAFE_ERROR_CODE_LENGTH &&
-    SAFE_ERROR_CODE.test(value)
-  );
-}
+export type SafeAgentErrorCode = keyof typeof SAFE_AGENT_ERROR_CATALOG;
 
-function isSafeErrorMessage(value: string) {
-  return value.length > 0 && value.length <= MAX_SAFE_ERROR_MESSAGE_LENGTH;
-}
+const SAFE_ERROR_BY_CODE = new Map<string, SafeAgentError>(
+  Object.values(SAFE_AGENT_ERROR_CATALOG).map((error) => [error.code, error]),
+);
 
 export function createSafeAgentError(fallback: SafeAgentError): SafeAgentError {
-  if (
-    !isSafeErrorCode(fallback.code) ||
-    !isSafeErrorMessage(fallback.message)
-  ) {
+  const knownError = SAFE_ERROR_BY_CODE.get(fallback.code);
+
+  if (!knownError || knownError.message !== fallback.message) {
     throw new Error("Invalid safe agent error fallback.");
   }
 
-  return { code: fallback.code, message: fallback.message };
+  return { ...knownError };
 }
 
 export function normalizeSafeAgentError(
@@ -42,14 +44,10 @@ export class AgentContractError extends Error {
   readonly code = "invalid_request";
   readonly status = 422;
 
-  constructor(message = "Invalid agent operation request.") {
-    const safeError = createSafeAgentError({
-      code: "invalid_request",
-      message:
-        isSafeErrorMessage(message)
-          ? message
-          : "Invalid agent operation request.",
-    });
+  constructor() {
+    const safeError = createSafeAgentError(
+      SAFE_AGENT_ERROR_CATALOG.invalid_request,
+    );
     super(safeError.message);
     this.name = "AgentContractError";
   }

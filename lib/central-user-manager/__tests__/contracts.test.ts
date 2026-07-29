@@ -121,4 +121,25 @@ describe("central user manager contracts", () => {
       }),
     ).toThrow();
   });
+
+  it("rejects a valid-shaped fallback object instead of serializing its text", () => {
+    expect(() =>
+      normalizeSafeAgentError(
+        { message: "provider token: secret" },
+        {
+          code: "provider_failure",
+          message: "provider token: secret",
+        } as never,
+      ),
+    ).toThrow("Invalid safe agent error fallback.");
+    const unsafeConstructor = AgentContractError as unknown as new (
+      message: string,
+    ) => AgentContractError;
+
+    expect(new unsafeConstructor("provider token: secret")).toMatchObject({
+      code: "invalid_request",
+      message: "Invalid agent operation request.",
+      status: 422,
+    });
+  });
 });
