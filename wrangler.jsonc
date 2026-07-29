@@ -39,6 +39,14 @@
 						"limit": 60,
 						"period": 60
 					}
+				},
+				{
+					"name": "CENTRAL_USER_MANAGER_RATE_LIMITER",
+					"namespace_id": "91014",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
 				}
 			],
 			"vars": {
@@ -112,6 +120,14 @@
 						"limit": 60,
 						"period": 60
 					}
+				},
+				{
+					"name": "CENTRAL_USER_MANAGER_RATE_LIMITER",
+					"namespace_id": "92014",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
 				}
 			],
 			"vars": {
@@ -181,6 +197,14 @@
 				{
 					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "93013",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
+				},
+				{
+					"name": "CENTRAL_USER_MANAGER_RATE_LIMITER",
+					"namespace_id": "93014",
 					"simple": {
 						"limit": 60,
 						"period": 60
