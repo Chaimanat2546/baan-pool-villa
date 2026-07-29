@@ -8,9 +8,31 @@ import {
   readBoundedRequestBytes,
   sha256Hex,
 } from "../route-response";
+import type { CentralUserManagerAgentConfig } from "../config";
+import type {
+  AgentOperationRequest,
+  AgentOperationResponse,
+} from "../contracts";
 
 const TENANT_ID = "123e4567-e89b-42d3-a456-426614174000";
 const OPERATION_ID = "123e4567-e89b-42d3-a456-426614174001";
+const LIST_REQUEST: AgentOperationRequest = {
+  tenantId: TENANT_ID,
+  operationId: OPERATION_ID,
+  actorUid: "123e4567-e89b-42d3-a456-426614174002",
+  action: "list_users",
+  payload: { page: 1, pageSize: 25 },
+};
+const CONFIG = {
+  tenantId: TENANT_ID,
+} as CentralUserManagerAgentConfig;
+
+function operationResponse(
+  operation: AgentOperationResponse,
+  request: AgentOperationRequest = LIST_REQUEST,
+) {
+  return operationRouteResponse(CONFIG, request, operation);
+}
 
 describe("Central User Manager route response helpers", () => {
   it("accepts exactly 16,384 streamed bytes and rejects byte 16,385", async () => {
@@ -80,22 +102,17 @@ describe("Central User Manager route response helpers", () => {
     ["needs_review", 409],
     ["quarantined", 409],
   ] as const)("maps %s to HTTP %i and projects only safe fields", async (status, httpStatus) => {
-    const response = operationRouteResponse(TENANT_ID, {
+    const response = operationResponse({
       operationId: OPERATION_ID,
       status,
-      stage: "safe_stage",
-      result: {
-        user: {
-          userId: "123e4567-e89b-42d3-a456-426614174003",
-          email: "admin@example.com",
-          status: "password_change_required",
-          createdAt: "2026-07-29T00:00:00.000Z",
-          lastSignInAt: null,
-          credentialVersion: 2,
-          authCredentialVersion: 2,
-        },
-        temporaryPassword: "Temp-Password-123!Aa",
-      },
+      stage: status === "completed" ? "listed" : "claimed",
+      result:
+        status === "completed"
+          ? {
+              users: [],
+              pagination: { page: 1, pageSize: 25, hasMore: false },
+            }
+          : undefined,
       error:
         status === "completed"
           ? undefined
@@ -116,7 +133,7 @@ describe("Central User Manager route response helpers", () => {
       protocolVersion: 1,
       operationId: OPERATION_ID,
       status,
-      stage: "safe_stage",
+      stage: status === "completed" ? "listed" : "claimed",
     });
     expect(JSON.stringify(body)).not.toContain("providerMetadata");
     expect(JSON.stringify(body)).not.toContain("access_token");
@@ -125,7 +142,7 @@ describe("Central User Manager route response helpers", () => {
   it.each(["database_unavailable", "provider_failure"])(
     "maps safe pre-dispatch availability error %s to 503",
     (code) => {
-      const response = operationRouteResponse(TENANT_ID, {
+      const response = operationResponse({
         operationId: OPERATION_ID,
         status: "needs_review",
         stage: "claimed",
@@ -137,7 +154,7 @@ describe("Central User Manager route response helpers", () => {
   );
 
   it("fails closed instead of reflecting a malformed service envelope", async () => {
-    const response = operationRouteResponse(TENANT_ID, {
+    const response = operationResponse({
       operationId: OPERATION_ID,
       status: "provider secret status",
       stage: "provider secret stage",
@@ -149,11 +166,59 @@ describe("Central User Manager route response helpers", () => {
   });
 
   it("rejects a noncanonical service operation ID", () => {
-    const response = operationRouteResponse(TENANT_ID, {
+    const response = operationResponse({
       operationId: "123e4567-e89b-02d3-a456-426614174001",
       status: "completed",
       stage: "completed",
     });
+
+    expect(response.status).toBe(503);
+  });
+
+  it("rejects a canonical service operation ID that differs from the request", () => {
+    const response = operationResponse({
+      operationId: "123e4567-e89b-42d3-a456-426614174099",
+      status: "completed",
+      stage: "completed",
+    });
+
+    expect(response.status).toBe(503);
+  });
+
+  it("rejects a request hash disguised as an operation stage", async () => {
+    const requestHash = "a".repeat(64);
+    const response = operationResponse({
+      operationId: OPERATION_ID,
+      status: "completed",
+      stage: requestHash,
+    });
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toContain(requestHash);
+  });
+
+  it("rejects a malformed safe user DTO", () => {
+    const createRequest: AgentOperationRequest = {
+      ...LIST_REQUEST,
+      action: "create_user",
+      payload: { email: "admin@example.com" },
+    };
+    const response = operationResponse({
+      operationId: OPERATION_ID,
+      status: "completed",
+      stage: "completed",
+      result: {
+        user: {
+          userId: "123e4567-e89b-02d3-a456-426614174003",
+          email: "admin@example.com",
+          status: "active",
+          createdAt: "2026-07-29T00:00:00.000Z",
+          lastSignInAt: null,
+          credentialVersion: 1,
+          authCredentialVersion: 1,
+        },
+      },
+    }, createRequest);
 
     expect(response.status).toBe(503);
   });

@@ -37,6 +37,20 @@ describe("central user manager contracts", () => {
     ).toThrow(AgentContractError);
   });
 
+  it.each([
+    ["operationId", "123e4567-e89b-02d3-a456-426614174001"],
+    ["actorUid", "123e4567-e89b-42d3-7456-426614174002"],
+  ])("rejects a non-RFC-9562 %s UUID", (field, invalidUuid) => {
+    expect(() =>
+      parseAgentOperationRequest({
+        ...requestIds,
+        [field]: invalidUuid,
+        action: "list_users",
+        payload: { page: 1, pageSize: 1 },
+      }),
+    ).toThrow(AgentContractError);
+  });
+
   it("accepts exactly the supported mutation actions with an email payload", () => {
     for (const action of [
       "create_user",

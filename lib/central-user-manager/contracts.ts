@@ -1,5 +1,6 @@
 import { normalizeAdminEmail } from "./email";
 import { AgentContractError } from "./safe-errors";
+import { isCanonicalRfc9562Uuid } from "./canonical-uuid";
 
 export { AgentContractError } from "./safe-errors";
 
@@ -57,7 +58,6 @@ export interface AgentOperationResponse {
   error?: { code: string; message: string };
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const REQUEST_KEYS = [
   "tenantId",
   "operationId",
@@ -89,7 +89,7 @@ function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]) {
 }
 
 function readUuid(value: unknown): string {
-  if (typeof value !== "string" || !UUID.test(value)) {
+  if (!isCanonicalRfc9562Uuid(value)) {
     return invalidRequest();
   }
 

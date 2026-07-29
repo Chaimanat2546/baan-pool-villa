@@ -4,7 +4,6 @@ vi.mock("server-only", () => ({}));
 
 import type { CentralUserManagerAgentConfig } from "@/lib/central-user-manager/config";
 import { createHealthRouteHandlers } from "@/lib/central-user-manager/health-route-handler";
-import { AGENT_RESPONSE_HEADERS } from "@/lib/central-user-manager/route-response";
 
 const VALID_TOKEN = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 const TENANT_ID = "123e4567-e89b-42d3-a456-426614174000";
@@ -69,7 +68,13 @@ function dependencies(overrides: {
 }
 
 function expectAgentHeaders(response: Response) {
-  for (const [name, value] of Object.entries(AGENT_RESPONSE_HEADERS)) {
+  for (const [name, value] of Object.entries({
+    "Cache-Control": "private, no-store, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+  })) {
     expect(response.headers.get(name)).toBe(value);
   }
   expect(response.headers.get("Location")).toBeNull();
@@ -148,6 +153,26 @@ describe("Central User Manager health route", () => {
     expect(deps.getHealth).not.toHaveBeenCalled();
   });
 
+  it("contains a rejecting Bearer verifier as a static 503 before health work", async () => {
+    const deps = dependencies();
+    const response = await createHealthRouteHandlers({
+      ...deps,
+      requireBearer: vi.fn(async () => {
+        throw new Error(`crypto failed ${VALID_TOKEN}`);
+      }),
+    }).GET(request());
+
+    expect(response.status).toBe(503);
+    expectAgentHeaders(response);
+    expect(deps.getHealth).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      error: {
+        code: "agent_unavailable",
+        message: "Central User Manager Agent is unavailable.",
+      },
+    });
+  });
+
   it.each([undefined, "", "2", "1, 1"])(
     "returns 422 for invalid protocol version %s after Bearer",
     async (version) => {
@@ -192,6 +217,50 @@ describe("Central User Manager health route", () => {
     const serialized = JSON.stringify(await deps.getHealth.mock.results[0]?.value);
     expect(serialized).not.toContain(CONFIG.bearerToken);
     expect(serialized).not.toContain(CONFIG.supabaseSecretKey);
+  });
+
+  it.each([
+    ["tenantId", { tenantId: "123e4567-e89b-42d3-a456-426614174099" }],
+    ["tokenVersion", { tokenVersion: 8 }],
+    ["projectRef", { projectRef: "zyxwvutsrqponmlkjihg" }],
+    ["agentVersion", { agentVersion: "9.9.9" }],
+    ["schemaVersion", { schemaVersion: "wrong" }],
+    [
+      "auth attestation",
+      {
+        authAttestation: {
+          version: "wrong",
+          digest: "b".repeat(64),
+          checkedAt: "2026-07-30T00:00:00.000Z",
+        },
+      },
+    ],
+  ])("rejects health data with mismatched authorized %s", async (_label, mismatch) => {
+    const health = vi.fn(async () => ({
+      ok: true as const,
+      data: {
+        tenantId: TENANT_ID,
+        protocolVersion: 1 as const,
+        tokenVersion: CONFIG.tokenVersion,
+        projectRef: CONFIG.projectRef,
+        agentVersion: CONFIG.agentVersion,
+        schemaVersion: CONFIG.schemaVersion,
+        checks: {
+          database: "ok" as const,
+          adminUsersTable: "ok" as const,
+          operationTables: "ok" as const,
+        },
+        authAttestation: CONFIG.authAttestation,
+        ...mismatch,
+      },
+    }));
+
+    const response = await createHealthRouteHandlers(
+      dependencies({ health }),
+    ).GET(request());
+
+    expect(response.status).toBe(503);
+    expectAgentHeaders(response);
   });
 
   it.each([

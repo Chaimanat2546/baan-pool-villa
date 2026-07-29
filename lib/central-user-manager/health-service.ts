@@ -93,6 +93,25 @@ export function isCentralUserManagerHealthData(
   );
 }
 
+export function matchesAuthorizedCentralUserManagerHealth(
+  value: unknown,
+  config: CentralUserManagerAgentConfig,
+  tokenVersion: number,
+): value is CentralUserManagerHealthData {
+  return (
+    isCentralUserManagerHealthData(value) &&
+    value.tenantId === config.tenantId &&
+    value.tokenVersion === tokenVersion &&
+    value.tokenVersion === config.tokenVersion &&
+    value.projectRef === config.projectRef &&
+    value.agentVersion === config.agentVersion &&
+    value.schemaVersion === config.schemaVersion &&
+    value.authAttestation.version === config.authAttestation.version &&
+    value.authAttestation.digest === config.authAttestation.digest &&
+    value.authAttestation.checkedAt === config.authAttestation.checkedAt
+  );
+}
+
 export async function probeCentralUserManagerHealth(
   client: CentralUserManagerAdminClient,
 ): Promise<

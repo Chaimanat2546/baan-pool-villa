@@ -135,7 +135,8 @@ export function createOperationsRouteHandlers(
           operationRequest,
         );
         return operationRouteResponse(
-          authorization.config.tenantId,
+          authorization.config,
+          operationRequest,
           operation,
         );
       } catch {

@@ -5,7 +5,6 @@ vi.mock("server-only", () => ({}));
 import type { CentralUserManagerAgentConfig } from "@/lib/central-user-manager/config";
 import type { CentralUserOperationContext } from "@/lib/central-user-manager/operation-service";
 import { createOperationsRouteHandlers } from "@/lib/central-user-manager/operations-route-handler";
-import { AGENT_RESPONSE_HEADERS } from "@/lib/central-user-manager/route-response";
 
 const VALID_TOKEN = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 const TENANT_ID = "123e4567-e89b-42d3-a456-426614174000";
@@ -83,7 +82,13 @@ function dependencies(overrides: {
 }
 
 function expectAgentHeaders(response: Response) {
-  for (const [name, value] of Object.entries(AGENT_RESPONSE_HEADERS)) {
+  for (const [name, value] of Object.entries({
+    "Cache-Control": "private, no-store, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+  })) {
     expect(response.headers.get(name)).toBe(value);
   }
   expect(response.headers.get("Location")).toBeNull();
@@ -169,6 +174,40 @@ describe("Central User Manager operations route", () => {
       expectAgentHeaders(response);
     },
   );
+
+  it("contains a rejecting Bearer verifier before body, hash, client, or service work", async () => {
+    let bodyRead = false;
+    const guardedRequest = {
+      headers: request().headers,
+      get body() {
+        bodyRead = true;
+        throw new Error("body must remain unread");
+      },
+    } as unknown as Request;
+    const digest = vi.fn();
+    const deps = dependencies();
+
+    const response = await createOperationsRouteHandlers({
+      ...deps,
+      requireBearer: vi.fn(async () => {
+        throw new Error(`crypto failed ${VALID_TOKEN}`);
+      }),
+      crypto: { subtle: { digest } } as Pick<Crypto, "subtle">,
+    }).POST(guardedRequest);
+
+    expect(response.status).toBe(503);
+    expectAgentHeaders(response);
+    expect(bodyRead).toBe(false);
+    expect(digest).not.toHaveBeenCalled();
+    expect(deps.createContext).not.toHaveBeenCalled();
+    expect(deps.execute).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      error: {
+        code: "agent_unavailable",
+        message: "Central User Manager Agent is unavailable.",
+      },
+    });
+  });
 
   it.each([undefined, "", "2", "1, 1"])(
     "rejects protocol version %s before body/client/service",
@@ -292,6 +331,39 @@ describe("Central User Manager operations route", () => {
     expect(deps.execute).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["operationId version", {
+      operationId: "123e4567-e89b-02d3-a456-426614174001",
+    }],
+    ["actorUid variant", {
+      actorUid: "123e4567-e89b-42d3-7456-426614174002",
+    }],
+  ])(
+    "rejects an invalid UUID %s before hashing, context, or dispatch",
+    async (_label, invalidIdentity) => {
+      const digest = vi.fn();
+      const deps = dependencies();
+      const body = JSON.stringify({
+        tenantId: TENANT_ID,
+        operationId: OPERATION_ID,
+        actorUid: ACTOR_UID,
+        action: "list_users",
+        payload: { page: 1, pageSize: 25 },
+        ...invalidIdentity,
+      });
+
+      const response = await createOperationsRouteHandlers({
+        ...deps,
+        crypto: { subtle: { digest } } as Pick<Crypto, "subtle">,
+      }).POST(request(body));
+
+      expect(response.status).toBe(422);
+      expect(digest).not.toHaveBeenCalled();
+      expect(deps.createContext).not.toHaveBeenCalled();
+      expect(deps.execute).not.toHaveBeenCalled();
+    },
+  );
+
   it("returns 403 for a parsed cross-Tenant body before hashing/client/service", async () => {
     const digest = vi.fn();
     const deps = dependencies();
@@ -370,6 +442,27 @@ describe("Central User Manager operations route", () => {
     expect(JSON.stringify(body)).not.toContain("temporaryPassword");
   });
 
+  it("rejects a service operation ID that differs from the parsed request", async () => {
+    const execute = vi.fn(async () => ({
+      operationId: "123e4567-e89b-42d3-a456-426614174099",
+      status: "completed" as const,
+      stage: "listed",
+      result: {
+        users: [],
+        pagination: { page: 1, pageSize: 25, hasMore: false },
+      },
+    }));
+
+    const response = await createOperationsRouteHandlers(
+      dependencies({ execute }),
+    ).POST(request());
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toContain(
+      "123e4567-e89b-42d3-a456-426614174099",
+    );
+  });
+
   it.each([
     ["in_progress", 409],
     ["needs_review", 409],
@@ -378,7 +471,10 @@ describe("Central User Manager operations route", () => {
     const execute = vi.fn(async () => ({
       operationId: OPERATION_ID,
       status,
-      stage: "safe_stage",
+      stage:
+        status === "in_progress"
+          ? "claimed"
+          : status,
       error: { code: "lease_conflict", message: "Safe message." },
     }));
 
@@ -390,13 +486,17 @@ describe("Central User Manager operations route", () => {
     expectAgentHeaders(response);
   });
 
-  it("returns a first successful temporary password but strips unsafe provider fields", async () => {
+  it("suppresses a temporary password from a completed list response", async () => {
     const password = "Temp-Password-123!Aa";
     const execute = vi.fn(async () => ({
       operationId: OPERATION_ID,
       status: "completed" as const,
-      stage: "completed",
-      result: { temporaryPassword: password },
+      stage: "listed",
+      result: {
+        users: [],
+        pagination: { page: 1, pageSize: 25, hasMore: false },
+        temporaryPassword: password,
+      },
       provider: {
         access_token: "access-token",
         refresh_token: "refresh-token",
@@ -409,10 +509,89 @@ describe("Central User Manager operations route", () => {
     const text = await response.text();
 
     expect(response.status).toBe(200);
-    expect(text).toContain(password);
+    expect(text).not.toContain(password);
     expect(text).not.toContain("access-token");
     expect(text).not.toContain("refresh-token");
   });
+
+  it.each([
+    "create_user",
+    "reissue_temporary_password",
+    "reactivate_user",
+  ] as const)(
+    "returns a first completed %s temporary password",
+    async (action) => {
+      const password = "Temp-Password-123!Aa";
+      const body = JSON.stringify({
+        tenantId: TENANT_ID,
+        operationId: OPERATION_ID,
+        actorUid: ACTOR_UID,
+        action,
+        payload: { email: "admin@example.com" },
+      });
+      const execute = vi.fn(async () => ({
+        operationId: OPERATION_ID,
+        status: "completed" as const,
+        stage: "completed",
+        result: {
+          user: {
+            userId: "123e4567-e89b-42d3-a456-426614174003",
+            email: "admin@example.com",
+            status: "password_change_required" as const,
+            createdAt: "2026-07-29T00:00:00.000Z",
+            lastSignInAt: null,
+            credentialVersion: 1,
+            authCredentialVersion: 1,
+          },
+          temporaryPassword: password,
+        },
+      }));
+
+      const response = await createOperationsRouteHandlers(
+        dependencies({ execute }),
+      ).POST(request(body));
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain(password);
+    },
+  );
+
+  it.each([
+    ["suspend_user", "completed"],
+    ["reissue_temporary_password", "needs_review"],
+  ] as const)(
+    "suppresses a temporary password for %s in %s state",
+    async (action, status) => {
+      const password = "Temp-Password-123!Aa";
+      const body = JSON.stringify({
+        tenantId: TENANT_ID,
+        operationId: OPERATION_ID,
+        actorUid: ACTOR_UID,
+        action,
+        payload: { email: "admin@example.com" },
+      });
+      const execute = vi.fn(async () => ({
+        operationId: OPERATION_ID,
+        status,
+        stage: status === "completed" ? "completed" : "needs_review",
+        result: { temporaryPassword: password },
+        ...(status === "needs_review"
+          ? {
+              error: {
+                code: "identity_mismatch",
+                message: "Safe message.",
+              },
+            }
+          : {}),
+      }));
+
+      const response = await createOperationsRouteHandlers(
+        dependencies({ execute }),
+      ).POST(request(body));
+
+      expect(await response.text()).not.toContain(password);
+    },
+  );
 
   it.each(["database_unavailable", "provider_failure"])(
     "maps a safe %s availability failure to 503 without raw details",

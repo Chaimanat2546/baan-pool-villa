@@ -7,7 +7,7 @@ import {
 } from "./config";
 import {
   getCentralUserManagerHealth,
-  isCentralUserManagerHealthData,
+  matchesAuthorizedCentralUserManagerHealth,
   type CentralUserManagerHealthResult,
 } from "./health-service";
 import {
@@ -69,7 +69,11 @@ export function createHealthRouteHandlers(
         !("ok" in health) ||
         health.ok !== true ||
         !("data" in health) ||
-        !isCentralUserManagerHealthData(health.data)
+        !matchesAuthorizedCentralUserManagerHealth(
+          health.data,
+          authorization.config,
+          authorization.bearer.tokenVersion,
+        )
       ) {
         return agentErrorResponse(
           503,
