@@ -528,7 +528,7 @@ describe("Central User Manager lifecycle operations", () => {
                   outcome: "succeeded",
                   userId: USER_ID,
                   credentialVersion: 2,
-                  suspensionExpectedMustChangePassword: true,
+                  suspensionExpectedForcedFlag: true,
                 },
               }),
             }),
@@ -566,6 +566,54 @@ describe("Central User Manager lifecycle operations", () => {
 
     expect(response.status).toBe("needs_review");
     expect(context.operations.complete).not.toHaveBeenCalled();
+  });
+
+  it("resumes pre-outcome suspension from the profile CAS forced flag", async () => {
+    const recoveredOperation = operation({
+      action: "suspend_user",
+      targetUserId: USER_ID,
+      stage: "profile_advanced",
+      safeResult: {
+        userId: USER_ID,
+        credentialVersion: 2,
+        profileIsActive: false,
+        profileForcedFlag: true,
+      },
+    });
+    const context = operationContext({
+      operations: {
+        claim: vi.fn(async () =>
+          repositorySuccess(
+            claimed({
+              operation: recoveredOperation,
+            }),
+          ),
+        ),
+        renew: vi.fn(async () =>
+          repositorySuccess(
+            claimed({ operation: recoveredOperation }),
+          ),
+        ),
+      },
+      auth: {
+        findByNormalizedEmail: async () =>
+          providerSuccess([providerUser()]),
+      },
+      profiles: {
+        findByUserId: async () => ({
+          ok: true,
+          data: profile({
+            isActive: false,
+            mustChangePassword: true,
+            credentialVersion: 2,
+          }),
+        }),
+      },
+    });
+
+    await executeCentralUserOperation(context, request("suspend_user"));
+
+    expect(context.auth.updateManagedUser).toHaveBeenCalledOnce();
   });
 
   it("fails closed when another email operation owns the active lease", async () => {

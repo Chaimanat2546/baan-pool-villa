@@ -446,4 +446,142 @@ describe("Central User Manager list operation", () => {
     expect(users).toHaveLength(2);
     expect(users?.every((user) => user.status === "abnormal")).toBe(true);
   });
+
+  it("never marks a prefix identity normal when later uniqueness is unproven", async () => {
+    const users = [
+      providerUser({ id: USER_ID, email: "shared@example.com" }),
+      providerUser({
+        id: OTHER_USER_ID,
+        email: "unique@example.com",
+      }),
+      providerUser({
+        id: "123e4567-e89b-42d3-a456-426614174096",
+        email: "shared@example.com",
+      }),
+    ];
+    const profiles = users.map((user) =>
+      profile({ userId: user.id, email: user.email }),
+    );
+    const context = operationContext({
+      auth: {
+        listRange: async ({ offset, limit }) =>
+          providerSuccess({
+            users: users.slice(offset, offset + limit),
+            hasMore: false,
+          }),
+      },
+      profiles: {
+        listRange: async ({ offset, limit }) => ({
+          ok: true,
+          data: {
+            profiles: profiles.slice(offset, offset + limit),
+            hasMore: false,
+          },
+        }),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, {
+      ...request,
+      payload: { page: 1, pageSize: 1 },
+    });
+
+    expect(response.result?.users?.[0]?.status).toBe("abnormal");
+  });
+
+  it("returns a safe failure before exceeding the reconciliation call cap", async () => {
+    let calls = 0;
+    const charge = () => {
+      calls += 1;
+      if (calls > 40) {
+        throw new Error("external call budget exceeded");
+      }
+    };
+    const context = operationContext({
+      auth: {
+        listRange: async ({ offset }) => {
+          charge();
+          return providerSuccess({
+            users: [
+              providerUser({
+                id: `30000000-0000-4000-8000-${String(offset).padStart(12, "0")}`,
+                email: `auth-${offset}@example.com`,
+              }),
+            ],
+            hasMore: true,
+          });
+        },
+        findByUserId: async () => {
+          charge();
+          return providerSuccess(null);
+        },
+      },
+      profiles: {
+        listRange: async ({ offset }) => {
+          charge();
+          return {
+            ok: true,
+            data: {
+              profiles: [
+                profile({
+                  userId: `40000000-0000-4000-8000-${String(offset).padStart(12, "0")}`,
+                  email: `profile-${offset}@example.com`,
+                }),
+              ],
+              hasMore: true,
+            },
+          };
+        },
+        findByUserId: async () => {
+          charge();
+          return { ok: true, data: null };
+        },
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, {
+      ...request,
+      payload: { page: 100, pageSize: 100 },
+    });
+
+    expect(response.status).toBe("needs_review");
+    expect(calls).toBeLessThanOrEqual(40);
+  });
+
+  it("never advertises page 101 from the terminal valid page", async () => {
+    const authUsers = Array.from({ length: 101 }, (_, index) =>
+      providerUser({
+        id: `50000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        email: `terminal-${index}@example.com`,
+      }),
+    );
+    const profiles = authUsers.map((user) =>
+      profile({ userId: user.id, email: user.email }),
+    );
+    const context = operationContext({
+      auth: {
+        listRange: async ({ offset, limit }) =>
+          providerSuccess({
+            users: authUsers.slice(offset, offset + limit),
+            hasMore: offset + limit < authUsers.length,
+          }),
+      },
+      profiles: {
+        listRange: async ({ offset, limit }) => ({
+          ok: true,
+          data: {
+            profiles: profiles.slice(offset, offset + limit),
+            hasMore: offset + limit < profiles.length,
+          },
+        }),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, {
+      ...request,
+      payload: { page: 100, pageSize: 1 },
+    });
+
+    expect(response.result?.pagination?.hasMore).toBe(false);
+  });
 });

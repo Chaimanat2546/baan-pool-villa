@@ -375,22 +375,36 @@ async function executeList(
     payload: { page: number; pageSize: number };
   },
 ): Promise<AgentOperationResponse> {
-  // The public contract caps page and pageSize at 100, so this cumulative
-  // canonical scan is bounded to 10,000 rows per source and 200 range reads.
+  // The public contract caps page and pageSize at 100. The source row ceiling
+  // is 10,000 per side, while the stricter aggregate call budget fails closed
+  // before the provider/database adapters can exceed 40 charged calls.
   const LIST_SOURCE_CHUNK = 100;
   const LIST_SOURCE_ROW_CAP = 10_000;
+  const LIST_EXTERNAL_CALL_CAP = 40;
+  let externalCallCost = 0;
+  const reserveCalls = (cost: number) => {
+    if (externalCallCost + cost > LIST_EXTERNAL_CALL_CAP) {
+      return false;
+    }
+    externalCallCost += cost;
+    return true;
+  };
   const pagination = {
     page: request.payload.page,
     pageSize: Math.min(request.payload.pageSize, 100),
   };
   const resultOffset = (pagination.page - 1) * pagination.pageSize;
   const resultEnd = resultOffset + pagination.pageSize;
-  const candidates: Array<{
+  type ListCandidate = {
     provider: ProviderUser | null;
     profile: CentralAdminProfile | null;
     abnormal: boolean;
-    email: string | null;
-  }> = [];
+    emails: string[];
+  };
+  let candidates: ListCandidate[] = [];
+  const scannedProviders: ProviderUser[] = [];
+  const scannedProfiles: CentralAdminProfile[] = [];
+  let uniquenessProven = false;
 
   for (
     let sourceOffset = 0;
@@ -398,6 +412,15 @@ async function executeList(
     candidates.length <= resultEnd;
     sourceOffset += LIST_SOURCE_CHUNK
   ) {
+    // Auth range may dispatch two provider pages for lookahead; profile range
+    // is one database call.
+    if (!reserveCalls(3)) {
+      return failureResponse(
+        request.operationId,
+        safeError("provider_failure"),
+        "list",
+      );
+    }
     const [authResult, profileResult] = await Promise.all([
       context.auth.listRange({
         offset: sourceOffset,
@@ -419,66 +442,63 @@ async function executeList(
       return failureResponse(request.operationId, profileResult.error, "list");
     }
 
+    scannedProviders.push(...authResult.data.users);
+    scannedProfiles.push(...profileResult.data.profiles);
     const authByUid = new Map(
-      authResult.data.users.map((user) => [user.id, user]),
+      scannedProviders.map((user) => [user.id, user]),
     );
     const profilesByUid = new Map(
-      profileResult.data.profiles.map((profile) => [
-        profile.userId,
-        profile,
-      ]),
+      scannedProfiles.map((profile) => [profile.userId, profile]),
     );
     const batchLength = Math.max(
       authResult.data.users.length,
       profileResult.data.profiles.length,
     );
 
+    candidates = [];
+    let processedEntries = 0;
     for (
       let index = 0;
-      index < batchLength && candidates.length <= resultEnd;
+      index < Math.max(scannedProviders.length, scannedProfiles.length) &&
+      candidates.length <= resultEnd;
       index += 1
     ) {
-      const provider = authResult.data.users[index];
+      processedEntries += 1;
+      const provider = scannedProviders[index];
       if (provider) {
-        const lookup = profilesByUid.has(provider.id)
-          ? { ok: true as const, data: profilesByUid.get(provider.id) ?? null }
-          : await context.profiles.findByUserId({ userId: provider.id });
-        if (!lookup.ok) {
-          return failureResponse(request.operationId, lookup.error, "list");
-        }
-        const profile =
-          lookup.data?.userId === provider.id ? lookup.data : null;
-        const email = normalizedEmail(provider.email);
+        const profile = profilesByUid.get(provider.id) ?? null;
+        const providerEmail = normalizedEmail(provider.email);
+        const profileEmail = profile
+          ? normalizedEmail(profile.email)
+          : null;
         candidates.push({
           provider,
           profile,
-          email,
+          emails: Array.from(
+            new Set(
+              [providerEmail, profileEmail].filter(
+                (email): email is string => Boolean(email),
+              ),
+            ),
+          ),
           abnormal:
             !profile ||
             !isManaged(provider) ||
-            !email ||
-            email !== normalizedEmail(profile.email) ||
+            !providerEmail ||
+            providerEmail !== profileEmail ||
             authCredentialVersion(provider) !== profile.credentialVersion,
         });
       }
 
-      const profile = profileResult.data.profiles[index];
+      const profile = scannedProfiles[index];
       if (profile && candidates.length <= resultEnd) {
-        const lookup = authByUid.has(profile.userId)
-          ? { ok: true as const, data: authByUid.get(profile.userId) ?? null }
-          : await context.auth.findByUserId({ userId: profile.userId });
-        if (!lookup.ok || (lookup.data && lookup.data.id !== profile.userId)) {
-          return failureResponse(
-            request.operationId,
-            safeError("provider_failure"),
-            "list",
-          );
-        }
-        if (lookup.data === null) {
+        if (!authByUid.has(profile.userId)) {
           candidates.push({
             provider: null,
             profile,
-            email: normalizedEmail(profile.email),
+            emails: [normalizedEmail(profile.email)].filter(
+              (email): email is string => Boolean(email),
+            ),
             abnormal: true,
           });
         }
@@ -489,16 +509,20 @@ async function executeList(
       batchLength === 0 ||
       (!authResult.data.hasMore && !profileResult.data.hasMore)
     ) {
+      uniquenessProven =
+        batchLength === 0 ||
+        processedEntries ===
+          Math.max(scannedProviders.length, scannedProfiles.length);
       break;
     }
   }
 
   const emailCounts = new Map<string, number>();
   for (const candidate of candidates) {
-    if (candidate.email) {
+    for (const email of candidate.emails) {
       emailCounts.set(
-        candidate.email,
-        (emailCounts.get(candidate.email) ?? 0) + 1,
+        email,
+        (emailCounts.get(email) ?? 0) + 1,
       );
     }
   }
@@ -509,8 +533,11 @@ async function executeList(
         candidate.provider,
         candidate.profile,
         candidate.abnormal ||
-          !candidate.email ||
-          (emailCounts.get(candidate.email) ?? 0) > 1,
+          !uniquenessProven ||
+          candidate.emails.length === 0 ||
+          candidate.emails.some(
+            (email) => (emailCounts.get(email) ?? 0) > 1,
+          ),
       ),
     );
   return {
@@ -521,7 +548,8 @@ async function executeList(
       users,
       pagination: {
         ...pagination,
-        hasMore: candidates.length > resultEnd,
+        hasMore:
+          pagination.page < 100 && candidates.length > resultEnd,
       },
     },
   };
@@ -1358,10 +1386,13 @@ async function executeLifecycle(
     const checkpointIsActive =
       lease.operation.safeResult?.profileIsActive;
     const checkpointMustChange =
-      lease.operation.safeResult?.profileMustChangePassword;
+      lease.operation.safeResult?.profileForcedFlag;
     const suspensionCheckpoint =
       lease.operation.safeResult
-        ?.suspensionExpectedMustChangePassword;
+        ?.suspensionExpectedForcedFlag;
+    const expectedSuspensionFlag = durableProfileCheckpoint
+      ? checkpointMustChange
+      : suspensionCheckpoint;
     const authVersion = authCredentialVersion(provider);
     const exactRecoveredIdentity =
       provider.id === userId &&
@@ -1378,14 +1409,14 @@ async function executeLifecycle(
           profile.mustChangePassword === checkpointMustChange
         : authVersion === storedVersion) &&
       (action !== "suspend_user" ||
-        (typeof suspensionCheckpoint === "boolean" &&
-          profile.mustChangePassword === suspensionCheckpoint));
+        (typeof expectedSuspensionFlag === "boolean" &&
+          profile.mustChangePassword === expectedSuspensionFlag));
     if (!exactRecoveredIdentity) {
       return needsReview(context, lease, "identity_mismatch");
     }
     if (action === "suspend_user") {
       suspensionExpectedMustChangePassword =
-        suspensionCheckpoint as boolean;
+        expectedSuspensionFlag as boolean;
     }
   }
 

@@ -238,6 +238,46 @@ describe("Central User Manager profile repository", () => {
     },
   );
 
+  it("maps the suspension CAS RPC's returned profile shape", async () => {
+    const fake = fakeClient({
+      rpcData: profileRow({
+        is_active: false,
+        must_change_password: true,
+        credential_version: 2,
+      }),
+    });
+
+    await expect(
+      advanceAdminProfileForOperation(
+        {
+          operationId: OPERATION_ID,
+          fenceVersion: 1,
+          leaseToken: LEASE_TOKEN,
+          userId: USER_ID,
+          email: EMAIL,
+          expectedIsActive: true,
+          expectedMustChangePassword: false,
+          expectedCredentialVersion: 1,
+          nextIsActive: false,
+          nextMustChangePassword: true,
+          nextCredentialVersion: 2,
+        },
+        { client: fake.client },
+      ),
+    ).resolves.toEqual({
+      ok: true,
+      data: {
+        userId: USER_ID,
+        email: EMAIL,
+        role: "admin",
+        isActive: false,
+        mustChangePassword: true,
+        credentialVersion: 2,
+        createdAt: "2026-07-29T00:00:00.000Z",
+      },
+    });
+  });
+
   it("rejects stale/malformed RPC rows without reflecting database details", async () => {
     const fake = fakeClient({
       rpcData: { ...profileRow(), credential_version: 0 },

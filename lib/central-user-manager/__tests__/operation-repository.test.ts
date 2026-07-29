@@ -290,6 +290,53 @@ describe("Central User Manager operation repository", () => {
     });
   });
 
+  it("maps password-free suspension checkpoints from a resumed operation", async () => {
+    const { client } = fakeClient({
+      data: {
+        operation: {
+          ...baseRpcOperation,
+          action: "suspend_user",
+          target_user_id: TARGET_USER_ID,
+          status: "provider_outcome",
+          stage: "provider_outcome",
+          safe_result: {
+            profileIsActive: false,
+            profileForcedFlag: true,
+            suspensionExpectedForcedFlag: true,
+          },
+        },
+        disposition: "first_claim",
+        lease_token_accepted: true,
+      },
+      error: null,
+    });
+
+    await expect(
+      resumeAdminUserOperation(
+        {
+          operationId: OPERATION_ID,
+          actorUid: ACTOR_UID,
+          action: "suspend_user",
+          targetUserId: TARGET_USER_ID,
+          targetEmailNormalized: "admin@example.com",
+          requestHash: REQUEST_HASH,
+        },
+        { client, crypto: deterministicCrypto() },
+      ),
+    ).resolves.toMatchObject({
+      ok: true,
+      data: {
+        operation: {
+          safeResult: {
+            profileIsActive: false,
+            profileForcedFlag: true,
+            suspensionExpectedForcedFlag: true,
+          },
+        },
+      },
+    });
+  });
+
   it("uses scalar v2 provider intent/outcome RPCs without caller JSON", async () => {
     const intent = fakeClient({
       data: {
