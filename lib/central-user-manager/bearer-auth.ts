@@ -16,7 +16,7 @@ export interface VerifiedCentralBearerRequest {
 
 type WebCryptoDependency = Pick<Crypto, "subtle">;
 
-function isValidToken(value: string): boolean {
+export function isCanonicalCentralBearerToken(value: string): boolean {
   return (
     BASE64URL_TOKEN_PATTERN.test(value) &&
     CANONICAL_BASE64URL_FINAL_CHARACTER_PATTERN.test(value.charAt(42))
@@ -71,7 +71,7 @@ export async function requireCentralBearer(
   tokenVersion: number,
   cryptoDependency: WebCryptoDependency = globalThis.crypto,
 ): Promise<VerifiedCentralBearerRequest | Response> {
-  if (!isValidToken(expectedToken)) {
+  if (!isCanonicalCentralBearerToken(expectedToken)) {
     return errorResponse(503);
   }
 
@@ -80,7 +80,7 @@ export async function requireCentralBearer(
     ? authorization.slice("Bearer ".length)
     : null;
 
-  if (!suppliedToken || !isValidToken(suppliedToken)) {
+  if (!suppliedToken || !isCanonicalCentralBearerToken(suppliedToken)) {
     return errorResponse(401);
   }
 

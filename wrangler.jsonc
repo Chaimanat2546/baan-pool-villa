@@ -42,7 +42,9 @@
 				}
 			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com"
+				"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "false",
+				"CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED": "false"
 			},
 			"services": [
 				{
@@ -85,9 +87,11 @@
 			"secrets": {
 				"required": [
 					"CALENDAR_INTERNAL_API_TOKEN",
+					"CENTRAL_USER_MANAGER_BEARER_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
 					"TURNSTILE_SECRET_KEY"
 				]
 			}
@@ -111,7 +115,9 @@
 				}
 			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://www.poolvillapattaya.co.th"
+				"NEXT_PUBLIC_SITE_URL": "https://www.poolvillapattaya.co.th",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "false",
+				"CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED": "false"
 			},
 			"services": [
 				{
@@ -154,9 +160,11 @@
 			"secrets": {
 				"required": [
 					"CALENDAR_INTERNAL_API_TOKEN",
+					"CENTRAL_USER_MANAGER_BEARER_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
 					"TURNSTILE_SECRET_KEY"
 				]
 			}
@@ -180,7 +188,9 @@
 				}
 			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://www.pmheevilla.com"
+				"NEXT_PUBLIC_SITE_URL": "https://www.pmheevilla.com",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "false",
+				"CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED": "false"
 			},
 			"services": [
 				{
@@ -223,9 +233,11 @@
 			"secrets": {
 				"required": [
 					"CALENDAR_INTERNAL_API_TOKEN",
+					"CENTRAL_USER_MANAGER_BEARER_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
 					"TURNSTILE_SECRET_KEY"
 				]
 			}
