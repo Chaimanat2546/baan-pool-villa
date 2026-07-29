@@ -92,14 +92,19 @@ source-controlled migrations ใน branch นี้ยังไม่ได้ 
 immediate single-token rotation downtime ตามลำดับนี้:
 
 1. เปลี่ยน Tenant ใน central registry เป็น `inactive` และหยุดส่ง mutation ใหม่
-2. สร้าง Bearer 256-bit ใหม่ด้วย cryptographic RNG และเพิ่ม `tokenVersion`
-3. update Worker secret ของ Tenant และ deploy/configure Tenant ให้รับ token ใหม่
-4. update สำเนาใน central secret vault ให้ตรงกัน ห้ามเก็บ token เก่าเป็น fallback
-5. เรียก authenticated health ด้วย token ใหม่ ตรวจ token version, Tenant
+2. enumerate/check ทุก in-flight mutation ของ Tenant: แต่ละรายการต้อง resolve
+   ด้วย proven outcome หรือทำ explicit quarantine สำหรับงานที่ unresolved หรือ
+   ambiguous และต้องยืนยันว่าไม่มี mutation ตกหล่น
+3. ถ้า in-flight mutation gate ไม่ผ่าน ให้คง Tenant เป็น `inactive` และหยุด
+   rotation ก่อนสร้าง, install หรือ cut over ไป token ใหม่
+4. สร้าง Bearer 256-bit ใหม่ด้วย cryptographic RNG และเพิ่ม `tokenVersion`
+5. update Worker secret ของ Tenant และ deploy/configure Tenant ให้รับ token ใหม่
+6. update สำเนาใน central secret vault ให้ตรงกัน ห้ามเก็บ token เก่าเป็น fallback
+7. เรียก authenticated health ด้วย token ใหม่ ตรวจ token version, Tenant
    identity, schema และ attestation ให้ครบ
-6. เรียก authenticated read-only `list_users` ผ่าน operations path ด้วย token
+8. เรียก authenticated read-only `list_users` ผ่าน operations path ด้วย token
    ใหม่และตรวจ reconciled list โดยไม่มี mutation
-7. เมื่อ health และ `list_users` ผ่านทั้งคู่เท่านั้นจึงเปลี่ยน Tenant กลับเป็น
+9. เมื่อ health และ `list_users` ผ่านทั้งคู่เท่านั้นจึงเปลี่ยน Tenant กลับเป็น
    `active`
 
 provisioning, rotation, Auth attestation, authenticated health หรือ

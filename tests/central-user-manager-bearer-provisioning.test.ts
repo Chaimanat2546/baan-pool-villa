@@ -117,6 +117,12 @@ describe("Central User Manager Tenant provisioning guide", () => {
     expect(guide).toMatch(/Tenant ใหม่[\s\S]*deploy[\s\S]*ครั้งแรก/i);
     expect(guide).toMatch(/initial install[\s\S]*health[\s\S]*list_users[\s\S]*active/i);
     expect(guide).toMatch(/rotation downtime[\s\S]*health[\s\S]*list_users[\s\S]*active/i);
+    expect(guide).toMatch(
+      /rotation downtime[\s\S]*inactive[\s\S]*หยุดส่ง mutation ใหม่[\s\S]*in-flight mutation[\s\S]*proven outcome[\s\S]*quarantine[\s\S]*ไม่มี mutation ตกหล่น[\s\S]*สร้าง Bearer 256-bit ใหม่/i,
+    );
+    expect(guide).toMatch(
+      /in-flight mutation[\s\S]*gate[\s\S]*ไม่ผ่าน[\s\S]*inactive/i,
+    );
     expect(guide).toMatch(/health[\s\S]*list_users[\s\S]*ล้มเหลว[\s\S]*inactive/i);
     expect(guide).toMatch(/prepare migrations[\s\S]*dry-run backfill[\s\S]*approved apply \+ verify[\s\S]*enforcement migration[\s\S]*enable credential fence/i);
     expect(guide).toMatch(/ล้มเหลว[\s\S]*inactive/i);
@@ -140,6 +146,9 @@ describe("Central User Manager Tenant provisioning guide", () => {
     )?.[0];
     expect(taskTwelveOwnership).toContain("Bearer-only");
     expect(taskTwelveOwnership).toContain("list_users");
+    expect(taskTwelveOwnership).toContain("in-flight mutation");
+    expect(taskTwelveOwnership).toContain("proven outcome");
+    expect(taskTwelveOwnership).toContain("explicit quarantine");
     expect(taskTwelveOwnership).not.toContain("Access-protected");
   });
 });
