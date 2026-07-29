@@ -386,6 +386,36 @@ describe("Central User Manager Supabase Auth provider", () => {
     expect(JSON.stringify(result)).not.toContain(rawSecret);
   });
 
+  it("quarantines a non-enumerated 5xx weak-password create response", async () => {
+    const rawSecret = "weak create password in a 519 provider response";
+    const createUser = vi.fn().mockResolvedValue({
+      data: { user: null },
+      error: new AuthWeakPasswordError(rawSecret, 519, ["characters"]),
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { createUser } } },
+    });
+
+    const result = await createManagedAuthUser(
+      {
+        email: "admin@example.com",
+        password: rawSecret,
+        operationId: OPERATION_ID,
+      },
+      deps,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_unavailable",
+        message: "Supabase Auth is unavailable.",
+      },
+      ambiguous: true,
+    });
+    expect(JSON.stringify(result)).not.toContain(rawSecret);
+  });
+
   it("preserves unrelated app metadata while advancing managed credentials", async () => {
     const current = providerUser({
       appMetadata: {

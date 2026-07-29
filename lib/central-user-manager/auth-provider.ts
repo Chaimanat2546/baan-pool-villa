@@ -126,7 +126,10 @@ function classifyReturnedAuthError(
     (isAuthApiError(error) &&
       error.status >= 400 &&
       error.status < 500) ||
-    (allowlist.weakPassword === true && isAuthWeakPasswordError(error)) ||
+    (allowlist.weakPassword === true &&
+      isAuthWeakPasswordError(error) &&
+      error.status >= 400 &&
+      error.status < 500) ||
     (allowlist.sessionMissing === true &&
       isAuthSessionMissingError(error))
   ) {
