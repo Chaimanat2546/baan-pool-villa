@@ -65,7 +65,7 @@
             <tr>
               <td><code>docs/central-user-manager/tenant-provisioning.md</code></td>
               <td>Thai operator runbook for per-Tenant provisioning and immediate single-token rotation</td>
-              <td>Owns the two-copy Bearer boundary, first-deploy-only new-Tenant setup, exact two Access-protected no-store paths, disabled-to-active health gates, mandatory <code>prepare migrations → dry-run backfill → approved apply + verify → enforcement migration → enable credential fence</code> order, inactive-on-failure rule, no-overlap rotation downtime, lost temporary-password reissue, quarantine/read-only reconciliation, one-sided identity repair, and rollback boundaries. The source-controlled migrations are not evidence that an online project has been changed.</td>
+              <td>Owns the two-copy Bearer boundary, first-deploy-only new-Tenant setup, exact two Bearer-only no-store paths, disabled-to-active authenticated health plus authenticated read-only <code>list_users</code> gates, mandatory <code>prepare migrations → dry-run backfill → approved apply + verify → enforcement migration → enable credential fence</code> order, inactive-on-either-gate-failure rule, no-overlap rotation downtime, lost temporary-password reissue, quarantine/read-only reconciliation, one-sided identity repair, and rollback boundaries. The source-controlled migrations are not evidence that an online project has been changed.</td>
             </tr>
             <tr>
               <td><code>supabase/</code></td>
@@ -1116,7 +1116,7 @@
             <tr>
               <td>Central User Manager Tenant provisioning token, Auth attestation, or operator runbook</td>
               <td><code>npm.cmd test -- tests/central-user-manager-bearer-provisioning.test.ts tests/central-user-manager-auth-attestation.test.ts</code>, then targeted ESLint for the two helpers and two tests.</td>
-              <td>Verify exact 43-character canonical base64url decoding/re-encoding to 32 bytes, redacted invalid results, positive safe token versions, fixed-key deterministic <code>v1</code> Auth attestation over every required non-secret value, strict signup/anonymous/password-policy checks, and rejection of extra or secret-bearing fields. Review the Thai guide for the exact rollout/rotation/failure/repair boundaries and example-secret absence. These helpers are pure inputs for a future <code>webook</code> provisioning CLI and must not become a live Management API client.</td>
+              <td>Verify exact 43-character canonical base64url decoding/re-encoding to 32 bytes, redacted invalid results, positive safe token versions, fixed-key deterministic <code>v1</code> Auth attestation over every required non-secret value, strict signup/anonymous/password-policy checks, all-own-key rejection of non-enumerable/symbol extras, and rejection of Unicode <code>Cc</code>, <code>Cf</code>, <code>Cs</code>, <code>Zl</code>, and <code>Zp</code> password-policy characters while preserving exact ordinary/empty readback. Review the Thai guide for Bearer-only exact routes, authenticated health plus authenticated read-only <code>list_users</code> activation/rotation gates, inactive-on-either-failure behavior, the remaining rollout/repair boundaries, and example-secret absence. These helpers are pure inputs for a future <code>webook</code> provisioning CLI and must not become a live Management API client.</td>
             </tr>
             <tr>
               <td>Public/admin visual UI, loading states, layout, or responsiveness</td>

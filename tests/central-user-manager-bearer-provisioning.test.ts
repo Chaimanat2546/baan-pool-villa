@@ -88,9 +88,11 @@ describe("Central User Manager Tenant provisioning guide", () => {
       "secret vault",
       "Worker secret",
       "NEXT_PUBLIC_*",
-      "Cloudflare Access",
       "/api/internal/central-user-manager/v1/health",
       "/api/internal/central-user-manager/v1/operations",
+      "Bearer-only",
+      "replaces Cloudflare Access and Ed25519",
+      "list_users",
       "CENTRAL_USER_MANAGER_AGENT_ENABLED",
       "CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED",
       "prepare migrations",
@@ -113,16 +115,31 @@ describe("Central User Manager Tenant provisioning guide", () => {
 
     expect(guide).toMatch(/ไม่ต้อง redeploy[\s\S]*webook/i);
     expect(guide).toMatch(/Tenant ใหม่[\s\S]*deploy[\s\S]*ครั้งแรก/i);
+    expect(guide).toMatch(/initial install[\s\S]*health[\s\S]*list_users[\s\S]*active/i);
+    expect(guide).toMatch(/rotation downtime[\s\S]*health[\s\S]*list_users[\s\S]*active/i);
+    expect(guide).toMatch(/health[\s\S]*list_users[\s\S]*ล้มเหลว[\s\S]*inactive/i);
     expect(guide).toMatch(/prepare migrations[\s\S]*dry-run backfill[\s\S]*approved apply \+ verify[\s\S]*enforcement migration[\s\S]*enable credential fence/i);
     expect(guide).toMatch(/ล้มเหลว[\s\S]*inactive/i);
     expect(guide).toMatch(/lost[\s\S]*temporary password[\s\S]*reissue/i);
     expect(guide).toMatch(/ไม่ replay[\s\S]*Auth mutation/i);
     expect(guide).not.toMatch(/Bearer\s+[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/);
     expect(guide).not.toContain("Bearer ey");
+    expect(guide).not.toContain("Service Auth");
+    expect(guide).not.toContain("Access credential");
+    expect(guide).not.toContain("Access Client");
+    expect(guide).not.toContain("Access application");
 
     const readme = await readFile(resolve("README.md"), "utf8");
     expect(readme).toContain(
       "[คู่มือ Tenant provisioning](docs/central-user-manager/tenant-provisioning.md)",
     );
+
+    const structure = await readFile(resolve("docs/ai/structure.html"), "utf8");
+    const taskTwelveOwnership = structure.match(
+      /<td><code>docs\/central-user-manager\/tenant-provisioning\.md<\/code>[\s\S]*?<\/tr>/,
+    )?.[0];
+    expect(taskTwelveOwnership).toContain("Bearer-only");
+    expect(taskTwelveOwnership).toContain("list_users");
+    expect(taskTwelveOwnership).not.toContain("Access-protected");
   });
 });

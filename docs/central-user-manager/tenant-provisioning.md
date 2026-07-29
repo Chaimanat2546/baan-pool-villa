@@ -10,7 +10,8 @@ environment และต้องเก็บ Tenant เป็น `inactive` จ
 การเรียก API ด้วย Bearer ทั่วไป ความแตกต่างคือแต่ละ Tenant มี Bearer เฉพาะของ
 ตัวเอง: `webook` ส่ง dedicated Bearer ของ Tenant เป้าหมาย และ Worker ของ Tenant
 เก็บค่าที่คาดไว้เพื่อเปรียบเทียบ จึงแยกผลกระทบของ secret ต่อ Tenant ไม่ใช้
-token กลางร่วมกัน
+token กลางร่วมกัน นี่เป็นสถาปัตยกรรม `Bearer-only`: Bearer replaces Cloudflare Access and Ed25519
+และไม่ได้เปิดหลายโหมดพร้อมกัน
 
 Bearer ต้องถูกสร้างใน provisioning orchestration ด้วย cryptographic RNG เป็น
 ค่า 256-bit (32 bytes) แล้วเข้ารหัส canonical unpadded base64url ห้ามใช้
@@ -25,9 +26,8 @@ Bearer ต้องถูกสร้างใน provisioning orchestration ด
 
 ห้ามเก็บค่า secret ใน source, Git, database rows, browser, เอกสาร, ticket,
 clipboard history, logs หรือค่าที่ขึ้นต้น `NEXT_PUBLIC_*` และห้ามบันทึก hash
-เพื่อใช้แสดงแทน token ด้วย ส่วน `SUPABASE_SECRET_KEY`, Cloudflare Access
-Service Client Secret และ Management API credential เป็น server/provisioning
-secret ที่ต้องแยกขอบเขตตามหน้าที่เช่นกัน
+เพื่อใช้แสดงแทน token ด้วย ส่วน `SUPABASE_SECRET_KEY` และ Management API
+credential เป็น server/provisioning secret ที่ต้องแยกขอบเขตตามหน้าที่เช่นกัน
 
 การเพิ่ม Tenant ไม่ต้อง redeploy แอป `webook` หรือ Tenant เดิม แต่ environment
 และ Worker ของ Tenant ใหม่ต้อง configure และ deploy ครั้งแรกหนึ่งครั้งใน
@@ -40,10 +40,13 @@ initial install หลังจากนั้น registry ของ `webook` �
 1. สร้าง registry record เป็น `inactive` พร้อม canonical Tenant UUID, Supabase
    project ref 20 ตัวอักษร, hostname, expected agent/schema/protocol version
    และ `tokenVersion` ที่เป็นจำนวนเต็มบวก
-2. ตั้ง Cloudflare Access application และ Service Auth policy ให้ป้องกันเฉพาะ
-   สอง path นี้:
+2. ยืนยันว่า Worker ส่งตรงเฉพาะสอง path แบบ `Bearer-only` นี้ไปยัง Agent โดยไม่
+   ผ่าน public cache:
    - `/api/internal/central-user-manager/v1/health`
    - `/api/internal/central-user-manager/v1/operations`
+   ทั้งสอง path รับเฉพาะ exact per-Tenant Bearer และ `X-CUM-Version: 1`;
+   คำขอที่ไม่มี Bearer, Bearer ผิด Tenant หรือ Bearer ผิด version ต้อง fail
+   closed ก่อนสร้าง Supabase client หรือทำ operation
 3. ตั้ง nonsecret Worker vars ให้ครบ:
    `CENTRAL_USER_MANAGER_AGENT_ENABLED=false`,
    `CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED=false`,
@@ -66,15 +69,19 @@ initial install หลังจากนั้น registry ของ `webook` �
    `auth-attestation.mjs` บันทึก `v1`, digest และ checked time ใน registry กับ
    nonsecret Worker vars ห้ามส่ง Management API token หรือ provider error เข้า
    helper
-7. deploy Worker ของ Tenant ใหม่โดยทั้งสอง feature flags ยังเป็น `false`
-   ตรวจว่า Access ปฏิเสธคำขอที่ไม่มี service credential และ Worker รับเฉพาะ
-   exact two paths ข้างต้นโดยไม่ผ่าน public cache
-8. เปิด `CENTRAL_USER_MANAGER_AGENT_ENABLED=true` แล้วเรียก health ด้วย Access
-   credential และ Bearer ของ Tenant ตรวจ exact Tenant/project/token/version,
-   schema/RPC checks, no-store headers และ Auth attestation ให้ตรง registry
-9. เปิด `CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED=true` หลัง enforcement
-   migration และ health verification เท่านั้น เรียก health ซ้ำ แล้วจึงเปลี่ยน
-   registry เป็น `active`
+7. deploy Worker ของ Tenant ใหม่โดยทั้งสอง feature flags ยังเป็น `false` แล้ว
+   ยืนยันว่า exact two paths ข้างต้น bypass public cache และ reject คำขอที่ไม่มี
+   Bearer
+8. หลัง enforcement migration ผ่านแล้วจึงเปิด
+   `CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED=true` และ
+   `CENTRAL_USER_MANAGER_AGENT_ENABLED=true` จากนั้น deploy config ของ Tenant
+9. เรียก authenticated health ด้วย Bearer ของ Tenant ตรวจ exact
+   Tenant/project/token/version, schema/RPC checks, no-store headers และ Auth
+   attestation ให้ตรง registry
+10. เรียก authenticated read-only `list_users` ผ่าน operations path ด้วย Bearer
+    เดียวกัน ตรวจว่า response เป็น reconciled list ที่ถูกต้องและไม่มี mutation
+11. เปลี่ยน registry เป็น `active` แบบ atomic เมื่อ authenticated health และ
+    authenticated read-only `list_users` ผ่านทั้งคู่เท่านั้น
 
 source-controlled migrations ใน branch นี้ยังไม่ได้ apply กับ online project
 ใดโดยเอกสารนี้ การ apply ต้องเป็น approved operation แยกต่างหาก
@@ -88,12 +95,16 @@ immediate single-token rotation downtime ตามลำดับนี้:
 2. สร้าง Bearer 256-bit ใหม่ด้วย cryptographic RNG และเพิ่ม `tokenVersion`
 3. update Worker secret ของ Tenant และ deploy/configure Tenant ให้รับ token ใหม่
 4. update สำเนาใน central secret vault ให้ตรงกัน ห้ามเก็บ token เก่าเป็น fallback
-5. เรียก health ด้วย token ใหม่ ตรวจ token version, Tenant identity, schema และ
-   attestation ให้ครบ
-6. เมื่อ health ผ่านเท่านั้นจึงเปลี่ยน Tenant กลับเป็น `active`
+5. เรียก authenticated health ด้วย token ใหม่ ตรวจ token version, Tenant
+   identity, schema และ attestation ให้ครบ
+6. เรียก authenticated read-only `list_users` ผ่าน operations path ด้วย token
+   ใหม่และตรวจ reconciled list โดยไม่มี mutation
+7. เมื่อ health และ `list_users` ผ่านทั้งคู่เท่านั้นจึงเปลี่ยน Tenant กลับเป็น
+   `active`
 
-provisioning, rotation, Auth attestation หรือ health ใดล้มเหลว ต้องคง Tenant
-เป็น `inactive`; อย่าย้อนมาใช้ token เก่าและอย่าเปิดสอง token พร้อมกัน
+provisioning, rotation, Auth attestation, authenticated health หรือ
+authenticated read-only `list_users` ใดล้มเหลว ต้องคง Tenant เป็น `inactive`;
+อย่าย้อนมาใช้ token เก่าและอย่าเปิดสอง token พร้อมกัน
 
 ## Temporary password, quarantine และการซ่อมข้อมูล
 
@@ -131,7 +142,8 @@ dry-run จน clean:
 
 - ปิด Tenant ใน central registry เพื่อหยุด `webook` ก่อนเสมอ
 - ปิด `CENTRAL_USER_MANAGER_AGENT_ENABLED` เพื่อหยุดสอง Agent routes ที่ Tenant
-- ปิด Cloudflare Access route/application เพื่อปิด network entry point
+- ถ้าต้องปิด network entry point ให้ disable/remove route ของ Worker เฉพาะ
+  Tenant โดยไม่เปิด auth mode สำรอง
 - อย่าปิด `CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED` เพื่อข้าม schema หรือ
   identity mismatch; fence เป็น fail-closed authorization boundary
 - rollback Worker ต้องใช้ revision ที่ schema/runtime contract เข้ากัน และต้อง
@@ -152,15 +164,15 @@ node --check scripts/central-user-manager/auth-attestation.mjs
 
 เมื่อตรวจระบบจริง ให้บันทึกเฉพาะ Tenant ID, project ref, token version, attestation
 version/digest/checked time, HTTP status, safe error code และ deployment version
-ห้าม paste `Authorization`, Bearer, Access Client Secret, Supabase secret,
-Management API token, temporary password หรือ raw provider error ลง terminal
+ห้าม paste `Authorization`, Bearer, Supabase secret, Management API token,
+temporary password หรือ raw provider error ลง terminal
 history, CI output, chat หรือ ticket ถ้า token อาจรั่วให้เริ่ม single-token
 rotation ทันทีโดย Tenant ยัง `inactive`
 
 แนวทางแยกปัญหา:
 
 - `401`: ตรวจ secret version/mapping โดยไม่พิมพ์ค่า แล้ว rotate หากยืนยันไม่ได้
-- `403` จาก Access: ตรวจ service-token policy, audience, hostname และ exact path
+- `404`/`405`: ตรวจ hostname, exact path และ method ของสอง Bearer-only routes
 - `429`: รอ rate-limit window; ห้าม retry แบบ unbounded
 - `503`/health mismatch: คง `inactive`, เทียบ nonsecret version/attestation และ
   schema/RPC health report; ห้าม fallback หรือเปิด fence ก่อนเวลา

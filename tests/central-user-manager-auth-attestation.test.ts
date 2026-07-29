@@ -79,6 +79,12 @@ describe("Central User Manager Auth attestation", () => {
     ["C1 control character", { passwordRequiredCharacters: "aA1!\u0085" }],
     ["Unicode line separator", { passwordRequiredCharacters: "aA1!\u2028" }],
     ["Unicode paragraph separator", { passwordRequiredCharacters: "aA1!\u2029" }],
+    ["right-to-left override", { passwordRequiredCharacters: "aA1!\u202e" }],
+    ["bidi isolate", { passwordRequiredCharacters: "aA1!\u2066" }],
+    ["zero-width space", { passwordRequiredCharacters: "aA1!\u200b" }],
+    ["byte-order mark", { passwordRequiredCharacters: "aA1!\ufeff" }],
+    ["lone high surrogate", { passwordRequiredCharacters: "aA1!\ud800" }],
+    ["lone low surrogate", { passwordRequiredCharacters: "aA1!\udc00" }],
     ["oversized characters", { passwordRequiredCharacters: "x".repeat(257) }],
     ["wrong version", { version: "v2" }],
   ])("fails closed for %s with a generic redacted error", (_label, patch) => {
@@ -145,6 +151,42 @@ describe("Central User Manager Auth attestation", () => {
       get checkedAt(): string {
         throw new Error(injected);
       },
+    };
+
+    expect(() => buildCentralUserManagerAuthAttestation(input)).toThrow(
+      "Central User Manager Auth attestation is invalid.",
+    );
+    try {
+      buildCentralUserManagerAuthAttestation(input);
+    } catch (error) {
+      expect(String(error)).not.toContain(injected);
+    }
+  });
+
+  it("rejects a non-enumerable secret-bearing own key", () => {
+    const injected = "hidden-management-token";
+    const input = { ...VALUES };
+    Object.defineProperty(input, "managementApiToken", {
+      value: injected,
+      enumerable: false,
+    });
+
+    expect(() => buildCentralUserManagerAuthAttestation(input)).toThrow(
+      "Central User Manager Auth attestation is invalid.",
+    );
+    try {
+      buildCentralUserManagerAuthAttestation(input);
+    } catch (error) {
+      expect(String(error)).not.toContain(injected);
+    }
+  });
+
+  it("rejects a symbol-keyed secret-bearing own key", () => {
+    const injected = "symbol-provider-error";
+    const providerError = Symbol(injected);
+    const input = {
+      ...VALUES,
+      [providerError]: injected,
     };
 
     expect(() => buildCentralUserManagerAuthAttestation(input)).toThrow(

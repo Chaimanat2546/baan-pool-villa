@@ -44,10 +44,12 @@ function hasExactKeys(value) {
     return false;
   }
 
-  const keys = Object.keys(value);
+  const keys = Reflect.ownKeys(value);
   return (
     keys.length === REQUIRED_KEYS.size &&
-    keys.every((key) => REQUIRED_KEYS.has(key))
+    keys.every(
+      (key) => typeof key === "string" && REQUIRED_KEYS.has(key),
+    )
   );
 }
 
@@ -99,7 +101,7 @@ function buildAttestation(input) {
     passwordMinLength > MAX_PASSWORD_MIN_LENGTH ||
     typeof passwordRequiredCharacters !== "string" ||
     passwordRequiredCharacters.length > MAX_REQUIRED_CHARACTERS_LENGTH ||
-    /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/u.test(
+    /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u.test(
       passwordRequiredCharacters,
     )
   ) {
