@@ -143,6 +143,22 @@ function expectExactHardeningHeaders(response: Response) {
   }
 }
 
+async function expectStaticUnavailableResponse(response: Response) {
+  expect(response.status).toBe(503);
+  expectExactHardeningHeaders(response);
+  expect(response.headers.get("Content-Type")).toBe(
+    "application/json",
+  );
+  expect(await response.text()).toBe(
+    JSON.stringify({
+      error: {
+        code: "agent_unavailable",
+        message: "Central User Manager Agent is unavailable.",
+      },
+    }),
+  );
+}
+
 function createExecutionContext() {
   return {
     waitUntil: vi.fn(),
@@ -384,6 +400,133 @@ describe("Central User Manager Worker rate-limit gate", () => {
 });
 
 describe("Central User Manager direct OpenNext dispatch", () => {
+  it("fails closed when dispatch returns Response.error()", async () => {
+    const dispatch = vi.fn(async () => Response.error());
+
+    const response = await handleCentralUserManagerRequest(
+      centralRequest(
+        `${HEALTH_PATH}?private=reconstruction-url-value`,
+        {
+          authorization:
+            "Bearer reconstruction-authorization-value",
+          clientIp: "198.51.100.211",
+        },
+      ),
+      createEnvironment(),
+      createExecutionContext(),
+      dispatch,
+    );
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    await expectStaticUnavailableResponse(response as Response);
+  });
+
+  it("fails closed when dispatch returns a consumed response body", async () => {
+    const upstreamResponse = new Response(
+      "consumed-upstream-body-must-stay-private",
+    );
+    await upstreamResponse.text();
+    const dispatch = vi.fn(async () => upstreamResponse);
+
+    const response = await handleCentralUserManagerRequest(
+      centralRequest(HEALTH_PATH),
+      createEnvironment(),
+      createExecutionContext(),
+      dispatch,
+    );
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    await expectStaticUnavailableResponse(response as Response);
+  });
+
+  it("fails closed when dispatch returns a locked response body", async () => {
+    const upstreamResponse = new Response(
+      "locked-upstream-body-must-stay-private",
+    );
+    const reader = upstreamResponse.body?.getReader();
+    const dispatch = vi.fn(async () => upstreamResponse);
+
+    try {
+      const response = await handleCentralUserManagerRequest(
+        centralRequest(OPERATIONS_PATH, { method: "POST" }),
+        createEnvironment(),
+        createExecutionContext(),
+        dispatch,
+      );
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      await expectStaticUnavailableResponse(response as Response);
+    } finally {
+      await reader?.cancel();
+      reader?.releaseLock();
+    }
+  });
+
+  it("fails closed when response header reconstruction throws", async () => {
+    const upstreamResponse = new Response(
+      "throwing-header-body-must-stay-private",
+    );
+    Object.defineProperty(upstreamResponse, "headers", {
+      configurable: true,
+      get() {
+        throw new Error(
+          "throwing-header-details-must-stay-private",
+        );
+      },
+    });
+    const dispatch = vi.fn(async () => upstreamResponse);
+
+    const response = await handleCentralUserManagerRequest(
+      centralRequest(HEALTH_PATH),
+      createEnvironment(),
+      createExecutionContext(),
+      dispatch,
+    );
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    await expectStaticUnavailableResponse(response as Response);
+  });
+
+  it("fails closed when dispatch returns a non-Response value", async () => {
+    const dispatch = vi.fn(async () => ({
+      error: "non-response-dispatch-value-must-stay-private",
+    }));
+
+    const response = await handleCentralUserManagerRequest(
+      centralRequest(HEALTH_PATH),
+      createEnvironment(),
+      createExecutionContext(),
+      dispatch,
+    );
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    await expectStaticUnavailableResponse(response as Response);
+  });
+
+  it("fails closed when response type validation throws", async () => {
+    const malformedResponse = new Proxy(
+      {},
+      {
+        getPrototypeOf() {
+          throw new Error(
+            "response-validation-details-must-stay-private",
+          );
+        },
+      },
+    );
+    const dispatch = vi.fn(async () => malformedResponse);
+
+    const response = await handleCentralUserManagerRequest(
+      centralRequest(HEALTH_PATH),
+      createEnvironment(),
+      createExecutionContext(),
+      dispatch,
+    );
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    await expectStaticUnavailableResponse(response as Response);
+  });
+
   it.each([
     {
       path: HEALTH_PATH,

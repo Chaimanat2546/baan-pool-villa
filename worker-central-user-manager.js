@@ -135,15 +135,13 @@ export async function handleCentralUserManagerRequest(
     return rateLimitedResponse();
   }
 
-  let response;
-
   try {
-    response = await dispatch(request, env, ctx);
+    const response = await dispatch(request, env, ctx);
+
+    return response instanceof Response
+      ? hardenResponse(response)
+      : unavailableResponse();
   } catch {
     return unavailableResponse();
   }
-
-  return response instanceof Response
-    ? hardenResponse(response)
-    : unavailableResponse();
 }
