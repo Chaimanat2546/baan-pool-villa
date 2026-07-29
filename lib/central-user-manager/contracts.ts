@@ -103,9 +103,12 @@ function readListPayload(value: unknown): { page: number; pageSize: number } {
 
   const { page, pageSize } = value;
   if (
+    typeof page !== "number" ||
+    typeof pageSize !== "number" ||
     !Number.isInteger(page) ||
     !Number.isInteger(pageSize) ||
     page < 1 ||
+    page > 100 ||
     pageSize < 1 ||
     pageSize > 100
   ) {

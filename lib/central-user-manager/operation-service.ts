@@ -375,127 +375,144 @@ async function executeList(
     payload: { page: number; pageSize: number };
   },
 ): Promise<AgentOperationResponse> {
+  // The public contract caps page and pageSize at 100, so this cumulative
+  // canonical scan is bounded to 10,000 rows per source and 200 range reads.
+  const LIST_SOURCE_CHUNK = 100;
+  const LIST_SOURCE_ROW_CAP = 10_000;
   const pagination = {
     page: request.payload.page,
     pageSize: Math.min(request.payload.pageSize, 100),
   };
-  const globalOffset = (pagination.page - 1) * pagination.pageSize;
-  const globalEnd = globalOffset + pagination.pageSize;
-  const authOffset = Math.ceil(globalOffset / 2);
-  const profileOffset = Math.floor(globalOffset / 2);
-  const authLimit = Math.ceil(globalEnd / 2) - authOffset;
-  const profileLimit = Math.floor(globalEnd / 2) - profileOffset;
-  const [authResult, profileResult] = await Promise.all([
-    context.auth.listRange({
-      offset: authOffset,
-      limit: Math.max(authLimit, 1),
-    }),
-    context.profiles.listRange({
-      offset: profileOffset,
-      limit: Math.max(profileLimit, 1),
-    }),
-  ]);
+  const resultOffset = (pagination.page - 1) * pagination.pageSize;
+  const resultEnd = resultOffset + pagination.pageSize;
+  const candidates: Array<{
+    provider: ProviderUser | null;
+    profile: CentralAdminProfile | null;
+    abnormal: boolean;
+    email: string | null;
+  }> = [];
 
-  if (!authResult.ok) {
-    return failureResponse(
-      request.operationId,
-      safeError("provider_failure"),
-      "list",
-    );
-  }
-  if (!profileResult.ok) {
-    return failureResponse(request.operationId, profileResult.error, "list");
-  }
-
-  const authWindow = authResult.data.users.slice(0, authLimit);
-  const profileWindow = profileResult.data.profiles.slice(0, profileLimit);
-  const profilesByUid = new Map(
-    profileWindow.map((profile) => [profile.userId, profile]),
-  );
-  const authByUid = new Map(authWindow.map((user) => [user.id, user]));
-  const emailCounts = new Map<string, number>();
-  for (const item of [
-    ...authWindow.map((user) => normalizedEmail(user.email)),
-    ...profileWindow.map((profile) =>
-      normalizedEmail(profile.email),
-    ),
-  ]) {
-    if (item) {
-      emailCounts.set(item, (emailCounts.get(item) ?? 0) + 1);
-    }
-  }
-
-  const authUsers: CentralAdminUser[] = [];
-  for (const provider of authWindow) {
-    const profileLookup = profilesByUid.has(provider.id)
-      ? { ok: true as const, data: profilesByUid.get(provider.id) ?? null }
-      : await context.profiles.findByUserId({ userId: provider.id });
-    if (!profileLookup.ok) {
-      return failureResponse(request.operationId, profileLookup.error, "list");
-    }
-    const profile =
-      profileLookup.data?.userId === provider.id
-        ? profileLookup.data
-        : null;
-    const providerEmail = normalizedEmail(provider.email);
-    const profileEmail = profile ? normalizedEmail(profile.email) : null;
-    const version = authCredentialVersion(provider);
-    const abnormal =
-      !profile ||
-      !isManaged(provider) ||
-      !providerEmail ||
-      providerEmail !== profileEmail ||
-      version === null ||
-      version !== profile.credentialVersion ||
-      (emailCounts.get(providerEmail) ?? 0) > 2;
-    authUsers.push(toJoinedUser(provider, profile, abnormal));
-  }
-  const profileUsers: CentralAdminUser[] = [];
-  for (const profile of profileWindow) {
-    const providerLookup = authByUid.has(profile.userId)
-      ? { ok: true as const, data: authByUid.get(profile.userId) ?? null }
-      : await context.auth.findByUserId({ userId: profile.userId });
-    if (!providerLookup.ok) {
-      return failureResponse(
-        request.operationId,
-        safeError("provider_failure"),
-        "list",
-      );
-    }
-    if (
-      providerLookup.data !== null &&
-      providerLookup.data.id !== profile.userId
-    ) {
-      return failureResponse(
-        request.operationId,
-        safeError("provider_failure"),
-        "list",
-      );
-    }
-    if (providerLookup.data === null) {
-      const email = normalizedEmail(profile.email);
-      profileUsers.push(
-        toJoinedUser(null, profile, !email || (emailCounts.get(email) ?? 0) > 1),
-      );
-    }
-  }
-
-  const users: CentralAdminUser[] = [];
-  let authIndex = 0;
-  let profileIndex = 0;
   for (
-    let position = globalOffset;
-    position < globalEnd;
-    position += 1
+    let sourceOffset = 0;
+    sourceOffset < LIST_SOURCE_ROW_CAP &&
+    candidates.length <= resultEnd;
+    sourceOffset += LIST_SOURCE_CHUNK
   ) {
-    const next =
-      position % 2 === 0
-        ? authUsers[authIndex++]
-        : profileUsers[profileIndex++];
-    if (next) {
-      users.push(next);
+    const [authResult, profileResult] = await Promise.all([
+      context.auth.listRange({
+        offset: sourceOffset,
+        limit: LIST_SOURCE_CHUNK,
+      }),
+      context.profiles.listRange({
+        offset: sourceOffset,
+        limit: LIST_SOURCE_CHUNK,
+      }),
+    ]);
+    if (!authResult.ok) {
+      return failureResponse(
+        request.operationId,
+        safeError("provider_failure"),
+        "list",
+      );
+    }
+    if (!profileResult.ok) {
+      return failureResponse(request.operationId, profileResult.error, "list");
+    }
+
+    const authByUid = new Map(
+      authResult.data.users.map((user) => [user.id, user]),
+    );
+    const profilesByUid = new Map(
+      profileResult.data.profiles.map((profile) => [
+        profile.userId,
+        profile,
+      ]),
+    );
+    const batchLength = Math.max(
+      authResult.data.users.length,
+      profileResult.data.profiles.length,
+    );
+
+    for (
+      let index = 0;
+      index < batchLength && candidates.length <= resultEnd;
+      index += 1
+    ) {
+      const provider = authResult.data.users[index];
+      if (provider) {
+        const lookup = profilesByUid.has(provider.id)
+          ? { ok: true as const, data: profilesByUid.get(provider.id) ?? null }
+          : await context.profiles.findByUserId({ userId: provider.id });
+        if (!lookup.ok) {
+          return failureResponse(request.operationId, lookup.error, "list");
+        }
+        const profile =
+          lookup.data?.userId === provider.id ? lookup.data : null;
+        const email = normalizedEmail(provider.email);
+        candidates.push({
+          provider,
+          profile,
+          email,
+          abnormal:
+            !profile ||
+            !isManaged(provider) ||
+            !email ||
+            email !== normalizedEmail(profile.email) ||
+            authCredentialVersion(provider) !== profile.credentialVersion,
+        });
+      }
+
+      const profile = profileResult.data.profiles[index];
+      if (profile && candidates.length <= resultEnd) {
+        const lookup = authByUid.has(profile.userId)
+          ? { ok: true as const, data: authByUid.get(profile.userId) ?? null }
+          : await context.auth.findByUserId({ userId: profile.userId });
+        if (!lookup.ok || (lookup.data && lookup.data.id !== profile.userId)) {
+          return failureResponse(
+            request.operationId,
+            safeError("provider_failure"),
+            "list",
+          );
+        }
+        if (lookup.data === null) {
+          candidates.push({
+            provider: null,
+            profile,
+            email: normalizedEmail(profile.email),
+            abnormal: true,
+          });
+        }
+      }
+    }
+
+    if (
+      batchLength === 0 ||
+      (!authResult.data.hasMore && !profileResult.data.hasMore)
+    ) {
+      break;
     }
   }
+
+  const emailCounts = new Map<string, number>();
+  for (const candidate of candidates) {
+    if (candidate.email) {
+      emailCounts.set(
+        candidate.email,
+        (emailCounts.get(candidate.email) ?? 0) + 1,
+      );
+    }
+  }
+  const users = candidates
+    .slice(resultOffset, resultEnd)
+    .map((candidate) =>
+      toJoinedUser(
+        candidate.provider,
+        candidate.profile,
+        candidate.abnormal ||
+          !candidate.email ||
+          (emailCounts.get(candidate.email) ?? 0) > 1,
+      ),
+    );
   return {
     operationId: request.operationId,
     status: "completed",
@@ -504,12 +521,7 @@ async function executeList(
       users,
       pagination: {
         ...pagination,
-        hasMore:
-          authResult.data.hasMore ||
-          profileResult.data.hasMore ||
-          (authLimit === 0 && authResult.data.users.length > 0) ||
-          (profileLimit === 0 &&
-            profileResult.data.profiles.length > 0),
+        hasMore: candidates.length > resultEnd,
       },
     },
   };
@@ -772,7 +784,10 @@ async function complete(
   context: CentralUserOperationContext,
   lease: LeaseState,
   safeResult: Record<string, unknown>,
-  result?: AgentOperationResponse["result"],
+  result?: {
+    user?: CompletedAdminUser;
+    temporaryPassword?: string;
+  },
   error?: SafeAgentError,
 ): Promise<AgentOperationResponse> {
   const completed = await context.operations.complete({
@@ -1158,6 +1173,7 @@ async function executeLifecycle(
   let profile: CentralAdminProfile;
   let credentialVersion: number;
   let temporaryPassword: string | undefined;
+  let suspensionExpectedMustChangePassword: boolean | null = null;
 
   if (
     action === "reactivate_user" &&
@@ -1283,6 +1299,10 @@ async function executeLifecycle(
       return needsReview(context, lease, "identity_mismatch");
     }
     provider = exact.provider;
+    if (action === "suspend_user") {
+      suspensionExpectedMustChangePassword =
+        exact.profile.mustChangePassword;
+    }
     const advanced = await context.profiles.advanceForOperation({
       operationId: request.operationId,
       fenceVersion: lease.operation.fenceVersion,
@@ -1339,6 +1359,9 @@ async function executeLifecycle(
       lease.operation.safeResult?.profileIsActive;
     const checkpointMustChange =
       lease.operation.safeResult?.profileMustChangePassword;
+    const suspensionCheckpoint =
+      lease.operation.safeResult
+        ?.suspensionExpectedMustChangePassword;
     const authVersion = authCredentialVersion(provider);
     const exactRecoveredIdentity =
       provider.id === userId &&
@@ -1353,9 +1376,16 @@ async function executeLifecycle(
           typeof checkpointMustChange === "boolean" &&
           profile.isActive === checkpointIsActive &&
           profile.mustChangePassword === checkpointMustChange
-        : authVersion === storedVersion);
+        : authVersion === storedVersion) &&
+      (action !== "suspend_user" ||
+        (typeof suspensionCheckpoint === "boolean" &&
+          profile.mustChangePassword === suspensionCheckpoint));
     if (!exactRecoveredIdentity) {
       return needsReview(context, lease, "identity_mismatch");
+    }
+    if (action === "suspend_user") {
+      suspensionExpectedMustChangePassword =
+        suspensionCheckpoint as boolean;
     }
   }
 
@@ -1504,7 +1534,8 @@ async function executeLifecycle(
     action === "suspend_user"
       ? {
           isActive: false,
-          mustChangePassword: profile.mustChangePassword,
+          mustChangePassword:
+            suspensionExpectedMustChangePassword,
           ban: "future",
         }
       : {

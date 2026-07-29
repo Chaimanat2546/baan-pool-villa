@@ -70,13 +70,13 @@ describe("Central User Manager list operation", () => {
         status: "password_change_required",
       }),
       expect.objectContaining({
-        userId: "123e4567-e89b-42d3-a456-426614174005",
-        email: "profile-only@example.com",
+        userId: OTHER_USER_ID,
+        email: "auth-only@example.com",
         status: "abnormal",
       }),
       expect.objectContaining({
-        userId: OTHER_USER_ID,
-        email: "auth-only@example.com",
+        userId: "123e4567-e89b-42d3-a456-426614174005",
+        email: "profile-only@example.com",
         status: "abnormal",
       }),
     ]);
@@ -183,14 +183,14 @@ describe("Central User Manager list operation", () => {
     const context = operationContext({
       auth: {
         listRange: async (input) => {
-          expect(input).toEqual({ offset: 0, limit: 50 });
-          return providerSuccess({ users: providerUsers, hasMore: true });
+          expect(input).toEqual({ offset: 0, limit: 100 });
+          return providerSuccess({ users: providerUsers, hasMore: false });
         },
       },
       profiles: {
         listRange: async (input) => {
-          expect(input).toEqual({ offset: 0, limit: 50 });
-          return { ok: true, data: { profiles, hasMore: true } };
+          expect(input).toEqual({ offset: 0, limit: 100 });
+          return { ok: true, data: { profiles, hasMore: false } };
         },
       },
     });
@@ -198,12 +198,12 @@ describe("Central User Manager list operation", () => {
     const response = await executeCentralUserOperation(context, request);
     const serialized = JSON.stringify(response);
 
-    expect(response.result?.users).toHaveLength(50);
+    expect(response.result?.users).toHaveLength(100);
     expect(response.result?.users?.length).toBeLessThanOrEqual(100);
     expect(response.result?.pagination).toEqual({
       page: 1,
       pageSize: 100,
-      hasMore: true,
+      hasMore: false,
     });
     expect(Object.keys(response.result?.users?.[0] ?? {}).sort()).toEqual([
       "authCredentialVersion",
@@ -271,7 +271,7 @@ describe("Central User Manager list operation", () => {
     expect(secondIds[1]).toBe(profileUsers[50]?.userId);
   });
 
-  it("uses positive lookahead ranges and reports the next source for pageSize one", async () => {
+  it("does not advertise a suppressed exact-pair page for pageSize one", async () => {
     const context = operationContext({
       profiles: {
         listRange: vi.fn(async ({ limit }) => ({
@@ -290,12 +290,56 @@ describe("Central User Manager list operation", () => {
     });
 
     expect(response.status).toBe("completed");
-    expect(response.result?.pagination?.hasMore).toBe(true);
+    expect(response.result?.pagination?.hasMore).toBe(false);
     expect(
       vi.mocked(context.profiles.listRange).mock.calls.every(
         ([input]) => input.limit > 0,
       ),
     ).toBe(true);
+  });
+
+  it("advertises a real one-sided next row for pageSize one", async () => {
+    const nextProfile = profile({
+      userId: "123e4567-e89b-42d3-a456-426614174097",
+      email: "profile-next@example.com",
+    });
+    const context = operationContext({
+      profiles: {
+        listRange: async ({ offset, limit }) => ({
+          ok: true,
+          data: {
+            profiles: [profile(), nextProfile].slice(
+              offset,
+              offset + limit,
+            ),
+            hasMore: offset + limit < 2,
+          },
+        }),
+        findByUserId: async ({ userId }) => ({
+          ok: true,
+          data:
+            [profile(), nextProfile].find(
+              (item) => item.userId === userId,
+            ) ?? null,
+        }),
+      },
+      auth: {
+        listRange: async ({ offset, limit }) =>
+          providerSuccess({
+            users: [providerUser()].slice(offset, offset + limit),
+            hasMore: false,
+          }),
+        findByUserId: async ({ userId }) =>
+          providerSuccess(userId === USER_ID ? providerUser() : null),
+      },
+    });
+
+    const response = await executeCentralUserOperation(context, {
+      ...request,
+      payload: { page: 1, pageSize: 1 },
+    });
+
+    expect(response.result?.pagination?.hasMore).toBe(true);
   });
 
   it("joins cross-window exact UID pairs once through canonical Auth ownership", async () => {
@@ -353,5 +397,53 @@ describe("Central User Manager list operation", () => {
 
     expect(users.map((user) => user.userId)).toEqual([a.id, b.id]);
     expect(users.every((user) => user.status !== "abnormal")).toBe(true);
+  });
+
+  it("marks every reversed-window shared-email identity abnormal", async () => {
+    const a = providerUser({ id: USER_ID, email: "shared@example.com" });
+    const b = providerUser({
+      id: OTHER_USER_ID,
+      email: " SHARED@example.com ",
+    });
+    const reversedProfiles = [
+      profile({ userId: b.id, email: "shared@example.com" }),
+      profile({ userId: a.id, email: "shared@example.com" }),
+    ];
+    const context = operationContext({
+      auth: {
+        listRange: async ({ offset, limit }) =>
+          providerSuccess({
+            users: [a, b].slice(offset, offset + limit),
+            hasMore: false,
+          }),
+        findByUserId: async ({ userId }) =>
+          providerSuccess([a, b].find((user) => user.id === userId) ?? null),
+      },
+      profiles: {
+        listRange: async ({ offset, limit }) => ({
+          ok: true,
+          data: {
+            profiles: reversedProfiles.slice(offset, offset + limit),
+            hasMore: false,
+          },
+        }),
+        findByUserId: async ({ userId }) => ({
+          ok: true,
+          data:
+            reversedProfiles.find((item) => item.userId === userId) ??
+            null,
+        }),
+      },
+    });
+
+    const users = (
+      await executeCentralUserOperation(context, {
+        ...request,
+        payload: { page: 1, pageSize: 2 },
+      })
+    ).result?.users;
+
+    expect(users).toHaveLength(2);
+    expect(users?.every((user) => user.status === "abnormal")).toBe(true);
   });
 });

@@ -512,6 +512,62 @@ describe("Central User Manager lifecycle operations", () => {
     expect(context.operations.complete).not.toHaveBeenCalled();
   });
 
+  it("rejects recovered suspension when the durable forced flag drifts", async () => {
+    const context = operationContext({
+      operations: {
+        claim: vi.fn(async () =>
+          repositorySuccess(
+            claimed({
+              operation: operation({
+                action: "suspend_user",
+                targetUserId: USER_ID,
+                status: "provider_outcome",
+                stage: "auth_update_succeeded",
+                safeResult: {
+                  providerStep: "auth_update",
+                  outcome: "succeeded",
+                  userId: USER_ID,
+                  credentialVersion: 2,
+                  suspensionExpectedMustChangePassword: true,
+                },
+              }),
+            }),
+          ),
+        ),
+      },
+      auth: {
+        findByNormalizedEmail: async () =>
+          providerSuccess([
+            providerUser({
+              bannedUntil: "2126-07-29T00:00:00.000Z",
+              appMetadata: {
+                bpv_admin_managed: true,
+                credential_version: 2,
+              },
+            }),
+          ]),
+      },
+      profiles: {
+        findByUserId: async () => ({
+          ok: true,
+          data: profile({
+            isActive: false,
+            mustChangePassword: false,
+            credentialVersion: 2,
+          }),
+        }),
+      },
+    });
+
+    const response = await executeCentralUserOperation(
+      context,
+      request("suspend_user"),
+    );
+
+    expect(response.status).toBe("needs_review");
+    expect(context.operations.complete).not.toHaveBeenCalled();
+  });
+
   it("fails closed when another email operation owns the active lease", async () => {
     const context = operationContext({
       operations: {

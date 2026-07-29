@@ -87,6 +87,11 @@ describe("central user manager contracts", () => {
         action: "list_users",
         payload: { page: 1, pageSize: 101 },
       },
+      {
+        ...requestIds,
+        action: "list_users",
+        payload: { page: 101, pageSize: 1 },
+      },
     ];
 
     for (const request of invalidRequests) {
