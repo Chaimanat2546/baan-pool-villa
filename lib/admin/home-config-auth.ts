@@ -281,8 +281,8 @@ export async function assertHomeConfigAdmin(
       .select(ADMIN_PROFILE_PROJECTION)
       .eq("user_id", userId)
       .limit(2);
-  } catch {
-    return databaseVerificationFailure(null, token);
+  } catch (error) {
+    return databaseVerificationFailure(error, token);
   }
 
   if (!isRecord(profileResponse) || profileResponse.error !== null) {

@@ -451,9 +451,73 @@ describe("home config admin auth", () => {
     });
   });
 
-  it("contains a rejected profile query as admin_verification_failed", async () => {
+  it("preserves a synchronously thrown structured profile-query error", async () => {
+    const fixture = makeSupabaseClient();
+    fixture.limit.mockImplementationOnce(() => {
+      throw {
+        message: "permission denied for admin_users",
+        code: "42501",
+        details: "RLS denied the profile read",
+        hint: "Check the self-select policy",
+      };
+    });
+    createHomeConfigClientMock.mockReturnValue(fixture.client as never);
+    const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
+
+    await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toEqual({
+      ok: false,
+      message:
+        "Unable to verify admin access: permission denied for admin_users",
+      code: "admin_verification_failed",
+      status: 500,
+      supabaseCode: "42501",
+      details: "RLS denied the profile read",
+      hint: "Check the self-select policy",
+    });
+  });
+
+  it("preserves an ordinary Error message from a rejected profile query", async () => {
     const fixture = makeSupabaseClient();
     fixture.limit.mockRejectedValueOnce(new Error("database unavailable"));
+    createHomeConfigClientMock.mockReturnValue(fixture.client as never);
+    const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
+
+    await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toEqual({
+      ok: false,
+      message: "Unable to verify admin access: database unavailable",
+      code: "admin_verification_failed",
+      status: 500,
+    });
+  });
+
+  it("redacts the token from every caught profile-query error field", async () => {
+    const fixture = makeSupabaseClient();
+    fixture.limit.mockRejectedValueOnce({
+      message: `request ${OPAQUE_TOKEN} failed`,
+      code: `code-${OPAQUE_TOKEN}`,
+      details: `details ${OPAQUE_TOKEN}`,
+      hint: `hint ${OPAQUE_TOKEN}`,
+    });
+    createHomeConfigClientMock.mockReturnValue(fixture.client as never);
+    const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
+
+    const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+
+    expect(result).toEqual({
+      ok: false,
+      message: "Unable to verify admin access: request [redacted] failed",
+      code: "admin_verification_failed",
+      status: 500,
+      supabaseCode: "code-[redacted]",
+      details: "details [redacted]",
+      hint: "hint [redacted]",
+    });
+    expect(JSON.stringify(result)).not.toContain(OPAQUE_TOKEN);
+  });
+
+  it("uses the generic database failure for a non-object query rejection", async () => {
+    const fixture = makeSupabaseClient();
+    fixture.limit.mockRejectedValueOnce("database unavailable");
     createHomeConfigClientMock.mockReturnValue(fixture.client as never);
     const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
