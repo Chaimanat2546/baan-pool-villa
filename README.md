@@ -24,6 +24,7 @@ README นี้เป็น runbook หลักของ repo สำหรั�
 
 - `AGENTS.md`: workflow, guardrails, model strategy, cache/Supabase/admin/UI rules
 - `docs/ai/structure.html`: route map, ownership map, data flow, and verification map for agents
+- [คู่มือ Tenant provisioning](docs/central-user-manager/tenant-provisioning.md): สำหรับ operator ที่เพิ่ม Tenant, ทำ attestation/rollout/rotation และซ่อมสถานะ Central User Manager แบบ fail-closed
 - `PRD.md`: product background and requirements
 - `node_modules/next/dist/docs/`: read the relevant local Next.js guide before editing Next.js APIs or conventions; this repo uses a newer Next.js than many examples
 
