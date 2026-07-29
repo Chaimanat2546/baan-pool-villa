@@ -39,6 +39,34 @@ export const SAFE_AGENT_ERROR_CATALOG = {
     code: "lease_lost",
     message: "The operation lease was lost.",
   },
+  user_exists: {
+    code: "user_exists",
+    message: "An admin user already exists for this email.",
+  },
+  identity_mismatch: {
+    code: "identity_mismatch",
+    message: "The Auth user and admin profile do not match.",
+  },
+  profile_write_failed: {
+    code: "profile_write_failed",
+    message: "Unable to update the admin profile.",
+  },
+  profile_data_invalid: {
+    code: "profile_data_invalid",
+    message: "Admin profile data is invalid.",
+  },
+  profile_state_conflict: {
+    code: "profile_state_conflict",
+    message: "Admin profile state changed.",
+  },
+  credential_version_mismatch: {
+    code: "credential_version_mismatch",
+    message: "Credential versions do not match.",
+  },
+  create_compensated: {
+    code: "create_compensated",
+    message: "User creation was rolled back safely.",
+  },
 } as const;
 
 export type SafeAgentErrorCode = keyof typeof SAFE_AGENT_ERROR_CATALOG;

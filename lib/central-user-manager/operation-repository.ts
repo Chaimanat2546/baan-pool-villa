@@ -89,6 +89,10 @@ const MAPPED_DATABASE_ERRORS = new Set<SafeAgentErrorCode>([
   "operation_quarantined",
   "provider_ambiguous",
   "lease_lost",
+  "identity_mismatch",
+  "profile_write_failed",
+  "profile_state_conflict",
+  "credential_version_mismatch",
 ]);
 const FORBIDDEN_RESULT_KEY_PARTS = [
   "password",
@@ -338,7 +342,10 @@ function getCrypto(
 }
 
 async function runClaim(
-  rpcName: "claim_admin_user_operation" | "claim_forced_password_change",
+  rpcName:
+    | "claim_admin_user_operation"
+    | "claim_forced_password_change"
+    | "resume_admin_user_operation",
   params: Record<string, unknown>,
   deps: OperationRepositoryDependencies,
 ): Promise<RepositoryResult<ClaimedOperation>> {
@@ -390,6 +397,33 @@ export async function claimAdminUserOperation(
   );
 }
 
+export async function resumeAdminUserOperation(
+  input: {
+    operationId: string;
+    actorUid: string;
+    action: CentralUserAction;
+    targetUserId?: string | null;
+    targetEmailNormalized: string;
+    requestHash: string;
+    leaseSeconds?: number;
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<ClaimedOperation>> {
+  return runClaim(
+    "resume_admin_user_operation",
+    {
+      p_operation_id: input.operationId,
+      p_actor_uid: input.actorUid,
+      p_action: input.action,
+      p_target_user_id: input.targetUserId ?? null,
+      p_target_email_normalized: input.targetEmailNormalized,
+      p_request_hash: input.requestHash,
+      p_lease_seconds: input.leaseSeconds ?? DEFAULT_LEASE_SECONDS,
+    },
+    deps,
+  );
+}
+
 export async function renewAdminUserOperationLease(
   input: {
     operationId: string;
@@ -430,8 +464,11 @@ export async function renewAdminUserOperationLease(
 async function runOperationRpc(
   rpcName:
     | "commit_admin_user_operation_stage"
+    | "commit_admin_user_provider_stage"
     | "complete_admin_user_operation"
     | "quarantine_admin_user_operation"
+    | "mark_admin_user_operation_needs_review"
+    | "record_admin_user_late_fence"
     | "advance_forced_password_change",
   params: Record<string, unknown>,
   deps: OperationRepositoryDependencies,
@@ -473,6 +510,52 @@ export async function commitAdminUserOperationStage(
         p_operation_id: input.operationId,
         p_fence_version: input.fenceVersion,
         p_lease_token_hash: leaseTokenHash,
+        p_stage: input.stage,
+        p_target_user_id: input.targetUserId ?? null,
+        p_safe_result: input.safeResult ?? null,
+      },
+      deps,
+    );
+  } catch {
+    return failure("database_unavailable");
+  }
+}
+
+export type AdminUserProviderStep =
+  | "auth_create"
+  | "auth_delete"
+  | "auth_update"
+  | "password_verify"
+  | "global_signout";
+
+export async function commitAdminUserProviderStage(
+  input: {
+    operationId: string;
+    fenceVersion: number;
+    leaseToken: string;
+    providerStep: AdminUserProviderStep;
+    stage: "intent" | "outcome";
+    targetUserId?: string | null;
+    safeResult?: Record<string, unknown> | null;
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  if (!isSafeResult(input.safeResult ?? null)) {
+    return failure("operation_conflict");
+  }
+
+  try {
+    const leaseTokenHash = await hashLeaseToken(
+      input.leaseToken,
+      getCrypto(deps),
+    );
+    return runOperationRpc(
+      "commit_admin_user_provider_stage",
+      {
+        p_operation_id: input.operationId,
+        p_fence_version: input.fenceVersion,
+        p_lease_token_hash: leaseTokenHash,
+        p_provider_step: input.providerStep,
         p_stage: input.stage,
         p_target_user_id: input.targetUserId ?? null,
         p_safe_result: input.safeResult ?? null,
@@ -543,6 +626,59 @@ export async function quarantineAdminUserOperation(
   } catch {
     return failure("database_unavailable");
   }
+}
+
+export async function markAdminUserOperationNeedsReview(
+  input: {
+    operationId: string;
+    fenceVersion: number;
+    leaseToken: string;
+    errorCode:
+      | "identity_mismatch"
+      | "profile_write_failed"
+      | "profile_state_conflict";
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  try {
+    const leaseTokenHash = await hashLeaseToken(
+      input.leaseToken,
+      getCrypto(deps),
+    );
+    return runOperationRpc(
+      "mark_admin_user_operation_needs_review",
+      {
+        p_operation_id: input.operationId,
+        p_fence_version: input.fenceVersion,
+        p_lease_token_hash: leaseTokenHash,
+        p_error_code: input.errorCode,
+      },
+      deps,
+    );
+  } catch {
+    return failure("database_unavailable");
+  }
+}
+
+export async function recordAdminUserLateFence(
+  input: {
+    operationId: string;
+    fenceVersion: number;
+    expectedCredentialVersion: number;
+    observedCredentialVersion: number;
+  },
+  deps: OperationRepositoryDependencies,
+): Promise<RepositoryResult<AdminUserOperationRecord>> {
+  return runOperationRpc(
+    "record_admin_user_late_fence",
+    {
+      p_operation_id: input.operationId,
+      p_fence_version: input.fenceVersion,
+      p_expected_credential_version: input.expectedCredentialVersion,
+      p_observed_credential_version: input.observedCredentialVersion,
+    },
+    deps,
+  );
 }
 
 export async function claimForcedPasswordChange(

@@ -77,6 +77,9 @@ interface FindAuthUserByNormalizedEmailInput {
   maxPages?: number;
 }
 
+type FindAuthUsersByNormalizedEmailInput =
+  FindAuthUserByNormalizedEmailInput;
+
 interface CreateManagedAuthUserInput {
   email: string;
   password: string;
@@ -98,6 +101,10 @@ interface TransientlyVerifyPasswordInput {
 
 interface GloballySignOutAccessTokenInput {
   accessToken: string;
+}
+
+interface DeleteManagedAuthUserInput {
+  userId: string;
 }
 
 type ProviderFailure = Extract<ProviderResult<never>, { ok: false }>;
@@ -300,6 +307,17 @@ export async function findAuthUserByNormalizedEmail(
   input: FindAuthUserByNormalizedEmailInput,
   deps: AuthProviderDependencies,
 ): Promise<ProviderResult<ProviderUser | null>> {
+  const matches = await findAuthUsersByNormalizedEmail(input, deps);
+
+  return matches.ok
+    ? { ok: true, data: matches.data[0] ?? null }
+    : matches;
+}
+
+export async function findAuthUsersByNormalizedEmail(
+  input: FindAuthUsersByNormalizedEmailInput,
+  deps: AuthProviderDependencies,
+): Promise<ProviderResult<ProviderUser[]>> {
   let normalizedEmail: string;
 
   try {
@@ -317,6 +335,8 @@ export async function findAuthUserByNormalizedEmail(
     return providerFailure("provider_rejected", false);
   }
 
+  const collectedMatches: ProviderUser[] = [];
+
   for (let page = 1; page <= maxPages; page += 1) {
     const listed = await listAuthUsersPage(
       { page, pageSize: LOOKUP_PAGE_SIZE },
@@ -327,16 +347,17 @@ export async function findAuthUserByNormalizedEmail(
       return listed;
     }
 
-    const match = listed.data.users.find((user) =>
+    const matches = listed.data.users.filter((user) =>
       isNormalizedEmailMatch(user.email, normalizedEmail),
     );
+    collectedMatches.push(...matches.slice(0, 2 - collectedMatches.length));
 
-    if (match) {
-      return { ok: true, data: match };
+    if (collectedMatches.length === 2) {
+      return { ok: true, data: collectedMatches };
     }
 
     if (listed.data.users.length < LOOKUP_PAGE_SIZE) {
-      return { ok: true, data: null };
+      return { ok: true, data: collectedMatches };
     }
   }
 
@@ -492,5 +513,23 @@ export async function globallySignOutAccessToken(
     ? classifyReturnedAuthError(dispatched.data.error, {
         sessionMissing: true,
       })
+    : { ok: true, data: null };
+}
+
+export async function deleteManagedAuthUser(
+  input: DeleteManagedAuthUserInput,
+  deps: AuthProviderDependencies,
+): Promise<ProviderResult<null>> {
+  const dispatched = await dispatchWithDeadline(
+    () => deps.client.auth.admin.deleteUser(input.userId, false),
+    deps,
+  );
+
+  if (!dispatched.ok) {
+    return dispatched;
+  }
+
+  return dispatched.data.error
+    ? classifyReturnedAuthError(dispatched.data.error)
     : { ok: true, data: null };
 }

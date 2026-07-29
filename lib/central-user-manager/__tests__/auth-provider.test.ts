@@ -11,7 +11,9 @@ vi.mock("server-only", () => ({}));
 
 import {
   createManagedAuthUser,
+  deleteManagedAuthUser,
   findAuthUserByNormalizedEmail,
+  findAuthUsersByNormalizedEmail,
   globallySignOutAccessToken,
   listAuthUsersPage,
   transientlyVerifyPassword,
@@ -216,6 +218,36 @@ describe("Central User Manager Supabase Auth provider", () => {
     ]);
   });
 
+  it("returns at most two normalized email matches so the service can fail closed", async () => {
+    const listUsers = vi.fn().mockResolvedValue({
+      data: {
+        users: [
+          authUser({ id: "first", email: " Admin@example.com " }),
+          authUser({ id: "second", email: "admin@example.com" }),
+          authUser({ id: "third", email: "ADMIN@EXAMPLE.COM" }),
+        ],
+        aud: "authenticated",
+        nextPage: null,
+        lastPage: 1,
+        total: 3,
+      },
+      error: null,
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { listUsers } } },
+    });
+
+    await expect(
+      findAuthUsersByNormalizedEmail({ email: "admin@example.com" }, deps),
+    ).resolves.toEqual({
+      ok: true,
+      data: [
+        expect.objectContaining({ id: "first" }),
+        expect.objectContaining({ id: "second" }),
+      ],
+    });
+  });
+
   it("returns a closed pagination-limit result when the lookup cap is exhausted", async () => {
     const listUsers = vi.fn().mockResolvedValue({
       data: {
@@ -354,6 +386,46 @@ describe("Central User Manager Supabase Auth provider", () => {
       ambiguous: true,
     });
     expect(JSON.stringify(result)).not.toContain(rawSecret);
+  });
+
+  it("deletes only the exact Auth UID through the server-side Admin API", async () => {
+    const deleteUser = vi.fn().mockResolvedValue({
+      data: { user: authUser() },
+      error: null,
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { deleteUser } } },
+    });
+
+    await expect(
+      deleteManagedAuthUser({ userId: USER_ID }, deps),
+    ).resolves.toEqual({ ok: true, data: null });
+    expect(deleteUser).toHaveBeenCalledWith(USER_ID, false);
+  });
+
+  it("classifies an ambiguous Auth delete without exposing provider data", async () => {
+    const deleteUser = vi.fn().mockResolvedValue({
+      data: { user: null },
+      error: new AuthRetryableFetchError(
+        "delete response contained secret metadata",
+        503,
+      ),
+    });
+    const deps = dependencies({
+      client: { auth: { admin: { deleteUser } } },
+    });
+
+    const result = await deleteManagedAuthUser({ userId: USER_ID }, deps);
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "provider_unavailable",
+        message: "Supabase Auth is unavailable.",
+      },
+      ambiguous: true,
+    });
+    expect(JSON.stringify(result)).not.toContain("secret metadata");
   });
 
   it("treats a weak-password create rejection as definite and secret-safe", async () => {

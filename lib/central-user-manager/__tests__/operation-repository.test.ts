@@ -7,9 +7,13 @@ import {
   advanceForcedPasswordChange,
   claimAdminUserOperation,
   claimForcedPasswordChange,
+  commitAdminUserProviderStage,
   commitAdminUserOperationStage,
   completeAdminUserOperation,
   quarantineAdminUserOperation,
+  markAdminUserOperationNeedsReview,
+  recordAdminUserLateFence,
+  resumeAdminUserOperation,
   renewAdminUserOperationLease,
 } from "../operation-repository";
 
@@ -585,4 +589,171 @@ describe("Central User Manager operation repository", () => {
     });
     expect(JSON.stringify(rpc.mock.calls)).not.toContain(RAW_TOKEN);
   });
+
+  it("resumes an expired safe-stage operation with a rotated hashed lease", async () => {
+    const { client, rpc } = fakeClient({
+      data: {
+        operation: {
+          ...baseRpcOperation,
+          status: "provider_outcome",
+          stage: "provider_outcome",
+          fence_version: 2,
+          attempt_count: 2,
+        },
+        disposition: "first_claim",
+        lease_token_accepted: true,
+      },
+      error: null,
+    });
+
+    const result = await resumeAdminUserOperation(
+      {
+        operationId: OPERATION_ID,
+        actorUid: ACTOR_UID,
+        action: "create_user",
+        targetUserId: null,
+        targetEmailNormalized: "admin@example.com",
+        requestHash: REQUEST_HASH,
+      },
+      { client, crypto: deterministicCrypto() },
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: {
+        operation: { fenceVersion: 2, status: "provider_outcome" },
+        leaseToken: RAW_TOKEN,
+      },
+    });
+    expect(rpc).toHaveBeenCalledWith("resume_admin_user_operation", {
+      p_operation_id: OPERATION_ID,
+      p_actor_uid: ACTOR_UID,
+      p_action: "create_user",
+      p_target_user_id: null,
+      p_target_email_normalized: "admin@example.com",
+      p_request_hash: REQUEST_HASH,
+      p_lease_token_hash: RAW_TOKEN_HASH,
+      p_lease_seconds: 30,
+    });
+  });
+
+  it("journals repeatable named provider steps without persisting lease material", async () => {
+    const { client, rpc } = fakeClient({
+      data: {
+        ...baseRpcOperation,
+        status: "provider_outcome",
+        stage: "provider_outcome",
+        safe_result: {
+          providerStep: "auth_update",
+          outcome: "succeeded",
+          userId: TARGET_USER_ID,
+          credentialVersion: 2,
+        },
+      },
+      error: null,
+    });
+    const safeResult = {
+      providerStep: "auth_update",
+      outcome: "succeeded",
+      userId: TARGET_USER_ID,
+      credentialVersion: 2,
+    };
+
+    const result = await commitAdminUserProviderStage(
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        leaseToken: RAW_TOKEN,
+        providerStep: "auth_update",
+        stage: "outcome",
+        targetUserId: TARGET_USER_ID,
+        safeResult,
+      },
+      { client },
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { safeResult },
+    });
+    expect(rpc).toHaveBeenCalledWith(
+      "commit_admin_user_provider_stage",
+      {
+        p_operation_id: OPERATION_ID,
+        p_fence_version: 1,
+        p_lease_token_hash: RAW_TOKEN_HASH,
+        p_provider_step: "auth_update",
+        p_stage: "outcome",
+        p_target_user_id: TARGET_USER_ID,
+        p_safe_result: safeResult,
+      },
+    );
+  });
+
+  it.each([
+    [
+      "mark_admin_user_operation_needs_review",
+      markAdminUserOperationNeedsReview,
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        leaseToken: RAW_TOKEN,
+        errorCode: "identity_mismatch",
+      },
+      {
+        p_operation_id: OPERATION_ID,
+        p_fence_version: 1,
+        p_lease_token_hash: RAW_TOKEN_HASH,
+        p_error_code: "identity_mismatch",
+      },
+    ],
+    [
+      "record_admin_user_late_fence",
+      recordAdminUserLateFence,
+      {
+        operationId: OPERATION_ID,
+        fenceVersion: 1,
+        expectedCredentialVersion: 3,
+        observedCredentialVersion: 2,
+      },
+      {
+        p_operation_id: OPERATION_ID,
+        p_fence_version: 1,
+        p_expected_credential_version: 3,
+        p_observed_credential_version: 2,
+      },
+    ],
+  ] as const)(
+    "calls the safe %s terminal transition",
+    async (rpcName, owner, input, expectedParams) => {
+      const { client, rpc } = fakeClient({
+        data: {
+          ...baseRpcOperation,
+          status: "needs_review",
+          stage:
+            rpcName === "record_admin_user_late_fence"
+              ? "late_fence"
+              : "needs_review",
+          lease_expires_at: null,
+          safe_error_code:
+            rpcName === "record_admin_user_late_fence"
+              ? "credential_version_mismatch"
+              : "identity_mismatch",
+          safe_error_message:
+            rpcName === "record_admin_user_late_fence"
+              ? "Credential versions do not match."
+              : "The Auth user and admin profile do not match.",
+        },
+        error: null,
+      });
+
+      await expect(
+        owner(input as never, { client }),
+      ).resolves.toMatchObject({
+        ok: true,
+        data: { status: "needs_review" },
+      });
+      expect(rpc).toHaveBeenCalledWith(rpcName, expectedParams);
+    },
+  );
 });
