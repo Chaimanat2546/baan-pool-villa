@@ -451,6 +451,156 @@ describe("AdminSectionsPage", () => {
     vi.useRealTimers();
   });
 
+  it("saves a confirmed Manual house order", async () => {
+    const orderedManualSection = {
+      ...manualSection,
+      items: [
+        { houseId: "702", isActive: true, position: 0 },
+        { houseId: "105", isActive: true, position: 1 },
+      ],
+    };
+    const reorderedManualSection = {
+      ...orderedManualSection,
+      items: [
+        { houseId: "105", isActive: true, position: 0 },
+        { houseId: "702", isActive: true, position: 1 },
+      ],
+    };
+    const manualLayout = savedLayout.filter(
+      (item) => item.kind === "fixed" || item.key === "featured",
+    );
+    const fetchMock = makeFetchMock([
+      {
+        body: {
+          layout: manualLayout,
+          sections: [orderedManualSection],
+        },
+        url: "/api/admin/home-sections",
+      },
+      {
+        body: {
+          invalidIds: [],
+          missingIds: [],
+          validIds: ["105", "702"],
+        },
+        method: "POST",
+        url: "/api/admin/home-sections/preview",
+      },
+      {
+        body: {
+          layout: manualLayout,
+          sections: [reorderedManualSection],
+        },
+        method: "PUT",
+        url: "/api/admin/home-sections",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminSectionsPage />);
+    try {
+      await flushEffects();
+
+      const orderButton = findButton(page.container, "เรียงบ้าน");
+      expect(orderButton).not.toBeUndefined();
+
+      await click(orderButton as HTMLButtonElement);
+      const moveRightButton = page.container.querySelector(
+        "button[aria-label='เลื่อนไปขวา บ้าน 702']",
+      ) as HTMLButtonElement | null;
+      expect(moveRightButton).not.toBeNull();
+
+      await click(moveRightButton as HTMLButtonElement);
+      await click(findButton(page.container, "เสร็จสิ้น") as HTMLButtonElement);
+      await click(findButton(page.container, "บันทึก") as HTMLButtonElement);
+
+      const putCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          url === "/api/admin/home-sections" && init?.method === "PUT",
+      );
+      const putBody = JSON.parse(String(putCall?.[1]?.body));
+
+      expect(putBody.sections[0].items).toEqual([
+        { houseId: "105", isActive: true },
+        { houseId: "702", isActive: true },
+      ]);
+    } finally {
+      await page.unmount();
+    }
+  });
+
+  it("closes Manual ordering when its active rail changes without leaking on return", async () => {
+    const secondManualSection = {
+      ...manualSection,
+      displayOrder: 1,
+      items: [
+        { houseId: "201", isActive: true, position: 0 },
+        { houseId: "202", isActive: true, position: 1 },
+      ],
+      slug: "family",
+      title: "บ้านสำหรับครอบครัว",
+    };
+    vi.stubGlobal(
+      "fetch",
+      makeFetchMock([
+        {
+          body: {
+            layout: savedLayout,
+            sections: [manualSection, secondManualSection],
+          },
+          url: "/api/admin/home-sections",
+        },
+      ]),
+    );
+
+    const page = await mountAdminPage(<AdminSectionsPage />);
+    try {
+      await click(findButton(page.container, "เรียงบ้าน") as HTMLButtonElement);
+      expect(page.container.querySelector("[role='dialog']")).not.toBeNull();
+
+      const railButtons = page.container.querySelectorAll(
+        "[data-layout-select='rail']",
+      );
+      await click(railButtons[1] as HTMLButtonElement);
+      expect(page.container.querySelector("[role='dialog']")).toBeNull();
+
+      await click(railButtons[0] as HTMLButtonElement);
+      expect(page.container.querySelector("[role='dialog']")).toBeNull();
+    } finally {
+      await page.unmount();
+    }
+  });
+
+  it.each(["near_sea", "slice"] as const)(
+    "does not expose ordering controls for %s rails",
+    async (mode) => {
+    const automaticSection = {
+      ...savedSection,
+      mode,
+    };
+    vi.stubGlobal(
+      "fetch",
+      makeFetchMock([
+        {
+          body: {
+            layout: savedLayout.filter(
+              (item) => item.kind === "fixed" || item.key === "featured",
+            ),
+            sections: [automaticSection],
+          },
+          url: "/api/admin/home-sections",
+        },
+      ]),
+    );
+
+    const page = await mountAdminPage(<AdminSectionsPage />);
+
+    expect(findButton(page.container, "เรียงบ้าน")).toBeUndefined();
+
+    await page.unmount();
+    },
+  );
+
   it("renders Hero and mixed layout rows without prototype UI", async () => {
     vi.stubGlobal(
       "fetch",
