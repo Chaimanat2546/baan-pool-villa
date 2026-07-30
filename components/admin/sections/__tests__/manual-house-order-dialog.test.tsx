@@ -13,8 +13,17 @@ import {
 import { ManualHouseOrderDialog } from "../manual-house-order-dialog";
 
 const houses = [
-  { id: "702", title: "Villa DV-702" },
-  { id: "105", title: "Villa DV-105" },
+  { coverImage: null, id: "702", title: "Villa DV-702" },
+  { coverImage: null, id: "105", title: "Villa DV-105" },
+];
+
+const housesWithCovers = [
+  {
+    coverImage: "https://images.example.com/custom-cover-702.jpg",
+    id: "702",
+    title: "Villa DV-702",
+  },
+  { coverImage: null, id: "105", title: "Villa DV-105" },
 ];
 
 async function pressKey(key: string, shiftKey = false) {
@@ -29,6 +38,18 @@ async function pressKey(key: string, shiftKey = false) {
     );
   });
   await flushEffects();
+}
+
+function dragEvent(type: string) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  const dataTransfer = {
+    dropEffect: "none",
+    effectAllowed: "all",
+    setData: vi.fn(),
+  };
+
+  Object.defineProperty(event, "dataTransfer", { value: dataTransfer });
+  return event;
 }
 
 describe("ManualHouseOrderDialog", () => {
@@ -77,6 +98,74 @@ describe("ManualHouseOrderDialog", () => {
 
     expect(onConfirm).toHaveBeenCalledWith(["105", "702"]);
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("shows a cover image or an accessible placeholder for each house card", async () => {
+    const page = await mountAdminPage(
+      <ManualHouseOrderDialog
+        houses={housesWithCovers}
+        onConfirm={vi.fn()}
+        onOpenChange={vi.fn()}
+        open
+      />,
+    );
+    unmount = page.unmount;
+
+    const cover = page.container.querySelector(
+      "img[alt='รูปปก Villa DV-702']",
+    ) as HTMLImageElement | null;
+    const placeholder = page.container.querySelector(
+      "[role='img'][aria-label='ไม่มีรูปปก Villa DV-105']",
+    );
+
+    expect(new URL(cover?.src ?? "", "https://example.com").searchParams.get("url")).toBe(
+      "https://images.example.com/custom-cover-702.jpg",
+    );
+    expect(placeholder).not.toBeNull();
+  });
+
+  it("reorders house cards through native drag and drop before confirmation", async () => {
+    const onConfirm = vi.fn();
+    const page = await mountAdminPage(
+      <ManualHouseOrderDialog
+        houses={houses}
+        onConfirm={onConfirm}
+        onOpenChange={vi.fn()}
+        open
+      />,
+    );
+    unmount = page.unmount;
+
+    const source = page.container.querySelector(
+      "article[data-house-id='702']",
+    ) as HTMLElement;
+    const target = page.container.querySelector(
+      "article[data-house-id='105']",
+    ) as HTMLElement;
+
+    act(() => {
+      source.dispatchEvent(dragEvent("dragstart"));
+    });
+    await flushEffects();
+    act(() => {
+      target.dispatchEvent(dragEvent("dragover"));
+      target.dispatchEvent(dragEvent("drop"));
+    });
+    await flushEffects();
+
+    expect(
+      Array.from(
+        page.container.querySelectorAll("article[data-house-id]"),
+      ).map((card) => card.getAttribute("data-house-id")),
+    ).toEqual(["105", "702"]);
+
+    await click(
+      Array.from(page.container.querySelectorAll("button")).find((button) =>
+        button.textContent?.includes("เสร็จสิ้น"),
+      ) as HTMLButtonElement,
+    );
+
+    expect(onConfirm).toHaveBeenCalledWith(["105", "702"]);
   });
 
   it("keeps confirmation pending when cancellation closes the dialog", async () => {
@@ -255,9 +344,9 @@ describe("ManualHouseOrderDialog", () => {
     );
     act(() => {
       replaceHouses?.([
-        { id: "702", title: "Villa DV-702" },
-        { id: "105", title: "Villa DV-105" },
-        { id: "303", title: "Villa DV-303" },
+        { coverImage: null, id: "702", title: "Villa DV-702" },
+        { coverImage: null, id: "105", title: "Villa DV-105" },
+        { coverImage: null, id: "303", title: "Villa DV-303" },
       ]);
     });
     await flushEffects();

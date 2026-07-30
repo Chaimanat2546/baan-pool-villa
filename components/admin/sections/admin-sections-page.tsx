@@ -463,7 +463,11 @@ export function AdminSectionsPage() {
     return activeSection.items.map(({ houseId }) => {
       const house = manualHousesById.get(houseId);
 
-      return house ?? { id: houseId, title: `บ้าน ${houseId}` };
+      return {
+        coverImage: house?.coverImage ?? null,
+        id: houseId,
+        title: house?.title ?? `บ้าน ${houseId}`,
+      };
     });
   }, [activeSection, manualHouses]);
   const activeModeLabel = activeSection

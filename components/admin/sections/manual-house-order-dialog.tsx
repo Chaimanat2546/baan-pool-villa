@@ -1,9 +1,17 @@
 "use client";
 
-import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, GripVertical, ImageOff } from "lucide-react";
+import Image from "next/image";
+import {
+  type DragEvent,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export type ManualHouseOrderOption = {
+  coverImage: string | null;
   id: string;
   title: string;
 };
@@ -61,6 +69,7 @@ function PendingHouseOrder({
     [houses],
   );
   const [pendingHouseIds, setPendingHouseIds] = useState(initialHouseIds);
+  const [draggedHouseId, setDraggedHouseId] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     setPendingHouseIds(initialHouseIds);
@@ -182,7 +191,7 @@ function PendingHouseOrder({
             เรียงลำดับบ้าน
           </h2>
           <p className="mt-1 text-sm text-[var(--site-muted)]">
-            ใช้ปุ่มลูกศรเพื่อจัดลำดับบ้านพักในชุดนี้
+            ลากการ์ดหรือใช้ปุ่มลูกศรเพื่อจัดลำดับบ้านพักในชุดนี้
           </p>
         </header>
 
@@ -191,19 +200,82 @@ function PendingHouseOrder({
             {pendingHouseIds.map((houseId, index) => {
               const house = housesById.get(houseId);
               const label = house?.title ?? `บ้าน ${houseId}`;
+              const coverImage = house?.coverImage ?? null;
+
+              const handleDragStart = (event: DragEvent<HTMLElement>) => {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", houseId);
+                setDraggedHouseId(houseId);
+              };
+
+              const handleDrop = (event: DragEvent<HTMLElement>) => {
+                event.preventDefault();
+
+                if (!draggedHouseId || draggedHouseId === houseId) {
+                  setDraggedHouseId(null);
+                  return;
+                }
+
+                setPendingHouseIds((ids) => {
+                  const fromIndex = ids.indexOf(draggedHouseId);
+                  const toIndex = ids.indexOf(houseId);
+
+                  return fromIndex === -1 || toIndex === -1
+                    ? ids
+                    : moveId(ids, fromIndex, toIndex);
+                });
+                setDraggedHouseId(null);
+              };
 
               return (
                 <article
-                  className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3"
+                  aria-label={`${label} ลากเพื่อเปลี่ยนลำดับ`}
+                  className={`grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border bg-[var(--site-surface-soft)] p-3 transition ${
+                    draggedHouseId === houseId
+                      ? "border-[var(--site-primary)] opacity-60"
+                      : "border-[var(--site-border)]"
+                  }`}
+                  data-house-id={houseId}
+                  draggable
                   key={houseId}
+                  onDragEnd={() => setDraggedHouseId(null)}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDragStart={handleDragStart}
+                  onDrop={handleDrop}
                 >
                   <span className="text-sm font-bold text-[var(--site-primary)]">
                     #{index + 1}
                   </span>
+                  {coverImage ? (
+                    <Image
+                      alt={`รูปปก ${label}`}
+                      className="size-12 rounded-lg border border-[var(--site-border)] object-cover"
+                      height={48}
+                      src={coverImage}
+                      width={48}
+                    />
+                  ) : (
+                    <span
+                      aria-label={`ไม่มีรูปปก ${label}`}
+                      className="grid size-12 place-items-center rounded-lg border border-dashed border-[var(--site-border)] text-[var(--site-muted)]"
+                      role="img"
+                    >
+                      <ImageOff aria-hidden="true" className="size-5" />
+                    </span>
+                  )}
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-[var(--site-text)]">
-                      {label}
-                    </p>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <GripVertical
+                        aria-hidden="true"
+                        className="size-4 shrink-0 text-[var(--site-muted)]"
+                      />
+                      <p className="truncate font-semibold text-[var(--site-text)]">
+                        {label}
+                      </p>
+                    </div>
                     <p className="truncate text-xs text-[var(--site-muted)]">
                       {houseId}
                     </p>
