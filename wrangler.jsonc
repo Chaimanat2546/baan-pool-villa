@@ -266,5 +266,96 @@
 				]
 			}
 		},
+		"staging": {
+			"name": "baan-pool-villa-staging",
+			"version_metadata": {
+				"binding": "CF_VERSION_METADATA"
+			},
+			"images": {
+				"binding": "IMAGES"
+			},
+			"ratelimits": [
+				{
+					"name": "CALENDAR_API_RATE_LIMITER",
+					"namespace_id": "94013",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
+				},
+				{
+					"name": "CENTRAL_USER_MANAGER_RATE_LIMITER",
+					"namespace_id": "94014",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
+				}
+			],
+			"vars": {
+				"NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa-staging.chaymanus2003.workers.dev",
+				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://lsbbbbibhtbwrvrqggwq.supabase.co",
+				"SUPABASE_URL": "https://sxvkhzhqtrpxgzumsswl.supabase.co",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "2b4e0c23-b66c-43c8-892c-ac1a9b5f2ccb",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "lsbbbbibhtbwrvrqggwq",
+				"CENTRAL_USER_MANAGER_AGENT_VERSION": "1.0.0",
+				"CENTRAL_USER_MANAGER_SCHEMA_VERSION": "1.0.0",
+				"CENTRAL_USER_MANAGER_TOKEN_VERSION": "1",
+				"CENTRAL_USER_MANAGER_AUTH_ATTESTATION_VERSION": "v1",
+				"CENTRAL_USER_MANAGER_AUTH_ATTESTATION_DIGEST": "46f3ff43470f2e1aa7d971c1445ee27011a6834e5169ae48b401c9800748620e",
+				"CENTRAL_USER_MANAGER_AUTH_ATTESTATION_CHECKED_AT": "2026-07-30T09:20:03.272Z"
+			},
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "baan-pool-villa-staging"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "NEXT_INC_CACHE_R2_BUCKET",
+					"bucket_name": "baan-pool-villa-staging-next-cache"
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "NEXT_CACHE_DO_QUEUE",
+						"class_name": "DOQueueHandler"
+					},
+					{
+						"name": "NEXT_TAG_CACHE_DO_SHARDED",
+						"class_name": "DOShardedTagCache"
+					}
+				]
+			},
+			"migrations": [
+				{
+					"tag": "v1",
+					"new_sqlite_classes": [
+						"DOQueueHandler"
+					]
+				},
+				{
+					"tag": "v2",
+					"new_sqlite_classes": [
+						"DOShardedTagCache"
+					]
+				}
+			],
+			"secrets": {
+				"required": [
+					"CALENDAR_INTERNAL_API_TOKEN",
+					"CENTRAL_USER_MANAGER_BEARER_TOKEN",
+					"DEVILLE_BEARER_TOKEN",
+					"PATTAYA_BOOKINGS_API_TOKEN",
+					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
+					"TURNSTILE_SECRET_KEY"
+				]
+			}
+		},
 	},
 }

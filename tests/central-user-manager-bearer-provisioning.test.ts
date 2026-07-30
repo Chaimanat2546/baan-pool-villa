@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { validateCentralUserManagerBearerToken } from "../scripts/central-user-manager/validate-bearer-token.mjs";
+import { parseWranglerConfig } from "../scripts/production-deploy-config.mjs";
 
 const VALID_TOKEN = "paWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaU";
 const INJECTED_TOKEN =
@@ -68,6 +69,50 @@ describe("Central User Manager Bearer provisioning validation", () => {
 
     expect(serialized).not.toContain(INJECTED_TOKEN);
     expect(serialized).not.toContain(authorization);
+  });
+});
+
+describe("Central User Manager staging deployment configuration", () => {
+  it("binds one enabled staging Agent to the approved Worker origin and Supabase project", async () => {
+    const source = await readFile(resolve("wrangler.jsonc"), "utf8");
+    const config = parseWranglerConfig(source);
+    const staging = config.env?.staging;
+    const vars = staging?.vars;
+
+    expect(staging?.name).toBe("baan-pool-villa-staging");
+    expect(vars?.NEXT_PUBLIC_SITE_URL).toBe(
+      "https://baan-pool-villa-staging.chaymanus2003.workers.dev",
+    );
+    expect(vars?.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL).toBe(
+      "https://lsbbbbibhtbwrvrqggwq.supabase.co",
+    );
+    expect(vars?.SUPABASE_URL).toBe(
+      "https://sxvkhzhqtrpxgzumsswl.supabase.co",
+    );
+    expect(vars?.CENTRAL_USER_MANAGER_AGENT_ENABLED).toBe("true");
+    expect(vars?.CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED).toBe("true");
+    expect(vars?.CENTRAL_USER_MANAGER_PROJECT_REF).toBe(
+      "lsbbbbibhtbwrvrqggwq",
+    );
+    expect(vars?.CENTRAL_USER_MANAGER_AGENT_VERSION).toBe("1.0.0");
+    expect(vars?.CENTRAL_USER_MANAGER_SCHEMA_VERSION).toBe("1.0.0");
+    expect(vars?.CENTRAL_USER_MANAGER_TOKEN_VERSION).toBe("1");
+    expect(vars?.CENTRAL_USER_MANAGER_TENANT_ID).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    expect(vars?.CENTRAL_USER_MANAGER_AUTH_ATTESTATION_VERSION).toBe("v1");
+    expect(vars?.CENTRAL_USER_MANAGER_AUTH_ATTESTATION_DIGEST).toMatch(
+      /^[0-9a-f]{64}$/,
+    );
+    expect(
+      new Date(
+        vars?.CENTRAL_USER_MANAGER_AUTH_ATTESTATION_CHECKED_AT ?? "",
+      ).toISOString(),
+    ).toBe(vars?.CENTRAL_USER_MANAGER_AUTH_ATTESTATION_CHECKED_AT);
+    expect(staging?.secrets?.required).toContain(
+      "CENTRAL_USER_MANAGER_BEARER_TOKEN",
+    );
+    expect(staging?.secrets?.required).toContain("SUPABASE_SECRET_KEY");
   });
 });
 

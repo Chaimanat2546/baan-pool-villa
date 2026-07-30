@@ -1,16 +1,30 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+const migrationsDirectory = join(process.cwd(), "supabase", "migrations");
 const sql = readFileSync(
   join(
-    process.cwd(),
-    "supabase/migrations/20260730010000_complete_forced_password_change_v2.sql",
+    migrationsDirectory,
+    "20260730010000_complete_forced_password_change_v2.sql",
   ),
   "utf8",
 )
   .toLowerCase()
   .replace(/\s+/g, " ");
+const healthSignatureRepairMigrationName = readdirSync(
+  migrationsDirectory,
+).find((name) =>
+  /^\d+_repair_forced_password_health_signature_resolution\.sql$/.test(name),
+);
+const healthSignatureRepairSql = healthSignatureRepairMigrationName
+  ? readFileSync(
+      join(migrationsDirectory, healthSignatureRepairMigrationName),
+      "utf8",
+    )
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+  : "";
 
 describe("forced-password completion migration", () => {
   it("keeps implementations private and public wrappers service-role only", () => {
@@ -128,5 +142,15 @@ describe("forced-password completion migration", () => {
     expect(sql).toContain("private.advance_forced_password_profile_v2_impl");
     expect(sql).toContain("private.record_forced_password_late_fence_v2_impl");
     expect(sql).toContain("runtime_execute = false");
+  });
+
+  it("resolves named PostgreSQL functions through their type-only identity signature", () => {
+    expect(healthSignatureRepairMigrationName).toBeDefined();
+    expect(healthSignatureRepairSql).toContain(
+      "routine.oid = pg_catalog.to_regprocedure(required.procedure_identity)",
+    );
+    expect(healthSignatureRepairSql).not.toContain(
+      "pg_catalog.pg_get_function_identity_arguments(routine.oid)",
+    );
   });
 });

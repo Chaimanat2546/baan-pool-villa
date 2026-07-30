@@ -404,6 +404,17 @@ function isVillaBookingCalendarApiPath(pathname) {
   return id.length > 0 && !id.includes("/");
 }
 
+function isDirectWorkersDevHostname(hostname) {
+  const labels = hostname.split(".");
+
+  return (
+    labels.length === 4 &&
+    labels.every((label) => label.length > 0) &&
+    labels[2] === "workers" &&
+    labels[3] === "dev"
+  );
+}
+
 export function getBookingCalendarAccessDecision(
   request,
   configuredSiteUrl,
@@ -426,9 +437,14 @@ export function getBookingCalendarAccessDecision(
     return { allowed: false, candidate: true, reason: "config" };
   }
 
+  const isWwwHostname = siteUrl.hostname.startsWith("www.");
+  const isDirectWorkersDevHostnameConfig = isDirectWorkersDevHostname(
+    siteUrl.hostname,
+  );
+
   if (
     siteUrl.protocol !== "https:" ||
-    !siteUrl.hostname.startsWith("www.")
+    (!isWwwHostname && !isDirectWorkersDevHostnameConfig)
   ) {
     return { allowed: false, candidate: true, reason: "config" };
   }
@@ -439,12 +455,13 @@ export function getBookingCalendarAccessDecision(
 
   // A configured www hostname may also serve its one exact apex counterpart.
   // Sibling hosts such as cl.example.com are never included.
-  const apexHostname = siteUrl.hostname.startsWith("www.")
+  const apexHostname = isWwwHostname
     ? siteUrl.hostname.slice("www.".length)
     : null;
-  const isAllowedHostname =
-    requestUrl.hostname === siteUrl.hostname ||
-    requestUrl.hostname === apexHostname;
+  const isAllowedHostname = isDirectWorkersDevHostnameConfig
+    ? requestUrl.hostname === siteUrl.hostname
+    : requestUrl.hostname === siteUrl.hostname ||
+      requestUrl.hostname === apexHostname;
 
   if (!isAllowedHostname) {
     return { allowed: false, candidate: true, reason: "hostname" };
