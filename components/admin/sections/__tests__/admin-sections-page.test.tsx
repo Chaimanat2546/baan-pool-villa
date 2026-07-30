@@ -505,12 +505,12 @@ describe("AdminSectionsPage", () => {
       expect(orderButton).not.toBeUndefined();
 
       await click(orderButton as HTMLButtonElement);
-      const moveRightButton = page.container.querySelector(
-        "button[aria-label='เลื่อนไปขวา บ้าน 702']",
+      const moveDownButton = page.container.querySelector(
+        "button[aria-label='เลื่อนลง บ้าน 702']",
       ) as HTMLButtonElement | null;
-      expect(moveRightButton).not.toBeNull();
+      expect(moveDownButton).not.toBeNull();
 
-      await click(moveRightButton as HTMLButtonElement);
+      await click(moveDownButton as HTMLButtonElement);
       await click(findButton(page.container, "เสร็จสิ้น") as HTMLButtonElement);
       await click(findButton(page.container, "บันทึก") as HTMLButtonElement);
 

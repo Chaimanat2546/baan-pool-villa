@@ -127,6 +127,38 @@ const validDraft: SiteSettingsDraft = {
 };
 
 describe("normalizeSiteSettingsRow", () => {
+  it("uses ordered hero slides when the row provides them", () => {
+    const settings = normalizeSiteSettingsRow({
+      ...validRow,
+      hero_slides: [
+        {
+          alt: " สไลด์แรก ",
+          path: "hero/first.webp",
+          url: "https://example.supabase.co/storage/v1/object/public/site-assets/hero/first.webp",
+        },
+        {
+          alt: "สไลด์สอง",
+          path: "hero/second.webp",
+          url: "https://example.supabase.co/storage/v1/object/public/site-assets/hero/second.webp",
+        },
+      ],
+    });
+
+    expect(settings.heroSlides).toEqual([
+      {
+        alt: "สไลด์แรก",
+        path: "hero/first.webp",
+        url: "https://example.supabase.co/storage/v1/object/public/site-assets/hero/first.webp",
+      },
+      {
+        alt: "สไลด์สอง",
+        path: "hero/second.webp",
+        url: "https://example.supabase.co/storage/v1/object/public/site-assets/hero/second.webp",
+      },
+    ]);
+    expect(settings.heroImage).toEqual(settings.heroSlides[0]);
+  });
+
   it("returns defaults when the row is null", () => {
     expect(normalizeSiteSettingsRow(null)).toEqual(DEFAULT_SITE_SETTINGS);
   });
@@ -160,6 +192,13 @@ describe("normalizeSiteSettingsRow", () => {
         url: "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
         alt: "พูลวิลล่าพัทยา",
       },
+      heroSlides: [
+        {
+          path: "hero/2026/05/hero.webp",
+          url: "https://example.supabase.co/storage/v1/object/public/site-assets/hero/2026/05/hero.webp",
+          alt: "พูลวิลล่าพัทยา",
+        },
+      ],
       seo: {
         title: "Baan Pool Villa Pattaya | Private Pool Villas",
         description:

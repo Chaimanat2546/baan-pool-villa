@@ -131,22 +131,52 @@ export function buildThemeSettingsJson(draft: ThemeSettingsDraft): string {
 }
 
 export function mapHeroSettingsResponse(value: unknown): HeroSettingsDraft {
-  const { heroImage } = (value as { settings: { heroImage: HeroSettingsDraft["heroImage"] } }).settings;
-  return { heroFile: null, heroImage, heroImageAlt: heroImage.alt };
+  const { heroImage, heroSlides } = (value as { settings: Pick<SiteSettings, "heroImage" | "heroSlides"> }).settings;
+  const slides = heroSlides?.length ? heroSlides : [heroImage];
+  return {
+    heroSlides: slides.map((image, index) => ({ file: null, id: `saved-${index}`, image })),
+  };
 }
 
 export function makeHeroSettingsSnapshot(draft: HeroSettingsDraft): string {
-  return JSON.stringify({
-    heroFile: getFileSnapshot(draft.heroFile),
-    heroImageAlt: draft.heroImageAlt,
-  });
+  return JSON.stringify(draft.heroSlides.map((slide) => ({
+    file: getFileSnapshot(slide.file),
+    image: slide.image,
+  })));
 }
 
 export function buildHeroSettingsFormData(draft: HeroSettingsDraft): FormData {
   const body = new FormData();
-  body.set("heroImageAlt", draft.heroImageAlt);
-  if (draft.heroFile) body.set("hero", draft.heroFile);
+  body.set("heroSlides", JSON.stringify(draft.heroSlides.map(({ image }) => image)));
+  draft.heroSlides.forEach((slide, index) => {
+    if (slide.file) body.set(`heroSlide-${index}`, slide.file);
+  });
   return body;
+}
+
+export function addHeroSlide(slides: HeroSettingsDraft["heroSlides"]): HeroSettingsDraft["heroSlides"] {
+  if (slides.length >= 10) return slides;
+  return [...slides, { file: null, id: `new-${crypto.randomUUID()}`, image: { alt: "", path: "", url: "" } }];
+}
+
+export function moveHeroSlide(slides: HeroSettingsDraft["heroSlides"], index: number, direction: -1 | 1): HeroSettingsDraft["heroSlides"] {
+  const nextIndex = index + direction;
+  if (index < 0 || nextIndex < 0 || index >= slides.length || nextIndex >= slides.length) return slides;
+  const reordered = [...slides];
+  [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+  return reordered;
+}
+
+export function reorderHeroSlides(slides: HeroSettingsDraft["heroSlides"], sourceIndex: number, targetIndex: number): HeroSettingsDraft["heroSlides"] {
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex >= slides.length || targetIndex >= slides.length || sourceIndex === targetIndex) return slides;
+  const reordered = [...slides];
+  const [slide] = reordered.splice(sourceIndex, 1);
+  reordered.splice(targetIndex, 0, slide);
+  return reordered;
+}
+
+export function removeHeroSlide(slides: HeroSettingsDraft["heroSlides"], index: number): HeroSettingsDraft["heroSlides"] {
+  return slides.length <= 1 ? slides : slides.filter((_slide, slideIndex) => slideIndex !== index);
 }
 
 export function parseDelimitedValues(value: string): string[] {

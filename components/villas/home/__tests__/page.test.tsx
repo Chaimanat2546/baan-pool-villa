@@ -21,6 +21,14 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+vi.mock("embla-carousel-autoplay", () => ({
+  default: () => ({ name: "autoplay" }),
+}));
+
+vi.mock("embla-carousel-react", () => ({
+  default: () => [vi.fn(), undefined],
+}));
+
 import { DEFAULT_SITE_CONTACT_SETTINGS } from "../../../../lib/site-contact-settings/defaults";
 import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 import type { GuidePost } from "../../../../lib/guides/types";
@@ -201,10 +209,12 @@ describe("HomePage", () => {
       "bank",
       "contact",
       "heroImage",
+      "heroSlides",
       "siteName",
       "tiktok",
     ]);
     expect(settings.heroImage).toBe(DEFAULT_SITE_SETTINGS.heroImage);
+    expect(settings.heroSlides).toBe(DEFAULT_SITE_SETTINGS.heroSlides);
     expect(settings.tiktok).toEqual(DEFAULT_SITE_SETTINGS.tiktok);
     expect(settings.contact).toBe(DEFAULT_SITE_CONTACT_SETTINGS.contact);
     expect(settings.bank).toBe(DEFAULT_SITE_CONTACT_SETTINGS.bank);

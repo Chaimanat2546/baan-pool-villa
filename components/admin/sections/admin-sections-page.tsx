@@ -485,15 +485,6 @@ export function AdminSectionsPage() {
 
   useEffect(() => {
     if (
-      manualHouseOrderDialogDraftId !== null &&
-      manualHouseOrderDialogDraftId !== activeManualDraftId
-    ) {
-      setManualHouseOrderDialogDraftId(null);
-    }
-  }, [activeManualDraftId, manualHouseOrderDialogDraftId]);
-
-  useEffect(() => {
-    if (
       !pendingErrorTarget ||
       activeSection?.draftId !== pendingErrorTarget.draftId
     ) {
@@ -746,6 +737,9 @@ export function AdminSectionsPage() {
   }
 
   function selectLayoutItem(identity: string) {
+    if (identity !== activeLayoutIdentity) {
+      setManualHouseOrderDialogDraftId(null);
+    }
     setActiveLayoutIdentity(identity);
     setPendingDeleteDraftId(null);
   }

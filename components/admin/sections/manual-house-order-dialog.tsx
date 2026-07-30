@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, GripVertical, ImageOff } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, ImageOff } from "lucide-react";
 import Image from "next/image";
 import {
   type DragEvent,
@@ -47,6 +47,7 @@ export function ManualHouseOrderDialog({
     <PendingHouseOrder
       houses={houses}
       initialHouseIds={sourceHouseIds}
+      key={sourceHouseIds.join("|")}
       onConfirm={onConfirm}
       onOpenChange={onOpenChange}
     />
@@ -70,10 +71,6 @@ function PendingHouseOrder({
   );
   const [pendingHouseIds, setPendingHouseIds] = useState(initialHouseIds);
   const [draggedHouseId, setDraggedHouseId] = useState<string | null>(null);
-
-  useLayoutEffect(() => {
-    setPendingHouseIds(initialHouseIds);
-  }, [initialHouseIds]);
 
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
@@ -230,7 +227,7 @@ function PendingHouseOrder({
               return (
                 <article
                   aria-label={`${label} ลากเพื่อเปลี่ยนลำดับ`}
-                  className={`grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border bg-[var(--site-surface-soft)] p-3 transition ${
+                  className={`flex min-h-[72px] min-w-0 items-center gap-2.5 rounded-xl border bg-[var(--site-surface-soft)] p-2 transition sm:gap-3 ${
                     draggedHouseId === houseId
                       ? "border-[var(--site-primary)] opacity-60"
                       : "border-[var(--site-border)]"
@@ -246,62 +243,60 @@ function PendingHouseOrder({
                   onDragStart={handleDragStart}
                   onDrop={handleDrop}
                 >
-                  <span className="text-sm font-bold text-[var(--site-primary)]">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--site-primary)]/10 text-sm font-bold text-[var(--site-primary)]">
                     #{index + 1}
                   </span>
+                  <GripVertical
+                    aria-hidden="true"
+                    className="size-4 shrink-0 text-[var(--site-muted)]"
+                  />
                   {coverImage ? (
                     <Image
                       alt={`รูปปก ${label}`}
-                      className="size-12 rounded-lg border border-[var(--site-border)] object-cover"
-                      height={48}
+                      className="size-14 shrink-0 rounded-lg border border-[var(--site-border)] object-cover"
+                      height={56}
                       src={coverImage}
-                      width={48}
+                      width={56}
                     />
                   ) : (
                     <span
                       aria-label={`ไม่มีรูปปก ${label}`}
-                      className="grid size-12 place-items-center rounded-lg border border-dashed border-[var(--site-border)] text-[var(--site-muted)]"
+                      className="grid size-14 shrink-0 place-items-center rounded-lg border border-dashed border-[var(--site-border)] text-[var(--site-muted)]"
                       role="img"
                     >
                       <ImageOff aria-hidden="true" className="size-5" />
                     </span>
                   )}
-                  <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-1.5">
-                      <GripVertical
-                        aria-hidden="true"
-                        className="size-4 shrink-0 text-[var(--site-muted)]"
-                      />
-                      <p className="truncate font-semibold text-[var(--site-text)]">
-                        {label}
-                      </p>
-                    </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-[var(--site-text)]">
+                      {label}
+                    </p>
                     <p className="truncate text-xs text-[var(--site-muted)]">
-                      {houseId}
+                      DV-{houseId}
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-1">
+                  <div className="flex shrink-0 overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
                     <button
-                      aria-label={`เลื่อนไปซ้าย ${label}`}
-                      className="grid size-9 place-items-center rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] transition disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={`เลื่อนขึ้น ${label}`}
+                      className="grid size-9 place-items-center transition disabled:cursor-not-allowed disabled:opacity-40"
                       disabled={index === 0}
                       onClick={() => {
                         setPendingHouseIds((ids) => moveId(ids, index, index - 1));
                       }}
                       type="button"
                     >
-                      <ArrowLeft aria-hidden="true" className="size-4" />
+                      <ArrowUp aria-hidden="true" className="size-4" />
                     </button>
                     <button
-                      aria-label={`เลื่อนไปขวา ${label}`}
-                      className="grid size-9 place-items-center rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] transition disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={`เลื่อนลง ${label}`}
+                      className="grid size-9 place-items-center border-l border-[var(--site-border)] transition disabled:cursor-not-allowed disabled:opacity-40"
                       disabled={index === pendingHouseIds.length - 1}
                       onClick={() => {
                         setPendingHouseIds((ids) => moveId(ids, index, index + 1));
                       }}
                       type="button"
                     >
-                      <ArrowRight aria-hidden="true" className="size-4" />
+                      <ArrowDown aria-hidden="true" className="size-4" />
                     </button>
                   </div>
                 </article>

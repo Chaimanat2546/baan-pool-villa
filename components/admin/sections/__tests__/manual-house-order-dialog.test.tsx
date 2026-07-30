@@ -79,10 +79,10 @@ describe("ManualHouseOrderDialog", () => {
     expect(dialogHeading?.textContent).toBe("เรียงลำดับบ้าน");
     expect(dialog?.getAttribute("aria-labelledby")).toBe(dialogHeading?.id);
     const firstHouseLeft = page.container.querySelector(
-      "button[aria-label='เลื่อนไปซ้าย Villa DV-702']",
+      "button[aria-label='เลื่อนขึ้น Villa DV-702']",
     ) as HTMLButtonElement | null;
     const firstHouseRight = page.container.querySelector(
-      "button[aria-label='เลื่อนไปขวา Villa DV-702']",
+      "button[aria-label='เลื่อนลง Villa DV-702']",
     ) as HTMLButtonElement | null;
 
     expect(firstHouseLeft?.disabled).toBe(true);
@@ -122,6 +122,58 @@ describe("ManualHouseOrderDialog", () => {
       "https://images.example.com/custom-cover-702.jpg",
     );
     expect(placeholder).not.toBeNull();
+  });
+
+  it("renders each house as a compact sortable row", async () => {
+    const page = await mountAdminPage(
+      <ManualHouseOrderDialog
+        houses={housesWithCovers}
+        onConfirm={vi.fn()}
+        onOpenChange={vi.fn()}
+        open
+      />,
+    );
+    unmount = page.unmount;
+
+    const row = page.container.querySelector(
+      "article[data-house-id='702']",
+    );
+    const cover = page.container.querySelector(
+      "img[alt='รูปปก Villa DV-702']",
+    );
+    const controls = page.container.querySelector(
+      "button[aria-label='เลื่อนขึ้น Villa DV-702']",
+    )?.parentElement;
+
+    expect(row?.classList.contains("min-h-[72px]")).toBe(true);
+    expect(cover?.classList.contains("size-14")).toBe(true);
+    expect(controls?.classList.contains("shrink-0")).toBe(true);
+  });
+
+  it("shows a DV house id and vertical move controls", async () => {
+    const page = await mountAdminPage(
+      <ManualHouseOrderDialog
+        houses={houses}
+        onConfirm={vi.fn()}
+        onOpenChange={vi.fn()}
+        open
+      />,
+    );
+    unmount = page.unmount;
+
+    const firstRow = page.container.querySelector(
+      "article[data-house-id='702']",
+    );
+    const moveUp = page.container.querySelector(
+      "button[aria-label='เลื่อนขึ้น Villa DV-702']",
+    ) as HTMLButtonElement | null;
+    const moveDown = page.container.querySelector(
+      "button[aria-label='เลื่อนลง Villa DV-702']",
+    ) as HTMLButtonElement | null;
+
+    expect(firstRow?.textContent).toContain("DV-702");
+    expect(moveUp?.disabled).toBe(true);
+    expect(moveDown).not.toBeNull();
   });
 
   it("reorders house cards through native drag and drop before confirmation", async () => {
@@ -182,14 +234,14 @@ describe("ManualHouseOrderDialog", () => {
     unmount = page.unmount;
 
     const finalHouseRight = page.container.querySelector(
-      "button[aria-label='เลื่อนไปขวา Villa DV-105']",
+      "button[aria-label='เลื่อนลง Villa DV-105']",
     ) as HTMLButtonElement | null;
 
     expect(finalHouseRight?.disabled).toBe(true);
 
     await click(
       page.container.querySelector(
-        "button[aria-label='เลื่อนไปขวา Villa DV-702']",
+        "button[aria-label='เลื่อนลง Villa DV-702']",
       ) as HTMLButtonElement,
     );
     await click(
@@ -292,7 +344,7 @@ describe("ManualHouseOrderDialog", () => {
 
     await click(
       page.container.querySelector(
-        "button[aria-label='เลื่อนไปขวา Villa DV-702']",
+        "button[aria-label='เลื่อนลง Villa DV-702']",
       ) as HTMLButtonElement,
     );
     await click(
@@ -339,7 +391,7 @@ describe("ManualHouseOrderDialog", () => {
 
     await click(
       page.container.querySelector(
-        "button[aria-label='เลื่อนไปขวา Villa DV-702']",
+        "button[aria-label='เลื่อนลง Villa DV-702']",
       ) as HTMLButtonElement,
     );
     act(() => {
