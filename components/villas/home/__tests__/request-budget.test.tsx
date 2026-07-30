@@ -73,6 +73,8 @@ describe("homepage request budget", () => {
     expect(markup).not.toContain('loading="eager"');
     expect(markup).toContain('href="/search"');
     expect(markup).not.toContain('data-prefetch="false" href="/search"');
+    expect(markup).toContain('data-scroll-rail-controls="sides"');
+    expect(markup).not.toContain("mt-3 hidden min-h-11");
   });
 
   it("honors the villa count provided by admin-resolved home sections", () => {
