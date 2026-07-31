@@ -17,5 +17,10 @@ export function createCentralUserManagerAdminClient(
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
+    global: {
+      headers: {
+        "User-Agent": "baan-pool-villa-central-user-manager/1.0",
+      },
+    },
   });
 }
