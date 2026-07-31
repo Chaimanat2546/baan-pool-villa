@@ -76,7 +76,6 @@ describe("public HTML prewarm", () => {
     ).resolves.toEqual([
       "/",
       "/search",
-      "/search?guests=2&bedrooms=1&maxPrice=58900",
       "/guides",
       "/terms",
       "/privacy",
@@ -101,7 +100,6 @@ describe("public HTML prewarm", () => {
     ).resolves.toEqual([
       "/",
       "/search",
-      "/search?guests=2&bedrooms=1&maxPrice=58900",
       "/guides",
       "/terms",
       "/privacy",
@@ -191,7 +189,7 @@ describe("public HTML prewarm", () => {
       maxDynamicRoutes: 1,
     });
 
-    expect(summary.requested).toBe(7);
+    expect(summary.requested).toBe(6);
     expect(summary.failed).toBe(0);
     expect(fetchImpl).toHaveBeenCalledWith(
       `${BASE_URL}/sitemap.xml`,
