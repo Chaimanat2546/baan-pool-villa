@@ -1,6 +1,5 @@
 import {
   validateBrandSettingsValues,
-  validateHeroSettingsValues,
   validateSeoSettingsValues,
   validateThemeSettingsValues,
   validateUploadMetadata,
@@ -20,8 +19,14 @@ export function validateThemeSettingsDraft(draft: ThemeSettingsDraft): string[] 
 }
 
 export function validateHeroSettingsDraft(draft: HeroSettingsDraft): string[] {
-  const errors = validateHeroSettingsValues(draft);
-  if (draft.heroFile) errors.push(...validateUploadMetadata("hero", draft.heroFile.type, draft.heroFile.size, draft.heroFile.name));
+  const errors: string[] = [];
+  if (draft.heroSlides.length < 1 || draft.heroSlides.length > 10) errors.push("ต้องมีรูป Hero อย่างน้อย 1 และไม่เกิน 10 รูป");
+  draft.heroSlides.forEach((slide, index) => {
+    if (!slide.file && !slide.image.url) errors.push(`สไลด์ที่ ${index + 1} ต้องมีรูปภาพ`);
+    if (!slide.image.alt.trim()) errors.push(`สไลด์ที่ ${index + 1} ต้องมีคำอธิบายรูป`);
+    if (slide.image.alt.trim().length > 160) errors.push(`คำอธิบายรูปสไลด์ที่ ${index + 1} ต้องไม่เกิน 160 ตัวอักษร`);
+    if (slide.file) errors.push(...validateUploadMetadata("hero", slide.file.type, slide.file.size, slide.file.name));
+  });
   return errors;
 }
 

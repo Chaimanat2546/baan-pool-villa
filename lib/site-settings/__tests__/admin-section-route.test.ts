@@ -50,6 +50,20 @@ const themeRow = {
   line_url: "https://line.me/R/ti/p/@preview",
 };
 
+const heroRow = {
+  id: SITE_SETTINGS_ID,
+  hero_image_alt: "Existing first",
+  hero_image_path: "hero/existing-first.webp",
+  hero_image_url: "https://example.com/existing-first.webp",
+  hero_slides: [
+    {
+      alt: "Existing first",
+      path: "hero/existing-first.webp",
+      url: "https://example.com/existing-first.webp",
+    },
+  ],
+};
+
 const seoRows = [
   {
     page_type: "global",
@@ -208,6 +222,19 @@ function seoRequest(files: Record<string, File>) {
   const body = new FormData();
   Object.entries(files).forEach(([name, file]) => body.set(name, file));
   return new Request("https://example.com/api/admin/site-settings/seo", {
+    body,
+    method: "PATCH",
+  });
+}
+
+function heroRequest(
+  slides: Array<{ alt: string; path: string; url: string }>,
+  files: Record<string, File> = {},
+) {
+  const body = new FormData();
+  body.set("heroSlides", JSON.stringify(slides));
+  Object.entries(files).forEach(([name, file]) => body.set(name, file));
+  return new Request("https://example.com/api/admin/site-settings/hero", {
     body,
     method: "PATCH",
   });
@@ -380,6 +407,91 @@ describe("admin site-settings section route helper", () => {
       verified: true,
       warnings: [],
     });
+  });
+
+  it("uploads Hero files by slide index and persists the ordered carousel snapshot", async () => {
+    const load = selectQuery({ data: heroRow, error: null });
+    const save = updateQuery({ error: null });
+    const reload = selectQuery({ data: null, error: null });
+    const history = historyInsertQuery({ data: { id: "new-hero" }, error: null });
+    const markInactive = historyUpdateQuery({ error: null });
+    const retention = historySelectQuery({ data: [], error: null });
+    const storageApi = storage();
+    const from = fromQueue({
+      site_settings: [load, save, reload],
+      site_asset_uploads: [history, markInactive, retention],
+    });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      heroRequest(
+        [
+          heroRow.hero_slides[0],
+          { alt: "New second", path: "", url: "" },
+        ],
+        {
+          "heroSlide-1": new File(["second"], "second.webp", {
+            type: "image/webp",
+          }),
+        },
+      ),
+      "hero",
+      { from, storage: storageApi } as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(storageApi.upload).toHaveBeenCalledTimes(1);
+    const payload = save.update.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      hero_image_alt: "Existing first",
+      hero_image_path: "hero/existing-first.webp",
+      hero_image_url: "https://example.com/existing-first.webp",
+      hero_slides: [
+        heroRow.hero_slides[0],
+        {
+          alt: "New second",
+          path: expect.stringMatching(/^hero\//),
+          url: expect.stringContaining("/hero/"),
+        },
+      ],
+    });
+    await expect(response.json()).resolves.toMatchObject({
+      settings: {
+        heroImage: heroRow.hero_slides[0],
+        heroSlides: payload.hero_slides,
+      },
+    });
+  });
+
+  it("rejects Hero carousel saves when the database migration is unavailable", async () => {
+    const missing = selectQuery({
+      data: null,
+      error: { code: "42703", message: "hero_slides column missing" },
+    });
+    const fallback = selectQuery({
+      data: {
+        id: SITE_SETTINGS_ID,
+        hero_image_alt: "Existing first",
+        hero_image_path: "hero/existing-first.webp",
+        hero_image_url: "https://example.com/existing-first.webp",
+      },
+      error: null,
+    });
+    const storageApi = storage();
+    const from = fromQueue({ site_settings: [missing, fallback] });
+    const { saveAdminSiteSettingsSection } = await import("../admin-section-route");
+
+    const response = await saveAdminSiteSettingsSection(
+      heroRequest([heroRow.hero_slides[0]]),
+      "hero",
+      { from, storage: storageApi } as never,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      errors: ["The current settings schema cannot save Hero slides."],
+    });
+    expect(storageApi.upload).not.toHaveBeenCalled();
   });
 
   it("persists only Theme columns returned by a fallback projection", async () => {

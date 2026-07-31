@@ -10,5 +10,6 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, ".superpowers/**"],
     include: ["**/*.test.ts", "**/*.test.tsx"],
+    maxWorkers: 4,
   },
 });

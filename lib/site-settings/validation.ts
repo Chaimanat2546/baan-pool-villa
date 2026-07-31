@@ -135,6 +135,13 @@ export function normalizeSiteSettingsRow(
   const googleTagManagerId = normalizeGoogleTagManagerId(
     row.google_tag_manager_id,
   );
+  const legacyHeroImage = normalizeImage(
+    row.hero_image_path,
+    row.hero_image_url,
+    normalizeRequiredText(row.hero_image_alt, DEFAULT_SITE_SETTINGS.heroImage.alt),
+    DEFAULT_SITE_SETTINGS.heroImage,
+  );
+  const heroSlides = normalizeHeroSlides(row.hero_slides, legacyHeroImage);
 
   return {
     siteName,
@@ -161,12 +168,8 @@ export function normalizeSiteSettingsRow(
       `${siteName} icon`,
       DEFAULT_SITE_SETTINGS.faviconImage,
     ),
-    heroImage: normalizeImage(
-      row.hero_image_path,
-      row.hero_image_url,
-      normalizeRequiredText(row.hero_image_alt, DEFAULT_SITE_SETTINGS.heroImage.alt),
-      DEFAULT_SITE_SETTINGS.heroImage,
-    ),
+    heroImage: heroSlides[0] ?? legacyHeroImage,
+    heroSlides,
     seo: {
       title: normalizeRequiredText(
         row.seo_title,
@@ -572,6 +575,31 @@ function normalizeImage(
     url: trimmedUrl,
     alt,
   };
+}
+
+function normalizeHeroSlides(
+  value: unknown,
+  fallback: SiteImageSettings,
+): SiteImageSettings[] {
+  if (!Array.isArray(value)) return [fallback];
+
+  const slides = value
+    .slice(0, 10)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const slide = item as Record<string, unknown>;
+      if (
+        typeof slide.path !== "string" ||
+        typeof slide.url !== "string" ||
+        typeof slide.alt !== "string"
+      ) {
+        return [];
+      }
+
+      return [normalizeImage(slide.path, slide.url, slide.alt.trim(), fallback)];
+    });
+
+  return slides.length > 0 ? slides : [fallback];
 }
 
 function normalizePublicImage(

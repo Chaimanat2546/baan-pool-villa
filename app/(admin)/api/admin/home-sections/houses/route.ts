@@ -29,7 +29,15 @@ export async function GET(request: Request) {
       houses: ids.flatMap((id) => {
         const house = housesById.get(id);
 
-        return house ? [{ id, title: house.title ?? `บ้าน ${id}` }] : [];
+        return house
+          ? [
+              {
+                coverImage: house.coverImage,
+                id,
+                title: house.title ?? `บ้าน ${id}`,
+              },
+            ]
+          : [];
       }),
     });
   }
@@ -41,6 +49,10 @@ export async function GET(request: Request) {
   });
 
   return Response.json({
-    houses: result.items.map(({ id, title }) => ({ id, title })),
+    houses: result.items.map(({ coverImage, id, title }) => ({
+      coverImage,
+      id,
+      title,
+    })),
   });
 }

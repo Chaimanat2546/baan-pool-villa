@@ -219,6 +219,11 @@ export async function saveAdminSiteSettingsSection(
   if (!existingRow) {
     return Response.json({ error: "Site settings were not found." }, { status: 404 });
   }
+  if (section === "hero" && !availableColumns.has("hero_slides")) {
+    return Response.json({
+      errors: ["The current settings schema cannot save Hero slides."],
+    }, { status: 400 });
+  }
   const unsupportedUploads = uploadResult.uploadFiles.filter(({ assetType }) =>
     ASSET_PERSISTENCE_COLUMNS[assetType].some(
       (column) => !availableColumns.has(column),

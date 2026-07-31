@@ -54,6 +54,7 @@ import {
   type ManualHouseOption,
   ManualIdsEditor,
 } from "./manual-ids-editor";
+import { ManualHouseOrderDialog } from "./manual-house-order-dialog";
 import { SectionConfigForm } from "./section-config-form";
 import { FIXED_SECTION_LABELS, SectionList } from "./section-list";
 import {
@@ -403,6 +404,8 @@ export function AdminSectionsPage() {
     useState<SectionErrorTarget | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [manualHouses, setManualHouses] = useState<ManualHouseOption[]>([]);
+  const [manualHouseOrderDialogDraftId, setManualHouseOrderDialogDraftId] =
+    useState<string | null>(null);
   const [pendingDeleteDraftId, setPendingDeleteDraftId] = useState<
     string | null
   >(null);
@@ -448,6 +451,25 @@ export function AdminSectionsPage() {
     activeSection?.mode === "manual"
       ? activeSection.items.map((item) => item.houseId).join("\n")
       : "";
+  const activeManualHouseOrderOptions = useMemo(() => {
+    if (activeSection?.mode !== "manual") {
+      return [];
+    }
+
+    const manualHousesById = new Map(
+      manualHouses.map((house) => [house.id, house]),
+    );
+
+    return activeSection.items.map(({ houseId }) => {
+      const house = manualHousesById.get(houseId);
+
+      return {
+        coverImage: house?.coverImage ?? null,
+        id: houseId,
+        title: house?.title ?? `บ้าน ${houseId}`,
+      };
+    });
+  }, [activeSection, manualHouses]);
   const activeModeLabel = activeSection
     ? (MODE_LABELS.get(activeSection.mode) ?? activeSection.mode)
     : null;
@@ -715,6 +737,9 @@ export function AdminSectionsPage() {
   }
 
   function selectLayoutItem(identity: string) {
+    if (identity !== activeLayoutIdentity) {
+      setManualHouseOrderDialogDraftId(null);
+    }
     setActiveLayoutIdentity(identity);
     setPendingDeleteDraftId(null);
   }
@@ -1463,6 +1488,18 @@ export function AdminSectionsPage() {
                         <div className="flex flex-wrap items-center gap-3">
                           <button
                             className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={activeSection.items.length === 0}
+                            onClick={() => {
+                              setManualHouseOrderDialogDraftId(
+                                activeSection.draftId,
+                              );
+                            }}
+                            type="button"
+                          >
+                            เรียงบ้าน
+                          </button>
+                          <button
+                            className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
                             disabled={
                               isPreviewing || activeSection.items.length === 0
                             }
@@ -1483,6 +1520,28 @@ export function AdminSectionsPage() {
                             ระบบจะตรวจซ้ำให้อีกครั้งตอนกดบันทึก
                           </p>
                         </div>
+                        <ManualHouseOrderDialog
+                          houses={activeManualHouseOrderOptions}
+                          onConfirm={(nextHouseIds) => {
+                            updateSection(activeSection.draftId, {
+                              items: nextHouseIds.map((houseId, position) => ({
+                                houseId,
+                                isActive: true,
+                                position,
+                              })),
+                            });
+                            setManualHouseOrderDialogDraftId(null);
+                          }}
+                          onOpenChange={(open) => {
+                            setManualHouseOrderDialogDraftId(
+                              open ? activeSection.draftId : null,
+                            );
+                          }}
+                          open={
+                            manualHouseOrderDialogDraftId ===
+                            activeSection.draftId
+                          }
+                        />
                       </div>
                     ) : (
                       <AutoModeSummary mode={activeSection.mode} />

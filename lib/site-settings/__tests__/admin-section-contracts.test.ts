@@ -35,6 +35,7 @@ describe("admin site-settings section contracts", () => {
       "id,primary_color,accent_color",
     ]);
     expect(getSiteSettingsSectionSelects("hero")).toEqual([
+      "id,hero_image_path,hero_image_url,hero_image_alt,hero_slides",
       "id,hero_image_path,hero_image_url,hero_image_alt",
     ]);
     expect(getSiteSettingsSectionSelects("seo")).toEqual([
@@ -77,6 +78,10 @@ describe("admin site-settings section contracts", () => {
       bankAccountHighlightColor: DEFAULT_SITE_SETTINGS.bankAccountHighlightColor,
       bankNameHighlightColor: DEFAULT_SITE_SETTINGS.bankNameHighlightColor,
       bankNumberHighlightColor: DEFAULT_SITE_SETTINGS.bankNumberHighlightColor,
+    });
+    expect(mapSiteSettingsSectionResponse("hero", settings)).toEqual({
+      heroImage: DEFAULT_SITE_SETTINGS.heroImage,
+      heroSlides: [DEFAULT_SITE_SETTINGS.heroImage],
     });
   });
 
@@ -158,6 +163,91 @@ describe("admin site-settings section contracts", () => {
     expect(wrongSection.errors).toEqual([expect.stringContaining("hero")]);
   });
 
+  it("parses one to ten ordered Hero slides with required per-slide alt text", () => {
+    const formData = new FormData();
+    formData.set("heroSlides", JSON.stringify([
+      {
+        alt: " First pool villa ",
+        path: "hero/first.webp",
+        url: "https://example.com/first.webp",
+      },
+      { alt: " Second pool villa ", path: "", url: "" },
+    ]));
+    formData.set(
+      "heroSlide-1",
+      new File(["second"], "second.webp", { type: "image/webp" }),
+    );
+
+    expect(parseSiteSettingsSectionRequest("hero", formData)).toEqual({
+      ok: true,
+      draft: {
+        heroSlides: [
+          {
+            alt: "First pool villa",
+            path: "hero/first.webp",
+            url: "https://example.com/first.webp",
+          },
+          { alt: "Second pool villa", path: "", url: "" },
+        ],
+      },
+    });
+  });
+
+  it.each([
+    ["no slides", []],
+    [
+      "more than ten slides",
+      Array.from({ length: 11 }, (_, index) => ({
+        alt: `Slide ${index + 1}`,
+        path: `hero/${index + 1}.webp`,
+        url: `https://example.com/${index + 1}.webp`,
+      })),
+    ],
+    [
+      "an empty alt",
+      [{ alt: " ", path: "hero/first.webp", url: "https://example.com/first.webp" }],
+    ],
+    [
+      "an alt longer than 160 characters",
+      [{ alt: "a".repeat(161), path: "hero/first.webp", url: "https://example.com/first.webp" }],
+    ],
+  ])("rejects Hero payloads with %s", (_name, heroSlides) => {
+    const formData = new FormData();
+    formData.set("heroSlides", JSON.stringify(heroSlides));
+
+    const result = parseSiteSettingsSectionRequest("hero", formData);
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("retains Hero upload indices and validates dynamic files", () => {
+    const formData = new FormData();
+    const first = new File(["first"], "first.webp", { type: "image/webp" });
+    const third = new File(["third"], "third.png", { type: "image/png" });
+    formData.set("heroSlide-0", first);
+    formData.set("heroSlide-2", third);
+
+    expect(getSectionUploadFiles("hero", formData)).toEqual({
+      errors: [],
+      uploadFiles: [
+        { assetType: "hero", file: first, slideIndex: 0 },
+        { assetType: "hero", file: third, slideIndex: 2 },
+      ],
+    });
+
+    const invalid = new FormData();
+    invalid.set(
+      "heroSlide-0",
+      new File(["gif"], "hero.gif", { type: "image/gif" }),
+    );
+    expect(getSectionUploadFiles("hero", invalid)).toMatchObject({
+      errors: expect.arrayContaining([
+        expect.stringContaining("JPG, PNG หรือ WebP"),
+        expect.stringContaining(".jpg, .jpeg, .png หรือ .webp"),
+      ]),
+    });
+  });
+
   it("builds brand payloads with uploaded or retained section assets only", () => {
     const draft: SiteSettingsSectionDraftMap["brand"] = {
       siteName: "New Brand",
@@ -179,6 +269,46 @@ describe("admin site-settings section contracts", () => {
       logo_image_url: "https://example.com/new-logo.webp",
       favicon_image_path: DEFAULT_SITE_SETTINGS.faviconImage.path,
       favicon_image_url: DEFAULT_SITE_SETTINGS.faviconImage.url,
+    });
+  });
+
+  it("replaces only matching Hero slide indices and mirrors the first slide to legacy columns", () => {
+    const draft: SiteSettingsSectionDraftMap["hero"] = {
+      heroSlides: [
+        {
+          alt: "Existing first",
+          path: "hero/existing-first.webp",
+          url: "https://example.com/existing-first.webp",
+        },
+        { alt: "Uploaded second", path: "", url: "" },
+      ],
+    };
+
+    expect(
+      buildSiteSettingsSectionPayload("hero", draft, DEFAULT_SITE_SETTINGS, [
+        {
+          assetType: "hero",
+          path: "hero/new-second.webp",
+          publicUrl: "https://example.com/new-second.webp",
+          slideIndex: 1,
+        },
+      ]),
+    ).toEqual({
+      hero_image_alt: "Existing first",
+      hero_image_path: "hero/existing-first.webp",
+      hero_image_url: "https://example.com/existing-first.webp",
+      hero_slides: [
+        {
+          alt: "Existing first",
+          path: "hero/existing-first.webp",
+          url: "https://example.com/existing-first.webp",
+        },
+        {
+          alt: "Uploaded second",
+          path: "hero/new-second.webp",
+          url: "https://example.com/new-second.webp",
+        },
+      ],
     });
   });
 });

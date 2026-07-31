@@ -157,6 +157,22 @@ describe("validateHomeSectionDrafts", () => {
 });
 
 describe("normalizeHomeSectionDraftsForSave", () => {
+  it("serializes reordered manual items with sequential positions", () => {
+    const [section] = normalizeHomeSectionDraftsForSave([
+      validDraft({
+        items: [
+          { houseId: "105", isActive: true },
+          { houseId: "702", isActive: true },
+        ],
+      }),
+    ]);
+
+    expect(section.items).toEqual([
+      { houseId: "105", isActive: true, position: 0 },
+      { houseId: "702", isActive: true, position: 1 },
+    ]);
+  });
+
   it("trims section fields and normalizes manual items for saving", () => {
     expect(
       normalizeHomeSectionDraftsForSave([
