@@ -6,6 +6,11 @@ Production deploys automatically on push to `master` (normally when a PR is merg
 The `Deploy production clients` workflow verifies the repository once, then
 builds and deploys `baanparty`, `baan02`, and `baanPMhee` independently.
 
+For each target, CD verifies `CLOUDFLARE_API_TOKEN` through Cloudflare
+`/client/v4/user/tokens/verify` before target validation, build, or deploy. It
+sends the token only as a Bearer credential and does not print the token or API
+response.
+
 Do not copy a client `.env` file over `.env` for production deployment.
 
 ## Configuration Ownership

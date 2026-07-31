@@ -192,6 +192,21 @@ describe("resolveHomeSections", () => {
     expect(section.villas.map((item) => item.id)).toEqual(["1", "3"]);
   });
 
+  it("resolves manual villas by persisted position rather than catalog order", () => {
+    const [section] = resolveHomeSections(
+      [
+        config({
+          mode: "manual",
+          limitCount: 2,
+          items: [item("702", 1), item("105", 0)],
+        }),
+      ],
+      [villa("702"), villa("105")],
+    );
+
+    expect(section.villas.map(({ id }) => id)).toEqual(["105", "702"]);
+  });
+
   it("fills manual sections from all listings without duplicating selected villas", () => {
     const [section] = resolveHomeSections(
       [

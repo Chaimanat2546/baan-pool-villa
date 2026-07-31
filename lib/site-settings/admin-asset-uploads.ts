@@ -15,6 +15,7 @@ export interface UploadedAsset {
   assetType: SiteAssetType;
   path: string;
   publicUrl: string;
+  slideIndex?: number;
 }
 
 export interface RecordedAsset extends UploadedAsset {
@@ -24,6 +25,7 @@ export interface RecordedAsset extends UploadedAsset {
 export interface SiteSettingsUploadFile {
   assetType: SiteAssetType;
   file: File;
+  slideIndex?: number;
 }
 
 export const ASSET_UPLOAD_FIELDS: {
@@ -199,7 +201,12 @@ export async function uploadSiteSettingsAssets(
       };
     }
 
-    uploadedAssets.push(result.asset);
+    uploadedAssets.push({
+      ...result.asset,
+      ...(upload.slideIndex === undefined
+        ? {}
+        : { slideIndex: upload.slideIndex }),
+    });
   }
 
   return { ok: true, uploadedAssets };
@@ -233,6 +240,29 @@ export function readSiteSettingsUploadFiles(
     );
     uploadFiles.push({ assetType, file });
   });
+
+  return { errors, uploadFiles };
+}
+
+export function readHeroSlideUploadFiles(formData: FormData): {
+  errors: string[];
+  uploadFiles: SiteSettingsUploadFile[];
+} {
+  const errors: string[] = [];
+  const uploadFiles: SiteSettingsUploadFile[] = [];
+
+  for (let slideIndex = 0; slideIndex < 10; slideIndex += 1) {
+    const file = getOptionalUpload(formData, `heroSlide-${slideIndex}`);
+
+    if (!file) {
+      continue;
+    }
+
+    errors.push(
+      ...validateUploadMetadata("hero", file.type, file.size, file.name),
+    );
+    uploadFiles.push({ assetType: "hero", file, slideIndex });
+  }
 
   return { errors, uploadFiles };
 }

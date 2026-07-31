@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 export type ManualHouseOption = {
+  coverImage?: string | null;
   id: string;
   title: string;
 };

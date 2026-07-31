@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 
-import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
-
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { SiteImageSettings } from "@/lib/site-settings/types";
 
+import { HeroCarousel, type HeroCarouselSlide } from "./hero-carousel";
 import { HeroSearch } from "./hero-search";
 
 interface ZoneOption {
@@ -14,6 +13,7 @@ interface ZoneOption {
 
 interface HeroSectionProps {
   heroImage: SiteImageSettings;
+  heroSlides?: SiteImageSettings[];
   maxAvailablePrice: number;
   search?: ReactNode;
   zones: ZoneOption[];
@@ -32,33 +32,26 @@ function isSafeLocalImagePath(value: string | null): value is string {
 
 export function HeroSection({
   heroImage,
+  heroSlides = [],
   maxAvailablePrice,
   search,
   zones,
 }: HeroSectionProps) {
-  const heroImageSrc =
-    normalizePublicImageSourceUrl(heroImage.url) ??
-    (isSafeLocalImagePath(heroImage.url) ? heroImage.url : null);
+  const heroSlidesWithLegacyFallback =
+    heroSlides.length > 0 ? heroSlides : [heroImage];
+  const slides: HeroCarouselSlide[] = heroSlidesWithLegacyFallback.flatMap(
+    (slide) => {
+      const src =
+        normalizePublicImageSourceUrl(slide.url) ??
+        (isSafeLocalImagePath(slide.url) ? slide.url : null);
+
+      return src ? [{ alt: slide.alt, src }] : [];
+    },
+  );
 
   return (
     <section className="relative lg:pb-20">
-      {heroImageSrc ? (
-        <Image
-          src={heroImageSrc}
-          alt={heroImage.alt}
-          width={1565}
-          height={1043}
-          preload
-          quality={75}
-          sizes="100vw"
-          className="h-auto w-full"
-        />
-      ) : (
-        <div
-          aria-hidden="true"
-          className="aspect-[1565/1043] w-full bg-[var(--site-surface-tint)]"
-        />
-      )}
+      <HeroCarousel slides={slides} />
       {search ?? (
         <HeroSearch maxAvailablePrice={maxAvailablePrice} zones={zones} />
       )}

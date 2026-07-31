@@ -69,6 +69,7 @@ export interface SiteSettings {
   logoImage: SiteImageSettings;
   faviconImage: SiteImageSettings;
   heroImage: SiteImageSettings;
+  heroSlides: SiteImageSettings[];
   seo: SiteSeoSettings;
   pageSeo: SitePageSeoSettings;
   tiktok: SiteTikTokSettings;
@@ -103,6 +104,7 @@ export interface SiteSettingsRow {
   hero_image_path: string | null;
   hero_image_url: string | null;
   hero_image_alt: string | null;
+  hero_slides?: unknown;
   seo_title?: string | null;
   seo_description?: string | null;
   seo_keywords?: unknown;

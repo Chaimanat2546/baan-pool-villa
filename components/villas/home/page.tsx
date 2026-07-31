@@ -162,6 +162,7 @@ export function HomePage({
     >
       <HeroSection
         heroImage={settings.heroImage}
+        heroSlides={settings.heroSlides}
         zones={zones}
         maxAvailablePrice={maxAvailablePrice}
         search={heroSearch}

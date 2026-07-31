@@ -153,6 +153,36 @@ describe("production deployment workflow", () => {
     }
   });
 
+  it("verifies the Cloudflare Bearer token before target validation", async () => {
+    const workflow = await readWorkflow();
+    const tokenVerificationStep = extractNamedStep(
+      workflow,
+      "Verify Cloudflare API token",
+    );
+    const validationStepStart = workflow.indexOf(
+      "\n      - name: Validate target configuration\n",
+    );
+    const tokenVerificationStepStart = workflow.indexOf(
+      "\n      - name: Verify Cloudflare API token\n",
+    );
+    const secretReferences = tokenVerificationStep.match(
+      /secrets\.[^}\s]+/g,
+    );
+
+    expect(secretReferences).toEqual(["secrets.CLOUDFLARE_API_TOKEN"]);
+    expect(tokenVerificationStep).toContain("shell: bash");
+    expect(tokenVerificationStep).toContain(
+      "https://api.cloudflare.com/client/v4/user/tokens/verify",
+    );
+    expect(tokenVerificationStep).toContain(
+      "Authorization: Bearer $CLOUDFLARE_API_TOKEN",
+    );
+    expect(tokenVerificationStep).toContain(
+      "JSON.parse(body).success === true",
+    );
+    expect(tokenVerificationStepStart).toBeLessThan(validationStepStart);
+  });
+
   it("builds, deploys, prewarms, and always writes a summary", async () => {
     const workflow = await readWorkflow();
 

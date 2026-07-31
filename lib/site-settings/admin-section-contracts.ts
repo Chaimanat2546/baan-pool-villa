@@ -1,12 +1,18 @@
 import {
   ASSET_UPLOAD_FIELDS,
+  readHeroSlideUploadFiles,
   readSiteSettingsUploadFiles,
   type UploadedAsset,
 } from "./admin-asset-uploads";
-import { readStringArrayField, readStringField } from "./admin-form-fields";
+import {
+  getOptionalUpload,
+  readStringArrayField,
+  readStringField,
+} from "./admin-form-fields";
 import { DEFAULT_SITE_SETTINGS } from "./defaults";
 import type {
   SiteAssetType,
+  SiteImageSettings,
   SiteSettings,
   SiteSettingsDraft,
 } from "./types";
@@ -63,7 +69,7 @@ type SeoDraft = Pick<
 export interface SiteSettingsSectionDraftMap {
   brand: Pick<SiteSettingsDraft, "siteName" | "logoBackground">;
   theme: ThemeDraft;
-  hero: Pick<SiteSettingsDraft, "heroImageAlt">;
+  hero: { heroSlides: SiteImageSettings[] };
   seo: SeoDraft;
 }
 
@@ -85,7 +91,7 @@ export interface SiteSettingsSectionResponseMap {
     | "bankNameHighlightColor"
     | "bankNumberHighlightColor"
   >;
-  hero: Pick<SiteSettings, "heroImage">;
+  hero: Pick<SiteSettings, "heroImage" | "heroSlides">;
   seo: Pick<SiteSettings, "seo" | "pageSeo">;
 }
 
@@ -98,7 +104,7 @@ const SECTION_SELECTS: Record<SiteSettingsSection, readonly string[]> = {
     "id,primary_color,accent_color,header_link_color,header_link_hover_color,footer_link_color,footer_link_hover_color,bank_highlight_color,bank_account_highlight_color,bank_name_highlight_color,bank_number_highlight_color",
     "id,primary_color,accent_color",
   ],
-  hero: ["id,hero_image_path,hero_image_url,hero_image_alt"],
+  hero: ["id,hero_image_path,hero_image_url,hero_image_alt,hero_slides", "id,hero_image_path,hero_image_url,hero_image_alt"],
   seo: [
     "id,seo_title,seo_description,seo_keywords,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls,search_seo_title,search_seo_description,search_seo_keywords,search_seo_og_image_url,search_seo_og_image_alt,guides_seo_title,guides_seo_description,guides_seo_keywords,guides_seo_og_image_url,guides_seo_og_image_alt,villa_detail_seo_keywords",
     "id,seo_title,seo_description,seo_og_image_url,seo_og_image_alt,seo_business_name,seo_same_as_urls",
@@ -119,7 +125,7 @@ const SECTION_FIELDS = {
     "bankNameHighlightColor",
     "bankNumberHighlightColor",
   ],
-  hero: ["heroImageAlt"],
+  hero: [],
   seo: [
     "seoTitle",
     "seoDescription",
@@ -197,6 +203,85 @@ function defaultDraft(): SiteSettingsDraft {
   };
 }
 
+function parseHeroSlides(
+  body: FormData | Record<string, unknown>,
+):
+  | { ok: true; draft: SiteSettingsSectionDraftMap["hero"] }
+  | { ok: false; errors: string[] } {
+  const rawValue = body instanceof FormData
+    ? body.get("heroSlides")
+    : body.heroSlides;
+  let value: unknown = rawValue;
+
+  if (typeof rawValue === "string") {
+    try {
+      value = JSON.parse(rawValue);
+    } catch {
+      return { ok: false, errors: ["Invalid heroSlides value."] };
+    }
+  }
+
+  if (!Array.isArray(value) || value.length < 1 || value.length > 10) {
+    return {
+      ok: false,
+      errors: ["ต้องมีรูป Hero อย่างน้อย 1 และไม่เกิน 10 รูป"],
+    };
+  }
+
+  const errors: string[] = [];
+  const heroSlides: SiteImageSettings[] = [];
+
+  value.forEach((item, slideIndex) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      errors.push(`ข้อมูลสไลด์ที่ ${slideIndex + 1} ไม่ถูกต้อง`);
+      return;
+    }
+
+    const slide = item as Record<string, unknown>;
+    if (
+      typeof slide.alt !== "string" ||
+      typeof slide.path !== "string" ||
+      typeof slide.url !== "string"
+    ) {
+      errors.push(`ข้อมูลสไลด์ที่ ${slideIndex + 1} ไม่ถูกต้อง`);
+      return;
+    }
+
+    const normalizedSlide = {
+      alt: slide.alt.trim(),
+      path: slide.path.trim(),
+      url: slide.url.trim(),
+    };
+    if (!normalizedSlide.alt) {
+      errors.push(`สไลด์ที่ ${slideIndex + 1} ต้องมีคำอธิบายรูป`);
+    } else if (normalizedSlide.alt.length > 160) {
+      errors.push(
+        `คำอธิบายรูปสไลด์ที่ ${slideIndex + 1} ต้องไม่เกิน 160 ตัวอักษร`,
+      );
+    }
+
+    const hasUpload = body instanceof FormData &&
+      getOptionalUpload(body, `heroSlide-${slideIndex}`) !== null;
+    if (!hasUpload && (!normalizedSlide.path || !normalizedSlide.url)) {
+      errors.push(`สไลด์ที่ ${slideIndex + 1} ต้องมีรูปภาพ`);
+    }
+
+    heroSlides.push(normalizedSlide);
+  });
+
+  if (body instanceof FormData) {
+    for (let slideIndex = value.length; slideIndex < 10; slideIndex += 1) {
+      if (getOptionalUpload(body, `heroSlide-${slideIndex}`)) {
+        errors.push(`ไฟล์ Hero สไลด์ที่ ${slideIndex + 1} ไม่มีข้อมูลสไลด์คู่กัน`);
+      }
+    }
+  }
+
+  return errors.length > 0
+    ? { ok: false, errors }
+    : { ok: true, draft: { heroSlides } };
+}
+
 export function isSiteSettingsSection(
   value: string,
 ): value is SiteSettingsSection {
@@ -218,10 +303,17 @@ export function parseSiteSettingsSectionRequest<S extends SiteSettingsSection>(
   const fields = SECTION_FIELDS[section];
   const allowedKeys = new Set<string>(fields);
 
-  for (const assetType of SECTION_ASSET_TYPES[section]) {
-    const upload = ASSET_UPLOAD_FIELDS.find((field) => field.assetType === assetType);
-    if (upload) {
-      allowedKeys.add(upload.fieldName);
+  if (section === "hero") {
+    allowedKeys.add("heroSlides");
+    for (let slideIndex = 0; slideIndex < 10; slideIndex += 1) {
+      allowedKeys.add(`heroSlide-${slideIndex}`);
+    }
+  } else {
+    for (const assetType of SECTION_ASSET_TYPES[section]) {
+      const upload = ASSET_UPLOAD_FIELDS.find((field) => field.assetType === assetType);
+      if (upload) {
+        allowedKeys.add(upload.fieldName);
+      }
     }
   }
 
@@ -237,6 +329,12 @@ export function parseSiteSettingsSectionRequest<S extends SiteSettingsSection>(
         (key) => `Field "${key}" does not belong to the ${section} section.`,
       ),
     };
+  }
+
+  if (section === "hero") {
+    return parseHeroSlides(body) as
+      | { ok: true; draft: SiteSettingsSectionDraftMap[S] }
+      | { ok: false; errors: string[] };
   }
 
   const draft = defaultDraft();
@@ -310,7 +408,10 @@ export function mapSiteSettingsSectionResponse<S extends SiteSettingsSection>(
       bankNameHighlightColor: settings.bankNameHighlightColor,
       bankNumberHighlightColor: settings.bankNumberHighlightColor,
     },
-    hero: { heroImage: settings.heroImage },
+    hero: {
+      heroImage: settings.heroImage,
+      heroSlides: settings.heroSlides,
+    },
     seo: { seo: settings.seo, pageSeo: settings.pageSeo },
   };
 
@@ -321,6 +422,10 @@ export function getSectionUploadFiles(
   section: SiteSettingsSection,
   formData: FormData,
 ) {
+  if (section === "hero") {
+    return readHeroSlideUploadFiles(formData);
+  }
+
   return readSiteSettingsUploadFiles(formData, SECTION_ASSET_TYPES[section]);
 }
 
@@ -364,11 +469,25 @@ export function buildSiteSettingsSectionPayload<S extends SiteSettingsSection>(
     }
     case "hero": {
       const hero = draft as SiteSettingsSectionDraftMap["hero"];
-      const heroUpload = uploaded("hero");
+      const heroSlides = hero.heroSlides.map((slide, slideIndex) => {
+        const heroUpload = uploadedAssets.find(
+          (asset) =>
+            asset.assetType === "hero" &&
+            asset.slideIndex === slideIndex,
+        );
+
+        return {
+          alt: slide.alt,
+          path: heroUpload?.path ?? slide.path,
+          url: heroUpload?.publicUrl ?? slide.url,
+        };
+      });
+      const firstSlide = heroSlides[0];
       return {
-        hero_image_path: heroUpload?.path ?? currentSettings.heroImage.path,
-        hero_image_url: heroUpload?.publicUrl ?? currentSettings.heroImage.url,
-        hero_image_alt: hero.heroImageAlt,
+        hero_image_path: firstSlide.path,
+        hero_image_url: firstSlide.url,
+        hero_image_alt: firstSlide.alt,
+        hero_slides: heroSlides,
       };
     }
     case "seo": {

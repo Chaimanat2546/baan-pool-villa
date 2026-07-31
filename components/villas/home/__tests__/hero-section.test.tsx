@@ -1,15 +1,168 @@
+/* @vitest-environment jsdom */
+
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const { mockAutoplay, mockEmblaApi, mockUseEmblaCarousel } = vi.hoisted(() => ({
+  mockAutoplay: vi.fn(() => ({ name: "autoplay" })),
+  mockEmblaApi: {
+    off: vi.fn(),
+    on: vi.fn(),
+    scrollNext: vi.fn(),
+    scrollPrev: vi.fn(),
+    scrollTo: vi.fn(),
+    selectedScrollSnap: vi.fn(() => 0),
+  },
+  mockUseEmblaCarousel: vi.fn(() => [vi.fn(), mockEmblaApi]),
+}));
 
 vi.mock("next/image", () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    <span aria-label={alt} data-src={src} />
+  default: ({
+    alt,
+    className,
+    src,
+  }: {
+    alt: string;
+    className?: string;
+    src: string;
+  }) => (
+    <span aria-label={alt} data-class={className} data-src={src} />
   ),
+}));
+
+vi.mock("embla-carousel-autoplay", () => ({
+  default: mockAutoplay,
+}));
+
+vi.mock("embla-carousel-react", () => ({
+  default: mockUseEmblaCarousel,
 }));
 
 import { HeroSection } from "../hero-section";
 
 describe("HeroSection", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("renders the first configured slide with carousel controls", () => {
+    const markup = renderToStaticMarkup(
+      <HeroSection
+        heroImage={{
+          alt: "Legacy hero",
+          path: "/legacy.jpg",
+          url: "/legacy.jpg",
+        }}
+        heroSlides={[
+          { alt: "First hero", path: "/first.jpg", url: "/first.jpg" },
+          { alt: "Second hero", path: "/second.jpg", url: "/second.jpg" },
+        ]}
+        maxAvailablePrice={12000}
+        zones={[{ label: "Jomtien", value: "jomtien" }]}
+      />,
+    );
+
+    expect(markup).toContain('data-hero-carousel="true"');
+    expect(markup).toContain('data-src="/first.jpg"');
+    expect(markup).toContain('aria-label="รูป Hero ก่อนหน้า"');
+    expect(markup).toContain('aria-label="รูป Hero ถัดไป"');
+    expect(markup).toContain('aria-label="แสดงรูป Hero ที่ 2"');
+  });
+
+  it("initializes Embla as a looping autoplay carousel", () => {
+    renderToStaticMarkup(
+      <HeroSection
+        heroImage={{ alt: "Legacy hero", path: "/legacy.jpg", url: "/legacy.jpg" }}
+        heroSlides={[
+          { alt: "First hero", path: "/first.jpg", url: "/first.jpg" },
+          { alt: "Second hero", path: "/second.jpg", url: "/second.jpg" },
+        ]}
+        maxAvailablePrice={12000}
+        zones={[{ label: "Jomtien", value: "jomtien" }]}
+      />,
+    );
+
+    expect(mockAutoplay).toHaveBeenCalledWith({
+      delay: 5000,
+      stopOnInteraction: false,
+    });
+    expect(mockUseEmblaCarousel).toHaveBeenCalledWith(
+      { loop: true },
+      expect.any(Array),
+    );
+  });
+
+  it("delegates the next control to Embla", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <HeroSection
+          heroImage={{ alt: "Legacy hero", path: "/legacy.jpg", url: "/legacy.jpg" }}
+          heroSlides={[
+            { alt: "First hero", path: "/first.jpg", url: "/first.jpg" },
+            { alt: "Second hero", path: "/second.jpg", url: "/second.jpg" },
+          ]}
+          maxAvailablePrice={12000}
+          zones={[{ label: "Jomtien", value: "jomtien" }]}
+        />,
+      );
+    });
+
+    const nextButton = container.querySelector<HTMLButtonElement>(
+      '[aria-label="รูป Hero ถัดไป"]',
+    );
+    await act(async () => {
+      nextButton?.click();
+    });
+    expect(mockEmblaApi.scrollNext).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("renders every configured hero image in the Embla track", () => {
+    const markup = renderToStaticMarkup(
+      <HeroSection
+        heroImage={{ alt: "Legacy hero", path: "/legacy.jpg", url: "/legacy.jpg" }}
+        heroSlides={[
+          { alt: "First hero", path: "/first.jpg", url: "/first.jpg" },
+          { alt: "Second hero", path: "/second.jpg", url: "/second.jpg" },
+        ]}
+        maxAvailablePrice={12000}
+        zones={[{ label: "Jomtien", value: "jomtien" }]}
+      />,
+    );
+
+    expect(markup).toContain('data-src="/first.jpg"');
+    expect(markup).toContain('data-src="/second.jpg"');
+  });
+
+  it("keeps the legacy single image fallback without carousel controls", () => {
+    const markup = renderToStaticMarkup(
+      <HeroSection
+        heroImage={{
+          alt: "Hero image",
+          path: "/hero.jpg",
+          url: "/hero.jpg",
+        }}
+        heroSlides={[]}
+        maxAvailablePrice={12000}
+        zones={[{ label: "Jomtien", value: "jomtien" }]}
+      />,
+    );
+
+    expect(markup).toContain('data-src="/hero.jpg"');
+    expect(markup).not.toContain('data-hero-carousel="true"');
+    expect(markup).not.toContain('aria-label="รูป Hero ก่อนหน้า"');
+  });
+
   it("renders a dedicated mobile search entry point on the home hero", () => {
     const markup = renderToStaticMarkup(
       <HeroSection

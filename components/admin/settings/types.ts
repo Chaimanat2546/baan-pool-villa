@@ -28,10 +28,14 @@ export type ThemeSettingsDraft = Pick<
   | "bankNumberHighlightColor"
 >;
 
+export interface HeroSlideDraft {
+  file: File | null;
+  id: string;
+  image: SiteSettings["heroImage"];
+}
+
 export interface HeroSettingsDraft {
-  heroFile: File | null;
-  heroImage: SiteSettings["heroImage"];
-  heroImageAlt: string;
+  heroSlides: HeroSlideDraft[];
 }
 
 export type SeoSettingsDraft = import("@/lib/site-settings/admin-section-contracts").SiteSettingsSectionDraftMap["seo"] & {
