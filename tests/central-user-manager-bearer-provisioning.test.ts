@@ -96,7 +96,7 @@ describe("Central User Manager staging deployment configuration", () => {
     );
     expect(vars?.CENTRAL_USER_MANAGER_AGENT_VERSION).toBe("1.0.0");
     expect(vars?.CENTRAL_USER_MANAGER_SCHEMA_VERSION).toBe("1.0.0");
-    expect(vars?.CENTRAL_USER_MANAGER_TOKEN_VERSION).toBe("1");
+    expect(vars?.CENTRAL_USER_MANAGER_TOKEN_VERSION).toBe("2");
     expect(vars?.CENTRAL_USER_MANAGER_TENANT_ID).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
