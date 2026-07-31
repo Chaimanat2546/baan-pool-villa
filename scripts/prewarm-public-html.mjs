@@ -5,7 +5,6 @@ const DEFAULT_CONCURRENCY = 2;
 const DEFAULT_VERIFY_DELAY_MS = 750;
 const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
 const HTML_CACHE_HEADER = "x-bpv-html-cache";
-const SEARCH_FILTER_PREWARM_PATH = "/search?guests=2&bedrooms=1&maxPrice=58900";
 const PREWARM_HEADERS = {
   Accept: "text/html,application/xhtml+xml",
   "User-Agent": "baan-pool-villa-cache-prewarm/1.0",
@@ -13,7 +12,6 @@ const PREWARM_HEADERS = {
 const FIXED_PUBLIC_HTML_PATHS = [
   "/",
   "/search",
-  SEARCH_FILTER_PREWARM_PATH,
   "/guides",
   "/terms",
   "/privacy",
