@@ -273,27 +273,6 @@ describe("Central User Manager Worker rate-limit gate", () => {
     expect(dispatch).toHaveBeenCalledTimes(1);
   });
 
-  it("accepts the Cloudflare host-object success accessor", async () => {
-    const rateLimitResult = Object.defineProperty({}, "success", {
-      configurable: true,
-      enumerable: true,
-      get: () => true,
-    });
-    const limiter = createRateLimiter(() => rateLimitResult);
-    const dispatch = vi.fn(async () => new Response("ok"));
-
-    const response = await handleCentralUserManagerRequest(
-      centralRequest(),
-      createEnvironment(limiter),
-      createExecutionContext(),
-      dispatch,
-    );
-
-    expect(response?.status).toBe(200);
-    expect(limiter.limit).toHaveBeenCalledTimes(1);
-    expect(dispatch).toHaveBeenCalledTimes(1);
-  });
-
   it("rejects request 61 for one IP without dispatching it", async () => {
     const limiter = createRateLimiter(
       (requestNumber): RateLimiterResult => ({

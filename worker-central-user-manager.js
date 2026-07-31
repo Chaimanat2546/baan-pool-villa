@@ -77,13 +77,15 @@ function readLimiterSuccess(value) {
     return null;
   }
 
-  if (!Object.hasOwn(value, "success")) {
-    return null;
-  }
+  const descriptor = Object.getOwnPropertyDescriptor(value, "success");
 
-  const success = value.success;
-
-  return typeof success === "boolean" ? success : null;
+  return (
+    descriptor &&
+    Object.hasOwn(descriptor, "value") &&
+    typeof descriptor.value === "boolean"
+  )
+    ? descriptor.value
+    : null;
 }
 
 export async function handleCentralUserManagerRequest(
