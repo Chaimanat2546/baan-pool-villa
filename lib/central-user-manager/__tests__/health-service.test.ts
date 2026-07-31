@@ -119,4 +119,36 @@ describe("Central User Manager health service", () => {
       error: { code: "health_unavailable" },
     });
   });
+
+  it("logs only the safe upstream status for an RPC failure", async () => {
+    const consoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+    const rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: {
+        code: "PGRST301",
+        message: "raw provider detail must not be logged",
+      },
+      status: 401,
+    });
+    const client = { rpc } as unknown as CentralUserManagerAdminClient;
+
+    try {
+      await probeCentralUserManagerHealth(client);
+
+      expect(consoleWarn).toHaveBeenCalledWith(
+        "Central User Manager health probe failed.",
+        { providerStatus: 401 },
+      );
+      expect(JSON.stringify(consoleWarn.mock.calls)).not.toContain(
+        "raw provider detail",
+      );
+      expect(JSON.stringify(consoleWarn.mock.calls)).not.toContain(
+        "PGRST301",
+      );
+    } finally {
+      consoleWarn.mockRestore();
+    }
+  });
 });

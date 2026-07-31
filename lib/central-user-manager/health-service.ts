@@ -46,6 +46,14 @@ function failure(): { ok: false; error: typeof HEALTH_ERROR } {
   return { ok: false, error: { ...HEALTH_ERROR } };
 }
 
+function readProviderStatus(value: unknown): number | null {
+  return Number.isSafeInteger(value) &&
+    (value as number) >= 100 &&
+    (value as number) <= 599
+    ? (value as number)
+    : null;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -117,7 +125,7 @@ export async function probeCentralUserManagerHealth(
 ): Promise<
   { ok: true; data: HealthProbe } | { ok: false; error: typeof HEALTH_ERROR }
 > {
-  let response: { data: unknown; error: unknown };
+  let response: { data: unknown; error: unknown; status?: unknown };
   try {
     response = await client.rpc("central_user_manager_health_probe_v1", {});
   } catch {
@@ -125,6 +133,9 @@ export async function probeCentralUserManagerHealth(
   }
 
   if (response.error || !isExactHealthyProbe(response.data)) {
+    console.warn("Central User Manager health probe failed.", {
+      providerStatus: readProviderStatus(response.status),
+    });
     return failure();
   }
 
