@@ -130,6 +130,30 @@ describe("normalizeBookingCalendar", () => {
     });
   });
 
+  it("uses the holiday guest capacity for hotpro days", () => {
+    const calendar = normalizeBookingCalendar(
+      {
+        ...baseResponse,
+        holidays: [
+          {
+            holiday_end: "2026-08-01",
+            holiday_people: "12",
+            holiday_price: 9900,
+            holiday_start: "2026-08-01",
+            holiday_type: "hotpro",
+          },
+        ],
+      },
+      "2026-08",
+    );
+
+    expect(calendar.days["2026-08-01"]).toMatchObject({
+      guestCapacity: "12",
+      kind: "hotpro",
+      price: 9900,
+    });
+  });
+
   it("uses booking priority and excludes checkout dates from booking ranges", () => {
     const calendar = normalizeBookingCalendar(
       {
