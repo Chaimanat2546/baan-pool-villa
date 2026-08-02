@@ -81,6 +81,7 @@ interface RawBooking {
 interface RawHoliday {
   holiday_alert?: string | null;
   holiday_end?: string | null;
+  holiday_people?: string | null;
   holiday_price?: number | null;
   holiday_start?: string | null;
   holiday_type?: string | null;
@@ -451,7 +452,9 @@ export function normalizeBookingCalendar(
         day: {
           disabled: false,
           displayPrice: formatCalendarDayDisplayPrice(price),
-          guestCapacity: getWeekdayGuestCapacity(response.base_price, dateKey),
+          guestCapacity:
+            holiday.holiday_people?.trim() ||
+            getWeekdayGuestCapacity(response.base_price, dateKey),
           holidayAlert,
           icons: isHotpro ? ["fire"] : [],
           kind: isHotpro ? "hotpro" : "holiday",
