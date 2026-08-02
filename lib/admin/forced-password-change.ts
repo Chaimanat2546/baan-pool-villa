@@ -666,7 +666,7 @@ async function hashCanonicalRequest(input: {
 
 export function createForcedPasswordChangeDependencies(): ForcedPasswordChangeDependencies {
   const config = getCentralUserManagerAgentConfig();
-  if (!config.enabled || !config.credentialFenceEnabled) {
+  if (!config.enabled) {
     throw new Error("Forced password change is unavailable.");
   }
   const client = createCentralUserManagerAdminClient(config);

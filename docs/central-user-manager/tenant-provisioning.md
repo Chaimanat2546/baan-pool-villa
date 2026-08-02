@@ -1,184 +1,123 @@
 # คู่มือ Provisioning Tenant สำหรับ Central User Manager
 
-เอกสารนี้เป็น runbook สำหรับ operator ของ `webook` และ Tenant Agent ใน
-`baan-pool-villa` เท่านั้น การทำงานจริงต้องใช้ change approval ของแต่ละ
-environment และต้องเก็บ Tenant เป็น `inactive` จนกว่าทุก gate จะผ่าน
+เอกสารนี้เป็น runbook สำหรับ operator ของ `webook` และ Tenant Worker ใน
+`baan-pool-villa` เท่านั้น ทุกการเปลี่ยนแปลงระบบจริงต้องมี change approval
+แยกตาม environment และ Tenant ต้องเป็น `inactive` จนกว่าทุก gate ด้านล่างผ่าน
 
-## สถาปัตยกรรมและขอบเขตความลับ
+## ขอบเขต RPC-only
 
-`webook` เรียก Tenant Agent ด้วย HTTP `Authorization: Bearer ...` แบบเดียวกับ
-การเรียก API ด้วย Bearer ทั่วไป ความแตกต่างคือแต่ละ Tenant มี Bearer เฉพาะของ
-ตัวเอง: `webook` ส่ง dedicated Bearer ของ Tenant เป้าหมาย และ Worker ของ Tenant
-เก็บค่าที่คาดไว้เพื่อเปรียบเทียบ จึงแยกผลกระทบของ secret ต่อ Tenant ไม่ใช้
-token กลางร่วมกัน นี่เป็นสถาปัตยกรรม `Bearer-only`: Bearer replaces Cloudflare Access and Ed25519
-และไม่ได้เปิดหลายโหมดพร้อมกัน
+`webook` เรียก Tenant Worker ผ่าน Cloudflare Service Binding ภายใน account เดียวกัน
+เท่านั้น โดยเรียก named entrypoint
+`CentralUserManagerEntrypoint.executeOperation(input)` ไม่มี public Agent URL,
+ไม่มี `Authorization: Bearer`, ไม่มี health runtime และไม่มี compatibility mode
 
-Bearer ต้องถูกสร้างใน provisioning orchestration ด้วย cryptographic RNG เป็น
-ค่า 256-bit (32 bytes) แล้วเข้ารหัส canonical unpadded base64url ห้ามใช้
-`Math.random()` และ helper ใน repo นี้มีหน้าที่ validate เท่านั้น ไม่ generate
-หรืออ่าน token จาก command-line argument, URL, file หรือ public environment
+Tenant Worker เปิด public HTTP ได้ตามปกติสำหรับเว็บไซต์ แต่ต้องตอบ empty `404`
+แบบเดียวกันกับ path ที่เลิกใช้ทั้งหมด โดยไม่ส่งต่อเข้า OpenNext, cache, rate limiter
+หรือ Supabase:
 
-มี Bearer อยู่เพียงสองสำเนา:
+- `/api/internal/central-user-manager/v1/health`
+- `/api/internal/central-user-manager/v1/operations`
+- `/api/_worker/central-user-manager`
 
-1. central secret vault ของ `webook`;
-2. Cloudflare Worker secret ชื่อ `CENTRAL_USER_MANAGER_BEARER_TOKEN` ของ Tenant
-   นั้น
+private bridge path สุดท้ายใช้ได้เฉพาะ named entrypoint ภายใน Worker เท่านั้น
+และไม่ใช่ endpoint สำหรับ caller อื่น
 
-ห้ามเก็บค่า secret ใน source, Git, database rows, browser, เอกสาร, ticket,
-clipboard history, logs หรือค่าที่ขึ้นต้น `NEXT_PUBLIC_*` และห้ามบันทึก hash
-เพื่อใช้แสดงแทน token ด้วย ส่วน `SUPABASE_SECRET_KEY` และ Management API
-credential เป็น server/provisioning secret ที่ต้องแยกขอบเขตตามหน้าที่เช่นกัน
+RPC input มี `protocolVersion: 1`, Tenant UUID, operation UUID, actor UID, action
+และ payload ที่ strict. มีเพียงห้างานต่อไปนี้:
 
-การเพิ่ม Tenant ไม่ต้อง redeploy แอป `webook` หรือ Tenant เดิม แต่ environment
-และ Worker ของ Tenant ใหม่ต้อง configure และ deploy ครั้งแรกหนึ่งครั้งใน
-initial install หลังจากนั้น registry ของ `webook` จึงชี้ไปยัง endpoint ใหม่นี้ได้
+- `list_users`
+- `create_user`
+- `reissue_temporary_password`
+- `suspend_user`
+- `reactivate_user`
 
-## Initial install
+การเพิ่ม Tenant จึงต้องเพิ่ม Service Binding แบบ static ใน `webook` แล้ว redeploy
+`webook`; ห้ามแทนที่ binding ด้วย URL หรือ secret fallback. Tenant Worker และ
+`webook` ต้องอยู่ Cloudflare account เดียวกัน
 
-ทำตามลำดับและหยุดทันทีเมื่อขั้นใดล้มเหลว:
+## Initial install และ cutover
 
-1. สร้าง registry record เป็น `inactive` พร้อม canonical Tenant UUID, Supabase
-   project ref 20 ตัวอักษร, hostname, expected agent/schema/protocol version
-   และ `tokenVersion` ที่เป็นจำนวนเต็มบวก
-2. ยืนยันว่า Worker ส่งตรงเฉพาะสอง path แบบ `Bearer-only` นี้ไปยัง Agent โดยไม่
-   ผ่าน public cache:
-   - `/api/internal/central-user-manager/v1/health`
-   - `/api/internal/central-user-manager/v1/operations`
-   ทั้งสอง path รับเฉพาะ exact per-Tenant Bearer และ `X-CUM-Version: 1`;
-   คำขอที่ไม่มี Bearer, Bearer ผิด Tenant หรือ Bearer ผิด version ต้อง fail
-   closed ก่อนสร้าง Supabase client หรือทำ operation
-3. ตั้ง nonsecret Worker vars ให้ครบ:
-   `CENTRAL_USER_MANAGER_AGENT_ENABLED=false`,
-   `CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED=false`,
+ทำตามลำดับนี้และหยุดทันทีหากขั้นใดล้มเหลว:
+
+1. สร้าง registry record เป็น `inactive` พร้อม Tenant UUID แบบ canonical และคงค่า
+   UUID เดิมตลอดอายุ Tenant. บันทึก project ref และ Worker/binding name ที่ตรวจสอบได้
+   โดยไม่เก็บ URL หรือ credential เพื่อใช้เป็นทางเรียก Central User Manager.
+2. ตั้ง Tenant Worker ด้วย config ขั้นต่ำ: `CENTRAL_USER_MANAGER_AGENT_ENABLED=false`,
    `CENTRAL_USER_MANAGER_TENANT_ID`, `CENTRAL_USER_MANAGER_PROJECT_REF`,
-   `CENTRAL_USER_MANAGER_AGENT_VERSION`, `CENTRAL_USER_MANAGER_SCHEMA_VERSION`,
-   `CENTRAL_USER_MANAGER_TOKEN_VERSION`,
-   `CENTRAL_USER_MANAGER_AUTH_ATTESTATION_VERSION`,
-   `CENTRAL_USER_MANAGER_AUTH_ATTESTATION_DIGEST` และ
-   `CENTRAL_USER_MANAGER_AUTH_ATTESTATION_CHECKED_AT`
-4. สร้าง Bearer 256-bit ด้วย cryptographic RNG ในหน่วยความจำ ตรวจด้วย
-   `validate-bearer-token.mjs` แล้วเขียนสองสำเนาลง central secret vault และ
-   Worker secret เท่านั้น ตั้ง `SUPABASE_SECRET_KEY` เป็น Worker secret ด้วย
-5. เตรียมและตรวจ schema ตามลำดับบังคับ:
-   **prepare migrations → dry-run backfill → approved apply + verify →
-   enforcement migration → enable credential fence** ห้ามข้ามหรือสลับลำดับ
-   และต้อง rerun dry-run backfill จนรายงานสะอาด
-6. ใช้ provisioning-only credential อ่าน Supabase Auth configuration จริง
-   ตรวจว่า signup ถูก disable, anonymous sign-in ถูก disable และ password
-   policy ตรงกับค่าที่อนุมัติ จากนั้นส่งเฉพาะค่าที่ไม่ลับเข้า
-   `auth-attestation.mjs` บันทึก `v1`, digest และ checked time ใน registry กับ
-   nonsecret Worker vars ห้ามส่ง Management API token หรือ provider error เข้า
-   helper
-7. deploy Worker ของ Tenant ใหม่โดยทั้งสอง feature flags ยังเป็น `false` แล้ว
-   ยืนยันว่า exact two paths ข้างต้น bypass public cache และ reject คำขอที่ไม่มี
-   Bearer
-8. หลัง enforcement migration ผ่านแล้วจึงเปิด
-   `CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED=true` และ
-   `CENTRAL_USER_MANAGER_AGENT_ENABLED=true` จากนั้น deploy config ของ Tenant
-9. เรียก authenticated health ด้วย Bearer ของ Tenant ตรวจ exact
-   Tenant/project/token/version, schema/RPC checks, no-store headers และ Auth
-   attestation ให้ตรง registry
-10. เรียก authenticated read-only `list_users` ผ่าน operations path ด้วย Bearer
-    เดียวกัน ตรวจว่า response เป็น reconciled list ที่ถูกต้องและไม่มี mutation
-11. เปลี่ยน registry เป็น `active` แบบ atomic เมื่อ authenticated health และ
-    authenticated read-only `list_users` ผ่านทั้งคู่เท่านั้น
+   `NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL` ที่ตรง project ref และ server-only
+   `SUPABASE_SECRET_KEY`. ห้ามตั้ง Bearer, token version, agent/schema version,
+   attestation, credential-fence flag หรือ rate limiter สำหรับ Central User Manager.
+3. เตรียมและตรวจ schema ตามลำดับบังคับ:
+   **prepare migrations → dry-run backfill → approved apply + verify → enforcement
+   migration → enable credential fence**. ห้าม apply กับ project ที่ไม่ได้ระบุชัด
+   และ source-controlled migration ไม่ใช่หลักฐานว่า online project ถูกเปลี่ยนแล้ว.
+4. deploy Tenant Worker revision ที่มี named entrypoint และ public legacy `404`
+   ก่อน (`target-first deploy`). ตรวจ account, Worker name, Tenant UUID และ
+   project ref จาก output ที่ redacted; อย่าเรียก public path เพื่อทดสอบสิทธิ์.
+5. หลัง enforcement migration ผ่าน ให้ตั้ง
+   `CENTRAL_USER_MANAGER_AGENT_ENABLED=true` แล้ว deploy Tenant config. ถ้า config
+   ไม่ครบหรือ identity ไม่ตรง ต้อง fail closed และคง Tenant เป็น `inactive`.
+6. เพิ่ม binding ของ Tenant Worker ไปยัง named entrypoint ใน `webook` แล้ว deploy
+   `webook` revision ที่ตรง environment. ยืนยันว่า binding ชี้ Worker/entrypoint
+   ที่กำหนด ไม่ใช่ URL, fetch binding หรือ Bearer secret.
+7. ผ่าน `webook` binding เท่านั้น เรียก `list_users` ด้วย Tenant UUID เดิมและ
+   ตรวจ reconciled read-only result ที่ปลอดภัย. นี่คือ readiness gate แทน health.
+8. สำหรับ Staging ให้ทดสอบผู้ใช้ disposable แยกจากผู้ใช้จริงครบสี่ mutation:
+   `create_user`, `reissue_temporary_password`, `suspend_user`, และ
+   `reactivate_user`. Temporary password แสดงได้ครั้งเดียว ห้ามบันทึก plaintext.
+9. ตรวจ public HTTP ทั้ง legacy paths และ private bridge ว่าตอบ empty `404`
+   เหมือนกันแม้ส่ง header หรือ Bearer รูปแบบใดก็ตาม และไม่มี public fallback.
+10. เมื่อ readiness และสี่ mutation ผ่าน พร้อมหลักฐานว่าไม่มี in-flight mutation
+    ที่ไร้ผลสรุป ให้ลบ retired secrets ตามหัวข้อถัดไปขณะที่ Tenant ยัง `inactive`.
+11. ตรวจการลบและ public legacy `404` ซ้ำ แล้วจึงเปลี่ยน registry เป็น `active`
+    แบบ atomic.
 
-source-controlled migrations ใน branch นี้ยังไม่ได้ apply กับ online project
-ใดโดยเอกสารนี้ การ apply ต้องเป็น approved operation แยกต่างหาก
+## Retired secret และ quarantine
 
-## การหมุน Bearer แบบ single-token
+หลังผ่าน readiness/mutation gates (steps 7–9) แต่ก่อน registry activation (step 11)
+และขณะที่ Tenant ยัง `inactive` ให้ลบค่าที่เลิกใช้จากทุก environment และ secret
+store: `CENTRAL_USER_MANAGER_BEARER_TOKEN`,
+`CENTRAL_USER_MANAGER_TOKEN_VERSION`, agent/schema version, Auth attestation,
+`CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED` และ
+`CENTRAL_USER_MANAGER_RATE_LIMITER`. ห้ามเก็บเป็น rollback secret หรือใช้ตรวจ
+legacy request. เก็บเฉพาะ secret ที่ยังจำเป็นแก่ Tenant server เช่น
+`SUPABASE_SECRET_KEY`.
 
-ระบบไม่มี dual-token overlap และไม่มี silent fallback การ rotate จึงมี
-immediate single-token rotation downtime ตามลำดับนี้:
-
-1. เปลี่ยน Tenant ใน central registry เป็น `inactive` และหยุดส่ง mutation ใหม่
-2. enumerate/check ทุก in-flight mutation ของ Tenant: แต่ละรายการต้อง resolve
-   ด้วย proven outcome หรือทำ explicit quarantine สำหรับงานที่ unresolved หรือ
-   ambiguous และต้องยืนยันว่าไม่มี mutation ตกหล่น
-3. ถ้า in-flight mutation gate ไม่ผ่าน ให้คง Tenant เป็น `inactive` และหยุด
-   rotation ก่อนสร้าง, install หรือ cut over ไป token ใหม่
-4. สร้าง Bearer 256-bit ใหม่ด้วย cryptographic RNG และเพิ่ม `tokenVersion`
-5. update Worker secret ของ Tenant และ deploy/configure Tenant ให้รับ token ใหม่
-6. update สำเนาใน central secret vault ให้ตรงกัน ห้ามเก็บ token เก่าเป็น fallback
-7. เรียก authenticated health ด้วย token ใหม่ ตรวจ token version, Tenant
-   identity, schema และ attestation ให้ครบ
-8. เรียก authenticated read-only `list_users` ผ่าน operations path ด้วย token
-   ใหม่และตรวจ reconciled list โดยไม่มี mutation
-9. เมื่อ health และ `list_users` ผ่านทั้งคู่เท่านั้นจึงเปลี่ยน Tenant กลับเป็น
-   `active`
-
-provisioning, rotation, Auth attestation, authenticated health หรือ
-authenticated read-only `list_users` ใดล้มเหลว ต้องคง Tenant เป็น `inactive`;
-อย่าย้อนมาใช้ token เก่าและอย่าเปิดสอง token พร้อมกัน
-
-## Temporary password, quarantine และการซ่อมข้อมูล
-
-temporary password แสดงได้ครั้งเดียวใน successful no-store response เท่านั้น
-plaintext ไม่ถูกเก็บและกู้คืนไม่ได้ กรณี lost temporary password response หรือ
-operator ปิดหน้าก่อนบันทึก ต้องสร้าง operation ใหม่เพื่อ reissue temporary
-password ห้ามอ่านคืนจากฐานข้อมูลหรือ logs
-
-เมื่อ Auth mutation ให้ผลกำกวม เช่น timeout หลังส่งคำขอ ให้คง operation/target
-เป็น `quarantine` หรือ review, ปิด mutation เพิ่มเติม และทำ read-only
-reconciliation จาก Auth กับ `admin_users` ก่อน ห้าม replay ambiguous Auth
-mutation อัตโนมัติ กล่าวคือไม่ replay Auth mutation ที่ยังยืนยันผลไม่ได้
-การปลด quarantine ต้องเป็น explicit repair operation ที่มี
-fence ใหม่และหลักฐานของผลจริง
-
-ก่อน apply backfill และก่อนเปิด credential fence ให้แก้ทุก category แล้ว rerun
-dry-run จน clean:
-
-- `duplicate` UID หรือ duplicate normalized-email: หาผู้ถือ identity ที่ถูกต้อง
-  จากหลักฐาน แล้วแก้ conflict โดยไม่ merge อัตโนมัติ
-- normalized-email conflict: normalize ด้วย trim/lowercase และยืนยัน owner เพียง
-  รายเดียวทั้ง Auth และ profile
-- `Auth-only`: ตัดสินใจสร้าง/กู้ profile ที่ตรง UID หรือยกเลิก Auth identity ตาม
-  change approval
-- `profile-only`: ตัดสินใจสร้าง/กู้ Auth identity ที่ตรง UID หรือปิด profile ตาม
-  change approval
-- `UID/version mismatch`: ห้ามจับคู่ด้วย email อย่างเดียว ปรับ Auth metadata และ
-  database credential version ผ่าน flow ที่มี fence จน UID และ positive safe
-  version ตรงกัน
-
-อย่า replay password, ban, delete หรือ metadata mutation ที่ผลยัง ambiguous
-หลังซ่อมต้อง rerun dry-run backfill, health และ reconciliation จนไม่มี mismatch
+หาก mutation ของ Auth ให้ผลกำกวม เช่น timeout หลังส่งคำขอ ให้คง Tenant เป็น
+`inactive`, quarantine operation/target และทำ read-only reconciliation ระหว่าง
+Auth กับ `admin_users` ก่อน ห้าม replay mutation ที่ยังพิสูจน์ผลไม่ได้อัตโนมัติ.
+การปลด quarantine ต้องเป็น explicit repair operation ที่มี fence ใหม่และหลักฐาน
+ผลจริง. Lost temporary password ต้องใช้ `reissue_temporary_password` operation ใหม่
+เท่านั้น
 
 ## Rollback และ disable boundary
 
-- ปิด Tenant ใน central registry เพื่อหยุด `webook` ก่อนเสมอ
-- ปิด `CENTRAL_USER_MANAGER_AGENT_ENABLED` เพื่อหยุดสอง Agent routes ที่ Tenant
-- ถ้าต้องปิด network entry point ให้ disable/remove route ของ Worker เฉพาะ
-  Tenant โดยไม่เปิด auth mode สำรอง
-- อย่าปิด `CENTRAL_USER_MANAGER_CREDENTIAL_FENCE_ENABLED` เพื่อข้าม schema หรือ
-  identity mismatch; fence เป็น fail-closed authorization boundary
-- rollback Worker ต้องใช้ revision ที่ schema/runtime contract เข้ากัน และต้อง
-  health-test ก่อน reactivate
-- additive migrations และ durable operation evidence ไม่ถูก rollback ด้วยการ
-  deploy Worker; ห้ามลบ audit/quarantine state เพื่อทำให้ health ผ่าน
+- เปลี่ยน Tenant เป็น `inactive` และหยุด `webook` dispatch ก่อนเสมอ.
+- resolve ทุก in-flight mutation ด้วย proven outcome หรือ explicit quarantine;
+  หากทำไม่ได้ให้คง inactive.
+- rollback ใช้ได้เฉพาะ Tenant และ `webook` revisions ที่ RPC contract เข้ากัน และ
+  ต้อง redeploy ทั้ง binding/caller ตามลำดับที่ตรวจได้.
+- ห้าม restore public HTTP Agent routes, Bearer, token rotation, authenticated health
+  หรือ fallback ใด ๆ. การ rollback ไม่อนุญาตให้คนนอกเรียก Central User Manager.
+- ห้ามลบ audit, fence, lock หรือ quarantine evidence เพื่อให้ readiness ผ่าน.
 
-## Validation และ troubleshooting แบบไม่เปิดเผยความลับ
+## Validation และบันทึกหลักฐาน
 
-รันเฉพาะการตรวจที่เกี่ยวข้องจาก repo root:
+รันจาก repo root ตามส่วนที่เปลี่ยน:
 
 ```powershell
-npm.cmd test -- tests/central-user-manager-bearer-provisioning.test.ts tests/central-user-manager-auth-attestation.test.ts
-npx.cmd eslint scripts/central-user-manager/validate-bearer-token.mjs scripts/central-user-manager/auth-attestation.mjs tests/central-user-manager-bearer-provisioning.test.ts tests/central-user-manager-auth-attestation.test.ts
-node --check scripts/central-user-manager/validate-bearer-token.mjs
-node --check scripts/central-user-manager/auth-attestation.mjs
+npm.cmd test -- lib/central-user-manager/__tests__ worker-central-user-manager.test.ts "app/(admin)/api/%5Fworker/central-user-manager/route.test.ts"
+npx.cmd tsc -p tsconfig.central-user-owner.json --pretty false
+npm.cmd run lint
+npm.cmd run build
 ```
 
-เมื่อตรวจระบบจริง ให้บันทึกเฉพาะ Tenant ID, project ref, token version, attestation
-version/digest/checked time, HTTP status, safe error code และ deployment version
-ห้าม paste `Authorization`, Bearer, Supabase secret, Management API token,
-temporary password หรือ raw provider error ลง terminal
-history, CI output, chat หรือ ticket ถ้า token อาจรั่วให้เริ่ม single-token
-rotation ทันทีโดย Tenant ยัง `inactive`
+เมื่อทดสอบระบบจริง ให้บันทึกเฉพาะ Tenant ID, project ref, Worker/deployment version,
+binding/entrypoint name, safe RPC status, redacted operation ID และผล `404`. ห้าม paste
+Bearer, `Authorization`, Supabase key, Management API token, database URL/password,
+temporary password หรือ raw provider error ลง logs, CI, chat หรือ ticket.
 
-แนวทางแยกปัญหา:
-
-- `401`: ตรวจ secret version/mapping โดยไม่พิมพ์ค่า แล้ว rotate หากยืนยันไม่ได้
-- `404`/`405`: ตรวจ hostname, exact path และ method ของสอง Bearer-only routes
-- `429`: รอ rate-limit window; ห้าม retry แบบ unbounded
-- `503`/health mismatch: คง `inactive`, เทียบ nonsecret version/attestation และ
-  schema/RPC health report; ห้าม fallback หรือเปิด fence ก่อนเวลา
-- backfill conflict: หยุด apply, ซ่อม category แบบ explicit แล้ว rerun dry-run
+หาก `list_users` หรือ mutation ใดไม่ผ่าน ให้คง Tenant เป็น `inactive`; ตรวจ
+Tenant UUID, project ref, Service Binding และ RPC revision โดยไม่สร้าง public
+HTTP fallback. หาก public path ไม่คืน empty `404` ให้หยุด rollout และแก้ boundary
+ก่อน activate.

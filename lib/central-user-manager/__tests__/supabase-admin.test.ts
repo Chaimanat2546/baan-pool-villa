@@ -38,7 +38,10 @@ describe("Central User Manager privileged Supabase client", () => {
     vi.stubGlobal("fetch", fetchStub);
 
     const client = createCentralUserManagerAdminClient(CONFIG);
-    await client.rpc("central_user_manager_health_probe_v1", {});
+    await client.rpc("list_reconciled_admin_users_v1", {
+      p_page: 1,
+      p_page_size: 1,
+    });
 
     expect(fetchStub).toHaveBeenCalledOnce();
     expect(observedUserAgent).toBe(

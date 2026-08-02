@@ -8,18 +8,8 @@ import { createProductionCentralUserOperationContext } from "../production-conte
 
 const CONFIG: CentralUserManagerAgentConfig = {
   enabled: true,
-  credentialFenceEnabled: true,
   tenantId: "123e4567-e89b-42d3-a456-426614174000",
   projectRef: "abcdefghijklmnopqrst",
-  agentVersion: "1.0.0",
-  schemaVersion: "20260729",
-  tokenVersion: 7,
-  bearerToken: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-  authAttestation: {
-    version: "1",
-    digest: "a".repeat(64),
-    checkedAt: "2026-07-29T00:00:00.000Z",
-  },
   supabaseUrl: "https://abcdefghijklmnopqrst.supabase.co",
   supabaseSecretKey: "sb_secret_example",
 };

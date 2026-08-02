@@ -11,6 +11,11 @@ export type CentralUserAction =
   | "suspend_user"
   | "reactivate_user";
 
+export type CentralUserMutationAction = Exclude<
+  CentralUserAction,
+  "list_users"
+>;
+
 export type CentralUserPayload =
   | { page: number; pageSize: number }
   | { email: string };
@@ -65,7 +70,7 @@ const REQUEST_KEYS = [
   "action",
   "payload",
 ] as const;
-const MUTATION_ACTIONS = new Set<CentralUserAction>([
+const MUTATION_ACTIONS = new Set<CentralUserMutationAction>([
   "create_user",
   "reissue_temporary_password",
   "suspend_user",
@@ -146,13 +151,19 @@ export function parseAgentOperationRequest(value: unknown): AgentOperationReques
     return { ...requestIds, action, payload: readListPayload(payload) };
   }
 
-  if (MUTATION_ACTIONS.has(action as CentralUserAction)) {
+  if (isMutationAction(action)) {
     return {
       ...requestIds,
-      action: action as CentralUserAction,
+      action,
       payload: readMutationPayload(payload),
     };
   }
 
   return invalidRequest();
+}
+
+function isMutationAction(
+  action: string,
+): action is CentralUserMutationAction {
+  return MUTATION_ACTIONS.has(action as CentralUserMutationAction);
 }

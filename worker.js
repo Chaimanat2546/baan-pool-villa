@@ -3,6 +3,7 @@ import openNextWorker, {
   DOQueueHandler,
   DOShardedTagCache,
 } from "./.open-next/worker.js";
+import { WorkerEntrypoint } from "cloudflare:workers";
 import {
   createHtmlEdgeCacheKey,
   createHtmlEdgeVersionToken,
@@ -21,7 +22,7 @@ import {
 } from "./worker-cache-policy.js";
 import { handleBookingCalendarAccess } from "./worker-calendar-access.js";
 import {
-  handleCentralUserManagerRequest,
+  blockPublicCentralUserManagerRequest,
 } from "./worker-central-user-manager.js";
 import { getHtmlEdgeCacheVersionToken } from "./worker-html-cache-version.js";
 
@@ -197,18 +198,39 @@ async function fetchWithJsonEdgeCache(request, env, ctx) {
 
 export { BucketCachePurge, DOQueueHandler, DOShardedTagCache };
 
+export class CentralUserManagerEntrypoint extends WorkerEntrypoint {
+  async executeOperation(input) {
+    try {
+      const response = await openNextWorker.fetch(
+        new Request(
+          "https://worker.internal/api/_worker/central-user-manager",
+          {
+            body: JSON.stringify(input),
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
+          },
+        ),
+        this.env,
+        this.ctx,
+      );
+
+      return await response.json();
+    } catch {
+      return {
+        ok: false,
+        error: {
+          code: "agent_unavailable",
+          message: "User management is unavailable.",
+        },
+      };
+    }
+  }
+}
+
 const worker = {
   async fetch(request, env, ctx) {
-    // The two Tenant Agent paths are rate-limited and dispatched directly
-    // before calendar handling or any custom cache policy is evaluated.
     const centralUserManagerResponse =
-      await handleCentralUserManagerRequest(
-        request,
-        env,
-        ctx,
-        (agentRequest, agentEnv, agentContext) =>
-          openNextWorker.fetch(agentRequest, agentEnv, agentContext),
-      );
+      blockPublicCentralUserManagerRequest(request);
 
     if (centralUserManagerResponse) {
       return centralUserManagerResponse;
