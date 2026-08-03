@@ -586,13 +586,53 @@ describe("worker booking calendar host access policy", () => {
     ).toEqual({ allowed: false, candidate: true, reason: "config" });
   });
 
-  it("fails closed when a non-www Worker alias is configured as the official site", () => {
+  it("allows only the exact configured direct workers.dev hostname", () => {
     const path = "/api/villas/9/booking-calendar?month=2026-06";
+    const configuredHost =
+      "baan-pool-villa-staging.chaymanus2003.workers.dev";
 
     expect(
       getBookingCalendarAccessDecision(
-        new Request(`https://site.example.workers.dev${path}`),
-        "https://site.example.workers.dev",
+        new Request(`https://${configuredHost}${path}`),
+        `https://${configuredHost}`,
+      ),
+    ).toEqual({ allowed: true, candidate: true, reason: "hostname" });
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(
+          `https://other-worker.chaymanus2003.workers.dev${path}`,
+        ),
+        `https://${configuredHost}`,
+      ),
+    ).toEqual({ allowed: false, candidate: true, reason: "hostname" });
+  });
+
+  it.each([
+    "preview.baan-pool-villa-staging.chaymanus2003.workers.dev",
+    "chaymanus2003.workers.dev",
+  ])(
+    "fails closed for an invalid direct workers.dev configuration: %s",
+    (configuredHost) => {
+      const path = "/api/villas/9/booking-calendar?month=2026-06";
+
+      expect(
+        getBookingCalendarAccessDecision(
+          new Request(`https://${configuredHost}${path}`),
+          `https://${configuredHost}`,
+        ),
+      ).toEqual({ allowed: false, candidate: true, reason: "config" });
+    },
+  );
+
+  it("fails closed when a direct workers.dev configuration is not HTTPS", () => {
+    const host = "baan-pool-villa-staging.chaymanus2003.workers.dev";
+
+    expect(
+      getBookingCalendarAccessDecision(
+        new Request(
+          `https://${host}/api/villas/9/booking-calendar?month=2026-06`,
+        ),
+        `http://${host}`,
       ),
     ).toEqual({ allowed: false, candidate: true, reason: "config" });
   });

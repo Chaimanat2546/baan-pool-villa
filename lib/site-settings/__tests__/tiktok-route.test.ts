@@ -134,7 +134,10 @@ describe("admin tikTok route", () => {
     const response = await GET(authenticatedRequest());
 
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({ error: "Missing bearer token." });
+    await expect(response.json()).resolves.toEqual({
+      error: "Missing bearer token.",
+      code: "session_invalid",
+    });
     expect(assertHomeConfigAdminMock).not.toHaveBeenCalled();
   });
 

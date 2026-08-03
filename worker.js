@@ -3,6 +3,7 @@ import openNextWorker, {
   DOQueueHandler,
   DOShardedTagCache,
 } from "./.open-next/worker.js";
+import { WorkerEntrypoint } from "cloudflare:workers";
 import {
   createHtmlEdgeCacheKey,
   createHtmlEdgeVersionToken,
@@ -20,6 +21,9 @@ import {
   withStaticAssetCacheHeaders,
 } from "./worker-cache-policy.js";
 import { handleBookingCalendarAccess } from "./worker-calendar-access.js";
+import {
+  blockPublicCentralUserManagerRequest,
+} from "./worker-central-user-manager.js";
 import { getHtmlEdgeCacheVersionToken } from "./worker-html-cache-version.js";
 
 const IMAGE_CACHE_CONTROL =
@@ -194,8 +198,44 @@ async function fetchWithJsonEdgeCache(request, env, ctx) {
 
 export { BucketCachePurge, DOQueueHandler, DOShardedTagCache };
 
+export class CentralUserManagerEntrypoint extends WorkerEntrypoint {
+  async executeOperation(input) {
+    try {
+      const response = await openNextWorker.fetch(
+        new Request(
+          "https://worker.internal/api/_worker/central-user-manager",
+          {
+            body: JSON.stringify(input),
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
+          },
+        ),
+        this.env,
+        this.ctx,
+      );
+
+      return await response.json();
+    } catch {
+      return {
+        ok: false,
+        error: {
+          code: "agent_unavailable",
+          message: "User management is unavailable.",
+        },
+      };
+    }
+  }
+}
+
 const worker = {
   async fetch(request, env, ctx) {
+    const centralUserManagerResponse =
+      blockPublicCentralUserManagerRequest(request);
+
+    if (centralUserManagerResponse) {
+      return centralUserManagerResponse;
+    }
+
     // Calendar host, Bearer, and rate-limit checks must run before OpenNext
     // and every cache lookup. Calendar responses are never shared Edge JSON.
     const calendarAccessResponse = await handleBookingCalendarAccess(

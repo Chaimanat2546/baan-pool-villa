@@ -536,6 +536,17 @@ returned. Requests use bounded pagination with a maximum page size of 100, and
 responses return the next-page indicator needed by the central table. The
 Central UI never requests every page merely to render the first screen.
 
+For this read-only action only, the approved implementation uses one
+server-only service-role RPC. A private fixed/empty-search-path
+`SECURITY DEFINER` function selects only the required documented
+`auth.users` fields and `public.admin_users`, full-joins by exact UID, computes
+global normalized-email ownership, derives safe status, and applies stable
+display-email/UID pagination before returning the strict DTO. The RPC has no
+writes, locks, triggers, dynamic SQL, or raw metadata output; its private
+implementation is not executable by API roles or `service_role`, and only its
+public wrapper is granted to `service_role`. Every mutation continues through
+the Auth Admin API and the fenced mutation repositories.
+
 ### `create_user`
 
 1. Normalize the email with `email.trim().toLowerCase()` in both central and

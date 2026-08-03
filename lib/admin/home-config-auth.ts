@@ -4,6 +4,13 @@ import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 
 type HomeConfigSupabaseClient = ReturnType<typeof createHomeConfigClient>;
 
+type AdminAuthFailureCode =
+  | "session_invalid"
+  | "admin_inactive"
+  | "password_change_required"
+  | "credential_version_mismatch"
+  | "admin_verification_failed";
+
 type AdminCheckResult =
   | {
       ok: true;
@@ -12,22 +19,26 @@ type AdminCheckResult =
   | {
       ok: false;
       message: string;
-      status: 401 | 403;
+      code: AdminAuthFailureCode;
+      status: 401 | 403 | 500;
+      supabaseCode?: string;
+      details?: string;
+      hint?: string;
     };
 
 const BEARER_SCHEME = "bearer";
 const MAX_AUTHORIZATION_HEADER_LENGTH = 8192;
-const ADMIN_AUTH_CACHE_TTL_MS = 30_000;
-const MAX_ADMIN_AUTH_CACHE_ENTRIES = 100;
-
-type SuccessfulAdminCheckResult = Extract<AdminCheckResult, { ok: true }>;
-
-interface AdminAuthCacheEntry {
-  expiresAt: number;
-  result: SuccessfulAdminCheckResult;
-}
-
-const adminAuthCache = new Map<string, AdminAuthCacheEntry>();
+const ADMIN_PROFILE_PROJECTION =
+  "user_id,is_active,must_change_password,credential_version";
+const SESSION_INVALID_MESSAGE =
+  "Invalid or expired Supabase session. Please sign in again.";
+const ADMIN_INACTIVE_MESSAGE =
+  "Signed-in user is not listed as an active home config admin.";
+const PASSWORD_CHANGE_REQUIRED_MESSAGE =
+  "Password change is required before using admin features.";
+const CREDENTIAL_VERSION_MISMATCH_MESSAGE =
+  "Admin credentials have changed. Please sign in again.";
+const ADMIN_VERIFICATION_FAILED_MESSAGE = "Unable to verify admin access";
 
 /**
  * Builds a JSON error response used by shared admin route helpers.
@@ -88,151 +99,240 @@ export function getBearerToken(request: Request): string | null {
   return token ? token : null;
 }
 
-function decodeBase64Url(value: string): string {
-  const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
-  const paddingLength = (4 - (base64.length % 4)) % 4;
-
-  return globalThis.atob(`${base64}${"=".repeat(paddingLength)}`);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function getTokenExpiresAt(token: string): number | null {
-  const parts = token.split(".");
+function isNonblankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
 
-  if (parts.length < 2) {
+function readCredentialVersion(metadata: unknown): number | null {
+  if (!isRecord(metadata)) {
     return null;
   }
 
-  try {
-    const payload = JSON.parse(decodeBase64Url(parts[1])) as {
-      exp?: unknown;
-    };
-    const expiresAtSeconds = payload.exp;
+  const credentialVersion = metadata.credential_version;
 
-    return typeof expiresAtSeconds === "number" &&
-      Number.isFinite(expiresAtSeconds)
-      ? expiresAtSeconds * 1000
-      : null;
+  return Number.isSafeInteger(credentialVersion) &&
+    (credentialVersion as number) > 0
+    ? (credentialVersion as number)
+    : null;
+}
+
+function adminFailure(
+  code: AdminAuthFailureCode,
+  status: 401 | 403 | 500,
+  message: string,
+  metadata?: {
+    supabaseCode?: string;
+    details?: string;
+    hint?: string;
+  },
+): AdminCheckResult {
+  return {
+    ok: false,
+    message,
+    code,
+    status,
+    ...(metadata?.supabaseCode
+      ? { supabaseCode: metadata.supabaseCode }
+      : {}),
+    ...(metadata?.details ? { details: metadata.details } : {}),
+    ...(metadata?.hint ? { hint: metadata.hint } : {}),
+  };
+}
+
+function sessionInvalid(): AdminCheckResult {
+  return adminFailure("session_invalid", 401, SESSION_INVALID_MESSAGE);
+}
+
+function credentialVersionMismatch(): AdminCheckResult {
+  return adminFailure(
+    "credential_version_mismatch",
+    403,
+    CREDENTIAL_VERSION_MISMATCH_MESSAGE,
+  );
+}
+
+async function containAuthCall<T>(
+  operation: () => Promise<T>,
+): Promise<T | null> {
+  try {
+    return await operation();
   } catch {
     return null;
   }
 }
 
-function getAdminAuthCacheExpiresAt(token: string, now: number): number {
-  const tokenExpiresAt = getTokenExpiresAt(token);
-  const ttlExpiresAt = now + ADMIN_AUTH_CACHE_TTL_MS;
+function readVerifiedClaims(response: unknown): Record<string, unknown> | null {
+  if (
+    !isRecord(response) ||
+    response.error !== null ||
+    !isRecord(response.data) ||
+    !isRecord(response.data.claims)
+  ) {
+    return null;
+  }
 
-  return tokenExpiresAt === null
-    ? ttlExpiresAt
-    : Math.min(ttlExpiresAt, tokenExpiresAt);
+  return response.data.claims;
 }
 
-async function getAdminAuthCacheKey(token: string): Promise<string> {
-  const digest = await globalThis.crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(token),
-  );
+function readCurrentUser(response: unknown): Record<string, unknown> | null {
+  if (
+    !isRecord(response) ||
+    response.error !== null ||
+    !isRecord(response.data) ||
+    !isRecord(response.data.user)
+  ) {
+    return null;
+  }
 
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return response.data.user;
 }
 
-function pruneExpiredAdminAuthCache(now: number) {
-  adminAuthCache.forEach((entry, key) => {
-    if (entry.expiresAt <= now) {
-      adminAuthCache.delete(key);
-    }
-  });
-}
-
-function cacheSuccessfulAdminAuth(
-  key: string,
+function safeDatabaseErrorField(
+  value: unknown,
   token: string,
-  result: SuccessfulAdminCheckResult,
-  now: number,
-) {
-  const expiresAt = getAdminAuthCacheExpiresAt(token, now);
-
-  if (expiresAt <= now) {
-    return;
+): string | undefined {
+  if (typeof value !== "string" || value.length === 0) {
+    return undefined;
   }
 
-  pruneExpiredAdminAuthCache(now);
+  return token.length > 0 ? value.replaceAll(token, "[redacted]") : value;
+}
 
-  if (adminAuthCache.size >= MAX_ADMIN_AUTH_CACHE_ENTRIES) {
-    const oldestKey = adminAuthCache.keys().next().value;
-
-    if (typeof oldestKey === "string") {
-      adminAuthCache.delete(oldestKey);
-    }
+function databaseVerificationFailure(
+  error: unknown,
+  token: string,
+): AdminCheckResult {
+  if (!isRecord(error)) {
+    return adminFailure(
+      "admin_verification_failed",
+      500,
+      `${ADMIN_VERIFICATION_FAILED_MESSAGE}.`,
+    );
   }
 
-  adminAuthCache.set(key, { expiresAt, result });
+  const errorMessage = safeDatabaseErrorField(error.message, token);
+  const supabaseCode = safeDatabaseErrorField(error.code, token);
+  const details = safeDatabaseErrorField(error.details, token);
+  const hint = safeDatabaseErrorField(error.hint, token);
+
+  return adminFailure(
+    "admin_verification_failed",
+    500,
+    errorMessage
+      ? `${ADMIN_VERIFICATION_FAILED_MESSAGE}: ${errorMessage}`
+      : `${ADMIN_VERIFICATION_FAILED_MESSAGE}.`,
+    { supabaseCode, details, hint },
+  );
 }
 
 /**
  * Verifies that a Supabase session token belongs to an active home-config
- * admin and returns a scoped Supabase client on success.
+ * admin and returns the request-scoped Supabase client on success.
  *
  * @param token - The bearer token from the incoming admin request.
- * @returns An auth result containing either a ready Supabase client or an
- * admin-facing error message and status.
+ * @returns An auth result containing either the scoped Supabase client or an
+ * admin-facing error with a stable machine-readable code.
  */
 export async function assertHomeConfigAdmin(
   token: string,
 ): Promise<AdminCheckResult> {
-  const now = Date.now();
-  const cacheKey = await getAdminAuthCacheKey(token);
-  const cachedResult = adminAuthCache.get(cacheKey);
-
-  // Cache only successful auth checks so repeated admin mutations do not keep
-  // re-validating the same session on every request.
-  if (cachedResult && cachedResult.expiresAt > now) {
-    return cachedResult.result;
-  }
-
-  if (cachedResult) {
-    adminAuthCache.delete(cacheKey);
-  }
-
   const supabase = createHomeConfigClient(token);
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
-  const user = userData.user;
+  const [claimsResponse, userResponse] = await Promise.all([
+    containAuthCall(() => supabase.auth.getClaims(token)),
+    containAuthCall(() => supabase.auth.getUser(token)),
+  ]);
+  const claims = readVerifiedClaims(claimsResponse);
+  const user = readCurrentUser(userResponse);
 
-  if (userError || !user) {
-    return {
-      ok: false,
-      message: "Invalid or expired Supabase session. Please sign in again.",
-      status: 401,
-    };
+  if (!claims || !user) {
+    return sessionInvalid();
   }
 
-  const { data, error } = await supabase
-    .from("admin_users")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .eq("is_active", true)
-    .limit(1);
+  const subject = claims.sub;
+  const userId = user.id;
 
-  if (error) {
-    return {
-      ok: false,
-      message: `Unable to verify admin access: ${error.message}`,
-      status: 403,
-    };
+  if (
+    !isNonblankString(subject) ||
+    !isNonblankString(userId) ||
+    subject !== userId
+  ) {
+    return sessionInvalid();
   }
 
-  if (!Array.isArray(data) || data.length === 0) {
-    return {
-      ok: false,
-      message: "Signed-in user is not listed as an active home config admin.",
-      status: 403,
-    };
+  const jwtCredentialVersion = readCredentialVersion(claims.app_metadata);
+  const authCredentialVersion = readCredentialVersion(user.app_metadata);
+
+  if (
+    jwtCredentialVersion === null ||
+    authCredentialVersion === null
+  ) {
+    return credentialVersionMismatch();
   }
 
-  const result = { ok: true, supabase } as const;
+  let profileResponse: unknown;
 
-  cacheSuccessfulAdminAuth(cacheKey, token, result, now);
+  try {
+    profileResponse = await supabase
+      .from("admin_users")
+      .select(ADMIN_PROFILE_PROJECTION)
+      .eq("user_id", userId)
+      .limit(2);
+  } catch (error) {
+    return databaseVerificationFailure(error, token);
+  }
 
-  return result;
+  if (!isRecord(profileResponse) || profileResponse.error !== null) {
+    return databaseVerificationFailure(
+      isRecord(profileResponse) ? profileResponse.error : null,
+      token,
+    );
+  }
+
+  const rows = profileResponse.data;
+
+  if (!Array.isArray(rows) || rows.length !== 1 || !isRecord(rows[0])) {
+    return adminFailure("admin_inactive", 403, ADMIN_INACTIVE_MESSAGE);
+  }
+
+  const row = rows[0];
+
+  if (
+    row.user_id !== userId ||
+    typeof row.is_active !== "boolean" ||
+    typeof row.must_change_password !== "boolean"
+  ) {
+    return adminFailure("admin_inactive", 403, ADMIN_INACTIVE_MESSAGE);
+  }
+
+  if (!row.is_active) {
+    return adminFailure("admin_inactive", 403, ADMIN_INACTIVE_MESSAGE);
+  }
+
+  if (row.must_change_password) {
+    return adminFailure(
+      "password_change_required",
+      403,
+      PASSWORD_CHANGE_REQUIRED_MESSAGE,
+    );
+  }
+
+  const databaseCredentialVersion = Number.isSafeInteger(
+    row.credential_version,
+  ) && (row.credential_version as number) > 0
+    ? (row.credential_version as number)
+    : null;
+
+  if (
+    databaseCredentialVersion === null ||
+    jwtCredentialVersion !== authCredentialVersion ||
+    jwtCredentialVersion !== databaseCredentialVersion
+  ) {
+    return credentialVersionMismatch();
+  }
+
+  return { ok: true, supabase };
 }
