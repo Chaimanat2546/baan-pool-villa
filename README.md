@@ -30,6 +30,14 @@ README นี้เป็น runbook หลักของ repo สำหรั�
 
 Update `docs/ai/structure.html` in the same change when adding, moving, renaming, or removing routes, route handlers, loading UI, feature folders, shared helper ownership, public contracts, cache/revalidation behavior, settings flows, Supabase schema ownership, or targeted test guidance.
 
+## Central User Manager Tenant
+
+`Poolvillapattaya` is the production Tenant for `env.baan02`. It uses Worker
+`baan-pool-villa02` and immutable Tenant UUID
+`9fd7c645-563a-4cce-85ac-20ffb8f3bfc0`. Webook reaches it only through the
+named `CUM_POOLVILLAPATTAYA` Service Binding; do not add a public HTTP or
+Bearer fallback.
+
 ## Local Setup
 
 Use the npm lockfile. In PowerShell:

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 
 vi.mock("cloudflare:workers", () => ({
   WorkerEntrypoint: class WorkerEntrypoint {
@@ -157,5 +158,17 @@ describe("Central User Manager named RPC entrypoint", () => {
         message: "User management is unavailable.",
       },
     });
+  });
+});
+
+describe("baan02 Central User Manager configuration", () => {
+  it("pins the enabled Poolvillapattaya Tenant identity", () => {
+    const source = readFileSync(new URL("./wrangler.jsonc", import.meta.url), "utf8");
+    const baan02 = source.slice(source.indexOf('"baan02": {'), source.indexOf('"baan03": {'));
+
+    expect(baan02).toMatch(/"name": "baan-pool-villa02"/);
+    expect(baan02).toMatch(/"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true"/);
+    expect(baan02).toMatch(/"CENTRAL_USER_MANAGER_TENANT_ID": "9fd7c645-563a-4cce-85ac-20ffb8f3bfc0"/);
+    expect(baan02).toMatch(/"CENTRAL_USER_MANAGER_PROJECT_REF": "[a-z0-9]{20}"/);
   });
 });

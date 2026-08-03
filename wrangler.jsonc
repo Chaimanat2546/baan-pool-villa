@@ -43,7 +43,9 @@
 			],
 			"vars": {
 				"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com",
-				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "false"
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "a7f10ab9-db3a-400f-8185-03aabe8041db",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "lpxsktjrkjzwbxvhjogo"
 			},
 			"services": [
 				{
@@ -114,7 +116,9 @@
 			],
 			"vars": {
 				"NEXT_PUBLIC_SITE_URL": "https://www.poolvillapattaya.co.th",
-				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "false"
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "9fd7c645-563a-4cce-85ac-20ffb8f3bfc0",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "vfqxpujsvgdqtrzpxobh"
 			},
 			"services": [
 				{
@@ -185,7 +189,9 @@
 			],
 			"vars": {
 				"NEXT_PUBLIC_SITE_URL": "https://www.pmheevilla.com",
-				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "false"
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "93b00ab0-df98-4a1d-9411-0b96750e7191",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "zkxpozvhvmgqfrwnlfrn"
 			},
 			"services": [
 				{
