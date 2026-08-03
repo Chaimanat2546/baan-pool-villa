@@ -21,7 +21,7 @@ import type {
 } from "./types";
 
 export const HOME_SECTIONS_ADMIN_SELECT =
-  "slug,title,description,display_order,is_active,mode,limit_count,cta_enabled,cta_label,cta_href,fallback_mode,slice_offset,home_section_items(house_id,position,is_active)";
+  "slug,title,description,display_order,is_active,mode,limit_count,auto_scroll_enabled,cta_enabled,cta_label,cta_href,fallback_mode,slice_offset,home_section_items(house_id,position,is_active)";
 export const HOME_PAGE_LAYOUT_ADMIN_SELECT = "layout";
 
 interface HomeSectionItemRow {
@@ -38,6 +38,7 @@ export interface HomeSectionRow {
   is_active: unknown;
   mode: unknown;
   limit_count: unknown;
+  auto_scroll_enabled: unknown;
   cta_enabled: unknown;
   cta_label: unknown;
   cta_href: unknown;
@@ -71,6 +72,7 @@ export interface RpcHomeSectionPayload {
   slice_offset: number;
   is_active: boolean;
   limit_count: number;
+  auto_scroll_enabled: boolean;
   display_order: number;
   cta_enabled: boolean;
   cta_label: string | null;
@@ -182,6 +184,7 @@ export function mapHomeSectionRow(row: HomeSectionRow): AdminHomeSectionDraft {
     isActive: row.is_active,
     mode: row.mode,
     limitCount,
+    autoScrollEnabled: row.auto_scroll_enabled === true,
     ctaEnabled: row.cta_enabled,
     ctaLabel: toNullableString(row.cta_label) ?? "",
     ctaHref: toNullableString(row.cta_href) ?? "",
@@ -349,6 +352,7 @@ export function parseSectionsPayload(payload: unknown): ParsedSectionsPayload {
         description: "",
         mode: "manual",
         limitCount: 0,
+        autoScrollEnabled: false,
         fallbackMode: "none",
         sliceOffset: 0,
         isActive: false,
@@ -403,6 +407,7 @@ export function parseSectionsPayload(payload: unknown): ParsedSectionsPayload {
       description: readString(section, "description", sectionLabel, errors),
       mode: readString(section, "mode", sectionLabel, errors) as HomeSectionMode,
       limitCount: readNumber(section, "limitCount", sectionLabel, errors),
+      autoScrollEnabled: readBoolean(section, "autoScrollEnabled", sectionLabel, errors),
       fallbackMode: readString(
         section,
         "fallbackMode",
@@ -437,6 +442,7 @@ export function toRpcPayload(
     slice_offset: section.sliceOffset,
     is_active: section.isActive,
     limit_count: section.limitCount,
+    auto_scroll_enabled: section.autoScrollEnabled,
     display_order: section.display_order,
     cta_enabled: section.ctaLabel !== null && section.ctaHref !== null,
     cta_label: section.ctaLabel,
@@ -460,6 +466,7 @@ export function mapSavedHomeSectionPayload(
     isActive: section.is_active,
     mode: section.mode,
     limitCount: section.limit_count,
+    autoScrollEnabled: section.auto_scroll_enabled,
     ctaEnabled: section.cta_enabled,
     ctaLabel: section.cta_label ?? "",
     ctaHref: section.cta_href ?? "",

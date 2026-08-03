@@ -581,7 +581,7 @@
             <tr>
               <td><code>components/villas/home</code></td>
               <td>Home page sections, CMS-driven home assembly, hero/articles/activity/destination sections, TikTok block renderer (settings-driven, first-6 thumbnail preview with click-to-load player), customer proof/review section with three DB-selected layouts and lightbox, villa rails, home skeletons, and minimal homepage client payloads.</td>
-              <td>Use <code>VillaRail</code>, home shared helpers, <code>components/ui/scroll-rail</code>, and section header patterns before creating new section UI. The homepage server sizes its villa listing window from home-section config before resolving sections, and client islands receive only the fields they render.</td>
+              <td>Use <code>VillaRail</code>, home shared helpers, <code>components/ui/scroll-rail</code>, and section header patterns before creating new section UI. Each saved rail can opt into <code>auto_scroll_enabled</code>; <code>VillaRail</code> forwards the resolved value to the shared Embla rail for drag, side controls, and official continuous auto-scroll. The homepage server sizes its villa listing window from home-section config before resolving sections, and client islands receive only the fields they render.</td>
             </tr>
             <tr>
               <td><code>components/admin/customer-reviews</code></td>

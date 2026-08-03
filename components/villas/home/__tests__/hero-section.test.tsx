@@ -142,6 +142,8 @@ describe("HeroSection", () => {
 
     expect(markup).toContain('data-src="/first.jpg"');
     expect(markup).toContain('data-src="/second.jpg"');
+    expect(markup).toContain('data-class="object-contain"');
+    expect(markup).not.toContain('data-class="object-cover"');
   });
 
   it("keeps the legacy single image fallback without carousel controls", () => {
