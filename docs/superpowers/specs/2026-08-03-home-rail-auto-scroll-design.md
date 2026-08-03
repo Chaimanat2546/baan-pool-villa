@@ -13,7 +13,7 @@ Allow an administrator to enable or disable continuous auto-scroll independently
 
 ## Recommended approach
 
-Extend the existing horizontal `ScrollRail` behavior through `VillaRail` with a client-side `requestAnimationFrame` loop. It gives smooth, low-speed scrolling and reliable pause/resume control without introducing a carousel dependency.
+Replace the native overflow implementation inside `ScrollRail` with Embla Carousel and its official Auto Scroll plugin. The shared component owns drag handling, previous/next controls, continuous looped movement, and accessibility behavior; `VillaRail` continues to provide the existing card markup and receives the persisted per-rail flag.
 
 ## Data model and migration
 
@@ -29,7 +29,7 @@ Add a Boolean switch labelled **เลื่อนอัตโนมัติ** 
 
 When `autoScrollEnabled` is true and the rail contains enough scrollable content:
 
-- scroll horizontally at a slow continuous rate;
+- scroll horizontally at a slow continuous rate using Embla Auto Scroll and loop through the rail;
 - pause during pointer hover, keyboard focus, pointer drag, touch interaction, and when the document is hidden;
 - resume after interaction ends, without overriding the visitor's manual scroll position;
 - do not auto-scroll when `prefers-reduced-motion: reduce` is enabled;
@@ -44,7 +44,7 @@ Database or legacy responses that omit the new field resolve to `false`. The adm
 ## Tests and verification
 
 - Unit tests for validation, normalization, response mapping, and persistence payloads of `autoScrollEnabled`.
-- Component tests confirming the admin switch maps to the correct draft field and `VillaRail` passes the behavior to the scroll component.
+- Component tests confirming the admin switch maps to the correct draft field and the Embla rail connects working previous/next controls plus the per-rail auto-scroll setting.
 - Browser verification at desktop and mobile widths for enabled and disabled rails, including hover/touch pause and reduced motion.
 - Run targeted tests, `npm.cmd run lint`, and `npm.cmd run build` before completion.
 
