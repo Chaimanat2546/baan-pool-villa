@@ -14,6 +14,7 @@ interface VillaRailCtaConfig {
 
 interface VillaRailProps {
   cardTitleHeadingLevel?: "h2" | "h3";
+  autoScrollEnabled?: boolean;
   cta?: boolean | VillaRailCtaConfig;
   description: string;
   id?: string;
@@ -60,6 +61,7 @@ function getVillaRailCtaConfig(
 
 export function VillaRail({
   cardTitleHeadingLevel = "h2",
+  autoScrollEnabled = false,
   cta,
   description,
   id,
@@ -84,6 +86,7 @@ export function VillaRail({
       />
       <ScrollRail
         label={title}
+        autoScroll={autoScrollEnabled}
         className="-mx-4 mt-4 gap-5 px-4 py-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8 lg:py-8"
       >
         {renderedVillas.map((villa) => (

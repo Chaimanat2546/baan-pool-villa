@@ -10,11 +10,13 @@ interface ScrollRailProps {
   className?: string;
   label: string;
   controlsClassName?: string;
+  autoScroll?: boolean;
   alwaysShowControls?: boolean;
 }
 
 export function ScrollRail({
   alwaysShowControls = true,
+  autoScroll = false,
   children,
   className,
   controlsClassName,
@@ -67,6 +69,40 @@ export function ScrollRail({
     };
   }, [updateScrollState]);
 
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!autoScroll || !scroller || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    let previous = 0;
+    let paused = false;
+    const pause = () => { paused = true; };
+    const resume = () => { paused = false; };
+    const advance = (time: number) => {
+      const max = scroller.scrollWidth - scroller.clientWidth;
+      if (!paused && !document.hidden && max > 0) {
+        const elapsed = previous ? time - previous : 0;
+        scroller.scrollLeft = scroller.scrollLeft >= max ? 0 : Math.min(max, scroller.scrollLeft + elapsed * 0.025);
+      }
+      previous = time;
+      frame = requestAnimationFrame(advance);
+    };
+    scroller.addEventListener("pointerenter", pause);
+    scroller.addEventListener("pointerleave", resume);
+    scroller.addEventListener("pointerdown", pause);
+    scroller.addEventListener("pointerup", resume);
+    scroller.addEventListener("touchstart", pause, { passive: true });
+    scroller.addEventListener("touchend", resume, { passive: true });
+    frame = requestAnimationFrame(advance);
+    return () => {
+      cancelAnimationFrame(frame);
+      scroller.removeEventListener("pointerenter", pause);
+      scroller.removeEventListener("pointerleave", resume);
+      scroller.removeEventListener("pointerdown", pause);
+      scroller.removeEventListener("pointerup", resume);
+      scroller.removeEventListener("touchstart", pause);
+      scroller.removeEventListener("touchend", resume);
+    };
+  }, [autoScroll]);
   return (
     <div className="relative">
       <div

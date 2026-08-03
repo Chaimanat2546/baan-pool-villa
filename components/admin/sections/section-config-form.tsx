@@ -108,6 +108,17 @@ export function SectionConfigForm({
             <span>เติมจากบ้านพักทั้งหมดถ้าไม่ครบ</span>
           </label>
           <label className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]">
+          <label className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]">
+            <input
+              checked={section.autoScrollEnabled}
+              className="size-5 shrink-0 accent-[var(--site-primary)]"
+              onChange={(event) => onChange({ autoScrollEnabled: event.target.checked })}
+              type="checkbox"
+            />
+            <span>???????????????</span>
+            <span className="text-xs font-normal text-[var(--site-muted)]">???????????????????????????? rail</span>
+          </label>
+
             <input
               checked={section.ctaEnabled}
               className="size-5 shrink-0 accent-[var(--site-primary)]"

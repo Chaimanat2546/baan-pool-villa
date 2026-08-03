@@ -36,6 +36,7 @@ const config = (
   sliceOffset: 0,
   isActive: true,
   limitCount: 3,
+  autoScrollEnabled: false,
   displayOrder: 0,
   ctaLabel: null,
   ctaHref: null,
@@ -311,6 +312,7 @@ describe("buildFallbackHomeSections", () => {
         title: "บ้านพักแนะนำ",
         description:
           "พูลวิลล่าคัดพิเศษ เหมาะสำหรับครอบครัว กลุ่มเพื่อน และทริปพักผ่อนส่วนตัว",
+        autoScrollEnabled: false,
         cta: { label: "ดูบ้านพักทั้งหมด", href: "/search" },
         villas: fallbackVillas.slice(0, 8),
       },
@@ -320,12 +322,14 @@ describe("buildFallbackHomeSections", () => {
         description:
           "บ้านพักยอดนิยมสำหรับทริปพัทยา ใกล้แหล่งท่องเที่ยว เดินทางสะดวก และเหมาะกับกลุ่มเพื่อน",
         villas: fallbackVillas.slice(8, 16),
+        autoScrollEnabled: false,
       },
       {
         slug: "near-sea",
         title: "บ้านพักใกล้ทะเล",
         description:
           "เลือกพูลวิลล่าใกล้ชายหาด เดินทางง่าย เหมาะกับคนที่อยากพักผ่อนใกล้ทะเล",
+        autoScrollEnabled: false,
         villas: [fallbackVillas[13]],
       },
     ]);
