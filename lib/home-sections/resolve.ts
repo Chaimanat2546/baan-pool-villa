@@ -149,6 +149,7 @@ export function resolveHomeSections(
         slug: section.slug,
         title: section.title,
         description: section.description,
+        autoScrollEnabled: section.autoScrollEnabled,
         ...(cta ? { cta } : {}),
         villas: resolveSectionVillas(section, villas, villasById),
       };
@@ -172,6 +173,7 @@ export function buildFallbackHomeSections(
       title: "บ้านพักแนะนำ",
       description:
         "พูลวิลล่าคัดพิเศษ เหมาะสำหรับครอบครัว กลุ่มเพื่อน และทริปพักผ่อนส่วนตัว",
+      autoScrollEnabled: false,
       cta: { label: "ดูบ้านพักทั้งหมด", href: "/search" },
       villas: villas.slice(0, FALLBACK_HOME_SECTION_LIMIT),
     },
@@ -180,6 +182,7 @@ export function buildFallbackHomeSections(
       title: "พูลวิลล่าพัทยายอดฮิต",
       description:
         "บ้านพักยอดนิยมสำหรับทริปพัทยา ใกล้แหล่งท่องเที่ยว เดินทางสะดวก และเหมาะกับกลุ่มเพื่อน",
+      autoScrollEnabled: false,
       villas: villas.slice(
         FALLBACK_HOME_SECTION_LIMIT,
         FALLBACK_HOME_SECTION_LIMIT * 2,
@@ -190,6 +193,7 @@ export function buildFallbackHomeSections(
       title: "บ้านพักใกล้ทะเล",
       description:
         "เลือกพูลวิลล่าใกล้ชายหาด เดินทางง่าย เหมาะกับคนที่อยากพักผ่อนใกล้ทะเล",
+      autoScrollEnabled: false,
       villas: villas.filter(isNearSeaVilla).slice(0, FALLBACK_HOME_SECTION_LIMIT),
     },
   ];

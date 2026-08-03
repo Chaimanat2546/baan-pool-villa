@@ -87,6 +87,7 @@ export function HomePageContent({
             <VillaRail
               key={`rail:${item.key}`}
               cta={section.cta}
+              autoScrollEnabled={section.autoScrollEnabled}
               id={section.slug}
               title={section.title}
               description={section.description}
