@@ -59,7 +59,7 @@ export function ScrollRail({
       autoScroll && !reducedMotion
         ? [
             AutoScroll({
-              speed: 0.55,
+              speed: 0.35,
               stopOnFocusIn: false,
               stopOnInteraction: true,
               stopOnMouseEnter: false,

@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- blob/data previews cannot use next/image */
+import { forwardRef } from "react";
 import NextImage, { type ImageProps } from "next/image";
 
 type CspSafeImageProps = ImageProps & {
@@ -33,7 +34,7 @@ function isRawPreviewSource(src: ImageProps["src"]): src is string {
   }
 }
 
-export function CspSafeImage({
+export const CspSafeImage = forwardRef<HTMLImageElement, CspSafeImageProps>(function CspSafeImage({
   alt,
   className,
   fill,
@@ -41,12 +42,13 @@ export function CspSafeImage({
   preload,
   priority,
   ...props
-}: CspSafeImageProps) {
+}, ref) {
   const shouldPreload = Boolean(preload || priority);
 
   if (!isRawPreviewSource(props.src)) {
     return (
       <NextImage
+        ref={ref}
         alt={alt}
         className={className}
         fill={fill}
@@ -67,6 +69,7 @@ export function CspSafeImage({
 
   return (
     <img
+      ref={ref}
       alt={alt}
       className={imageClassName || undefined}
       height={height}
@@ -76,4 +79,4 @@ export function CspSafeImage({
       {...imgProps}
     />
   );
-}
+});

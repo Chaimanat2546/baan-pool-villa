@@ -5,7 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
 
-import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
 
 export interface HeroCarouselSlide {
   alt: string;
