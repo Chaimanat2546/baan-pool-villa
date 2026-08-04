@@ -4,13 +4,14 @@
 
 **Goal:** Hide blank image areas with per-image skeletons in the homepage Hero and its Villa, article, and TikTok rails.
 
-**Architecture:** Create one client-side `ImageWithSkeleton` wrapper around `CspSafeImage`; each instance tracks its own load/error completion and overlays the shared `Skeleton` component until completion. Replace only homepage Hero and rail image consumers, including the gallery-style VillaCard rail image, leaving all gallery and grid consumers unchanged.
+**Architecture:** Create one client-side `ImageWithSkeleton` wrapper around `CspSafeImage`; each instance tracks its own load, error, and source-change completion state and renders the shared `Skeleton` component until completion. The homepage Hero, article, and TikTok consumers use it directly. `VillaCard` and `VillaCardGalleryImages` are shared listing-card implementations, so their image treatment also applies wherever those card variants render; all other galleries remain unchanged.
 
 **Tech Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS, Vitest/JSDOM.
 
 ## Global Constraints
 
-- Hero and the three homepage horizontal rails only: Villas, articles, and TikTok.
+- Hero and the three homepage horizontal rails: Villas, articles, and TikTok.
+- Exception: the shared `VillaCard` and `VillaCardGalleryImages` implementation is also used by listing-grid cards; its skeleton behavior therefore applies to those shared card variants. Other galleries and listing renderers are unchanged.
 - Keep the existing dimensions, source URLs, image quality, loading policy, preload behavior, `object-fill`, and controls.
 - An image error must dismiss its skeleton so it does not mask existing fallbacks forever.
 - Do not change galleries, listing grids, or non-homepage card behavior.

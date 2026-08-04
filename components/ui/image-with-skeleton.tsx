@@ -9,6 +9,14 @@ type ImageWithSkeletonProps = ComponentProps<typeof CspSafeImage> & {
   skeletonClassName?: string;
 };
 
+function getSourceKey(src: ImageWithSkeletonProps["src"]): string {
+  if (typeof src === "string") {
+    return src;
+  }
+
+  return "default" in src ? src.default.src : src.src;
+}
+
 export function ImageWithSkeleton({
   className,
   onError,
@@ -16,14 +24,16 @@ export function ImageWithSkeleton({
   skeletonClassName = "",
   ...props
 }: ImageWithSkeletonProps) {
-  const [isComplete, setIsComplete] = useState(false);
+  const [completedSource, setCompletedSource] = useState<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const sourceKey = getSourceKey(props.src);
+  const isComplete = completedSource === sourceKey;
 
   useEffect(() => {
     if (imageRef.current?.complete) {
-      setIsComplete(true);
+      setCompletedSource(sourceKey);
     }
-  }, [props.src]);
+  }, [sourceKey]);
 
   return (
     <>
@@ -32,11 +42,11 @@ export function ImageWithSkeleton({
         className={`${className ?? ""} ${isComplete ? "opacity-100" : "opacity-0"}`}
         ref={imageRef}
         onError={(event) => {
-          setIsComplete(true);
+          setCompletedSource(sourceKey);
           onError?.(event);
         }}
         onLoad={(event) => {
-          setIsComplete(true);
+          setCompletedSource(sourceKey);
           onLoad?.(event);
         }}
       />

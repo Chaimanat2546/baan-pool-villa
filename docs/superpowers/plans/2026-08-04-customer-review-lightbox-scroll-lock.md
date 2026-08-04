@@ -27,7 +27,7 @@
 - Consumes: `useLockedBodyScroll(active: boolean): void` from `components/villas/detail/use-locked-body-scroll.ts`.
 - Produces: `body.body-scroll-locked` while `lightboxIndex !== null`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add a test that renders one review, clicks its image button, then asserts:
 
@@ -41,13 +41,13 @@ Click the `aria-label="ปิดรูปรีวิว"` button and assert:
 expect(document.body.classList.contains("body-scroll-locked")).toBe(false);
 ```
 
-- [ ] **Step 2: Run the focused test to verify it fails**
+- [x] **Step 2: Run the focused test to verify it fails**
 
 Run: `npm.cmd test -- components/villas/home/__tests__/customer-review-section.test.tsx`
 
 Expected: the new test fails because `CustomerReviewSection` does not call the lock hook.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Import and call the existing hook immediately after `lightboxIndex` state:
 
@@ -55,7 +55,7 @@ Import and call the existing hook immediately after `lightboxIndex` state:
 useLockedBodyScroll(lightboxIndex !== null);
 ```
 
-- [ ] **Step 4: Run focused test to verify it passes**
+- [x] **Step 4: Run focused test to verify it passes**
 
 Run: `npm.cmd test -- components/villas/home/__tests__/customer-review-section.test.tsx`
 
@@ -71,3 +71,5 @@ npm.cmd run build
 ```
 
 On the home page at desktop and mobile widths, open a review image, attempt to scroll the background, close the modal, and confirm page scrolling returns. Do not commit or push unless explicitly requested.
+
+Status: lint, production build, and manual desktop/mobile UI verification remain unconfirmed for this plan revision.
