@@ -9,6 +9,50 @@ import { CustomerReviewSection } from "../customer-review-section";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 describe("CustomerReviewSection", () => {
+  it("locks background scrolling only while a review lightbox is open", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <CustomerReviewSection
+          data={{
+            images: [
+              {
+                alt: "Review",
+                id: "review-1",
+                url: "https://example.com/review.jpg",
+              },
+            ],
+            layout: "carousel",
+          }}
+        />,
+      );
+    });
+
+    await act(async () => {
+      container
+        .querySelector("button")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(true);
+
+    await act(async () => {
+      container
+        .querySelector('[aria-label="ปิดรูปรีวิว"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(false);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it("uses the semantic text token for lightbox controls on white", async () => {
     const container = document.createElement("div");
     document.body.append(container);

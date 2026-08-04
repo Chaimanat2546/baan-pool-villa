@@ -1,7 +1,7 @@
 "use client";
 
 import { BedDouble, MapPin, Users } from "lucide-react";
-import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
 
 import { normalizePublicVillaCoverImage } from "@/lib/villas/public-dto";
 import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";

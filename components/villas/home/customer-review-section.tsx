@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import { useLockedBodyScroll } from "@/components/villas/detail/use-locked-body-scroll";
 import type {
   HomepageCustomerReviewData,
   HomepageCustomerReviewImage,
@@ -253,6 +254,7 @@ function ReviewLightbox({
 
 export function CustomerReviewSection({ data }: CustomerReviewSectionProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  useLockedBodyScroll(lightboxIndex !== null);
   const images = useMemo(() => data.images.slice(0, 20), [data.images]);
   const isFeaturedLayout = data.layout === "featured_rail";
 

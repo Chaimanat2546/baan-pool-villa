@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
 
 const MAX_GALLERY_CARD_IMAGES = 10;
@@ -333,7 +333,13 @@ export function VillaCardGalleryImages({
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-      ) : null}
+      ) : (
+        <div
+          aria-hidden="true"
+          className="h-20 border-t border-white/70 bg-[var(--site-surface)] px-2 py-2"
+          data-villa-card-thumbnail-placeholder
+        />
+      )}
     </div>
   );
 }

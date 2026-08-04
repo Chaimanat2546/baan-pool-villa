@@ -170,6 +170,7 @@ it("configures official auto-scroll only when the rail is enabled", async () => 
 
   expect(autoScrollPlugin).toHaveBeenCalledWith(
     expect.objectContaining({
+      speed: 0.35,
       stopOnFocusIn: false,
       stopOnInteraction: true,
       stopOnMouseEnter: false,

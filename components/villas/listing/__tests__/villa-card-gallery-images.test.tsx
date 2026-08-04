@@ -181,8 +181,8 @@ describe("VillaCardGalleryImages", () => {
         ?.getAttribute("data-src"),
     ).toBe("https://images.example.com/cover.jpg");
     expect(
-      container.querySelector("[data-villa-card-thumbnail-strip]"),
-    ).toBeNull();
+      container.querySelector("[data-villa-card-thumbnail-placeholder]"),
+    ).not.toBeNull();
 
     act(() => {
       root.unmount();
