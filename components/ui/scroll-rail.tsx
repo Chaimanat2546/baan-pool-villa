@@ -90,6 +90,10 @@ export function ScrollRail({
     autoScrollPlugin?.play(4_000);
   }, [emblaApi]);
 
+  const pauseAutoScroll = useCallback(() => {
+    emblaApi?.plugins().autoScroll?.stop();
+  }, [emblaApi]);
+
   useEffect(() => {
     if (!autoScroll || !emblaApi) return;
 
@@ -135,6 +139,9 @@ export function ScrollRail({
 
         <div
           ref={emblaRef}
+          data-scroll-rail-viewport="true"
+          onMouseEnter={autoScroll ? pauseAutoScroll : undefined}
+          onMouseLeave={autoScroll ? restartAutoScroll : undefined}
           className={cn(
             "min-w-0 flex-1 snap-x overflow-hidden",
             "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden mx-2 lg:mx-0 md:mx-2",
