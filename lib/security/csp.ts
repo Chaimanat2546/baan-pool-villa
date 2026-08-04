@@ -51,6 +51,7 @@ export function buildContentSecurityPolicy({
     ...(isDevelopment ? ["'unsafe-eval'"] : []),
     CLOUDFLARE_TURNSTILE_ORIGIN,
     CLOUDFLARE_INSIGHTS_ORIGIN,
+    GOOGLE_ADS_CONVERSION_ORIGIN,
     GOOGLE_TAG_MANAGER_ORIGIN,
   ].filter((source): source is string => Boolean(source));
   const styleSources = [
@@ -78,6 +79,7 @@ export function buildContentSecurityPolicy({
     GOOGLE_ADS_CONVERSION_ORIGIN,
     GOOGLE_COLLECT_ORIGIN,
     GOOGLE_TAG_MANAGER_ORIGIN,
+    GOOGLE_THAILAND_ORIGIN,
   ].filter((source): source is string => Boolean(source));
   const connectSources = [
     "'self'",
