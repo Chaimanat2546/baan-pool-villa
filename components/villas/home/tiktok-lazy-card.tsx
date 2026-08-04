@@ -1,7 +1,7 @@
 "use client";
 
 import { Play } from "lucide-react";
-import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
 import { useEffect, useState } from "react";
 import { SiTiktok } from "react-icons/si";
 

@@ -66,6 +66,8 @@ describe("HeroSection", () => {
 
     expect(markup).toContain('data-hero-carousel="true"');
     expect(markup).toContain('data-src="/first.jpg"');
+    expect(markup).toContain('data-image-loading-skeleton="true"');
+    expect(markup).toContain("opacity-0");
     expect(markup).toContain('aria-label="รูป Hero ก่อนหน้า"');
     expect(markup).toContain('aria-label="รูป Hero ถัดไป"');
     expect(markup).toContain('aria-label="แสดงรูป Hero ที่ 2"');
@@ -142,7 +144,7 @@ describe("HeroSection", () => {
 
     expect(markup).toContain('data-src="/first.jpg"');
     expect(markup).toContain('data-src="/second.jpg"');
-    expect(markup).toContain('data-class="object-fill"');
+    expect(markup).toContain('data-class="object-fill opacity-0"');
     expect(markup).not.toContain('data-class="object-contain"');
   });
 
