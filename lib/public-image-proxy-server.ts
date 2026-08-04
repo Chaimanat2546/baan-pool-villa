@@ -27,8 +27,10 @@ interface CloudflareFetchInit extends RequestInit {
   };
 }
 
-interface PublicImageProxyTransformParams extends PublicImageTransformParams {
+interface PublicImageProxyTransformParams
+  extends Omit<PublicImageTransformParams, "quality"> {
   format?: "avif" | "webp";
+  quality?: number;
 }
 
 export type PublicImageProxyTransformRequest =
