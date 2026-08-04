@@ -39,11 +39,16 @@ describe("content security policy", () => {
     expect(imgSrc).toContain("https://s3.ap-southeast-1.amazonaws.com");
     expect(imgSrc).toContain("https://fonts.gstatic.com");
     expect(imgSrc).toContain("https://www.googletagmanager.com");
+    expect(imgSrc).toContain("https://googleads.g.doubleclick.net");
+    expect(imgSrc).toContain("https://www.google.com");
     expect(connectSrc).toContain("https://example.supabase.co");
     expect(connectSrc).toContain("https://static.cloudflareinsights.com");
     expect(connectSrc).toContain("https://www.google-analytics.com");
     expect(connectSrc).toContain("https://www.google.com");
     expect(connectSrc).toContain("https://www.googletagmanager.com");
+    expect(connectSrc).toContain("https://ad.doubleclick.net");
+    expect(connectSrc).toContain("https://googleads.g.doubleclick.net");
+    expect(connectSrc).toContain("https://www.google.co.th");
     expect(frameSrc).toContain("https://www.googletagmanager.com");
     expect(connectSrc.split(" ")).not.toContain("https:");
     expect(getCspDirective(csp, "style-src-attr")).toBe(
