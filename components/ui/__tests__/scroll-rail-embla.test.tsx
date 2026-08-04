@@ -144,6 +144,36 @@ describe("ScrollRail Embla controls", () => {
       root.unmount();
     });
   });
+
+  it("pauses auto-scroll while the pointer hovers and resumes after it leaves", async () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    document.body.append(container);
+
+    await act(async () => {
+      root.render(
+        <ScrollRail autoScroll label={"\u0e1a\u0e49\u0e32\u0e19\u0e1e\u0e31\u0e01"}>
+          <div>Card</div>
+        </ScrollRail>,
+      );
+    });
+
+    const viewport = container.querySelector("[data-scroll-rail-viewport]");
+
+    await act(async () => {
+      viewport?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    });
+    expect(stopAutoScroll).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      viewport?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+    });
+    expect(playAutoScroll).toHaveBeenCalledWith(4_000);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
 });
 
 it("configures official auto-scroll only when the rail is enabled", async () => {
