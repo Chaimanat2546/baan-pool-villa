@@ -126,7 +126,7 @@ describe("SearchPage", () => {
     const markup = renderToStaticMarkup(<SearchPage initialVillas={[villa]} />);
 
     expect(markup).toContain("701");
-    expect(markup).not.toContain("animate-pulse");
+    expect(markup).toContain("data-image-loading-skeleton");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

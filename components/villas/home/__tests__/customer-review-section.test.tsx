@@ -53,6 +53,78 @@ describe("CustomerReviewSection", () => {
     container.remove();
   });
 
+  it("restores scrolling when an open review is removed", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const review = {
+      alt: "Review",
+      id: "review-1",
+      url: "https://example.com/review.jpg",
+    };
+
+    await act(async () => {
+      root.render(
+        <CustomerReviewSection data={{ images: [review], layout: "carousel" }} />,
+      );
+    });
+    await act(async () => {
+      container
+        .querySelector("button")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(true);
+
+    await act(async () => {
+      root.render(
+        <CustomerReviewSection data={{ images: [], layout: "carousel" }} />,
+      );
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(false);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("restores scrolling when an open review lightbox unmounts", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <CustomerReviewSection
+          data={{
+            images: [
+              {
+                alt: "Review",
+                id: "review-1",
+                url: "https://example.com/review.jpg",
+              },
+            ],
+            layout: "carousel",
+          }}
+        />,
+      );
+    });
+    await act(async () => {
+      container
+        .querySelector("button")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(true);
+
+    await act(async () => {
+      root.unmount();
+    });
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(false);
+    container.remove();
+  });
+
   it("uses the semantic text token for lightbox controls on white", async () => {
     const container = document.createElement("div");
     document.body.append(container);

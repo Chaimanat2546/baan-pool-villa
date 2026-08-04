@@ -2,16 +2,16 @@
 
 ## Goal
 
-Show shimmer skeletons in the homepage Hero and horizontal rails until each image has loaded.
+Show image-area skeletons in the homepage Hero and horizontal rails until each image has loaded.
 
 ## Scope
 
-- Track loaded Hero image sources inside `HeroCarousel`.
-- Render a non-interactive shimmer overlay for every Hero slide image that has not loaded.
+- Each `ImageWithSkeleton` wrapper tracks its own load, error, and source-change completion state; `HeroCarousel` does not track loaded sources.
+- Render a non-interactive skeleton in every Hero slide image area that has not loaded, keeping the image hidden until its own completion event or cached-image completion check.
 - Apply the same loading treatment to homepage Villa, article, and TikTok rail images.
-- Fade each overlay away when its image emits `onLoad`.
+- Dismiss the skeleton when its image emits `onLoad` or `onError`; a source change returns that wrapper to loading unless the replacement is already cached.
 - Preserve Hero dimensions, `object-fill`, controls, autoplay, preload, and image quality.
-- Do not alter galleries, listing grids, or non-homepage card behavior.
+- Exception: `VillaCard` and `VillaCardGalleryImages` are shared listing-card components, so their image skeleton behavior applies in every context where those components render. Do not alter other galleries or listing renderers.
 - Add focused tests for initial skeleton rendering and load completion.
 
 ## Expected result
