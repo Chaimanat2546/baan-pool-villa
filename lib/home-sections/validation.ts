@@ -199,6 +199,7 @@ export function normalizeHomeSectionDraftsForSave(
     sliceOffset: section.sliceOffset,
     isActive: section.isActive,
     limitCount: section.limitCount,
+    autoScrollEnabled: section.autoScrollEnabled,
     display_order: sectionIndex,
     ctaLabel: section.ctaEnabled ? section.ctaLabel.trim() : null,
     ctaHref: section.ctaEnabled ? section.ctaHref.trim() : null,

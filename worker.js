@@ -3,6 +3,7 @@ import openNextWorker, {
   DOQueueHandler,
   DOShardedTagCache,
 } from "./.open-next/worker.js";
+import { WorkerEntrypoint } from "cloudflare:workers";
 import {
   createHtmlEdgeCacheKey,
   createHtmlEdgeVersionToken,
@@ -20,7 +21,14 @@ import {
   withStaticAssetCacheHeaders,
 } from "./worker-cache-policy.js";
 import { handleBookingCalendarAccess } from "./worker-calendar-access.js";
+import {
+  blockPublicCentralUserManagerRequest,
+} from "./worker-central-user-manager.js";
 import { getHtmlEdgeCacheVersionToken } from "./worker-html-cache-version.js";
+import {
+  runCacheRead,
+  scheduleCacheWrite,
+} from "./worker-cache-resilience.js";
 
 const IMAGE_CACHE_CONTROL =
   "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=31536000";
@@ -80,16 +88,40 @@ async function fetchWithHtmlEdgeCache(request, env, ctx) {
   }
 
   const cache = caches.default;
-  const cmsVersionToken = await getHtmlEdgeCacheVersionToken(
-    env,
-    decision.versionGroups,
-  );
+  const versionResult = await runCacheRead({
+    cacheKind: "html",
+    operation: "version",
+    routeKind: "html",
+    run: () => getHtmlEdgeCacheVersionToken(env, decision.versionGroups),
+  });
+
+  if (!versionResult.ok) {
+    return withHtmlEdgeCacheHeader(
+      await fetchOpenNext(request, env, ctx),
+      "BYPASS",
+    );
+  }
+
   const versionToken = createHtmlEdgeVersionToken({
-    cmsVersionToken,
+    cmsVersionToken: versionResult.value,
     deploymentVersionToken: getWorkerDeploymentVersionToken(env),
   });
   const cacheKey = createHtmlEdgeCacheKey(request, versionToken);
-  const cachedResponse = await cache.match(cacheKey);
+  const cacheResult = await runCacheRead({
+    cacheKind: "html",
+    operation: "match",
+    routeKind: "html",
+    run: () => cache.match(cacheKey),
+  });
+
+  if (!cacheResult.ok) {
+    return withHtmlEdgeCacheHeader(
+      await fetchOpenNext(request, env, ctx),
+      "BYPASS",
+    );
+  }
+
+  const cachedResponse = cacheResult.value;
 
   if (cachedResponse) {
     return withHtmlEdgeCacheHeader(cachedResponse, "HIT");
@@ -105,9 +137,14 @@ async function fetchWithHtmlEdgeCache(request, env, ctx) {
     return withHtmlEdgeCacheHeader(response, "BYPASS");
   }
 
-  ctx.waitUntil(
-    cache.put(cacheKey, cacheResponse.clone()).catch(() => undefined),
-  );
+  const cacheWriteResponse = cacheResponse.clone();
+
+  scheduleCacheWrite(ctx, {
+    cacheKind: "html",
+    operation: "put",
+    routeKind: "html",
+    run: () => cache.put(cacheKey, cacheWriteResponse),
+  });
 
   return withHtmlEdgeCacheHeader(cacheResponse, "MISS");
 }
@@ -126,7 +163,21 @@ async function fetchWithImageEdgeCache(request, env, ctx) {
   }
 
   const cache = caches.default;
-  const cachedResponse = await cache.match(decision.cacheKey);
+  const cacheResult = await runCacheRead({
+    cacheKind: "image",
+    operation: "match",
+    routeKind: "image",
+    run: () => cache.match(decision.cacheKey),
+  });
+
+  if (!cacheResult.ok) {
+    return withImageEdgeCacheHeader(
+      await fetchOpenNext(request, env, ctx),
+      "BYPASS",
+    );
+  }
+
+  const cachedResponse = cacheResult.value;
 
   if (cachedResponse) {
     return withImageEdgeCacheHeader(cachedResponse, "HIT");
@@ -139,9 +190,14 @@ async function fetchWithImageEdgeCache(request, env, ctx) {
     return withImageEdgeCacheHeader(response, "BYPASS");
   }
 
-  ctx.waitUntil(
-    cache.put(decision.cacheKey, cacheResponse.clone()).catch(() => undefined),
-  );
+  const cacheWriteResponse = cacheResponse.clone();
+
+  scheduleCacheWrite(ctx, {
+    cacheKind: "image",
+    operation: "put",
+    routeKind: "image",
+    run: () => cache.put(decision.cacheKey, cacheWriteResponse),
+  });
 
   return withImageEdgeCacheHeader(cacheResponse, "MISS");
 }
@@ -160,16 +216,40 @@ async function fetchWithJsonEdgeCache(request, env, ctx) {
   }
 
   const cache = caches.default;
-  const cmsVersionToken = await getHtmlEdgeCacheVersionToken(
-    env,
-    decision.versionGroups,
-  );
+  const versionResult = await runCacheRead({
+    cacheKind: "json",
+    operation: "version",
+    routeKind: "api",
+    run: () => getHtmlEdgeCacheVersionToken(env, decision.versionGroups),
+  });
+
+  if (!versionResult.ok) {
+    return withJsonEdgeCacheHeader(
+      await fetchOpenNext(request, env, ctx),
+      "BYPASS",
+    );
+  }
+
   const versionToken = createHtmlEdgeVersionToken({
-    cmsVersionToken,
+    cmsVersionToken: versionResult.value,
     deploymentVersionToken: getWorkerDeploymentVersionToken(env),
   });
   const cacheKey = createJsonEdgeCacheKey(request, versionToken);
-  const cachedResponse = await cache.match(cacheKey);
+  const cacheResult = await runCacheRead({
+    cacheKind: "json",
+    operation: "match",
+    routeKind: "api",
+    run: () => cache.match(cacheKey),
+  });
+
+  if (!cacheResult.ok) {
+    return withJsonEdgeCacheHeader(
+      await fetchOpenNext(request, env, ctx),
+      "BYPASS",
+    );
+  }
+
+  const cachedResponse = cacheResult.value;
 
   if (cachedResponse) {
     return withJsonEdgeCacheHeader(cachedResponse, "HIT");
@@ -185,17 +265,58 @@ async function fetchWithJsonEdgeCache(request, env, ctx) {
     return withJsonEdgeCacheHeader(response, "BYPASS");
   }
 
-  ctx.waitUntil(
-    cache.put(cacheKey, cacheResponse.clone()).catch(() => undefined),
-  );
+  const cacheWriteResponse = cacheResponse.clone();
+
+  scheduleCacheWrite(ctx, {
+    cacheKind: "json",
+    operation: "put",
+    routeKind: "api",
+    run: () => cache.put(cacheKey, cacheWriteResponse),
+  });
 
   return withJsonEdgeCacheHeader(cacheResponse, "MISS");
 }
 
 export { BucketCachePurge, DOQueueHandler, DOShardedTagCache };
 
+export class CentralUserManagerEntrypoint extends WorkerEntrypoint {
+  async executeOperation(input) {
+    try {
+      const response = await openNextWorker.fetch(
+        new Request(
+          "https://worker.internal/api/_worker/central-user-manager",
+          {
+            body: JSON.stringify(input),
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
+          },
+        ),
+        this.env,
+        this.ctx,
+      );
+
+      return await response.json();
+    } catch {
+      return {
+        ok: false,
+        error: {
+          code: "agent_unavailable",
+          message: "User management is unavailable.",
+        },
+      };
+    }
+  }
+}
+
 const worker = {
   async fetch(request, env, ctx) {
+    const centralUserManagerResponse =
+      blockPublicCentralUserManagerRequest(request);
+
+    if (centralUserManagerResponse) {
+      return centralUserManagerResponse;
+    }
+
     // Calendar host, Bearer, and rate-limit checks must run before OpenNext
     // and every cache lookup. Calendar responses are never shared Edge JSON.
     const calendarAccessResponse = await handleBookingCalendarAccess(

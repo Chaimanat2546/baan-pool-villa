@@ -1,7 +1,9 @@
 "use client";
 
+import AutoScroll from "embla-carousel-auto-scroll";
+import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -10,63 +12,101 @@ interface ScrollRailProps {
   className?: string;
   label: string;
   controlsClassName?: string;
+  autoScroll?: boolean;
   alwaysShowControls?: boolean;
 }
 
 export function ScrollRail({
   alwaysShowControls = true,
+  autoScroll = false,
   children,
   className,
   controlsClassName,
   label,
 }: ScrollRailProps) {
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
-  const updateScrollState = useCallback(() => {
-    const scroller = scrollerRef.current;
-
-    if (!scroller) {
-      return;
+  const supportsEmbla =
+    typeof window === "undefined" ||
+    (typeof window.IntersectionObserver === "function" &&
+      typeof window.ResizeObserver === "function");
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") {
+      window.matchMedia = () =>
+        ({
+          addEventListener: () => undefined,
+          addListener: () => undefined,
+          dispatchEvent: () => false,
+          matches: false,
+          media: "",
+          onchange: null,
+          removeEventListener: () => undefined,
+          removeListener: () => undefined,
+        }) as MediaQueryList;
     }
 
-    const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth;
-    setCanScrollLeft(scroller.scrollLeft > 2);
-    setCanScrollRight(scroller.scrollLeft < maxScrollLeft - 2);
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setReducedMotion(mediaQuery.matches);
+
+    updatePreference();
+    mediaQuery.addEventListener("change", updatePreference);
+
+    return () => mediaQuery.removeEventListener("change", updatePreference);
   }, []);
 
-  const scrollByPage = useCallback((direction: "left" | "right") => {
-    const scroller = scrollerRef.current;
+  const plugins = useMemo(
+    () =>
+      autoScroll && !reducedMotion
+        ? [
+            AutoScroll({
+              speed: 0.55,
+              stopOnFocusIn: false,
+              stopOnInteraction: true,
+              stopOnMouseEnter: false,
+            }),
+          ]
+        : [],
+    [autoScroll, reducedMotion],
+  );
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    {
+      align: "start",
+      active: supportsEmbla,
+      axis: "x",
+      containScroll: "trimSnaps",
+      dragFree: true,
+      loop: false,
+      watchDrag: (_, event) =>
+        !(event.target instanceof Element &&
+          event.target.closest("[data-scroll-rail-ignore-drag]")),
 
-    if (!scroller) {
-      return;
-    }
+    },
+    plugins,
+  );
 
-    const distance = Math.max(scroller.clientWidth * 0.82, 280);
-    scroller.scrollBy({
-      behavior: "smooth",
-      left: direction === "left" ? -distance : distance,
-    });
-  }, []);
+  const restartAutoScroll = useCallback(() => {
+    const autoScrollPlugin = emblaApi?.plugins().autoScroll;
+    autoScrollPlugin?.stop();
+    autoScrollPlugin?.play(4_000);
+  }, [emblaApi]);
 
   useEffect(() => {
-    const scroller = scrollerRef.current;
+    if (!autoScroll || !emblaApi) return;
 
-    if (!scroller) {
-      return;
-    }
-
-    updateScrollState();
-    scroller.addEventListener("scroll", updateScrollState, { passive: true });
-    window.addEventListener("resize", updateScrollState);
-
+    emblaApi.on("pointerUp", restartAutoScroll);
     return () => {
-      scroller.removeEventListener("scroll", updateScrollState);
-      window.removeEventListener("resize", updateScrollState);
+      emblaApi.off("pointerUp", restartAutoScroll);
     };
-  }, [updateScrollState]);
+  }, [autoScroll, emblaApi, restartAutoScroll]);
 
+  const scrollPrev = useCallback(() => {
+    restartAutoScroll();
+    emblaApi?.scrollPrev();
+  }, [emblaApi, restartAutoScroll]);
+  const scrollNext = useCallback(() => {
+    restartAutoScroll();
+    emblaApi?.scrollNext();
+  }, [emblaApi, restartAutoScroll]);
   return (
     <div className="relative">
       <div
@@ -79,19 +119,14 @@ export function ScrollRail({
             controlsClassName,
           )}
         >
-          {alwaysShowControls || canScrollLeft ? (
+          {alwaysShowControls ? (
             <button
               type="button"
               aria-label={`เลื่อน${label}ไปทางซ้าย`}
               className={cn(
                 "grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]",
-                !canScrollLeft &&
-                  "cursor-not-allowed opacity-45 hover:bg-[var(--site-surface)]",
               )}
-              disabled={!canScrollLeft}
-              onClick={() => {
-                scrollByPage("left");
-              }}
+              onClick={scrollPrev}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -99,14 +134,16 @@ export function ScrollRail({
         </div>
 
         <div
-          ref={scrollerRef}
+          ref={emblaRef}
           className={cn(
-            "min-w-0 flex-1 flex snap-x overflow-x-auto scroll-smooth",
+            "min-w-0 flex-1 snap-x overflow-hidden",
             "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden mx-2 lg:mx-0 md:mx-2",
             className,
           )}
         >
-          {children}
+          <div className="flex min-w-0 touch-pan-y gap-5">
+            {children}
+          </div>
         </div>
 
         <div
@@ -115,19 +152,14 @@ export function ScrollRail({
             controlsClassName,
           )}
         >
-          {alwaysShowControls || canScrollRight ? (
+          {alwaysShowControls ? (
             <button
               type="button"
               aria-label={`เลื่อน${label}ไปทางขวา`}
               className={cn(
                 "grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]",
-                !canScrollRight &&
-                  "cursor-not-allowed opacity-45 hover:bg-[var(--site-surface)]",
               )}
-              disabled={!canScrollRight}
-              onClick={() => {
-                scrollByPage("right");
-              }}
+              onClick={scrollNext}
             >
               <ChevronRight className="h-5 w-5" />
             </button>

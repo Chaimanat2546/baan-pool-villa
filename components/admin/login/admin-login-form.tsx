@@ -4,7 +4,10 @@ import { LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
-import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import {
+  readAdminAccessToken,
+  readAdminSessionState,
+} from "@/components/admin/admin-auth";
 import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 
@@ -20,6 +23,7 @@ const RESET_PASSWORD_SENT_MESSAGE =
   "ถ้าอีเมลนี้อยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่านให้";
 const ADMIN_ACCESS_REDIRECT_MESSAGE =
   "เซสชันหมดอายุหรือบัญชีนี้ยังไม่มีสิทธิ์แอดมิน กรุณาเข้าสู่ระบบอีกครั้ง";
+const ADMIN_SUSPENDED_MESSAGE = "บัญชีแอดมินนี้ถูกระงับการใช้งาน";
 
 const ADMIN_RESET_PASSWORD_PATH = "/admin/reset-password";
 const ADMIN_ACCESS_ERROR_QUERY_VALUE = "admin-access";
@@ -126,9 +130,27 @@ export function AdminLoginForm() {
       });
     }
 
-    void readAdminAccessToken().then((token) => {
-      if (isMounted && token) {
+    void readAdminAccessToken().then(async (token) => {
+      if (!isMounted || !token) {
+        return;
+      }
+      const state = await readAdminSessionState(token);
+      if (!isMounted) {
+        return;
+      }
+      if (state === "active") {
         router.replace(ADMIN_AFTER_LOGIN_PATH);
+      } else if (state === "forced") {
+        router.replace("/admin/change-password");
+      } else {
+        await createBrowserHomeConfigClient().auth.signOut({ scope: "local" });
+        if (isMounted) {
+          setError(
+            state === "inactive"
+              ? ADMIN_SUSPENDED_MESSAGE
+              : ADMIN_ACCESS_REDIRECT_MESSAGE,
+          );
+        }
       }
     });
 
@@ -280,10 +302,11 @@ export function AdminLoginForm() {
       }
 
       const supabase = createBrowserHomeConfigClient();
-      const { error: loginError } = await supabase.auth.signInWithPassword({
-        email: trimmedEmail,
-        password,
-      });
+      const { data: loginData, error: loginError } =
+        await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        });
 
       if (loginError) {
         setError(getThaiLoginErrorMessage(loginError.message));
@@ -291,7 +314,22 @@ export function AdminLoginForm() {
         return;
       }
 
-      router.replace(ADMIN_AFTER_LOGIN_PATH);
+      const accessToken = loginData?.session?.access_token;
+      const state = accessToken
+        ? await readAdminSessionState(accessToken)
+        : "invalid";
+      if (state === "active") {
+        router.replace(ADMIN_AFTER_LOGIN_PATH);
+      } else if (state === "forced") {
+        router.replace("/admin/change-password");
+      } else {
+        await supabase.auth.signOut({ scope: "local" });
+        setError(
+          state === "inactive"
+            ? ADMIN_SUSPENDED_MESSAGE
+            : ADMIN_ACCESS_REDIRECT_MESSAGE,
+        );
+      }
     } catch (caughtError) {
       resetTurnstile();
       setError(

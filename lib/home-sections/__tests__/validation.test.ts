@@ -13,6 +13,7 @@ const validDraft = (overrides: Partial<HomeSectionDraft> = {}): HomeSectionDraft
   description: "Great homes close to the beach.",
   mode: "manual",
   limitCount: 6,
+  autoScrollEnabled: false,
   fallbackMode: "fill_from_all",
   sliceOffset: 0,
   isActive: true,
@@ -156,6 +157,16 @@ describe("validateHomeSectionDrafts", () => {
   });
 });
 
+  it("preserves the per-rail auto-scroll setting", () => {
+    expect(
+      normalizeHomeSectionDraftsForSave([
+        validDraft({ autoScrollEnabled: true }),
+      ]),
+    ).toEqual([
+      expect.objectContaining({ autoScrollEnabled: true }),
+    ]);
+  });
+
 describe("normalizeHomeSectionDraftsForSave", () => {
   it("serializes reordered manual items with sequential positions", () => {
     const [section] = normalizeHomeSectionDraftsForSave([
@@ -204,6 +215,7 @@ describe("normalizeHomeSectionDraftsForSave", () => {
         sliceOffset: 3,
         isActive: false,
         limitCount: 2,
+        autoScrollEnabled: false,
         display_order: 0,
         ctaLabel: null,
         ctaHref: null,
@@ -235,6 +247,7 @@ describe("normalizeHomeSectionDraftsForSave", () => {
         sliceOffset: 0,
         isActive: true,
         limitCount: 6,
+        autoScrollEnabled: false,
         display_order: 0,
         ctaLabel: null,
         ctaHref: null,

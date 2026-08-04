@@ -52,6 +52,7 @@ interface HomeSectionRow {
   slice_offset: unknown;
   is_active: unknown;
   limit_count: unknown;
+  auto_scroll_enabled: unknown;
   display_order: unknown;
   cta_enabled: unknown;
   cta_label: unknown;
@@ -60,7 +61,7 @@ interface HomeSectionRow {
 }
 
 const HOME_SECTIONS_SELECT =
-  "slug,title,description,mode,fallback_mode,slice_offset,is_active,limit_count,display_order,cta_enabled,cta_label,cta_href,home_section_items(house_id,position,is_active)";
+  "slug,title,description,mode,fallback_mode,slice_offset,is_active,limit_count,auto_scroll_enabled,display_order,cta_enabled,cta_label,cta_href,home_section_items(house_id,position,is_active)";
 const HOME_SECTION_MODES = new Set<HomeSectionMode>([
   "manual",
   "near_sea",
@@ -151,6 +152,7 @@ function mapHomeSectionRow(row: HomeSectionRow): HomeSectionConfig {
     sliceOffset,
     isActive: row.is_active,
     limitCount,
+    autoScrollEnabled: row.auto_scroll_enabled === true,
     displayOrder,
     ctaEnabled: row.cta_enabled,
     ctaLabel: toNullableString(row.cta_label),

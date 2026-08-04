@@ -108,6 +108,22 @@ describe("booking calendar Worker access guard", () => {
     },
   );
 
+  it("allows a valid private request on the exact configured direct workers.dev host", async () => {
+    const host = "baan-pool-villa-staging.chaymanus2003.workers.dev";
+    const env = {
+      ...createEnv(),
+      NEXT_PUBLIC_SITE_URL: `https://${host}`,
+    };
+
+    await expect(
+      handleBookingCalendarAccess(calendarRequest({ host }), env),
+    ).resolves.toBeNull();
+    expect(env.CALENDAR_API_RATE_LIMITER.limit).toHaveBeenCalledWith({
+      key: clientIp,
+    });
+    expect(timingSafeEqual).toHaveBeenCalled();
+  });
+
   it("returns a private no-store 404 for a sibling host before checking credentials", async () => {
     const env = createEnv();
     const response = await handleBookingCalendarAccess(

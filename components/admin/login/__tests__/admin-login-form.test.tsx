@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   resetPasswordForEmail: vi.fn(),
   signInWithPassword: vi.fn(),
+  signOut: vi.fn(),
 }));
 
 type TurnstileRenderOptions = {
@@ -41,6 +42,7 @@ vi.mock("@/lib/home-sections/supabase", () => ({
       getSession: mocks.getSession,
       resetPasswordForEmail: mocks.resetPasswordForEmail,
       signInWithPassword: mocks.signInWithPassword,
+      signOut: mocks.signOut,
     },
   }),
 }));
@@ -64,14 +66,20 @@ describe("AdminLoginForm", () => {
     mocks.replace.mockReset();
     mocks.resetPasswordForEmail.mockReset();
     mocks.signInWithPassword.mockReset();
+    mocks.signOut.mockReset();
+    mocks.signOut.mockResolvedValue({ error: null });
     mocks.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        makeJsonResponse({
-          body: { bypassed: true, verified: true },
-        }),
+      vi.fn((input: RequestInfo | URL) =>
+        Promise.resolve(
+          String(input) === "/api/admin/session"
+            ? makeJsonResponse({ body: { state: "active" } })
+            : makeJsonResponse({
+                body: { bypassed: true, verified: true },
+              }),
+        ),
       ),
     );
   });
@@ -142,6 +150,99 @@ describe("AdminLoginForm", () => {
     expect(mocks.replace).toHaveBeenCalledWith("/admin/sections");
     expect(mocks.signInWithPassword).not.toHaveBeenCalled();
 
+    await page.unmount();
+  });
+
+  it("redirects an authenticated forced admin to password change", async () => {
+    mocks.getSession.mockResolvedValue({
+      data: { session: { access_token: "admin-token" } },
+      error: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        makeJsonResponse({ body: { state: "forced" } }),
+      ),
+    );
+
+    const page = await mountAdminPage(<AdminLoginForm />);
+    await flushEffects();
+
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/change-password");
+    await page.unmount();
+  });
+
+  it("routes a newly signed-in forced admin to password change", async () => {
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: { access_token: "admin-token" } },
+      error: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) =>
+        Promise.resolve(
+          String(input) === "/api/admin/session"
+            ? makeJsonResponse({ body: { state: "forced" } })
+            : makeJsonResponse({ body: { bypassed: true, verified: true } }),
+        ),
+      ),
+    );
+    const page = await mountAdminPage(<AdminLoginForm />);
+    await changeInput(
+      page.container.querySelector("input[name='email']") as HTMLInputElement,
+      "admin@example.com",
+    );
+    await changeInput(
+      page.container.querySelector("input[name='password']") as HTMLInputElement,
+      "TempPass1!",
+    );
+    await click(
+      page.container.querySelector("button[type='submit']") as HTMLButtonElement,
+    );
+    await flushEffects();
+
+    expect(mocks.replace).toHaveBeenCalledWith("/admin/change-password");
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    await page.unmount();
+  });
+
+  it("signs out an inactive admin locally and shows the stable Thai suspension error", async () => {
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: { access_token: "admin-token" } },
+      error: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) =>
+        Promise.resolve(
+          String(input) === "/api/admin/session"
+            ? makeJsonResponse({
+                body: { state: "inactive", code: "admin_inactive" },
+                status: 403,
+              })
+            : makeJsonResponse({ body: { bypassed: true, verified: true } }),
+        ),
+      ),
+    );
+    const page = await mountAdminPage(<AdminLoginForm />);
+    await changeInput(
+      page.container.querySelector("input[name='email']") as HTMLInputElement,
+      "admin@example.com",
+    );
+    await changeInput(
+      page.container.querySelector("input[name='password']") as HTMLInputElement,
+      "CorrectPass1!",
+    );
+    await click(
+      page.container.querySelector("button[type='submit']") as HTMLButtonElement,
+    );
+    await flushEffects();
+
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(page.container.textContent).toContain(
+      "บัญชีแอดมินนี้ถูกระงับการใช้งาน",
+    );
+    expect(mocks.replace).not.toHaveBeenCalled();
     await page.unmount();
   });
 
@@ -279,13 +380,20 @@ describe("AdminLoginForm", () => {
 
   it("calls Supabase only after Turnstile verification succeeds", async () => {
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
-    const fetchMock = vi.fn().mockResolvedValue(
-      makeJsonResponse({
-        body: { bypassed: false, verified: true },
-      }),
+    const fetchMock = vi.fn((input: RequestInfo | URL) =>
+      Promise.resolve(
+        String(input) === "/api/admin/session"
+          ? makeJsonResponse({ body: { state: "active" } })
+          : makeJsonResponse({
+              body: { bypassed: false, verified: true },
+            }),
+      ),
     );
     vi.stubGlobal("fetch", fetchMock);
-    mocks.signInWithPassword.mockResolvedValue({ error: null });
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: { access_token: "admin-token" } },
+      error: null,
+    });
     const { getRenderOptions } = installTurnstileMock();
 
     const page = await mountAdminPage(<AdminLoginForm />);
@@ -393,7 +501,10 @@ describe("AdminLoginForm", () => {
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
-    mocks.signInWithPassword.mockResolvedValue({ error: null });
+    mocks.signInWithPassword.mockResolvedValue({
+      data: { session: { access_token: "admin-token" } },
+      error: null,
+    });
     const { turnstile } = installTurnstileMock();
 
     const page = await mountAdminPage(<AdminLoginForm />);

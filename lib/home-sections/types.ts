@@ -36,6 +36,7 @@ export type HomeSectionDraft = {
   description: string;
   mode: HomeSectionMode;
   limitCount: number;
+  autoScrollEnabled: boolean;
   fallbackMode: HomeSectionFallbackMode;
   sliceOffset: number;
   isActive: boolean;
@@ -60,6 +61,7 @@ export type HomeSectionSavePayload = {
   sliceOffset: number;
   isActive: boolean;
   limitCount: number;
+  autoScrollEnabled: boolean;
   display_order: number;
   ctaLabel: string | null;
   ctaHref: string | null;
@@ -81,6 +83,7 @@ export type HomeSectionConfig = {
   sliceOffset: number;
   isActive: boolean;
   limitCount: number;
+  autoScrollEnabled: boolean;
   displayOrder: number;
   ctaEnabled: boolean;
   ctaLabel: string | null;
@@ -92,6 +95,7 @@ export type ResolvedHomeSection = {
   slug: string;
   title: string;
   description: string;
+  autoScrollEnabled: boolean;
   cta?: {
     label: string;
     href: string;

@@ -41,6 +41,9 @@ interface VerifyTurnstileTokenOptions {
 }
 
 interface TurnstileSiteverifyPayload {
+  action?: unknown;
+  "error-codes"?: unknown;
+  hostname?: unknown;
   success?: boolean;
 }
 
@@ -200,6 +203,27 @@ export async function verifyTurnstileToken({
 
     if (isSiteverifyPayload(payload) && payload.success === true) {
       return { bypassed: false, ok: true };
+    }
+
+    if (isSiteverifyPayload(payload)) {
+      const errorCodes = Array.isArray(payload["error-codes"])
+        ? payload["error-codes"]
+            .filter((value): value is string => typeof value === "string")
+            .slice(0, 8)
+            .map((value) => value.slice(0, 64))
+        : [];
+      const hostname =
+        typeof payload.hostname === "string"
+          ? payload.hostname.slice(0, 253)
+          : null;
+      const action =
+        typeof payload.action === "string" ? payload.action.slice(0, 32) : null;
+
+      console.warn("Turnstile Siteverify rejected a token.", {
+        action,
+        errorCodes,
+        hostname,
+      });
     }
 
     return {

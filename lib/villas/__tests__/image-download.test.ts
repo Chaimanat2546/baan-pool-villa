@@ -308,7 +308,7 @@ describe("GET /api/villas/[id]/images/download", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("proxies an allowed gallery image as an attachment", async () => {
+  it("downloads a non-S3 gallery image through the validated public proxy", async () => {
     fetchVillaImagesMock.mockResolvedValue(imageRows);
     fetchVillaDetailMock.mockResolvedValue(null);
     const fetchMock = vi
@@ -330,15 +330,88 @@ describe("GET /api/villas/[id]/images/download", () => {
 
     await expect(response.text()).resolves.toBe("photo bytes");
     expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledWith("https://images.example.com/pool.jpg", {
-      cache: "no-store",
-      redirect: "manual",
-      signal: expect.any(AbortSignal),
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://images.example.com/pool.jpg",
+      expect.objectContaining({
+        cache: "no-store",
+        cf: {
+          image: {
+            fit: "scale-down",
+            quality: 90,
+            width: 1920,
+          },
+        },
+        redirect: "manual",
+        signal: expect.any(AbortSignal),
+      }),
+    );
     expect(response.headers.get("Content-Disposition")).toBe(
       'attachment; filename="villa-9-pool-pool.jpg"',
     );
     expect(response.headers.get("Content-Type")).toBe("image/jpeg");
+  });
+
+  it("downloads an authorized private S3 gallery image through the WebP loader", async () => {
+    const privateS3Url =
+      "https://s3.ap-southeast-1.amazonaws.com/poolvillas.co.ltd/pool.jpg";
+    fetchVillaImagesMock.mockResolvedValue([
+      {
+        ...imageRows[0],
+        imageUrl: privateS3Url,
+      },
+    ]);
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const fetchUrl =
+        input instanceof Request ? input.url : input.toString();
+
+      if (fetchUrl === privateS3Url) {
+        return Promise.resolve(new Response("forbidden", { status: 403 }));
+      }
+
+      return Promise.resolve(
+        new Response("webp bytes", {
+          headers: { "Content-Type": "image/webp" },
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/images/download/route"
+    );
+
+    const response = await GET(
+      new Request(
+        "https://example.com/api/villas/9/images/download?url=https%3A%2F%2Fs3.ap-southeast-1.amazonaws.com%2Fpoolvillas.co.ltd%2Fpool.jpg&zone=pool&name=pool.jpg",
+      ),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining(
+        "d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws/pool.jpg?w=1920&q=90",
+      ),
+      expect.objectContaining({
+        cache: "no-store",
+        redirect: "manual",
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) => {
+        const fetchUrl =
+          input instanceof Request ? input.url : input.toString();
+
+        return fetchUrl === privateS3Url;
+      }),
+    ).toBe(false);
+    await expect(response.text()).resolves.toBe("webp bytes");
+    expect(response.headers.get("Content-Type")).toBe("image/webp");
+    expect(response.headers.get("Content-Disposition")).toBe(
+      'attachment; filename="villa-9-pool-pool.webp"',
+    );
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
 
   it("rejects upstream responses that are not images", async () => {

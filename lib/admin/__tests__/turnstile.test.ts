@@ -147,6 +147,52 @@ describe("Turnstile admin login verification", () => {
     });
   });
 
+  it("logs only safe Siteverify diagnostics when Cloudflare rejects a token", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    process.env.TURNSTILE_SECRET_KEY = "secret-key";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            action: "admin_login",
+            "error-codes": ["invalid-input-response"],
+            hostname: "baan-pool-villa-staging.chaymanus2003.workers.dev",
+            secret: "must-not-be-logged",
+            success: false,
+            token: "must-not-be-logged",
+          }),
+          {
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      ),
+    );
+
+    await expect(
+      verifyTurnstileToken({
+        request: request(),
+        token: "challenge-token",
+      }),
+    ).resolves.toEqual({
+      message: "Turnstile verification failed.",
+      ok: false,
+      status: 403,
+    });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      "Turnstile Siteverify rejected a token.",
+      {
+        action: "admin_login",
+        errorCodes: ["invalid-input-response"],
+        hostname: "baan-pool-villa-staging.chaymanus2003.workers.dev",
+      },
+    );
+  });
+
   it("returns unavailable when Siteverify times out", async () => {
     process.env.NODE_ENV = "production";
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";

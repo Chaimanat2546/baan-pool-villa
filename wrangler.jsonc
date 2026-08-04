@@ -39,10 +39,13 @@
 						"limit": 60,
 						"period": 60
 					}
-				}
+				},
 			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com"
+				"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "a7f10ab9-db3a-400f-8185-03aabe8041db",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "lpxsktjrkjzwbxvhjogo"
 			},
 			"services": [
 				{
@@ -88,6 +91,7 @@
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
 					"TURNSTILE_SECRET_KEY"
 				]
 			}
@@ -108,10 +112,13 @@
 						"limit": 60,
 						"period": 60
 					}
-				}
+				},
 			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://www.poolvillapattaya.co.th"
+				"NEXT_PUBLIC_SITE_URL": "https://www.poolvillapattaya.co.th",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "9fd7c645-563a-4cce-85ac-20ffb8f3bfc0",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "vfqxpujsvgdqtrzpxobh"
 			},
 			"services": [
 				{
@@ -157,6 +164,7 @@
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
 					"TURNSTILE_SECRET_KEY"
 				]
 			}
@@ -177,10 +185,13 @@
 						"limit": 60,
 						"period": 60
 					}
-				}
+				},
 			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://www.pmheevilla.com"
+				"NEXT_PUBLIC_SITE_URL": "https://www.pmheevilla.com",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "93b00ab0-df98-4a1d-9411-0b96750e7191",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "zkxpozvhvmgqfrwnlfrn"
 			},
 			"services": [
 				{
@@ -226,6 +237,82 @@
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
 					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
+					"TURNSTILE_SECRET_KEY"
+				]
+			}
+		},
+		"staging": {
+			"name": "baan-pool-villa-staging",
+			"version_metadata": {
+				"binding": "CF_VERSION_METADATA"
+			},
+			"images": {
+				"binding": "IMAGES"
+			},
+			"ratelimits": [
+				{
+					"name": "CALENDAR_API_RATE_LIMITER",
+					"namespace_id": "94013",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
+				},
+			],
+			"vars": {
+				"NEXT_PUBLIC_SITE_URL": "https://baan-pool-villa-staging.chaymanus2003.workers.dev",
+				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://lsbbbbibhtbwrvrqggwq.supabase.co",
+				"SUPABASE_URL": "https://sxvkhzhqtrpxgzumsswl.supabase.co",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "2b4e0c23-b66c-43c8-892c-ac1a9b5f2ccb",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "lsbbbbibhtbwrvrqggwq"
+			},
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "baan-pool-villa-staging"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "NEXT_INC_CACHE_R2_BUCKET",
+					"bucket_name": "baan-pool-villa-staging-next-cache"
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "NEXT_CACHE_DO_QUEUE",
+						"class_name": "DOQueueHandler"
+					},
+					{
+						"name": "NEXT_TAG_CACHE_DO_SHARDED",
+						"class_name": "DOShardedTagCache"
+					}
+				]
+			},
+			"migrations": [
+				{
+					"tag": "v1",
+					"new_sqlite_classes": [
+						"DOQueueHandler"
+					]
+				},
+				{
+					"tag": "v2",
+					"new_sqlite_classes": [
+						"DOShardedTagCache"
+					]
+				}
+			],
+			"secrets": {
+				"required": [
+					"CALENDAR_INTERNAL_API_TOKEN",
+					"DEVILLE_BEARER_TOKEN",
+					"PATTAYA_BOOKINGS_API_TOKEN",
+					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
 					"TURNSTILE_SECRET_KEY"
 				]
 			}

@@ -109,6 +109,16 @@ export function SectionConfigForm({
           </label>
           <label className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]">
             <input
+              checked={section.autoScrollEnabled}
+              className="size-5 shrink-0 accent-[var(--site-primary)]"
+              onChange={(event) => onChange({ autoScrollEnabled: event.target.checked })}
+              type="checkbox"
+            />
+            <span>{"\u0e40\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34"}</span>
+          </label>
+
+          <label className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]">
+            <input
               checked={section.ctaEnabled}
               className="size-5 shrink-0 accent-[var(--site-primary)]"
               onChange={(event) => {

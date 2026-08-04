@@ -275,6 +275,7 @@ export function VillaCardGalleryImages({
         <div
           className="relative border-t border-white/70 bg-[var(--site-surface)] px-2 py-2"
           data-villa-card-thumbnail-strip
+          data-scroll-rail-ignore-drag="true"
         >
           <button
             aria-label={`เลื่อนรูปย่อยของ ${alt} ไปทางซ้าย`}

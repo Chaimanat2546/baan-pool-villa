@@ -138,6 +138,7 @@ describe("getResolvedHomeSections", () => {
             label: "ดูเพิ่มเติม",
           },
           description: "บ้านพักแนะนำ",
+          autoScrollEnabled: false,
           slug: "featured",
           title: "บ้านพักแนะนำ",
           villas: [villa],

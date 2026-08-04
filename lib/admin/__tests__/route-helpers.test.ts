@@ -78,6 +78,7 @@ describe("admin route helpers", () => {
       expect(result.response.status).toBe(401);
       await expect(result.response.json()).resolves.toEqual({
         error: "Missing bearer token.",
+        code: "session_invalid",
       });
     }
     expect(assertHomeConfigAdminMock).not.toHaveBeenCalled();
@@ -87,6 +88,7 @@ describe("admin route helpers", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: false,
       message: "Signed-in user is not listed as an active home config admin.",
+      code: "admin_inactive",
       status: 403,
     });
 
@@ -98,6 +100,35 @@ describe("admin route helpers", () => {
       expect(result.response.status).toBe(403);
       await expect(result.response.json()).resolves.toEqual({
         error: "Signed-in user is not listed as an active home config admin.",
+        code: "admin_inactive",
+      });
+    }
+  });
+
+  it("preserves a distinct admin verification code and Supabase metadata", async () => {
+    assertHomeConfigAdminMock.mockResolvedValue({
+      ok: false,
+      message:
+        "Unable to verify admin access: permission denied for admin_users",
+      code: "admin_verification_failed",
+      status: 500,
+      supabaseCode: "42501",
+      details: "RLS denied the profile read",
+      hint: "Check the self-select policy",
+    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+
+    const result = await requireHomeConfigAdmin(request());
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.response.status).toBe(500);
+      await expect(result.response.json()).resolves.toEqual({
+        error:
+          "Unable to verify admin access: permission denied for admin_users",
+        code: "admin_verification_failed",
+        supabaseCode: "42501",
+        details: "RLS denied the profile read",
+        hint: "Check the self-select policy",
       });
     }
   });
@@ -122,9 +153,11 @@ describe("admin route helpers", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.response.status).toBe(403);
-      await expect(result.response.json()).resolves.toEqual({
+      const body = await result.response.json();
+      expect(body).toEqual({
         error: "Admin request origin is not allowed.",
       });
+      expect(body.code).not.toBe("session_invalid");
     }
     expect(getBearerTokenMock).not.toHaveBeenCalled();
     expect(assertHomeConfigAdminMock).not.toHaveBeenCalled();
