@@ -94,7 +94,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
             <div className="relative min-w-0 flex-[0_0_100%]" key={slide.src}>
               <Image
                 alt={slide.alt}
-                className="object-contain"
+                className="object-fill"
                 fill
                 loading={slide === slides[0] ? "eager" : undefined}
                 preload={slide === slides[0]}
