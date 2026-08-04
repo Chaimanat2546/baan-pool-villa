@@ -8,7 +8,6 @@ import {
 import {
   buildImageDownloadFilename,
   createAttachmentDisposition,
-  fetchAllowedVillaImageDownload,
   isAllowedVillaImageUrl,
   normalizeDownloadImageUrl,
 } from "@/lib/villas/image-download";
@@ -20,7 +19,6 @@ import {
 } from "@/lib/villas/images";
 import { toPublicVillaImages } from "@/lib/villas/public-dto";
 
-const IMAGE_DOWNLOAD_TIMEOUT_MS = 10_000;
 const DISPLAY_QUERY_KEYS = new Set(["imageId", "url", "w", "q"]);
 const DOWNLOAD_QUERY_KEYS = new Set([
   "download",
@@ -269,20 +267,10 @@ async function downloadVillaImage(
     return Response.json({ error: "Image not found" }, { status: 404 });
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, IMAGE_DOWNLOAD_TIMEOUT_MS);
-  let upstreamResponse: Response | null;
-
-  try {
-    upstreamResponse = await fetchAllowedVillaImageDownload(targetUrl, images, {
-      cache: "no-store",
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
+  const upstreamResponse = await fetchPublicImageProxyResponse(targetUrl, {
+    quality: 90,
+    width: 1920,
+  });
 
   const contentType = upstreamResponse?.headers.get("Content-Type") ?? "";
 

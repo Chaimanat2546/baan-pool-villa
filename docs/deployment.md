@@ -100,12 +100,15 @@ Never roll back all clients automatically because one client failed.
 
 ## Manual Recovery Deployment
 
-GitHub Actions is the normal release path. Use this helper only for an
-explicitly approved emergency deployment. Save it as a local, untracked
-PowerShell script, run it from the repository root, and pass exactly one
-approved target.
+GitHub Actions is the normal release path. For an explicitly approved manual
+deployment, run the tracked helper from the repository root and pass exactly
+one approved target:
 
-The helper derives `.env.<target>` only after PowerShell validates the target,
+```powershell
+.\scripts\deploy-client.ps1 -Target baanparty
+```
+
+The helper derives `.env.<target>.local` only after PowerShell validates the target,
 loads only the five approved build variables into the current process, rejects
 missing or empty values, and restores every previous process value in
 `finally`. It never copies a client file over `.env` or prints loaded values.
@@ -128,9 +131,9 @@ $approvedBuildNames = @(
   "SUPABASE_PUBLISHABLE_KEY"
 )
 
-$clientEnvPath = Join-Path -Path (Get-Location) -ChildPath ".env.$Target"
+$clientEnvPath = Join-Path -Path (Get-Location) -ChildPath ".env.$Target.local"
 if (-not (Test-Path -LiteralPath $clientEnvPath -PathType Leaf)) {
-  throw "Missing client environment file: .env.$Target"
+  throw "Missing client environment file: .env.$Target.local"
 }
 
 $escapedNames = $approvedBuildNames |
@@ -146,7 +149,7 @@ foreach ($line in Get-Content -LiteralPath $clientEnvPath) {
 
   $name = $Matches.name
   if ($buildValues.ContainsKey($name)) {
-    throw "Duplicate approved build variable in .env.${Target}: $name"
+    throw "Duplicate approved build variable in .env.${Target}.local: $name"
   }
 
   $value = $Matches.value.Trim()
@@ -162,7 +165,7 @@ foreach ($line in Get-Content -LiteralPath $clientEnvPath) {
   }
 
   if ([string]::IsNullOrWhiteSpace($value)) {
-    throw "Approved build variable is empty in .env.${Target}: $name"
+    throw "Approved build variable is empty in .env.${Target}.local: $name"
   }
 
   $buildValues[$name] = $value
@@ -173,7 +176,7 @@ $missingNames = @(
     Where-Object { -not $buildValues.ContainsKey($_) }
 )
 if ($missingNames.Count -gt 0) {
-  throw "Missing approved build variables in .env.${Target}: $($missingNames -join ', ')"
+  throw "Missing approved build variables in .env.${Target}.local: $($missingNames -join ', ')"
 }
 
 function Invoke-NativeChecked {
