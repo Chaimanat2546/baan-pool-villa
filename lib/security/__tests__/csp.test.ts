@@ -30,6 +30,7 @@ describe("content security policy", () => {
     expect(scriptSrc).toContain("https://challenges.cloudflare.com");
     expect(scriptSrc).toContain("https://static.cloudflareinsights.com");
     expect(scriptSrc).toContain("https://www.googletagmanager.com");
+    expect(scriptSrc).toContain("https://googleads.g.doubleclick.net");
     expect(imgSrc).toContain(
       "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws",
     );
@@ -41,6 +42,7 @@ describe("content security policy", () => {
     expect(imgSrc).toContain("https://www.googletagmanager.com");
     expect(imgSrc).toContain("https://googleads.g.doubleclick.net");
     expect(imgSrc).toContain("https://www.google.com");
+    expect(imgSrc).toContain("https://www.google.co.th");
     expect(connectSrc).toContain("https://example.supabase.co");
     expect(connectSrc).toContain("https://static.cloudflareinsights.com");
     expect(connectSrc).toContain("https://www.google-analytics.com");

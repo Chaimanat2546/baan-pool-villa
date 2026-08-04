@@ -85,6 +85,9 @@ describe("Next image config", () => {
     expect(getCspDirective(csp, "script-src")).toContain(
       "https://www.googletagmanager.com",
     );
+    expect(getCspDirective(csp, "script-src")).toContain(
+      "https://googleads.g.doubleclick.net",
+    );
     expect(getCspDirective(csp, "connect-src")).toContain(
       "https://www.google-analytics.com",
     );
@@ -105,6 +108,9 @@ describe("Next image config", () => {
     );
     expect(getCspDirective(csp, "img-src")).toContain(
       "https://www.google.com",
+    );
+    expect(getCspDirective(csp, "img-src")).toContain(
+      "https://www.google.co.th",
     );
     expect(getCspDirective(csp, "frame-src")).toContain(
       "https://www.googletagmanager.com",
