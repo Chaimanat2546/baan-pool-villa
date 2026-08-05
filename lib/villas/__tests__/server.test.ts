@@ -3,6 +3,7 @@ import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { unstable_cache } from "next/cache";
 import {
   fetchVillaCardHouseOptionPage,
+  fetchActiveVillaZones,
   fetchHouseListings,
   fetchHouseListingsForSitemap,
   fetchHomeListings,
@@ -242,6 +243,7 @@ function mockSupabase(options?: {
   listingRows?: typeof listingRows;
   listingRowPages?: Array<typeof listingRows>;
   rpcRows?: Array<{ property_id: number; total_count: number }>;
+  villaZoneRows?: Array<{ location_zone: string | null }>;
 }) {
   const listings = listingQuery(
     options?.listingRowPages ?? options?.listingRows ?? listingRows,
@@ -274,9 +276,12 @@ function mockSupabase(options?: {
 
       throw new Error(`Unexpected table ${table}`);
     }),
-    rpc: vi.fn(() =>
+    rpc: vi.fn((functionName: string) =>
       Promise.resolve({
-        data: options?.rpcRows ?? [],
+        data:
+          functionName === "get_public_villa_zones"
+            ? (options?.villaZoneRows ?? [])
+            : (options?.rpcRows ?? []),
         error: null,
       }),
     ),
@@ -440,6 +445,24 @@ describe("fetchHouseListings", () => {
       zones: [{ label: "พัทยา", value: "pattaya" }],
     });
     expect(images.in).not.toHaveBeenCalled();
+  });
+
+  it("loads homepage zones from active listing location_zone values only", async () => {
+    const { listingPrices, listings, supabase } = mockSupabase({
+      villaZoneRows: [
+        { location_zone: "jomtien" },
+        { location_zone: "pattaya" },
+      ],
+    });
+
+    await expect(fetchActiveVillaZones()).resolves.toEqual([
+      { label: "จอมเทียน", value: "jomtien" },
+      { label: "พัทยา", value: "pattaya" },
+    ]);
+
+    expect(supabase.rpc).toHaveBeenCalledWith("get_public_villa_zones");
+    expect(listings.select).not.toHaveBeenCalledWith("location_zone");
+    expect(listingPrices.in).not.toHaveBeenCalled();
   });
 
   it("loads the admin card house picker page with lean listing columns", async () => {

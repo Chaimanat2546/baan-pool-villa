@@ -34,7 +34,10 @@ import { SEARCH_FACETS } from "@/lib/villas/search-options";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
-import { fetchHomeListings } from "@/lib/villas/server";
+import {
+  fetchActiveVillaZones,
+  fetchHomeListings,
+} from "@/lib/villas/server";
 import { toPublicVillaListing } from "@/lib/villas/public-dto";
 
 type FilterSummary = {
@@ -130,6 +133,10 @@ async function HomeHeroSearch({
 }
 
 async function getHomePageData(): Promise<HomePageData> {
+  const zonesResultPromise = fetchActiveVillaZones().then(
+    (value) => ({ status: "fulfilled" as const, value }),
+    (reason) => ({ reason, status: "rejected" as const }),
+  );
   const guidesResultPromise = getPublishedGuides().then(
     (value) => ({ status: "fulfilled" as const, value }),
     (reason) => ({ reason, status: "rejected" as const }),
@@ -145,17 +152,20 @@ async function getHomePageData(): Promise<HomePageData> {
     (reason) => ({ reason, status: "rejected" as const }),
   );
 
-  const villasResult = await fetchHomeListings(
-    homeSectionListingPlanResult.status === "fulfilled"
-      ? homeSectionListingPlanResult.value.houseIds
-      : [],
-    homeSectionListingPlanResult.status === "fulfilled"
-      ? homeSectionListingPlanResult.value.listingLimit
-      : HOME_FALLBACK_LISTING_LIMIT,
-  ).then(
-    (value) => ({ status: "fulfilled" as const, value }),
-    (reason) => ({ reason, status: "rejected" as const }),
-  );
+  const [villasResult, zonesResult] = await Promise.all([
+    fetchHomeListings(
+      homeSectionListingPlanResult.status === "fulfilled"
+        ? homeSectionListingPlanResult.value.houseIds
+        : [],
+      homeSectionListingPlanResult.status === "fulfilled"
+        ? homeSectionListingPlanResult.value.listingLimit
+        : HOME_FALLBACK_LISTING_LIMIT,
+    ).then(
+      (value) => ({ status: "fulfilled" as const, value }),
+      (reason) => ({ reason, status: "rejected" as const }),
+    ),
+    zonesResultPromise,
+  ]);
   const guidesResult = await guidesResultPromise;
   const customerReviewsResult = await customerReviewsResultPromise;
   const guides =
@@ -170,6 +180,10 @@ async function getHomePageData(): Promise<HomePageData> {
 
   if (guidesResult.status === "rejected") {
     console.error("Unable to load homepage guide posts", guidesResult.reason);
+  }
+
+  if (zonesResult.status === "rejected") {
+    console.error("Unable to load homepage villa zones", zonesResult.reason);
   }
 
   if (villasResult.status === "rejected") {
@@ -196,7 +210,7 @@ async function getHomePageData(): Promise<HomePageData> {
       homeSections: [],
       filterSummary: {
         maxAvailablePrice: SEARCH_FACETS.maxPrice,
-        zones: SEARCH_FACETS.zones,
+        zones: zonesResult.status === "fulfilled" ? zonesResult.value : [],
       },
     };
   }
@@ -232,7 +246,7 @@ async function getHomePageData(): Promise<HomePageData> {
     degradedSources: {
       guidePosts: guidesResult.status === "rejected",
       homeSections: homeSectionsResult.degraded || homeLayout.degraded,
-      villaCatalog: false,
+      villaCatalog: zonesResult.status === "rejected",
     },
     customerReviews,
     guides: selectHomeGuideSummaries(guides),
@@ -243,7 +257,7 @@ async function getHomePageData(): Promise<HomePageData> {
     })),
     filterSummary: {
       maxAvailablePrice: SEARCH_FACETS.maxPrice,
-      zones: SEARCH_FACETS.zones,
+      zones: zonesResult.status === "fulfilled" ? zonesResult.value : [],
     },
   };
 }
