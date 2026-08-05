@@ -71,6 +71,10 @@ type SupabaseListingFacetRow = {
   location_zone: string | null;
 };
 
+type SupabaseListingZoneRow = {
+  location_zone: string | null;
+};
+
 type SupabaseImageRow = {
   caption: string | null;
   cover_select: number | null;
@@ -871,7 +875,16 @@ async function fetchSearchFacetsFromSupabase(): Promise<VillaSearchFacets> {
     .map((row) => row.id?.trim())
     .filter((id): id is string => Boolean(id));
   const prices = await fetchListingPrices(supabase, listingIds);
-  const zones = Array.from(
+  return {
+    maxPrice: Math.max(...prices.values(), 0, 1000),
+    zones: toVillaZoneOptions(rows),
+  };
+}
+
+function toVillaZoneOptions(
+  rows: readonly SupabaseListingZoneRow[],
+): Array<{ value: string; label: string }> {
+  return Array.from(
     new Map(
       rows.map((row) => {
         const zone = row.location_zone?.trim() || "unknown";
@@ -880,11 +893,19 @@ async function fetchSearchFacetsFromSupabase(): Promise<VillaSearchFacets> {
     ),
     ([value, label]) => ({ value, label }),
   ).sort((a, b) => a.label.localeCompare(b.label, "th"));
+}
 
-  return {
-    maxPrice: Math.max(...prices.values(), 0, 1000),
-    zones,
-  };
+async function fetchActiveVillaZonesFromSupabase(): Promise<
+  Array<{ value: string; label: string }>
+> {
+  const { supabase } = createVillaSupabaseClient();
+  const { data, error } = await supabase.rpc("get_public_villa_zones");
+
+  if (error) {
+    throw new Error(`Supabase public villa zones RPC failed: ${error.message}`);
+  }
+
+  return toVillaZoneOptions((data ?? []) as SupabaseListingZoneRow[]);
 }
 
 function needsSearchPostFilter(
@@ -1331,6 +1352,15 @@ const fetchCachedVillaSearchFacets = unstable_cache(
   },
 );
 
+const fetchCachedActiveVillaZones = unstable_cache(
+  fetchActiveVillaZonesFromSupabase,
+  [`${CACHE_TAGS.villaListings}:active-zones`],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.villaSearchZones,
+    tags: [CACHE_TAGS.villaListings],
+  },
+);
+
 const fetchCachedVillaSearchPage = unstable_cache(
   fetchVillaSearchPageFromSupabase,
   [`${CACHE_TAGS.villaListings}:search-page`],
@@ -1380,6 +1410,13 @@ export async function fetchHomeListings(
 
 export async function fetchVillaSearchFacets(): Promise<VillaSearchFacets> {
   return fetchCachedVillaSearchFacets();
+}
+
+/** Returns distinct location_zone values from active public listings. */
+export async function fetchActiveVillaZones(): Promise<
+  Array<{ value: string; label: string }>
+> {
+  return fetchCachedActiveVillaZones();
 }
 
 export async function fetchVillaSearchPage(

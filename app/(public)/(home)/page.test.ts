@@ -11,7 +11,7 @@ import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
-import { fetchHomeListings } from "@/lib/villas/server";
+import { fetchActiveVillaZones, fetchHomeListings } from "@/lib/villas/server";
 
 vi.mock("server-only", () => ({}));
 
@@ -66,6 +66,7 @@ vi.mock("@/lib/villas/public-dto", () => ({
 }));
 
 vi.mock("@/lib/villas/server", () => ({
+  fetchActiveVillaZones: vi.fn(),
   fetchHomeListings: vi.fn(),
 }));
 
@@ -75,6 +76,7 @@ const getResolvedHomeSectionsMock = vi.mocked(getResolvedHomeSections);
 const getSiteContactSettingsMock = vi.mocked(getSiteContactSettings);
 const getSiteSettingsMock = vi.mocked(getSiteSettings);
 const getSiteWebStylesMock = vi.mocked(getSiteWebStyles);
+const fetchActiveVillaZonesMock = vi.mocked(fetchActiveVillaZones);
 const fetchHomeListingsMock = vi.mocked(fetchHomeListings);
 
 describe("HomePageRoute", () => {
@@ -86,6 +88,8 @@ describe("HomePageRoute", () => {
     getSiteSettingsMock.mockReset();
     getSiteWebStylesMock.mockReset();
     getSiteWebStylesMock.mockResolvedValue(DEFAULT_SITE_WEB_STYLES);
+    fetchActiveVillaZonesMock.mockReset();
+    fetchActiveVillaZonesMock.mockResolvedValue([]);
     fetchHomeListingsMock.mockReset();
   });
 
@@ -142,6 +146,7 @@ describe("HomePageRoute", () => {
 
     expect(pageResult).toBe("resolved");
     expect(fetchHomeListingsMock).not.toHaveBeenCalled();
+    expect(fetchActiveVillaZonesMock).toHaveBeenCalledOnce();
   });
 
   it("starts loading villa catalog before guide posts finish", async () => {
@@ -184,6 +189,7 @@ describe("HomePageRoute", () => {
       await vi.waitFor(
         () => {
           expect(fetchHomeListingsMock).toHaveBeenCalledWith(["1328"], 12);
+          expect(fetchActiveVillaZonesMock).toHaveBeenCalledOnce();
         },
         { timeout: 100 },
       );
