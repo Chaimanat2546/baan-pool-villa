@@ -3,12 +3,14 @@ import type { VillaListing } from "@/lib/villas/types";
 
 vi.mock("server-only", () => ({}));
 
-const { fetchHouseListingsMock } = vi.hoisted(() => ({
+const { fetchHouseListingsMock, getListingByIdMock } = vi.hoisted(() => ({
   fetchHouseListingsMock: vi.fn(),
+  getListingByIdMock: vi.fn(),
 }));
 
 vi.mock("@/lib/villas/server", () => ({
   fetchHouseListings: fetchHouseListingsMock,
+  getListingById: getListingByIdMock,
 }));
 
 const listing: VillaListing = {
@@ -28,6 +30,7 @@ const listing: VillaListing = {
 beforeEach(() => {
   vi.restoreAllMocks();
   fetchHouseListingsMock.mockReset();
+  getListingByIdMock.mockReset();
 });
 
 afterEach(() => {
@@ -196,7 +199,7 @@ describe("GET /api/houses/images/proxy", () => {
 
 describe("GET /api/houses/images/[id]", () => {
   it("proxies a listing cover by house id without requiring the source URL in the request", async () => {
-    fetchHouseListingsMock.mockResolvedValue([listing]);
+    getListingByIdMock.mockResolvedValue(listing);
     const fetchMock = vi.fn().mockResolvedValue(
       new Response("cover bytes", {
         headers: { "Content-Type": "image/jpeg" },
@@ -214,6 +217,8 @@ describe("GET /api/houses/images/[id]", () => {
 
     await expect(response.text()).resolves.toBe("cover bytes");
     expect(response.status).toBe(200);
+    expect(getListingByIdMock).toHaveBeenCalledWith("501");
+    expect(fetchHouseListingsMock).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledWith(
       "https://devillegroups.com/imgs/profile_imgs_large/501.jpg",
       expect.objectContaining({
@@ -230,7 +235,7 @@ describe("GET /api/houses/images/[id]", () => {
   });
 
   it("returns 404 when the house id has no cover image", async () => {
-    fetchHouseListingsMock.mockResolvedValue([{ ...listing, coverImage: null }]);
+    getListingByIdMock.mockResolvedValue({ ...listing, coverImage: null });
     const { GET } = await import(
       "../../../app/(public)/api/houses/images/[id]/route"
     );
@@ -242,5 +247,6 @@ describe("GET /api/houses/images/[id]", () => {
 
     await expect(response.json()).resolves.toEqual({ error: "Image not found" });
     expect(response.status).toBe(404);
+    expect(fetchHouseListingsMock).not.toHaveBeenCalled();
   });
 });
