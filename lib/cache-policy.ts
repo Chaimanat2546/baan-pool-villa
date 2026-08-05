@@ -22,6 +22,7 @@ export const CACHE_REVALIDATE_SECONDS = {
   villaCardImages: TWELVE_HOURS_SECONDS,
   villaImages: TWELVE_HOURS_SECONDS,
   villaListings: SIX_HOURS_SECONDS,
+  villaSearchZones: TWELVE_HOURS_SECONDS,
   sitemap: SITEMAP_REVALIDATE_SECONDS,
 } as const;
 
