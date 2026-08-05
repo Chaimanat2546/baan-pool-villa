@@ -799,9 +799,9 @@
             </tr>
             <tr>
               <td>OpenNext incremental cache</td>
-              <td>R2-backed incremental cache with a regional cache layer.</td>
-              <td><code>open-next.config.ts</code> wraps the R2 incremental cache in OpenNext's long-lived regional cache to reduce regional reads to object storage. The Next 16 default tag-cache behavior is retained: do not set <code>bypassTagCacheOnCacheHit</code> unless the revalidation contract is explicitly changed.</td>
-              <td>Run <code>open-next.config.test.ts</code> with <code>worker-cache-policy.test.ts</code> and <code>lib/__tests__/next-config.test.ts</code>.</td>
+              <td>R2-backed incremental cache with a regional cache layer and temporary write-contention diagnostics.</td>
+              <td><code>open-next.config.ts</code> wraps the local R2-compatible diagnostic adapter in OpenNext's long-lived regional cache to reduce regional reads to object storage. On an R2 incremental-cache write failure it logs only an opaque cache-key fingerprint, cache type, and bounded error category/code; it never logs the raw key, request URL, or error text. The Next 16 default tag-cache behavior is retained: do not set <code>bypassTagCacheOnCacheHit</code> unless the revalidation contract is explicitly changed.</td>
+              <td>Run <code>open-next-r2-incremental-cache-diagnostics.test.ts</code>, <code>open-next.config.test.ts</code>, <code>worker-cache-policy.test.ts</code>, and <code>lib/__tests__/next-config.test.ts</code>.</td>
             </tr>
             <tr>
               <td>Villa images</td>
