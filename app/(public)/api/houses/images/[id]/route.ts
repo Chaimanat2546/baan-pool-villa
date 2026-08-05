@@ -1,7 +1,7 @@
 import { publicApiErrorResponse } from "@/lib/api/errors";
 import { limitPublicApiRequest } from "@/lib/api/rate-limit";
 import { buildResolvedPublicImageProxyResponse } from "@/lib/public-image-proxy-server";
-import { fetchHouseListings } from "@/lib/villas/server";
+import { getListingById } from "@/lib/villas/server";
 
 export async function GET(
   request: Request,
@@ -15,8 +15,7 @@ export async function GET(
 
   try {
     const { id } = await params;
-    const listings = await fetchHouseListings();
-    const listing = listings.find((currentListing) => currentListing.id === id);
+    const listing = await getListingById(id);
 
     return await buildResolvedPublicImageProxyResponse(
       request,
