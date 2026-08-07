@@ -50,6 +50,33 @@ describe("admin site asset uploads", () => {
     expect(storage.from).not.toHaveBeenCalled();
   });
 
+  it("stores non-favicon assets as WebP", async () => {
+    vi.spyOn(crypto, "randomUUID").mockReturnValue(
+      "11111111-1111-4111-8111-111111111111",
+    );
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const getPublicUrl = vi.fn(() => ({ data: { publicUrl: "https://assets.example/logo.webp" } }));
+    const storage = { from: vi.fn(() => ({ getPublicUrl, upload })) };
+
+    const result = await uploadAsset(
+      { storage } as never,
+      "logo",
+      new File(["logo"], "logo.webp", { type: "image/webp" }),
+    );
+
+    expect(result).toMatchObject({
+      asset: {
+        path: expect.stringMatching(/^logo\/\d{4}\/\d{2}\/[0-9a-f-]+\.webp$/),
+      },
+      error: null,
+    });
+    expect(upload).toHaveBeenCalledWith(
+      expect.stringMatching(/^logo\/\d{4}\/\d{2}\/[0-9a-f-]+\.webp$/),
+      expect.objectContaining({ name: "logo.webp", type: "image/webp" }),
+      { cacheControl: "31536000", contentType: "image/webp", upsert: false },
+    );
+  });
+
   it("reads favicon and SEO share image uploads from the settings form data", () => {
     const formData = new FormData();
     formData.set(

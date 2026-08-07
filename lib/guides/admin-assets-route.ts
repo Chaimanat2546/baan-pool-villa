@@ -3,6 +3,7 @@ import {
   type HomeConfigSupabaseClient,
 } from "@/lib/admin/route-helpers";
 import { validateGuideUploadMetadata } from "@/lib/guides/validation";
+import { convertImageToWebp } from "@/lib/image-conversion";
 import { GUIDE_ASSETS_BUCKET } from "./defaults";
 
 export type GuideAssetRole = "cover" | "inline";
@@ -133,12 +134,20 @@ export async function uploadAdminGuideAsset(
   const assetRole = assetRoleResult.role;
   const guideId = readStringField(formData, "guideId").trim() || null;
   const alt = readStringField(formData, "alt").trim();
-  const path = buildStoragePath(file.type);
+  let convertedFile: File;
+
+  try {
+    convertedFile = await convertImageToWebp(file);
+  } catch {
+    return Response.json({ errors: ["ไม่สามารถแปลงรูปเป็น WebP ได้"] }, { status: 400 });
+  }
+
+  const path = buildStoragePath(convertedFile.type);
   const { error: uploadError } = await supabase.storage
     .from(GUIDE_ASSETS_BUCKET)
-    .upload(path, file, {
+    .upload(path, convertedFile, {
       cacheControl: "31536000",
-      contentType: file.type,
+      contentType: convertedFile.type,
       upsert: false,
     });
 

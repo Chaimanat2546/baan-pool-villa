@@ -7,6 +7,7 @@ import {
   revalidateSiteWebStylesCache,
   revalidateVillaCardImagesCache,
 } from "@/lib/cache-revalidation";
+import { convertImageToWebp } from "@/lib/image-conversion";
 import { SITE_ASSETS_BUCKET } from "@/lib/site-settings/defaults";
 import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
 import {
@@ -646,12 +647,23 @@ async function saveAdminVillaCardCoverPayload(
     return Response.json({ errors }, { status: 400 });
   }
 
-  const path = buildVillaCoverStoragePath(houseId, coverImage.type);
+  let convertedCoverImage: File;
+
+  try {
+    convertedCoverImage = await convertImageToWebp(coverImage);
+  } catch {
+    return Response.json(
+      { errors: ["Unable to convert cover image to WebP."] },
+      { status: 400 },
+    );
+  }
+
+  const path = buildVillaCoverStoragePath(houseId, convertedCoverImage.type);
   const uploadResult = await supabase.storage
     .from(SITE_ASSETS_BUCKET)
-    .upload(path, coverImage, {
+    .upload(path, convertedCoverImage, {
       cacheControl: "31536000",
-      contentType: coverImage.type,
+      contentType: convertedCoverImage.type,
       upsert: false,
     });
 

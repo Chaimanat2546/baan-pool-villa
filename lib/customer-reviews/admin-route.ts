@@ -6,6 +6,7 @@ import type {
 } from "@/lib/admin/route-helpers";
 import { adminSupabaseErrorResponse } from "@/lib/admin/route-helpers";
 import { revalidateCustomerReviewsCache } from "@/lib/cache-revalidation";
+import { convertImageToWebp } from "@/lib/image-conversion";
 import { SITE_ASSETS_BUCKET } from "@/lib/site-settings/defaults";
 import {
   type AdminCustomerReviewImage,
@@ -30,7 +31,6 @@ const CUSTOMER_REVIEW_UPLOAD_MIME_EXTENSIONS = new Map([
   ["image/png", "png"],
   ["image/webp", "webp"],
 ]);
-const CUSTOMER_REVIEW_STORAGE_MIME_TYPE = "image/webp";
 
 interface CustomerReviewImageRow {
   alt?: unknown;
@@ -93,17 +93,6 @@ type DeletedCustomerReviewImage = {
   warning: string | null;
 };
 
-type CloudflareImagesBinding = {
-  input: (image: ReadableStream<Uint8Array>) => {
-    output: (options: {
-      format: "image/webp";
-      quality: number;
-    }) => Promise<{
-      response: () => Response;
-    }>;
-  };
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -139,12 +128,6 @@ function validateCustomerReviewUpload(file: File): string[] {
   return errors;
 }
 
-function getCustomerReviewWebpFileName(file: File): string {
-  const baseName = file.name.replace(/\.[^.]+$/, "").trim() || "customer-review";
-
-  return `${baseName}.webp`;
-}
-
 function buildCustomerReviewStoragePath(): string {
   const now = new Date();
   const year = String(now.getUTCFullYear());
@@ -153,72 +136,8 @@ function buildCustomerReviewStoragePath(): string {
   return `${CUSTOMER_REVIEW_PATH_PREFIX}/${year}/${month}/${crypto.randomUUID()}.webp`;
 }
 
-async function getCloudflareImagesBinding(): Promise<CloudflareImagesBinding | null> {
-  try {
-    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
-    const cloudflareContext = await getCloudflareContext({ async: true });
-    const images = cloudflareContext.env.IMAGES;
-
-    return images && typeof images.input === "function"
-      ? (images as CloudflareImagesBinding)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-async function convertCustomerReviewUploadWithCloudflareImages(
-  file: File,
-): Promise<File | null> {
-  const images = await getCloudflareImagesBinding();
-
-  if (!images) {
-    return null;
-  }
-
-  const result = await images
-    .input(file.stream() as ReadableStream<Uint8Array>)
-    .output({ format: CUSTOMER_REVIEW_STORAGE_MIME_TYPE, quality: 90 });
-  const response = result.response();
-  const contentType = response.headers.get("content-type")?.split(";")[0]?.trim();
-
-  if (!response.ok || contentType !== CUSTOMER_REVIEW_STORAGE_MIME_TYPE) {
-    throw new Error("Cloudflare Images did not return WebP.");
-  }
-
-  return new File(
-    [new Uint8Array(await response.arrayBuffer())],
-    getCustomerReviewWebpFileName(file),
-    { type: CUSTOMER_REVIEW_STORAGE_MIME_TYPE },
-  );
-}
-
 async function convertCustomerReviewUploadToWebp(file: File): Promise<File> {
-  if (file.type === CUSTOMER_REVIEW_STORAGE_MIME_TYPE) {
-    return file;
-  }
-
-  let cloudflareImage: File | null = null;
-
-  try {
-    cloudflareImage = await convertCustomerReviewUploadWithCloudflareImages(file);
-  } catch {
-    // Fall back to Sharp when the optional Cloudflare binding is unavailable.
-  }
-
-  if (cloudflareImage) {
-    return cloudflareImage;
-  }
-
-  const { default: sharp } = await import("sharp");
-  const webpBuffer = await sharp(Buffer.from(await file.arrayBuffer()))
-    .rotate()
-    .webp({ quality: 90 })
-    .toBuffer();
-
-  return new File([new Uint8Array(webpBuffer)], getCustomerReviewWebpFileName(file), {
-    type: CUSTOMER_REVIEW_STORAGE_MIME_TYPE,
-  });
+  return convertImageToWebp(file);
 }
 
 function normalizeAdminAlt(value: string): string {
