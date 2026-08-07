@@ -584,7 +584,7 @@ describe("admin customer review route helpers", () => {
 
     expect(response.status).toBe(200);
     expect(input).toHaveBeenCalledWith(expect.any(ReadableStream));
-    expect(output).toHaveBeenCalledWith({ format: "image/webp", quality: 90 });
+    expect(output).toHaveBeenCalledWith({ format: "image/webp", quality: 85 });
     expect(upload).toHaveBeenCalledWith(
       expect.stringMatching(/^customer-reviews\/\d{4}\/\d{2}\/[0-9a-f-]+\.webp$/),
       expect.objectContaining({ name: "proof.webp", type: "image/webp" }),
