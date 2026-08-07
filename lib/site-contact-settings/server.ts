@@ -14,7 +14,7 @@ import type {
 import { normalizeSiteContactSettingsRow } from "./validation";
 
 const SITE_CONTACT_SETTINGS_SELECT =
-  "singleton_id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,line_id,line_url";
+  "singleton_id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,show_facebook_timeline,line_id,line_url";
 
 const getCachedSiteContactSettings = unstable_cache(
   async (): Promise<SiteContactSettings> => {

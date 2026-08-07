@@ -146,6 +146,23 @@ describe("SiteFooter", () => {
     );
   });
 
+  it("hides the Facebook timeline when the contact setting is disabled", () => {
+    const markup = renderToStaticMarkup(
+      <SiteFooter
+        contactSettings={{
+          ...DEFAULT_SITE_CONTACT_SETTINGS,
+          contact: {
+            ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
+            showFacebookTimeline: false,
+          },
+        }}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+
+    expect(markup).not.toContain("https://www.facebook.com/plugins/page.php?");
+  });
+
   it("renders uploaded logos with the selected background and containment", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter

@@ -130,6 +130,7 @@ const contactSettings: SiteContactSettings = {
       },
     ],
     messengerUrl: "https://www.facebook.com/baanpoolvillas",
+    showFacebookTimeline: true,
     lineId: "@baanpoolvilla",
     lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
   },

@@ -61,7 +61,7 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
       text: "Messenger",
     },
   ];
-  const facebookPagePluginSrc = (() => {
+  const facebookPagePluginSrc = contactSettings.contact.showFacebookTimeline ? (() => {
     try {
       const configuredUrl = new URL(contactSettings.contact.messengerUrl);
       const pagePathParts = configuredUrl.pathname
@@ -94,7 +94,7 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
     } catch {
       return null;
     }
-  })();
+  })() : null;
 
   return (
     <footer className="bg-[var(--site-primary)] pb-28 text-[var(--site-footer-link)] md:pb-0" style={siteThemeStyle}>
