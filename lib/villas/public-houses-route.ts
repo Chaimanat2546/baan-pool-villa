@@ -5,7 +5,10 @@ import {
 } from "@/lib/villas/filters";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
 import { SEARCH_FACETS } from "@/lib/villas/search-options";
-import { fetchVillaSearchPage } from "@/lib/villas/server";
+import {
+  fetchVillaSearchPage,
+  withVillaCardGalleryPreviews,
+} from "@/lib/villas/server";
 
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 24;
@@ -69,7 +72,9 @@ export async function buildPublicHousesResponse(request: Request) {
   return Response.json(
     {
       hasMore: result.hasMore,
-      items: toPublicVillaListings(result.items),
+      items: toPublicVillaListings(
+        await withVillaCardGalleryPreviews(result.items),
+      ),
       page,
       pageSize,
       total: result.total,

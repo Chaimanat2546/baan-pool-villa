@@ -288,14 +288,14 @@ export function operationContext(overrides: {
       if (overrides.profiles?.findByNormalizedEmail) {
         return overrides.profiles.findByNormalizedEmail(input);
       }
-      return { ok: true, data: [currentProfile] };
+      return repositorySuccess([currentProfile]);
     }),
     findByUserId: vi.fn(async (input) => {
       events.push("profiles:find_uid");
       if (overrides.profiles?.findByUserId) {
         return overrides.profiles.findByUserId(input);
       }
-      return { ok: true, data: currentProfile };
+      return repositorySuccess(currentProfile);
     }),
     createForOperation: vi.fn(async (input) => {
       events.push("profiles:create");
@@ -303,7 +303,7 @@ export function operationContext(overrides: {
         return overrides.profiles.createForOperation(input);
       }
       currentProfile = profile();
-      return { ok: true, data: currentProfile };
+      return repositorySuccess(currentProfile);
     }),
     advanceForOperation: vi.fn(async (input) => {
       events.push("profiles:advance");
@@ -315,7 +315,7 @@ export function operationContext(overrides: {
         mustChangePassword: input.nextMustChangePassword,
         credentialVersion: input.nextCredentialVersion,
       });
-      return { ok: true, data: currentProfile };
+      return repositorySuccess(currentProfile);
     }),
     activateForOperation: vi.fn(async (input) => {
       events.push("profiles:activate");
@@ -327,17 +327,14 @@ export function operationContext(overrides: {
         mustChangePassword: true,
         credentialVersion: input.credentialVersion,
       });
-      return { ok: true, data: currentProfile };
+      return repositorySuccess(currentProfile);
     }),
     prepareCompensation: vi.fn(async (input) => {
       events.push("profiles:prepare_compensation");
       if (overrides.profiles?.prepareCompensation) {
         return overrides.profiles.prepareCompensation(input);
       }
-      return {
-        ok: true,
-        data: { stage: "compensation_ready" as const },
-      };
+      return repositorySuccess({ stage: "compensation_ready" as const });
     }),
   };
 

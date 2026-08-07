@@ -84,7 +84,7 @@ describe("GET /api/home-sections", () => {
   });
 
   it("uses the listing plan without exposing its fixed layout", async () => {
-    const configs = [];
+    const configs: never[] = [];
     getHomeSectionListingPlanMock.mockResolvedValue({
       configs,
       houseIds: [],

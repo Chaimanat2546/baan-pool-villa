@@ -21,18 +21,20 @@ describe("public HTML prewarm", () => {
     expect(
       resolvePrewarmBaseUrl({
         BPV_PREWARM_BASE_URL: "https://www.baanpoolvilla.example",
+        NODE_ENV: "test",
       }),
     ).toBe("https://www.baanpoolvilla.example");
     expect(
       resolvePrewarmBaseUrl({
         NEXT_PUBLIC_SITE_URL: "https://public.example",
+        NODE_ENV: "test",
       }),
     ).toBe("https://public.example");
-    expect(resolvePrewarmBaseUrl({}, "https://cli.example")).toBe(
+    expect(resolvePrewarmBaseUrl({ NODE_ENV: "test" }, "https://cli.example")).toBe(
       "https://cli.example",
     );
     expect(() => {
-      resolvePrewarmBaseUrl({});
+      resolvePrewarmBaseUrl({ NODE_ENV: "test" });
     }).toThrow("Missing prewarm base URL");
   });
 
@@ -85,7 +87,7 @@ describe("public HTML prewarm", () => {
   });
 
   it("returns fixed public pages when sitemap loading times out", async () => {
-    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => {
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
       init?.signal?.dispatchEvent(new Event("abort"));
 
       return new Promise<Response>(() => undefined);
@@ -121,12 +123,13 @@ describe("public HTML prewarm", () => {
       );
     const wait = vi.fn(async () => undefined);
 
-    const summary = await prewarmPublicHtml({
+    const prewarmOptions = {
       baseUrl: BASE_URL,
       fetchImpl,
       paths: ["/"],
       wait,
-    });
+    };
+    const summary = await prewarmPublicHtml(prewarmOptions);
 
     expect(summary).toMatchObject({
       bypassed: 0,
@@ -148,18 +151,19 @@ describe("public HTML prewarm", () => {
   });
 
   it("marks page fetch timeouts as failed instead of hanging", async () => {
-    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => {
+    const fetchImpl = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
       init?.signal?.dispatchEvent(new Event("abort"));
 
       return new Promise<Response>(() => undefined);
     });
 
-    const summary = await prewarmPublicHtml({
+    const prewarmOptions = {
       baseUrl: BASE_URL,
       fetchImpl,
       fetchTimeoutMs: 1,
       paths: ["/"],
-    });
+    };
+    const summary = await prewarmPublicHtml(prewarmOptions);
 
     expect(summary).toMatchObject({
       failed: 1,

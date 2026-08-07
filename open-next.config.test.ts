@@ -10,7 +10,7 @@ describe("OpenNext incremental cache configuration", () => {
       'from "@opennextjs/cloudflare/overrides/incremental-cache/regional-cache"',
     );
     expect(source).toMatch(
-      /incrementalCache:\s*withRegionalCache\(r2IncrementalCacheWithDiagnostics,\s*\{\s*mode:\s*"long-lived"/s,
+      /incrementalCache:\s*withRegionalCache\(r2IncrementalCacheWithDiagnostics,\s*\{\s*mode:\s*"long-lived"/,
     );
     expect(source).toContain(
       'from "./open-next-r2-incremental-cache-diagnostics.js"',

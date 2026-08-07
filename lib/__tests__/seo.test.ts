@@ -25,6 +25,7 @@ import type { VillaListing } from "../villas/types";
 
 const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 const originalNodeEnv = process.env.NODE_ENV;
+const testEnv = process.env as Record<string, string | undefined>;
 
 function localMetadataImageUrl(
   pathname: string,
@@ -199,9 +200,9 @@ afterEach(() => {
   }
 
   if (originalNodeEnv === undefined) {
-    delete process.env.NODE_ENV;
+    delete testEnv.NODE_ENV;
   } else {
-    process.env.NODE_ENV = originalNodeEnv;
+    testEnv.NODE_ENV = originalNodeEnv;
   }
 });
 
@@ -219,7 +220,7 @@ describe("SEO helpers", () => {
   });
 
   it("falls back to the production domain during production builds", () => {
-    process.env.NODE_ENV = "production";
+    testEnv.NODE_ENV = "production";
     delete process.env.NEXT_PUBLIC_SITE_URL;
 
     expect(getSiteUrl()).toEqual(new URL("https://www.baanpartypattaya.com"));

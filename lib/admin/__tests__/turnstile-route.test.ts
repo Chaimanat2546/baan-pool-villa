@@ -6,9 +6,10 @@ const originalNodeEnv = process.env.NODE_ENV;
 const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 const originalSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const originalSecretKey = process.env.TURNSTILE_SECRET_KEY;
+const testEnv = process.env as Record<string, string | undefined>;
 
 function restoreEnv() {
-  process.env.NODE_ENV = originalNodeEnv;
+  testEnv.NODE_ENV = originalNodeEnv;
   process.env.NEXT_PUBLIC_SITE_URL = originalSiteUrl;
   process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = originalSiteKey;
   process.env.TURNSTILE_SECRET_KEY = originalSecretKey;
@@ -47,7 +48,7 @@ describe("admin login Turnstile route", () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     restoreEnv();
-    process.env.NODE_ENV = "production";
+    testEnv.NODE_ENV = "production";
     process.env.NEXT_PUBLIC_SITE_URL = "https://baan.example";
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     process.env.TURNSTILE_SECRET_KEY = "secret-key";
@@ -118,7 +119,7 @@ describe("admin login Turnstile route", () => {
   });
 
   it("returns a bypassed response in development even when keys are configured", async () => {
-    process.env.NODE_ENV = "development";
+    testEnv.NODE_ENV = "development";
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     process.env.TURNSTILE_SECRET_KEY = "secret-key";
     vi.spyOn(console, "warn").mockImplementation(() => undefined);

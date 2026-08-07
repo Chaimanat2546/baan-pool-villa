@@ -125,6 +125,7 @@ const content: VillaDetailContent = {
       url: "https://maps.example.com/jomtien",
     },
   ],
+  poolType: "Private pool",
   sections: [
     {
       title: "รายละเอียดเพิ่มเติม",
@@ -425,7 +426,7 @@ describe("DetailLayoutRenderer", () => {
     const amenities = Array.from({ length: 16 }, (_, index) => ({
       key: `amenity-${index + 1}`,
       label: `Amenity ${index + 1}`,
-    }));
+    })) as unknown as VillaListing["amenities"];
 
     const markup = render(
       DEFAULT_DETAIL_LAYOUT,
@@ -724,7 +725,7 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).not.toContain("[object Object]");
   });
 
-  it("renders V2 70/30 split with wide, narrow, and locked bottom areas", () => {
+  it("renders V2 50/50 split with wide, narrow, and locked bottom areas", () => {
     const layout: DetailLayoutV2Config = {
       ...DEFAULT_DETAIL_LAYOUT_V2,
       mainSplit: {
@@ -735,7 +736,7 @@ describe("DetailLayoutRenderer", () => {
             id: "wide_a",
             columns: 2,
             enabled: true,
-            ratio: "60/40",
+            ratio: "50/50",
             blocks: [block("details"), block("amenities")],
           },
           {
@@ -760,7 +761,7 @@ describe("DetailLayoutRenderer", () => {
 
     expect(markup).toContain('data-detail-layout-split="mainSplit"');
     expect(markup).toContain('data-detail-layout-split-ratio="70/30"');
-    expect(markup).toContain('data-detail-layout-wide-ratio="60/40"');
+    expect(markup).toContain('data-detail-layout-wide-ratio="50/50"');
     expect(markup).toContain('data-detail-layout-area="narrow"');
     expect(markup).toContain('data-detail-layout-area="lockedBottom"');
     expect(markup).toContain('data-detail-layout-block="recommended_villas"');

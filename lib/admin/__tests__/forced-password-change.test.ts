@@ -504,7 +504,7 @@ describe("changeForcedPassword", () => {
           email: EMAIL,
           credentialVersion: 7,
         })
-        .mockResolvedValueOnce(fencedSession);
+        .mockResolvedValueOnce(fencedSession as never);
       const { changeForcedPassword } = await loadModule();
 
       await expect(
@@ -541,7 +541,7 @@ describe("changeForcedPassword", () => {
         code: "session_invalid",
         status: 401,
         message: "invalid",
-      });
+      } as never);
     const { changeForcedPassword } = await loadModule();
 
     await expect(changeForcedPassword(changeInput, deps as never)).resolves.toMatchObject({

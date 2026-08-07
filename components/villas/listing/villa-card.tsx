@@ -92,7 +92,7 @@ export function VillaCard({
           coverImageSrc={coverImageSrc}
           href={isStaticNavigation ? undefined : villaHref}
           preload={preload}
-          staticImageUrls={galleryImageUrls}
+          staticImageUrls={galleryImageUrls ?? villa.galleryPreviewImages}
           villaId={villa.id}
         />
       ) : isStaticNavigation ? (

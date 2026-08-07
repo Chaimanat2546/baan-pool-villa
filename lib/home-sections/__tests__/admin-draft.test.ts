@@ -24,6 +24,7 @@ const draft = (
   ctaEnabled: false,
   ctaLabel: "",
   ctaHref: "",
+  autoScrollEnabled: false,
   items: [],
   displayOrder,
 });

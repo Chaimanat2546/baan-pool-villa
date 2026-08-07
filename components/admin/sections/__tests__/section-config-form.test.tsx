@@ -13,6 +13,7 @@ import type { AdminSectionDraft } from "../types";
 import { SectionConfigForm } from "../section-config-form";
 
 const section: AdminSectionDraft = {
+  autoScrollEnabled: false,
   ctaEnabled: false,
   ctaHref: "",
   ctaLabel: "",

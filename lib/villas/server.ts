@@ -7,6 +7,7 @@ import {
   fetchVillaCoverOverrideUrls,
   fetchVillaImages,
   normalizeImageRows,
+  resolveDisplayImages,
 } from "./images";
 import { AMENITY_OPTIONS, normalizeAmenityKey } from "./amenities";
 import {
@@ -1406,6 +1407,35 @@ export async function fetchHomeListings(
     [...homeSectionHouseIds].sort(),
     toHomeListingLimit(listingLimit),
   );
+}
+
+export async function withVillaCardGalleryPreviews(
+  villas: VillaListing[],
+): Promise<VillaListing[]> {
+  const previewsByVillaId = new Map(
+    await Promise.all(
+      [...new Set(villas.map((villa) => villa.id))].map(async (villaId) => {
+        try {
+          const imageUrls = toPublicVillaImages(
+            villaId,
+            await resolveDisplayImages(villaId),
+          )
+            .slice(0, 3)
+            .map((image) => image.imageUrl);
+
+          return [villaId, imageUrls] as const;
+        } catch (error) {
+          console.error("Unable to load villa card previews", error);
+          return [villaId, [] as string[]] as const;
+        }
+      }),
+    ),
+  );
+
+  return villas.map((villa) => ({
+    ...villa,
+    galleryPreviewImages: previewsByVillaId.get(villa.id) ?? [],
+  }));
 }
 
 export async function fetchVillaSearchFacets(): Promise<VillaSearchFacets> {

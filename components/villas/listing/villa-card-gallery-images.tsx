@@ -314,7 +314,7 @@ export function VillaCardGalleryImages({
                   src={image}
                   alt=""
                   fill
-                  loading="lazy"
+                  loading={index < 3 ? "eager" : "lazy"}
                   quality={60}
                   sizes="96px"
                   className="object-cover"

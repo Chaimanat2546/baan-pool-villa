@@ -25,6 +25,7 @@ describe("section draft helpers", () => {
         layout,
         sections: [
           {
+            autoScrollEnabled: false,
             ctaEnabled: false,
             ctaHref: "",
             ctaLabel: "",
@@ -40,6 +41,7 @@ describe("section draft helpers", () => {
             title: "Manual",
           },
           {
+            autoScrollEnabled: false,
             ctaEnabled: false,
             ctaHref: "",
             ctaLabel: "",
@@ -58,6 +60,7 @@ describe("section draft helpers", () => {
       },
       [
         {
+          autoScrollEnabled: false,
           ctaEnabled: false,
           ctaHref: "",
           ctaLabel: "",
@@ -93,6 +96,7 @@ describe("section draft helpers", () => {
         layout,
         sections: [
           {
+            autoScrollEnabled: false,
             ctaEnabled: false,
             ctaHref: "",
             ctaLabel: "",
@@ -108,6 +112,7 @@ describe("section draft helpers", () => {
             title: "Featured",
           },
           {
+            autoScrollEnabled: false,
             ctaEnabled: false,
             ctaHref: "",
             ctaLabel: "",
@@ -126,6 +131,7 @@ describe("section draft helpers", () => {
       },
       [
         {
+          autoScrollEnabled: false,
           ctaEnabled: false,
           ctaHref: "",
           ctaLabel: "",
@@ -155,6 +161,7 @@ describe("section draft helpers", () => {
   it("creates unique new slugs and parses manual ids", () => {
     const nextSection = makeNewSection([
       {
+        autoScrollEnabled: false,
         ctaEnabled: false,
         ctaHref: "",
         ctaLabel: "",
