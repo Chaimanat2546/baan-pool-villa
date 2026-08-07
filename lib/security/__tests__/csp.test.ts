@@ -52,6 +52,7 @@ describe("content security policy", () => {
     expect(connectSrc).toContain("https://googleads.g.doubleclick.net");
     expect(connectSrc).toContain("https://www.google.co.th");
     expect(frameSrc).toContain("https://www.googletagmanager.com");
+    expect(frameSrc).toContain("https://www.facebook.com");
     expect(connectSrc.split(" ")).not.toContain("https:");
     expect(getCspDirective(csp, "style-src-attr")).toBe(
       "style-src-attr 'unsafe-inline'",

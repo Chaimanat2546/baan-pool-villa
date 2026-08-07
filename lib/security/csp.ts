@@ -107,7 +107,7 @@ export function buildContentSecurityPolicy({
     "style-src-attr 'unsafe-inline'",
     `script-src ${scriptSources.join(" ")}`,
     `connect-src ${connectSources.join(" ")}`,
-    `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} ${GOOGLE_TAG_MANAGER_ORIGIN} https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
+    `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} ${GOOGLE_TAG_MANAGER_ORIGIN} https://www.facebook.com https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
     "form-action 'self'",
     "upgrade-insecure-requests",
   ].join("; ");

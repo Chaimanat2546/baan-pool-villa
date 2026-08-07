@@ -14,9 +14,10 @@ import {
 
 vi.mock("server-only", () => ({}));
 
-const { fetchVillaDetailMock, fetchVillaImagesMock } = vi.hoisted(() => ({
+const { fetchVillaDetailMock, fetchVillaImagesMock, getListingByIdMock } = vi.hoisted(() => ({
   fetchVillaDetailMock: vi.fn(),
   fetchVillaImagesMock: vi.fn(),
+  getListingByIdMock: vi.fn(),
 }));
 
 vi.mock("@/lib/villas/images", () => ({
@@ -31,6 +32,7 @@ vi.mock("@/lib/villas/images", () => ({
 
 vi.mock("@/lib/villas/server", () => ({
   fetchVillaDetail: fetchVillaDetailMock,
+  getListingById: getListingByIdMock,
 }));
 
 const imageRows: VillaImage[] = [
@@ -49,6 +51,7 @@ beforeEach(() => {
   resetPublicRateLimitForTests();
   fetchVillaImagesMock.mockReset();
   fetchVillaDetailMock.mockReset();
+  getListingByIdMock.mockReset();
 });
 
 afterEach(() => {
@@ -306,6 +309,30 @@ describe("GET /api/villas/[id]/images/download", () => {
     expect(response.status).toBe(404);
     expect(fetchVillaDetailMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("downloads the current listing cover through the dedicated cover endpoint", async () => {
+    getListingByIdMock.mockResolvedValue({
+      coverImage: "https://devillegroups.com/imgs/profile_imgs_large/cover.jpg",
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("cover bytes", { headers: { "Content-Type": "image/webp" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import(
+      "../../../app/(public)/api/villas/[id]/images/download/route"
+    );
+
+    const response = await GET(
+      new Request("https://example.com/api/villas/9/images/download?cover=1"),
+      { params: Promise.resolve({ id: "9" }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(getListingByIdMock).toHaveBeenCalledWith("9");
+    expect(response.headers.get("Content-Disposition")).toBe(
+      'attachment; filename="villa-9-cover-cover.webp"',
+    );
   });
 
   it("downloads a non-S3 gallery image through the validated public proxy", async () => {
