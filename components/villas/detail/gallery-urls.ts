@@ -9,6 +9,12 @@ export function buildGalleryDownloadHref(
   item: GalleryItem,
 ): string | null {
   const trimmedListingId = listingId.trim();
+  const coverProxyPath = buildVillaCoverImageProxyPath(trimmedListingId);
+
+  if (coverProxyPath && item.url.trim() === coverProxyPath) {
+    return `/api/villas/${encodeURIComponent(trimmedListingId)}/images/download?cover=1`;
+  }
+
   const proxyUrl = normalizeGalleryProxyPath(item.url);
 
   if (trimmedListingId && proxyUrl) {

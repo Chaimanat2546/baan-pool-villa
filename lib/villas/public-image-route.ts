@@ -18,6 +18,8 @@ import {
   resolveDisplayImages,
 } from "@/lib/villas/images";
 import { toPublicVillaImages } from "@/lib/villas/public-dto";
+import { getListingById } from "@/lib/villas/server";
+import type { VillaImage } from "@/lib/villas/types";
 
 const DISPLAY_QUERY_KEYS = new Set(["imageId", "url", "w", "q"]);
 const DOWNLOAD_QUERY_KEYS = new Set([
@@ -209,6 +211,40 @@ export async function buildVillaImageDownloadResponse(request: Request, id: stri
   const images = await fetchVillaImages(id);
 
   return downloadVillaImage(requestUrl, id, images);
+}
+
+export async function buildVillaCoverImageDownloadResponse(
+  request: Request,
+  id: string,
+) {
+  parseVillaId(id);
+
+  const requestUrl = new URL(request.url);
+
+  if (
+    requestUrl.searchParams.size !== 1 ||
+    requestUrl.searchParams.get("cover") !== "1"
+  ) {
+    return Response.json({ error: "Invalid cover image download" }, { status: 400 });
+  }
+
+  const coverImageUrl = (await getListingById(id))?.coverImage ?? null;
+  const imageUrl = normalizeDownloadImageUrl(coverImageUrl);
+
+  if (!imageUrl) {
+    return Response.json({ error: "Image not found" }, { status: 404 });
+  }
+
+  const coverImage: VillaImage = {
+    caption: null,
+    id: 0,
+    imageName: new URL(imageUrl).pathname.split("/").pop() || null,
+    imageUrl,
+    isCover: true,
+    zone: "cover",
+  };
+
+  return downloadVillaImage(requestUrl, id, [coverImage], imageUrl);
 }
 
 async function proxyVillaImage(
