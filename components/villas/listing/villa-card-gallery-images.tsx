@@ -13,6 +13,7 @@ interface VillaCardGalleryImagesProps {
   alt: string;
   coverImageSrc: string | null;
   href?: string;
+  initialImageUrls?: string[];
   preload?: boolean;
   staticImageUrls?: string[];
   villaId: string;
@@ -61,6 +62,7 @@ export function VillaCardGalleryImages({
   alt,
   coverImageSrc,
   href,
+  initialImageUrls,
   preload = false,
   staticImageUrls,
   villaId,
@@ -78,15 +80,27 @@ export function VillaCardGalleryImages({
       staticImageUrls.map((imageUrl) => ({ imageUrl })),
     );
   }, [coverImageSrc, staticImageUrls]);
+  const initialImages = useMemo(
+    () =>
+      initialImageUrls
+        ? selectVillaCardGalleryImages(
+            coverImageSrc,
+            initialImageUrls.map((imageUrl) => ({ imageUrl })),
+          )
+        : null,
+    [coverImageSrc, initialImageUrls],
+  );
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "empty">(
     staticImages
       ? staticImages.length >= MIN_GALLERY_CARD_IMAGES
         ? "ready"
         : "empty"
-      : "loading",
+      : initialImages && initialImages.length >= MIN_GALLERY_CARD_IMAGES
+        ? "ready"
+        : "loading",
   );
   const [images, setImages] = useState<string[]>(
-    staticImages ?? (coverImageSrc ? [coverImageSrc] : []),
+    staticImages ?? initialImages ?? (coverImageSrc ? [coverImageSrc] : []),
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -108,7 +122,9 @@ export function VillaCardGalleryImages({
 
     async function loadImages() {
       controller = new AbortController();
-      setStatus("loading");
+      if (initialImages === null) {
+        setStatus("loading");
+      }
 
       try {
         const params = new URLSearchParams({
@@ -172,7 +188,7 @@ export function VillaCardGalleryImages({
       controller?.abort();
       observer.disconnect();
     };
-  }, [coverImageSrc, staticImages, villaId]);
+  }, [coverImageSrc, initialImages, staticImages, villaId]);
 
   function scrollThumbs(direction: "left" | "right") {
     setSelectedIndex((currentIndex) => {

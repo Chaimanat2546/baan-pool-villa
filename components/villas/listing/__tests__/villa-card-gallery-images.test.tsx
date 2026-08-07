@@ -197,6 +197,57 @@ describe("VillaCardGalleryImages", () => {
     container.remove();
   });
 
+  it("loads the remaining gallery images after rendering server previews", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              images: [
+                { imageUrl: "https://images.example.com/cover.jpg" },
+                { imageUrl: "https://images.example.com/pool.jpg" },
+                { imageUrl: "https://images.example.com/bedroom.jpg" },
+                { imageUrl: "https://images.example.com/kitchen.jpg" },
+              ],
+            }),
+            { headers: { "Content-Type": "application/json" } },
+          ),
+        ),
+      ),
+    );
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <VillaCardGalleryImages
+          alt="Preview Demo Villa"
+          coverImageSrc="https://images.example.com/cover.jpg"
+          initialImageUrls={[
+            "https://images.example.com/pool.jpg",
+            "https://images.example.com/bedroom.jpg",
+          ]}
+          villaId="501"
+        />,
+      );
+    });
+    await flushEffects();
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/villas/501/images?view=card",
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(container.querySelectorAll('[aria-pressed]').length).toBe(4);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it("keeps the cover image when there are not enough gallery thumbnails", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
