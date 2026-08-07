@@ -53,10 +53,11 @@ import {
 } from "../admin-login-form";
 
 const originalNodeEnv = process.env.NODE_ENV;
+const testEnv = process.env as Record<string, string | undefined>;
 
 describe("AdminLoginForm", () => {
   beforeEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    testEnv.NODE_ENV = originalNodeEnv;
     window.history.replaceState(null, "", "/admin/login");
     mocks.getSession.mockReset();
     mocks.getSession.mockResolvedValue({
@@ -85,7 +86,7 @@ describe("AdminLoginForm", () => {
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    testEnv.NODE_ENV = originalNodeEnv;
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
@@ -493,7 +494,7 @@ describe("AdminLoginForm", () => {
   });
 
   it("uses the development server bypass without rendering a Turnstile widget", async () => {
-    process.env.NODE_ENV = "development";
+    testEnv.NODE_ENV = "development";
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
     const fetchMock = vi.fn().mockResolvedValue(
       makeJsonResponse({

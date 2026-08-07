@@ -68,7 +68,7 @@ function mockHomeSectionsQuery(
 
   createHomeConfigClientMock.mockReturnValue({
     from,
-  } as ReturnType<typeof createHomeConfigClient>);
+  } as unknown as ReturnType<typeof createHomeConfigClient>);
 
   return {
     from,

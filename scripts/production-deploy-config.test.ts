@@ -29,6 +29,7 @@ type WranglerTestConfig = Record<string, unknown> & {
 
 function createValidBuildEnvironment(): NodeJS.ProcessEnv {
   return {
+    NODE_ENV: "test",
     CLOUDFLARE_ACCOUNT_ID: "a".repeat(32),
     CLOUDFLARE_API_TOKEN: "cloudflare-api-token-value",
     NEXT_PUBLIC_SITE_URL: "https://www.baanpartypattaya.com",

@@ -34,6 +34,7 @@ const content: VillaDetailContent = {
   ],
   location: null,
   nearbyPlaces: [],
+  poolType: "Private pool",
   sections: [],
   videos: [],
 };
@@ -465,10 +466,10 @@ describe("BookingSidebar", () => {
 
 
     expect(todayButton).not.toBeNull();
-    expect(page.container.querySelector(".rdp-root")?.contains(todayButton ?? null)).toBe(
+    expect(page.container.querySelector(".rdp-root")?.contains(todayButton!)).toBe(
       true,
     );
-    expect(calendarGrid?.compareDocumentPosition(calendarNav ?? null)).toBe(
+    expect(calendarGrid?.compareDocumentPosition(calendarNav!)).toBe(
       Node.DOCUMENT_POSITION_PRECEDING,
     );
     expect(todayButton?.className).toContain("rounded-2xl");

@@ -29,17 +29,18 @@ const getBearerTokenMock = vi.mocked(getBearerToken);
 const jsonErrorMock = vi.mocked(jsonError);
 const originalNodeEnv = process.env.NODE_ENV;
 const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const testEnv = process.env as Record<string, string | undefined>;
 
 function restoreEnvValue(
   name: "NODE_ENV" | "NEXT_PUBLIC_SITE_URL",
   value: string | undefined,
 ) {
   if (value === undefined) {
-    delete process.env[name];
+    delete testEnv[name];
     return;
   }
 
-  process.env[name] = value;
+  testEnv[name] = value;
 }
 
 function request(options?: { method?: string; origin?: string; url?: string }) {
@@ -115,7 +116,7 @@ describe("admin route helpers", () => {
       supabaseCode: "42501",
       details: "RLS denied the profile read",
       hint: "Check the self-select policy",
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(request());
 
@@ -139,7 +140,7 @@ describe("admin route helpers", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(request());
 
@@ -165,12 +166,12 @@ describe("admin route helpers", () => {
 
   it("allows admin mutation requests from the configured site origin", async () => {
     const supabase = { from: vi.fn() };
-    process.env.NEXT_PUBLIC_SITE_URL = "https://baan.example";
+    testEnv.NEXT_PUBLIC_SITE_URL = "https://baan.example";
 
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(
       request({
@@ -190,7 +191,7 @@ describe("admin route helpers", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(
       request({
@@ -226,12 +227,12 @@ describe("admin route helpers", () => {
 
   it("allows localhost admin mutation requests in development", async () => {
     const supabase = { from: vi.fn() };
-    process.env.NODE_ENV = "development";
+    testEnv.NODE_ENV = "development";
 
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(
       request({
@@ -267,7 +268,7 @@ describe("admin route helpers", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(
       request({ method: "GET", origin: "https://attacker.example" }),
@@ -292,7 +293,7 @@ describe("admin route helpers", () => {
     const body = await response.json();
 
     expect(body).toMatchObject({ error: error.message });
-    if (error.code) {
+    if ("code" in error && error.code) {
       expect(body).toMatchObject({ code: error.code });
     }
   });

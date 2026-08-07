@@ -46,7 +46,7 @@ function mockSiteSettingsQuery(result: {
 
   createHomeConfigClientMock.mockReturnValue({
     from,
-  } as ReturnType<typeof createHomeConfigClient>);
+  } as unknown as ReturnType<typeof createHomeConfigClient>);
 
   return { eq, from, maybeSingle, select };
 }
@@ -73,7 +73,7 @@ function mockSiteSettingsQueryQueue(
 
   createHomeConfigClientMock.mockReturnValue({
     from,
-  } as ReturnType<typeof createHomeConfigClient>);
+  } as unknown as ReturnType<typeof createHomeConfigClient>);
 
   return { from };
 }

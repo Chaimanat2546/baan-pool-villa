@@ -67,6 +67,7 @@ describe("ContactSection", () => {
               },
             ],
             messengerUrl: "https://www.facebook.com/custom",
+            showFacebookTimeline: false,
             lineId: "@customline",
             lineUrl: "https://line.me/R/ti/p/@customline",
           },

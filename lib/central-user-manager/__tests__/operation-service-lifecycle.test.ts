@@ -620,7 +620,7 @@ describe("Central User Manager lifecycle operations", () => {
     const context = operationContext({
       operations: {
         claim: vi.fn(async () => ({
-          ok: false,
+          ok: false as const,
           error: {
             code: "lease_conflict",
             message: "The operation lease is owned by another request.",

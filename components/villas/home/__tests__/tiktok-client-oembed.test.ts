@@ -9,8 +9,8 @@ describe("loadTikTokClientOEmbed", () => {
   });
 
   it("loads safe TikTok thumbnail metadata from the public oEmbed endpoint", async () => {
-    const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
-      expect(url).toBe(
+    const fetcher = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe(
         "https://www.tiktok.com/oembed?url=https%3A%2F%2Fwww.tiktok.com%2F%40baanpoolvilla%2Fvideo%2F7647091019053583624",
       );
       expect(init?.signal).toBeInstanceOf(AbortSignal);

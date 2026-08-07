@@ -13,9 +13,10 @@ vi.mock("server-only", () => ({}));
 const originalNodeEnv = process.env.NODE_ENV;
 const originalSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const originalSecretKey = process.env.TURNSTILE_SECRET_KEY;
+const testEnv = process.env as Record<string, string | undefined>;
 
 function restoreEnv() {
-  process.env.NODE_ENV = originalNodeEnv;
+  testEnv.NODE_ENV = originalNodeEnv;
   process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = originalSiteKey;
   process.env.TURNSTILE_SECRET_KEY = originalSecretKey;
 }
@@ -42,7 +43,7 @@ describe("Turnstile admin login verification", () => {
   });
 
   it("fails closed in production when either Turnstile key is missing", async () => {
-    process.env.NODE_ENV = "production";
+    testEnv.NODE_ENV = "production";
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     delete process.env.TURNSTILE_SECRET_KEY;
 
@@ -61,7 +62,7 @@ describe("Turnstile admin login verification", () => {
   });
 
   it("bypasses in development even when keys are configured and warns once", async () => {
-    process.env.NODE_ENV = "development";
+    testEnv.NODE_ENV = "development";
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     process.env.TURNSTILE_SECRET_KEY = "secret-key";
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -90,7 +91,7 @@ describe("Turnstile admin login verification", () => {
   });
 
   it("sends the token, secret, and remote IP to Cloudflare Siteverify", async () => {
-    process.env.NODE_ENV = "production";
+    testEnv.NODE_ENV = "production";
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     process.env.TURNSTILE_SECRET_KEY = "secret-key";
     const fetchMock = vi.fn().mockResolvedValue(
@@ -122,7 +123,7 @@ describe("Turnstile admin login verification", () => {
   });
 
   it("rejects failed and unavailable Siteverify responses", async () => {
-    process.env.NODE_ENV = "production";
+    testEnv.NODE_ENV = "production";
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     process.env.TURNSTILE_SECRET_KEY = "secret-key";
     const fetchMock = vi
@@ -148,7 +149,7 @@ describe("Turnstile admin login verification", () => {
   });
 
   it("logs only safe Siteverify diagnostics when Cloudflare rejects a token", async () => {
-    process.env.NODE_ENV = "production";
+    testEnv.NODE_ENV = "production";
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     process.env.TURNSTILE_SECRET_KEY = "secret-key";
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -194,7 +195,7 @@ describe("Turnstile admin login verification", () => {
   });
 
   it("returns unavailable when Siteverify times out", async () => {
-    process.env.NODE_ENV = "production";
+    testEnv.NODE_ENV = "production";
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     process.env.TURNSTILE_SECRET_KEY = "secret-key";
     const fetchMock = vi

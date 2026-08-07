@@ -117,7 +117,7 @@ describe("admin home sections route", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase: { from },
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const { GET } = await import(
       "../../../app/(admin)/api/admin/home-sections/route"
@@ -145,7 +145,7 @@ describe("admin home sections route", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase: { rpc },
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const { PUT } = await import(
       "../../../app/(admin)/api/admin/home-sections/route"
@@ -206,7 +206,7 @@ describe("admin home sections route", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase: { rpc },
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const { PUT } = await import(
       "../../../app/(admin)/api/admin/home-sections/route"
@@ -237,7 +237,7 @@ describe("admin home sections route", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase: { rpc },
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const { PUT } = await import(
       "../../../app/(admin)/api/admin/home-sections/route"
@@ -262,7 +262,7 @@ describe("admin home sections route", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase: { rpc },
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const { PUT } = await import(
       "../../../app/(admin)/api/admin/home-sections/route"
@@ -310,7 +310,7 @@ describe("admin home sections route", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase: { rpc },
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const { PUT } = await import(
       "../../../app/(admin)/api/admin/home-sections/route"
@@ -361,7 +361,7 @@ describe("admin home sections route", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase: { rpc },
-    } as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
+    } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const { PUT } = await import(
       "../../../app/(admin)/api/admin/home-sections/route"

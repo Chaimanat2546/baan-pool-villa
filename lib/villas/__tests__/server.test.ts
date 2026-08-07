@@ -138,8 +138,23 @@ const devilleDetail = {
   sea: "900 m",
 };
 
-function listingQuery(data = listingRows, error: unknown = null) {
-  const pages = Array.isArray(data[0]) ? data : [data];
+type ImageRow = {
+  caption: string | null;
+  cover_select: number;
+  id: number;
+  image_name: string | null;
+  image_url: string | null;
+  image_zone: string | null;
+  property_id: number | null;
+};
+
+function listingQuery(
+  data: typeof listingRows | Array<typeof listingRows> = listingRows,
+  error: unknown = null,
+) {
+  const pages = (Array.isArray(data[0]) ? data : [data]) as Array<
+    typeof listingRows
+  >;
   const query = {
     eq: vi.fn(() => query),
     gte: vi.fn(() => query),
@@ -156,13 +171,16 @@ function listingQuery(data = listingRows, error: unknown = null) {
         error,
       }),
     ),
-    select: vi.fn(() => query),
+    select: vi.fn((...args: unknown[]) => {
+      void args;
+      return query;
+    }),
   };
 
   return query;
 }
 
-function imagesQuery(data = imageRows, error: unknown = null) {
+function imagesQuery(data: ImageRow[] = imageRows, error: unknown = null) {
   const query = {
     eq: vi.fn(() => query),
     in: vi.fn(() => query),
@@ -236,7 +254,7 @@ function mockCoverOverrides(
 }
 
 function mockSupabase(options?: {
-  imageRows?: typeof imageRows;
+  imageRows?: ImageRow[];
   listingFacilityRows?: typeof listingFacilityRows;
   listingPriceRows?: typeof listingPriceRows;
   listingError?: unknown;
@@ -397,7 +415,7 @@ describe("fetchHouseListings", () => {
       id: null,
       property_id: null,
     }));
-    mockSupabase({ listingRowPages: [firstPage, listingRows] });
+    mockSupabase({ listingRowPages: [firstPage, listingRows] as never });
 
     await expect(fetchHouseListings()).resolves.toEqual([
       expect.objectContaining({ id: "9" }),
@@ -602,7 +620,7 @@ describe("fetchHouseListings", () => {
     supabase.rpc.mockResolvedValueOnce({
       data: null,
       error: { code: "PGRST202", message: "missing rpc" },
-    });
+    } as never);
 
     const result = await fetchVillaSearchPage({
       facets: {
@@ -662,7 +680,7 @@ describe("fetchHouseListings", () => {
           image_zone: "cover",
           property_id: 9,
         },
-      ],
+      ] as unknown as typeof imageRows,
     });
 
     await expect(fetchHouseListings()).resolves.toEqual([

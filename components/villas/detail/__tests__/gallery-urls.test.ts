@@ -26,7 +26,7 @@ describe("gallery URL helpers", () => {
   it("builds download URLs and keeps safe gallery display sources raw", () => {
     const item = galleryItem();
     const downloadUrl = new URL(
-      buildGalleryDownloadHref("villa 88", item),
+      buildGalleryDownloadHref("villa 88", item) ?? "",
       "https://example.com",
     );
     const displayUrl = new URL(
@@ -44,7 +44,7 @@ describe("gallery URL helpers", () => {
 
   it("trims listing ids before building download paths", () => {
     const downloadUrl = new URL(
-      buildGalleryDownloadHref(" 88 ", galleryItem()),
+      buildGalleryDownloadHref(" 88 ", galleryItem()) ?? "",
       "https://example.com",
     );
 

@@ -76,12 +76,7 @@ describe("VillaCard navigation", () => {
     const images = selectVillaCardGalleryImages(
       "https://images.example.com/cover.jpg",
       Array.from({ length: 12 }, (_, index) => ({
-        caption: null,
-        id: index + 1,
-        imageName: `image-${index + 1}.jpg`,
         imageUrl: `https://images.example.com/image-${index + 1}.jpg`,
-        isCover: false,
-        zone: "outside",
       })),
     );
 
@@ -94,12 +89,7 @@ describe("VillaCard navigation", () => {
     expect(
       selectVillaCardGalleryImages("https://images.example.com/cover.jpg", [
         {
-          caption: null,
-          id: 1,
-          imageName: "pool.jpg",
           imageUrl: "https://images.example.com/pool.jpg",
-          isCover: false,
-          zone: "outside",
         },
       ]),
     ).toEqual([]);
@@ -140,7 +130,7 @@ describe("VillaCard navigation", () => {
         villa={{
           ...villa,
           amenities: [
-            { key: "pool", label: "Pool" },
+            { key: "private_pool", label: "Pool" },
             { key: "grill", label: "Grill" },
             { key: "karaoke", label: "Karaoke" },
             { key: "pet", label: "Pet" },
@@ -157,7 +147,7 @@ describe("VillaCard navigation", () => {
       <VillaCard
         villa={{
           ...villa,
-          amenities: [{ key: "pool", label: "Pool" }],
+          amenities: [{ key: "private_pool", label: "Pool" }],
         }}
       />,
     );
