@@ -2,6 +2,7 @@ import type {
   HomeConfigSupabaseClient,
   SupabaseLikeError,
 } from "@/lib/admin/route-helpers";
+import { convertImageToWebp } from "@/lib/image-conversion";
 import { getOptionalUpload } from "@/lib/site-settings/admin-form-fields";
 
 import { SITE_ASSETS_BUCKET } from "./defaults";
@@ -139,10 +140,24 @@ export async function uploadAsset(
   assetType: SiteAssetType,
   file: File,
 ): Promise<{ asset: UploadedAsset | null; error: SupabaseLikeError | null }> {
+  if (!getUploadExtension(file.type)) {
+    return { asset: null, error: new Error("Unsupported upload MIME type") };
+  }
+
+  let uploadedFile = file;
+
+  if (assetType !== "favicon") {
+    try {
+      uploadedFile = await convertImageToWebp(file);
+    } catch {
+      return { asset: null, error: new Error("Unable to convert asset to WebP") };
+    }
+  }
+
   let path: string;
 
   try {
-    path = buildSiteAssetStoragePath(assetType, file.type);
+    path = buildSiteAssetStoragePath(assetType, uploadedFile.type);
   } catch (error) {
     return {
       asset: null,
@@ -150,9 +165,9 @@ export async function uploadAsset(
     };
   }
 
-  const { error } = await supabase.storage.from(SITE_ASSETS_BUCKET).upload(path, file, {
+  const { error } = await supabase.storage.from(SITE_ASSETS_BUCKET).upload(path, uploadedFile, {
     cacheControl: "31536000",
-    contentType: file.type,
+    contentType: uploadedFile.type,
     upsert: false,
   });
 

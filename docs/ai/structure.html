@@ -654,6 +654,11 @@
           </thead>
           <tbody>
             <tr>
+              <td><code>lib/image-conversion.ts</code></td>
+              <td>Shared server-side image conversion for admin uploads. It uses the Cloudflare Images binding where available and falls back to <code>sharp</code>, normalizes image orientation, and returns WebP at quality 85. Favicon uploads intentionally bypass this helper.</td>
+              <td><code>lib/customer-reviews/__tests__/admin-route.test.ts</code>, <code>lib/site-settings/__tests__/admin-asset-uploads.test.ts</code>, and <code>lib/villas/__tests__/card-image-config-admin.test.ts</code></td>
+            </tr>
+            <tr>
               <td><code>lib/villas</code></td>
               <td>External villa listings/detail fetches, booking calendar normalization/fetches, tagged normalized catalog caching, filtering, static search options, amenities, Supabase image reads, site-wide per-villa card/cover image resolution, villa card image admin config helpers, admin refresh route helpers, villa types, and public listing/gallery DTOs that validate source URLs server-side but expose only same-origin house-id or image-id paths to public API/client payloads.</td>
               <td><code>lib/villas/__tests__</code></td>
