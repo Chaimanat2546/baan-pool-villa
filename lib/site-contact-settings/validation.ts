@@ -79,6 +79,10 @@ export function normalizeSiteContactSettingsRow(
         row.messenger_url,
         DEFAULT_SITE_CONTACT_SETTINGS.contact.messengerUrl,
       ),
+      showFacebookTimeline:
+        typeof row.show_facebook_timeline === "boolean"
+          ? row.show_facebook_timeline
+          : DEFAULT_SITE_CONTACT_SETTINGS.contact.showFacebookTimeline,
       lineId: requiredText(
         row.line_id,
         DEFAULT_SITE_CONTACT_SETTINGS.contact.lineId,
@@ -104,6 +108,7 @@ export function normalizeSiteContactSettingsDraft(
       time: contact.time.trim(),
     })),
     messengerUrl: draft.messengerUrl.trim(),
+    showFacebookTimeline: draft.showFacebookTimeline,
     lineId: draft.lineId.trim(),
     lineUrl: draft.lineUrl.trim(),
   };
