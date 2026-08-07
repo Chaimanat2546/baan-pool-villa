@@ -143,9 +143,9 @@ describe("worker HTML edge cache policy", () => {
       request("/guides/family-trip?unused=1#top"),
       "guides:2026",
     );
-    const url = new URL(cacheKey.url);
+    const url = new URL(cacheKey!.url);
 
-    expect(cacheKey.method).toBe("GET");
+    expect(cacheKey!.method).toBe("GET");
     expect(url.pathname).toBe("/guides/family-trip");
     expect(url.searchParams.get("__bpv_html_v")).toBe("guides:2026");
     expect(url.hash).toBe("");
@@ -401,9 +401,9 @@ describe("worker image edge cache policy", () => {
         { headers: { Accept: "image/avif,image/webp,image/*,*/*" } },
       ),
     );
-    const url = new URL(cacheKey.url);
+    const url = new URL(cacheKey!.url);
 
-    expect(cacheKey.method).toBe("GET");
+    expect(cacheKey!.method).toBe("GET");
     expect(url.pathname).toBe("/api/houses/images/proxy");
     expect(url.searchParams.get("url")).toBe("https://images.example.com/pool.jpg?v=1");
     expect(url.searchParams.get("w")).toBe("640");
@@ -420,9 +420,9 @@ describe("worker image edge cache policy", () => {
         headers: { Accept: "image/avif,image/webp,image/*,*/*" },
       }),
     );
-    const url = new URL(cacheKey.url);
+    const url = new URL(cacheKey!.url);
 
-    expect(cacheKey.method).toBe("GET");
+    expect(cacheKey!.method).toBe("GET");
     expect(url.pathname).toBe("/api/guides/images/family-trip/cover");
     expect(url.searchParams.get("w")).toBe("1200");
     expect(url.searchParams.get("q")).toBe("75");
@@ -437,9 +437,9 @@ describe("worker image edge cache policy", () => {
         headers: { Accept: "image/avif,image/webp,image/*,*/*" },
       }),
     );
-    const url = new URL(cacheKey.url);
+    const url = new URL(cacheKey!.url);
 
-    expect(cacheKey.method).toBe("GET");
+    expect(cacheKey!.method).toBe("GET");
     expect(url.pathname).toBe("/api/villas/9/images");
     expect(url.searchParams.get("imageId")).toBe("7");
     expect(url.searchParams.get("w")).toBe("828");

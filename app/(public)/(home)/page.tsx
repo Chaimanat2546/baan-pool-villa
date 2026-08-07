@@ -37,6 +37,7 @@ import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import {
   fetchActiveVillaZones,
   fetchHomeListings,
+  withVillaCardGalleryPreviews,
 } from "@/lib/villas/server";
 import { toPublicVillaListing } from "@/lib/villas/public-dto";
 
@@ -242,6 +243,16 @@ async function getHomePageData(): Promise<HomePageData> {
     );
   }
 
+  const homeSectionsWithPreviews = await Promise.all(
+    homeSectionsResult.sections.map(async (section) => ({
+      ...section,
+      villas: [
+        ...(await withVillaCardGalleryPreviews(section.villas.slice(0, 12))),
+        ...section.villas.slice(12),
+      ],
+    })),
+  );
+
   return {
     degradedSources: {
       guidePosts: guidesResult.status === "rejected",
@@ -251,7 +262,7 @@ async function getHomePageData(): Promise<HomePageData> {
     customerReviews,
     guides: selectHomeGuideSummaries(guides),
     homeLayout,
-    homeSections: homeSectionsResult.sections.map((section) => ({
+    homeSections: homeSectionsWithPreviews.map((section) => ({
       ...section,
       villas: section.villas.map(toPublicVillaListing),
     })),

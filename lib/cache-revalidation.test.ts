@@ -225,7 +225,7 @@ describe("cache revalidation", () => {
     ]);
     expect(completed).toBe(false);
 
-    resolveBump?.();
+    resolveBump!();
     await revalidationPromise;
 
     expect(completed).toBe(true);

@@ -10,11 +10,13 @@ import {
 const {
   fetchHouseListingsMock,
   fetchVillaSearchPageMock,
+  withVillaCardGalleryPreviewsMock,
   fetchVillaBookingCalendarMock,
   fetchVillaDetailMock,
 } = vi.hoisted(() => ({
   fetchHouseListingsMock: vi.fn(),
   fetchVillaSearchPageMock: vi.fn(),
+  withVillaCardGalleryPreviewsMock: vi.fn((villas) => Promise.resolve(villas)),
   fetchVillaBookingCalendarMock: vi.fn(),
   fetchVillaDetailMock: vi.fn(),
 }));
@@ -30,6 +32,7 @@ vi.mock("@/lib/villas/booking-calendar", () => ({
 vi.mock("@/lib/villas/server", () => ({
   fetchHouseListings: fetchHouseListingsMock,
   fetchVillaSearchPage: fetchVillaSearchPageMock,
+  withVillaCardGalleryPreviews: withVillaCardGalleryPreviewsMock,
   fetchVillaDetail: fetchVillaDetailMock,
 }));
 
@@ -40,6 +43,8 @@ beforeEach(() => {
   fetchVillaBookingCalendarMock.mockReset();
   fetchHouseListingsMock.mockReset();
   fetchVillaSearchPageMock.mockReset();
+  withVillaCardGalleryPreviewsMock.mockReset();
+  withVillaCardGalleryPreviewsMock.mockImplementation((villas) => Promise.resolve(villas));
   fetchVillaDetailMock.mockReset();
   vi.stubEnv("CALENDAR_INTERNAL_API_TOKEN", CALENDAR_INTERNAL_API_TOKEN);
 });
@@ -93,6 +98,15 @@ describe("GET /api/houses", () => {
       pageSize: 12,
       total: 30,
     });
+    withVillaCardGalleryPreviewsMock.mockResolvedValue(
+      listings.slice(0, 12).map((listing) => ({
+        ...listing,
+        galleryPreviewImages: [
+          `/api/villas/${listing.id}/images?imageId=1`,
+          `/api/villas/${listing.id}/images?imageId=2`,
+        ],
+      })),
+    );
 
     const { GET } = await import("../../../app/(public)/api/houses/route");
     const response = await GET(new Request("https://example.com/api/houses"));
@@ -112,7 +126,14 @@ describe("GET /api/houses", () => {
     expect(body.items[0]).toEqual({
       ...listings[0],
       coverImage: "/api/houses/images/1",
+      galleryPreviewImages: [
+        "/api/villas/1/images?imageId=1",
+        "/api/villas/1/images?imageId=2",
+      ],
     });
+    expect(withVillaCardGalleryPreviewsMock).toHaveBeenCalledWith(
+      listings.slice(0, 12),
+    );
   });
 
   it("filters, sorts, and clamps public catalog page sizes", async () => {

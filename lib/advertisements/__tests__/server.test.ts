@@ -41,7 +41,7 @@ function mockAdvertisementQuery(result: { data: unknown; error: unknown }) {
 
   createClientMock.mockReturnValue({
     from,
-  } as ReturnType<typeof createClient>);
+  } as unknown as ReturnType<typeof createClient>);
 
   return { eq, from, inFilter, order, select };
 }

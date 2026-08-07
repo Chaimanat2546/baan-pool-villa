@@ -59,6 +59,7 @@ const villa: VillaListing = {
 };
 
 const homeSection: ResolvedHomeSection = {
+  autoScrollEnabled: false,
   description: "Section description",
   slug: "featured",
   title: "Featured",

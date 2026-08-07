@@ -59,7 +59,7 @@ function mockLegalPageDetailQuery(result: { data: unknown; error: unknown }) {
 
   createHomeConfigClientMock.mockReturnValue({
     from,
-  } as ReturnType<typeof createHomeConfigClient>);
+  } as unknown as ReturnType<typeof createHomeConfigClient>);
 
   return { from, maybeSingle, select, slugEq, statusEq };
 }
@@ -71,7 +71,7 @@ function mockLegalPageListQuery(result: { data: unknown; error: unknown }) {
 
   createHomeConfigClientMock.mockReturnValue({
     from,
-  } as ReturnType<typeof createHomeConfigClient>);
+  } as unknown as ReturnType<typeof createHomeConfigClient>);
 
   return { from, select, eq };
 }

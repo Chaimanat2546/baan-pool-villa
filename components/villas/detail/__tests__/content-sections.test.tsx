@@ -17,6 +17,7 @@ const content: VillaDetailContent = {
   },
   sections: [],
   nearbyPlaces: [],
+  poolType: "Private pool",
   videos: [],
 };
 

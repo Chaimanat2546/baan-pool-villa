@@ -34,7 +34,7 @@ interface ThemeDraft {
   primaryColor: string;
 }
 
-const options = {
+const options: Parameters<typeof useAdminSettingsSection<ThemeDraft>>[0] = {
   buildRequest: (draft: ThemeDraft) => ({
     body: JSON.stringify(draft),
     headers: { "Content-Type": "application/json" },
@@ -43,7 +43,7 @@ const options = {
   mapResponse: (value: unknown): ThemeDraft =>
     (value as { settings: ThemeDraft }).settings,
   section: "theme" as const,
-  validate: () => [],
+  validate: (): string[] => [],
 };
 
 function deferred<T>() {

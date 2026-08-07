@@ -22,6 +22,7 @@ describe("CustomerReviewSection", () => {
               {
                 alt: "Review",
                 id: "review-1",
+                order: 0,
                 url: "https://example.com/review.jpg",
               },
             ],
@@ -60,6 +61,7 @@ describe("CustomerReviewSection", () => {
     const review = {
       alt: "Review",
       id: "review-1",
+      order: 0,
       url: "https://example.com/review.jpg",
     };
 
@@ -103,6 +105,7 @@ describe("CustomerReviewSection", () => {
               {
                 alt: "Review",
                 id: "review-1",
+                order: 0,
                 url: "https://example.com/review.jpg",
               },
             ],
@@ -138,11 +141,13 @@ describe("CustomerReviewSection", () => {
               {
                 alt: "Review",
                 id: "review-1",
+                order: 0,
                 url: "https://example.com/review.jpg",
               },
               {
                 alt: "Review two",
                 id: "review-2",
+                order: 1,
                 url: "https://example.com/review-2.jpg",
               },
             ],

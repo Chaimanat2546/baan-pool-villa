@@ -3,7 +3,10 @@ import {
 } from "@/lib/villas/filters";
 import { toPublicVillaListings } from "@/lib/villas/public-dto";
 import { SEARCH_FACETS } from "@/lib/villas/search-options";
-import { fetchVillaSearchPage } from "@/lib/villas/server";
+import {
+  fetchVillaSearchPage,
+  withVillaCardGalleryPreviews,
+} from "@/lib/villas/server";
 import type { VillaListing } from "@/lib/villas/types";
 import { getSortKeyFromSearchParams } from "./search-page-helpers";
 
@@ -44,7 +47,9 @@ export async function getSearchPageData(
 
     return {
       error: null,
-      villas: toPublicVillaListings(result.items),
+      villas: toPublicVillaListings(
+        await withVillaCardGalleryPreviews(result.items),
+      ),
       meta: {
         catalogComplete: false,
         maxPrice: facets.maxPrice,

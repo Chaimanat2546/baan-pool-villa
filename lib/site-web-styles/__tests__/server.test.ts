@@ -36,7 +36,7 @@ const createHomeConfigClientMock = vi.mocked(createHomeConfigClient);
 function mockStylesQuery(result: { data: unknown; error: unknown }) {
   const select = vi.fn().mockResolvedValue(result);
   const from = vi.fn().mockReturnValue({ select });
-  createHomeConfigClientMock.mockReturnValue({ from } as ReturnType<typeof createHomeConfigClient>);
+  createHomeConfigClientMock.mockReturnValue({ from } as unknown as ReturnType<typeof createHomeConfigClient>);
   return { from, select };
 }
 
