@@ -8,8 +8,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { VillaCardGalleryImages } from "../villa-card-gallery-images";
 
 vi.mock("next/image", () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    <span aria-label={alt} data-src={src} />
+  default: ({
+    alt,
+    loading,
+    src,
+  }: {
+    alt: string;
+    loading?: string;
+    src: string;
+  }) => (
+    <span aria-label={alt} data-loading={loading} data-src={src} />
   ),
 }));
 
@@ -142,6 +150,46 @@ describe("VillaCardGalleryImages", () => {
     for (const button of scrollButtons) {
       expect(button.className).toContain("z-10");
     }
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("eagerly loads only the first three gallery thumbnails", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <VillaCardGalleryImages
+          alt="Thumbnail Demo Villa"
+          coverImageSrc="https://images.example.com/cover.jpg"
+          staticImageUrls={[
+            "https://images.example.com/pool.jpg",
+            "https://images.example.com/bedroom.jpg",
+            "https://images.example.com/kitchen.jpg",
+            "https://images.example.com/lounge.jpg",
+          ]}
+          villaId="501"
+        />,
+      );
+    });
+    await flushEffects();
+
+    const thumbnailLoadingModes = Array.from(
+      container.querySelectorAll('span[aria-label=""]'),
+    ).map((thumbnail) => thumbnail.getAttribute("data-loading"));
+
+    expect(thumbnailLoadingModes).toEqual([
+      "eager",
+      "eager",
+      "eager",
+      "lazy",
+      "lazy",
+    ]);
 
     act(() => {
       root.unmount();

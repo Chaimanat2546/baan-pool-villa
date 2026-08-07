@@ -64,6 +64,24 @@ describe("VillaCard navigation", () => {
     expect(markup).toContain('href="/villas/501"');
   });
 
+  it("uses server-provided gallery preview images without waiting for the browser API", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard
+        villa={{
+          ...villa,
+          galleryPreviewImages: [
+            "https://images.example.com/pool.jpg",
+            "https://images.example.com/bedroom.jpg",
+          ],
+        }}
+        villaCardStyle="gallery"
+      />,
+    );
+
+    expect(markup).toContain('data-villa-card-gallery-status="ready"');
+    expect(markup).toContain('data-src="https://images.example.com/pool.jpg"');
+  });
+
   it("shows the no-image placeholder when a card has no cover image", () => {
     const markup = renderToStaticMarkup(
       <VillaCard villa={{ ...villa, coverImage: null }} />,

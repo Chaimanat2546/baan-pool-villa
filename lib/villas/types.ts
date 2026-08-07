@@ -44,6 +44,7 @@ export type VillaListing = {
   price: number | null;
   people: number;
   coverImage: string | null;
+  galleryPreviewImages?: string[];
   amenities: Amenity[];
   poolType: string;
 };

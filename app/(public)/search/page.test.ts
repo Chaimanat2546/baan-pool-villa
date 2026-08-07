@@ -5,10 +5,14 @@ import { SEARCH_FACETS } from "@/lib/villas/search-options";
 import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import type { VillaListing } from "@/lib/villas/types";
-import { fetchVillaSearchPage } from "@/lib/villas/server";
+import {
+  fetchVillaSearchPage,
+  withVillaCardGalleryPreviews,
+} from "@/lib/villas/server";
 
 vi.mock("@/lib/villas/server", () => ({
   fetchVillaSearchPage: vi.fn(),
+  withVillaCardGalleryPreviews: vi.fn((villas) => Promise.resolve(villas)),
 }));
 
 vi.mock("@/components/villas/search/page", () => ({
@@ -27,6 +31,7 @@ vi.mock("@/lib/site-web-styles/server", () => ({
 }));
 
 const fetchVillaSearchPageMock = vi.mocked(fetchVillaSearchPage);
+const withVillaCardGalleryPreviewsMock = vi.mocked(withVillaCardGalleryPreviews);
 const getSiteWebStylesMock = vi.mocked(getSiteWebStyles);
 
 const villas: VillaListing[] = [
@@ -61,6 +66,7 @@ const villas: VillaListing[] = [
 describe("getSearchPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    withVillaCardGalleryPreviewsMock.mockImplementation((villas) => Promise.resolve(villas));
   });
 
   it("returns landing first-page metadata when listings load successfully", async () => {
