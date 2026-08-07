@@ -22,6 +22,7 @@ describe("site contact links", () => {
       buildContactLinks({
         phoneContacts: [],
         messengerUrl: "https://example.com/messenger",
+        showFacebookTimeline: true,
         lineId: "@line",
         lineUrl: "https://example.com/line",
       }),

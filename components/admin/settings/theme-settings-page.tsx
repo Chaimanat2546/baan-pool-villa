@@ -38,6 +38,7 @@ const THEME_PREVIEW_CONTACT_SETTINGS: SiteContactSettings = {
       { name: "คุณนนท์", phone: "089-876-5432", time: "ช่วง 10.00-20.00" },
     ],
     messengerUrl: "https://example.com/messenger",
+    showFacebookTimeline: true,
     lineId: "@examplevilla",
     lineUrl: "https://example.com/line",
   },

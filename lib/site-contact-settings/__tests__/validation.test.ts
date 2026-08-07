@@ -20,6 +20,7 @@ const validDraft: SiteContactSettingsDraft = {
   bankAccountNumber: "123-4-56789-0",
   phoneContacts: [{ name: "Game", phone: "0617485213", time: "07.00-15.00" }],
   messengerUrl: "https://www.facebook.com/baanpoolvillas",
+  showFacebookTimeline: true,
   lineId: "@baanpoolvilla",
   lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
 };
@@ -34,6 +35,7 @@ function row(overrides: Partial<SiteContactSettingsRow> = {}): SiteContactSettin
       { name: " Game ", phone: " 0617485213 ", time: " 07.00-15.00 " },
     ],
     messenger_url: " https://www.facebook.com/baanpoolvillas ",
+    show_facebook_timeline: false,
     line_id: " @baanpoolvilla ",
     line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
     ...overrides,
@@ -53,6 +55,7 @@ describe("site contact settings validation", () => {
           { name: "Game", phone: "0617485213", time: "07.00-15.00" },
         ],
         messengerUrl: "https://www.facebook.com/baanpoolvillas",
+        showFacebookTimeline: false,
         lineId: "@baanpoolvilla",
         lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
       },
@@ -69,7 +72,10 @@ describe("site contact settings validation", () => {
         }),
       ),
     ).toMatchObject({
-      contact: DEFAULT_SITE_CONTACT_SETTINGS.contact,
+      contact: {
+        ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
+        showFacebookTimeline: false,
+      },
     });
   });
 
@@ -88,6 +94,7 @@ describe("site contact settings validation", () => {
       phone: "0617485213",
       time: "07.00-15.00",
     });
+    expect(normalized.showFacebookTimeline).toBe(true);
     expect(validateSiteContactSettingsDraft(normalized)).toEqual([]);
     expect(
       validateSiteContactSettingsDraft({

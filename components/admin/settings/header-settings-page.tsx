@@ -58,6 +58,7 @@ const HEADER_PREVIEW_CONTACT_SETTINGS = {
   contact: {
     phoneContacts: [{ name: "คุณมินท์", phone: "081-234-5678", time: "09.00-18.00" }],
     messengerUrl: "https://example.com/messenger",
+    showFacebookTimeline: true,
     lineId: "@examplevilla",
     lineUrl: "https://example.com/line",
   },

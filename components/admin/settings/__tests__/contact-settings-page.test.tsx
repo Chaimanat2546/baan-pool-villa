@@ -21,12 +21,17 @@ describe("ContactSettingsPage", () => {
     const page = await mountAdminPage(<SettingsDirtyStateProvider><ContactSettingsPage /></SettingsDirtyStateProvider>);
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/site-settings/contact", expect.any(Object));
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/seo"))).toBe(false);
+    const timelineSwitch = page.container.querySelector('input[aria-label="แสดง Facebook Timeline"]') as HTMLInputElement;
+    expect(timelineSwitch).not.toBeNull();
+    await click(timelineSwitch);
     await changeInput(page.container.querySelector("#bankAccountName") as HTMLInputElement, "ชื่อใหม่");
     await click([...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("บันทึกส่วนนี้"))!);
     const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/admin/site-settings/contact");
     expect(body).not.toEqual(expect.objectContaining({ seoTitle: expect.anything() }));
-    expect(Object.keys(body).sort()).toEqual(["bankAccountName", "bankAccountNumber", "bankName", "lineId", "lineUrl", "messengerUrl", "phoneContacts"].sort());
+    expect(Object.keys(body).sort()).toEqual(["bankAccountName", "bankAccountNumber", "bankName", "lineId", "lineUrl", "messengerUrl", "phoneContacts", "showFacebookTimeline"].sort());
+    expect(body.showFacebookTimeline).toBe(false);
+    expect(page.container.querySelector('input[aria-label="แสดง Facebook Timeline"]')).not.toBeNull();
     expect(page.container.textContent).toContain("ข้อมูลบัญชีธนาคาร");
     expect(page.container.textContent).toContain("ช่องทางแชตและโซเชียล");
     const addButton = [...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("เพิ่มผู้ติดต่อ"));

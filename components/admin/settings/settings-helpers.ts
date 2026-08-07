@@ -206,7 +206,7 @@ export function buildSeoSettingsFormData(draft: SeoSettingsDraft): FormData {
 
 export function mapContactSettingsResponse(value: unknown): ContactSettingsDraft {
   const { bank, contact } = (value as { settings: SiteContactSettings }).settings;
-  return { bankAccountName: bank.accountName, bankName: bank.bankName, bankAccountNumber: bank.accountNumber, phoneContacts: contact.phoneContacts.map((item) => ({ ...item })), messengerUrl: contact.messengerUrl, lineId: contact.lineId, lineUrl: contact.lineUrl };
+  return { bankAccountName: bank.accountName, bankName: bank.bankName, bankAccountNumber: bank.accountNumber, phoneContacts: contact.phoneContacts.map((item) => ({ ...item })), messengerUrl: contact.messengerUrl, showFacebookTimeline: contact.showFacebookTimeline, lineId: contact.lineId, lineUrl: contact.lineUrl };
 }
 
 export function makeContactSettingsSnapshot(draft: ContactSettingsDraft): string { return JSON.stringify(draft); }
