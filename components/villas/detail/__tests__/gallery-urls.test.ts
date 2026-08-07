@@ -87,6 +87,9 @@ describe("gallery URL helpers", () => {
       "/api/houses/images/2970?w=828&q=60",
     );
     expect(buildGalleryDisplaySrc("88", cover)).toBeNull();
+    expect(buildGalleryDownloadHref("2970", cover)).toBe(
+      "/api/villas/2970/images/download?cover=1",
+    );
   });
 
   it("rejects unsafe display image URLs before rendering", () => {

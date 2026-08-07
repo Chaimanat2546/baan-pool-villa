@@ -1,6 +1,7 @@
 import { publicApiErrorResponse } from "@/lib/api/errors";
 import { limitPublicApiRequest } from "@/lib/api/rate-limit";
 import {
+  buildVillaCoverImageDownloadResponse,
   buildVillaImageDownloadResponse,
   isInvalidVillaIdError,
 } from "@/lib/villas/public-image-route";
@@ -18,6 +19,10 @@ export async function GET(
   const { id } = await context.params;
 
   try {
+    if (new URL(request.url).searchParams.has("cover")) {
+      return await buildVillaCoverImageDownloadResponse(request, id);
+    }
+
     return await buildVillaImageDownloadResponse(request, id);
   } catch (error) {
     if (isInvalidVillaIdError(error)) {

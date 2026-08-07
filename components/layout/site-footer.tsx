@@ -1,4 +1,5 @@
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import { FacebookPageTimeline } from "@/components/layout/facebook-page-timeline";
 import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
 import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import { SITE_LOGO_BACKGROUND_CLASSES, SITE_LOGO_BORDER_CLASSES } from "@/lib/site-settings/logo-background";
@@ -60,6 +61,40 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
       text: "Messenger",
     },
   ];
+  const facebookPagePluginSrc = (() => {
+    try {
+      const configuredUrl = new URL(contactSettings.contact.messengerUrl);
+      const pagePathParts = configuredUrl.pathname
+        .split("/")
+        .filter(Boolean);
+      const facebookPageUrl = ["facebook.com", "www.facebook.com"].includes(
+        configuredUrl.hostname,
+      )
+        ? configuredUrl
+        : configuredUrl.protocol === "https:" &&
+            configuredUrl.hostname === "m.me" &&
+            pagePathParts.length === 1
+          ? new URL(
+              `https://www.facebook.com/${encodeURIComponent(pagePathParts[0])}`,
+            )
+          : null;
+
+      if (!facebookPageUrl || facebookPageUrl.pathname === "/") return null;
+
+      return `https://www.facebook.com/plugins/page.php?${new URLSearchParams({
+        adapt_container_width: "true",
+        height: "500",
+        hide_cover: "true",
+        href: facebookPageUrl.toString(),
+        show_facepile: "false",
+        small_header: "false",
+        tabs: "timeline",
+        width: "500",
+      })}`;
+    } catch {
+      return null;
+    }
+  })();
 
   return (
     <footer className="bg-[var(--site-primary)] pb-28 text-[var(--site-footer-link)] md:pb-0" style={siteThemeStyle}>
@@ -101,6 +136,7 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
             บ้านพักพูลวิลล่าสุดหรูใจกลางพัทยา พร้อมสระว่ายน้ำส่วนตัว
             เหมาะสำหรับครอบครัวและกลุ่มเพื่อน
           </p>
+
         </div>
 
         <nav aria-label="เมนูหลัก">
@@ -147,6 +183,10 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
             )}
           </div>
         </div>
+
+        {facebookPagePluginSrc ? (
+          <FacebookPageTimeline src={facebookPagePluginSrc} />
+        ) : null}
       </div>
 
       <div className="mx-auto max-w-[1292px] px-6 pb-8 text-center text-sm leading-5 text-[var(--site-footer-link)] opacity-50 sm:px-8 lg:px-6">

@@ -106,6 +106,46 @@ describe("SiteFooter", () => {
     expect(markup).toContain("--site-on-primary:#0f172a");
   });
 
+  it("embeds the Facebook page timeline from the configured Facebook contact URL", () => {
+    const markup = renderToStaticMarkup(
+      <SiteFooter
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+
+    expect(markup).toContain('title="โพสต์ล่าสุดจาก Facebook"');
+    expect(markup).toContain("https://www.facebook.com/plugins/page.php?");
+    expect(markup).toContain("tabs=timeline");
+    expect(markup).toContain("hide_cover=true");
+    expect(markup).toContain("show_facepile=false");
+    expect(markup).toContain("small_header=false");
+    expect(markup).toContain("loading=\"lazy\"");
+    expect(markup.indexOf("Messenger")).toBeLessThan(
+      markup.indexOf('title="โพสต์ล่าสุดจาก Facebook"'),
+    );
+  });
+
+  it("uses an m.me Messenger URL to embed the matching Facebook page timeline", () => {
+    const markup = renderToStaticMarkup(
+      <SiteFooter
+        contactSettings={{
+          ...DEFAULT_SITE_CONTACT_SETTINGS,
+          contact: {
+            ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
+            messengerUrl: "https://m.me/baanpoolvillas",
+          },
+        }}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+
+    expect(markup).toContain("https://www.facebook.com/plugins/page.php?");
+    expect(markup).toContain(
+      "href=https%3A%2F%2Fwww.facebook.com%2Fbaanpoolvillas",
+    );
+  });
+
   it("renders uploaded logos with the selected background and containment", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter
