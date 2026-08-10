@@ -54,7 +54,7 @@ describe("selectHomeGuideSummaries", () => {
       "guide-6",
     ]);
     expect(summaries[0]?.coverImageUrl).toBe(
-      "https://hmxuqvgyliuwbytcodwm.supabase.co/storage/v1/object/public/guide-assets/guides/guide-0.jpg",
+      "/api/guides/images/guide-0/cover",
     );
     expect(JSON.stringify(summaries)).not.toContain("contentBlocks");
   });

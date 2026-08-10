@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildGuideContentImageProxyPath,
   buildGuideCoverImageProxyPath,
+  isPublicImageProxyPath,
   buildGuideImageProxyUrl,
   buildSiteAssetProxyUrl,
   buildVillaCoverImageProxyPath,
@@ -12,6 +13,11 @@ import {
 } from "@/lib/public-image-proxy";
 
 describe("public image proxy URL builders", () => {
+  it("recognizes only documented same-origin image proxy routes", () => {
+    expect(isPublicImageProxyPath("/api/guides/images/guide/cover")).toBe(true);
+    expect(isPublicImageProxyPath("/api/houses")).toBe(false);
+  });
+
   it("returns null instead of unsafe original URLs", () => {
     expect(buildGuideImageProxyUrl("http://assets.example.com/guide.jpg")).toBeNull();
     expect(
