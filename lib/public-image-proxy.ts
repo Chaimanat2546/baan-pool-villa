@@ -322,6 +322,25 @@ export function buildGuideContentImageProxyPath(
   );
 }
 
+export function buildSiteAssetImageProxyPath(
+  asset: "hero" | "logo",
+  slideIndex?: number,
+) {
+  if (asset === "hero" && Number.isInteger(slideIndex) && slideIndex! >= 0) {
+    return `/api/site-assets/images/hero?slide=${slideIndex}`;
+  }
+
+  return `/api/site-assets/images/${asset}`;
+}
+
+export function buildCustomerReviewImageProxyPath(imageId: string) {
+  const normalizedImageId = normalizePathSegment(imageId);
+
+  return normalizedImageId
+    ? `/api/customer-reviews/images/${normalizedImageId}`
+    : null;
+}
+
 export function buildVillaGalleryImageProxyUrl(
   listingId: string,
   sourceUrl: string | null,

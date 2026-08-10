@@ -111,9 +111,13 @@ function hasRawPathTraversal(value: string): boolean {
   }
 }
 
-function validateImagePath(pathname: string): void {
+function validateImagePath(pathname: string, allowProxyPath = false): void {
   if (hasPathTraversalSegment(pathname)) {
     throw new Error("Invalid image source");
+  }
+
+  if (allowProxyPath && pathname.startsWith("/api/")) {
+    return;
   }
 
   if (!ALLOWED_EXTENSIONS.some((extension) => pathname.toLowerCase().endsWith(extension))) {
@@ -186,7 +190,7 @@ export function buildAwsImageUrl({
     100,
   );
 
-  validateImagePath(sourceUrl.pathname);
+  validateImagePath(sourceUrl.pathname, isRelativeSource);
   outputUrl.search = "";
 
   if (isRelativeSource) {

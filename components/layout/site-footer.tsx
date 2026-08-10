@@ -1,7 +1,7 @@
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { FacebookPageTimeline } from "@/components/layout/facebook-page-timeline";
 import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
-import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import { buildSiteAssetImageProxyPath, normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import { SITE_LOGO_BACKGROUND_CLASSES, SITE_LOGO_BORDER_CLASSES } from "@/lib/site-settings/logo-background";
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
@@ -35,9 +35,9 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
     headerLinkHoverColor: settings.headerLinkHoverColor,
     primaryColor: settings.primaryColor,
   });
-  const logoImageSrc =
-    normalizePublicImageSourceUrl(settings.logoImage.url) ??
-    FALLBACK_LOGO_IMAGE_SRC;
+  const logoImageSrc = normalizePublicImageSourceUrl(settings.logoImage.url)
+    ? buildSiteAssetImageProxyPath("logo")
+    : FALLBACK_LOGO_IMAGE_SRC;
   const logoBackgroundClass =
     SITE_LOGO_BACKGROUND_CLASSES[settings.logoBackground ?? "white"];
   const logoBorderClass =

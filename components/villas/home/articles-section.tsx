@@ -5,7 +5,6 @@ import {
   toPublicGuideSummaries,
   type PublicGuideSummary,
 } from "@/lib/guides/public-dto";
-import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { GuidePost } from "@/lib/guides/types";
 import { ScrollRail } from "@/components/ui/scroll-rail";
 
@@ -24,7 +23,7 @@ export function selectHomeGuideSummaries(
 }
 
 function getGuideImage(guide: PublicGuideSummary) {
-  return normalizePublicImageSourceUrl(guide.coverImageUrl);
+  return guide.coverImageUrl;
 }
 
 export function ArticlesSection({ guides }: ArticlesSectionProps) {
