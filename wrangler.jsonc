@@ -24,7 +24,7 @@
 	},
 	"env": {
 		"baanparty": {
-			"name": "baan-pool-villa",
+			"name": "baan-party",
 			"version_metadata": {
 				"binding": "CF_VERSION_METADATA"
 			},
@@ -50,7 +50,7 @@
 			"services": [
 				{
 					"binding": "WORKER_SELF_REFERENCE",
-					"service": "baan-pool-villa"
+					"service": "baan-party"
 				}
 			],
 			"r2_buckets": [
@@ -97,7 +97,7 @@
 			}
 		},
 		"baan02": {
-			"name": "baan-pool-villa02",
+			"name": "pool-villa-pattaya-co-th",
 			"version_metadata": {
 				"binding": "CF_VERSION_METADATA"
 			},
@@ -123,7 +123,7 @@
 			"services": [
 				{
 					"binding": "WORKER_SELF_REFERENCE",
-					"service": "baan-pool-villa02"
+					"service": "pool-villa-pattaya-co-th"
 				}
 			],
 			"r2_buckets": [
@@ -170,7 +170,7 @@
 			}
 		},
 		"baanPMhee": {
-			"name": "baan-pool-villa03",
+			"name": "baan-p-mhee",
 			"version_metadata": {
 				"binding": "CF_VERSION_METADATA"
 			},
@@ -196,7 +196,7 @@
 			"services": [
 				{
 					"binding": "WORKER_SELF_REFERENCE",
-					"service": "baan-pool-villa03"
+					"service": "baan-p-mhee"
 				}
 			],
 			"r2_buckets": [

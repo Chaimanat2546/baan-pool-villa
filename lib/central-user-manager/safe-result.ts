@@ -13,6 +13,7 @@ import { normalizeAdminEmail } from "./email";
 
 const AGENT_OPERATION_STATUSES = new Set([
   "completed",
+  "rejected",
   "in_progress",
   "needs_review",
   "quarantined",
@@ -22,6 +23,7 @@ const SAFE_OPERATION_STAGES = new Set([
   "listed",
   "claimed",
   "completed",
+  "rejected",
   "needs_review",
   "quarantined",
   "late_fence",
@@ -351,7 +353,8 @@ export function projectSafeCentralUserOperation(
     (operation.status === "completed" &&
       operation.stage !== (
         request.action === "list_users" ? "listed" : "completed"
-      ))
+      )) ||
+    (operation.status === "rejected" && operation.stage !== "rejected")
   ) {
     return null;
   }

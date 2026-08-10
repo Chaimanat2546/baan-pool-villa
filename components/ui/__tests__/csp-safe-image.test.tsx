@@ -43,4 +43,20 @@ describe("CspSafeImage", () => {
     expect(markup).toContain(`src="${imageUrl}"`);
     expect(markup).not.toContain("?w=");
   });
+
+  it("keeps public image proxy requests on an allowlisted quality", () => {
+    const markup = renderToStaticMarkup(
+      <CspSafeImage
+        alt="Customer review"
+        fill
+        quality={75}
+        sizes="(min-width: 1280px) 25vw, 50vw"
+        src="/api/customer-reviews/images/review-1"
+      />,
+    );
+
+    expect(markup).toContain("%2Fapi%2Fcustomer-reviews%2Fimages%2Freview-1");
+    expect(markup).toContain("&amp;q=75");
+    expect(markup).not.toContain("q=70");
+  });
 });

@@ -1442,6 +1442,24 @@ async function executeMutation(
   context: CentralUserOperationContext,
   request: MutationRequest,
 ): Promise<AgentOperationResponse> {
+  if (request.action === "reissue_temporary_password") {
+    const profiles = await context.profiles.findByNormalizedEmail({
+      email: request.payload.email,
+    });
+    const profile = profiles.ok && profiles.data.length === 1
+      ? profiles.data[0]
+      : null;
+
+    if (profile && !profile.isActive) {
+      return response(
+        request.operationId,
+        "rejected",
+        "rejected",
+        safeError("invalid_lifecycle_transition"),
+      );
+    }
+  }
+
   const claimed = await context.operations.claim({
     operationId: request.operationId,
     actorKind: "central_admin",

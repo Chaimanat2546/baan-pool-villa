@@ -36,6 +36,36 @@ function request(
 }
 
 describe("Central User Manager lifecycle operations", () => {
+  it("rejects password reissue for a suspended user before claiming an operation", async () => {
+    const events: string[] = [];
+    const context = operationContext({
+      events,
+      profiles: {
+        findByNormalizedEmail: async () =>
+          repositorySuccess([profile({ isActive: false })]),
+      },
+    });
+
+    const result = await executeCentralUserOperation(
+      context,
+      request("reissue_temporary_password"),
+    );
+
+    expect(result).toEqual({
+      operationId: OPERATION_ID,
+      status: "rejected",
+      stage: "rejected",
+      error: {
+        code: "invalid_lifecycle_transition",
+        message: "This action is not available for the user's current status.",
+      },
+    });
+    expect(events).toEqual(["profiles:find_email"]);
+    expect(context.operations.claim).not.toHaveBeenCalled();
+    expect(context.auth.updateManagedUser).not.toHaveBeenCalled();
+    expect(context.profiles.advanceForOperation).not.toHaveBeenCalled();
+  });
+
   it("reissues DB-first, verifies same UID, signs out globally, and returns a new password once", async () => {
     const events: string[] = [];
     const context = operationContext({ events });
@@ -46,6 +76,7 @@ describe("Central User Manager lifecycle operations", () => {
     );
 
     expect(events).toEqual([
+      "profiles:find_email",
       "claim",
       "renew",
       "auth:find_email",

@@ -11,6 +11,10 @@ export const SAFE_AGENT_ERROR_CATALOG = {
     code: "invalid_request",
     message: "Invalid agent operation request.",
   },
+  invalid_lifecycle_transition: {
+    code: "invalid_lifecycle_transition",
+    message: "This action is not available for the user's current status.",
+  },
   provider_failure: {
     code: "provider_failure",
     message: "Unable to complete request.",
