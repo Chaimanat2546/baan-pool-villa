@@ -242,6 +242,154 @@
 				]
 			}
 		},
+		"flukNasa": {
+			"name": "fluk-nasa-poolvilla",
+			"version_metadata": {
+				"binding": "CF_VERSION_METADATA"
+			},
+			"images": {
+				"binding": "IMAGES"
+			},
+			"ratelimits": [
+				{
+					"name": "CALENDAR_API_RATE_LIMITER",
+					"namespace_id": "95013",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
+				}
+			],
+			"vars": {
+				"NEXT_PUBLIC_SITE_URL": "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://clrmtotmrpccddhoyxaf.supabase.co",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "ce440408-3844-4a06-a5ae-56a4fac8acf8",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "clrmtotmrpccddhoyxaf"
+			},
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "fluk-nasa-poolvilla"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "NEXT_INC_CACHE_R2_BUCKET",
+					"bucket_name": "fluk-nasa-poolvilla-next-cache"
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "NEXT_CACHE_DO_QUEUE",
+						"class_name": "DOQueueHandler"
+					},
+					{
+						"name": "NEXT_TAG_CACHE_DO_SHARDED",
+						"class_name": "DOShardedTagCache"
+					}
+				]
+			},
+			"migrations": [
+				{
+					"tag": "v1",
+					"new_sqlite_classes": [
+						"DOQueueHandler"
+					]
+				},
+				{
+					"tag": "v2",
+					"new_sqlite_classes": [
+						"DOShardedTagCache"
+					]
+				}
+			],
+			"secrets": {
+				"required": [
+					"CALENDAR_INTERNAL_API_TOKEN",
+					"DEVILLE_BEARER_TOKEN",
+					"PATTAYA_BOOKINGS_API_TOKEN",
+					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
+					"TURNSTILE_SECRET_KEY"
+				]
+			}
+		},
+		"villaMedia": {
+			"name": "villa-media-poolvilla",
+			"version_metadata": {
+				"binding": "CF_VERSION_METADATA"
+			},
+			"images": {
+				"binding": "IMAGES"
+			},
+			"ratelimits": [
+				{
+					"name": "CALENDAR_API_RATE_LIMITER",
+					"namespace_id": "96013",
+					"simple": {
+						"limit": 60,
+						"period": 60
+					}
+				}
+			],
+			"vars": {
+				"NEXT_PUBLIC_SITE_URL": "https://villa-media-poolvilla.poolvilla.workers.dev",
+				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://nzxlbkcccfqoqqvhfmev.supabase.co",
+				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
+				"CENTRAL_USER_MANAGER_TENANT_ID": "f216699f-30cc-4076-822c-88657ca4efda",
+				"CENTRAL_USER_MANAGER_PROJECT_REF": "nzxlbkcccfqoqqvhfmev"
+			},
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "villa-media-poolvilla"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "NEXT_INC_CACHE_R2_BUCKET",
+					"bucket_name": "villa-media-poolvilla-next-cache"
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "NEXT_CACHE_DO_QUEUE",
+						"class_name": "DOQueueHandler"
+					},
+					{
+						"name": "NEXT_TAG_CACHE_DO_SHARDED",
+						"class_name": "DOShardedTagCache"
+					}
+				]
+			},
+			"migrations": [
+				{
+					"tag": "v1",
+					"new_sqlite_classes": [
+						"DOQueueHandler"
+					]
+				},
+				{
+					"tag": "v2",
+					"new_sqlite_classes": [
+						"DOShardedTagCache"
+					]
+				}
+			],
+			"secrets": {
+				"required": [
+					"CALENDAR_INTERNAL_API_TOKEN",
+					"DEVILLE_BEARER_TOKEN",
+					"PATTAYA_BOOKINGS_API_TOKEN",
+					"SUPABASE_PUBLISHABLE_KEY",
+					"SUPABASE_SECRET_KEY",
+					"TURNSTILE_SECRET_KEY"
+				]
+			}
+		},
 		"staging": {
 			"name": "baan-pool-villa-staging",
 			"version_metadata": {
