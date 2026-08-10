@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- blob/data previews cannot use next/image */
 import { forwardRef } from "react";
 import NextImage, { type ImageProps } from "next/image";
+import { isPublicImageProxyPath } from "@/lib/public-image-proxy";
 
 type CspSafeImageProps = ImageProps & {
   priority?: boolean;
@@ -15,6 +16,10 @@ function isRawPreviewSource(src: ImageProps["src"]): src is string {
 
   if (/^(blob|data):/.test(src) || src.endsWith(".svg")) {
     return true;
+  }
+
+  if (src.startsWith("/api/")) {
+    return !isPublicImageProxyPath(src.split("?", 1)[0]);
   }
 
   try {
