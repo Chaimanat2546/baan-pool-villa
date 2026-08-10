@@ -118,5 +118,14 @@ describe("safe Central User Manager RPC result projection", () => {
       stage: "claimed",
       error,
     }, MUTATION_REQUEST)).toBeNull();
+    expect(project({
+      operationId: OPERATION_ID,
+      status: "rejected",
+      stage: "rejected",
+      error: {
+        code: "database_unavailable",
+        message: "The operation database is unavailable.",
+      },
+    }, MUTATION_REQUEST)).toBeNull();
   });
 });
