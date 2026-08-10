@@ -34,6 +34,16 @@ describe("awsLoader", () => {
     expect(url.searchParams.get("q")).toBe("60");
   });
 
+  it("adds transform params to same-origin image proxy routes", () => {
+    const result = awsLoader({
+      src: "/api/guides/images/guide/cover",
+      width: 640,
+      quality: 60,
+    });
+
+    expect(result).toBe("/api/guides/images/guide/cover?w=640&q=60");
+  });
+
   it("checks file extensions from the parsed pathname", () => {
     expect(() =>
       awsLoader({

@@ -84,12 +84,12 @@ describe("public navigation request budget", () => {
     );
 
     expect(getFirstImageSrc(headerMarkup)).toBe(
-      "https://assets.example.com/storage/v1/object/public/site-assets/logo.png",
+      "/api/site-assets/images/logo",
     );
     expect(getFirstImageSrc(footerMarkup)).toBe(
-      "https://assets.example.com/storage/v1/object/public/site-assets/logo.png",
+      "/api/site-assets/images/logo",
     );
-    expect(headerMarkup).not.toContain("/api/site-assets/proxy");
-    expect(footerMarkup).not.toContain("/api/site-assets/proxy");
+    expect(headerMarkup).toContain("/api/site-assets/images/logo");
+    expect(footerMarkup).toContain("/api/site-assets/images/logo");
   });
 });

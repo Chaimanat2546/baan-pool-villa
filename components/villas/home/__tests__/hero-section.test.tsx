@@ -196,7 +196,6 @@ describe("HeroSection", () => {
       />,
     );
 
-    expect(markup).toContain('data-src="https://assets.example.com/hero.jpg"');
-    expect(markup).not.toContain("/api/site-assets/proxy");
+    expect(markup).toContain("/api/site-assets/images/hero");
   });
 });

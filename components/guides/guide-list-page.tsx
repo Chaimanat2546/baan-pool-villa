@@ -2,14 +2,14 @@ import { ArrowRight, FileText, Pin } from "lucide-react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
 import type { GuidePost } from "@/lib/guides/types";
-import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import { buildGuideCoverImageProxyPath } from "@/lib/public-image-proxy";
 
 interface GuideListPageProps {
   guides: GuidePost[];
 }
 
 function getGuideImage(guide: GuidePost) {
-  return normalizePublicImageSourceUrl(guide.coverImage?.url ?? null);
+  return guide.coverImage ? buildGuideCoverImageProxyPath(guide.slug) : null;
 }
 
 function GuideCard({ guide, eager }: { eager?: boolean; guide: GuidePost }) {

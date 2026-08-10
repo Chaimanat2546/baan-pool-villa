@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
+import { buildCustomerReviewImageProxyPath } from "@/lib/public-image-proxy";
 import {
   DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
   type HomepageCustomerReviewData,
@@ -84,7 +85,15 @@ async function loadHomepageCustomerReviewData(): Promise<HomepageCustomerReviewD
   }
 }
 
-export const getHomepageCustomerReviewData = unstable_cache(
+export async function getHomepageCustomerReviewImageSource(id: string): Promise<string | null> {
+  const image = (await getCachedHomepageCustomerReviewData()).images.find(
+    (currentImage) => currentImage.id === id,
+  );
+
+  return image?.url ?? null;
+}
+
+const getCachedHomepageCustomerReviewData = unstable_cache(
   loadHomepageCustomerReviewData,
   [CACHE_TAGS.customerReviews],
   {
@@ -92,3 +101,16 @@ export const getHomepageCustomerReviewData = unstable_cache(
     tags: [CACHE_TAGS.customerReviews],
   },
 );
+
+export async function getHomepageCustomerReviewData(): Promise<HomepageCustomerReviewData> {
+  const data = await getCachedHomepageCustomerReviewData();
+
+  return {
+    ...data,
+    images: data.images.flatMap((image) => {
+      const url = buildCustomerReviewImageProxyPath(image.id);
+
+      return url ? [{ ...image, url }] : [];
+    }),
+  };
+}
