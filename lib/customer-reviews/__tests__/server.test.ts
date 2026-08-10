@@ -6,7 +6,10 @@ import {
   normalizeCustomerReviewHomepageLayout,
 } from "../types";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
-import { getHomepageCustomerReviewData } from "../server";
+import {
+  getHomepageCustomerReviewData,
+  getHomepageCustomerReviewImageSource,
+} from "../server";
 import { unstable_cache } from "next/cache";
 
 vi.mock("server-only", () => ({}));
@@ -98,13 +101,13 @@ describe("customer review homepage server helpers", () => {
           alt: "Chat",
           id: "image-1",
           order: 1,
-          url: "https://cdn.example.com/1.webp",
+          url: "/api/customer-reviews/images/image-1",
         },
         {
           alt: "Slip",
           id: "image-2",
           order: 2,
-          url: "https://cdn.example.com/2.webp",
+          url: "/api/customer-reviews/images/image-2",
         },
       ],
       layout: "carousel",
@@ -122,6 +125,9 @@ describe("customer review homepage server helpers", () => {
         revalidate: CACHE_REVALIDATE_SECONDS.customerReviews,
         tags: [CACHE_TAGS.customerReviews],
       },
+    );
+    await expect(getHomepageCustomerReviewImageSource("image-1")).resolves.toBe(
+      "https://cdn.example.com/1.webp",
     );
   });
 

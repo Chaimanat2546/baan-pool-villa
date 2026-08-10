@@ -12,7 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useEffect, useRef, useState } from "react";
-import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import { buildSiteAssetImageProxyPath, normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import { buildPhoneHref } from "@/lib/site-contact";
 import { SITE_LOGO_BACKGROUND_CLASSES, SITE_LOGO_BORDER_CLASSES } from "@/lib/site-settings/logo-background";
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
@@ -39,9 +39,9 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
   const lastScrollYRef = useRef(0);
   const frameRef = useRef<number | null>(null);
 
-  const logoImageSrc =
-    normalizePublicImageSourceUrl(settings.logoImage.url) ??
-    settings.logoImage.url;
+  const logoImageSrc = normalizePublicImageSourceUrl(settings.logoImage.url)
+    ? buildSiteAssetImageProxyPath("logo")
+    : settings.logoImage.url;
   const logoBackgroundClass =
     SITE_LOGO_BACKGROUND_CLASSES[settings.logoBackground ?? "white"];
   const logoBorderClass =

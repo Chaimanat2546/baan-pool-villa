@@ -111,9 +111,23 @@ function hasRawPathTraversal(value: string): boolean {
   }
 }
 
-function validateImagePath(pathname: string): void {
+function isPublicImageProxyPath(pathname: string): boolean {
+  return (
+    /^\/api\/houses\/images\/[1-9]\d*$/.test(pathname) ||
+    /^\/api\/villas\/[1-9]\d*\/images$/.test(pathname) ||
+    /^\/api\/guides\/images\/[^/]+\/(?:cover|content\/\d+)$/.test(pathname) ||
+    /^\/api\/customer-reviews\/images\/[^/]+$/.test(pathname) ||
+    /^\/api\/site-assets\/images\/(?:hero|logo)$/.test(pathname)
+  );
+}
+
+function validateImagePath(pathname: string, allowProxyPath = false): void {
   if (hasPathTraversalSegment(pathname)) {
     throw new Error("Invalid image source");
+  }
+
+  if (allowProxyPath && isPublicImageProxyPath(pathname)) {
+    return;
   }
 
   if (!ALLOWED_EXTENSIONS.some((extension) => pathname.toLowerCase().endsWith(extension))) {
@@ -186,7 +200,7 @@ export function buildAwsImageUrl({
     100,
   );
 
-  validateImagePath(sourceUrl.pathname);
+  validateImagePath(sourceUrl.pathname, isRelativeSource);
   outputUrl.search = "";
 
   if (isRelativeSource) {

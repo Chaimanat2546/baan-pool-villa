@@ -17,10 +17,6 @@ function isRawPreviewSource(src: ImageProps["src"]): src is string {
     return true;
   }
 
-  if (src.startsWith("/api/")) {
-    return true;
-  }
-
   try {
     const hostname = new URL(src).hostname.toLowerCase();
 

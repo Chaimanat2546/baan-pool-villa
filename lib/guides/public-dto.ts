@@ -1,4 +1,8 @@
 import type { GuidePost } from "./types";
+import {
+  buildGuideCoverImageProxyPath,
+  normalizePublicImageSourceUrl,
+} from "@/lib/public-image-proxy";
 
 export interface PublicGuideSummary {
   coverImageAlt: string | null;
@@ -13,10 +17,12 @@ export interface PublicGuideSummary {
 }
 
 export function toPublicGuideSummary(guide: GuidePost): PublicGuideSummary {
+  const coverImageUrl = normalizePublicImageSourceUrl(guide.coverImage?.url ?? null);
+
   return {
     coverImageAlt: guide.coverImage?.alt ?? null,
-    coverImageUrl: guide.coverImage?.url ?? null,
-    hasCoverImage: Boolean(guide.coverImage?.url),
+    coverImageUrl: coverImageUrl ? buildGuideCoverImageProxyPath(guide.slug) : null,
+    hasCoverImage: Boolean(coverImageUrl),
     excerpt: guide.excerpt,
     id: guide.id,
     isPinned: guide.isPinned,

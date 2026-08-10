@@ -12,6 +12,8 @@ import { toPublicGuideSummaries } from "@/lib/guides/public-dto";
 import { getGuideTextColorClass } from "@/lib/guides/text-colors";
 import type { GuidePost } from "@/lib/guides/types";
 import {
+  buildGuideContentImageProxyPath,
+  buildGuideCoverImageProxyPath,
   normalizePublicImageSourceUrl,
 } from "@/lib/public-image-proxy";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
@@ -358,7 +360,7 @@ function isGuideBlockListType(
  * @param blocks - Array of raw guide blocks (each expected to be an object shaped like `GuideBlock`); non-object or array entries are ignored.
  * @returns A JSX element containing the rendered guide content grid.
  */
-function GuideContent({ blocks }: { blocks: unknown[] }) {
+function GuideContent({ blocks, slug }: { blocks: unknown[]; slug: string }) {
   const contentNodes: ReactNode[] = [];
 
   for (let index = 0; index < blocks.length; index += 1) {
@@ -453,7 +455,9 @@ function GuideContent({ blocks }: { blocks: unknown[] }) {
         );
         break;
       case "image": {
-        const imageUrl = normalizePublicImageSourceUrl(getImageUrl(guideBlock));
+        const imageUrl = normalizePublicImageSourceUrl(getImageUrl(guideBlock))
+          ? buildGuideContentImageProxyPath(slug, index)
+          : null;
 
         if (!imageUrl) {
           break;
@@ -650,7 +654,9 @@ export function GuideDetailPage({
   sidebar,
   villaCardStyle,
 }: GuideDetailPageProps) {
-  const coverImageUrl = normalizePublicImageSourceUrl(guide.coverImage?.url ?? null);
+  const coverImageUrl = normalizePublicImageSourceUrl(guide.coverImage?.url ?? null)
+    ? buildGuideCoverImageProxyPath(guide.slug)
+    : null;
   const hasRecommendedVillas = recommendedVillas.length > 0 || sidebar !== undefined;
   const detailLayoutClass = hasRecommendedVillas
     ? "mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)] lg:px-8 lg:py-14"
@@ -715,7 +721,7 @@ export function GuideDetailPage({
           className={detailLayoutClass}
           data-guide-detail-layout
         >
-          <GuideContent blocks={guide.contentBlocks} />
+          <GuideContent blocks={guide.contentBlocks} slug={guide.slug} />
           {sidebar ?? (
             <RecommendedVillaSidebar
               villas={recommendedVillas}

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
+import { buildSiteAssetImageProxyPath, normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { SiteImageSettings } from "@/lib/site-settings/types";
 
 import { HeroCarousel, type HeroCarouselSlide } from "./hero-carousel";
@@ -40,10 +40,13 @@ export function HeroSection({
   const heroSlidesWithLegacyFallback =
     heroSlides.length > 0 ? heroSlides : [heroImage];
   const slides: HeroCarouselSlide[] = heroSlidesWithLegacyFallback.flatMap(
-    (slide) => {
-      const src =
-        normalizePublicImageSourceUrl(slide.url) ??
-        (isSafeLocalImagePath(slide.url) ? slide.url : null);
+    (slide, index) => {
+      const sourceUrl = normalizePublicImageSourceUrl(slide.url);
+      const src = sourceUrl
+        ? buildSiteAssetImageProxyPath("hero", index)
+        : isSafeLocalImagePath(slide.url)
+          ? slide.url
+          : null;
 
       return src ? [{ alt: slide.alt, src }] : [];
     },
