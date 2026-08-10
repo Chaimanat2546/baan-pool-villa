@@ -9,15 +9,17 @@ import { VillaRail } from "../villa-rail";
 
 interface MockImageProps {
   alt: string;
+  loading?: "eager" | "lazy";
   preload?: boolean;
   priority?: boolean;
   src: string;
 }
 
 vi.mock("next/image", () => ({
-  default: ({ alt, preload, priority, src }: MockImageProps) => (
+  default: ({ alt, loading, preload, priority, src }: MockImageProps) => (
     <span
       aria-label={alt}
+      data-loading={loading}
       data-preload={preload ? "true" : "false"}
       data-priority={priority ? "true" : "false"}
       data-src={src}
@@ -60,7 +62,7 @@ const guide: GuidePost = {
 };
 
 describe("homepage request budget", () => {
-  it("does not preload non-LCP villa rail card images", () => {
+  it("eagerly loads villa rail card images without preloading them", () => {
     const markup = renderToStaticMarkup(
       <VillaRail
         cta
@@ -70,7 +72,8 @@ describe("homepage request budget", () => {
       />,
     );
 
-    expect(markup).not.toContain('loading="eager"');
+    expect(markup).toContain('data-loading="eager"');
+    expect(markup).not.toContain('data-preload="true"');
     expect(markup).toContain('href="/search"');
     expect(markup).not.toContain('data-prefetch="false" href="/search"');
     expect(markup).toContain('data-scroll-rail-controls="sides"');
