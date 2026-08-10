@@ -262,6 +262,7 @@
 			],
 			"vars": {
 				"NEXT_PUBLIC_SITE_URL": "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+				"NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAADiuJYOCcasn14A8",
 				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://clrmtotmrpccddhoyxaf.supabase.co",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
 				"CENTRAL_USER_MANAGER_TENANT_ID": "ce440408-3844-4a06-a5ae-56a4fac8acf8",
@@ -336,6 +337,7 @@
 			],
 			"vars": {
 				"NEXT_PUBLIC_SITE_URL": "https://villa-media-poolvilla.poolvilla.workers.dev",
+				"NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAADiuJYOCcasn14A8",
 				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://nzxlbkcccfqoqqvhfmev.supabase.co",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
 				"CENTRAL_USER_MANAGER_TENANT_ID": "f216699f-30cc-4076-822c-88657ca4efda",

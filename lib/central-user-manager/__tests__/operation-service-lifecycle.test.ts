@@ -36,6 +36,36 @@ function request(
 }
 
 describe("Central User Manager lifecycle operations", () => {
+  it("fails closed when the password-reissue profile lookup fails", async () => {
+    const context = operationContext({
+      profiles: {
+        findByNormalizedEmail: async () => ({
+          ok: false,
+          error: {
+            code: "database_unavailable",
+            message: "The operation database is unavailable.",
+          },
+        }),
+      },
+    });
+
+    const result = await executeCentralUserOperation(
+      context,
+      request("reissue_temporary_password"),
+    );
+
+    expect(result).toEqual({
+      operationId: OPERATION_ID,
+      status: "needs_review",
+      stage: "claimed",
+      error: {
+        code: "database_unavailable",
+        message: "The operation database is unavailable.",
+      },
+    });
+    expect(context.operations.claim).not.toHaveBeenCalled();
+  });
+
   it("rejects password reissue for a suspended user before claiming an operation", async () => {
     const events: string[] = [];
     const context = operationContext({

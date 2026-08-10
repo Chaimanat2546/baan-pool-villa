@@ -270,13 +270,15 @@ produced with another client's public variables.
 
 After the first automatic production release:
 
-1. Confirm the `Verify` job and all three deploy jobs passed for the same commit
+1. Confirm the `Verify` job and all five deploy jobs passed for the same commit
    SHA. Do not accept a mix of jobs from different workflow runs or commits.
 2. Inspect desktop and mobile rendering for the homepage, `/search`, one real
    `/guides/<slug>` page, and one real `/villas/<id>` page on every client:
    - `https://www.baanpartypattaya.com`
    - `https://www.poolvillapattaya.co.th`
    - `https://www.pmheevilla.com`
+   - `https://fluk-nasa-poolvilla.poolvilla.workers.dev`
+   - `https://villa-media-poolvilla.poolvilla.workers.dev`
 3. In browser network tools, confirm there are no unexpected `/_next/image` or
    `_rsc` requests and route/API request counts remain bounded for each flow.
 4. Request allowlisted public HTML twice and confirm `x-bpv-html-cache`

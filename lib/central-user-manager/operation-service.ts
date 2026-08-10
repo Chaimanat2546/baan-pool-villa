@@ -1446,7 +1446,10 @@ async function executeMutation(
     const profiles = await context.profiles.findByNormalizedEmail({
       email: request.payload.email,
     });
-    const profile = profiles.ok && profiles.data.length === 1
+    if (!profiles.ok) {
+      return failureResponse(request.operationId, profiles.error);
+    }
+    const profile = profiles.data.length === 1
       ? profiles.data[0]
       : null;
 

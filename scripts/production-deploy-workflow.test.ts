@@ -73,7 +73,7 @@ describe("production deployment workflow", () => {
     expect(workflow).toContain("node-version: 24");
   });
 
-  it("isolates all three deployments through a non-fail-fast matrix", async () => {
+  it("isolates all five deployments through a non-fail-fast matrix", async () => {
     const workflow = await readWorkflow();
 
     expect(workflow).toContain("matrix: ${{ steps.matrix.outputs.matrix }}");

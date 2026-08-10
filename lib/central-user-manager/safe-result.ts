@@ -300,7 +300,10 @@ function projectPayload(
   const { error } = errorProjection;
 
   if (operation.status !== "completed") {
-    return operation.result === undefined && error !== undefined
+    return operation.result === undefined &&
+      error !== undefined &&
+      (operation.status !== "rejected" ||
+        error.code === "invalid_lifecycle_transition")
       ? { ok: true, error }
       : { ok: false };
   }
