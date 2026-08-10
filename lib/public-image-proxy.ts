@@ -44,6 +44,16 @@ export type PublicImageTransformParseResult =
   | { params: PublicImageTransformParams; valid: true }
   | { params: null; valid: false };
 
+export function isPublicImageProxyPath(pathname: string): boolean {
+  return (
+    /^\/api\/houses\/images\/[1-9]\d*$/.test(pathname) ||
+    /^\/api\/villas\/[1-9]\d*\/images$/.test(pathname) ||
+    /^\/api\/guides\/images\/[^/]+\/(?:cover|content\/\d+)$/.test(pathname) ||
+    /^\/api\/customer-reviews\/images\/[^/]+$/.test(pathname) ||
+    /^\/api\/site-assets\/images\/(?:hero|logo)$/.test(pathname)
+  );
+}
+
 const IPV4_PRIVATE_RANGES = [
   { max: 10, min: 10 },
   { max: 127, min: 127 },
