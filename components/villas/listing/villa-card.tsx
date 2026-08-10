@@ -16,6 +16,7 @@ interface VillaCardProps {
   villaCardStyle?: SiteVillaCardStyle;
   villa: VillaListing;
   titleHeadingLevel?: "h2" | "h3";
+  imageLoading?: "eager" | "lazy";
   preload?: boolean;
 }
 
@@ -49,6 +50,7 @@ export function VillaCard({
   villaCardStyle: villaCardStyleProp,
   villa,
   titleHeadingLevel = "h2",
+  imageLoading,
   preload = false,
 }: VillaCardProps) {
   const visibleAmenities = villa.amenities
@@ -72,6 +74,7 @@ export function VillaCard({
       src={coverImageSrc}
       alt={villaTitle}
       fill
+      loading={imageLoading}
       preload={preload}
       quality={60}
       sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
@@ -92,6 +95,7 @@ export function VillaCard({
           coverImageSrc={coverImageSrc}
           href={isStaticNavigation ? undefined : villaHref}
           initialImageUrls={galleryImageUrls ? undefined : villa.galleryPreviewImages}
+          imageLoading={imageLoading}
           preload={preload}
           staticImageUrls={galleryImageUrls}
           villaId={villa.id}

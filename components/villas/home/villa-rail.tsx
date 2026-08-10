@@ -92,6 +92,7 @@ export function VillaRail({
         {renderedVillas.map((villa) => (
           <div key={villa.id} className="w-[290px] shrink-0 snap-start">
             <VillaCard
+              imageLoading="eager"
               villa={villa}
               villaCardStyle={villaCardStyle}
               titleHeadingLevel={cardTitleHeadingLevel}
