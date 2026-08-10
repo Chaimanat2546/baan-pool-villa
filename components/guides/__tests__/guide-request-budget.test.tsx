@@ -100,9 +100,9 @@ describe("guide detail request budget", () => {
       />,
     );
 
-    expect(markup).toContain('data-src="https://assets.example.com/guide.jpg"');
+    expect(markup).toContain('data-src="/api/guides/images/guide-1/cover"');
     expect(markup).toContain('data-loading="eager"');
-    expect(markup).not.toContain("/api/guides/images");
+    expect(markup).toContain("/api/guides/images");
   });
 
   it("does not preload recommended villa card images in duplicate sidebar layouts", () => {

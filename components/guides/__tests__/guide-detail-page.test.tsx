@@ -348,8 +348,22 @@ describe("getYouTubeEmbedUrl", () => {
       />,
     );
 
-    expect(markup).toContain('data-src="https://assets.example.com/cover.jpg"');
-    expect(markup).toContain('data-src="https://assets.example.com/inline.jpg"');
+    expect(markup).toContain('data-src="/api/guides/images/guide/cover"');
+    expect(markup).toContain('data-src="/api/guides/images/guide/content/0"');
+  });
+
+  it("omits invalid guide image sources", () => {
+    const markup = renderToStaticMarkup(
+      <GuideDetailPage
+        guide={{
+          ...makeGuide([{ type: "image", props: { url: "javascript:alert(1)" } }]),
+          coverImage: { alt: "Cover", path: "cover.jpg", url: "javascript:alert(1)" },
+        }}
+        recommendedVillas={[]}
+        relatedGuides={[]}
+      />,
+    );
+
     expect(markup).not.toContain("/api/guides/images");
   });
 });
