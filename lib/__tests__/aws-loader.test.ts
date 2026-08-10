@@ -44,6 +44,12 @@ describe("awsLoader", () => {
     expect(result).toBe("/api/guides/images/guide/cover?w=640&q=60");
   });
 
+  it("rejects non-image API routes", () => {
+    expect(() =>
+      awsLoader({ src: "/api/houses", width: 640, quality: 60 }),
+    ).toThrow("Invalid file extension");
+  });
+
   it("checks file extensions from the parsed pathname", () => {
     expect(() =>
       awsLoader({

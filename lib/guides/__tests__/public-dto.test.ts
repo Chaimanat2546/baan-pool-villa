@@ -36,4 +36,14 @@ describe("public guide DTOs", () => {
 
     expect(summary.coverImageUrl).toBe("/api/guides/images/guide/cover");
   });
+
+  it("omits an invalid guide cover URL", () => {
+    const summary = toPublicGuideSummary({
+      ...guide,
+      coverImage: { alt: "Cover", path: "guide.webp", url: "javascript:alert(1)" },
+    });
+
+    expect(summary.coverImageUrl).toBeNull();
+    expect(summary.hasCoverImage).toBe(false);
+  });
 });

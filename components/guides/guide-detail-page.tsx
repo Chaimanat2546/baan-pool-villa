@@ -14,6 +14,7 @@ import type { GuidePost } from "@/lib/guides/types";
 import {
   buildGuideContentImageProxyPath,
   buildGuideCoverImageProxyPath,
+  normalizePublicImageSourceUrl,
 } from "@/lib/public-image-proxy";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
@@ -454,7 +455,7 @@ function GuideContent({ blocks, slug }: { blocks: unknown[]; slug: string }) {
         );
         break;
       case "image": {
-        const imageUrl = getImageUrl(guideBlock)
+        const imageUrl = normalizePublicImageSourceUrl(getImageUrl(guideBlock))
           ? buildGuideContentImageProxyPath(slug, index)
           : null;
 
@@ -653,7 +654,7 @@ export function GuideDetailPage({
   sidebar,
   villaCardStyle,
 }: GuideDetailPageProps) {
-  const coverImageUrl = guide.coverImage
+  const coverImageUrl = normalizePublicImageSourceUrl(guide.coverImage?.url ?? null)
     ? buildGuideCoverImageProxyPath(guide.slug)
     : null;
   const hasRecommendedVillas = recommendedVillas.length > 0 || sidebar !== undefined;
