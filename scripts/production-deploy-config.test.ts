@@ -67,12 +67,20 @@ describe("production deployment config", () => {
           target: "baanPMhee",
           siteUrl: "https://www.pmheevilla.com",
         },
+        {
+          target: "flukNasa",
+          siteUrl: "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+        },
+        {
+          target: "villaMedia",
+          siteUrl: "https://villa-media-poolvilla.poolvilla.workers.dev",
+        },
       ],
     });
   });
 
   it("keeps the required names explicit and secret values out of config", () => {
-    expect(PRODUCTION_DEPLOYMENT_TARGETS).toHaveLength(3);
+    expect(PRODUCTION_DEPLOYMENT_TARGETS).toHaveLength(5);
     expect(REQUIRED_BUILD_ENVIRONMENT_VARIABLES).toEqual([
       "CLOUDFLARE_ACCOUNT_ID",
       "CLOUDFLARE_API_TOKEN",

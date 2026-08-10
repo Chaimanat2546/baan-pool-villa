@@ -40,7 +40,7 @@ function ReviewImageButton({
         className="object-cover transition duration-300 group-hover:scale-[1.03]"
         fill
         loading="lazy"
-        quality={70}
+        quality={75}
         sizes={sizes}
         src={image.url}
       />

@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet("baanparty", "baan02", "baanPMhee")]
+  [ValidateSet("baanparty", "baan02", "baanPMhee", "flukNasa", "villaMedia")]
   [string]$Target
 )
 

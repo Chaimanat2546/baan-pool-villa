@@ -33,7 +33,7 @@ Update `docs/ai/structure.html` in the same change when adding, moving, renaming
 ## Central User Manager Tenant
 
 `Poolvillapattaya` is the production Tenant for `env.baan02`. It uses Worker
-`baan-pool-villa02` and immutable Tenant UUID
+`pool-villa-pattaya-co-th` and immutable Tenant UUID
 `9fd7c645-563a-4cce-85ac-20ffb8f3bfc0`. Webook reaches it only through the
 named `CUM_POOLVILLAPATTAYA` Service Binding; do not add a public HTTP or
 Bearer fallback.

@@ -21,6 +21,14 @@ export const PRODUCTION_DEPLOYMENT_TARGETS = Object.freeze([
     target: "baanPMhee",
     siteUrl: "https://www.pmheevilla.com",
   }),
+  Object.freeze({
+    target: "flukNasa",
+    siteUrl: "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+  }),
+  Object.freeze({
+    target: "villaMedia",
+    siteUrl: "https://villa-media-poolvilla.poolvilla.workers.dev",
+  }),
 ]);
 
 export const REQUIRED_BUILD_ENVIRONMENT_VARIABLES = Object.freeze([
@@ -226,7 +234,7 @@ export async function runCli(argv, env = process.env) {
 
   if (extraArguments.length > 0) {
     throw new Error(
-      "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee]",
+      "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia]",
     );
   }
 
@@ -248,7 +256,7 @@ export async function runCli(argv, env = process.env) {
   }
 
   throw new Error(
-    "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee]",
+    "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia]",
   );
 }
 

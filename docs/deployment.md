@@ -4,7 +4,8 @@
 
 Production deploys automatically on push to `master` (normally when a PR is merged).
 The `Deploy production clients` workflow verifies the repository once, then
-builds and deploys `baanparty`, `baan02`, and `baanPMhee` independently.
+builds and deploys `baanparty`, `baan02`, `baanPMhee`, `flukNasa`, and
+`villaMedia` independently.
 
 For each target, CD verifies `CLOUDFLARE_API_TOKEN` through Cloudflare
 `/client/v4/user/tokens/verify` before target validation, build, or deploy. It
@@ -18,8 +19,8 @@ Do not copy a client `.env` file over `.env` for production deployment.
 | Scope | Names | Owner |
 | --- | --- | --- |
 | GitHub repository secrets | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Repository Actions settings |
-| GitHub Environment secret | `SUPABASE_PUBLISHABLE_KEY` | Matching `baanparty`, `baan02`, or `baanPMhee` environment; required for villa-catalog and sitemap builds |
-| GitHub Environment variables | `NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL`, `NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Matching `baanparty`, `baan02`, or `baanPMhee` environment |
+| GitHub Environment secret | `SUPABASE_PUBLISHABLE_KEY` | Matching deployment environment; required for villa-catalog and sitemap builds |
+| GitHub Environment variables | `NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL`, `NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Matching deployment environment |
 | Version-controlled public URL | `NEXT_PUBLIC_SITE_URL` | `scripts/production-deploy-config.mjs` and matching `wrangler.jsonc` environment |
 | Cloudflare Worker secrets | `CALENDAR_INTERNAL_API_TOKEN`, `DEVILLE_BEARER_TOKEN`, `PATTAYA_BOOKINGS_API_TOKEN`, `SUPABASE_PUBLISHABLE_KEY`, `TURNSTILE_SECRET_KEY` | Matching Wrangler environment |
 
@@ -35,7 +36,7 @@ must stay synchronized; never print either value.
 
 1. Add repository secrets `CLOUDFLARE_ACCOUNT_ID` and
    `CLOUDFLARE_API_TOKEN`.
-2. Create GitHub Environments named `baanparty`, `baan02`, and `baanPMhee`.
+2. Create GitHub Environments named `baanparty`, `baan02`, `baanPMhee`, `flukNasa`, and `villaMedia`.
 3. Restrict each environment to deployments from `master`.
 4. Do not add a required-reviewer gate; the approved release is automatic.
 5. Add the three public build variables and the
@@ -44,7 +45,7 @@ must stay synchronized; never print either value.
 7. Provision and verify `CALENDAR_INTERNAL_API_TOKEN`,
    `DEVILLE_BEARER_TOKEN`, `PATTAYA_BOOKINGS_API_TOKEN`,
    `SUPABASE_PUBLISHABLE_KEY`, and `TURNSTILE_SECRET_KEY` for each matching
-   `baanparty`, `baan02`, and `baanPMhee` Worker environment without exposing
+   Worker environment without exposing
    their values. Keep the `SUPABASE_PUBLISHABLE_KEY` value synchronized with
    its matching GitHub Environment secret.
 8. Complete this setup before merging the workflow file because that merge
@@ -74,6 +75,8 @@ Verify Cloudflare secret names without printing their values:
 npx.cmd wrangler secret list --env baanparty --format json
 npx.cmd wrangler secret list --env baan02 --format json
 npx.cmd wrangler secret list --env baanPMhee --format json
+npx.cmd wrangler secret list --env flukNasa --format json
+npx.cmd wrangler secret list --env villaMedia --format json
 ```
 
 ## Failed Deployment
@@ -94,6 +97,8 @@ Worker:
 npx.cmd wrangler rollback --env baanparty
 npx.cmd wrangler rollback --env baan02
 npx.cmd wrangler rollback --env baanPMhee
+npx.cmd wrangler rollback --env flukNasa
+npx.cmd wrangler rollback --env villaMedia
 ```
 
 Never roll back all clients automatically because one client failed.
@@ -116,7 +121,7 @@ missing or empty values, and restores every previous process value in
 ```powershell
 param(
   [Parameter(Mandatory = $true)]
-  [ValidateSet("baanparty", "baan02", "baanPMhee")]
+  [ValidateSet("baanparty", "baan02", "baanPMhee", "flukNasa", "villaMedia")]
   [string]$Target
 )
 
