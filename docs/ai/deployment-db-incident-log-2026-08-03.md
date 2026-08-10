@@ -8,9 +8,9 @@ Webook โดยไม่เก็บ secret หรือค่า environment �
 
 | ระบบ | Worker / โปรเจกต์ |
 | --- | --- |
-| Baan Party | `baan-pool-villa` |
-| Poolvillapattaya | `baan-pool-villa02` |
-| PMhee | `baan-pool-villa03` |
+| Baan Party | `baan-party` |
+| Poolvillapattaya | `pool-villa-pattaya-co-th` |
+| PMhee | `baan-p-mhee` |
 | Webook | `webook-admin` |
 
 แต่ละ tenant ใช้ Supabase แยกกัน แต่ Worker ทั้งหมดอยู่ Cloudflare account
@@ -27,7 +27,7 @@ Webook โดยไม่เก็บ secret หรือค่า environment �
 ยังไม่ deploy Worker ปลายทาง
 
 **การแก้:** กำหนด Service Binding ของ Webook แบบ explicit ต่อ tenant และใช้
-ชื่อ Worker จริง เช่น `baan-pool-villa02` และ `baan-pool-villa03`
+ชื่อ Worker จริง เช่น `pool-villa-pattaya-co-th` และ `baan-p-mhee`
 
 **ข้อควรระวัง:** ห้ามใช้ public HTTP หรือ Bearer-token fallback แทน Service
 Binding

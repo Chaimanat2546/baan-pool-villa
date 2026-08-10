@@ -94,4 +94,38 @@ describe("safe Central User Manager RPC result projection", () => {
       error: { code: "provider_failure", message: secret },
     })).toBeNull();
   });
+
+  it("accepts only the canonical rejected lifecycle envelope", () => {
+    const error = {
+      code: "invalid_lifecycle_transition" as const,
+      message: "This action is not available for the user's current status.",
+    };
+
+    expect(project({
+      operationId: OPERATION_ID,
+      status: "rejected",
+      stage: "rejected",
+      error,
+    }, MUTATION_REQUEST)).toEqual({
+      operationId: OPERATION_ID,
+      status: "rejected",
+      stage: "rejected",
+      error,
+    });
+    expect(project({
+      operationId: OPERATION_ID,
+      status: "rejected",
+      stage: "claimed",
+      error,
+    }, MUTATION_REQUEST)).toBeNull();
+    expect(project({
+      operationId: OPERATION_ID,
+      status: "rejected",
+      stage: "rejected",
+      error: {
+        code: "database_unavailable",
+        message: "The operation database is unavailable.",
+      },
+    }, MUTATION_REQUEST)).toBeNull();
+  });
 });

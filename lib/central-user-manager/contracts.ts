@@ -30,6 +30,7 @@ export interface AgentOperationRequest {
 
 export type AgentOperationStatus =
   | "completed"
+  | "rejected"
   | "in_progress"
   | "needs_review"
   | "quarantined";

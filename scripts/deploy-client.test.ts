@@ -16,7 +16,7 @@ describe("local client deployment command", () => {
     const source = await readScript();
 
     expect(source).toContain(
-      '[ValidateSet("baanparty", "baan02", "baanPMhee")]',
+      '[ValidateSet("baanparty", "baan02", "baanPMhee", "flukNasa", "villaMedia")]',
     );
     expect(source).toContain('ChildPath ".env.$Target.local"');
     expect(source).toContain('"NEXT_PUBLIC_SITE_URL"');

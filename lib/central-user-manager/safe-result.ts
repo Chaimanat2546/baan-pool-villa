@@ -13,6 +13,7 @@ import { normalizeAdminEmail } from "./email";
 
 const AGENT_OPERATION_STATUSES = new Set([
   "completed",
+  "rejected",
   "in_progress",
   "needs_review",
   "quarantined",
@@ -22,6 +23,7 @@ const SAFE_OPERATION_STAGES = new Set([
   "listed",
   "claimed",
   "completed",
+  "rejected",
   "needs_review",
   "quarantined",
   "late_fence",
@@ -298,7 +300,10 @@ function projectPayload(
   const { error } = errorProjection;
 
   if (operation.status !== "completed") {
-    return operation.result === undefined && error !== undefined
+    return operation.result === undefined &&
+      error !== undefined &&
+      (operation.status !== "rejected" ||
+        error.code === "invalid_lifecycle_transition")
       ? { ok: true, error }
       : { ok: false };
   }
@@ -351,7 +356,8 @@ export function projectSafeCentralUserOperation(
     (operation.status === "completed" &&
       operation.stage !== (
         request.action === "list_users" ? "listed" : "completed"
-      ))
+      )) ||
+    (operation.status === "rejected" && operation.stage !== "rejected")
   ) {
     return null;
   }
