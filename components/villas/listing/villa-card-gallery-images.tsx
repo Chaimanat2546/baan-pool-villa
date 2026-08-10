@@ -13,6 +13,7 @@ interface VillaCardGalleryImagesProps {
   alt: string;
   coverImageSrc: string | null;
   href?: string;
+  imageLoading?: "eager" | "lazy";
   initialImageUrls?: string[];
   preload?: boolean;
   staticImageUrls?: string[];
@@ -62,6 +63,7 @@ export function VillaCardGalleryImages({
   alt,
   coverImageSrc,
   href,
+  imageLoading,
   initialImageUrls,
   preload = false,
   staticImageUrls,
@@ -258,6 +260,7 @@ export function VillaCardGalleryImages({
       src={selectedImage}
       alt={alt}
       fill
+      loading={imageLoading}
       preload={preload && selectedIndex === 0}
       quality={60}
       sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
