@@ -115,8 +115,8 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
     <footer className="bg-[var(--site-primary)] pb-28 text-[var(--site-footer-link)] md:pb-0" style={siteThemeStyle}>
       <div className="mx-auto grid max-w-[1292px] gap-10 px-6 pb-16 pt-14 sm:px-8 lg:grid-cols-[1.45fr_0.7fr_0.9fr] lg:gap-20 lg:px-6 lg:pb-16 lg:pt-[60px]">
         <div>
-          <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-rows-[auto_auto] sm:gap-x-3 sm:gap-y-1">
-              <span className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] border-4 p-2 ${logoBackgroundClass} ${logoBorderClass} sm:row-span-2`}>
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-rows-[auto_auto] sm:gap-x-3 sm:gap-y-1">
+              <span className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] border-4 p-2 ${logoBackgroundClass} ${logoBorderClass} ${shouldShowFollowButton ? "row-span-2" : ""} sm:row-span-2`}>
                 <Image
                   src={logoImageSrc}
                   alt={settings.logoImage.alt}
@@ -126,15 +126,15 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
                   className="object-contain"
                 />
               </span>
-              <div className="min-w-0 sm:self-end">
-                <h2 className="text-[26px] font-semibold leading-8 text-[var(--site-footer-link)]">
+              <div className="col-start-2 row-start-1 min-w-0 sm:col-start-2 sm:row-start-1 sm:self-end">
+                <h2 className="text-xl font-semibold leading-8 text-[var(--site-footer-link)] lg:text-2xl">
                   <span className="block truncate">{footerTitle}</span>
                 </h2>
               </div>
             {shouldShowFollowButton ? (
               <a
                 aria-label="ติดตามเพจ Facebook"
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-sm bg-[#1877F2] px-2 py-1 text-sm text-white transition hover:bg-[#166FE5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--site-primary)] sm:col-start-3 sm:row-start-1 sm:self-end border-white/50 border-[1px] shadow-2xl"
+                className="col-start-2 row-start-2 inline-flex shrink-0 justify-self-start items-center justify-center gap-1.5 rounded-sm bg-[#1877F2] px-2 py-1 text-sm text-white transition hover:bg-[#166FE5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--site-primary)] sm:col-start-3 sm:row-start-1 sm:self-end border-white/50 border-[1px] shadow-2xl"
                 href={facebookPageUrl.toString()}
                 rel="noreferrer"
                 target="_blank"
@@ -143,7 +143,7 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
                 <p>ติดตามเพจ</p>
               </a>
             ) : null}
-              <div className="min-w-0 sm:col-start-2 sm:col-end-4 sm:row-start-2">
+              <div className={`col-span-2 ${shouldShowFollowButton ? "row-start-3" : "row-start-2"} min-w-0 sm:col-start-2 sm:col-end-4 sm:row-start-2`}>
                 <p className="text-sm leading-5 text-[var(--site-footer-link)]">
                   กรุณาโอนเงิน{" "}
                   <span className="inline-flex rounded-full font-medium text-[var(--site-bank-account-highlight)]">
