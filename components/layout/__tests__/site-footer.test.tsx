@@ -225,6 +225,9 @@ describe("SiteFooter", () => {
     expect(pluginOn).not.toContain('aria-label="ติดตามเพจ Facebook"');
     expect(pluginOff).toContain('aria-label="ติดตามเพจ Facebook"');
     expect(pluginOff).toContain("truncate");
+    expect(pluginOff).toContain("justify-self-start");
+    expect(pluginOff).toContain("col-span-2 row-start-3");
+    expect(pluginOff).toContain("xl:grid-cols-[auto_minmax(0,1fr)_auto]");
   });
 
   it("renders uploaded logos with the selected background and containment", () => {
