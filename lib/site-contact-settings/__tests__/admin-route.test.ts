@@ -21,6 +21,7 @@ const savedRow = {
     { name: "Game", phone: "0617485213", time: "07.00-15.00" },
   ],
   messenger_url: "https://www.facebook.com/baanpoolvillas",
+  facebook_page_name: "พี่หมี พูลวิลล่าพัทยา",
   show_facebook_timeline: true,
   line_id: "@baanpoolvilla",
   line_url: "https://line.me/R/ti/p/@baanpoolvilla",
@@ -33,6 +34,7 @@ const validDraft = {
     { name: " Game ", phone: " 0617485213 ", time: " 07.00-15.00 " },
   ],
   messengerUrl: " https://www.facebook.com/baanpoolvillas ",
+  facebookPageName: " พี่หมี พูลวิลล่าพัทยา ",
   showFacebookTimeline: false,
   lineId: " @baanpoolvilla ",
   lineUrl: " https://line.me/R/ti/p/@baanpoolvilla ",
@@ -66,7 +68,7 @@ describe("site contact settings admin route helper", () => {
     });
     expect(query.from).toHaveBeenCalledWith("site_contact_settings");
     expect(query.select).toHaveBeenCalledWith(
-      "singleton_id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,show_facebook_timeline,line_id,line_url",
+      "singleton_id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,facebook_page_name,show_facebook_timeline,line_id,line_url",
     );
     expect(query.eq).toHaveBeenCalledWith("singleton_id", true);
   });
@@ -105,7 +107,7 @@ describe("site contact settings admin route helper", () => {
     expect(query.from).toHaveBeenCalledTimes(1);
     expect(query.from).toHaveBeenCalledWith("site_contact_settings");
     expect(query.upsert).toHaveBeenCalledWith(
-      { ...savedRow, show_facebook_timeline: false, singleton_id: true },
+      { ...savedRow, facebook_page_name: "พี่หมี พูลวิลล่าพัทยา", show_facebook_timeline: false, singleton_id: true },
       { onConflict: "singleton_id" },
     );
     expect(await response.json()).toMatchObject({

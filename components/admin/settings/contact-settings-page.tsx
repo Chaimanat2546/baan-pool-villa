@@ -180,6 +180,14 @@ export function ContactSettingsPage() {
                 value={draft.messengerUrl}
               />
               <TextControl
+                id="facebookPageName"
+                label="ชื่อเพจ Facebook"
+                maxLength={120}
+                onChange={(facebookPageName) => state.updateDraft({ facebookPageName })}
+                placeholder="ชื่อเพจ Facebook"
+                value={draft.facebookPageName}
+              />
+              <TextControl
                 id="lineId"
                 label="LINE ID"
                 onChange={(lineId) => {

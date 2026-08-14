@@ -79,6 +79,7 @@ export function normalizeSiteContactSettingsRow(
         row.messenger_url,
         DEFAULT_SITE_CONTACT_SETTINGS.contact.messengerUrl,
       ),
+      facebookPageName: row.facebook_page_name?.trim() ?? "",
       showFacebookTimeline:
         typeof row.show_facebook_timeline === "boolean"
           ? row.show_facebook_timeline
@@ -108,6 +109,7 @@ export function normalizeSiteContactSettingsDraft(
       time: contact.time.trim(),
     })),
     messengerUrl: draft.messengerUrl.trim(),
+    facebookPageName: draft.facebookPageName.trim(),
     showFacebookTimeline: draft.showFacebookTimeline,
     lineId: draft.lineId.trim(),
     lineUrl: draft.lineUrl.trim(),
@@ -144,6 +146,7 @@ export function validateSiteContactSettingsDraft(
   if (!isHttpUrl(draft.messengerUrl)) {
     errors.push("ลิงก์ Messenger ต้องเป็น URL แบบ http หรือ https");
   }
+  if (draft.facebookPageName.trim().length > 120) errors.push("ชื่อเพจ Facebook ต้องมีความยาวไม่เกิน 120 ตัวอักษร");
   if (!draft.lineId.trim()) errors.push("ต้องใส่ LINE ID");
   if (!isHttpUrl(draft.lineUrl)) {
     errors.push("ลิงก์ LINE ต้องเป็น URL แบบ http หรือ https");

@@ -10725,3 +10725,10 @@ alter table public.site_contact_settings
 
 notify pgrst, 'reload schema';
 -- END 20260807140000_add_show_facebook_timeline_to_site_contact_settings.sql
+
+-- BEGIN 20260814130000_add_facebook_page_name_to_site_contact_settings.sql
+alter table public.site_contact_settings
+  add column if not exists facebook_page_name text;
+
+notify pgrst, 'reload schema';
+-- END 20260814130000_add_facebook_page_name_to_site_contact_settings.sql

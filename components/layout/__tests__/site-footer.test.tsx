@@ -106,6 +106,60 @@ describe("SiteFooter", () => {
     expect(markup).toContain("--site-on-primary:#0f172a");
   });
 
+  it("renders a follow button that opens the configured Facebook Page", () => {
+    const markup = renderToStaticMarkup(
+      <SiteFooter
+        contactSettings={{ ...DEFAULT_SITE_CONTACT_SETTINGS, contact: { ...DEFAULT_SITE_CONTACT_SETTINGS.contact, showFacebookTimeline: false } }}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+
+    expect(markup).toContain('aria-label="ติดตามเพจ Facebook"');
+    expect(markup).toContain('href="https://www.facebook.com/baanpoolvillas"');
+    expect(markup).toContain("ติดตามเพจ");
+    expect(markup).toContain('target="_blank"');
+    expect(markup).toContain('rel="noreferrer"');
+  });
+
+  it("converts an m.me contact URL for the Facebook Page follow button", () => {
+    const markup = renderToStaticMarkup(
+      <SiteFooter
+        contactSettings={{
+          ...DEFAULT_SITE_CONTACT_SETTINGS,
+          contact: {
+            ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
+            messengerUrl: "https://m.me/baanpoolvillas",
+            showFacebookTimeline: false,
+          },
+        }}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+
+    const followButtonHref = markup.match(
+      /<a aria-label="ติดตามเพจ Facebook"[^>]*href="([^"]+)"/,
+    )?.[1];
+
+    expect(followButtonHref).toBe("https://www.facebook.com/baanpoolvillas");
+  });
+
+  it("hides the Facebook Page follow button for an invalid destination", () => {
+    const markup = renderToStaticMarkup(
+      <SiteFooter
+        contactSettings={{
+          ...DEFAULT_SITE_CONTACT_SETTINGS,
+          contact: {
+            ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
+            messengerUrl: "https://example.com/page",
+          },
+        }}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+
+    expect(markup).not.toContain('aria-label="ติดตามเพจ Facebook"');
+  });
+
   it("embeds the Facebook page timeline from the configured Facebook contact URL", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter
@@ -161,6 +215,16 @@ describe("SiteFooter", () => {
     );
 
     expect(markup).not.toContain("https://www.facebook.com/plugins/page.php?");
+  });
+
+  it("shows the configured page name and follow button only when the timeline is disabled", () => {
+    const contact = { ...DEFAULT_SITE_CONTACT_SETTINGS.contact, facebookPageName: "พี่หมี พูลวิลล่าพัทยา" };
+    const pluginOn = renderToStaticMarkup(<SiteFooter contactSettings={{ ...DEFAULT_SITE_CONTACT_SETTINGS, contact: { ...contact, showFacebookTimeline: true } }} settings={DEFAULT_SITE_SETTINGS} />);
+    const pluginOff = renderToStaticMarkup(<SiteFooter contactSettings={{ ...DEFAULT_SITE_CONTACT_SETTINGS, contact: { ...contact, showFacebookTimeline: false } }} settings={DEFAULT_SITE_SETTINGS} />);
+    expect(pluginOn).toContain("พี่หมี พูลวิลล่าพัทยา");
+    expect(pluginOn).not.toContain('aria-label="ติดตามเพจ Facebook"');
+    expect(pluginOff).toContain('aria-label="ติดตามเพจ Facebook"');
+    expect(pluginOff).toContain("truncate");
   });
 
   it("renders uploaded logos with the selected background and containment", () => {
