@@ -134,13 +134,13 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
             {shouldShowFollowButton ? (
               <a
                 aria-label="ติดตามเพจ Facebook"
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-sm bg-[#1877F2] px-2 py-1 text-sm font-semibold text-white transition hover:bg-[#166FE5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--site-primary)] sm:col-start-3 sm:row-start-1 sm:self-end"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-sm bg-[#1877F2] px-2 py-1 text-sm text-white transition hover:bg-[#166FE5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--site-primary)] sm:col-start-3 sm:row-start-1 sm:self-end border-white/50 border-[1px] shadow-2xl"
                 href={facebookPageUrl.toString()}
                 rel="noreferrer"
                 target="_blank"
               >
                 <IoLogoFacebook aria-hidden="true" className="size-4" />
-                <span>ติดตามเพจ</span>
+                <p>ติดตามเพจ</p>
               </a>
             ) : null}
               <div className="min-w-0 sm:col-start-2 sm:col-end-4 sm:row-start-2">
