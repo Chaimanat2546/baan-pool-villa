@@ -13,6 +13,7 @@ export interface SitePhoneContact {
 export interface SiteContactChannels {
   phoneContacts: SitePhoneContact[];
   messengerUrl: string;
+  facebookPageName?: string;
   showFacebookTimeline: boolean;
   lineId: string;
   lineUrl: string;
@@ -29,6 +30,7 @@ export interface SiteContactSettingsDraft {
   bankAccountNumber: string;
   phoneContacts: SitePhoneContact[];
   messengerUrl: string;
+  facebookPageName: string;
   showFacebookTimeline: boolean;
   lineId: string;
   lineUrl: string;
@@ -41,6 +43,7 @@ export interface SiteContactSettingsRow {
   bank_account_number: string | null;
   phone_contacts: unknown;
   messenger_url: string | null;
+  facebook_page_name?: string | null;
   show_facebook_timeline: boolean | null;
   line_id: string | null;
   line_url: string | null;

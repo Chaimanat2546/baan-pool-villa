@@ -29,7 +29,7 @@ describe("ContactSettingsPage", () => {
     const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/admin/site-settings/contact");
     expect(body).not.toEqual(expect.objectContaining({ seoTitle: expect.anything() }));
-    expect(Object.keys(body).sort()).toEqual(["bankAccountName", "bankAccountNumber", "bankName", "lineId", "lineUrl", "messengerUrl", "phoneContacts", "showFacebookTimeline"].sort());
+    expect(Object.keys(body).sort()).toEqual(["bankAccountName", "bankAccountNumber", "bankName", "facebookPageName", "lineId", "lineUrl", "messengerUrl", "phoneContacts", "showFacebookTimeline"].sort());
     expect(body.showFacebookTimeline).toBe(false);
     expect(page.container.querySelector('input[aria-label="แสดง Facebook Timeline"]')).not.toBeNull();
     expect(page.container.textContent).toContain("ข้อมูลบัญชีธนาคาร");

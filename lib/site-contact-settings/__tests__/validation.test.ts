@@ -20,6 +20,7 @@ const validDraft: SiteContactSettingsDraft = {
   bankAccountNumber: "123-4-56789-0",
   phoneContacts: [{ name: "Game", phone: "0617485213", time: "07.00-15.00" }],
   messengerUrl: "https://www.facebook.com/baanpoolvillas",
+  facebookPageName: "พี่หมี พูลวิลล่าพัทยา",
   showFacebookTimeline: true,
   lineId: "@baanpoolvilla",
   lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
@@ -35,6 +36,7 @@ function row(overrides: Partial<SiteContactSettingsRow> = {}): SiteContactSettin
       { name: " Game ", phone: " 0617485213 ", time: " 07.00-15.00 " },
     ],
     messenger_url: " https://www.facebook.com/baanpoolvillas ",
+    facebook_page_name: " พี่หมี พูลวิลล่าพัทยา ",
     show_facebook_timeline: false,
     line_id: " @baanpoolvilla ",
     line_url: " https://line.me/R/ti/p/@baanpoolvilla ",
@@ -55,6 +57,7 @@ describe("site contact settings validation", () => {
           { name: "Game", phone: "0617485213", time: "07.00-15.00" },
         ],
         messengerUrl: "https://www.facebook.com/baanpoolvillas",
+        facebookPageName: "พี่หมี พูลวิลล่าพัทยา",
         showFacebookTimeline: false,
         lineId: "@baanpoolvilla",
         lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",
@@ -74,6 +77,7 @@ describe("site contact settings validation", () => {
     ).toMatchObject({
       contact: {
         ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
+        facebookPageName: "พี่หมี พูลวิลล่าพัทยา",
         showFacebookTimeline: false,
       },
     });
@@ -95,6 +99,7 @@ describe("site contact settings validation", () => {
       time: "07.00-15.00",
     });
     expect(normalized.showFacebookTimeline).toBe(true);
+    expect(normalized.facebookPageName).toBe("พี่หมี พูลวิลล่าพัทยา");
     expect(validateSiteContactSettingsDraft(normalized)).toEqual([]);
     expect(
       validateSiteContactSettingsDraft({
@@ -103,6 +108,7 @@ describe("site contact settings validation", () => {
         phoneContacts: [{ ...normalized.phoneContacts[0], phone: "123" }],
       }),
     ).toHaveLength(2);
+    expect(validateSiteContactSettingsDraft({ ...normalized, facebookPageName: "x".repeat(121) })).toContain("ชื่อเพจ Facebook ต้องมีความยาวไม่เกิน 120 ตัวอักษร");
   });
 
   it("clones phone contacts in the default fallback", () => {

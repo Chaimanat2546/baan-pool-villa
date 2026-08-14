@@ -13,13 +13,14 @@ import {
 } from "./validation";
 
 const SELECT =
-  "singleton_id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,show_facebook_timeline,line_id,line_url";
+  "singleton_id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,facebook_page_name,show_facebook_timeline,line_id,line_url";
 const FIELDS = [
   "bankAccountName",
   "bankName",
   "bankAccountNumber",
   "phoneContacts",
   "messengerUrl",
+  "facebookPageName",
   "showFacebookTimeline",
   "lineId",
   "lineUrl",
@@ -39,6 +40,7 @@ function parseDraft(value: unknown): SiteContactSettingsDraft | null {
     typeof body.bankName !== "string" ||
     typeof body.bankAccountNumber !== "string" ||
     typeof body.messengerUrl !== "string" ||
+    typeof body.facebookPageName !== "string" ||
     typeof body.showFacebookTimeline !== "boolean" ||
     typeof body.lineId !== "string" ||
     typeof body.lineUrl !== "string" ||
@@ -105,6 +107,7 @@ export async function saveAdminSiteContactSettings(
     bank_account_number: draft.bankAccountNumber,
     phone_contacts: draft.phoneContacts,
     messenger_url: draft.messengerUrl,
+    facebook_page_name: draft.facebookPageName || null,
     show_facebook_timeline: draft.showFacebookTimeline,
     line_id: draft.lineId,
     line_url: draft.lineUrl,
