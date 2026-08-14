@@ -20,6 +20,7 @@ export const DEFAULT_SITE_CONTACT_SETTINGS: SiteContactSettings = {
       },
     ],
     messengerUrl: "https://www.facebook.com/baanpoolvillas",
+    facebookPageName: "",
     showFacebookTimeline: true,
     lineId: "@baanpoolvilla",
     lineUrl: "https://line.me/R/ti/p/@baanpoolvilla",

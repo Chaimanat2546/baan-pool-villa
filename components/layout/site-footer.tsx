@@ -4,6 +4,7 @@ import { LEGAL_PAGE_PATHS } from "@/lib/legal-pages/types";
 import { buildSiteAssetImageProxyPath, normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import { SITE_LOGO_BACKGROUND_CLASSES, SITE_LOGO_BORDER_CLASSES } from "@/lib/site-settings/logo-background";
 import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
+import { IoLogoFacebook } from "react-icons/io";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 
@@ -16,6 +17,35 @@ const menuItems = [
   { href: LEGAL_PAGE_PATHS.terms, label: "เงื่อนไขการใช้งาน" },
   { href: LEGAL_PAGE_PATHS.privacy, label: "นโยบายความเป็นส่วนตัว" },
 ];
+
+function resolveFacebookPageUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const pagePathParts = url.pathname.split("/").filter(Boolean);
+
+    if (
+      url.protocol === "https:" &&
+      ["facebook.com", "www.facebook.com"].includes(url.hostname) &&
+      pagePathParts.length > 0
+    ) {
+      return url;
+    }
+
+    if (
+      url.protocol === "https:" &&
+      url.hostname === "m.me" &&
+      pagePathParts.length === 1
+    ) {
+      return new URL(
+        `https://www.facebook.com/${encodeURIComponent(pagePathParts[0])}`,
+      );
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
 
 interface SiteFooterProps {
   contactSettings: SiteContactSettings;
@@ -42,6 +72,12 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
     SITE_LOGO_BACKGROUND_CLASSES[settings.logoBackground ?? "white"];
   const logoBorderClass =
     SITE_LOGO_BORDER_CLASSES[settings.logoBackground ?? "white"];
+  const facebookPageUrl = resolveFacebookPageUrl(
+    contactSettings.contact.messengerUrl,
+  );
+  const footerTitle = contactSettings.contact.facebookPageName || settings.siteName;
+  const shouldShowFollowButton =
+    !contactSettings.contact.showFacebookTimeline && facebookPageUrl;
   const contactItems = [
     ...contactSettings.contact.phoneContacts.map(
       (contact, index) => ({
@@ -61,27 +97,9 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
       text: "Messenger",
     },
   ];
-  const facebookPagePluginSrc = contactSettings.contact.showFacebookTimeline ? (() => {
-    try {
-      const configuredUrl = new URL(contactSettings.contact.messengerUrl);
-      const pagePathParts = configuredUrl.pathname
-        .split("/")
-        .filter(Boolean);
-      const facebookPageUrl = ["facebook.com", "www.facebook.com"].includes(
-        configuredUrl.hostname,
-      )
-        ? configuredUrl
-        : configuredUrl.protocol === "https:" &&
-            configuredUrl.hostname === "m.me" &&
-            pagePathParts.length === 1
-          ? new URL(
-              `https://www.facebook.com/${encodeURIComponent(pagePathParts[0])}`,
-            )
-          : null;
-
-      if (!facebookPageUrl || facebookPageUrl.pathname === "/") return null;
-
-      return `https://www.facebook.com/plugins/page.php?${new URLSearchParams({
+  const facebookPagePluginSrc =
+    contactSettings.contact.showFacebookTimeline && facebookPageUrl
+      ? `https://www.facebook.com/plugins/page.php?${new URLSearchParams({
         adapt_container_width: "true",
         height: "500",
         hide_cover: "true",
@@ -90,46 +108,57 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
         small_header: "false",
         tabs: "timeline",
         width: "500",
-      })}`;
-    } catch {
-      return null;
-    }
-  })() : null;
+      })}`
+      : null;
 
   return (
     <footer className="bg-[var(--site-primary)] pb-28 text-[var(--site-footer-link)] md:pb-0" style={siteThemeStyle}>
       <div className="mx-auto grid max-w-[1292px] gap-10 px-6 pb-16 pt-14 sm:px-8 lg:grid-cols-[1.45fr_0.7fr_0.9fr] lg:gap-20 lg:px-6 lg:pb-16 lg:pt-[60px]">
         <div>
-          <div className="flex items-center gap-3">
-            <span className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] border-4 p-2 ${logoBackgroundClass} ${logoBorderClass}`}>
-              <Image
-                src={logoImageSrc}
-                alt={settings.logoImage.alt}
-                fill
-                quality={75}
-                sizes="64px"
-                className="object-contain"
-              />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-[26px] font-semibold leading-8 text-[var(--site-footer-link)]">
-                {settings.siteName}
-              </h2>
-              <p className="mt-[7px] text-sm leading-5 text-[var(--site-footer-link)]">
-                กรุณาโอนเงิน{" "}
-                <span className="inline-flex rounded-full font-medium text-[var(--site-bank-account-highlight)]">
-                  ชื่อบัญชี {contactSettings.bank.accountName}
-                </span>{" "}
-                <br className="sm:hidden" />
-                <span className="inline-flex rounded-full font-medium text-[var(--site-bank-name-highlight)]">
-                  {contactSettings.bank.bankName}
-                </span>{" "}
-                <span className="inline-flex rounded-full font-medium text-[var(--site-bank-number-highlight)]">
-                  เลขที่ {contactSettings.bank.accountNumber}
-                </span>{" "}
-                เท่านั้น
-              </p>
-            </div>
+          <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-rows-[auto_auto] sm:gap-x-3 sm:gap-y-1">
+              <span className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-[18px] border-4 p-2 ${logoBackgroundClass} ${logoBorderClass} sm:row-span-2`}>
+                <Image
+                  src={logoImageSrc}
+                  alt={settings.logoImage.alt}
+                  fill
+                  quality={75}
+                  sizes="64px"
+                  className="object-contain"
+                />
+              </span>
+              <div className="min-w-0 sm:self-end">
+                <h2 className="text-[26px] font-semibold leading-8 text-[var(--site-footer-link)]">
+                  <span className="block truncate">{footerTitle}</span>
+                </h2>
+              </div>
+            {shouldShowFollowButton ? (
+              <a
+                aria-label="ติดตามเพจ Facebook"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-sm bg-[#1877F2] px-2 py-1 text-sm font-semibold text-white transition hover:bg-[#166FE5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--site-primary)] sm:col-start-3 sm:row-start-1 sm:self-end"
+                href={facebookPageUrl.toString()}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <IoLogoFacebook aria-hidden="true" className="size-4" />
+                <span>ติดตามเพจ</span>
+              </a>
+            ) : null}
+              <div className="min-w-0 sm:col-start-2 sm:col-end-4 sm:row-start-2">
+                <p className="text-sm leading-5 text-[var(--site-footer-link)]">
+                  กรุณาโอนเงิน{" "}
+                  <span className="inline-flex rounded-full font-medium text-[var(--site-bank-account-highlight)]">
+                    ชื่อบัญชี {contactSettings.bank.accountName}
+                  </span>{" "}
+                  <br className="sm:hidden" />
+                  <span className="inline-flex rounded-full font-medium text-[var(--site-bank-name-highlight)]">
+                    {contactSettings.bank.bankName}
+                  </span>{" "}
+                  <span className="inline-flex rounded-full font-medium text-[var(--site-bank-number-highlight)]">
+                    เลขที่ {contactSettings.bank.accountNumber}
+                  </span>{" "}
+                  เท่านั้น
+                </p>
+              </div>
           </div>
 
           <p className="mt-4 max-w-[600px] text-sm leading-[21px] text-[var(--site-footer-link)] opacity-70">

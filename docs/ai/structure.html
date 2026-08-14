@@ -530,7 +530,7 @@
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/contact/route.ts</code></td>
                 <td><code>/api/admin/site-settings/contact</code></td>
-                <td>Compatible authenticated GET/PATCH URL backed exclusively by <code>site_contact_settings</code>. <code>lib/site-contact-settings/admin-route.ts</code> owns the exact eight-key JSON contract, validation, singleton upsert, structured Supabase errors, and dedicated cache revalidation.</td>
+                <td>Compatible authenticated GET/PATCH URL backed exclusively by <code>site_contact_settings</code>. <code>lib/site-contact-settings/admin-route.ts</code> owns the exact nine-key JSON contract, validation, singleton upsert, structured Supabase errors, and dedicated cache revalidation.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/site-web-styles/[styleType]/route.ts</code></td>
@@ -690,7 +690,7 @@
             </tr>
             <tr>
               <td><code>lib/site-contact-settings</code></td>
-              <td>Canonical public contact and public bank-display ownership: types, production-safe defaults, normalization/validation, cached singleton reads from <code>site_contact_settings</code>, and admin GET/PATCH persistence. Expansion, application cutover, production verification, and the contract migration completed on 2026-07-21; the seven legacy columns are absent from <code>site_settings</code>.</td>
+              <td>Canonical public contact and public bank-display ownership: types, production-safe defaults, normalization/validation, cached singleton reads from <code>site_contact_settings</code>, and admin GET/PATCH persistence. <code>facebookPageName</code> is public Footer display data, falls back to <code>siteName</code>, and does not trigger an external API fetch. Expansion, application cutover, production verification, and the contract migration completed on 2026-07-21; the seven legacy columns are absent from <code>site_settings</code>.</td>
               <td><code>lib/site-contact-settings/__tests__</code>, the dedicated admin route test, and affected public consumer tests.</td>
             </tr>
             <tr>
@@ -850,7 +850,7 @@
               </tr>
               <tr>
                 <td>Site contact settings</td>
-              <td>Supabase singleton <code>site_contact_settings</code> row containing the three public bank-display fields, ordered <code>phone_contacts</code> JSON array, Messenger URL, Facebook Timeline visibility, LINE ID, and LINE URL.</td>
+              <td>Supabase singleton <code>site_contact_settings</code> row containing the three public bank-display fields, ordered <code>phone_contacts</code> JSON array, Messenger URL, Facebook Page name for Footer display, Facebook Timeline visibility, LINE ID, and LINE URL.</td>
                 <td><code>lib/site-contact-settings</code>, the <code>site-contact-settings</code> 12-hour cache tag, and <code>app/(admin)/api/admin/site-settings/contact/route.ts</code>. The expansion migration and application cutover were production-verified on 2026-07-21; no runtime fallback reads or dual-writes legacy contact columns.</td>
               <td>Public Header, Footer, mobile contact actions, homepage JSON-LD/contact section, guide/legal contact sections, villa booking actions, and <code>/admin/settings/contact</code>. Rollback to the old schema now requires an explicit forward recovery migration.</td>
               </tr>
