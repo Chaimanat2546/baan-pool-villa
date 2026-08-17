@@ -150,7 +150,7 @@ export function ActivityAdvertisementsSection({
               <h3 className="line-clamp-2 text-base font-black leading-6 text-[var(--site-text)]">
                 {advertisement.title}
               </h3>
-              <span className="inline-flex w-fit items-center self-end rounded-full bg-[var(--site-primary)] px-3 py-2 text-sm font-black text-[var(--site-on-primary)] transition group-hover:opacity-90">
+              <span className="inline-flex w-fit items-center self-end rounded-full bg-[var(--site-primary)] px-3 py-2 text-sm font-black text-[var(--site-header-link)] transition group-hover:opacity-90">
                 ดูรูปกิจกรรม
               </span>
             </div>
