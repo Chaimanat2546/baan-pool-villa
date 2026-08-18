@@ -744,6 +744,7 @@ describe("fetchVillaDetail", () => {
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
     const upstreamDetail = {
       ...devilleDetail,
+      h_additional_costs: "API additional costs",
       h_rule: "No parties after midnight",
       h_time_checkin: "15:00:00",
     };
@@ -753,6 +754,7 @@ describe("fetchVillaDetail", () => {
 
     expect(payload).toMatchObject({
       detail: expect.objectContaining({
+        h_additional_costs: "API additional costs",
         h_rule: "No parties after midnight",
         h_time_checkin: "14:00:00",
       }),
@@ -796,7 +798,6 @@ describe("fetchVillaDetail", () => {
 
     await expect(fetchVillaDetail("9", [listing])).resolves.toEqual({
       detail: {
-        h_additional_costs: "No smoking",
         h_extra: 500,
         h_insurance: 3000,
         h_moredetail: "Large family villa",
@@ -830,7 +831,6 @@ describe("fetchVillaDetail", () => {
 
     await expect(fetchVillaDetail("9", [listing])).resolves.toMatchObject({
       detail: {
-        h_additional_costs: "No smoking",
         h_moredetail: "Large family villa",
       },
       detailStatus: "unavailable",
