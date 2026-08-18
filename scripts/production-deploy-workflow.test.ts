@@ -183,16 +183,14 @@ describe("production deployment workflow", () => {
     expect(tokenVerificationStepStart).toBeLessThan(validationStepStart);
   });
 
-  it("builds, deploys, prewarms, and always writes a summary", async () => {
+  it("builds, deploys, and always writes a summary without prewarming", async () => {
     const workflow = await readWorkflow();
 
     expect(workflow).toContain("npm run build:cf");
     expect(workflow).toContain(
       'npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET"',
     );
-    expect(workflow).toContain(
-      'npm run prewarm:cf -- --url="$BPV_DEPLOY_SITE_URL"',
-    );
+    expect(workflow).not.toContain("prewarm");
     expect(workflow).toContain("if: ${{ always() }}");
     expect(workflow).not.toContain("cloudflare/wrangler-action");
     expect(workflow).not.toContain("actions/upload-artifact");
