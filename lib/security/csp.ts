@@ -9,6 +9,12 @@ export const GOOGLE_ANALYTICS_ORIGIN = "https://www.google-analytics.com";
 export const GOOGLE_COLLECT_ORIGIN = "https://www.google.com";
 export const GOOGLE_TAG_MANAGER_ORIGIN = "https://www.googletagmanager.com";
 export const GOOGLE_THAILAND_ORIGIN = "https://www.google.co.th";
+export const FACEBOOK_ORIGIN = "https://www.facebook.com";
+export const FACEBOOK_WEB_ORIGIN = "https://web.facebook.com";
+export const FACEBOOK_GRAPH_ORIGIN = "https://graph.facebook.com";
+export const FACEBOOK_SDK_ORIGIN = "https://connect.facebook.net";
+export const FACEBOOK_IMAGE_ORIGIN = "https://*.facebook.com";
+export const FACEBOOK_CDN_ORIGIN = "https://*.fbcdn.net";
 const AWS_IMAGE_LOADER_DEFAULT_BASE_URL =
   "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws";
 
@@ -53,6 +59,7 @@ export function buildContentSecurityPolicy({
     CLOUDFLARE_INSIGHTS_ORIGIN,
     GOOGLE_ADS_CONVERSION_ORIGIN,
     GOOGLE_TAG_MANAGER_ORIGIN,
+    FACEBOOK_SDK_ORIGIN,
   ].filter((source): source is string => Boolean(source));
   const styleSources = [
     "'self'",
@@ -80,6 +87,8 @@ export function buildContentSecurityPolicy({
     GOOGLE_COLLECT_ORIGIN,
     GOOGLE_TAG_MANAGER_ORIGIN,
     GOOGLE_THAILAND_ORIGIN,
+    FACEBOOK_IMAGE_ORIGIN,
+    FACEBOOK_CDN_ORIGIN,
   ].filter((source): source is string => Boolean(source));
   const connectSources = [
     "'self'",
@@ -91,6 +100,10 @@ export function buildContentSecurityPolicy({
     GOOGLE_COLLECT_ORIGIN,
     GOOGLE_TAG_MANAGER_ORIGIN,
     GOOGLE_THAILAND_ORIGIN,
+    FACEBOOK_SDK_ORIGIN,
+    FACEBOOK_ORIGIN,
+    FACEBOOK_WEB_ORIGIN,
+    FACEBOOK_GRAPH_ORIGIN,
     "https://www.tiktok.com",
     ...supabaseOrigins,
     ...(isDevelopment ? ["ws:", "wss:"] : []),
@@ -107,7 +120,7 @@ export function buildContentSecurityPolicy({
     "style-src-attr 'unsafe-inline'",
     `script-src ${scriptSources.join(" ")}`,
     `connect-src ${connectSources.join(" ")}`,
-    `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} ${GOOGLE_TAG_MANAGER_ORIGIN} https://www.facebook.com https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
+    `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} ${GOOGLE_TAG_MANAGER_ORIGIN} ${FACEBOOK_ORIGIN} ${FACEBOOK_WEB_ORIGIN} https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
     "form-action 'self'",
     "upgrade-insecure-requests",
   ].join("; ");

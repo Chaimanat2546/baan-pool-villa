@@ -72,6 +72,7 @@ describe("SiteFooter", () => {
     await page.unmount();
   });
 
+
   it("renders footer links and bank highlight with site color variables", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter contactSettings={DEFAULT_SITE_CONTACT_SETTINGS} settings={DEFAULT_SITE_SETTINGS} />,
