@@ -31,6 +31,7 @@ describe("content security policy", () => {
     expect(scriptSrc).toContain("https://static.cloudflareinsights.com");
     expect(scriptSrc).toContain("https://www.googletagmanager.com");
     expect(scriptSrc).toContain("https://googleads.g.doubleclick.net");
+    expect(scriptSrc).toContain("https://connect.facebook.net");
     expect(imgSrc).toContain(
       "https://d24r25u6qcb3zryipzoiqj2jxy0ilqtm.lambda-url.ap-southeast-1.on.aws",
     );
@@ -51,8 +52,15 @@ describe("content security policy", () => {
     expect(connectSrc).toContain("https://ad.doubleclick.net");
     expect(connectSrc).toContain("https://googleads.g.doubleclick.net");
     expect(connectSrc).toContain("https://www.google.co.th");
+    expect(connectSrc).toContain("https://connect.facebook.net");
+    expect(connectSrc).toContain("https://www.facebook.com");
+    expect(connectSrc).toContain("https://web.facebook.com");
+    expect(connectSrc).toContain("https://graph.facebook.com");
+    expect(imgSrc).toContain("https://*.facebook.com");
+    expect(imgSrc).toContain("https://*.fbcdn.net");
     expect(frameSrc).toContain("https://www.googletagmanager.com");
     expect(frameSrc).toContain("https://www.facebook.com");
+    expect(frameSrc).toContain("https://web.facebook.com");
     expect(connectSrc.split(" ")).not.toContain("https:");
     expect(getCspDirective(csp, "style-src-attr")).toBe(
       "style-src-attr 'unsafe-inline'",
