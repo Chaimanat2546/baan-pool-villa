@@ -54,7 +54,6 @@ type SupabaseListingRow = {
   listing_facilities?: SupabaseFacilityJoin[] | null;
   location_zone: string | null;
   max_guests: number | null;
-  notes?: string | null;
   property_id: number | string | null;
   property_tags?: unknown;
   property_type: string | null;
@@ -114,7 +113,6 @@ const LISTING_SELECT_COLUMNS = `
   checkin_time,
   checkout_time,
   sort_order,
-  notes,
   location_zone,
   property_type,
   rating,
@@ -314,7 +312,6 @@ function toAmenity(item: SupabaseFacilityJoin): Amenity | null {
 
 function toVillaDetail(row: SupabaseListingRow): Record<string, unknown> {
   return {
-    h_additional_costs: row.notes ?? null,
     h_extra: row.extra_beds ?? null,
     h_insurance: row.insurance_fee ?? null,
     h_moredetail: row.description ?? null,
