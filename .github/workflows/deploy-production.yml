@@ -121,11 +121,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET"
 
-      - name: Prewarm and verify public HTML
-        id: prewarm
-        shell: bash
-        run: npm run prewarm:cf -- --url="$BPV_DEPLOY_SITE_URL"
-
       - name: Write deployment summary
         if: ${{ always() }}
         shell: bash
@@ -133,7 +128,6 @@ jobs:
           VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
           BUILD_OUTCOME: ${{ steps.build.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
-          PREWARM_OUTCOME: ${{ steps.prewarm.outcome }}
         run: |
           {
             echo "### Production deployment: \`$BPV_DEPLOY_TARGET\`"
@@ -143,5 +137,4 @@ jobs:
             echo "- Validate: ${VALIDATE_OUTCOME:-not-run}"
             echo "- Build: ${BUILD_OUTCOME:-not-run}"
             echo "- Deploy: ${DEPLOY_OUTCOME:-not-run}"
-            echo "- Prewarm: ${PREWARM_OUTCOME:-not-run}"
           } >> "$GITHUB_STEP_SUMMARY"
