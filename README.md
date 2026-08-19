@@ -175,7 +175,7 @@ Deployment uses OpenNext Cloudflare and Wrangler:
 - `wrangler.jsonc` marks `CALENDAR_INTERNAL_API_TOKEN`, `DEVILLE_BEARER_TOKEN`, `PATTAYA_BOOKINGS_API_TOKEN`, `SUPABASE_PUBLISHABLE_KEY`, and `TURNSTILE_SECRET_KEY` as required secrets.
 
 Normal production releases run through
-`.github/workflows/deploy-production.yml`: on push to `master` (normally when a PR is merged), verify once, then build/deploy/prewarm all three clients through isolated matrix jobs.
+`.github/workflows/deploy-production.yml`: pull requests targeting `master` run the same verify/build matrix with Cloudflare deploys in dry-run mode; a push to `master` (normally when a PR is merged) keeps the real deploy path through isolated matrix jobs.
 
 The build receives `SUPABASE_PUBLISHABLE_KEY` from the matching GitHub
 Environment secret because the villa catalog and `/sitemap.xml` need it at

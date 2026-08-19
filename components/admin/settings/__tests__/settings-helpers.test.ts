@@ -18,6 +18,16 @@ describe("section settings helpers", () => {
     expect(removePhoneContact(updated, 0)).toEqual(updated);
   });
 
+  it("does not add a fifth phone contact", () => {
+    const contacts = Array.from({ length: 4 }, (_, index) => ({
+      name: `Contact ${index + 1}`,
+      phone: `081234567${index}`,
+      time: "09:00",
+    }));
+
+    expect(addPhoneContact(contacts)).toEqual(contacts);
+  });
+
   it("accepts only local or HTTP preview image URLs", () => {
     expect(getSafePreviewImageUrl("/hero.webp", "/fallback.webp")).toBe("/hero.webp");
     expect(getSafePreviewImageUrl("javascript:alert(1)", "/fallback.webp")).toBe("/fallback.webp");

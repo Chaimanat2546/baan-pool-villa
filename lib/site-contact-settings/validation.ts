@@ -133,6 +133,7 @@ export function validateSiteContactSettingsDraft(
   if (!draft.bankName.trim()) errors.push("ต้องใส่ชื่อธนาคาร");
   if (!draft.bankAccountNumber.trim()) errors.push("ต้องใส่เลขบัญชีธนาคาร");
   if (!draft.phoneContacts.length) errors.push("ต้องใส่เบอร์โทรอย่างน้อย 1 รายการ");
+  if (draft.phoneContacts.length > 4) errors.push("ต้องมีเบอร์โทรไม่เกิน 4 รายการ");
   draft.phoneContacts.forEach((contact, index) => {
     const number = index + 1;
     if (!contact.name.trim()) errors.push(`ต้องใส่ชื่อผู้ติดต่อคนที่ ${number}`);

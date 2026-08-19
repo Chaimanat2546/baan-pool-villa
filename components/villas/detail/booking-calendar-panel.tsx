@@ -24,7 +24,7 @@ interface BookingCalendarPanelProps {
   contactLinks: { line: string; messenger: string };
   currentBookingMonthKey: string;
   fallbackPrice: number | null;
-  primaryPhoneContact?: { href: string; phone: string };
+  phoneContacts: { href: string; phone: string }[];
 }
 
 function isSameCalendarMonth(date: Date, month: Date) {
@@ -43,7 +43,7 @@ export function BookingCalendarPanel({
   contactLinks,
   currentBookingMonthKey,
   fallbackPrice,
-  primaryPhoneContact,
+  phoneContacts,
 }: BookingCalendarPanelProps) {
   const today = new Date();
   const todayStart = startOfCalendarDate(today);
@@ -176,7 +176,7 @@ export function BookingCalendarPanel({
           onClose={() => {
             setSelectedCalendarDate(null);
           }}
-          primaryPhoneContact={primaryPhoneContact}
+          phoneContacts={phoneContacts}
         />
       ) : null}
     </>

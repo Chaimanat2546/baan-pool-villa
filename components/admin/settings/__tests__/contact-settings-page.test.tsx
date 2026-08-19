@@ -49,4 +49,26 @@ describe("ContactSettingsPage", () => {
     expect(page.container.textContent).toContain("398-289-7482");
     await page.unmount();
   });
+
+  it("offers controls to reorder saved phone contacts", async () => {
+    const settings = {
+      ...DEFAULT_SITE_CONTACT_SETTINGS,
+      contact: {
+        ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
+        phoneContacts: [
+          { name: "First", phone: "0812345678", time: "09.00-18.00" },
+          { name: "Second", phone: "0898765432", time: "09.00-18.00" },
+        ],
+      },
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(makeJsonResponse({ body: { settings } })));
+
+    const page = await mountAdminPage(<SettingsDirtyStateProvider><ContactSettingsPage /></SettingsDirtyStateProvider>);
+
+    expect(page.container.querySelector('button[aria-label="เลื่อนผู้ติดต่อ 2 ขึ้น"]')).not.toBeNull();
+    await click(page.container.querySelector('button[aria-label="เลื่อนผู้ติดต่อ 1 ลง"]')!);
+    expect((page.container.querySelector("#phoneContactName-0") as HTMLInputElement).value).toBe("Second");
+    expect((page.container.querySelector("#phoneContactName-1") as HTMLInputElement).value).toBe("First");
+    await page.unmount();
+  });
 });

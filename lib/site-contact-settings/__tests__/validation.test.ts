@@ -111,6 +111,19 @@ describe("site contact settings validation", () => {
     expect(validateSiteContactSettingsDraft({ ...normalized, facebookPageName: "x".repeat(121) })).toContain("ชื่อเพจ Facebook ต้องมีความยาวไม่เกิน 120 ตัวอักษร");
   });
 
+  it("rejects more than four phone contacts", () => {
+    expect(
+      validateSiteContactSettingsDraft({
+        ...validDraft,
+        phoneContacts: Array.from({ length: 5 }, (_, index) => ({
+          name: `Contact ${index + 1}`,
+          phone: `081234567${index}`,
+          time: "09.00-18.00",
+        })),
+      }),
+    ).toContain("ต้องมีเบอร์โทรไม่เกิน 4 รายการ");
+  });
+
   it("clones phone contacts in the default fallback", () => {
     const first = cloneDefaultSiteContactSettings();
     const second = cloneDefaultSiteContactSettings();

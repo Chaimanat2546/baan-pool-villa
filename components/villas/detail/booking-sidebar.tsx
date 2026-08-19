@@ -29,7 +29,6 @@ export function BookingSidebar({
   const checkOut = findFact(content.facts, "เช็คเอาต์") ?? "12:00";
   const contactLinks = buildContactLinks(contactSettings.contact);
   const phoneContacts = contactSettings.contact.phoneContacts.map(withPhoneHref);
-  const primaryPhoneContact = phoneContacts[0];
 
   return (
     <aside id={id} className="lg:self-start">
@@ -42,7 +41,7 @@ export function BookingSidebar({
           contactLinks={contactLinks}
           currentBookingMonthKey={currentBookingMonthKey}
           fallbackPrice={listing.price}
-          primaryPhoneContact={primaryPhoneContact}
+          phoneContacts={phoneContacts}
         />
 
         <div className="mt-4 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] p-3 text-sm text-[var(--site-muted)]">

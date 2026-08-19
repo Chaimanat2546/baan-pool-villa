@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
 
 permissions:
   contents: read
@@ -119,7 +122,12 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET"
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET" --dry-run
+          else
+            npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET"
+          fi
 
       - name: Write deployment summary
         if: ${{ always() }}

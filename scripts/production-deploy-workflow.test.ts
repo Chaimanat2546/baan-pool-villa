@@ -48,13 +48,15 @@ function extractNamedStep(workflow: string, name: string) {
 }
 
 describe("production deployment workflow", () => {
-  it("runs automatically only from master with read-only permissions", async () => {
+  it("runs on pushes and pull requests targeting master with read-only permissions", async () => {
     const workflow = await readWorkflow();
 
     expect(workflow).toContain(
       "on:\n  push:\n    branches:\n      - master",
     );
-    expect(workflow).not.toContain("pull_request:");
+    expect(workflow).toContain(
+      "  pull_request:\n    branches:\n      - master",
+    );
     expect(workflow).toContain("permissions:\n  contents: read");
     expect(workflow).toContain("group: production-deploy");
     expect(workflow).toContain("cancel-in-progress: false");
@@ -183,13 +185,18 @@ describe("production deployment workflow", () => {
     expect(tokenVerificationStepStart).toBeLessThan(validationStepStart);
   });
 
-  it("builds, deploys, and always writes a summary without prewarming", async () => {
+  it("builds, dry-runs on pull requests, deploys on pushes, and always writes a summary without prewarming", async () => {
     const workflow = await readWorkflow();
 
     expect(workflow).toContain("npm run build:cf");
     expect(workflow).toContain(
       'npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET"',
     );
+    expect(workflow).toContain('if [ "$GITHUB_EVENT_NAME" = "pull_request" ]');
+    expect(workflow).toContain(
+      'npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET" --dry-run',
+    );
+    expect(workflow).toContain('else\n            npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET"');
     expect(workflow).not.toContain("prewarm");
     expect(workflow).toContain("if: ${{ always() }}");
     expect(workflow).not.toContain("cloudflare/wrangler-action");
