@@ -48,6 +48,9 @@ const currencyFormatter = new Intl.NumberFormat("th-TH", {
   currency: "THB",
   maximumFractionDigits: 0,
 });
+const numberFormatter = new Intl.NumberFormat("th-TH", {
+  maximumFractionDigits: 0,
+});
 
 function isRecord(value: unknown): value is DetailRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -90,6 +93,24 @@ function formatCurrency(value: string | null): string | null {
   }
 
   return currencyFormatter.format(amount);
+}
+
+function formatExtraGuest(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const amount = Number(value.replace(/[^\d.]/g, ""));
+
+  if (Number.isFinite(amount) && amount === 0) {
+    return "ไม่รับคนเสริม";
+  }
+
+  if (Number.isFinite(amount) && amount > 0) {
+    return `${numberFormatter.format(amount)} ฿/คืน`;
+  }
+
+  return value;
 }
 
 function normalizeLines(value: string | null): string[] {
@@ -473,13 +494,13 @@ export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
   const checkOut = formatTime(readString(detail, "h_time_checkout"));
   const maxPeople = readString(detail, "h_people_max");
   const insurance = formatCurrency(readString(detail, "h_insurance"));
-  const extraGuest = formatCurrency(readString(detail, "h_extra"));
+  const extraGuest = formatExtraGuest(readString(detail, "h_extra"));
 
   addFact(facts, "เช็คอิน", checkIn);
   addFact(facts, "เช็คเอาต์", checkOut);
   addFact(facts, "พักได้สูงสุด", maxPeople, maxPeople ? " คน" : "");
   addFact(facts, "ค่าประกัน", insurance);
-  addFact(facts, "เสริมคน", extraGuest, extraGuest ? " / คน" : "");
+  addFact(facts, "เสริมคน", extraGuest);
 
   const address = readString(detail, "location") ?? readString(detail, "h_village");
   const seaDistance = readString(detail, "sea");
@@ -494,7 +515,6 @@ export function buildVillaDetailContent(detail: unknown): VillaDetailContent {
   addSection(sections, "ที่จอดรถ", normalizeLines(readString(detail, "h_parking")));
   addSection(sections, "ค่าใช้จ่ายเพิ่มเติม", normalizeLines(readString(detail, "h_additional_costs")));
   addSection(sections, "โปรโมชัน / ราคาแยกตามวัน", normalizeLines(readString(detail, "h_separate")));
-  addSection(sections, "หมายเหตุ", normalizeLines(readString(detail, "h_alert")));
   addSection(sections, "กฎบ้านพัก", normalizeLines(readString(detail, "h_rule")));
   addSection(sections, "นโยบายสัตว์เลี้ยง", buildPetPolicyLines(detail));
 

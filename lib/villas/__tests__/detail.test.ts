@@ -8,6 +8,7 @@ describe("buildVillaDetailContent", () => {
       h_time_checkout: "12:00:00",
       h_extra: "500",
       h_insurance: "5000",
+      h_alert: "หมายเหตุที่ไม่ควรแสดงในหน้ารายละเอียด",
       location: "à¸•à¸£à¸‡à¸‚à¹‰à¸²à¸¡à¸«à¸²à¸”à¸žà¸±à¸—à¸¢à¸²à¸à¸¥à¸²à¸‡",
       sea: "8.5 à¸à¸¡.",
       h_additional_costs: "-à¹„à¸Ÿà¸Ÿà¸£à¸µ 100 à¸«à¸™à¹ˆà¸§à¸¢\r\nà¹€à¸à¸´à¸™à¸«à¸™à¹ˆà¸§à¸¢à¸¥à¸° 7 à¸šà¸²à¸—",
@@ -45,7 +46,7 @@ describe("buildVillaDetailContent", () => {
       { value: "12:00" },
       { value: "25 คน" },
       { value: "฿5,000" },
-      { value: "฿500 / คน" },
+      { value: "500 ฿/คืน" },
     ]);
     expect(content.location).toMatchObject({
       mapUrl: null,
@@ -78,6 +79,9 @@ describe("buildVillaDetailContent", () => {
     expect(
       content.sections.find((section) => section.title === "ค่าใช้จ่ายเพิ่มเติม")?.lines.length,
     ).toBe(2);
+    expect(content.sections).not.toContainEqual(
+      expect.objectContaining({ title: "หมายเหตุ" }),
+    );
     expect(content.nearbyPlaces).toHaveLength(1);
     expect(content.nearbyPlaces[0]).toMatchObject({
       name: "HARBORLAND PATTAYA",
@@ -111,6 +115,15 @@ describe("buildVillaDetailContent", () => {
       poolType: "ไม่มี",
       sections: [],
       videos: [],
+    });
+  });
+
+  it("marks zero extra guest fees as not accepting extra guests", () => {
+    const content = buildVillaDetailContent({ h_extra: "0" });
+
+    expect(content.facts).toContainEqual({
+      label: "เสริมคน",
+      value: "ไม่รับคนเสริม",
     });
   });
 
