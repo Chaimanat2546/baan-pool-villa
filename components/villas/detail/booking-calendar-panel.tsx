@@ -24,7 +24,7 @@ interface BookingCalendarPanelProps {
   contactLinks: { line: string; messenger: string };
   currentBookingMonthKey: string;
   fallbackPrice: number | null;
-  phoneContacts: { href: string; phone: string }[];
+  phoneContacts: { href: string; name: string; phone: string; time: string }[];
 }
 
 function isSameCalendarMonth(date: Date, month: Date) {

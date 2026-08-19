@@ -17,7 +17,7 @@ export function CalendarDayDetailDialog({
   date: Date;
   day: BookingCalendarDay;
   onClose: () => void;
-  phoneContacts?: { href: string; phone: string }[];
+  phoneContacts?: { href: string; name: string; phone: string; time: string }[];
 }) {
   return (
     <div
@@ -111,7 +111,13 @@ export function CalendarDayDetailDialog({
                 key={`${contact.href}-${index}`}
               >
                 <Phone className="h-4 w-4" />
-                โทร {contact.phone}
+                <span className="min-w-0 truncate">
+                  <span className="hidden md:inline">{contact.name} · </span>
+                  โทร {contact.phone}
+                </span>
+                <span className="shrink-0 text-[11px] text-[var(--site-muted)]">
+                  {contact.time.replace("ช่วง ", "")}
+                </span>
               </a>
             ))}
           </div>

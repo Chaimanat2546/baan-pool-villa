@@ -62,14 +62,17 @@ describe("CalendarDayDetailDialog", () => {
       },
       onClose: () => undefined,
       phoneContacts: [
-        { href: "tel:0812345678", phone: "0812345678" },
-        { href: "tel:0898765432", phone: "0898765432" },
+        { href: "tel:0812345678", name: "ฝ่ายขาย", phone: "0812345678", time: "ช่วง 09.00-18.00" },
+        { href: "tel:0898765432", name: "แอดมิน", phone: "0898765432", time: "ช่วง 10.00-20.00" },
       ],
     } satisfies ComponentProps<typeof CalendarDayDetailDialog>;
     const markup = renderToStaticMarkup(<CalendarDayDetailDialog {...dialogProps} />);
 
     expect(markup).toContain('href="tel:0812345678"');
     expect(markup).toContain('href="tel:0898765432"');
+    expect(markup).toContain("09.00-18.00");
+    expect(markup).toContain("hidden md:inline");
+    expect(markup).toContain("ฝ่ายขาย");
     expect(markup.indexOf("0812345678")).toBeLessThan(markup.indexOf("0898765432"));
   });
 
@@ -92,8 +95,8 @@ describe("CalendarDayDetailDialog", () => {
       },
       onClose: () => undefined,
       phoneContacts: [
-        { href: "tel:0838126451", phone: "0838126451" },
-        { href: "tel:0838126451", phone: "0838126451" },
+        { href: "tel:0838126451", name: "ฝ่ายขาย", phone: "0838126451", time: "ช่วง 09.00-18.00" },
+        { href: "tel:0838126451", name: "แอดมิน", phone: "0838126451", time: "ช่วง 10.00-20.00" },
       ],
     } satisfies ComponentProps<typeof CalendarDayDetailDialog>;
 
