@@ -211,9 +211,16 @@ export function mapContactSettingsResponse(value: unknown): ContactSettingsDraft
 
 export function makeContactSettingsSnapshot(draft: ContactSettingsDraft): string { return JSON.stringify(draft); }
 export function buildContactSettingsJson(draft: ContactSettingsDraft): string { return JSON.stringify(draft); }
-export function addPhoneContact(contacts: ContactSettingsDraft["phoneContacts"]) { return [...contacts, { name: "", phone: "", time: "" }]; }
+export function addPhoneContact(contacts: ContactSettingsDraft["phoneContacts"]) { return contacts.length >= 4 ? contacts : [...contacts, { name: "", phone: "", time: "" }]; }
 export function updatePhoneContact(contacts: ContactSettingsDraft["phoneContacts"], index: number, changes: Partial<ContactSettingsDraft["phoneContacts"][number]>) { return contacts.map((contact, contactIndex) => contactIndex === index ? { ...contact, ...changes } : contact); }
 export function removePhoneContact(contacts: ContactSettingsDraft["phoneContacts"], index: number) { return contacts.length <= 1 ? contacts : contacts.filter((_contact, contactIndex) => contactIndex !== index); }
+export function movePhoneContact(contacts: ContactSettingsDraft["phoneContacts"], index: number, direction: -1 | 1) {
+  const nextIndex = index + direction;
+  if (index < 0 || nextIndex < 0 || index >= contacts.length || nextIndex >= contacts.length) return contacts;
+  const reordered = [...contacts];
+  [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+  return reordered;
+}
 
 export function extractErrors(
   payload: unknown,

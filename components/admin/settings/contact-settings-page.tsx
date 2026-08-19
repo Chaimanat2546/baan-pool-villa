@@ -1,11 +1,11 @@
 "use client";
 
-import { BadgeInfo, Landmark, Link2, MessageCircleMore, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, BadgeInfo, Landmark, Link2, MessageCircleMore, Plus, Trash2 } from "lucide-react";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { SectionCard, TextControl } from "./settings-form-controls";
 import { SettingsSectionHeader } from "./settings-section-header";
 import { SettingsSectionSkeleton } from "./settings-section-skeleton";
-import { addPhoneContact, buildContactSettingsJson, makeContactSettingsSnapshot, mapContactSettingsResponse, removePhoneContact, updatePhoneContact } from "./settings-helpers";
+import { addPhoneContact, buildContactSettingsJson, makeContactSettingsSnapshot, mapContactSettingsResponse, movePhoneContact, removePhoneContact, updatePhoneContact } from "./settings-helpers";
 import { validateContactSettingsDraft } from "./settings-validation";
 import { useAdminSettingsSection } from "./use-admin-settings-section";
 
@@ -99,6 +99,25 @@ export function ContactSettingsPage() {
                     <p className="text-sm font-semibold text-[var(--site-text)]">
                       ผู้ติดต่อ {index + 1}
                     </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        aria-label={`เลื่อนผู้ติดต่อ ${index + 1} ขึ้น`}
+                        className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border)] text-[var(--site-muted)] transition hover:border-[var(--site-border-strong)] hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-40"
+                        disabled={index === 0}
+                        onClick={() => state.updateDraft({ phoneContacts: movePhoneContact(draft.phoneContacts, index, -1) })}
+                        type="button"
+                      >
+                        <ArrowUp aria-hidden="true" className="size-4" />
+                      </button>
+                      <button
+                        aria-label={`เลื่อนผู้ติดต่อ ${index + 1} ลง`}
+                        className="inline-flex size-9 items-center justify-center rounded-md border border-[var(--site-border)] text-[var(--site-muted)] transition hover:border-[var(--site-border-strong)] hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-40"
+                        disabled={index === draft.phoneContacts.length - 1}
+                        onClick={() => state.updateDraft({ phoneContacts: movePhoneContact(draft.phoneContacts, index, 1) })}
+                        type="button"
+                      >
+                        <ArrowDown aria-hidden="true" className="size-4" />
+                      </button>
                     {draft.phoneContacts.length > 1 ? (
                       <button
                         className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200"
@@ -111,6 +130,7 @@ export function ContactSettingsPage() {
                         ลบผู้ติดต่อ
                       </button>
                     ) : null}
+                    </div>
                   </div>
                   <div className="grid gap-4 lg:grid-cols-3">
                     <TextControl
@@ -144,14 +164,14 @@ export function ContactSettingsPage() {
                   </div>
                 </div>
               ))}
-              <button
+              {draft.phoneContacts.length < 4 ? <button
                 className="inline-flex h-10 w-fit items-center gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)] hover:bg-[var(--site-primary-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--site-primary)]/20"
                 onClick={() => state.updateDraft({ phoneContacts: addPhoneContact(draft.phoneContacts) })}
                 type="button"
               >
                 <Plus aria-hidden="true" className="size-4" />
                 เพิ่มผู้ติดต่อ
-              </button>
+              </button> : null}
             </div>
           </div>
 

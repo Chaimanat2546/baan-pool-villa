@@ -2,10 +2,12 @@
 
 ## Normal Release
 
-Production deploys automatically on push to `master` (normally when a PR is merged).
-The `Deploy production clients` workflow verifies the repository once, then
-builds and deploys `baanparty`, `baan02`, `baanPMhee`, `flukNasa`, and
-`villaMedia` independently.
+Pull requests targeting `master` run the `Deploy production clients` workflow
+with the same verification, matrix, credential checks, target validation, and
+OpenNext builds as production, but the Cloudflare deploy command uses
+`--dry-run`. Production deploys automatically on push to `master` (normally
+when a PR is merged) and use the real deploy command for
+`baanparty`, `baan02`, `baanPMhee`, `flukNasa`, and `villaMedia` independently.
 
 For each target, CD verifies `CLOUDFLARE_API_TOKEN` through Cloudflare
 `/client/v4/user/tokens/verify` before target validation, build, or deploy. It

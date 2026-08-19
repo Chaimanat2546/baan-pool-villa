@@ -92,6 +92,9 @@ describe("Next image config", () => {
       "https://www.google-analytics.com",
     );
     expect(getCspDirective(csp, "connect-src")).toContain(
+      "https://analytics.google.com",
+    );
+    expect(getCspDirective(csp, "connect-src")).toContain(
       "https://www.google.com",
     );
     expect(getCspDirective(csp, "connect-src")).toContain(
@@ -99,6 +102,9 @@ describe("Next image config", () => {
     );
     expect(getCspDirective(csp, "connect-src")).toContain(
       "https://googleads.g.doubleclick.net",
+    );
+    expect(getCspDirective(csp, "connect-src")).toContain(
+      "https://www.googleadservices.com",
     );
     expect(getCspDirective(csp, "connect-src")).toContain(
       "https://www.google.co.th",

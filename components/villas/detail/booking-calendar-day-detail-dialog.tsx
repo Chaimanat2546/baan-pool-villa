@@ -11,13 +11,13 @@ export function CalendarDayDetailDialog({
   date,
   day,
   onClose,
-  primaryPhoneContact,
+  phoneContacts = [],
 }: {
   contactLinks: { line: string; messenger: string };
   date: Date;
   day: BookingCalendarDay;
   onClose: () => void;
-  primaryPhoneContact?: { href: string; phone: string };
+  phoneContacts?: { href: string; name: string; phone: string; time: string }[];
 }) {
   return (
     <div
@@ -104,15 +104,22 @@ export function CalendarDayDetailDialog({
                 แชทเลย
               </a>
             </div>
-            {primaryPhoneContact ? (
+            {phoneContacts.map((contact, index) => (
               <a
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-sm font-black text-[var(--site-text)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-primary-soft)]"
-                href={primaryPhoneContact.href}
+                href={contact.href}
+                key={`${contact.href}-${index}`}
               >
                 <Phone className="h-4 w-4" />
-                โทร {primaryPhoneContact.phone}
+                <span className="min-w-0 truncate">
+                  <span className="hidden md:inline">{contact.name} · </span>
+                  โทร {contact.phone}
+                </span>
+                <span className="shrink-0 text-[11px] text-[var(--site-muted)]">
+                  {contact.time.replace("ช่วง ", "")}
+                </span>
               </a>
-            ) : null}
+            ))}
           </div>
         </div>
       </div>
