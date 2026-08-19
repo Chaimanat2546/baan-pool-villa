@@ -111,7 +111,7 @@ const content: VillaDetailContent = {
     { label: "เช็คอิน", value: "14:00" },
     { label: "เช็คเอาต์", value: "12:00" },
     { label: "ค่าประกัน", value: "฿5,000" },
-    { label: "เสริมคน", value: "฿500 / คน" },
+    { label: "เสริมคน", value: "500 ฿/คืน" },
   ],
   location: {
     address: "บ้านพักติดเขาพระตำหนัก",

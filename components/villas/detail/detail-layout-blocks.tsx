@@ -284,7 +284,9 @@ function renderCostsPromotions({
       ) : null}
       {extraGuest ? (
         <p className="rounded-xl bg-[var(--site-primary-soft)] p-3 font-black text-[var(--site-text)]">
-          เสริมคน {extraGuest}
+          {extraGuest === "ไม่รับคนเสริม"
+            ? extraGuest
+            : `คนเกินเสริมท่านละ ${extraGuest}`}
         </p>
       ) : null}
       {groups.map((section) => (
