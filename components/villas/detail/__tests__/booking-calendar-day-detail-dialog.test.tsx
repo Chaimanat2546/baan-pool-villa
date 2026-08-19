@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import { renderToStaticMarkup } from "react-dom/server";
+import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mountAdminPage } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 import { CalendarDayDetailDialog } from "../booking-calendar-day-detail-dialog";
@@ -53,18 +54,18 @@ describe("CalendarDayDetailDialog", () => {
         guestCapacity: null,
         holidayAlert: null,
         icons: [],
-        kind: "available",
+        kind: "base",
         label: "ว่าง",
         price: 18900,
         promotionMessage: null,
-        tone: "available",
+        tone: "default",
       },
       onClose: () => undefined,
       phoneContacts: [
         { href: "tel:0812345678", phone: "0812345678" },
         { href: "tel:0898765432", phone: "0898765432" },
       ],
-    } as never;
+    } satisfies ComponentProps<typeof CalendarDayDetailDialog>;
     const markup = renderToStaticMarkup(<CalendarDayDetailDialog {...dialogProps} />);
 
     expect(markup).toContain('href="tel:0812345678"');
@@ -83,18 +84,18 @@ describe("CalendarDayDetailDialog", () => {
         guestCapacity: null,
         holidayAlert: null,
         icons: [],
-        kind: "available",
+        kind: "base",
         label: "ว่าง",
         price: 18900,
         promotionMessage: null,
-        tone: "available",
+        tone: "default",
       },
       onClose: () => undefined,
       phoneContacts: [
         { href: "tel:0838126451", phone: "0838126451" },
         { href: "tel:0838126451", phone: "0838126451" },
       ],
-    } as never;
+    } satisfies ComponentProps<typeof CalendarDayDetailDialog>;
 
     const page = await mountAdminPage(<CalendarDayDetailDialog {...dialogProps} />);
 
