@@ -21,7 +21,6 @@ interface VillaRailProps {
   cta?: boolean | VillaRailCtaConfig;
   description: string;
   id?: string;
-  initialRenderedVillaCount?: number;
   title: string;
   titleHeadingLevel?: "h1" | "h2";
   villaCardStyle?: SiteVillaCardStyle;
@@ -70,7 +69,6 @@ export function VillaRail({
   cta,
   description,
   id,
-  initialRenderedVillaCount,
   title,
   titleHeadingLevel = "h1",
   villaCardStyle,
@@ -78,31 +76,11 @@ export function VillaRail({
 }: VillaRailProps) {
   const ctaConfig = getVillaRailCtaConfig(cta);
   const ctaHref = ctaConfig ? sanitizeCtaHref(ctaConfig.href) : null;
-  const initialRenderedCount = Math.min(
-    Math.max(1, initialRenderedVillaCount ?? MAX_RENDERED_VILLA_RAIL_ITEMS),
-    MAX_RENDERED_VILLA_RAIL_ITEMS,
-    villas.length,
-  );
-  const [renderedVillas, setRenderedVillas] = useState(() =>
-    villas.slice(0, initialRenderedCount),
-  );
+  const renderedVillas = villas.slice(0, MAX_RENDERED_VILLA_RAIL_ITEMS);
   const [activeCardIndexes, setActiveCardIndexes] = useState(
     () => new Set(Array.from({ length: INITIAL_ACTIVE_CARD_COUNT }, (_, index) => index)),
   );
   const activateCardWindow = useCallback((selectedIndex: number) => {
-    if (selectedIndex >= renderedVillas.length - 3) {
-      setRenderedVillas((currentVillas) =>
-        villas.slice(0, Math.min(currentVillas.length + INITIAL_ACTIVE_CARD_COUNT, MAX_RENDERED_VILLA_RAIL_ITEMS)),
-      );
-      setActiveCardIndexes(
-        new Set(
-          Array.from(
-            { length: Math.min(renderedVillas.length + INITIAL_ACTIVE_CARD_COUNT, villas.length) },
-            (_, index) => index,
-          ),
-        ),
-      );
-    }
     setActiveCardIndexes((currentIndexes) => {
       const nextIndexes = new Set(currentIndexes);
 
@@ -116,7 +94,7 @@ export function VillaRail({
 
       return nextIndexes.size === currentIndexes.size ? currentIndexes : nextIndexes;
     });
-  }, [renderedVillas.length, villas]);
+  }, [renderedVillas.length]);
 
   return (
     <section

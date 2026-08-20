@@ -76,7 +76,7 @@ describe("VillaRail image activation window", () => {
     container.remove();
   });
 
-  it("renders four initial cards and appends its in-memory payload without blank cards or a continuation request", async () => {
+  it("renders its complete initial payload without a continuation request", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const container = document.createElement("div");
@@ -85,7 +85,6 @@ describe("VillaRail image activation window", () => {
     await act(async () => {
       root.render(
         <VillaRail
-          initialRenderedVillaCount={4}
           description="Recommended"
           title="Recommended"
           villas={Array.from({ length: 12 }, (_, index) => villa(index + 1))}
@@ -97,7 +96,7 @@ describe("VillaRail image activation window", () => {
       Array.from(container.querySelectorAll("[data-villa-id]")).map(
         (element) => element.getAttribute("data-villa-id"),
       ),
-    ).toEqual(["1", "2", "3", "4"]);
+    ).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
     expect(fetchMock).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -107,7 +106,7 @@ describe("VillaRail image activation window", () => {
       Array.from(container.querySelectorAll("[data-villa-id]")).map(
         (element) => element.getAttribute("data-villa-id"),
       ),
-    ).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
+    ).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
 
     await act(async () => reportActiveIndex?.(5));
     expect(

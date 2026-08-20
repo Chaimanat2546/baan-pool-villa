@@ -3,7 +3,7 @@
 import AutoScroll from "embla-carousel-auto-scroll";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type MouseEvent, type PointerEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -27,6 +27,8 @@ export function ScrollRail({
   onActiveIndexChange,
 }: ScrollRailProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
+  const dragStartRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const draggedRef = useRef(false);
 
   const supportsEmbla =
     typeof window === "undefined" ||
@@ -128,6 +130,26 @@ export function ScrollRail({
     restartAutoScroll();
     emblaApi?.scrollNext();
   }, [emblaApi, restartAutoScroll]);
+  const recordPointerDown = useCallback((event: PointerEvent) => {
+    dragStartRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    draggedRef.current = false;
+  }, []);
+  const recordPointerMove = useCallback((event: PointerEvent) => {
+    const start = dragStartRef.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+
+    draggedRef.current ||= Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6;
+  }, []);
+  const clearPointer = useCallback(() => {
+    dragStartRef.current = null;
+  }, []);
+  const suppressDraggedCardClick = useCallback((event: MouseEvent) => {
+    if (draggedRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      draggedRef.current = false;
+    }
+  }, []);
   return (
     <div className="relative">
       <div
@@ -157,6 +179,11 @@ export function ScrollRail({
         <div
           ref={emblaRef}
           data-scroll-rail-viewport="true"
+          onClickCapture={suppressDraggedCardClick}
+          onPointerCancel={clearPointer}
+          onPointerDownCapture={recordPointerDown}
+          onPointerMoveCapture={recordPointerMove}
+          onPointerUp={clearPointer}
           onMouseEnter={autoScroll ? pauseAutoScroll : undefined}
           onMouseLeave={autoScroll ? restartAutoScroll : undefined}
           className={cn(

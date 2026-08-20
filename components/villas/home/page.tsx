@@ -129,9 +129,6 @@ export function HomePageContent({
               id={section.slug}
               title={section.title}
               description={section.description}
-              initialRenderedVillaCount={
-                item.key === resolvedCriticalRailKey ? 4 : undefined
-              }
               villaCardStyle={villaCardStyle}
               villas={section.villas}
             />

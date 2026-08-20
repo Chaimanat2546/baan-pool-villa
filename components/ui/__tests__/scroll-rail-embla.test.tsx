@@ -183,6 +183,41 @@ describe("ScrollRail Embla controls", () => {
     });
   });
 
+  it("suppresses a card click after a mouse drag but preserves intentional clicks", async () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    const onCardClick = vi.fn();
+    document.body.append(container);
+
+    await act(async () => {
+      root.render(
+        <ScrollRail label="บ้านพัก">
+          <a
+            href="/villas/1"
+            onClick={(event) => {
+              event.preventDefault();
+              onCardClick();
+            }}
+          >
+            Card
+          </a>
+        </ScrollRail>,
+      );
+    });
+
+    const card = container.querySelector<HTMLAnchorElement>('a[href="/villas/1"]');
+    card?.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, clientX: 0, clientY: 0 }));
+    card?.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: 12, clientY: 0 }));
+    card?.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, clientX: 12, clientY: 0 }));
+    card?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(onCardClick).not.toHaveBeenCalled();
+
+    card?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(onCardClick).toHaveBeenCalledTimes(1);
+
+    await act(async () => root.unmount());
+  });
+
   it("reports the active Embla snap and cleans up its select listener", async () => {
     const container = document.createElement("div");
     const root = createRoot(container);
