@@ -56,7 +56,6 @@ export type HomePageContentSettings = Pick<
 
 interface HomePageContentProps {
   criticalContent?: ReactNode;
-  criticalRailContinuationKey?: string | null;
   criticalRailKey?: string | null;
   customerReviews?: HomepageCustomerReviewData;
   initialGuides?: PublicGuideSummary[];
@@ -69,7 +68,6 @@ interface HomePageContentProps {
 
 export function HomePageContent({
   criticalContent,
-  criticalRailContinuationKey,
   criticalRailKey,
   customerReviews = {
     images: [],
@@ -131,8 +129,8 @@ export function HomePageContent({
               id={section.slug}
               title={section.title}
               description={section.description}
-              continuationRailKey={
-                item.key === criticalRailContinuationKey ? item.key : undefined
+              initialRenderedVillaCount={
+                item.key === resolvedCriticalRailKey ? 4 : undefined
               }
               villaCardStyle={villaCardStyle}
               villas={section.villas}

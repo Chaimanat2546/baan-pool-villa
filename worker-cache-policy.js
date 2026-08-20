@@ -498,28 +498,6 @@ function hasValidHomeDeferredQuery(url) {
   );
 }
 
-function hasValidHomeRailQuery(url) {
-  const entries = Array.from(url.searchParams.entries());
-  const railKeys = url.searchParams.getAll("rail");
-  const offsets = url.searchParams.getAll("offset");
-  const excludedVillaIds = url.searchParams.getAll("exclude");
-  const offset = Number(offsets[0]);
-
-  return (
-    entries.length === 2 + excludedVillaIds.length &&
-    railKeys.length === 1 &&
-    offsets.length === 1 &&
-    railKeys[0].length <= 128 &&
-    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(railKeys[0]) &&
-    (offsets[0] === "4" || offsets[0] === "8") &&
-    excludedVillaIds.length <= offset &&
-    new Set(excludedVillaIds).size === excludedVillaIds.length &&
-    excludedVillaIds.every(
-      (id) => /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id)),
-    )
-  );
-}
-
 function getJsonCacheVersionGroups(pathname) {
   if (pathname === "/api/houses") {
     return [HTML_CACHE_VERSION_GROUPS.villaListings];
@@ -534,13 +512,6 @@ function getJsonCacheVersionGroups(pathname) {
       HTML_CACHE_VERSION_GROUPS.homeSections,
       HTML_CACHE_VERSION_GROUPS.guides,
       HTML_CACHE_VERSION_GROUPS.customerReviews,
-      HTML_CACHE_VERSION_GROUPS.villaListings,
-    ];
-  }
-
-  if (pathname === "/api/home-rail") {
-    return [
-      HTML_CACHE_VERSION_GROUPS.homeSections,
       HTML_CACHE_VERSION_GROUPS.villaListings,
     ];
   }
@@ -620,14 +591,6 @@ export function createJsonEdgeCacheKey(request, versionToken = "") {
     url.pathname === "/api/home-deferred" && hasValidHomeDeferredQuery(url)
       ? url.searchParams.get("criticalRail")
       : null;
-  const homeRailQuery =
-    url.pathname === "/api/home-rail" && hasValidHomeRailQuery(url)
-      ? {
-          excludedVillaIds: url.searchParams.getAll("exclude"),
-          offset: url.searchParams.get("offset"),
-          rail: url.searchParams.get("rail"),
-        }
-      : null;
 
   url.search = "";
   url.hash = "";
@@ -638,14 +601,6 @@ export function createJsonEdgeCacheKey(request, versionToken = "") {
 
   if (criticalRailKey) {
     url.searchParams.set("criticalRail", criticalRailKey);
-  }
-
-  if (homeRailQuery?.rail && homeRailQuery.offset) {
-    url.searchParams.set("rail", homeRailQuery.rail);
-    url.searchParams.set("offset", homeRailQuery.offset);
-    homeRailQuery.excludedVillaIds.forEach((id) => {
-      url.searchParams.append("exclude", id);
-    });
   }
 
   if (versionToken) {
@@ -758,7 +713,6 @@ export function getJsonEdgeCacheDecision(request) {
     url.pathname === "/api/houses" ||
     url.pathname === "/api/home-sections" ||
     url.pathname === "/api/home-deferred" ||
-    url.pathname === "/api/home-rail" ||
     isVillaDetailApiPath(url.pathname) ||
     hasOnlyVillaCardImagesQuery(url);
 
@@ -777,9 +731,7 @@ export function getJsonEdgeCacheDecision(request) {
   } else if (
     url.pathname === "/api/home-deferred"
       ? !hasValidHomeDeferredQuery(url)
-      : url.pathname === "/api/home-rail"
-        ? !hasValidHomeRailQuery(url)
-        : url.search.length > 0
+      : url.search.length > 0
   ) {
     return { cacheable: false, candidate: true, reason: "query" };
   }

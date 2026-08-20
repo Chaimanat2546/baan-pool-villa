@@ -710,17 +710,6 @@ describe("worker JSON edge cache policy", () => {
       candidate: true,
       reason: "json",
     });
-    expect(
-      getJsonEdgeCacheDecision(
-        request("/api/home-rail?rail=featured-villas&offset=4&exclude=1&exclude=2&exclude=3&exclude=4"),
-      ),
-    ).toMatchObject({
-      cacheControl: JSON_EDGE_CACHE_CONTROL,
-      cacheable: true,
-      candidate: true,
-      reason: "json",
-      versionGroups: ["home-sections", "villa-listings"],
-    });
     expect(getJsonEdgeCacheDecision(request("/api/villas/9"))).toMatchObject({
       cacheable: true,
       candidate: true,
@@ -779,27 +768,8 @@ describe("worker JSON edge cache policy", () => {
       ),
     ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
     expect(
-      getJsonEdgeCacheDecision(
-        request("/api/home-rail?rail=featured&offset=5"),
-      ),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
-    expect(
-      getJsonEdgeCacheDecision(
-        request("/api/home-rail?rail=featured&offset=4&exclude=1&exclude=1"),
-      ),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
-    expect(
-      getJsonEdgeCacheDecision(
-        request("/api/home-rail?rail=featured&offset=4&exclude=0"),
-      ),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
-    expect(
-      getJsonEdgeCacheDecision(
-        request(
-          "/api/home-rail?rail=featured&offset=4&exclude=1&exclude=2&exclude=3&exclude=4&exclude=5",
-        ),
-      ),
-    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+      getJsonEdgeCacheDecision(request("/api/home-rail?rail=featured&offset=4")),
+    ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
     expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?imageId=7")),
     ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
@@ -853,21 +823,6 @@ describe("worker JSON edge cache policy", () => {
 
     expect(url.pathname).toBe("/api/home-deferred");
     expect(url.searchParams.get("criticalRail")).toBe("featured-villas");
-    expect(url.searchParams.get("__bpv_json_v")).toBe("home-sections:42");
-    expect(url.hash).toBe("");
-  });
-
-  it("keeps the rail identity and offset in continuation JSON cache keys", () => {
-    const cacheKey = createJsonEdgeCacheKey(
-      request("/api/home-rail?rail=featured-villas&offset=8&exclude=1&exclude=2&exclude=4#later"),
-      "home-sections:42",
-    );
-    const url = new URL(cacheKey.url);
-
-    expect(url.pathname).toBe("/api/home-rail");
-    expect(url.searchParams.get("rail")).toBe("featured-villas");
-    expect(url.searchParams.get("offset")).toBe("8");
-    expect(url.searchParams.getAll("exclude")).toEqual(["1", "2", "4"]);
     expect(url.searchParams.get("__bpv_json_v")).toBe("home-sections:42");
     expect(url.hash).toBe("");
   });

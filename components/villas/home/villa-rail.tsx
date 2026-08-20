@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { ScrollRail } from "@/components/ui/scroll-rail";
 import type { VillaListing } from "@/lib/villas/types";
@@ -20,8 +20,8 @@ interface VillaRailProps {
   autoScrollEnabled?: boolean;
   cta?: boolean | VillaRailCtaConfig;
   description: string;
-  continuationRailKey?: string;
   id?: string;
+  initialRenderedVillaCount?: number;
   title: string;
   titleHeadingLevel?: "h1" | "h2";
   villaCardStyle?: SiteVillaCardStyle;
@@ -69,8 +69,8 @@ export function VillaRail({
   autoScrollEnabled = false,
   cta,
   description,
-  continuationRailKey,
   id,
+  initialRenderedVillaCount,
   title,
   titleHeadingLevel = "h1",
   villaCardStyle,
@@ -78,126 +78,31 @@ export function VillaRail({
 }: VillaRailProps) {
   const ctaConfig = getVillaRailCtaConfig(cta);
   const ctaHref = ctaConfig ? sanitizeCtaHref(ctaConfig.href) : null;
+  const initialRenderedCount = Math.min(
+    Math.max(1, initialRenderedVillaCount ?? MAX_RENDERED_VILLA_RAIL_ITEMS),
+    MAX_RENDERED_VILLA_RAIL_ITEMS,
+    villas.length,
+  );
   const [renderedVillas, setRenderedVillas] = useState(() =>
-    villas.slice(0, MAX_RENDERED_VILLA_RAIL_ITEMS),
+    villas.slice(0, initialRenderedCount),
   );
-  const [hasMoreVillas, setHasMoreVillas] = useState(
-    () => Boolean(continuationRailKey),
-  );
-  const [continuationStatus, setContinuationStatus] = useState<
-    "idle" | "loading" | "error"
-  >("idle");
-  const continuationControllerRef = useRef<AbortController | null>(null);
-  const continuationLoadingRef = useRef(false);
-  const continuationOffsetRef = useRef(INITIAL_ACTIVE_CARD_COUNT);
-  const lastSelectedIndexRef = useRef(0);
   const [activeCardIndexes, setActiveCardIndexes] = useState(
     () => new Set(Array.from({ length: INITIAL_ACTIVE_CARD_COUNT }, (_, index) => index)),
   );
-  useEffect(
-    () => () => continuationControllerRef.current?.abort(),
-    [],
-  );
-
-  const loadContinuation = useCallback(async (
-    selectedIndex: number,
-    force = false,
-  ) => {
-    if (
-      !continuationRailKey ||
-      !hasMoreVillas ||
-      continuationLoadingRef.current ||
-      (!force && selectedIndex < renderedVillas.length - 3) ||
-      continuationOffsetRef.current >= MAX_RENDERED_VILLA_RAIL_ITEMS
-    ) {
-      return;
-    }
-
-    continuationLoadingRef.current = true;
-    setContinuationStatus("loading");
-    const controller = new AbortController();
-    continuationControllerRef.current = controller;
-    const requestedOffset = continuationOffsetRef.current;
-    const requestParams = new URLSearchParams({
-      rail: continuationRailKey,
-      offset: String(requestedOffset),
-    });
-    renderedVillas.forEach((villa) => requestParams.append("exclude", villa.id));
-
-    try {
-      const response = await fetch(
-        `/api/home-rail?${requestParams.toString()}`,
-        { cache: "force-cache", signal: controller.signal },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Critical rail continuation failed: ${response.status}`);
-      }
-
-      const payload = (await response.json()) as {
-        hasMore: boolean;
-        nextOffset?: number;
-        villas: VillaListing[];
-      };
-      const nextOffset =
-        payload.nextOffset ??
-        Math.min(
-          requestedOffset + INITIAL_ACTIVE_CARD_COUNT,
-          MAX_RENDERED_VILLA_RAIL_ITEMS,
-        );
-
-      if (
-        nextOffset !==
-        Math.min(
-          requestedOffset + INITIAL_ACTIVE_CARD_COUNT,
-          MAX_RENDERED_VILLA_RAIL_ITEMS,
-        )
-      ) {
-        throw new Error("Critical rail continuation returned an invalid cursor");
-      }
-
-      if (controller.signal.aborted) {
-        return;
-      }
-
-      const existingIds = new Set(renderedVillas.map((villa) => villa.id));
-      const appendedVillas = payload.villas.filter(
-        (villa) => !existingIds.has(villa.id),
-      );
-      const nextVillas = [...renderedVillas, ...appendedVillas].slice(
-        0,
-        MAX_RENDERED_VILLA_RAIL_ITEMS,
-      );
-
-      setRenderedVillas(nextVillas);
-      setActiveCardIndexes(
-        new Set(Array.from({ length: nextVillas.length }, (_, index) => index)),
-      );
-      continuationOffsetRef.current = nextOffset;
-      setHasMoreVillas(
-        payload.hasMore &&
-          nextOffset < MAX_RENDERED_VILLA_RAIL_ITEMS &&
-          nextVillas.length < MAX_RENDERED_VILLA_RAIL_ITEMS,
-      );
-      setContinuationStatus("idle");
-    } catch (error) {
-      if (
-        !controller.signal.aborted &&
-        (!(error instanceof DOMException) || error.name !== "AbortError")
-      ) {
-        console.error("Unable to load critical rail continuation", error);
-        setContinuationStatus("error");
-      }
-    } finally {
-      if (continuationControllerRef.current === controller) {
-        continuationControllerRef.current = null;
-        continuationLoadingRef.current = false;
-      }
-    }
-  }, [continuationRailKey, hasMoreVillas, renderedVillas]);
-
   const activateCardWindow = useCallback((selectedIndex: number) => {
-    lastSelectedIndexRef.current = selectedIndex;
+    if (selectedIndex >= renderedVillas.length - 3) {
+      setRenderedVillas((currentVillas) =>
+        villas.slice(0, Math.min(currentVillas.length + INITIAL_ACTIVE_CARD_COUNT, MAX_RENDERED_VILLA_RAIL_ITEMS)),
+      );
+      setActiveCardIndexes(
+        new Set(
+          Array.from(
+            { length: Math.min(renderedVillas.length + INITIAL_ACTIVE_CARD_COUNT, villas.length) },
+            (_, index) => index,
+          ),
+        ),
+      );
+    }
     setActiveCardIndexes((currentIndexes) => {
       const nextIndexes = new Set(currentIndexes);
 
@@ -211,12 +116,7 @@ export function VillaRail({
 
       return nextIndexes.size === currentIndexes.size ? currentIndexes : nextIndexes;
     });
-    void loadContinuation(selectedIndex);
-  }, [loadContinuation, renderedVillas.length]);
-
-  const retryContinuation = useCallback(() => {
-    void loadContinuation(lastSelectedIndexRef.current, true);
-  }, [loadContinuation]);
+  }, [renderedVillas.length, villas]);
 
   return (
     <section
@@ -247,32 +147,6 @@ export function VillaRail({
           </div>
         ))}
       </ScrollRail>
-      {continuationStatus === "loading" ? (
-        <p
-          className="mt-2 text-center text-sm font-semibold text-slate-600"
-          data-home-rail-continuation="loading"
-          role="status"
-        >
-          กำลังโหลดบ้านพักเพิ่มเติม…
-        </p>
-      ) : null}
-      {continuationStatus === "error" ? (
-        <div
-          className="mt-2 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-700"
-          data-home-rail-continuation="error"
-          role="alert"
-        >
-          <span>โหลดบ้านพักเพิ่มไม่สำเร็จ</span>
-          <button
-            type="button"
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-bold text-[var(--site-primary)] transition hover:border-[var(--site-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]"
-            data-home-rail-retry="true"
-            onClick={retryContinuation}
-          >
-            ลองอีกครั้ง
-          </button>
-        </div>
-      ) : null}
       {ctaConfig ? (
         <div className="mt-8 text-center">
           <a
