@@ -152,7 +152,9 @@ beforeEach(() => {
 
 describe("deferred homepage server data", () => {
   it("loads the complete bounded critical-rail payload without starting deferred sources", async () => {
-    const criticalVillas = ["1", "2", "3", "4", "5", "6"].map(makeVilla);
+    const criticalVillas = Array.from({ length: 12 }, (_, index) =>
+      makeVilla(String(index + 1)),
+    );
     getHomeSectionListingPlanMock.mockResolvedValue({
       configs: [
         {
@@ -169,7 +171,7 @@ describe("deferred homepage server data", () => {
             isActive: true,
             position,
           })),
-          limitCount: 6,
+          limitCount: 12,
           mode: "manual",
           sliceOffset: 0,
           slug: "critical",
@@ -229,17 +231,12 @@ describe("deferred homepage server data", () => {
     expect(getInitialHomePageData).toBeTypeOf("function");
     const payload = await getInitialHomePageData!();
 
-    expect(payload.sections[0]?.villas.map((villa) => villa.id)).toEqual([
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-    ]);
+    expect(payload.sections[0]?.villas.map((villa) => villa.id)).toEqual(
+      criticalVillas.map((villa) => villa.id),
+    );
     expect(fetchHomeListingsMock).toHaveBeenCalledWith(
-      ["1", "2", "3", "4", "5", "6"],
-      6,
+      criticalVillas.map((villa) => villa.id),
+      12,
     );
     expect(withVillaCardGalleryPreviewsMock).toHaveBeenCalledWith(
       criticalVillas,
