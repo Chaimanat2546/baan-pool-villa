@@ -334,6 +334,7 @@ export function VillaCardGalleryImages({
                   alt=""
                   fill
                   loading={index < 3 ? "eager" : "lazy"}
+                  maximumWidth={300}
                   quality={60}
                   sizes="96px"
                   className="object-cover"

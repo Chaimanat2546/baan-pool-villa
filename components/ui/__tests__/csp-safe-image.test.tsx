@@ -32,16 +32,25 @@ describe("CspSafeImage", () => {
     expect(markup).toContain("p16-sign.tiktokcdn-us.com");
   });
 
-  it("renders Poolvilla R2 worker images without the Next image loader", () => {
+  it("uses the image loader for Poolvilla R2 worker thumbnails", () => {
     const imageUrl =
       "https://webook-media.poolvilla.workers.dev/houses/999/cover.webp";
     const markup = renderToStaticMarkup(
-      <CspSafeImage alt="Cover" height={480} src={imageUrl} width={640} />,
+      <CspSafeImage
+        alt="Cover"
+        fill
+        maximumWidth={300}
+        quality={60}
+        sizes="96px"
+        src={imageUrl}
+      />,
     );
 
-    expect(markup).toContain("<img");
-    expect(markup).toContain(`src="${imageUrl}"`);
-    expect(markup).not.toContain("?w=");
+    expect(markup).toContain("srcSet=");
+    expect(markup).toContain("webook-media.poolvilla.workers.dev");
+    expect(markup).toContain("?w=300&amp;q=60");
+    expect(markup).not.toMatch(/[?&]w=(?:320|384|448|512|640|750|828|1080|1200|1440|1920)/);
+    expect(markup).not.toContain("/_next/image");
   });
 
   it("keeps public image proxy requests on an allowlisted quality", () => {
