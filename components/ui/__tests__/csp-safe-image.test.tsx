@@ -32,6 +32,26 @@ describe("CspSafeImage", () => {
     expect(markup).toContain("p16-sign.tiktokcdn-us.com");
   });
 
+  it("keeps a raw signed TikTok source unchanged even when a maximum width is present", () => {
+    const source =
+      "https://p16-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/no-extension?x-signature=signed";
+    const markup = renderToStaticMarkup(
+      <CspSafeImage
+        alt=""
+        fill
+        maximumWidth={64}
+        quality={60}
+        src={source}
+      />,
+    );
+
+    expect(markup).toContain(
+      "https://p16-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/no-extension?x-signature=signed",
+    );
+    expect(markup).not.toContain("&amp;w=64");
+    expect(markup).not.toContain("&amp;q=60");
+  });
+
   it("uses the image loader for Poolvilla R2 worker thumbnails", () => {
     const imageUrl =
       "https://webook-media.poolvilla.workers.dev/houses/999/cover.webp";

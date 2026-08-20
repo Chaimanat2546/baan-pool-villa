@@ -1,7 +1,8 @@
 "use client";
 
 import { BedDouble, MapPin, Users } from "lucide-react";
-import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
+import { useImageActivation } from "@/components/ui/near-viewport-activation";
+import { ProgressiveImage } from "@/components/ui/progressive-image";
 
 import { normalizePublicVillaCoverImage } from "@/lib/villas/public-dto";
 import type { SiteVillaCardStyle } from "@/lib/site-web-styles/types";
@@ -18,6 +19,7 @@ interface VillaCardProps {
   titleHeadingLevel?: "h2" | "h3";
   imageLoading?: "eager" | "lazy";
   preload?: boolean;
+  coverImageActive?: boolean;
 }
 
 function getVillaTitle(villa: VillaListing): string {
@@ -52,7 +54,9 @@ export function VillaCard({
   titleHeadingLevel = "h2",
   imageLoading,
   preload = false,
+  coverImageActive = true,
 }: VillaCardProps) {
+  const sectionImagesActive = useImageActivation();
   const visibleAmenities = villa.amenities
     .filter(
       (amenity) =>
@@ -70,12 +74,14 @@ export function VillaCard({
   const villaTitle = getVillaTitle(villa);
   const isStaticNavigation = navigationMode === "static";
   const coverImageContent = coverImageSrc ? (
-    <Image
+    <ProgressiveImage
       src={coverImageSrc}
       alt={villaTitle}
       fill
-      loading={imageLoading}
-      preload={preload}
+      previewActive={sectionImagesActive}
+      fullImageActive={coverImageActive && sectionImagesActive}
+      fullImageLoading={imageLoading}
+      fullImagePreload={preload}
       quality={60}
       sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
       className="object-cover transition duration-500 group-hover:scale-105"
@@ -97,6 +103,8 @@ export function VillaCard({
           initialImageUrls={galleryImageUrls ? undefined : villa.galleryPreviewImages}
           imageLoading={imageLoading}
           preload={preload}
+          coverImageActive={coverImageActive && sectionImagesActive}
+          previewActive={sectionImagesActive}
           staticImageUrls={galleryImageUrls}
           villaId={villa.id}
         />
@@ -104,6 +112,7 @@ export function VillaCard({
         <div
           aria-label={villaTitle}
           className="relative block h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]"
+          data-villa-card-main-image="true"
         >
           {coverImageContent}
         </div>
@@ -111,6 +120,7 @@ export function VillaCard({
         <a
           aria-label={villaTitle}
           className="relative block h-[216px] w-full overflow-hidden rounded-[23px] rounded-b-none bg-[var(--site-surface-tint)]"
+          data-villa-card-main-image="true"
           href={villaHref}
         >
           {coverImageContent}

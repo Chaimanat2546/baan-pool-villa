@@ -60,6 +60,16 @@ describe("awsLoader", () => {
     ).toThrow("Invalid file extension");
   });
 
+  it("does not pretend to transform extensionless TikTok CDN sources", () => {
+    expect(() =>
+      awsLoader({
+        src: "https://p16-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/no-extension",
+        width: 64,
+        quality: 60,
+      }),
+    ).toThrow("Invalid file extension");
+  });
+
   it("rejects path traversal and private external origins", () => {
     expect(() =>
       awsLoader({

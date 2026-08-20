@@ -822,7 +822,11 @@ describe("DetailLayoutRenderer", () => {
     expect(wideMarkup).toContain("Seafood set");
     expect(wideMarkup).not.toContain("Hidden extra");
     expect(wideMarkup).not.toContain('target="_blank"');
-    expect(wideMarkup).toContain(
+    const advertisementImageSources = [
+      ...wideMarkup.matchAll(/\/_next\/image\?url=([^&"]+)/g),
+    ].map(([, encodedSource]) => decodeURIComponent(encodedSource));
+
+    expect(advertisementImageSources).toContain(
       "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/activity.webp",
     );
     expect(narrowMarkup).toContain('data-detail-layout-area="narrow"');

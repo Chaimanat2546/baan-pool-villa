@@ -36,7 +36,7 @@ import type { ResolvedHomeSection } from "../../../../lib/home-sections/types";
 import type { HomePageLayoutItem } from "../../../../lib/home-sections/types";
 import type { VillaListing } from "../../../../lib/villas/types";
 import { toHomePageSettings } from "../client-payload";
-import { selectHomeGuideSummaries } from "../articles-section";
+import { selectHomeGuideSummaries } from "../../../../lib/guides/public-dto";
 import { HomePage, HomePageContent } from "../page";
 
 const DEFAULT_HOME_SETTINGS = toHomePageSettings(
@@ -178,6 +178,52 @@ describe("HomePage", () => {
       markup.indexOf('id="recommendations"'),
     );
     expect(markup).not.toContain("data-home-tiktok");
+  });
+
+  it("keeps the first enabled rail critical and defers later rails plus image-heavy fixed sections", () => {
+    const laterRail: ResolvedHomeSection = {
+      ...homeSection,
+      slug: "later",
+      title: "Later rail",
+    };
+    const markup = renderToStaticMarkup(
+      <HomePageContent
+        customerReviews={customerReviews}
+        homeLayout={[
+          { kind: "rail", key: "featured", enabled: true },
+          { kind: "fixed", key: "why_choose", enabled: true },
+          { kind: "rail", key: "later", enabled: true },
+          { kind: "fixed", key: "tiktok", enabled: true },
+          { kind: "fixed", key: "customer_reviews", enabled: true },
+          { kind: "fixed", key: "articles", enabled: true },
+          { kind: "fixed", key: "faq", enabled: true },
+          { kind: "fixed", key: "contact", enabled: true },
+        ]}
+        initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
+        initialHomeSections={[homeSection, laterRail]}
+        settings={{
+          ...DEFAULT_HOME_SETTINGS,
+          tiktok: {
+            accountUrl: "",
+            videos: [
+              {
+                url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+                videoId: "7370000000000000001",
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(markup.match(/data-near-viewport-activation/g)).toHaveLength(4);
+    expect(markup.indexOf('id="featured"')).toBeLessThan(
+      markup.indexOf("data-near-viewport-activation"),
+    );
+    expect(markup).toContain('id="later"');
+    expect(markup).toContain('data-home-tiktok="true"');
+    expect(markup).toContain('data-home-customer-reviews="proof_wall"');
+    expect(markup).toContain('data-home-guides="true"');
   });
 
   it("keeps hero markup before movable homepage sections", () => {
@@ -391,8 +437,9 @@ describe("HomePage", () => {
     expect(guidesSectionIndex).toBeGreaterThan(customerReviewSectionIndex);
     expect(markup).toContain("Customer chat");
     expect(markup).toContain("Transfer slip");
-    expect(markup).toContain("customer-reviews/review-1.webp");
-    expect(markup).toContain("customer-reviews/review-2.webp");
+    expect(markup).not.toContain("customer-reviews/review-1.webp");
+    expect(markup).not.toContain("customer-reviews/review-2.webp");
+    expect(markup).toContain("data-progressive-image-fallback");
   });
 
   it("dedupes TikTok videos by videoId and keeps max 6 visible posters", () => {

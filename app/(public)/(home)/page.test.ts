@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getHomepageCustomerReviewData } from "@/lib/customer-reviews/server";
 import { getPublishedGuides } from "@/lib/guides/server";
 import {
   getHomeSectionListingPlan,
@@ -11,7 +12,14 @@ import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
-import { fetchActiveVillaZones, fetchHomeListings } from "@/lib/villas/server";
+import {
+  fetchActiveVillaZones,
+  fetchHomeListings,
+  withVillaCardGalleryPreviews,
+} from "@/lib/villas/server";
+
+const homePageContentMock = vi.hoisted(() => vi.fn(() => null));
+const deferredHomeContentMock = vi.hoisted(() => vi.fn(() => null));
 
 vi.mock("server-only", () => ({}));
 
@@ -21,7 +29,11 @@ vi.mock("@/components/admin/login/admin-recovery-hash-redirect", () => ({
 
 vi.mock("@/components/villas/home/page", () => ({
   HomePage: () => null,
-  HomePageContent: () => null,
+  HomePageContent: homePageContentMock,
+}));
+
+vi.mock("@/components/villas/home/deferred-home-content", () => ({
+  DeferredHomeContent: deferredHomeContentMock,
 }));
 
 vi.mock("@/components/villas/home/articles-section", () => ({
@@ -34,6 +46,10 @@ vi.mock("@/components/villas/home/client-payload", () => ({
 
 vi.mock("@/lib/guides/server", () => ({
   getPublishedGuides: vi.fn(),
+}));
+
+vi.mock("@/lib/customer-reviews/server", () => ({
+  getHomepageCustomerReviewData: vi.fn(),
 }));
 
 vi.mock("@/lib/home-sections/server", () => ({
@@ -68,8 +84,12 @@ vi.mock("@/lib/villas/public-dto", () => ({
 vi.mock("@/lib/villas/server", () => ({
   fetchActiveVillaZones: vi.fn(),
   fetchHomeListings: vi.fn(),
+  withVillaCardGalleryPreviews: vi.fn(async (villas: unknown[]) => villas),
 }));
 
+const getHomepageCustomerReviewDataMock = vi.mocked(
+  getHomepageCustomerReviewData,
+);
 const getPublishedGuidesMock = vi.mocked(getPublishedGuides);
 const getHomeSectionListingPlanMock = vi.mocked(getHomeSectionListingPlan);
 const getResolvedHomeSectionsMock = vi.mocked(getResolvedHomeSections);
@@ -78,9 +98,19 @@ const getSiteSettingsMock = vi.mocked(getSiteSettings);
 const getSiteWebStylesMock = vi.mocked(getSiteWebStyles);
 const fetchActiveVillaZonesMock = vi.mocked(fetchActiveVillaZones);
 const fetchHomeListingsMock = vi.mocked(fetchHomeListings);
+const withVillaCardGalleryPreviewsMock = vi.mocked(
+  withVillaCardGalleryPreviews,
+);
 
 describe("HomePageRoute", () => {
   beforeEach(() => {
+    homePageContentMock.mockClear();
+    deferredHomeContentMock.mockClear();
+    getHomepageCustomerReviewDataMock.mockReset();
+    getHomepageCustomerReviewDataMock.mockResolvedValue({
+      images: [],
+      layout: "proof_wall",
+    });
     getPublishedGuidesMock.mockReset();
     getHomeSectionListingPlanMock.mockReset();
     getResolvedHomeSectionsMock.mockReset();
@@ -91,6 +121,157 @@ describe("HomePageRoute", () => {
     fetchActiveVillaZonesMock.mockReset();
     fetchActiveVillaZonesMock.mockResolvedValue([]);
     fetchHomeListingsMock.mockReset();
+    withVillaCardGalleryPreviewsMock.mockClear();
+  });
+
+  it("serializes only the critical rail before the deferred boundary", async () => {
+    getPublishedGuidesMock.mockResolvedValue([
+      {
+        contentBlocks: [],
+        coverImage: null,
+        createdAt: "2026-08-01T00:00:00.000Z",
+        excerpt: "Deferred guide excerpt",
+        id: "guide-1",
+        isPinned: false,
+        publishedAt: "2026-08-01T00:00:00.000Z",
+        recommendedHouseIds: [],
+        slug: "deferred-guide",
+        status: "published",
+        tags: [],
+        title: "Deferred guide title",
+        updatedAt: "2026-08-01T00:00:00.000Z",
+      },
+    ]);
+    getHomepageCustomerReviewDataMock.mockResolvedValue({
+      images: [
+        {
+          alt: "Deferred customer proof",
+          id: "review-1",
+          order: 1,
+          url: "/api/customer-reviews/images/review-1",
+        },
+      ],
+      layout: "proof_wall",
+    });
+    getHomeSectionListingPlanMock.mockResolvedValue({
+      configs: [],
+      houseIds: ["critical-villa", "later-villa"],
+      layout: {
+        degraded: false,
+        items: [
+          { kind: "fixed", key: "why_choose", enabled: true },
+          { kind: "rail", key: "critical", enabled: true },
+          { kind: "rail", key: "later", enabled: true },
+          { kind: "fixed", key: "articles", enabled: true },
+          { kind: "fixed", key: "customer_reviews", enabled: true },
+        ],
+        source: "config",
+      },
+      listingLimit: 12,
+    });
+    const criticalVilla = {
+      amenities: [],
+      bathrooms: 2,
+      bedrooms: 3,
+      coverImage: "/critical.webp",
+      distanceToSea: "500 เมตร",
+      id: "critical-villa",
+      people: 8,
+      poolType: "private",
+      price: 9000,
+      title: "Critical villa title",
+      zone: "jomtien",
+      zoneLabel: "จอมเทียน",
+    };
+    const laterVilla = {
+      ...criticalVilla,
+      coverImage: "/later.webp",
+      id: "later-villa",
+      title: "Deferred villa title",
+    };
+    fetchHomeListingsMock.mockResolvedValue([criticalVilla, laterVilla]);
+    getResolvedHomeSectionsMock.mockResolvedValue({
+      degraded: false,
+      sections: [
+        {
+          autoScrollEnabled: false,
+          description: "Critical description",
+          slug: "critical",
+          title: "Critical rail title",
+          villas: [criticalVilla],
+        },
+        {
+          autoScrollEnabled: false,
+          description: "Deferred description",
+          slug: "later",
+          title: "Deferred rail title",
+          villas: [laterVilla],
+        },
+      ],
+      source: "config",
+    });
+    getSiteContactSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: DEFAULT_SITE_CONTACT_SETTINGS,
+      source: "config",
+    });
+    getSiteSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: DEFAULT_SITE_SETTINGS,
+      source: "config",
+    });
+
+    const { default: HomePageRoute } = await import("./page");
+    const route = await HomePageRoute();
+    const routeChildren = (route.props as { children: unknown[] }).children;
+    const homePageElement = routeChildren[2] as {
+      props: { children: { props: { children: AsyncElement } } };
+    };
+    type AsyncElement = {
+      props: Record<string, unknown>;
+      type: (props: Record<string, unknown>) => Promise<{
+        props: { children: unknown };
+      }>;
+    };
+    const asyncContent = homePageElement.props.children.props.children;
+    const resolvedContent = await asyncContent.type(asyncContent.props);
+    const renderedChildren = Array.isArray(resolvedContent.props.children)
+      ? resolvedContent.props.children
+      : [resolvedContent.props.children];
+    const deferredBoundary = renderedChildren.find(
+      (child: { type?: unknown }) => child?.type === deferredHomeContentMock,
+    ) as { props: Record<string, unknown> } | undefined;
+    const criticalContent = deferredBoundary?.props.criticalContent as
+      | { props: Record<string, unknown>; type: unknown }
+      | undefined;
+
+    expect(criticalContent?.type).toBe(homePageContentMock);
+    expect(criticalContent?.props.initialHomeSections).toEqual([
+      expect.objectContaining({
+        slug: "critical",
+        villas: [expect.objectContaining({ id: "critical-villa" })],
+      }),
+    ]);
+    expect(criticalContent?.props.homeLayout).toEqual([
+      { kind: "rail", key: "critical", enabled: true },
+    ]);
+    expect(deferredBoundary?.props.homeLayout).toEqual([
+      { kind: "fixed", key: "why_choose", enabled: true },
+      { kind: "rail", key: "critical", enabled: true },
+      { kind: "rail", key: "later", enabled: true },
+      { kind: "fixed", key: "articles", enabled: true },
+      { kind: "fixed", key: "customer_reviews", enabled: true },
+    ]);
+    expect(JSON.stringify(criticalContent?.props)).not.toContain(
+      "Deferred rail title",
+    );
+    expect(JSON.stringify(criticalContent?.props)).not.toContain(
+      "Deferred guide title",
+    );
+    expect(JSON.stringify(criticalContent?.props)).not.toContain(
+      "Deferred customer proof",
+    );
+    expect(deferredBoundary?.props.criticalRailKey).toBe("critical");
   });
 
   it("returns the homepage shell before homepage data finishes", async () => {
@@ -149,18 +330,30 @@ describe("HomePageRoute", () => {
     expect(fetchActiveVillaZonesMock).toHaveBeenCalledOnce();
   });
 
-  it("starts loading villa catalog before guide posts finish", async () => {
-    let resolveGuides: (guides: []) => void = () => {};
-    const guidesPromise = new Promise<[]>((resolve) => {
-      resolveGuides = resolve;
-    });
-    getPublishedGuidesMock.mockReturnValue(guidesPromise);
+  it("loads the critical catalog without starting deferred guide or review sources", async () => {
     getHomeSectionListingPlanMock.mockResolvedValue({
-      configs: [],
+      configs: [
+        {
+          autoScrollEnabled: false,
+          ctaEnabled: false,
+          ctaHref: null,
+          ctaLabel: null,
+          description: "Critical",
+          displayOrder: 0,
+          fallbackMode: "none",
+          isActive: true,
+          items: [{ houseId: "1328", isActive: true, position: 0 }],
+          limitCount: 4,
+          mode: "manual",
+          sliceOffset: 0,
+          slug: "critical",
+          title: "Critical",
+        },
+      ],
       houseIds: ["1328"],
       layout: {
         degraded: false,
-        items: [],
+        items: [{ kind: "rail", key: "critical", enabled: true }],
         source: "config",
       },
       listingLimit: 12,
@@ -185,25 +378,13 @@ describe("HomePageRoute", () => {
     const { default: HomePageRoute } = await import("./page");
     const pagePromise = HomePageRoute();
 
-    try {
-      await vi.waitFor(
-        () => {
-          expect(fetchHomeListingsMock).toHaveBeenCalledWith(["1328"], 12);
-          expect(fetchActiveVillaZonesMock).toHaveBeenCalledOnce();
-        },
-        { timeout: 100 },
-      );
-    } finally {
-      resolveGuides([]);
-      await vi.waitFor(() => {
-        expect(getResolvedHomeSectionsMock).toHaveBeenCalledWith(
-          [],
-          [],
-          false,
-        );
-      });
-      await pagePromise;
-    }
+    await vi.waitFor(() => {
+      expect(fetchHomeListingsMock).toHaveBeenCalledWith(["1328"], 4);
+      expect(fetchActiveVillaZonesMock).toHaveBeenCalledOnce();
+    });
+    await pagePromise;
+    expect(getPublishedGuidesMock).not.toHaveBeenCalled();
+    expect(getHomepageCustomerReviewDataMock).not.toHaveBeenCalled();
   });
 
   it("allows fallback recommendations when the layout is degraded", async () => {
@@ -213,7 +394,7 @@ describe("HomePageRoute", () => {
       houseIds: [],
       layout: {
         degraded: true,
-        items: [],
+        items: [{ kind: "rail", key: "featured", enabled: true }],
         source: "fallback",
       },
       listingLimit: 12,
