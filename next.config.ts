@@ -155,6 +155,12 @@ const nextConfig: NextConfig = {
         pathname: "/vi/**",
         search: "",
       },
+      {
+        protocol: "https",
+        hostname: "webook-media.poolvilla.workers.dev",
+        pathname: "/**",
+        search: "",
+      },
       getAdvertisementImageRemotePattern(),
     ],
   },

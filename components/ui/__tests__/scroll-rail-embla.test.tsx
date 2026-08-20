@@ -27,6 +27,9 @@ describe("ScrollRail Embla controls", () => {
   const scrollPrev = vi.fn();
   const stopAutoScroll = vi.fn();
   const playAutoScroll = vi.fn();
+  const selectedScrollSnap = vi.fn(() => 0);
+  const emblaOn = vi.fn();
+  const emblaOff = vi.fn();
 
   beforeEach(() => {
     vi.stubGlobal("matchMedia", () => ({
@@ -38,19 +41,24 @@ describe("ScrollRail Embla controls", () => {
     scrollPrev.mockReset();
     stopAutoScroll.mockReset();
     playAutoScroll.mockReset();
+    selectedScrollSnap.mockReset();
+    selectedScrollSnap.mockReturnValue(0);
+    emblaOn.mockReset();
+    emblaOff.mockReset();
     useEmblaCarousel.mockReset();
     useEmblaCarousel.mockReturnValue([
       vi.fn(),
       {
         canScrollNext: () => true,
         canScrollPrev: () => true,
-        off: vi.fn(),
-        on: vi.fn(),
+        off: emblaOff,
+        on: emblaOn,
         plugins: () => ({
           autoScroll: { play: playAutoScroll, stop: stopAutoScroll },
         }),
         scrollNext,
         scrollPrev,
+        selectedScrollSnap,
       },
     ]);
   });
@@ -173,6 +181,39 @@ describe("ScrollRail Embla controls", () => {
     await act(async () => {
       root.unmount();
     });
+  });
+
+  it("reports the active Embla snap and cleans up its select listener", async () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    const onActiveIndexChange = vi.fn();
+    document.body.append(container);
+
+    await act(async () => {
+      root.render(
+        <ScrollRail
+          label={"\u0e1a\u0e49\u0e32\u0e19\u0e1e\u0e31\u0e01"}
+          onActiveIndexChange={onActiveIndexChange}
+        >
+          <div>Card</div>
+        </ScrollRail>,
+      );
+    });
+
+    expect(onActiveIndexChange).toHaveBeenCalledWith(0);
+    expect(emblaOn).toHaveBeenCalledWith("select", expect.any(Function));
+    const onSelect = emblaOn.mock.calls[0]?.[1];
+
+    selectedScrollSnap.mockReturnValue(2);
+    await act(async () => {
+      onSelect?.();
+    });
+    expect(onActiveIndexChange).toHaveBeenLastCalledWith(2);
+
+    await act(async () => {
+      root.unmount();
+    });
+    expect(emblaOff).toHaveBeenCalledWith("select", onSelect);
   });
 });
 

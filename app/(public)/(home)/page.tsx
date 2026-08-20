@@ -6,8 +6,8 @@ import {
   HomePageContent,
   type HomePageDegradedSources,
 } from "@/components/villas/home/page";
+import { DeferredHomeContent } from "@/components/villas/home/deferred-home-content";
 import { AdminRecoveryHashRedirect } from "@/components/admin/login/admin-recovery-hash-redirect";
-import { selectHomeGuideSummaries } from "@/components/villas/home/articles-section";
 import {
   toHomePageSettings,
   type HomePageSettings,
@@ -15,47 +15,15 @@ import {
 import { HeroSearchSkeleton } from "@/components/villas/home/hero-section-skeleton";
 import { HeroSearch } from "@/components/villas/home/hero-search";
 import { VillaRailSkeleton } from "@/components/villas/home/villa-rail-skeleton";
-import { getHomepageCustomerReviewData } from "@/lib/customer-reviews/server";
-import {
-  DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
-  type HomepageCustomerReviewData,
-} from "@/lib/customer-reviews/types";
-import { getPublishedGuides } from "@/lib/guides/server";
-import type { PublicGuideSummary } from "@/lib/guides/public-dto";
-import {
-  getHomeSectionListingPlan,
-  getResolvedHomeSections,
-} from "@/lib/home-sections/server";
-import { buildDefaultHomePageLayout } from "@/lib/home-sections/layout";
-import type { HomePageLayoutResult } from "@/lib/home-sections/types";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
-import { SEARCH_FACETS } from "@/lib/villas/search-options";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import {
-  fetchActiveVillaZones,
-  fetchHomeListings,
-  withVillaCardGalleryPreviews,
-} from "@/lib/villas/server";
-import { toPublicVillaListing } from "@/lib/villas/public-dto";
-
-type FilterSummary = {
-  maxAvailablePrice: number;
-  zones: Array<{ value: string; label: string }>;
-};
-
-const HOME_FALLBACK_LISTING_LIMIT = 12;
-
-type HomePageData = {
-  degradedSources: Omit<HomePageDegradedSources, "siteSettings">;
-  customerReviews: HomepageCustomerReviewData;
-  guides: PublicGuideSummary[];
-  homeLayout: HomePageLayoutResult;
-  homeSections: Awaited<ReturnType<typeof getResolvedHomeSections>>["sections"];
-  filterSummary: FilterSummary;
-};
+  getInitialHomePageData,
+  type InitialHomePageData,
+} from "./server-data";
 
 function HomeDeferredContentSkeleton() {
   return (
@@ -90,28 +58,54 @@ function HomeDeferredDegradedMarker({
   );
 }
 
-async function HomeDeferredContent({
-  homePageDataPromise,
+async function HomeInitialContent({
+  initialHomeDataPromise,
   settings,
   villaCardStyle,
 }: {
-  homePageDataPromise: Promise<HomePageData>;
+  initialHomeDataPromise: Promise<InitialHomePageData>;
   settings: HomePageSettings;
   villaCardStyle: Awaited<ReturnType<typeof getSiteWebStyles>>["houseCard"]["variant"];
 }) {
-  const homePageData = await homePageDataPromise;
+  const initialPayload = await initialHomeDataPromise;
 
   return (
     <>
       <HomeDeferredDegradedMarker
-        degradedSources={homePageData.degradedSources}
+        degradedSources={initialPayload.degradedSources}
       />
-      <HomePageContent
-        customerReviews={homePageData.customerReviews}
-        initialGuides={homePageData.guides}
-        initialHomeSections={homePageData.homeSections}
-        homeLayout={homePageData.homeLayout.items}
-        settings={settings}
+      <DeferredHomeContent
+        criticalContent={
+          <HomePageContent
+            initialHomeSections={initialPayload.sections}
+            criticalRailContinuationKey={
+              initialPayload.criticalRailHasMore
+                ? initialPayload.criticalRailKey
+                : null
+            }
+            homeLayout={
+              initialPayload.criticalRailKey
+                ? [
+                    {
+                      enabled: true,
+                      key: initialPayload.criticalRailKey,
+                      kind: "rail",
+                    },
+                  ]
+                : []
+            }
+            settings={settings}
+            villaCardStyle={villaCardStyle}
+          />
+        }
+        criticalRailKey={initialPayload.criticalRailKey}
+        homeLayout={initialPayload.layout}
+        settings={{
+          bank: settings.bank,
+          contact: settings.contact,
+          siteName: settings.siteName,
+          tiktok: settings.tiktok,
+        }}
         villaCardStyle={villaCardStyle}
       />
     </>
@@ -119,11 +113,11 @@ async function HomeDeferredContent({
 }
 
 async function HomeHeroSearch({
-  homePageDataPromise,
+  initialHomeDataPromise,
 }: {
-  homePageDataPromise: Promise<HomePageData>;
+  initialHomeDataPromise: Promise<InitialHomePageData>;
 }) {
-  const homePageData = await homePageDataPromise;
+  const homePageData = await initialHomeDataPromise;
 
   return (
     <HeroSearch
@@ -131,146 +125,6 @@ async function HomeHeroSearch({
       zones={homePageData.filterSummary.zones}
     />
   );
-}
-
-async function getHomePageData(): Promise<HomePageData> {
-  const zonesResultPromise = fetchActiveVillaZones().then(
-    (value) => ({ status: "fulfilled" as const, value }),
-    (reason) => ({ reason, status: "rejected" as const }),
-  );
-  const guidesResultPromise = getPublishedGuides().then(
-    (value) => ({ status: "fulfilled" as const, value }),
-    (reason) => ({ reason, status: "rejected" as const }),
-  );
-  const customerReviewsResultPromise = getHomepageCustomerReviewData().then(
-    (value) => ({ status: "fulfilled" as const, value }),
-    (reason) => ({ reason, status: "rejected" as const }),
-  );
-  const homeSectionListingPlanResult = await getHomeSectionListingPlan(
-    HOME_FALLBACK_LISTING_LIMIT,
-  ).then(
-    (value) => ({ status: "fulfilled" as const, value }),
-    (reason) => ({ reason, status: "rejected" as const }),
-  );
-
-  const [villasResult, zonesResult] = await Promise.all([
-    fetchHomeListings(
-      homeSectionListingPlanResult.status === "fulfilled"
-        ? homeSectionListingPlanResult.value.houseIds
-        : [],
-      homeSectionListingPlanResult.status === "fulfilled"
-        ? homeSectionListingPlanResult.value.listingLimit
-        : HOME_FALLBACK_LISTING_LIMIT,
-    ).then(
-      (value) => ({ status: "fulfilled" as const, value }),
-      (reason) => ({ reason, status: "rejected" as const }),
-    ),
-    zonesResultPromise,
-  ]);
-  const guidesResult = await guidesResultPromise;
-  const customerReviewsResult = await customerReviewsResultPromise;
-  const guides =
-    guidesResult.status === "fulfilled" ? guidesResult.value : [];
-  const customerReviews =
-    customerReviewsResult.status === "fulfilled"
-      ? customerReviewsResult.value
-      : {
-          images: [],
-          layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
-        };
-
-  if (guidesResult.status === "rejected") {
-    console.error("Unable to load homepage guide posts", guidesResult.reason);
-  }
-
-  if (zonesResult.status === "rejected") {
-    console.error("Unable to load homepage villa zones", zonesResult.reason);
-  }
-
-  if (villasResult.status === "rejected") {
-    console.error("Unable to load homepage villa data", villasResult.reason);
-
-    return {
-      degradedSources: {
-        guidePosts: guidesResult.status === "rejected",
-        homeSections:
-          homeSectionListingPlanResult.status === "rejected" ||
-          homeSectionListingPlanResult.value.layout.degraded,
-        villaCatalog: true,
-      },
-      customerReviews,
-      guides: selectHomeGuideSummaries(guides),
-      homeLayout:
-        homeSectionListingPlanResult.status === "fulfilled"
-          ? homeSectionListingPlanResult.value.layout
-          : {
-              degraded: true,
-              items: buildDefaultHomePageLayout([]),
-              source: "fallback",
-            },
-      homeSections: [],
-      filterSummary: {
-        maxAvailablePrice: SEARCH_FACETS.maxPrice,
-        zones: zonesResult.status === "fulfilled" ? zonesResult.value : [],
-      },
-    };
-  }
-
-  const villas = villasResult.value;
-  const homeSectionsResult =
-    homeSectionListingPlanResult.status === "fulfilled"
-      ? await getResolvedHomeSections(
-          villas,
-          homeSectionListingPlanResult.value.configs,
-          homeSectionListingPlanResult.value.layout.source === "fallback",
-        )
-      : await getResolvedHomeSections(villas);
-  const homeLayout =
-    homeSectionListingPlanResult.status === "fulfilled"
-      ? homeSectionListingPlanResult.value.layout
-      : {
-          degraded: true as const,
-          items: buildDefaultHomePageLayout(
-            homeSectionsResult.sections.map(({ slug }) => slug),
-          ),
-          source: "fallback" as const,
-        };
-
-  if (homeSectionsResult.degraded) {
-    console.error(
-      "Homepage rendered with fallback home sections",
-      homeSectionsResult.fallbackReason,
-    );
-  }
-
-  const homeSectionsWithPreviews = await Promise.all(
-    homeSectionsResult.sections.map(async (section) => ({
-      ...section,
-      villas: [
-        ...(await withVillaCardGalleryPreviews(section.villas.slice(0, 12))),
-        ...section.villas.slice(12),
-      ],
-    })),
-  );
-
-  return {
-    degradedSources: {
-      guidePosts: guidesResult.status === "rejected",
-      homeSections: homeSectionsResult.degraded || homeLayout.degraded,
-      villaCatalog: zonesResult.status === "rejected",
-    },
-    customerReviews,
-    guides: selectHomeGuideSummaries(guides),
-    homeLayout,
-    homeSections: homeSectionsWithPreviews.map((section) => ({
-      ...section,
-      villas: section.villas.map(toPublicVillaListing),
-    })),
-    filterSummary: {
-      maxAvailablePrice: SEARCH_FACETS.maxPrice,
-      zones: zonesResult.status === "fulfilled" ? zonesResult.value : [],
-    },
-  };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -292,7 +146,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * @returns A React element for the homepage containing the injected JSON-LD script and the HomePage component initialized with fetched data and settings.
  */
 export default async function Page() {
-  const homePageDataPromise = getHomePageData();
+  const initialHomeDataPromise = getInitialHomePageData();
   const [settingsResult, contactSettingsResult, siteWebStyles] = await Promise.all([
     getSiteSettings(),
     getSiteContactSettings(),
@@ -322,14 +176,14 @@ export default async function Page() {
         }}
         heroSearch={
           <Suspense fallback={<HeroSearchSkeleton />}>
-            <HomeHeroSearch homePageDataPromise={homePageDataPromise} />
+            <HomeHeroSearch initialHomeDataPromise={initialHomeDataPromise} />
           </Suspense>
         }
         settings={homePageSettings}
       >
         <Suspense fallback={<HomeDeferredContentSkeleton />}>
-          <HomeDeferredContent
-            homePageDataPromise={homePageDataPromise}
+          <HomeInitialContent
+            initialHomeDataPromise={initialHomeDataPromise}
             settings={homePageSettings}
             villaCardStyle={siteWebStyles.houseCard.variant}
           />

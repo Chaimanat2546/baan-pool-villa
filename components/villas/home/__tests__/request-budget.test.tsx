@@ -1,24 +1,18 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { selectHomeGuideSummaries } from "@/lib/guides/public-dto";
 import type { GuidePost } from "@/lib/guides/types";
 import type { VillaListing } from "@/lib/villas/types";
 
-import { ArticlesSection, selectHomeGuideSummaries } from "../articles-section";
+import { ArticlesSection } from "../articles-section";
 import { VillaRail } from "../villa-rail";
 
-interface MockImageProps {
-  alt: string;
-  loading?: "eager" | "lazy";
-  preload?: boolean;
-  priority?: boolean;
-  src: string;
-}
-
 vi.mock("next/image", () => ({
-  default: ({ alt, loading, preload, priority, src }: MockImageProps) => (
+  default: ({ alt, loading, preload, priority, src, ...props }: Record<string, unknown>) => (
     <span
-      aria-label={alt}
+      {...props}
+      aria-label={typeof alt === "string" ? alt : undefined}
       data-loading={loading}
       data-preload={preload ? "true" : "false"}
       data-priority={priority ? "true" : "false"}
@@ -80,7 +74,7 @@ describe("homepage request budget", () => {
     expect(markup).not.toContain("mt-3 hidden min-h-11");
   });
 
-  it("honors the villa count provided by admin-resolved home sections", () => {
+  it("limits full villa cover activation to the initial rail window", () => {
     const villas = Array.from({ length: 12 }, (_, index) => ({
       ...villa,
       coverImage: `https://devillegroups.com/imgs/profile_imgs_large/${index + 1}.jpg`,
@@ -98,13 +92,14 @@ describe("homepage request budget", () => {
     const renderedVillaCards = markup.match(
       /<article[^>]*data-villa-card-style=/g,
     ) ?? [];
-    const renderedImages =
-      markup.match(
-        /src="\/api\/houses\/images\/\d+"/g,
-      ) ?? [];
+    const previewImages = markup.match(/data-progressive-preview="true"/g) ?? [];
+    const fullImages = markup.match(/data-progressive-full="true"/g) ?? [];
+    const preloadedImages = markup.match(/data-preload="true"/g) ?? [];
 
     expect(renderedVillaCards).toHaveLength(12);
-    expect(renderedImages).toHaveLength(12);
+    expect(previewImages).toHaveLength(12);
+    expect(fullImages).toHaveLength(4);
+    expect(preloadedImages.length).toBeLessThanOrEqual(1);
     expect(markup).not.toContain("devillegroups.com");
     expect(markup).toContain('href="/villas/12"');
   });

@@ -25,12 +25,12 @@ describe("Next image config", () => {
     expect(nextConfig.images?.qualities).toEqual([50, 60, 70, 75]);
   });
 
-  it("allows advertisement images from the R2 worker", () => {
+  it("allows house-card and advertisement images from the R2 worker", () => {
     expect(nextConfig.images?.remotePatterns).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           hostname: "webook-media.poolvilla.workers.dev",
-          pathname: "/advertisements/**",
+          pathname: "/**",
           protocol: "https",
         }),
       ]),

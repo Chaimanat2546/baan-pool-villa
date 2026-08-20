@@ -1,6 +1,24 @@
 import { expect, test } from "@playwright/test";
+import {
+  selectFirstRailFullImageResponseEvents,
+  type SuccessfulImageResponseEvent,
+} from "./support/production-smoke-image-responses";
 
 const maxNavigationDurationMs = 15_000;
+
+function getSuccessfulImageResponse(response: import("@playwright/test").Response) {
+  if (
+    !response.ok() ||
+    response.request().resourceType() !== "image"
+  ) {
+    return null;
+  }
+
+  return {
+    requestIdentity: response.request(),
+    url: response.url(),
+  } satisfies SuccessfulImageResponseEvent;
+}
 
 async function expectNoPublicSecretLeak(html: string) {
   await expect(html).not.toContain("DEVILLE_BEARER_TOKEN");
@@ -41,9 +59,69 @@ test("public home renders SEO metadata and stays within a production smoke budge
   page,
 }, testInfo) => {
   const requests: string[] = [];
+  const successfulImageResponses: SuccessfulImageResponseEvent[] = [];
+  await page.addInitScript(() => {
+    type ImageResponseAttributionState = {
+      collect: () => void;
+      excludedSources: Set<string>;
+      firstRailFullSources: Set<string>;
+    };
+    const attributionWindow = window as typeof window & {
+      __initialImageResponseAttribution?: ImageResponseAttributionState;
+    };
+    const firstRailFullSources = new Set<string>();
+    const excludedSources = new Set<string>();
+    const getSource = (image: HTMLImageElement) => {
+      const source = image.currentSrc || image.src;
+
+      return source ? new URL(source, window.location.href).href : "";
+    };
+    const collect = () => {
+      const firstRail = document.querySelector('[data-home-villa-rail="true"]');
+
+      for (const image of Array.from(document.images)) {
+        const source = getSource(image);
+
+        if (!source) {
+          continue;
+        }
+
+        const isFirstRailFullImage =
+          firstRail !== null &&
+          image.matches('[data-progressive-full]') &&
+          image.closest('[data-villa-card-main-image="true"]') !== null &&
+          image.closest('[data-home-villa-rail="true"]') === firstRail;
+
+        (isFirstRailFullImage ? firstRailFullSources : excludedSources).add(source);
+      }
+    };
+
+    attributionWindow.__initialImageResponseAttribution = {
+      collect,
+      excludedSources,
+      firstRailFullSources,
+    };
+    new MutationObserver(collect).observe(document, {
+      attributeFilter: ["data-progressive-full", "src", "srcset"],
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+    document.addEventListener("DOMContentLoaded", collect, { once: true });
+    window.requestAnimationFrame(collect);
+  });
   page.on("request", (request) => requests.push(request.url()));
+  const captureSuccessfulImageResponse = (response: import("@playwright/test").Response) => {
+    const imageResponse = getSuccessfulImageResponse(response);
+
+    if (imageResponse) {
+      successfulImageResponses.push(imageResponse);
+    }
+  };
+  page.on("response", captureSuccessfulImageResponse);
 
   const response = await page.goto("/", { waitUntil: "networkidle" });
+  page.off("response", captureSuccessfulImageResponse);
 
   expect(response?.ok()).toBe(true);
   expect(
@@ -66,6 +144,37 @@ test("public home renders SEO metadata and stays within a production smoke budge
     /พูล|villa|บ้าน/i,
   );
   await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
+  const initialDocumentHtml = await response?.text();
+  expect(
+    initialDocumentHtml?.match(/data-villa-card-main-image="true"/g) ?? [],
+  ).toHaveLength(4);
+
+  const { excludedImageSources, firstRailFullImageSources } = await page.evaluate(() => {
+    const attributionWindow = window as typeof window & {
+      __initialImageResponseAttribution?: {
+        collect: () => void;
+        excludedSources: Set<string>;
+        firstRailFullSources: Set<string>;
+      };
+    };
+    const attribution = attributionWindow.__initialImageResponseAttribution;
+
+    attribution?.collect();
+    return {
+      excludedImageSources: Array.from(attribution?.excludedSources ?? []),
+      firstRailFullImageSources: Array.from(
+        attribution?.firstRailFullSources ?? [],
+      ),
+    };
+  });
+  const initialFullCoverResponses = selectFirstRailFullImageResponseEvents({
+    excludedImageSources,
+    firstRailFullImageSources,
+    responses: successfulImageResponses,
+  });
+
+  expect(firstRailFullImageSources.length).toBeGreaterThan(0);
+  expect(initialFullCoverResponses.length).toBeLessThanOrEqual(4);
 
   const navigationDuration = await page.evaluate(() => {
     const [navigationEntry] = performance.getEntriesByType(

@@ -14,6 +14,7 @@ interface ScrollRailProps {
   controlsClassName?: string;
   autoScroll?: boolean;
   alwaysShowControls?: boolean;
+  onActiveIndexChange?: (index: number) => void;
 }
 
 export function ScrollRail({
@@ -23,6 +24,7 @@ export function ScrollRail({
   className,
   controlsClassName,
   label,
+  onActiveIndexChange,
 }: ScrollRailProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
 
@@ -93,6 +95,21 @@ export function ScrollRail({
   const pauseAutoScroll = useCallback(() => {
     emblaApi?.plugins().autoScroll?.stop();
   }, [emblaApi]);
+
+  const reportActiveIndex = useCallback(() => {
+    const index = emblaApi?.selectedScrollSnap();
+    if (index !== undefined) onActiveIndexChange?.(index);
+  }, [emblaApi, onActiveIndexChange]);
+
+  useEffect(() => {
+    if (!emblaApi || !onActiveIndexChange) return;
+
+    reportActiveIndex();
+    emblaApi.on("select", reportActiveIndex);
+    return () => {
+      emblaApi.off("select", reportActiveIndex);
+    };
+  }, [emblaApi, onActiveIndexChange, reportActiveIndex]);
 
   useEffect(() => {
     if (!autoScroll || !emblaApi) return;

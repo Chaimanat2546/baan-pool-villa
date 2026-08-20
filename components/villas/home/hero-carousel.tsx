@@ -5,7 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
 
-import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
+import { ProgressiveImage } from "@/components/ui/progressive-image";
 
 export interface HeroCarouselSlide {
   alt: string;
@@ -20,6 +20,9 @@ const AUTO_ADVANCE_DELAY_MS = 5000;
 
 export function HeroCarousel({ slides }: HeroCarouselProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [activatedSlideIndexes, setActivatedSlideIndexes] = useState(
+    () => new Set([0]),
+  );
   const hasMultipleSlides = slides.length > 1;
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true },
@@ -33,7 +36,15 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
 
   const updateSelectedIndex = useCallback(() => {
     if (emblaApi) {
-      setSelectedIndex(emblaApi.selectedScrollSnap());
+      const nextSelectedIndex = emblaApi.selectedScrollSnap();
+      setSelectedIndex(nextSelectedIndex);
+      setActivatedSlideIndexes((previousIndexes) => {
+        if (previousIndexes.has(nextSelectedIndex)) {
+          return previousIndexes;
+        }
+
+        return new Set(previousIndexes).add(nextSelectedIndex);
+      });
     }
   }, [emblaApi]);
 
@@ -90,14 +101,16 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
     >
       <div className="h-full overflow-hidden" ref={emblaRef}>
         <div className="flex h-full touch-pan-y">
-          {slides.map((slide) => (
+          {slides.map((slide, index) => (
             <div className="relative min-w-0 flex-[0_0_100%]" key={slide.src}>
-              <Image
+              <ProgressiveImage
                 alt={slide.alt}
                 className="object-fill"
                 fill
-                loading={slide === slides[0] ? "eager" : undefined}
-                preload={slide === slides[0]}
+                fullImageActive={activatedSlideIndexes.has(index)}
+                fullImageLoading={index === 0 ? "eager" : undefined}
+                fullImagePreload={index === 0}
+                previewActive
                 quality={75}
                 sizes="100vw"
                 src={slide.src}

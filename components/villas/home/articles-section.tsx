@@ -1,25 +1,19 @@
+"use client";
+
 import { ArrowRight, Pin } from "lucide-react";
-import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
+import { ProgressiveImage } from "@/components/ui/progressive-image";
+import { useImageActivation } from "@/components/ui/near-viewport-activation";
 
 import {
-  toPublicGuideSummaries,
+  HOME_GUIDE_LIMIT,
   type PublicGuideSummary,
 } from "@/lib/guides/public-dto";
-import type { GuidePost } from "@/lib/guides/types";
 import { ScrollRail } from "@/components/ui/scroll-rail";
 
 import { SectionHeader } from "./section-header";
 
-const HOME_GUIDE_LIMIT = 7;
-
 interface ArticlesSectionProps {
   guides: PublicGuideSummary[];
-}
-
-export function selectHomeGuideSummaries(
-  guides: GuidePost[],
-): PublicGuideSummary[] {
-  return toPublicGuideSummaries(guides).slice(0, HOME_GUIDE_LIMIT);
 }
 
 function getGuideImage(guide: PublicGuideSummary) {
@@ -27,6 +21,7 @@ function getGuideImage(guide: PublicGuideSummary) {
 }
 
 export function ArticlesSection({ guides }: ArticlesSectionProps) {
+  const imageActive = useImageActivation();
   const visibleGuides = guides.slice(0, HOME_GUIDE_LIMIT);
 
   if (visibleGuides.length === 0) {
@@ -58,10 +53,13 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
             >
               <div className="relative aspect-[4/3] bg-[var(--site-surface-tint)]">
                 {imageUrl ? (
-                  <Image
+                  <ProgressiveImage
                     alt={guide.coverImageAlt ?? guide.title}
                     className="object-cover transition duration-500 group-hover:scale-105"
                     fill
+                    fullImageActive={imageActive}
+                    fullImageLoading="lazy"
+                    previewActive={imageActive}
                     quality={60}
                     sizes="(max-width: 768px) 306px, 394px"
                     src={imageUrl}

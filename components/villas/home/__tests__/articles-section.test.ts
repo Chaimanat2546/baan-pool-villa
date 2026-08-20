@@ -2,9 +2,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { selectHomeGuideSummaries } from "@/lib/guides/public-dto";
 import type { GuidePost } from "@/lib/guides/types";
 
-import { ArticlesSection, selectHomeGuideSummaries } from "../articles-section";
+import { ArticlesSection } from "../articles-section";
 
 interface MockImageProps {
   alt: string;

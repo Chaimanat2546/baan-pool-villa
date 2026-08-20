@@ -1,10 +1,12 @@
 "use client";
 
 import { Play } from "lucide-react";
-import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
 import { useEffect, useState } from "react";
 import { SiTiktok } from "react-icons/si";
 
+import { useImageActivation } from "@/components/ui/near-viewport-activation";
+import { ProgressiveImage } from "@/components/ui/progressive-image";
+import { buildTikTokThumbnailImageProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteTikTokVideoSettings } from "@/lib/site-settings/types";
 import type { TikTokVideoPreview } from "@/lib/tiktok/types";
 import { loadTikTokClientOEmbed, type TikTokClientOEmbed } from "./tiktok-client-oembed";
@@ -80,12 +82,17 @@ export function TikTokLazyCard({
   onPlay,
   video,
 }: TikTokLazyCardProps) {
+  const imageActive = useImageActivation();
   const [clientPreview, setClientPreview] = useState<TikTokClientOEmbed | null>(
     null,
   );
   const thumbnailUrl = hasThumbnail(video)
     ? video.thumbnailUrl.trim()
     : (clientPreview?.thumbnailUrl ?? "");
+  const thumbnailPreviewUrl = buildTikTokThumbnailImageProxyUrl(thumbnailUrl, {
+    quality: 60,
+    width: 64,
+  });
   const title =
     "title" in video && video.title.trim().length > 0
       ? video.title.trim()
@@ -100,7 +107,7 @@ export function TikTokLazyCard({
       : "TikTok";
 
   useEffect(() => {
-    if (hasThumbnail(video) || isPlaying || !video.url.trim()) {
+    if (hasThumbnail(video) || isPlaying || !imageActive || !video.url.trim()) {
       return;
     }
 
@@ -115,7 +122,7 @@ export function TikTokLazyCard({
     return () => {
       controller.abort();
     };
-  }, [isPlaying, video]);
+  }, [imageActive, isPlaying, video]);
 
   return (
     <article className="w-[244px] flex-shrink-0 snap-start overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_30px_rgba(15,47,53,0.08)] sm:w-[292px] lg:w-[320px]">
@@ -132,12 +139,15 @@ export function TikTokLazyCard({
             }}
           >
             {thumbnailUrl ? (
-              <Image
+              <ProgressiveImage
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 decoding="async"
                 fill
-                loading={index === 0 ? "eager" : "lazy"}
+                fullImageActive={imageActive}
+                fullImageLoading={index === 0 ? "eager" : "lazy"}
+                previewActive={imageActive && Boolean(thumbnailPreviewUrl)}
+                previewSrc={thumbnailPreviewUrl ?? undefined}
                 referrerPolicy="no-referrer"
                 sizes="(max-width: 640px) 244px, (max-width: 1024px) 292px, 320px"
                 src={thumbnailUrl}

@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
+import { useImageActivation } from "@/components/ui/near-viewport-activation";
+import { ProgressiveImage } from "@/components/ui/progressive-image";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
 
 const MAX_GALLERY_CARD_IMAGES = 10;
@@ -16,6 +18,8 @@ interface VillaCardGalleryImagesProps {
   imageLoading?: "eager" | "lazy";
   initialImageUrls?: string[];
   preload?: boolean;
+  coverImageActive?: boolean;
+  previewActive?: boolean;
   staticImageUrls?: string[];
   villaId: string;
 }
@@ -66,9 +70,12 @@ export function VillaCardGalleryImages({
   imageLoading,
   initialImageUrls,
   preload = false,
+  coverImageActive = true,
+  previewActive = true,
   staticImageUrls,
   villaId,
 }: VillaCardGalleryImagesProps) {
+  const sectionImagesActive = useImageActivation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const thumbsRef = useRef<HTMLDivElement | null>(null);
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -107,7 +114,7 @@ export function VillaCardGalleryImages({
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
-    if (staticImages !== null) {
+    if (!sectionImagesActive || staticImages !== null) {
       return;
     }
 
@@ -190,7 +197,7 @@ export function VillaCardGalleryImages({
       controller?.abort();
       observer.disconnect();
     };
-  }, [coverImageSrc, initialImages, staticImages, villaId]);
+  }, [coverImageSrc, initialImages, sectionImagesActive, staticImages, villaId]);
 
   function scrollThumbs(direction: "left" | "right") {
     setSelectedIndex((currentIndex) => {
@@ -256,12 +263,14 @@ export function VillaCardGalleryImages({
   }
 
   const mainImage = (
-    <Image
+    <ProgressiveImage
       src={selectedImage}
       alt={alt}
       fill
-      loading={imageLoading}
-      preload={preload && selectedIndex === 0}
+      previewActive={previewActive && sectionImagesActive}
+      fullImageActive={coverImageActive && sectionImagesActive}
+      fullImageLoading={imageLoading}
+      fullImagePreload={preload && selectedIndex === 0}
       quality={60}
       sizes="(max-width: 640px) 290px, (max-width: 1024px) 50vw, 325px"
       className="object-cover transition duration-500"
@@ -279,18 +288,22 @@ export function VillaCardGalleryImages({
         <a
           aria-label={alt}
           className="relative block h-[216px] w-full overflow-hidden"
+          data-villa-card-main-image="true"
           data-villa-card-gallery-main-link="true"
           href={href}
         >
           {mainImage}
         </a>
       ) : (
-        <div className="relative h-[216px] w-full overflow-hidden">
+        <div
+          className="relative h-[216px] w-full overflow-hidden"
+          data-villa-card-main-image="true"
+        >
           {mainImage}
         </div>
       )}
 
-      {galleryStatus === "ready" ? (
+      {galleryStatus === "ready" && sectionImagesActive ? (
         <div
           className="relative border-t border-white/70 bg-[var(--site-surface)] px-2 py-2"
           data-villa-card-thumbnail-strip
@@ -334,6 +347,7 @@ export function VillaCardGalleryImages({
                   alt=""
                   fill
                   loading={index < 3 ? "eager" : "lazy"}
+                  maximumWidth={300}
                   quality={60}
                   sizes="96px"
                   className="object-cover"

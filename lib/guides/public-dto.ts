@@ -4,6 +4,8 @@ import {
   normalizePublicImageSourceUrl,
 } from "@/lib/public-image-proxy";
 
+export const HOME_GUIDE_LIMIT = 7;
+
 export interface PublicGuideSummary {
   coverImageAlt: string | null;
   coverImageUrl: string | null;
@@ -36,4 +38,10 @@ export function toPublicGuideSummaries(
   guides: GuidePost[],
 ): PublicGuideSummary[] {
   return guides.map(toPublicGuideSummary);
+}
+
+export function selectHomeGuideSummaries(
+  guides: GuidePost[],
+): PublicGuideSummary[] {
+  return toPublicGuideSummaries(guides).slice(0, HOME_GUIDE_LIMIT);
 }

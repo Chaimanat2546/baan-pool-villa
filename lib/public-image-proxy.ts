@@ -50,7 +50,8 @@ export function isPublicImageProxyPath(pathname: string): boolean {
     /^\/api\/villas\/[1-9]\d*\/images$/.test(pathname) ||
     /^\/api\/guides\/images\/[^/]+\/(?:cover|content\/\d+)$/.test(pathname) ||
     /^\/api\/customer-reviews\/images\/[^/]+$/.test(pathname) ||
-    /^\/api\/site-assets\/images\/(?:hero|logo)$/.test(pathname)
+    /^\/api\/site-assets\/images\/(?:hero|logo)$/.test(pathname) ||
+    pathname === "/api/tiktok/images/proxy"
   );
 }
 
@@ -284,6 +285,41 @@ export function buildVillaCoverImageProxyUrl(
   options?: PublicImageTransformOptions,
 ) {
   return buildPublicImageProxyUrl("/api/houses/images/proxy", sourceUrl, options);
+}
+
+export function isAllowedTikTokCdnImageUrl(sourceUrl: string): boolean {
+  const normalizedUrl = normalizePublicImageSourceUrl(sourceUrl);
+
+  if (!normalizedUrl) {
+    return false;
+  }
+
+  const url = new URL(normalizedUrl);
+  const hostname = url.hostname.toLowerCase();
+
+  if (url.port) {
+    return false;
+  }
+
+  return (
+    hostname.endsWith(".tiktokcdn.com") ||
+    hostname.endsWith(".tiktokcdn-us.com")
+  );
+}
+
+export function buildTikTokThumbnailImageProxyUrl(
+  sourceUrl: string | null,
+  options?: PublicImageTransformOptions,
+) {
+  if (!sourceUrl || !isAllowedTikTokCdnImageUrl(sourceUrl)) {
+    return null;
+  }
+
+  return buildPublicImageProxyUrl(
+    "/api/tiktok/images/proxy",
+    sourceUrl,
+    options,
+  );
 }
 
 export function buildVillaCoverImageProxyPath(

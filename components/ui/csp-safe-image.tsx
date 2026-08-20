@@ -1,13 +1,16 @@
 /* eslint-disable @next/next/no-img-element -- blob/data previews cannot use next/image */
 import { forwardRef } from "react";
-import NextImage, { type ImageProps } from "next/image";
-import { isPublicImageProxyPath } from "@/lib/public-image-proxy";
+import NextImage, { type ImageLoaderProps, type ImageProps } from "next/image";
+import awsLoader from "@/lib/aws-loader";
+import {
+  isAllowedTikTokCdnImageUrl,
+  isPublicImageProxyPath,
+} from "@/lib/public-image-proxy";
 
 type CspSafeImageProps = ImageProps & {
+  maximumWidth?: number;
   priority?: boolean;
 };
-
-const RAW_IMAGE_HOSTNAMES = new Set(["webook-media.poolvilla.workers.dev"]);
 
 function isRawPreviewSource(src: ImageProps["src"]): src is string {
   if (typeof src !== "string") {
@@ -22,17 +25,7 @@ function isRawPreviewSource(src: ImageProps["src"]): src is string {
     return !isPublicImageProxyPath(src.split("?", 1)[0]);
   }
 
-  try {
-    const hostname = new URL(src).hostname.toLowerCase();
-
-    return (
-      RAW_IMAGE_HOSTNAMES.has(hostname) ||
-      hostname.endsWith(".tiktokcdn.com") ||
-      hostname.endsWith(".tiktokcdn-us.com")
-    );
-  } catch {
-    return false;
-  }
+  return isAllowedTikTokCdnImageUrl(src);
 }
 
 export const CspSafeImage = forwardRef<HTMLImageElement, CspSafeImageProps>(function CspSafeImage({
@@ -40,11 +33,16 @@ export const CspSafeImage = forwardRef<HTMLImageElement, CspSafeImageProps>(func
   className,
   fill,
   loading,
+  maximumWidth,
   preload,
   priority,
   ...props
 }, ref) {
   const shouldPreload = Boolean(preload || priority);
+  const imageLoader = maximumWidth
+    ? ({ src, width, quality }: ImageLoaderProps) =>
+        awsLoader({ quality, src, width: Math.min(width, maximumWidth) })
+    : undefined;
 
   if (!isRawPreviewSource(props.src)) {
     return (
@@ -54,6 +52,7 @@ export const CspSafeImage = forwardRef<HTMLImageElement, CspSafeImageProps>(func
         className={className}
         fill={fill}
         loading={shouldPreload ? "eager" : loading}
+        loader={imageLoader}
         preload={shouldPreload}
         {...props}
       />
@@ -61,8 +60,9 @@ export const CspSafeImage = forwardRef<HTMLImageElement, CspSafeImageProps>(func
   }
 
   const { height, quality, sizes, src, width, ...imgProps } = props;
-  void quality;
   void sizes;
+  void maximumWidth;
+  void quality;
 
   const imageClassName = [fill ? "absolute inset-0 h-full w-full" : "", className]
     .filter(Boolean)

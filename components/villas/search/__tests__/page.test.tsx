@@ -126,7 +126,9 @@ describe("SearchPage", () => {
     const markup = renderToStaticMarkup(<SearchPage initialVillas={[villa]} />);
 
     expect(markup).toContain("701");
-    expect(markup).toContain("data-image-loading-skeleton");
+    expect(markup).toContain('data-progressive-image="true"');
+    expect(markup).toContain('aria-label="พูลวิลล่า 701"');
+    expect(markup).toContain('data-src="/api/houses/images/701"');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

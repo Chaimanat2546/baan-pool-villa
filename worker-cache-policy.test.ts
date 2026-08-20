@@ -116,6 +116,7 @@ describe("worker HTML edge cache policy", () => {
         "home-sections",
         "guides",
         "customer-reviews",
+        "villa-listings",
       ],
     });
     expect(getHtmlEdgeCacheDecision(request("/search"))).toMatchObject({
@@ -298,6 +299,13 @@ describe("worker image edge cache policy", () => {
     expect(
       getImageEdgeCacheDecision(
         request("/api/guides/images/proxy?url=https%3A%2F%2Fassets.example.com%2Fguide.jpg", {
+          headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+        }),
+      ),
+    ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
+    expect(
+      getImageEdgeCacheDecision(
+        request("/api/tiktok/images/proxy?url=https%3A%2F%2Fp16-sign.tiktokcdn-us.com%2Fcover.jpg%3Fx-expires%3D123%26x-signature%3Dsigned&w=64&q=60", {
           headers: { Accept: "image/avif,image/webp,image/*,*/*" },
         }),
       ),
@@ -680,6 +688,39 @@ describe("worker JSON edge cache policy", () => {
       reason: "json",
       versionGroups: ["home-sections"],
     });
+    expect(getJsonEdgeCacheDecision(request("/api/home-deferred"))).toMatchObject({
+      cacheControl: JSON_EDGE_CACHE_CONTROL,
+      cacheable: true,
+      candidate: true,
+      reason: "json",
+      versionGroups: [
+        "home-sections",
+        "guides",
+        "customer-reviews",
+        "villa-listings",
+      ],
+    });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/home-deferred?criticalRail=featured-villas"),
+      ),
+    ).toMatchObject({
+      cacheControl: JSON_EDGE_CACHE_CONTROL,
+      cacheable: true,
+      candidate: true,
+      reason: "json",
+    });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/home-rail?rail=featured-villas&offset=4&exclude=1&exclude=2&exclude=3&exclude=4"),
+      ),
+    ).toMatchObject({
+      cacheControl: JSON_EDGE_CACHE_CONTROL,
+      cacheable: true,
+      candidate: true,
+      reason: "json",
+      versionGroups: ["home-sections", "villa-listings"],
+    });
     expect(getJsonEdgeCacheDecision(request("/api/villas/9"))).toMatchObject({
       cacheable: true,
       candidate: true,
@@ -728,6 +769,38 @@ describe("worker JSON edge cache policy", () => {
       reason: "query",
     });
     expect(
+      getJsonEdgeCacheDecision(
+        request("/api/home-deferred?criticalRail=featured&debug=1"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/home-deferred?criticalRail=featured&criticalRail=later"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/home-rail?rail=featured&offset=5"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/home-rail?rail=featured&offset=4&exclude=1&exclude=1"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(
+        request("/api/home-rail?rail=featured&offset=4&exclude=0"),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
+      getJsonEdgeCacheDecision(
+        request(
+          "/api/home-rail?rail=featured&offset=4&exclude=1&exclude=2&exclude=3&exclude=4&exclude=5",
+        ),
+      ),
+    ).toMatchObject({ cacheable: false, candidate: true, reason: "query" });
+    expect(
       getJsonEdgeCacheDecision(request("/api/villas/9/images?imageId=7")),
     ).toMatchObject({ cacheable: false, candidate: false, reason: "path" });
     expect(
@@ -767,6 +840,34 @@ describe("worker JSON edge cache policy", () => {
 
     expect(cacheKey.method).toBe("GET");
     expect(url.pathname).toBe("/api/home-sections");
+    expect(url.searchParams.get("__bpv_json_v")).toBe("home-sections:42");
+    expect(url.hash).toBe("");
+  });
+
+  it("keeps the document critical rail in deferred-home JSON cache keys", () => {
+    const cacheKey = createJsonEdgeCacheKey(
+      request("/api/home-deferred?criticalRail=featured-villas#later"),
+      "home-sections:42",
+    );
+    const url = new URL(cacheKey.url);
+
+    expect(url.pathname).toBe("/api/home-deferred");
+    expect(url.searchParams.get("criticalRail")).toBe("featured-villas");
+    expect(url.searchParams.get("__bpv_json_v")).toBe("home-sections:42");
+    expect(url.hash).toBe("");
+  });
+
+  it("keeps the rail identity and offset in continuation JSON cache keys", () => {
+    const cacheKey = createJsonEdgeCacheKey(
+      request("/api/home-rail?rail=featured-villas&offset=8&exclude=1&exclude=2&exclude=4#later"),
+      "home-sections:42",
+    );
+    const url = new URL(cacheKey.url);
+
+    expect(url.pathname).toBe("/api/home-rail");
+    expect(url.searchParams.get("rail")).toBe("featured-villas");
+    expect(url.searchParams.get("offset")).toBe("8");
+    expect(url.searchParams.getAll("exclude")).toEqual(["1", "2", "4"]);
     expect(url.searchParams.get("__bpv_json_v")).toBe("home-sections:42");
     expect(url.hash).toBe("");
   });

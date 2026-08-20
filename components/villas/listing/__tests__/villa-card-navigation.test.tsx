@@ -7,16 +7,11 @@ import { VillaCardStyleProvider } from "../villa-card-style-context";
 import { selectVillaCardGalleryImages } from "../villa-card-gallery-images";
 import { VillaCard } from "../villa-card";
 
-interface MockImageProps {
-  alt: string;
-  preload?: boolean;
-  src: string;
-}
-
 vi.mock("next/image", () => ({
-  default: ({ alt, preload, src }: MockImageProps) => (
+  default: ({ alt, preload, src, ...props }: Record<string, unknown>) => (
     <span
-      aria-label={alt}
+      {...props}
+      aria-label={typeof alt === "string" ? alt : undefined}
       data-preload={preload ? "true" : "false"}
       data-src={src}
     />
@@ -50,6 +45,37 @@ describe("VillaCard navigation", () => {
 
     expect(markup).toContain('src="/api/houses/images/501"');
     expect(markup).not.toContain("devillegroups.com");
+  });
+
+  it("keeps an inactive classic cover at its progressive preview", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard coverImageActive={false} villa={villa} />,
+    );
+
+    expect(markup).toContain("data-progressive-preview=\"true\"");
+    expect(markup).not.toContain("data-progressive-full=\"true\"");
+  });
+
+  it("renders the full classic cover when its card is active", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard coverImageActive villa={villa} />,
+    );
+
+    expect(markup).toContain("data-progressive-preview=\"true\"");
+    expect(markup).toContain("data-progressive-full=\"true\"");
+  });
+
+  it("applies card cover activation to the selected gallery image", () => {
+    const markup = renderToStaticMarkup(
+      <VillaCard
+        coverImageActive={false}
+        villa={villa}
+        villaCardStyle="gallery"
+      />,
+    );
+
+    expect(markup).toContain("data-progressive-preview=\"true\"");
+    expect(markup).not.toContain("data-progressive-full=\"true\"");
   });
 
   it("uses its server-provided style instead of the surrounding client context", () => {

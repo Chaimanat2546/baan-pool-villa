@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
+import { ProgressiveImage } from "@/components/ui/progressive-image";
+import { useImageActivation } from "@/components/ui/near-viewport-activation";
 import { useLockedBodyScroll } from "@/components/villas/detail/use-locked-body-scroll";
 import type {
   HomepageCustomerReviewData,
@@ -27,19 +29,24 @@ function ReviewImageButton({
   onOpen: (index: number) => void;
   sizes: string;
 }) {
+  const imageActive = useImageActivation();
+
   return (
     <button
+      aria-label={image.alt}
       className={`group relative min-w-0 overflow-hidden rounded-lg bg-[var(--site-surface)] text-left shadow-sm ring-1 ring-[var(--site-border)] transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--site-primary)] ${className}`}
       onClick={() => {
         onOpen(index);
       }}
       type="button"
     >
-      <Image
+      <ProgressiveImage
         alt={image.alt}
         className="object-cover transition duration-300 group-hover:scale-[1.03]"
         fill
-        loading="lazy"
+        fullImageActive={imageActive}
+        fullImageLoading="lazy"
+        previewActive={imageActive}
         quality={75}
         sizes={sizes}
         src={image.url}

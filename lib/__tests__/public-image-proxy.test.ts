@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildGuideContentImageProxyPath,
   buildGuideCoverImageProxyPath,
+  buildTikTokThumbnailImageProxyUrl,
   isPublicImageProxyPath,
   buildGuideImageProxyUrl,
   buildSiteAssetProxyUrl,
@@ -13,6 +14,26 @@ import {
 } from "@/lib/public-image-proxy";
 
 describe("public image proxy URL builders", () => {
+  it("builds only allowlisted TikTok CDN preview proxy URLs", () => {
+    const source =
+      "https://p16-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/no-extension?x-expires=123&x-signature=signed";
+    const proxyUrl = buildTikTokThumbnailImageProxyUrl(source, {
+      quality: 60,
+      width: 64,
+    });
+    const url = new URL(proxyUrl ?? "", "https://example.com");
+
+    expect(url.pathname).toBe("/api/tiktok/images/proxy");
+    expect(url.searchParams.get("url")).toBe(source);
+    expect(url.searchParams.get("w")).toBe("64");
+    expect(url.searchParams.get("q")).toBe("60");
+    expect(buildTikTokThumbnailImageProxyUrl("https://tiktokcdn-us.com/cover.jpg")).toBeNull();
+    expect(buildTikTokThumbnailImageProxyUrl("https://p16-sign.tiktokcdn-us.com.evil.test/cover.jpg")).toBeNull();
+    expect(buildTikTokThumbnailImageProxyUrl("https://user:pass@p16-sign.tiktokcdn-us.com/cover.jpg")).toBeNull();
+    expect(buildTikTokThumbnailImageProxyUrl("https://p16-sign.tiktokcdn-us.com:444/cover.jpg")).toBeNull();
+    expect(buildTikTokThumbnailImageProxyUrl("http://p16-sign.tiktokcdn-us.com/cover.jpg")).toBeNull();
+  });
+
   it("recognizes only documented same-origin image proxy routes", () => {
     expect(isPublicImageProxyPath("/api/guides/images/guide/cover")).toBe(true);
     expect(isPublicImageProxyPath("/api/houses")).toBe(false);

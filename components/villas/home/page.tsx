@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import { ContactSection } from "@/components/layout/contact-section";
+import { NearViewportActivation } from "@/components/ui/near-viewport-activation";
 import type { HomePageSettings } from "@/components/villas/home/client-payload";
 import {
   DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
@@ -48,16 +49,28 @@ interface HomePageProps {
   villaCardStyle?: SiteVillaCardStyle;
 }
 
+export type HomePageContentSettings = Pick<
+  HomePageSettings,
+  "bank" | "contact" | "siteName" | "tiktok"
+>;
+
 interface HomePageContentProps {
+  criticalContent?: ReactNode;
+  criticalRailContinuationKey?: string | null;
+  criticalRailKey?: string | null;
   customerReviews?: HomepageCustomerReviewData;
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   homeLayout?: HomePageLayoutItem[];
-  settings: HomePageSettings;
+  settings: HomePageContentSettings;
   villaCardStyle?: SiteVillaCardStyle;
+  renderLayoutPlaceholder?: (item: HomePageLayoutItem) => ReactNode;
 }
 
 export function HomePageContent({
+  criticalContent,
+  criticalRailContinuationKey,
+  criticalRailKey,
   customerReviews = {
     images: [],
     layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
@@ -67,6 +80,7 @@ export function HomePageContent({
   homeLayout,
   settings,
   villaCardStyle,
+  renderLayoutPlaceholder,
 }: HomePageContentProps) {
   const railsBySlug = new Map(
     initialHomeSections
@@ -75,6 +89,13 @@ export function HomePageContent({
   );
   const layout =
     homeLayout ?? buildDefaultHomePageLayout([...railsBySlug.keys()]);
+  const resolvedCriticalRailKey =
+    criticalRailKey === undefined
+      ? layout.find(
+          (item) =>
+            item.enabled && item.kind === "rail" && railsBySlug.has(item.key),
+        )?.key
+      : criticalRailKey;
 
   return (
     <>
@@ -82,8 +103,27 @@ export function HomePageContent({
         if (!item.enabled) return null;
 
         if (item.kind === "rail") {
+          if (
+            item.key === resolvedCriticalRailKey &&
+            criticalContent !== undefined
+          ) {
+            return (
+              <Fragment key={`rail:${item.key}`}>{criticalContent}</Fragment>
+            );
+          }
+
+          if (renderLayoutPlaceholder) {
+            return (
+              <Fragment key={`rail:${item.key}`}>
+                {renderLayoutPlaceholder(item)}
+              </Fragment>
+            );
+          }
+
           const section = railsBySlug.get(item.key);
-          return section ? (
+          if (!section) return null;
+
+          const rail = (
             <VillaRail
               key={`rail:${item.key}`}
               cta={section.cta}
@@ -91,21 +131,56 @@ export function HomePageContent({
               id={section.slug}
               title={section.title}
               description={section.description}
+              continuationRailKey={
+                item.key === criticalRailContinuationKey ? item.key : undefined
+              }
               villaCardStyle={villaCardStyle}
               villas={section.villas}
             />
-          ) : null;
+          );
+
+          if (item.key === resolvedCriticalRailKey) {
+            return rail;
+          }
+
+          return (
+            <NearViewportActivation
+              initiallyActive={false}
+              key={`rail:${item.key}`}
+              rootMargin="1000px"
+            >
+              {rail}
+            </NearViewportActivation>
+          );
+        }
+
+        if (renderLayoutPlaceholder) {
+          return (
+            <Fragment key={item.key}>{renderLayoutPlaceholder(item)}</Fragment>
+          );
         }
 
         switch (item.key) {
           case "why_choose":
             return <WhyChooseSection key={item.key} siteName={settings.siteName} />;
           case "tiktok":
-            return <TikTokSection key={item.key} tiktok={settings.tiktok} />;
+            return (
+              <NearViewportActivation initiallyActive={false} key={item.key} rootMargin="1000px">
+                <TikTokSection tiktok={settings.tiktok} />
+              </NearViewportActivation>
+            );
           case "customer_reviews":
-            return <CustomerReviewSection key={item.key} data={customerReviews} />;
+            return (
+              <NearViewportActivation initiallyActive={false} key={item.key} rootMargin="1000px">
+                <CustomerReviewSection data={customerReviews} />
+              </NearViewportActivation>
+            );
           case "articles":
-            return <ArticlesSection key={item.key} guides={initialGuides} />;
+            return (
+              <NearViewportActivation initiallyActive={false} key={item.key} rootMargin="1000px">
+                <ArticlesSection guides={initialGuides} />
+              </NearViewportActivation>
+            );
           case "faq":
             return <FaqSection key={item.key} />;
           case "contact":

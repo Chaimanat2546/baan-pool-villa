@@ -5,6 +5,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ImageActivationContext } from "@/components/ui/near-viewport-activation";
 import { VillaCardGalleryImages } from "../villa-card-gallery-images";
 
 vi.mock("next/image", () => ({
@@ -150,6 +151,79 @@ describe("VillaCardGalleryImages", () => {
     for (const button of scrollButtons) {
       expect(button.className).toContain("z-10");
     }
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("does not render gallery thumbnail images while its homepage section is inactive", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <ImageActivationContext value={false}>
+          <VillaCardGalleryImages
+            alt="Inactive Demo Villa"
+            coverImageSrc="https://images.example.com/cover.jpg"
+            staticImageUrls={[
+              "https://images.example.com/pool.jpg",
+              "https://images.example.com/bedroom.jpg",
+            ]}
+            villaId="501"
+          />
+        </ImageActivationContext>,
+      );
+    });
+    await flushEffects();
+
+    expect(container.querySelectorAll('span[aria-label=""]')).toHaveLength(0);
+    expect(container.querySelector("[data-villa-card-thumbnail-strip]")).toBeNull();
+    expect(container.querySelector("[data-villa-card-thumbnail-placeholder]")).not.toBeNull();
+    expect(container.querySelector("[data-progressive-image-fallback]")).not.toBeNull();
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("renders gallery thumbnails and the main cover after its homepage section activates", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const gallery = (
+      <VillaCardGalleryImages
+        alt="Activated Demo Villa"
+        coverImageSrc="https://images.example.com/cover.jpg"
+        staticImageUrls={[
+          "https://images.example.com/pool.jpg",
+          "https://images.example.com/bedroom.jpg",
+        ]}
+        villaId="501"
+      />
+    );
+
+    await act(async () => {
+      root.render(<ImageActivationContext value={false}>{gallery}</ImageActivationContext>);
+    });
+    await flushEffects();
+
+    await act(async () => {
+      root.render(<ImageActivationContext value>{gallery}</ImageActivationContext>);
+    });
+    await flushEffects();
+
+    expect(container.querySelectorAll('span[aria-label=""]')).toHaveLength(3);
+    expect(container.querySelector("[data-villa-card-thumbnail-strip]")).not.toBeNull();
+    expect(
+      container
+        .querySelector('[aria-label="Activated Demo Villa"]')
+        ?.getAttribute("data-src"),
+    ).toBe("https://images.example.com/cover.jpg");
 
     act(() => {
       root.unmount();

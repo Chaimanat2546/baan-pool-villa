@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { toPublicGuideSummary } from "../public-dto";
+import {
+  selectHomeGuideSummaries,
+  toPublicGuideSummary,
+} from "../public-dto";
 import type { GuidePost } from "../types";
 
 const guide: GuidePost = {
@@ -45,5 +48,27 @@ describe("public guide DTOs", () => {
 
     expect(summary.coverImageUrl).toBeNull();
     expect(summary.hasCoverImage).toBe(false);
+  });
+
+  it("builds the homepage guide payload from server-safe DTOs and caps it at seven", () => {
+    const summaries = selectHomeGuideSummaries(
+      Array.from({ length: 8 }, (_, index) => ({
+        ...guide,
+        id: `guide-${index + 1}`,
+        slug: `guide-${index + 1}`,
+        title: `Guide ${index + 1}`,
+      })),
+    );
+
+    expect(summaries).toHaveLength(7);
+    expect(summaries.map((summary) => summary.id)).toEqual([
+      "guide-1",
+      "guide-2",
+      "guide-3",
+      "guide-4",
+      "guide-5",
+      "guide-6",
+      "guide-7",
+    ]);
   });
 });
