@@ -78,11 +78,7 @@ async function HomeInitialContent({
         criticalContent={
           <HomePageContent
             initialHomeSections={initialPayload.sections}
-            criticalRailContinuationKey={
-              initialPayload.criticalRailHasMore
-                ? initialPayload.criticalRailKey
-                : null
-            }
+            criticalRailKey={initialPayload.criticalRailKey}
             homeLayout={
               initialPayload.criticalRailKey
                 ? [

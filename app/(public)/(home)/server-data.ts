@@ -68,7 +68,6 @@ export type DeferredHomePayload = {
 };
 
 export type InitialHomePayload = {
-  criticalRailHasMore: boolean;
   criticalRailKey: string | null;
   degradedSources: HomePageData["degradedSources"];
   layout: HomePageLayoutItem[];
@@ -77,12 +76,6 @@ export type InitialHomePayload = {
 
 export type InitialHomePageData = InitialHomePayload & {
   filterSummary: FilterSummary;
-};
-
-export type CriticalHomeRailBatch = {
-  hasMore: boolean;
-  nextOffset: number;
-  villas: PublicVillaListing[];
 };
 
 export function getCriticalHomeRailKey(data: HomePageData): string | null {
@@ -109,8 +102,6 @@ export function buildInitialHomePayload(
     : undefined;
 
   return {
-    criticalRailHasMore:
-      (criticalSection?.villas.length ?? 0) > INITIAL_CRITICAL_RAIL_CARD_COUNT,
     criticalRailKey,
     degradedSources: { ...data.degradedSources },
     layout: data.homeLayout.items
@@ -120,10 +111,7 @@ export function buildInitialHomePayload(
       ? [
           {
             ...criticalSection,
-            villas: criticalSection.villas.slice(
-              0,
-              INITIAL_CRITICAL_RAIL_CARD_COUNT,
-            ),
+            villas: criticalSection.villas.slice(0, MAX_CRITICAL_RAIL_CARD_COUNT),
           },
         ]
       : [],
@@ -264,7 +252,7 @@ async function toInitialPublicSection(
   }
 
   const villas = await withVillaCardGalleryPreviews(
-    section.villas.slice(0, INITIAL_CRITICAL_RAIL_CARD_COUNT),
+    section.villas.slice(0, MAX_CRITICAL_RAIL_CARD_COUNT),
   );
 
   return {
@@ -327,8 +315,6 @@ export async function getInitialHomePageData(): Promise<InitialHomePageData> {
   }
 
   return {
-    criticalRailHasMore:
-      (section?.villas.length ?? 0) > INITIAL_CRITICAL_RAIL_CARD_COUNT,
     criticalRailKey: publicSection ? criticalRailKey : null,
     degradedSources: {
       guidePosts: false,
@@ -343,44 +329,6 @@ export async function getInitialHomePageData(): Promise<InitialHomePageData> {
       plan?.layout.items.filter((item) => item.enabled).map((item) => ({ ...item })) ??
       fallbackLayout,
     sections: publicSection ? [publicSection] : [],
-  };
-}
-
-export async function getCriticalHomeRailBatch(
-  railKey: string,
-  offset: number,
-  excludedVillaIds: string[] = [],
-): Promise<CriticalHomeRailBatch> {
-  const nextOffset = Math.min(
-    offset + INITIAL_CRITICAL_RAIL_CARD_COUNT,
-    MAX_CRITICAL_RAIL_CARD_COUNT,
-  );
-  const plan = await getHomeSectionListingPlan(HOME_FALLBACK_LISTING_LIMIT);
-  const layoutHasRail = plan.layout.items.some(
-    (item) => item.enabled && item.kind === "rail" && item.key === railKey,
-  );
-
-  if (!layoutHasRail) {
-    return { hasMore: false, nextOffset, villas: [] };
-  }
-
-  const { section } = await resolvePlanRail(plan, railKey);
-  const boundedVillas = section?.villas.slice(0, MAX_CRITICAL_RAIL_CARD_COUNT) ?? [];
-  const excludedVillaIdSet = new Set(excludedVillaIds);
-  const continuationVillas =
-    excludedVillaIdSet.size > 0
-      ? boundedVillas.filter((villa) => !excludedVillaIdSet.has(villa.id))
-      : boundedVillas.slice(offset);
-  const batch = await withVillaCardGalleryPreviews(
-    continuationVillas.slice(0, INITIAL_CRITICAL_RAIL_CARD_COUNT),
-  );
-
-  return {
-    hasMore:
-      nextOffset < MAX_CRITICAL_RAIL_CARD_COUNT &&
-      batch.length < continuationVillas.length,
-    nextOffset,
-    villas: batch.map(toPublicVillaListing),
   };
 }
 

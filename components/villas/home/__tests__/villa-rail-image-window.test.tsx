@@ -76,42 +76,19 @@ describe("VillaRail image activation window", () => {
     container.remove();
   });
 
-  it("prefetches and appends four-card continuation batches before the rail edge", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        json: async () => ({
-          hasMore: true,
-          nextOffset: 8,
-          villas: [4, 5, 6, 7].map(villa),
-        }),
-        ok: true,
-      })
-      .mockResolvedValueOnce({
-        json: async () => ({
-          hasMore: false,
-          nextOffset: 12,
-          villas: [8, 9, 10].map(villa),
-        }),
-        ok: true,
-      });
+  it("renders four initial cards and appends its in-memory payload without blank cards or a continuation request", async () => {
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const container = document.createElement("div");
     document.body.append(container);
     const root = createRoot(container);
-    const ProgressiveVillaRail = VillaRail as React.ComponentType<
-      React.ComponentProps<typeof VillaRail> & {
-        continuationRailKey: string;
-      }
-    >;
-
     await act(async () => {
       root.render(
-        <ProgressiveVillaRail
-          continuationRailKey="critical-rail"
+        <VillaRail
+          initialRenderedVillaCount={4}
           description="Recommended"
           title="Recommended"
-          villas={[1, 2, 3, 4].map(villa)}
+          villas={Array.from({ length: 12 }, (_, index) => villa(index + 1))}
         />,
       );
     });
@@ -126,23 +103,13 @@ describe("VillaRail image activation window", () => {
     await act(async () => {
       reportActiveIndex?.(1);
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/home-rail?rail=critical-rail&offset=4&exclude=1&exclude=2&exclude=3&exclude=4",
-      expect.objectContaining({ cache: "force-cache", signal: expect.any(AbortSignal) }),
-    );
     expect(
       Array.from(container.querySelectorAll("[data-villa-id]")).map(
         (element) => element.getAttribute("data-villa-id"),
       ),
-    ).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
+    ).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
 
-    await act(async () => {
-      reportActiveIndex?.(4);
-    });
-    expect(fetchMock).toHaveBeenLastCalledWith(
-      "/api/home-rail?rail=critical-rail&offset=8&exclude=1&exclude=2&exclude=3&exclude=4&exclude=5&exclude=6&exclude=7",
-      expect.objectContaining({ cache: "force-cache", signal: expect.any(AbortSignal) }),
-    );
+    await act(async () => reportActiveIndex?.(5));
     expect(
       Array.from(container.querySelectorAll("[data-villa-id]")).map(
         (element) => element.getAttribute("data-villa-id"),
@@ -158,175 +125,13 @@ describe("VillaRail image activation window", () => {
       "8",
       "9",
       "10",
+      "11",
+      "12",
     ]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-home-rail-continuation]')).toBeNull();
 
     act(() => root.unmount());
-    container.remove();
-  });
-
-  it("shows a recoverable continuation error and retries the same server cursor", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: false, status: 503 })
-      .mockResolvedValueOnce({
-        json: async () => ({
-          hasMore: false,
-          nextOffset: 8,
-          villas: [5, 6].map(villa),
-        }),
-        ok: true,
-      });
-    vi.stubGlobal("fetch", fetchMock);
-    const container = document.createElement("div");
-    document.body.append(container);
-    const root = createRoot(container);
-    const ProgressiveVillaRail = VillaRail as React.ComponentType<
-      React.ComponentProps<typeof VillaRail> & { continuationRailKey: string }
-    >;
-
-    await act(async () => {
-      root.render(
-        <ProgressiveVillaRail
-          continuationRailKey="critical-rail"
-          description="Recommended"
-          title="Recommended"
-          villas={[1, 2, 3, 4].map(villa)}
-        />,
-      );
-    });
-    await act(async () => reportActiveIndex?.(1));
-
-    const retryButton = container.querySelector<HTMLButtonElement>(
-      "[data-home-rail-retry]",
-    );
-    expect(container.querySelector('[data-home-rail-continuation="error"]')).not.toBeNull();
-    expect(retryButton?.textContent).toContain("ลองอีกครั้ง");
-
-    await act(async () => retryButton?.click());
-
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "/api/home-rail?rail=critical-rail&offset=4&exclude=1&exclude=2&exclude=3&exclude=4",
-      expect.objectContaining({ cache: "force-cache", signal: expect.any(AbortSignal) }),
-    );
-    expect(container.querySelector('[data-home-rail-continuation="error"]')).toBeNull();
-    expect(
-      Array.from(container.querySelectorAll("[data-villa-id]")).map(
-        (element) => element.getAttribute("data-villa-id"),
-      ),
-    ).toEqual(["1", "2", "3", "4", "5", "6"]);
-
-    act(() => root.unmount());
-    container.remove();
-  });
-
-  it("accepts a cached pre-cursor response using the requested four-card window", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        json: async () => ({
-          hasMore: false,
-          villas: [5, 6].map(villa),
-        }),
-        ok: true,
-      }),
-    );
-    const container = document.createElement("div");
-    document.body.append(container);
-    const root = createRoot(container);
-    const ProgressiveVillaRail = VillaRail as React.ComponentType<
-      React.ComponentProps<typeof VillaRail> & { continuationRailKey: string }
-    >;
-
-    await act(async () => {
-      root.render(
-        <ProgressiveVillaRail
-          continuationRailKey="critical-rail"
-          description="Recommended"
-          title="Recommended"
-          villas={[1, 2, 3, 4].map(villa)}
-        />,
-      );
-    });
-    await act(async () => reportActiveIndex?.(1));
-
-    expect(container.querySelector('[data-home-rail-continuation="error"]')).toBeNull();
-    expect(
-      Array.from(container.querySelectorAll("[data-villa-id]")).map(
-        (element) => element.getAttribute("data-villa-id"),
-      ),
-    ).toEqual(["1", "2", "3", "4", "5", "6"]);
-
-    act(() => root.unmount());
-    container.remove();
-  });
-
-  it("rejects a server cursor that does not advance by exactly four", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        json: async () => ({
-          hasMore: true,
-          nextOffset: 9,
-          villas: [5, 6, 7, 8].map(villa),
-        }),
-        ok: true,
-      }),
-    );
-    const container = document.createElement("div");
-    document.body.append(container);
-    const root = createRoot(container);
-
-    await act(async () => {
-      root.render(
-        <VillaRail
-          continuationRailKey="critical-rail"
-          description="Recommended"
-          title="Recommended"
-          villas={[1, 2, 3, 4].map(villa)}
-        />,
-      );
-    });
-    await act(async () => reportActiveIndex?.(1));
-
-    expect(container.querySelector('[data-home-rail-continuation="error"]')).not.toBeNull();
-    expect(container.querySelectorAll("[data-villa-id]")).toHaveLength(4);
-
-    act(() => root.unmount());
-    container.remove();
-  });
-
-  it("aborts an active continuation request when the rail unmounts", async () => {
-    let requestSignal: AbortSignal | undefined;
-    vi.stubGlobal(
-      "fetch",
-      vi.fn((_url: string, options?: RequestInit) => {
-        requestSignal = options?.signal ?? undefined;
-        return new Promise(() => undefined);
-      }),
-    );
-    const container = document.createElement("div");
-    document.body.append(container);
-    const root = createRoot(container);
-    const ProgressiveVillaRail = VillaRail as React.ComponentType<
-      React.ComponentProps<typeof VillaRail> & { continuationRailKey: string }
-    >;
-
-    await act(async () => {
-      root.render(
-        <ProgressiveVillaRail
-          continuationRailKey="critical-rail"
-          description="Recommended"
-          title="Recommended"
-          villas={[1, 2, 3, 4].map(villa)}
-        />,
-      );
-    });
-    await act(async () => reportActiveIndex?.(1));
-    expect(requestSignal?.aborted).toBe(false);
-
-    act(() => root.unmount());
-    expect(requestSignal?.aborted).toBe(true);
     container.remove();
   });
 });

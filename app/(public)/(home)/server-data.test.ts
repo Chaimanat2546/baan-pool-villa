@@ -151,7 +151,7 @@ beforeEach(() => {
 });
 
 describe("deferred homepage server data", () => {
-  it("loads only four critical-rail cards without starting deferred sources", async () => {
+  it("loads the complete bounded critical-rail payload without starting deferred sources", async () => {
     const criticalVillas = ["1", "2", "3", "4", "5", "6"].map(makeVilla);
     getHomeSectionListingPlanMock.mockResolvedValue({
       configs: [
@@ -221,7 +221,6 @@ describe("deferred homepage server data", () => {
     const getInitialHomePageData = (
       serverData as typeof serverData & {
         getInitialHomePageData?: () => Promise<{
-          criticalRailHasMore: boolean;
           sections: Array<{ villas: VillaListing[] }>;
         }>;
       }
@@ -235,135 +234,18 @@ describe("deferred homepage server data", () => {
       "2",
       "3",
       "4",
+      "5",
+      "6",
     ]);
-    expect(payload.criticalRailHasMore).toBe(true);
     expect(fetchHomeListingsMock).toHaveBeenCalledWith(
       ["1", "2", "3", "4", "5", "6"],
       6,
     );
     expect(withVillaCardGalleryPreviewsMock).toHaveBeenCalledWith(
-      criticalVillas.slice(0, 4),
+      criticalVillas,
     );
     expect(getPublishedGuidesMock).not.toHaveBeenCalled();
     expect(getHomepageCustomerReviewDataMock).not.toHaveBeenCalled();
-  });
-
-  it("returns only the requested four-card critical continuation window", async () => {
-    const criticalVillas = Array.from({ length: 10 }, (_, index) =>
-      makeVilla(String(index + 1)),
-    );
-    const config = {
-      autoScrollEnabled: false,
-      ctaEnabled: false,
-      ctaHref: null,
-      ctaLabel: null,
-      description: "Critical description",
-      displayOrder: 0,
-      fallbackMode: "none" as const,
-      isActive: true,
-      items: criticalVillas.map((item, position) => ({
-        houseId: item.id,
-        isActive: true,
-        position,
-      })),
-      limitCount: 10,
-      mode: "manual" as const,
-      sliceOffset: 0,
-      slug: "critical",
-      title: "Critical rail",
-    };
-    getHomeSectionListingPlanMock.mockResolvedValue({
-      configs: [config],
-      houseIds: criticalVillas.map((villa) => villa.id),
-      layout: {
-        degraded: false,
-        items: [{ kind: "rail", key: "critical", enabled: true }],
-        source: "config",
-      },
-      listingLimit: 12,
-    });
-    fetchHomeListingsMock.mockResolvedValue(criticalVillas);
-    getResolvedHomeSectionsMock.mockResolvedValue({
-      degraded: false,
-      sections: [
-        {
-          autoScrollEnabled: false,
-          description: "Critical description",
-          slug: "critical",
-          title: "Critical rail",
-          villas: criticalVillas,
-        },
-      ],
-      source: "config",
-    });
-    const { getCriticalHomeRailBatch } = await import("./server-data");
-
-    const batch = await getCriticalHomeRailBatch(
-      "critical",
-      4,
-      ["1", "2", "3", "4"],
-    );
-
-    expect(batch.villas.map((villa) => villa.id)).toEqual(["5", "6", "7", "8"]);
-    expect(batch.hasMore).toBe(true);
-    expect(batch.nextOffset).toBe(8);
-    expect(withVillaCardGalleryPreviewsMock).toHaveBeenCalledWith(
-      criticalVillas.slice(4, 8),
-    );
-    expect(getPublishedGuidesMock).not.toHaveBeenCalled();
-    expect(getHomepageCustomerReviewDataMock).not.toHaveBeenCalled();
-  });
-
-  it("does not skip an unseen villa inserted before a stale initial prefix", async () => {
-    const currentVillas = ["99", "1", "2", "3", "4", "5", "6", "7", "8"]
-      .map(makeVilla);
-    getResolvedHomeSectionsMock.mockResolvedValue({
-      degraded: false,
-      sections: [{
-        autoScrollEnabled: false,
-        description: "Critical description",
-        slug: "critical",
-        title: "Critical rail",
-        villas: currentVillas,
-      }],
-      source: "config",
-    });
-    const { getCriticalHomeRailBatch } = await import("./server-data");
-
-    const batch = await getCriticalHomeRailBatch(
-      "critical",
-      4,
-      ["1", "2", "3", "4"],
-    );
-
-    expect(batch.villas.map((villa) => villa.id)).toEqual(["99", "5", "6", "7"]);
-    expect(batch.nextOffset).toBe(8);
-  });
-
-  it("fills the continuation window when a stale initial villa was deleted", async () => {
-    const currentVillas = ["1", "2", "4", "5", "6", "7", "8", "9"]
-      .map(makeVilla);
-    getResolvedHomeSectionsMock.mockResolvedValue({
-      degraded: false,
-      sections: [{
-        autoScrollEnabled: false,
-        description: "Critical description",
-        slug: "critical",
-        title: "Critical rail",
-        villas: currentVillas,
-      }],
-      source: "config",
-    });
-    const { getCriticalHomeRailBatch } = await import("./server-data");
-
-    const batch = await getCriticalHomeRailBatch(
-      "critical",
-      4,
-      ["1", "2", "3", "4"],
-    );
-
-    expect(batch.villas.map((villa) => villa.id)).toEqual(["5", "6", "7", "8"]);
-    expect(batch.nextOffset).toBe(8);
   });
 
   it("builds an initial payload containing only the document critical rail", async () => {
@@ -376,7 +258,6 @@ describe("deferred homepage server data", () => {
     ).buildInitialHomePayload;
 
     expect(buildInitialHomePayload?.(data)).toEqual({
-      criticalRailHasMore: false,
       criticalRailKey: "critical",
       degradedSources: {
         guidePosts: false,
