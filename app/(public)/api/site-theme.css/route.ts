@@ -5,6 +5,7 @@ import {
   DEFAULT_LINK_COLOR,
   DEFAULT_PRIMARY_COLOR,
 } from "@/lib/site-settings/colors";
+import { CACHE_HEADERS } from "@/lib/cache-policy";
 
 const HEX_COLOR_PATTERN = /^#?[\da-f]{6}$/i;
 
@@ -77,7 +78,7 @@ export function GET(request: Request) {
 
   return new Response(css, {
     headers: {
-      "Cache-Control": "no-store",
+      "Cache-Control": CACHE_HEADERS.siteThemeCss,
       "Content-Type": "text/css; charset=utf-8",
     },
   });

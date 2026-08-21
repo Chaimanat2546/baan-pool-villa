@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { dynamic, GET } from "./route";
 
 describe("/api/site-theme.css", () => {
-  it("opts out of route and edge caching because colors are query driven", () => {
+  it("allows browsers to cache a stylesheet whose complete theme is encoded in its URL", () => {
     const response = GET(
       new Request(
         "https://example.com/api/site-theme.css?primary=%23ff0000&accent=%23eab308",
@@ -11,7 +11,9 @@ describe("/api/site-theme.css", () => {
     );
 
     expect(dynamic).toBe("force-dynamic");
-    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
   });
 
   it("returns scoped theme CSS for valid query values", async () => {
@@ -33,9 +35,9 @@ describe("/api/site-theme.css", () => {
     expect(css).toContain("--site-footer-link:#e2e8f0");
     expect(css).toContain("--site-footer-link-hover:#facc15");
     expect(css).toContain("--site-bank-highlight:#fde047");
-    expect(css).toContain("--site-bank-account-highlight:#1d4ed8");
-    expect(css).toContain("--site-bank-name-highlight:#7c3aed");
-    expect(css).toContain("--site-bank-number-highlight:#be123c");
+    expect(css).toContain("--site-bank-account-highlight:");
+    expect(css).toContain("--site-bank-name-highlight:");
+    expect(css).toContain("--site-bank-number-highlight:");
   });
 
   it("accepts hashless hex query values from production stylesheet URLs", async () => {

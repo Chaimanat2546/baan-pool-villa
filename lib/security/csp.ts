@@ -5,6 +5,7 @@ export const CLOUDFLARE_INSIGHTS_ORIGIN = "https://static.cloudflareinsights.com
 export const GOOGLE_ADS_COLLECT_ORIGIN = "https://ad.doubleclick.net";
 export const GOOGLE_ADS_CONVERSION_ORIGIN =
   "https://googleads.g.doubleclick.net";
+export const GOOGLE_ANALYTICS_STATS_ORIGIN = "https://stats.g.doubleclick.net";
 export const GOOGLE_AD_SERVICES_ORIGIN = "https://www.googleadservices.com";
 export const GOOGLE_ANALYTICS_ORIGIN = "https://www.google-analytics.com";
 export const GOOGLE_ANALYTICS_COLLECT_ORIGIN = "https://analytics.google.com";
@@ -101,6 +102,7 @@ export function buildContentSecurityPolicy({
     GOOGLE_AD_SERVICES_ORIGIN,
     GOOGLE_ANALYTICS_ORIGIN,
     GOOGLE_ANALYTICS_COLLECT_ORIGIN,
+    GOOGLE_ANALYTICS_STATS_ORIGIN,
     GOOGLE_COLLECT_ORIGIN,
     GOOGLE_TAG_MANAGER_ORIGIN,
     GOOGLE_THAILAND_ORIGIN,

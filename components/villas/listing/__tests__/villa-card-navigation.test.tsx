@@ -47,12 +47,12 @@ describe("VillaCard navigation", () => {
     expect(markup).not.toContain("devillegroups.com");
   });
 
-  it("keeps an inactive classic cover at its progressive preview", () => {
+  it("keeps an inactive classic cover as a lightweight placeholder", () => {
     const markup = renderToStaticMarkup(
       <VillaCard coverImageActive={false} villa={villa} />,
     );
 
-    expect(markup).toContain("data-progressive-preview=\"true\"");
+    expect(markup).not.toContain("data-progressive-preview=\"true\"");
     expect(markup).not.toContain("data-progressive-full=\"true\"");
   });
 
@@ -74,7 +74,7 @@ describe("VillaCard navigation", () => {
       />,
     );
 
-    expect(markup).toContain("data-progressive-preview=\"true\"");
+    expect(markup).not.toContain("data-progressive-preview=\"true\"");
     expect(markup).not.toContain("data-progressive-full=\"true\"");
   });
 
@@ -90,7 +90,7 @@ describe("VillaCard navigation", () => {
     expect(markup).toContain('href="/villas/501"');
   });
 
-  it("uses server-provided gallery preview images without waiting for the browser API", () => {
+  it("keeps server-provided gallery previews ready without mounting offscreen thumbnails", () => {
     const markup = renderToStaticMarkup(
       <VillaCard
         villa={{
@@ -105,7 +105,8 @@ describe("VillaCard navigation", () => {
     );
 
     expect(markup).toContain('data-villa-card-gallery-status="ready"');
-    expect(markup).toContain('data-src="https://images.example.com/pool.jpg"');
+    expect(markup).toContain("data-villa-card-thumbnail-placeholder");
+    expect(markup).not.toContain('data-src="https://images.example.com/pool.jpg"');
   });
 
   it("shows the no-image placeholder when a card has no cover image", () => {
@@ -116,7 +117,7 @@ describe("VillaCard navigation", () => {
     expect(markup).toContain("ไม่มีรูปภาพ");
   });
 
-  it("keeps the cover image first and caps gallery card images at ten", () => {
+  it("keeps the cover image first and caps gallery card previews at ten", () => {
     const images = selectVillaCardGalleryImages(
       "https://images.example.com/cover.jpg",
       Array.from({ length: 12 }, (_, index) => ({

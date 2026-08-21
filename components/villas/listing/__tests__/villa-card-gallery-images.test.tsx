@@ -3,7 +3,7 @@
  */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ImageActivationContext } from "@/components/ui/near-viewport-activation";
 import { VillaCardGalleryImages } from "../villa-card-gallery-images";
@@ -33,7 +33,66 @@ async function flushEffects() {
   });
 }
 
+function createObserverDouble() {
+  let callback: IntersectionObserverCallback | undefined;
+  let options: IntersectionObserverInit | undefined;
+
+  class ObserverDouble {
+    constructor(
+      nextCallback: IntersectionObserverCallback,
+      nextOptions: IntersectionObserverInit,
+    ) {
+      callback = nextCallback;
+      options = nextOptions;
+    }
+
+    disconnect() {}
+
+    observe() {}
+
+    takeRecords() {
+      return [];
+    }
+
+    unobserve() {}
+  }
+
+  return {
+    activate() {
+      callback?.(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    },
+    options: () => options,
+    ObserverDouble,
+  };
+}
+
 describe("VillaCardGalleryImages", () => {
+  beforeEach(() => {
+    class AutoIntersectionObserver {
+      constructor(private readonly callback: IntersectionObserverCallback) {}
+
+      disconnect() {}
+
+      observe() {
+        this.callback(
+          [{ isIntersecting: true } as IntersectionObserverEntry],
+          this as unknown as IntersectionObserver,
+        );
+      }
+
+      takeRecords() {
+        return [];
+      }
+
+      unobserve() {}
+    }
+
+    vi.stubGlobal("IntersectionObserver", AutoIntersectionObserver);
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -191,6 +250,42 @@ describe("VillaCardGalleryImages", () => {
     container.remove();
   });
 
+  it("waits until a gallery card enters the viewport before mounting its ten thumbnails", async () => {
+    const observer = createObserverDouble();
+    vi.stubGlobal("IntersectionObserver", observer.ObserverDouble);
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <VillaCardGalleryImages
+          alt="Deferred thumbnail gallery"
+          coverImageSrc="https://images.example.com/cover.jpg"
+          staticImageUrls={Array.from({ length: 10 }, (_, index) => (
+            `https://images.example.com/image-${index + 1}.jpg`
+          ))}
+          villaId="501"
+        />,
+      );
+    });
+
+    expect(observer.options()).toEqual({ rootMargin: "0px" });
+    expect(container.querySelector("[data-villa-card-thumbnail-strip]")).toBeNull();
+    expect(container.querySelector("[data-villa-card-thumbnail-placeholder]")).not.toBeNull();
+
+    await act(async () => {
+      observer.activate();
+    });
+
+    expect(container.querySelectorAll("[aria-pressed]")).toHaveLength(10);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it("renders gallery thumbnails and the main cover after its homepage section activates", async () => {
     const container = document.createElement("div");
     document.body.append(container);
@@ -231,7 +326,7 @@ describe("VillaCardGalleryImages", () => {
     container.remove();
   });
 
-  it("eagerly loads only the first three gallery thumbnails", async () => {
+  it("lazy-loads gallery thumbnails so they do not compete with the card cover", async () => {
     const container = document.createElement("div");
     document.body.append(container);
     const root = createRoot(container);
@@ -257,13 +352,7 @@ describe("VillaCardGalleryImages", () => {
       container.querySelectorAll('span[aria-label=""]'),
     ).map((thumbnail) => thumbnail.getAttribute("data-loading"));
 
-    expect(thumbnailLoadingModes).toEqual([
-      "eager",
-      "eager",
-      "eager",
-      "lazy",
-      "lazy",
-    ]);
+    expect(thumbnailLoadingModes).toEqual(["lazy", "lazy", "lazy", "lazy", "lazy"]);
 
     act(() => {
       root.unmount();

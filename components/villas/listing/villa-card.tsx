@@ -78,7 +78,7 @@ export function VillaCard({
       src={coverImageSrc}
       alt={villaTitle}
       fill
-      previewActive={sectionImagesActive}
+      previewActive={coverImageActive && sectionImagesActive}
       fullImageActive={coverImageActive && sectionImagesActive}
       fullImageLoading={imageLoading}
       fullImagePreload={preload}
@@ -104,7 +104,7 @@ export function VillaCard({
           imageLoading={imageLoading}
           preload={preload}
           coverImageActive={coverImageActive && sectionImagesActive}
-          previewActive={sectionImagesActive}
+          previewActive={coverImageActive && sectionImagesActive}
           staticImageUrls={galleryImageUrls}
           villaId={villa.id}
         />

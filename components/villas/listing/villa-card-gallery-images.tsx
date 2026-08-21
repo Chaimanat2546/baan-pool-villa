@@ -1,10 +1,20 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type RefObject,
+} from "react";
 
 import { ImageWithSkeleton as Image } from "@/components/ui/image-with-skeleton";
-import { useImageActivation } from "@/components/ui/near-viewport-activation";
+import {
+  NearViewportActivation,
+  useImageActivation,
+} from "@/components/ui/near-viewport-activation";
 import { ProgressiveImage } from "@/components/ui/progressive-image";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
 
@@ -30,6 +40,97 @@ interface VillaImagesResponse {
 
 function isUsableImageUrl(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function GalleryThumbnailStrip({
+  alt,
+  galleryImages,
+  onNext,
+  onPrevious,
+  onSelect,
+  selectedIndex,
+  thumbnailRefs,
+  thumbsRef,
+}: {
+  alt: string;
+  galleryImages: string[];
+  onNext: () => void;
+  onPrevious: () => void;
+  onSelect: (index: number) => void;
+  selectedIndex: number;
+  thumbnailRefs: MutableRefObject<Array<HTMLButtonElement | null>>;
+  thumbsRef: RefObject<HTMLDivElement | null>;
+}) {
+  const thumbnailsActive = useImageActivation();
+
+  if (!thumbnailsActive) {
+    return (
+      <div
+        aria-hidden="true"
+        className="h-20 border-t border-white/70 bg-[var(--site-surface)] px-2 py-2"
+        data-villa-card-thumbnail-placeholder
+      />
+    );
+  }
+
+  return (
+    <div
+      className="relative border-t border-white/70 bg-[var(--site-surface)] px-2 py-2"
+      data-villa-card-thumbnail-strip
+      data-scroll-rail-ignore-drag="true"
+    >
+      <button
+        aria-label={`เลื่อนรูปย่อยของ ${alt} ไปทางซ้าย`}
+        className="absolute left-3 top-1/2 z-10 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-md"
+        onClick={onPrevious}
+        type="button"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <div
+        ref={thumbsRef}
+        className="flex gap-2 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        data-villa-card-thumbnail-rail
+      >
+        {galleryImages.map((image, index) => (
+          <button
+            aria-label={`แสดงรูปที่ ${index + 1} ของ ${alt}`}
+            aria-pressed={selectedIndex === index}
+            className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border transition ${
+              selectedIndex === index
+                ? "border-[var(--site-primary)]"
+                : "border-transparent"
+            }`}
+            key={image}
+            onClick={() => onSelect(index)}
+            ref={(element) => {
+              thumbnailRefs.current[index] = element;
+            }}
+            type="button"
+          >
+            <Image
+              src={image}
+              alt=""
+              fill
+              loading="lazy"
+              maximumWidth={300}
+              quality={60}
+              sizes="96px"
+              className="object-cover"
+            />
+          </button>
+        ))}
+      </div>
+      <button
+        aria-label={`เลื่อนรูปย่อยของ ${alt} ไปทางขวา`}
+        className="absolute right-3 top-1/2 z-10 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-md"
+        onClick={onNext}
+        type="button"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
 }
 
 export function selectVillaCardGalleryImages(
@@ -303,69 +404,19 @@ export function VillaCardGalleryImages({
         </div>
       )}
 
-      {galleryStatus === "ready" && sectionImagesActive ? (
-        <div
-          className="relative border-t border-white/70 bg-[var(--site-surface)] px-2 py-2"
-          data-villa-card-thumbnail-strip
-          data-scroll-rail-ignore-drag="true"
-        >
-          <button
-            aria-label={`เลื่อนรูปย่อยของ ${alt} ไปทางซ้าย`}
-            className="absolute left-3 top-1/2 z-10 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-md"
-            onClick={() => {
-              scrollThumbs("left");
-            }}
-            type="button"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <div
-            ref={thumbsRef}
-            className="flex gap-2 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            data-villa-card-thumbnail-rail
-          >
-            {galleryImages.map((image, index) => (
-              <button
-                aria-label={`แสดงรูปที่ ${index + 1} ของ ${alt}`}
-                aria-pressed={selectedIndex === index}
-                className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border transition ${
-                  selectedIndex === index
-                    ? "border-[var(--site-primary)]"
-                    : "border-transparent"
-                }`}
-                key={image}
-                onClick={() => {
-                  setSelectedIndex(index);
-                }}
-                ref={(element) => {
-                  thumbnailRefs.current[index] = element;
-                }}
-                type="button"
-              >
-                <Image
-                  src={image}
-                  alt=""
-                  fill
-                  loading={index < 3 ? "eager" : "lazy"}
-                  maximumWidth={300}
-                  quality={60}
-                  sizes="96px"
-                  className="object-cover"
-                />
-              </button>
-            ))}
-          </div>
-          <button
-            aria-label={`เลื่อนรูปย่อยของ ${alt} ไปทางขวา`}
-            className="absolute right-3 top-1/2 z-10 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-md"
-            onClick={() => {
-              scrollThumbs("right");
-            }}
-            type="button"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+      {galleryStatus === "ready" && sectionImagesActive && coverImageActive ? (
+        <NearViewportActivation initiallyActive={false} rootMargin="0px">
+          <GalleryThumbnailStrip
+            alt={alt}
+            galleryImages={galleryImages}
+            onNext={() => scrollThumbs("right")}
+            onPrevious={() => scrollThumbs("left")}
+            onSelect={setSelectedIndex}
+            selectedIndex={selectedIndex}
+            thumbnailRefs={thumbnailRefs}
+            thumbsRef={thumbsRef}
+          />
+        </NearViewportActivation>
       ) : (
         <div
           aria-hidden="true"

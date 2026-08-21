@@ -142,7 +142,7 @@ export function HomePageContent({
             <NearViewportActivation
               initiallyActive={false}
               key={`rail:${item.key}`}
-              rootMargin="1000px"
+              rootMargin="200px"
             >
               {rail}
             </NearViewportActivation>
@@ -160,19 +160,19 @@ export function HomePageContent({
             return <WhyChooseSection key={item.key} siteName={settings.siteName} />;
           case "tiktok":
             return (
-              <NearViewportActivation initiallyActive={false} key={item.key} rootMargin="1000px">
+              <NearViewportActivation initiallyActive={false} key={item.key} rootMargin="200px">
                 <TikTokSection tiktok={settings.tiktok} />
               </NearViewportActivation>
             );
           case "customer_reviews":
             return (
-              <NearViewportActivation initiallyActive={false} key={item.key} rootMargin="1000px">
+              <NearViewportActivation initiallyActive={false} key={item.key} rootMargin="200px">
                 <CustomerReviewSection data={customerReviews} />
               </NearViewportActivation>
             );
           case "articles":
             return (
-              <NearViewportActivation initiallyActive={false} key={item.key} rootMargin="1000px">
+              <NearViewportActivation initiallyActive={false} key={item.key} rootMargin="200px">
                 <ArticlesSection guides={initialGuides} />
               </NearViewportActivation>
             );

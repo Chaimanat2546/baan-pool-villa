@@ -56,6 +56,7 @@ export const CACHE_HEADERS = {
   villaCardImages: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaImages: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaListings: "public, s-maxage=21600, stale-while-revalidate=21600",
+  siteThemeCss: "public, max-age=31536000, immutable",
 } as const;
 
 export function getVillaDetailPath(id: string): string {
