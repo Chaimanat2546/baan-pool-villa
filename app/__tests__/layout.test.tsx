@@ -17,12 +17,18 @@ vi.mock("next/script", () => ({
     children,
     id,
     src,
+    strategy,
   }: {
     children?: ReactNode;
     id?: string;
     src?: string;
+    strategy?: string;
   }) => (
-    <span data-next-script-id={id} data-next-script-src={src}>
+    <span
+      data-next-script-id={id}
+      data-next-script-src={src}
+      data-next-script-strategy={strategy}
+    >
       {children}
     </span>
   ),
@@ -73,5 +79,6 @@ describe("RootLayout", () => {
     expect(markup).toContain("https://www.googletagmanager.com/gtm.js?id=GTM-ABC1234");
     expect(markup).toContain("https://www.googletagmanager.com/ns.html?id=GTM-ABC1234");
     expect(markup).toContain("window.dataLayer = window.dataLayer || []");
+    expect(markup).toContain('data-next-script-strategy="lazyOnload"');
   });
 });

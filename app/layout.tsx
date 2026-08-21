@@ -54,14 +54,14 @@ export default async function RootLayout({
         {children}
         {googleTagManagerId ? (
           <>
-            <Script id="google-tag-manager-init" strategy="afterInteractive">
+            <Script id="google-tag-manager-init" strategy="lazyOnload">
               {`window.dataLayer = window.dataLayer || [];
 window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });`}
             </Script>
             <Script
               id="google-tag-manager"
               src={`https://www.googletagmanager.com/gtm.js?id=${googleTagManagerId}`}
-              strategy="afterInteractive"
+              strategy="lazyOnload"
             />
           </>
         ) : null}
