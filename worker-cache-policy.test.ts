@@ -305,6 +305,18 @@ describe("worker image edge cache policy", () => {
     ).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
     expect(
       getImageEdgeCacheDecision(
+        request("/api/site-assets/images/hero?slide=0&w=750&q=60", {
+          headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+        }),
+      ),
+    ).toMatchObject({
+      cacheable: true,
+      candidate: true,
+      reason: "image",
+      versionGroups: ["site-settings"],
+    });
+    expect(
+      getImageEdgeCacheDecision(
         request("/api/tiktok/images/proxy?url=https%3A%2F%2Fp16-sign.tiktokcdn-us.com%2Fcover.jpg%3Fx-expires%3D123%26x-signature%3Dsigned&w=64&q=60", {
           headers: { Accept: "image/avif,image/webp,image/*,*/*" },
         }),
@@ -812,6 +824,34 @@ describe("worker JSON edge cache policy", () => {
     expect(url.pathname).toBe("/api/home-sections");
     expect(url.searchParams.get("__bpv_json_v")).toBe("home-sections:42");
     expect(url.hash).toBe("");
+  });
+
+  it("keeps the Hero slide and CMS version in its image cache key", () => {
+    const cacheKey = createImageEdgeCacheKey(
+      request("/api/site-assets/images/hero?slide=2&w=750&q=60#top", {
+        headers: { Accept: "image/avif,image/webp,image/*,*/*" },
+      }),
+      "site-settings:9",
+    );
+    const url = new URL(cacheKey!.url);
+
+    expect(url.pathname).toBe("/api/site-assets/images/hero");
+    expect(url.searchParams.get("slide")).toBe("2");
+    expect(url.searchParams.get("w")).toBe("750");
+    expect(url.searchParams.get("q")).toBe("60");
+    expect(url.searchParams.get("__bpv_image_v")).toBe("site-settings:9");
+  });
+
+  it.each([
+    "/api/site-assets/images/hero?w=750&q=60",
+    "/api/site-assets/images/hero?slide=0&slide=1&w=750&q=60",
+    "/api/site-assets/images/hero?slide=0&w=750&q=60&debug=1",
+  ])("does not cache unsupported Hero image query %s", (path) => {
+    expect(getImageEdgeCacheDecision(request(path))).toMatchObject({
+      cacheable: false,
+      candidate: true,
+      reason: "query",
+    });
   });
 
   it("keeps the document critical rail in deferred-home JSON cache keys", () => {

@@ -163,11 +163,35 @@ async function fetchWithImageEdgeCache(request, env, ctx) {
   }
 
   const cache = caches.default;
+  let cacheKey = decision.cacheKey;
+
+  if (decision.versionGroups) {
+    const versionResult = await runCacheRead({
+      cacheKind: "image",
+      operation: "version",
+      routeKind: "image",
+      run: () => getHtmlEdgeCacheVersionToken(env, decision.versionGroups),
+    });
+
+    if (!versionResult.ok) {
+      return withImageEdgeCacheHeader(
+        await fetchOpenNext(request, env, ctx),
+        "BYPASS",
+      );
+    }
+
+    const versionToken = createHtmlEdgeVersionToken({
+      cmsVersionToken: versionResult.value,
+      deploymentVersionToken: getWorkerDeploymentVersionToken(env),
+    });
+    cacheKey = createImageEdgeCacheKey(request, versionToken);
+  }
+
   const cacheResult = await runCacheRead({
     cacheKind: "image",
     operation: "match",
     routeKind: "image",
-    run: () => cache.match(decision.cacheKey),
+    run: () => cache.match(cacheKey),
   });
 
   if (!cacheResult.ok) {
@@ -196,7 +220,7 @@ async function fetchWithImageEdgeCache(request, env, ctx) {
     cacheKind: "image",
     operation: "put",
     routeKind: "image",
-    run: () => cache.put(decision.cacheKey, cacheWriteResponse),
+    run: () => cache.put(cacheKey, cacheWriteResponse),
   });
 
   return withImageEdgeCacheHeader(cacheResponse, "MISS");

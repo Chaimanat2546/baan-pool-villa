@@ -22,6 +22,7 @@ type ProgressiveImageProps = Omit<
   fullImageFetchPriority?: "high" | "low" | "auto";
   fullImageLoading?: "eager" | "lazy";
   fullImagePreload?: boolean;
+  fullImageVisibleImmediately?: boolean;
   onError?: (event: SyntheticEvent<HTMLImageElement>) => void;
   onLoad?: (event: SyntheticEvent<HTMLImageElement>) => void;
 };
@@ -39,6 +40,7 @@ export function ProgressiveImage({
   fullImageFetchPriority,
   fullImageLoading,
   fullImagePreload,
+  fullImageVisibleImmediately = false,
   height,
   onError,
   onLoad,
@@ -127,8 +129,10 @@ export function ProgressiveImage({
           alt={props.alt}
           className={[
             imageClassName,
-            fullLoaded ? "opacity-100" : "opacity-0",
-            reducedMotion ? "" : "transition-opacity duration-300",
+            fullLoaded || fullImageVisibleImmediately ? "opacity-100" : "opacity-0",
+            reducedMotion || fullImageVisibleImmediately
+              ? ""
+              : "transition-opacity duration-300",
           ]
             .filter(Boolean)
             .join(" ")}

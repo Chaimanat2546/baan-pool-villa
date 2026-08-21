@@ -28,6 +28,7 @@ const IMAGE_TRANSFORM_WIDTHS = new Set([
 ]);
 const IMAGE_TRANSFORM_QUALITIES = new Set([60, 75]);
 const VILLA_IMAGE_DISPLAY_QUERY_KEYS = new Set(["imageId", "url", "w", "q"]);
+const HERO_IMAGE_QUERY_KEYS = new Set(["slide", "w", "q"]);
 
 export const HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${HTML_EDGE_CACHE_SECONDS}`;
 export const VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS}`;
@@ -37,6 +38,7 @@ export const HTML_EDGE_CACHE_HEADER = "x-bpv-html-cache";
 export const HTML_EDGE_CACHE_VERSION_PARAM = "__bpv_html_v";
 export const IMAGE_EDGE_CACHE_CONTROL = `public, max-age=${IMAGE_EDGE_CACHE_SECONDS}, s-maxage=${IMAGE_EDGE_CACHE_SECONDS}, stale-while-revalidate=${IMAGE_EDGE_STALE_SECONDS}`;
 export const IMAGE_EDGE_CACHE_HEADER = "x-bpv-image-cache";
+export const IMAGE_EDGE_CACHE_VERSION_PARAM = "__bpv_image_v";
 export const HOUSE_JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${HOUSE_JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${HOUSE_JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_CONTROL = `public, s-maxage=${JSON_EDGE_CACHE_SECONDS}, stale-while-revalidate=${JSON_EDGE_CACHE_SECONDS}`;
 export const JSON_EDGE_CACHE_HEADER = "x-bpv-json-cache";
@@ -356,12 +358,41 @@ function isResolvedPublicImageProxyPath(pathname) {
   );
 }
 
+function isHeroImagePath(pathname) {
+  return pathname === "/api/site-assets/images/hero";
+}
+
+function hasValidHeroImageQuery(url) {
+  const entries = Array.from(url.searchParams.entries());
+  const seenKeys = new Set();
+
+  for (const [key] of entries) {
+    if (!HERO_IMAGE_QUERY_KEYS.has(key) || seenKeys.has(key)) {
+      return false;
+    }
+
+    seenKeys.add(key);
+  }
+
+  const slide = parseImageTransformInteger(url.searchParams.get("slide"));
+
+  return (
+    slide !== null &&
+    slide >= 0 &&
+    slide <= 9 &&
+    url.searchParams.has("w") &&
+    url.searchParams.has("q") &&
+    getImageTransformDecision(url).valid
+  );
+}
+
 function isPublicImageProxyPath(pathname) {
   return (
     pathname === "/api/houses/images/proxy" ||
     pathname === "/api/site-assets/proxy" ||
     pathname === "/api/guides/images/proxy" ||
     pathname === "/api/tiktok/images/proxy" ||
+    isHeroImagePath(pathname) ||
     isResolvedPublicImageProxyPath(pathname) ||
     isVillaImageProxyPath(pathname) ||
     isLegacyVillaImageProxyPath(pathname)
@@ -541,7 +572,7 @@ function getJsonCacheControl(pathname) {
   return JSON_EDGE_CACHE_CONTROL;
 }
 
-export function createImageEdgeCacheKey(request) {
+export function createImageEdgeCacheKey(request, versionToken = "") {
   const url = new URL(request.url);
 
   if (
@@ -551,8 +582,13 @@ export function createImageEdgeCacheKey(request) {
     return null;
   }
 
+  if (isHeroImagePath(url.pathname) && !hasValidHeroImageQuery(url)) {
+    return null;
+  }
+
   const sourceUrl = url.searchParams.get("url") ?? "";
   const imageId = getVillaImageId(url);
+  const heroSlide = url.searchParams.get("slide") ?? "";
   const transformDecision = getImageTransformDecision(url);
   url.hash = "";
   url.search = "";
@@ -563,6 +599,10 @@ export function createImageEdgeCacheKey(request) {
 
   if (imageId) {
     url.searchParams.set("imageId", imageId);
+  }
+
+  if (heroSlide) {
+    url.searchParams.set("slide", heroSlide);
   }
 
   if (transformDecision.valid) {
@@ -579,6 +619,10 @@ export function createImageEdgeCacheKey(request) {
     if (width || quality) {
       url.searchParams.set("f", getPreferredImageCacheFormat(request));
     }
+  }
+
+  if (versionToken && isHeroImagePath(url.pathname)) {
+    url.searchParams.set(IMAGE_EDGE_CACHE_VERSION_PARAM, versionToken);
   }
 
   return new Request(url.toString(), { method: "GET" });
@@ -660,6 +704,10 @@ export function getImageEdgeCacheDecision(request) {
     return { cacheable: false, candidate: true, reason: "method" };
   }
 
+  if (isHeroImagePath(url.pathname) && !hasValidHeroImageQuery(url)) {
+    return { cacheable: false, candidate: true, reason: "query" };
+  }
+
   if (
     isVillaImageProxyPath(url.pathname) &&
     !hasValidVillaImageDisplayQuery(url)
@@ -682,7 +730,8 @@ export function getImageEdgeCacheDecision(request) {
   if (
     !url.searchParams.get("url") &&
     !getVillaImageId(url) &&
-    !isResolvedPublicImageProxyPath(url.pathname)
+    !isResolvedPublicImageProxyPath(url.pathname) &&
+    !isHeroImagePath(url.pathname)
   ) {
     return { cacheable: false, candidate: true, reason: "url" };
   }
@@ -704,6 +753,9 @@ export function getImageEdgeCacheDecision(request) {
     cacheable: true,
     candidate: true,
     reason: "image",
+    versionGroups: isHeroImagePath(url.pathname)
+      ? [HTML_CACHE_VERSION_GROUPS.siteSettings]
+      : undefined,
   };
 }
 
