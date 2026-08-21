@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { buildSiteAssetImageProxyPath, normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { SiteImageSettings } from "@/lib/site-settings/types";
 
-import { HeroCarousel, type HeroCarouselSlide } from "./hero-carousel";
+import type { HeroCarouselSlide } from "./hero-carousel";
+import { HeroCarouselFallback } from "./hero-carousel-fallback";
+import { HeroCarouselLazy } from "./hero-carousel-lazy";
 import { HeroSearch } from "./hero-search";
 
 interface ZoneOption {
@@ -54,7 +56,9 @@ export function HeroSection({
 
   return (
     <section className="relative lg:pb-20">
-      <HeroCarousel slides={slides} />
+      <HeroCarouselLazy slides={slides}>
+        <HeroCarouselFallback slides={slides} />
+      </HeroCarouselLazy>
       {search ?? (
         <HeroSearch maxAvailablePrice={maxAvailablePrice} zones={zones} />
       )}
