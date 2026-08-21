@@ -44,6 +44,23 @@ describe("awsLoader", () => {
     expect(result).toBe("/api/guides/images/guide/cover?w=640&q=60");
   });
 
+  it("uses the smaller quality only for mobile hero image candidates", () => {
+    expect(
+      awsLoader({
+        src: "/api/site-assets/images/hero?slide=0",
+        width: 750,
+        quality: 75,
+      }),
+    ).toBe("/api/site-assets/images/hero?slide=0&w=750&q=60");
+    expect(
+      awsLoader({
+        src: "/api/site-assets/images/hero?slide=0",
+        width: 1440,
+        quality: 75,
+      }),
+    ).toBe("/api/site-assets/images/hero?slide=0&w=1440&q=75");
+  });
+
   it("rejects non-image API routes", () => {
     expect(() =>
       awsLoader({ src: "/api/houses", width: 640, quality: 60 }),
