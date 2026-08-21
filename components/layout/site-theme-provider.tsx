@@ -1,4 +1,4 @@
-import { buildSiteThemeStylesheetHref } from "@/lib/site-settings/colors";
+import { buildSiteThemeCss } from "@/lib/site-settings/colors";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 interface SiteThemeProviderProps {
@@ -10,7 +10,7 @@ export function SiteThemeProvider({
   children,
   settings,
 }: SiteThemeProviderProps) {
-  const themeHref = buildSiteThemeStylesheetHref({
+  const themeCss = buildSiteThemeCss({
     accentColor: settings.accentColor,
     bankHighlightColor: settings.bankHighlightColor,
     bankAccountHighlightColor: settings.bankAccountHighlightColor,
@@ -25,7 +25,7 @@ export function SiteThemeProvider({
 
   return (
     <div className="site-theme min-h-full">
-      <link href={themeHref} rel="stylesheet" />
+      <style>{themeCss}</style>
       {children}
     </div>
   );
