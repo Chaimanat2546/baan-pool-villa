@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
-import Script from "next/script";
 
+import { GoogleTagManagerOnInteraction } from "@/components/layout/google-tag-manager-on-interaction";
 import { buildSiteSettingsGlobalMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
 
@@ -53,17 +53,7 @@ export default async function RootLayout({
         ) : null}
         {children}
         {googleTagManagerId ? (
-          <>
-            <Script id="google-tag-manager-init" strategy="lazyOnload">
-              {`window.dataLayer = window.dataLayer || [];
-window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });`}
-            </Script>
-            <Script
-              id="google-tag-manager"
-              src={`https://www.googletagmanager.com/gtm.js?id=${googleTagManagerId}`}
-              strategy="lazyOnload"
-            />
-          </>
+          <GoogleTagManagerOnInteraction gtmId={googleTagManagerId} />
         ) : null}
       </body>
     </html>
