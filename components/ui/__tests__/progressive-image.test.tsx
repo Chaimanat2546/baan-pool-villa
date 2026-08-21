@@ -234,6 +234,19 @@ describe("ProgressiveImage", () => {
     await page.unmount();
   });
 
+  it("does not request a preview beside an immediately visible LCP image", async () => {
+    const page = renderImage({
+      fullImageActive: true,
+      fullImageVisibleImmediately: true,
+    });
+    await page.mount();
+
+    expect(page.container.querySelector('[data-progressive-full]')).not.toBeNull();
+    expect(page.container.querySelector('[data-progressive-preview]')).toBeNull();
+
+    await page.unmount();
+  });
+
   it("does not apply the decorative full-image transition for reduced motion", async () => {
     vi.stubGlobal("matchMedia", () => ({
       addEventListener: vi.fn(),

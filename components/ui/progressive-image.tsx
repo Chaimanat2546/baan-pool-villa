@@ -81,7 +81,8 @@ export function ProgressiveImage({
   const previewFailed = previewFailureSource === previewSource;
   const fullFailed = fullFailureSource === src;
   const fullLoaded = fullLoadedSource === src;
-  const showPreview = previewActive && !previewFailed;
+  const showPreview =
+    previewActive && !previewFailed && !fullImageVisibleImmediately;
   const showFull = fullImageActive && !fullFailed;
   const showFallback = !showPreview && (!showFull || !fullLoaded);
   const containerClassName = fill
