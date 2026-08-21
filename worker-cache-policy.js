@@ -358,32 +358,13 @@ function isResolvedPublicImageProxyPath(pathname) {
   );
 }
 
-function isHeroImagePath(pathname) {
-  return pathname === "/api/site-assets/images/hero";
-}
-
+function isHeroImagePath(pathname) { return pathname === "/api/site-assets/images/hero"; }
 function hasValidHeroImageQuery(url) {
   const entries = Array.from(url.searchParams.entries());
-  const seenKeys = new Set();
-
-  for (const [key] of entries) {
-    if (!HERO_IMAGE_QUERY_KEYS.has(key) || seenKeys.has(key)) {
-      return false;
-    }
-
-    seenKeys.add(key);
-  }
-
+  const seen = new Set();
+  for (const [key] of entries) { if (!HERO_IMAGE_QUERY_KEYS.has(key) || seen.has(key)) return false; seen.add(key); }
   const slide = parseImageTransformInteger(url.searchParams.get("slide"));
-
-  return (
-    slide !== null &&
-    slide >= 0 &&
-    slide <= 9 &&
-    url.searchParams.has("w") &&
-    url.searchParams.has("q") &&
-    getImageTransformDecision(url).valid
-  );
+  return slide !== null && slide >= 0 && slide <= 9 && url.searchParams.has("w") && url.searchParams.has("q") && getImageTransformDecision(url).valid;
 }
 
 function isPublicImageProxyPath(pathname) {
@@ -581,10 +562,7 @@ export function createImageEdgeCacheKey(request, versionToken = "") {
   ) {
     return null;
   }
-
-  if (isHeroImagePath(url.pathname) && !hasValidHeroImageQuery(url)) {
-    return null;
-  }
+  if (isHeroImagePath(url.pathname) && !hasValidHeroImageQuery(url)) return null;
 
   const sourceUrl = url.searchParams.get("url") ?? "";
   const imageId = getVillaImageId(url);
@@ -600,10 +578,7 @@ export function createImageEdgeCacheKey(request, versionToken = "") {
   if (imageId) {
     url.searchParams.set("imageId", imageId);
   }
-
-  if (heroSlide) {
-    url.searchParams.set("slide", heroSlide);
-  }
+  if (heroSlide) url.searchParams.set("slide", heroSlide);
 
   if (transformDecision.valid) {
     const { quality, width } = transformDecision.transform;
@@ -620,10 +595,7 @@ export function createImageEdgeCacheKey(request, versionToken = "") {
       url.searchParams.set("f", getPreferredImageCacheFormat(request));
     }
   }
-
-  if (versionToken && isHeroImagePath(url.pathname)) {
-    url.searchParams.set(IMAGE_EDGE_CACHE_VERSION_PARAM, versionToken);
-  }
+  if (versionToken && isHeroImagePath(url.pathname)) url.searchParams.set(IMAGE_EDGE_CACHE_VERSION_PARAM, versionToken);
 
   return new Request(url.toString(), { method: "GET" });
 }
@@ -665,7 +637,6 @@ export function getHtmlEdgeCacheDecision(request) {
   if (request.method !== "GET") {
     return { cacheable: false, candidate: true, reason: "method" };
   }
-
   if (url.search.length > 0) {
     return { cacheable: false, candidate: true, reason: "query" };
   }
@@ -730,8 +701,7 @@ export function getImageEdgeCacheDecision(request) {
   if (
     !url.searchParams.get("url") &&
     !getVillaImageId(url) &&
-    !isResolvedPublicImageProxyPath(url.pathname) &&
-    !isHeroImagePath(url.pathname)
+    !isResolvedPublicImageProxyPath(url.pathname) && !isHeroImagePath(url.pathname)
   ) {
     return { cacheable: false, candidate: true, reason: "url" };
   }
@@ -753,9 +723,7 @@ export function getImageEdgeCacheDecision(request) {
     cacheable: true,
     candidate: true,
     reason: "image",
-    versionGroups: isHeroImagePath(url.pathname)
-      ? [HTML_CACHE_VERSION_GROUPS.siteSettings]
-      : undefined,
+    versionGroups: isHeroImagePath(url.pathname) ? [HTML_CACHE_VERSION_GROUPS.siteSettings] : undefined,
   };
 }
 

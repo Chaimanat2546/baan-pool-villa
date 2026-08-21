@@ -149,7 +149,7 @@ async function fetchWithHtmlEdgeCache(request, env, ctx) {
   return withHtmlEdgeCacheHeader(cacheResponse, "MISS");
 }
 
-async function fetchWithImageEdgeCache(request, env, ctx) {
+async function fetchWithImageEdgeCacheInternal(request, env, ctx) {
   const decision = getImageEdgeCacheDecision(request);
 
   if (!decision.candidate) {
@@ -224,6 +224,17 @@ async function fetchWithImageEdgeCache(request, env, ctx) {
   });
 
   return withImageEdgeCacheHeader(cacheResponse, "MISS");
+}
+
+async function fetchWithImageEdgeCache(request, env, ctx) {
+  try {
+    return await fetchWithImageEdgeCacheInternal(request, env, ctx);
+  } catch {
+    return withImageEdgeCacheHeader(
+      await fetchOpenNext(request, env, ctx),
+      "BYPASS",
+    );
+  }
 }
 
 async function fetchWithJsonEdgeCache(request, env, ctx) {
