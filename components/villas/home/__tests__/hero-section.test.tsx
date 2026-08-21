@@ -45,8 +45,12 @@ vi.mock("@/components/ui/progressive-image", () => ({
     alt,
     fill,
     fullImageActive,
+    fullImageFetchPriority,
     fullImageLoading,
     fullImagePreload,
+    previewFetchPriority,
+    previewLoading,
+    previewMaximumWidth,
     previewActive,
     quality,
     sizes,
@@ -55,8 +59,12 @@ vi.mock("@/components/ui/progressive-image", () => ({
     alt: string;
     fill?: boolean;
     fullImageActive: boolean;
+    fullImageFetchPriority?: string;
     fullImageLoading?: string;
     fullImagePreload?: boolean;
+    previewFetchPriority?: string;
+    previewLoading?: string;
+    previewMaximumWidth?: number;
     previewActive: boolean;
     quality?: number;
     sizes?: string;
@@ -71,8 +79,20 @@ vi.mock("@/components/ui/progressive-image", () => ({
       data-src={src}
     >
       {previewActive ? <span data-progressive-preview="true" /> : null}
+      {previewFetchPriority ? (
+        <span data-progressive-preview-fetch-priority={previewFetchPriority} />
+      ) : null}
+      {previewLoading ? (
+        <span data-progressive-preview-loading={previewLoading} />
+      ) : null}
+      {previewMaximumWidth ? (
+        <span data-progressive-preview-maximum-width={previewMaximumWidth} />
+      ) : null}
       {fullImageActive ? <span data-progressive-full="true" /> : null}
       {fullImagePreload ? <span data-progressive-full-preload="true" /> : null}
+      {fullImageFetchPriority ? (
+        <span data-progressive-full-fetch-priority={fullImageFetchPriority} />
+      ) : null}
       {fullImageLoading ? (
         <span data-progressive-full-loading={fullImageLoading} />
       ) : null}
@@ -115,7 +135,7 @@ describe("HeroSection", () => {
 
     expect(container.querySelectorAll("[data-progressive-preview]")).toHaveLength(3);
     expect(container.querySelectorAll("[data-progressive-full]")).toHaveLength(1);
-    expect(container.querySelectorAll("[data-progressive-full-preload]")).toHaveLength(1);
+    expect(container.querySelectorAll("[data-progressive-full-preload]")).toHaveLength(0);
     expect(
       container.querySelector('[data-src="/first.jpg"] [data-progressive-full]'),
     ).not.toBeNull();
@@ -137,7 +157,7 @@ describe("HeroSection", () => {
 
     expect(container.querySelectorAll("[data-progressive-preview]")).toHaveLength(3);
     expect(container.querySelectorAll("[data-progressive-full]")).toHaveLength(2);
-    expect(container.querySelectorAll("[data-progressive-full-preload]")).toHaveLength(1);
+    expect(container.querySelectorAll("[data-progressive-full-preload]")).toHaveLength(0);
     expect(
       container.querySelector('[data-src="/first.jpg"] [data-progressive-full]'),
     ).not.toBeNull();
@@ -175,7 +195,11 @@ describe("HeroSection", () => {
     expect(markup).toContain('data-src="/first.jpg"');
     expect(markup).toContain('data-progressive-preview="true"');
     expect(markup).toContain('data-progressive-full="true"');
-    expect(markup).toContain('data-progressive-full-preload="true"');
+    expect(markup).not.toContain('data-progressive-full-preload="true"');
+    expect(markup).toContain('data-progressive-full-fetch-priority="high"');
+    expect(markup).toContain('data-progressive-preview-fetch-priority="high"');
+    expect(markup).toContain('data-progressive-preview-loading="eager"');
+    expect(markup).toContain('data-progressive-preview-maximum-width="96"');
     expect(markup).toContain('aria-label="รูป Hero ก่อนหน้า"');
     expect(markup).toContain('aria-label="รูป Hero ถัดไป"');
     expect(markup).toContain('aria-label="แสดงรูป Hero ที่ 2"');
@@ -195,7 +219,7 @@ describe("HeroSection", () => {
     );
 
     expect(mockAutoplay).toHaveBeenCalledWith({
-      delay: 5000,
+      delay: 15000,
       stopOnInteraction: false,
     });
     expect(mockUseEmblaCarousel).toHaveBeenCalledWith(

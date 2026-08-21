@@ -53,6 +53,7 @@ describe("content security policy", () => {
     expect(connectSrc).toContain("https://ad.doubleclick.net");
     expect(connectSrc).toContain("https://googleads.g.doubleclick.net");
     expect(connectSrc).toContain("https://www.googleadservices.com");
+    expect(connectSrc).toContain("https://stats.g.doubleclick.net");
     expect(connectSrc).toContain("https://www.google.co.th");
     expect(connectSrc).toContain("https://connect.facebook.net");
     expect(connectSrc).toContain("https://www.facebook.com");

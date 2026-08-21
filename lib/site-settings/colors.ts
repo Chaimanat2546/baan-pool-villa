@@ -175,10 +175,22 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
     "--site-accent-hover": accentColor,
     "--site-accent-on-dark": accentOnDarkColor,
     "--site-accent-soft": mixHexColors(accentColor, "#ffffff", 0.901),
-    "--site-bank-account-highlight": bankAccountHighlightColor,
-    "--site-bank-highlight": bankHighlightColor,
-    "--site-bank-name-highlight": bankNameHighlightColor,
-    "--site-bank-number-highlight": bankNumberHighlightColor,
+    "--site-bank-account-highlight": ensureReadableOnBackground(
+      bankAccountHighlightColor,
+      primaryColor,
+    ),
+    "--site-bank-highlight": ensureReadableOnBackground(
+      bankHighlightColor,
+      primaryColor,
+    ),
+    "--site-bank-name-highlight": ensureReadableOnBackground(
+      bankNameHighlightColor,
+      primaryColor,
+    ),
+    "--site-bank-number-highlight": ensureReadableOnBackground(
+      bankNumberHighlightColor,
+      primaryColor,
+    ),
     "--site-border": mixHexColors(primaryColor, "#e2e8f0", 0.85),
     "--site-border-strong": mixHexColors(primaryColor, "#94a3b8", 0.58),
     "--site-card-shadow": `0 14px 42px rgba(${shadowRed}, ${shadowGreen}, ${shadowBlue}, 0.09)`,

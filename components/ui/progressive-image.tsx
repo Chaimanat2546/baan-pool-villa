@@ -15,7 +15,11 @@ type ProgressiveImageProps = Omit<
 > & {
   previewSrc?: ComponentProps<typeof CspSafeImage>["src"];
   previewActive: boolean;
+  previewFetchPriority?: "high" | "low" | "auto";
+  previewLoading?: "eager" | "lazy";
+  previewMaximumWidth?: number;
   fullImageActive: boolean;
+  fullImageFetchPriority?: "high" | "low" | "auto";
   fullImageLoading?: "eager" | "lazy";
   fullImagePreload?: boolean;
   onError?: (event: SyntheticEvent<HTMLImageElement>) => void;
@@ -32,12 +36,16 @@ export function ProgressiveImage({
   className,
   fill,
   fullImageActive,
+  fullImageFetchPriority,
   fullImageLoading,
   fullImagePreload,
   height,
   onError,
   onLoad,
   previewActive,
+  previewFetchPriority,
+  previewLoading,
+  previewMaximumWidth = 64,
   previewSrc,
   src,
   width,
@@ -97,11 +105,13 @@ export function ProgressiveImage({
           {...props}
           alt={props.alt}
           className={`${imageClassName} scale-105 blur-lg`}
-          data-maximum-width="64"
+          data-maximum-width={previewMaximumWidth}
           data-progressive-preview
           fill={fill}
+          fetchPriority={previewFetchPriority}
           height={height}
-          maximumWidth={64}
+          loading={previewLoading}
+          maximumWidth={previewMaximumWidth}
           quality={60}
           src={previewSource}
           width={width}
@@ -123,6 +133,7 @@ export function ProgressiveImage({
             .filter(Boolean)
             .join(" ")}
           data-progressive-full
+          fetchPriority={fullImageFetchPriority}
           fill={fill}
           height={height}
           loading={fullImageLoading}

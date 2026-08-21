@@ -16,7 +16,7 @@ interface HeroCarouselProps {
   slides: HeroCarouselSlide[];
 }
 
-const AUTO_ADVANCE_DELAY_MS = 5000;
+const AUTO_ADVANCE_DELAY_MS = 15000;
 
 export function HeroCarousel({ slides }: HeroCarouselProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -108,9 +108,12 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
                 className="object-fill"
                 fill
                 fullImageActive={activatedSlideIndexes.has(index)}
+                fullImageFetchPriority={index === 0 ? "high" : undefined}
                 fullImageLoading={index === 0 ? "eager" : undefined}
-                fullImagePreload={index === 0}
                 previewActive
+                previewFetchPriority={index === 0 ? "high" : undefined}
+                previewLoading={index === 0 ? "eager" : undefined}
+                previewMaximumWidth={index === 0 ? 96 : undefined}
                 quality={75}
                 sizes="100vw"
                 src={slide.src}

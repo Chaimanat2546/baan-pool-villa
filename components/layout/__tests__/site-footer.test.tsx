@@ -161,7 +161,7 @@ describe("SiteFooter", () => {
     expect(markup).not.toContain('aria-label="ติดตามเพจ Facebook"');
   });
 
-  it("embeds the Facebook page timeline from the configured Facebook contact URL", () => {
+  it("defers the Facebook page timeline until the footer approaches the viewport", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
@@ -169,19 +169,16 @@ describe("SiteFooter", () => {
       />,
     );
 
-    expect(markup).toContain('title="โพสต์ล่าสุดจาก Facebook"');
-    expect(markup).toContain("https://www.facebook.com/plugins/page.php?");
-    expect(markup).toContain("tabs=timeline");
-    expect(markup).toContain("hide_cover=true");
-    expect(markup).toContain("show_facepile=false");
-    expect(markup).toContain("small_header=false");
-    expect(markup).toContain("loading=\"lazy\"");
+    expect(markup).toContain('aria-label="โพสต์ล่าสุดจาก Facebook"');
+    expect(markup).toContain("data-facebook-timeline-pending");
+    expect(markup).not.toContain('title="โพสต์ล่าสุดจาก Facebook"');
+    expect(markup).not.toContain("https://www.facebook.com/plugins/page.php?");
     expect(markup.indexOf("Messenger")).toBeLessThan(
-      markup.indexOf('title="โพสต์ล่าสุดจาก Facebook"'),
+      markup.indexOf("data-facebook-timeline-pending"),
     );
   });
 
-  it("uses an m.me Messenger URL to embed the matching Facebook page timeline", () => {
+  it("uses an m.me Messenger URL to defer the matching Facebook page timeline", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter
         contactSettings={{
@@ -195,10 +192,8 @@ describe("SiteFooter", () => {
       />,
     );
 
-    expect(markup).toContain("https://www.facebook.com/plugins/page.php?");
-    expect(markup).toContain(
-      "href=https%3A%2F%2Fwww.facebook.com%2Fbaanpoolvillas",
-    );
+    expect(markup).toContain("data-facebook-timeline-pending");
+    expect(markup).not.toContain("https://www.facebook.com/plugins/page.php?");
   });
 
   it("hides the Facebook timeline when the contact setting is disabled", () => {
