@@ -219,6 +219,21 @@ describe("ProgressiveImage", () => {
     await page.unmount();
   });
 
+  it("renders an immediately visible full image before its load event", async () => {
+    const page = renderImage({
+      fullImageActive: true,
+      fullImageVisibleImmediately: true,
+    });
+    await page.mount();
+
+    const fullImage = page.container.querySelector('[data-progressive-full]');
+
+    expect(fullImage?.className).toContain("opacity-100");
+    expect(fullImage?.className).not.toContain("transition-opacity");
+
+    await page.unmount();
+  });
+
   it("does not apply the decorative full-image transition for reduced motion", async () => {
     vi.stubGlobal("matchMedia", () => ({
       addEventListener: vi.fn(),

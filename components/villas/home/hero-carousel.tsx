@@ -110,6 +110,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
                 fullImageActive={activatedSlideIndexes.has(index)}
                 fullImageFetchPriority={index === 0 ? "high" : undefined}
                 fullImageLoading={index === 0 ? "eager" : undefined}
+                fullImageVisibleImmediately={index === 0}
                 previewActive
                 previewFetchPriority={index === 0 ? "high" : undefined}
                 previewLoading={index === 0 ? "eager" : undefined}

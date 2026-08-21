@@ -48,6 +48,7 @@ vi.mock("@/components/ui/progressive-image", () => ({
     fullImageFetchPriority,
     fullImageLoading,
     fullImagePreload,
+    fullImageVisibleImmediately,
     previewFetchPriority,
     previewLoading,
     previewMaximumWidth,
@@ -62,6 +63,7 @@ vi.mock("@/components/ui/progressive-image", () => ({
     fullImageFetchPriority?: string;
     fullImageLoading?: string;
     fullImagePreload?: boolean;
+    fullImageVisibleImmediately?: boolean;
     previewFetchPriority?: string;
     previewLoading?: string;
     previewMaximumWidth?: number;
@@ -95,6 +97,9 @@ vi.mock("@/components/ui/progressive-image", () => ({
       ) : null}
       {fullImageLoading ? (
         <span data-progressive-full-loading={fullImageLoading} />
+      ) : null}
+      {fullImageVisibleImmediately ? (
+        <span data-progressive-full-visible-immediately="true" />
       ) : null}
     </span>
   ),
@@ -197,6 +202,7 @@ describe("HeroSection", () => {
     expect(markup).toContain('data-progressive-full="true"');
     expect(markup).not.toContain('data-progressive-full-preload="true"');
     expect(markup).toContain('data-progressive-full-fetch-priority="high"');
+    expect(markup).toContain('data-progressive-full-visible-immediately="true"');
     expect(markup).toContain('data-progressive-preview-fetch-priority="high"');
     expect(markup).toContain('data-progressive-preview-loading="eager"');
     expect(markup).toContain('data-progressive-preview-maximum-width="96"');
