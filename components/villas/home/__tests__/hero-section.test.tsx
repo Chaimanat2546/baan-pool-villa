@@ -14,7 +14,7 @@ const { mockAutoplay, mockEmblaApi, mockUseEmblaCarousel } = vi.hoisted(() => ({
 vi.mock("embla-carousel-autoplay", () => ({ default: mockAutoplay }));
 vi.mock("embla-carousel-react", () => ({ default: mockUseEmblaCarousel }));
 vi.mock("@/components/ui/progressive-image", () => ({
-  ProgressiveImage: ({ alt, src }: { alt: string; src: string }) => <span aria-label={alt} data-src={src} data-progressive-image="true" />,
+  ProgressiveImage: ({ alt, className, src }: { alt: string; className?: string; src: string }) => <span aria-label={alt} data-image-class={className} data-src={src} data-progressive-image="true" />,
 }));
 
 import { HeroCarousel } from "../hero-carousel";
@@ -38,6 +38,13 @@ describe("HeroSection", () => {
     expect(mockAutoplay).toHaveBeenCalledWith({ delay: 15000, stopOnInteraction: false });
     expect(mockUseEmblaCarousel).toHaveBeenCalledWith({ loop: true }, expect.any(Array));
     expect(markup).toContain('aria-label="รูป Hero ถัดไป"');
+  });
+
+  it("keeps the configured Hero image fill behavior", () => {
+    const markup = renderToStaticMarkup(<HeroCarousel slides={[{ alt: "First hero", src: "/first.jpg" }]} />);
+
+    expect(markup).toContain('data-image-class="object-fill"');
+    expect(markup).not.toContain('data-image-class="object-cover"');
   });
 
   it("delegates the next control to Embla after enhancement", async () => {
