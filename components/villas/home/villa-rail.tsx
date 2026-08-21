@@ -117,7 +117,7 @@ export function VillaRail({
           <div key={villa.id} className="w-[290px] shrink-0 snap-start">
             <VillaCard
               coverImageActive={activeCardIndexes.has(index)}
-              imageLoading="eager"
+              imageLoading={index === 0 ? "eager" : "lazy"}
               villa={villa}
               villaCardStyle={villaCardStyle}
               titleHeadingLevel={cardTitleHeadingLevel}

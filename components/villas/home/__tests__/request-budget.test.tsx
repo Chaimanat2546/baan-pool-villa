@@ -56,17 +56,21 @@ const guide: GuidePost = {
 };
 
 describe("homepage request budget", () => {
-  it("eagerly loads villa rail card images without preloading them", () => {
+  it("loads only the first villa card eagerly before visitors scroll the rail", () => {
     const markup = renderToStaticMarkup(
       <VillaRail
         cta
         description="Recommended villas"
         title="Recommended"
-        villas={[villa]}
+        villas={Array.from({ length: 4 }, (_, index) => ({
+          ...villa,
+          id: String(index + 1),
+        }))}
       />,
     );
 
-    expect(markup).toContain('data-loading="eager"');
+    expect(markup.match(/data-loading="eager"/g)).toHaveLength(1);
+    expect(markup.match(/data-loading="lazy"/g)?.length).toBeGreaterThan(0);
     expect(markup).not.toContain('data-preload="true"');
     expect(markup).toContain('href="/search"');
     expect(markup).not.toContain('data-prefetch="false" href="/search"');
@@ -97,7 +101,7 @@ describe("homepage request budget", () => {
     const preloadedImages = markup.match(/data-preload="true"/g) ?? [];
 
     expect(renderedVillaCards).toHaveLength(12);
-    expect(previewImages).toHaveLength(12);
+    expect(previewImages).toHaveLength(4);
     expect(fullImages).toHaveLength(4);
     expect(preloadedImages.length).toBeLessThanOrEqual(1);
     expect(markup).not.toContain("devillegroups.com");

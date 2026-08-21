@@ -309,7 +309,7 @@ describe("DeferredHomeContent", () => {
     await page.unmount();
   });
 
-  it("requests cached deferred content once at 1000px and renders the saved order", async () => {
+  it("requests cached deferred content once within 200px and renders the saved order", async () => {
     const observer = createObserverDouble();
     vi.stubGlobal("IntersectionObserver", observer.ObserverDouble);
     const fetchMock = vi.fn().mockResolvedValue(
@@ -322,7 +322,7 @@ describe("DeferredHomeContent", () => {
     const page = renderDeferredContent();
     await page.mount();
 
-    expect(observer.options()).toEqual({ rootMargin: "1000px" });
+    expect(observer.options()).toEqual({ rootMargin: "200px" });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(page.container.textContent).not.toContain("Deferred villa");
     expect(page.container.textContent).not.toContain("Deferred guide");

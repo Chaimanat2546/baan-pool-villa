@@ -188,7 +188,7 @@ export function DeferredHomeContent({
             startRequest();
           }
         },
-        { rootMargin: "1000px" },
+        { rootMargin: "200px" },
       );
       observer.observe(trigger);
     }
