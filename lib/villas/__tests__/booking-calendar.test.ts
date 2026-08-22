@@ -98,7 +98,7 @@ describe("normalizeBookingCalendar", () => {
     });
   });
 
-  it("uses the lowest price from promotion messages for promotion days", () => {
+  it("uses the promotion weekday price instead of prices mentioned in the promotion message", () => {
     const promotionMessage = [
       "วันธรรมดา อา-พฤ แบ่งเปิดได้",
       "- 3 ห้องนอน ราคา 5900/12 ท่าน",
@@ -124,8 +124,8 @@ describe("normalizeBookingCalendar", () => {
     );
 
     expect(calendar.days["2026-06-15"]).toMatchObject({
-      displayPrice: "5,900",
-      price: 5900,
+      displayPrice: "7,900",
+      price: 7900,
       promotionMessage,
     });
   });

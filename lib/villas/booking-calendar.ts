@@ -288,65 +288,6 @@ function formatCalendarDayDisplayPrice(price: number | null): string | null {
     : null;
 }
 
-function getLowestPromotionMessagePrice(message: string | null): number | null {
-  if (!message) {
-    return null;
-  }
-
-  let lowestPrice: number | null = null;
-  let searchFrom = 0;
-
-  while (searchFrom < message.length) {
-    const markerIndex = message.indexOf("ราคา", searchFrom);
-
-    if (markerIndex === -1) {
-      break;
-    }
-
-    let priceStart = markerIndex + "ราคา".length;
-
-    while (
-      priceStart < message.length &&
-      message.charCodeAt(priceStart) <= 32
-    ) {
-      priceStart += 1;
-    }
-
-    let priceEnd = priceStart;
-    let digits = "";
-
-    while (priceEnd < message.length) {
-      const char = message[priceEnd];
-      const code = message.charCodeAt(priceEnd);
-
-      if (code >= 48 && code <= 57) {
-        digits += char;
-        priceEnd += 1;
-        continue;
-      }
-
-      if (char === ",") {
-        priceEnd += 1;
-        continue;
-      }
-
-      break;
-    }
-
-    if (digits) {
-      const price = Number(digits);
-
-      if (Number.isFinite(price) && (lowestPrice === null || price < lowestPrice)) {
-        lowestPrice = price;
-      }
-    }
-
-    searchFrom = Math.max(priceEnd, markerIndex + 1);
-  }
-
-  return lowestPrice;
-}
-
 function createBaseDay(
   response: RawBookingCalendarResponse,
   dateKey: string,
@@ -402,8 +343,6 @@ export function normalizeBookingCalendar(
 
   for (const promotion of response.protime_promotions ?? []) {
     const promotionMessage = promotion.protime_msg?.trim() || null;
-    const promotionMessagePrice =
-      getLowestPromotionMessagePrice(promotionMessage);
 
     for (const dateKey of eachDateInRange(
       promotion.protime_start,
@@ -412,7 +351,6 @@ export function normalizeBookingCalendar(
       true,
     )) {
       const price =
-        promotionMessagePrice ??
         getPromotionWeekdayPrice(promotion, dateKey) ??
         getWeekdayPrice(response.base_price, dateKey);
 
