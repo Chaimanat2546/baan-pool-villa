@@ -1,7 +1,7 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { VillaListing } from "@/lib/villas/types";
 import type { GuidePost, GuidePostRow } from "./types";
@@ -33,7 +33,7 @@ async function fetchPublishedGuideRows(): Promise<GuidePost[]> {
   return (data as GuidePostRow[]).map(normalizeGuidePostRow);
 }
 
-const fetchCachedPublishedGuides = unstable_cache(
+const fetchCachedPublishedGuides = createHomeConfigCachedLoader(
   fetchPublishedGuideRows,
   [CACHE_TAGS.guides],
   {
@@ -42,7 +42,7 @@ const fetchCachedPublishedGuides = unstable_cache(
   },
 );
 
-const fetchCachedPublishedGuidesForSitemap = unstable_cache(
+const fetchCachedPublishedGuidesForSitemap = createHomeConfigCachedLoader(
   fetchPublishedGuideRows,
   [CACHE_TAGS.guides, "sitemap"],
   {
@@ -78,7 +78,7 @@ export async function getPublishedGuidesForSitemap(): Promise<GuidePost[]> {
  */
 export async function getGuideBySlug(slug: string): Promise<GuidePost | null> {
   const normalizedSlug = createSlugFromTitle(decodeSlugParam(slug));
-  const fetchCachedGuide = unstable_cache(
+  const fetchCachedGuide = createHomeConfigCachedLoader(
     async (): Promise<GuidePost | null> => {
       const { data, error } = await createHomeConfigClient()
         .from("guide_posts")

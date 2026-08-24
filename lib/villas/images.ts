@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { VillaImage } from "./types";
 
@@ -673,7 +674,7 @@ async function resolveDisplayImagesFromSupabase(
 export async function fetchVillaImages(id: string): Promise<VillaImage[]> {
   const villaId = parseVillaId(id);
   const tag = CACHE_TAGS.villaImage(id);
-  const getCachedVillaImages = unstable_cache(
+  const getCachedVillaImages = createHomeConfigCachedLoader(
     () => fetchVillaImagesWithCoverOverrideFromSupabase(id, villaId),
     [tag],
     {
@@ -748,7 +749,7 @@ export async function resolveDisplayImages(id: string): Promise<VillaImage[]> {
   parseVillaId(id);
   const tag = CACHE_TAGS.villaImage(id);
   const cardTag = CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id);
-  const getCachedVillaCardImages = unstable_cache(
+  const getCachedVillaCardImages = createHomeConfigCachedLoader(
     () => resolveDisplayImagesFromSupabase(id),
     [cardTag],
     {

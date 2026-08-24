@@ -1,8 +1,7 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
-
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 import { buildCustomerReviewImageProxyPath } from "@/lib/public-image-proxy";
 import {
@@ -93,7 +92,7 @@ export async function getHomepageCustomerReviewImageSource(id: string): Promise<
   return image?.url ?? null;
 }
 
-const getCachedHomepageCustomerReviewData = unstable_cache(
+const getCachedHomepageCustomerReviewData = createHomeConfigCachedLoader(
   loadHomepageCustomerReviewData,
   [CACHE_TAGS.customerReviews],
   {

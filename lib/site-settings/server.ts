@@ -1,8 +1,8 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
 import { getSiteSeoSettingsProjection } from "@/lib/site-seo-settings/server";
 import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "./defaults";
 import { createHomeConfigClient } from "./supabase";
@@ -19,7 +19,7 @@ const LEGACY_SITE_SETTINGS_SELECT =
   "id,site_name,primary_color,accent_color,logo_image_path,logo_image_url,hero_image_path,hero_image_url,hero_image_alt";
 const SITE_SETTINGS_CACHE_KEY = `${CACHE_TAGS.siteSettings}:v5`;
 
-const getCachedSiteSettings = unstable_cache(
+const getCachedSiteSettings = createHomeConfigCachedLoader(
   async (): Promise<SiteSettingsLoadResult> => {
     const supabase = createHomeConfigClient();
     const { data, error } = await supabase

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import {
@@ -14,8 +14,16 @@ import { unstable_cache } from "next/cache";
 
 vi.mock("server-only", () => ({}));
 
+const { cacheInvocationMock } = vi.hoisted(() => ({
+  cacheInvocationMock: vi.fn(),
+}));
+
 vi.mock("next/cache", () => ({
-  unstable_cache: vi.fn((fn: unknown) => fn),
+  unstable_cache: vi.fn((fn: (...args: unknown[]) => unknown) =>
+    (...args: unknown[]) => {
+      cacheInvocationMock(...args);
+      return fn(...args);
+    }),
 }));
 
 vi.mock("@/lib/home-sections/supabase", () => ({
@@ -24,6 +32,10 @@ vi.mock("@/lib/home-sections/supabase", () => ({
 
 const createHomeConfigClientMock = vi.mocked(createHomeConfigClient);
 const unstableCacheMock = vi.mocked(unstable_cache);
+const originalHomeConfigUrl =
+  process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL;
+const originalHomeConfigKey =
+  process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY;
 
 function mockCustomerReviewQueries({
   images,
@@ -65,6 +77,27 @@ function mockCustomerReviewQueries({
 }
 
 describe("customer review homepage server helpers", () => {
+  beforeEach(() => {
+    cacheInvocationMock.mockClear();
+    process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL =
+      "https://vfqxpujsvgdqtrzpxobh.supabase.co";
+    process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY = "test-key";
+  });
+
+  afterAll(() => {
+    if (originalHomeConfigUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL;
+    } else {
+      process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL = originalHomeConfigUrl;
+    }
+    if (originalHomeConfigKey === undefined) {
+      delete process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY;
+    } else {
+      process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY =
+        originalHomeConfigKey;
+    }
+  });
+
   it("normalizes supported layouts and rejects unknown admin values", () => {
     expect(normalizeCustomerReviewHomepageLayout("featured_rail")).toBe(
       "featured_rail",
@@ -126,8 +159,16 @@ describe("customer review homepage server helpers", () => {
         tags: [CACHE_TAGS.customerReviews],
       },
     );
+    expect(cacheInvocationMock).toHaveBeenCalledWith(
+      "home-config:vfqxpujsvgdqtrzpxobh.supabase.co",
+    );
+    process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL =
+      "https://zkxpozvhvmgqfrwnlfrn.supabase.co";
     await expect(getHomepageCustomerReviewImageSource("image-1")).resolves.toBe(
       "https://cdn.example.com/1.webp",
+    );
+    expect(cacheInvocationMock).toHaveBeenLastCalledWith(
+      "home-config:zkxpozvhvmgqfrwnlfrn.supabase.co",
     );
   });
 

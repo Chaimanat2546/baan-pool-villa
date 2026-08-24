@@ -1,7 +1,7 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { createHomeConfigCachedLoader } from "./cache";
 import {
   buildDefaultHomePageLayout,
   parseHomePageLayout,
@@ -163,7 +163,7 @@ function mapHomeSectionRow(row: HomeSectionRow): HomeSectionConfig {
   };
 }
 
-const fetchCachedHomeSectionConfigs = unstable_cache(
+const fetchCachedHomeSectionConfigs = createHomeConfigCachedLoader(
   async (): Promise<HomeSectionConfig[]> => {
     const { data, error } = await createHomeConfigClient()
       .from("home_sections")
@@ -188,7 +188,7 @@ const fetchCachedHomeSectionConfigs = unstable_cache(
   },
 );
 
-const fetchCachedHomePageLayout = unstable_cache(
+const fetchCachedHomePageLayout = createHomeConfigCachedLoader(
   async (): Promise<unknown> => {
     const { data, error } = await createHomeConfigClient()
       .from("home_page_layout")

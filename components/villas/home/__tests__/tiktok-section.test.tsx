@@ -66,7 +66,7 @@ describe("TikTokSection", () => {
     await page.unmount();
   });
 
-  it("keeps an inactive thumbnail poster neutral until the section activates", async () => {
+  it("loads only the signed TikTok thumbnail after the section activates", async () => {
     const video = {
       authorName: "Baan Pool Villa",
       thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/cover.jpg",
@@ -92,17 +92,12 @@ describe("TikTokSection", () => {
       </ImageActivationContext>,
     );
 
-    expect(activatedPage.container.querySelector("[data-progressive-full]")).not.toBeNull();
-    const previewSource = new URL(
+    expect(activatedPage.container.querySelector("[data-progressive-preview]")).toBeNull();
+    expect(
       activatedPage.container
-        .querySelector("[data-progressive-preview]")
-        ?.getAttribute("data-src") ?? "",
-      "https://example.com",
-    );
-    expect(previewSource.pathname).toBe("/api/tiktok/images/proxy");
-    expect(previewSource.searchParams.get("url")).toBe(video.thumbnailUrl);
-    expect(previewSource.searchParams.get("w")).toBe("64");
-    expect(previewSource.searchParams.get("q")).toBe("60");
+        .querySelector("[data-progressive-full]")
+        ?.getAttribute("src"),
+    ).toBe(video.thumbnailUrl);
     await click(activatedPage.container.querySelector("[data-tiktok-poster]") as HTMLElement);
     expect(activatedPage.container.querySelectorAll("iframe")).toHaveLength(1);
 

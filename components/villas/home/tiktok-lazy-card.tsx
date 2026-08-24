@@ -6,7 +6,6 @@ import { SiTiktok } from "react-icons/si";
 
 import { useImageActivation } from "@/components/ui/near-viewport-activation";
 import { ProgressiveImage } from "@/components/ui/progressive-image";
-import { buildTikTokThumbnailImageProxyUrl } from "@/lib/public-image-proxy";
 import type { SiteTikTokVideoSettings } from "@/lib/site-settings/types";
 import type { TikTokVideoPreview } from "@/lib/tiktok/types";
 import { loadTikTokClientOEmbed, type TikTokClientOEmbed } from "./tiktok-client-oembed";
@@ -89,10 +88,6 @@ export function TikTokLazyCard({
   const thumbnailUrl = hasThumbnail(video)
     ? video.thumbnailUrl.trim()
     : (clientPreview?.thumbnailUrl ?? "");
-  const thumbnailPreviewUrl = buildTikTokThumbnailImageProxyUrl(thumbnailUrl, {
-    quality: 60,
-    width: 64,
-  });
   const title =
     "title" in video && video.title.trim().length > 0
       ? video.title.trim()
@@ -146,8 +141,7 @@ export function TikTokLazyCard({
                 fill
                 fullImageActive={imageActive}
                 fullImageLoading={index === 0 ? "eager" : "lazy"}
-                previewActive={imageActive && Boolean(thumbnailPreviewUrl)}
-                previewSrc={thumbnailPreviewUrl ?? undefined}
+                previewActive={false}
                 referrerPolicy="no-referrer"
                 sizes="(max-width: 640px) 244px, (max-width: 1024px) 292px, 320px"
                 src={thumbnailUrl}
