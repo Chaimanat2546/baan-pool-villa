@@ -201,7 +201,7 @@ function ReviewLightbox({
     <div
       aria-label="ดูรูปรีวิวลูกค้า"
       aria-modal="true"
-      className="fixed inset-0 z-50 grid place-items-center bg-black/82 p-3"
+      className="fixed inset-0 z-[90] grid place-items-center bg-black/82 p-3"
       role="dialog"
     >
       <button

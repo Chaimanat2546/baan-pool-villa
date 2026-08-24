@@ -82,6 +82,7 @@ describe("GalleryLightbox", () => {
     expect(activeMarkup).toContain("Pool");
     expect(activeMarkup).toContain('role="dialog"');
     expect(activeMarkup).toContain('aria-modal="true"');
+    expect(activeMarkup).toContain("z-[90]");
     expect(activeMarkup).toContain('aria-labelledby="gallery-lightbox-title-88"');
     expect(activeMarkup).toContain('id="gallery-lightbox-title-88"');
     expect(activeMarkup).toContain('data-active-thumbnail="true"');

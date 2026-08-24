@@ -74,6 +74,7 @@ describe("GalleryOverviewModal", () => {
 
     const dialog = container.querySelector('[role="dialog"]') as HTMLElement;
     expect(dialog).not.toBeNull();
+    expect(dialog.className).toContain("z-[90]");
     expect(dialog.style.getPropertyValue("--gallery-modal-background")).toBe(
       "#112233",
     );

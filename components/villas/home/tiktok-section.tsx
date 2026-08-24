@@ -1,9 +1,11 @@
 "use client";
 
 import { SiTiktok } from "react-icons/si";
+import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { ScrollRail } from "@/components/ui/scroll-rail";
+import { useLockedBodyScroll } from "@/components/villas/detail/use-locked-body-scroll";
 import { selectHomeTikTokVideos } from "./client-payload";
 import type { SiteTikTokSettings } from "@/lib/site-settings/types";
 import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
@@ -11,6 +13,48 @@ import { TikTokLazyCard } from "./tiktok-lazy-card";
 
 interface TikTokSectionProps {
   tiktok: SiteTikTokSettings | TikTokPreviewSettings;
+}
+
+function TikTokPlayerDialog({
+  onClose,
+  videoId,
+}: {
+  onClose: () => void;
+  videoId: string;
+}) {
+  const playerParams = new URLSearchParams({
+    autoplay: "1",
+    controls: "1",
+    rel: "0",
+  });
+
+  return (
+    <div
+      aria-label="เล่นวิดีโอ TikTok"
+      aria-modal="true"
+      className="fixed inset-0 z-[90] grid place-items-center bg-black/82 p-3"
+      data-tiktok-player-dialog
+      role="dialog"
+    >
+      <button
+        aria-label="ปิดวิดีโอ TikTok"
+        className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-md bg-white text-[var(--site-text)] shadow-lg"
+        onClick={onClose}
+        type="button"
+      >
+        <X aria-hidden="true" className="size-5" />
+      </button>
+      <div className="h-[88dvh] max-w-full aspect-[9/16] overflow-hidden rounded-lg bg-zinc-950 shadow-2xl">
+        <iframe
+          allow="autoplay; fullscreen"
+          className="h-full w-full border-0"
+          loading="eager"
+          src={`https://www.tiktok.com/player/v1/${videoId}?${playerParams.toString()}`}
+          title="TikTok video"
+        />
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -43,7 +87,22 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
     }
   }, [tiktok.accountUrl]);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const [dialogVideoId, setDialogVideoId] = useState<string | null>(null);
   const useGridLayout = videos.length > 6;
+  const dialogVideo = videos.find((video) => video.videoId === dialogVideoId);
+
+  useLockedBodyScroll(dialogVideo !== undefined);
+
+  function handlePlay(videoId: string) {
+    if (window.matchMedia("(min-width: 1024px)").matches) {
+      setDialogVideoId(null);
+      setActiveVideoId(videoId);
+      return;
+    }
+
+    setActiveVideoId(null);
+    setDialogVideoId(videoId);
+  }
 
   if (videos.length === 0) {
     return null;
@@ -62,7 +121,7 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
 
       {useGridLayout ? (
         <div
-          className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:gap-6"
+          className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:mx-auto lg:max-w-5xl lg:gap-6"
           data-tiktok-grid
         >
           {videos.map((video, index) => (
@@ -71,7 +130,7 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
               index={index}
               isPlaying={activeVideoId === video.videoId}
               key={video.videoId}
-              onPlay={setActiveVideoId}
+              onPlay={handlePlay}
               video={video}
             />
           ))}
@@ -88,7 +147,7 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
               index={index}
               isPlaying={activeVideoId === video.videoId}
               key={video.videoId}
-              onPlay={setActiveVideoId}
+              onPlay={handlePlay}
               video={video}
             />
           ))}
@@ -107,6 +166,15 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
             ติดตามพวกเราบน TikTok
           </a>
         </div>
+      ) : null}
+
+      {dialogVideo ? (
+        <TikTokPlayerDialog
+          onClose={() => {
+            setDialogVideoId(null);
+          }}
+          videoId={dialogVideo.videoId}
+        />
       ) : null}
     </section>
   );

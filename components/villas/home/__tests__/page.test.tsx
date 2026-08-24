@@ -505,6 +505,8 @@ describe("HomePage", () => {
     expect(tiktokSectionMarkup).toContain('data-tiktok-grid="true"');
     expect(tiktokSectionMarkup).toContain("grid-cols-2");
     expect(tiktokSectionMarkup).toContain("sm:grid-cols-3");
+    expect(tiktokSectionMarkup).toContain("lg:max-w-5xl");
+    expect(tiktokSectionMarkup).toContain("lg:mx-auto");
     expect(tiktokSectionMarkup).not.toContain("data-scroll-rail-viewport");
     expect(tiktokSectionMarkup).not.toContain("www.tiktok.com/player/v1");
 

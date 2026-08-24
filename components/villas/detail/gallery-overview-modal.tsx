@@ -119,7 +119,7 @@ export function GalleryOverviewModal({
     <div
       aria-labelledby={titleId}
       aria-modal="true"
-      className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-[var(--gallery-modal-background,var(--site-primary-hover))] text-[var(--gallery-modal-text,var(--site-on-primary))]"
+      className="fixed inset-0 z-[90] overflow-y-auto overscroll-contain bg-[var(--gallery-modal-background,var(--site-primary-hover))] text-[var(--gallery-modal-text,var(--site-on-primary))]"
       data-gallery-overview="true"
       role="dialog"
       style={getGalleryModalStyle(style)}

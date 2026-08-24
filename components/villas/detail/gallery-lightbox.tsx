@@ -319,7 +319,7 @@ export function GalleryLightbox({
     <div
       aria-labelledby={lightboxTitleId}
       aria-modal="true"
-      className="fixed inset-0 z-[70] overscroll-contain bg-[var(--gallery-modal-background,var(--site-primary-hover))] text-[var(--gallery-modal-text,var(--site-on-primary))]"
+      className="fixed inset-0 z-[90] overscroll-contain bg-[var(--gallery-modal-background,var(--site-primary-hover))] text-[var(--gallery-modal-text,var(--site-on-primary))]"
       role="dialog"
       style={getGalleryModalStyle(style)}
     >

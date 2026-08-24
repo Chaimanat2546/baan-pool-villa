@@ -21,12 +21,29 @@ vi.mock("../tiktok-client-oembed", () => ({
 import { TikTokSection } from "../tiktok-section";
 import { ImageActivationContext } from "@/components/ui/near-viewport-activation";
 
+function mockViewport(isDesktop: boolean) {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockReturnValue({
+      addEventListener: vi.fn(),
+      addListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      matches: isDesktop,
+      media: "(min-width: 1024px)",
+      onchange: null,
+      removeEventListener: vi.fn(),
+      removeListener: vi.fn(),
+    }),
+  );
+}
+
 describe("TikTokSection", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it("keeps only one TikTok player active when switching videos", async () => {
+    mockViewport(true);
     const page = await mountAdminPage(
       <TikTokSection
         tiktok={{
@@ -82,6 +99,41 @@ describe("TikTokSection", () => {
     expect(page.container.querySelector("[data-scroll-rail-viewport]")).not.toBeNull();
     expect(page.container.querySelector("[data-tiktok-grid]")).toBeNull();
     expect(page.container.querySelectorAll("[data-tiktok-poster]")).toHaveLength(6);
+
+    await page.unmount();
+  });
+
+  it("opens a large TikTok player dialog on mobile", async () => {
+    mockViewport(false);
+    const page = await mountAdminPage(
+      <TikTokSection
+        tiktok={{
+          accountUrl: "",
+          videos: [
+            {
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+              videoId: "7370000000000000001",
+            },
+          ],
+        }}
+      />,
+    );
+
+    await click(page.container.querySelector("[data-tiktok-poster]") as HTMLElement);
+
+    const dialog = page.container.querySelector("[data-tiktok-player-dialog]");
+    expect(dialog).not.toBeNull();
+    expect(dialog?.className).toContain("z-[90]");
+    expect(page.container.querySelectorAll("iframe")).toHaveLength(1);
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(true);
+
+    await click(
+      page.container.querySelector(
+        "[aria-label='ปิดวิดีโอ TikTok']",
+      ) as HTMLElement,
+    );
+    expect(page.container.querySelector("[data-tiktok-player-dialog]")).toBeNull();
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(false);
 
     await page.unmount();
   });
