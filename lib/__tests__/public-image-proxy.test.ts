@@ -110,6 +110,15 @@ describe("public image proxy URL builders", () => {
     ).toBe("/api/villas/88/images?imageId=7&w=828&q=60");
   });
 
+  it("keeps quality 80 in public image proxy paths", () => {
+    expect(
+      buildGuideCoverImageProxyPath("family-trip", {
+        quality: 80,
+        width: 640,
+      }),
+    ).toBe("/api/guides/images/family-trip/cover?w=640&q=80");
+  });
+
   it("omits unsupported transform params from generated proxy URLs", () => {
     const proxyUrl = buildSiteAssetProxyUrl(
       "https://assets.example.com/hero.jpg",

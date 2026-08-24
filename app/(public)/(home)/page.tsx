@@ -14,6 +14,7 @@ import {
 } from "@/components/villas/home/client-payload";
 import { HeroSearchSkeleton } from "@/components/villas/home/hero-section-skeleton";
 import { HeroSearch } from "@/components/villas/home/hero-search";
+import { HomeBackNavigationScroll } from "@/components/villas/home/home-back-navigation-scroll";
 import { VillaRailSkeleton } from "@/components/villas/home/villa-rail-skeleton";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
@@ -185,6 +186,7 @@ export default async function Page() {
           />
         </Suspense>
       </HomePage>
+      <HomeBackNavigationScroll />
     </>
   );
 }
