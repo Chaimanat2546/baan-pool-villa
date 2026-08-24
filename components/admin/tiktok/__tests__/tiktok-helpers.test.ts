@@ -4,6 +4,7 @@ import { DEFAULT_SITE_SETTINGS } from "../../../../lib/site-settings/defaults";
 
 import {
   buildTikTokFormData,
+  getVisibleTikTokVideoCount,
   mapTikTokSettingsToDraft,
   shouldRedirectTikTokToLogin,
 } from "../tiktok-helpers";
@@ -56,6 +57,14 @@ describe("TikTok helper conversions and form data serialization", () => {
 
     expect(formData.get("tiktokAccountUrl")).toBe(draft.accountUrl);
     expect(JSON.parse(String(formData.get("tiktokVideoUrls")))).toEqual(draft.videoUrls);
+  });
+
+  it("limits the admin homepage preview count to 15 videos", () => {
+    expect(
+      getVisibleTikTokVideoCount(
+        Array.from({ length: 16 }, (_, index) => `https://www.tiktok.com/@a/video/${index + 1}`),
+      ),
+    ).toBe(15);
   });
 
   it("keeps row ids paired with urls when adding, moving, and deleting rows", () => {

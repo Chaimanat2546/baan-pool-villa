@@ -96,7 +96,7 @@ describe("TikTokForm", () => {
     expect(html).toContain("เลือกดูคลิปจากรายการด้านซ้าย");
     expect(html).not.toContain("https://www.tiktok.com/player/v1/1?controls=1&amp;rel=0");
     expect(html).not.toContain("https://www.tiktok.com/player/v1/6?controls=1&amp;rel=0");
-    expect(html).not.toContain("title=\"ตัวอย่างวิดีโอ TikTok 7\"");
+    expect(html).toContain("แสดงวิดีโอ 7 รายการ");
     expect(html).not.toContain("เก็บไว้ในลำดับถัดไป");
     expect(html).not.toContain("ซ่อนจากหน้าแรก");
     expect(html).not.toContain("Preview หน้าแรก");

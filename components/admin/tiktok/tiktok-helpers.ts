@@ -21,10 +21,10 @@ export const EMPTY_TIKTOK_DRAFT: AdminTikTokDraft = {
   videoRowIds: [],
 };
 
-export const HOMEPAGE_TIKTOK_PREVIEW_LIMIT = 6;
+export const HOMEPAGE_TIKTOK_PREVIEW_LIMIT = 15;
 
 export const HOMEPAGE_TIKTOK_NOTICE =
-  "หน้าหลักจะแสดงเฉพาะ 6 วิดีโอแรกจากที่บันทึกเท่านั้น";
+  "หน้าหลักจะแสดงเฉพาะ 15 วิดีโอแรกจากที่บันทึกเท่านั้น";
 
 export function mapTikTokSettingsToDraft(
   settings: SiteTikTokSettings,
