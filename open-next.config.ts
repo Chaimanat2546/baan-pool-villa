@@ -7,6 +7,7 @@ import r2IncrementalCacheWithDiagnostics from "./open-next-r2-incremental-cache-
 export default defineCloudflareConfig({
   incrementalCache: withRegionalCache(r2IncrementalCacheWithDiagnostics, {
     mode: "long-lived",
+    shouldLazilyUpdateOnCacheHit: false,
   }),
   queue: doQueue,
   tagCache: doShardedTagCache({

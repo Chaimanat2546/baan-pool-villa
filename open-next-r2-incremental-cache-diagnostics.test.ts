@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -5,6 +7,16 @@ import {
 } from "./open-next-r2-incremental-cache-diagnostics.js";
 
 describe("R2 incremental-cache diagnostics", () => {
+  it("records recovered cache failures as warnings instead of errors", async () => {
+    const source = await readFile(
+      "open-next-r2-incremental-cache-diagnostics.js",
+      "utf8",
+    );
+
+    expect(source).toContain("console.warn");
+    expect(source).not.toContain("console.error");
+  });
+
   it("identifies a concurrent-object write without logging the cache key or raw error", () => {
     const cacheKey = "next-cache-key-that-must-not-appear-in-logs";
     const diagnostic = createR2CacheWriteDiagnostic({

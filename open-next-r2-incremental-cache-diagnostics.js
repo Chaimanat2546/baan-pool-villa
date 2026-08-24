@@ -112,7 +112,7 @@ const r2IncrementalCacheWithDiagnostics = {
         value: await r2Object.json(),
       };
     } catch (error) {
-      console.error("Failed to get from cache", error);
+      console.warn("Failed to get from cache", error);
       return null;
     }
   },
@@ -127,7 +127,7 @@ const r2IncrementalCacheWithDiagnostics = {
     try {
       await r2.put(getR2Key(key, cacheType), JSON.stringify(value));
     } catch (error) {
-      console.error(
+      console.warn(
         "OpenNext R2 incremental cache write failed",
         createR2CacheWriteDiagnostic({
           cacheKey: key,
@@ -148,7 +148,7 @@ const r2IncrementalCacheWithDiagnostics = {
     try {
       await r2.delete(getR2Key(key));
     } catch (error) {
-      console.error("Failed to delete from cache", error);
+      console.warn("Failed to delete from cache", error);
     }
   },
 };
