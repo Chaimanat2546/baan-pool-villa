@@ -14,12 +14,12 @@ interface TikTokSectionProps {
 }
 
 /**
- * Render a homepage TikTok section with a horizontally scrollable rail of videos and an optional follow link.
+ * Render a homepage TikTok section with a scrollable rail for up to six videos or a three-column grid for more, plus an optional follow link.
  *
  * Renders nothing if there are no valid videos to display.
  *
  * @param tiktok - TikTok settings (site or preview) that provide `videos` and an `accountUrl`; video IDs are trimmed, deduplicated, and limited before rendering.
- * @returns A section element containing the TikTok header, a scrollable list of TikTok cards, and an optional "Follow us on TikTok" link, or `null` when no videos are available.
+ * @returns A section element containing the TikTok header, its video cards, and an optional "Follow us on TikTok" link, or `null` when no videos are available.
  */
 export function TikTokSection({ tiktok }: TikTokSectionProps) {
   const videos = useMemo(() => selectHomeTikTokVideos(tiktok), [tiktok]);
@@ -43,6 +43,7 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
     }
   }, [tiktok.accountUrl]);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const useGridLayout = videos.length > 6;
 
   if (videos.length === 0) {
     return null;
@@ -59,22 +60,40 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
         </h1>
       </div>
 
-      <ScrollRail
-        alwaysShowControls
-        className="-mx-4 mt-8 gap-4 px-4 pb-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8"
-        controlsClassName="mt-5"
-        label="วิดีโอ TikTok"
-      >
-        {videos.map((video, index) => (
-          <TikTokLazyCard
-            index={index}
-            isPlaying={activeVideoId === video.videoId}
-            key={video.videoId}
-            onPlay={setActiveVideoId}
-            video={video}
-          />
-        ))}
-      </ScrollRail>
+      {useGridLayout ? (
+        <div
+          className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:gap-6"
+          data-tiktok-grid
+        >
+          {videos.map((video, index) => (
+            <TikTokLazyCard
+              displayMode="grid"
+              index={index}
+              isPlaying={activeVideoId === video.videoId}
+              key={video.videoId}
+              onPlay={setActiveVideoId}
+              video={video}
+            />
+          ))}
+        </div>
+      ) : (
+        <ScrollRail
+          alwaysShowControls
+          className="-mx-4 mt-8 gap-4 px-4 pb-2 sm:-mx-6 sm:px-6 lg:-mx-8 lg:gap-6 lg:px-8"
+          controlsClassName="mt-5"
+          label="วิดีโอ TikTok"
+        >
+          {videos.map((video, index) => (
+            <TikTokLazyCard
+              index={index}
+              isPlaying={activeVideoId === video.videoId}
+              key={video.videoId}
+              onPlay={setActiveVideoId}
+              video={video}
+            />
+          ))}
+        </ScrollRail>
+      )}
 
       {accountUrl ? (
         <div className="mt-8 flex justify-center">

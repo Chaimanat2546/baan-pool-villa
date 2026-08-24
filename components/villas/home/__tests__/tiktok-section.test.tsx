@@ -66,6 +66,26 @@ describe("TikTokSection", () => {
     await page.unmount();
   });
 
+  it("keeps exactly six TikTok videos in the scrollable rail", async () => {
+    const videos = Array.from({ length: 6 }, (_, index) => {
+      const videoId = `7370000000000000${String(index + 1).padStart(3, "0")}`;
+
+      return {
+        url: `https://www.tiktok.com/@baanpoolvilla/video/${videoId}`,
+        videoId,
+      };
+    });
+    const page = await mountAdminPage(
+      <TikTokSection tiktok={{ accountUrl: "", videos }} />,
+    );
+
+    expect(page.container.querySelector("[data-scroll-rail-viewport]")).not.toBeNull();
+    expect(page.container.querySelector("[data-tiktok-grid]")).toBeNull();
+    expect(page.container.querySelectorAll("[data-tiktok-poster]")).toHaveLength(6);
+
+    await page.unmount();
+  });
+
   it("loads only the signed TikTok thumbnail after the section activates", async () => {
     const video = {
       authorName: "Baan Pool Villa",
