@@ -60,7 +60,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                     fullImageActive={imageActive}
                     fullImageLoading="lazy"
                     previewActive={imageActive}
-                    quality={60}
+                    quality={80}
                     sizes="(max-width: 768px) 306px, 394px"
                     src={imageUrl}
                   />
