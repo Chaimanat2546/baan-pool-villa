@@ -1,7 +1,5 @@
 import "server-only";
 
-import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
-
 const BOOKING_CALENDAR_URL =
   "https://www.pattayapartypoolvilla.com/api/bookings";
 const BOOKING_CALENDAR_TIMEOUT_MS = 8_000;
@@ -491,8 +489,9 @@ async function readJson<T>(response: Response): Promise<T> {
 }
 
 /**
- * Fetches one month of booking data through the fifteen-minute booking cache while
- * keeping the booking token server-only.
+ * Fetches one month of current booking data while keeping the booking token
+ * server-only. The calendar is intentionally uncached because availability can
+ * change at any time.
  *
  * @param propertyId - The villa property id expected by the booking API.
  * @param month - The requested month in `YYYY-MM` format.
@@ -522,10 +521,7 @@ export async function fetchVillaBookingCalendar(
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      next: {
-        revalidate: CACHE_REVALIDATE_SECONDS.bookingCalendar,
-        tags: [CACHE_TAGS.villaDetails, CACHE_TAGS.villaDetail(propertyId)],
-      },
+      cache: "no-store",
       signal: controller.signal,
     });
 

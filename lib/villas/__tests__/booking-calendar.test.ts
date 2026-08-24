@@ -394,7 +394,7 @@ describe("fetchVillaBookingCalendar", () => {
     );
   });
 
-  it("returns normalized calendar data when the upstream API succeeds", async () => {
+  it("requests fresh calendar data from the upstream API on every page load", async () => {
     vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
     const fetchMock = vi.fn().mockResolvedValue(Response.json(baseResponse));
     vi.stubGlobal("fetch", fetchMock);
@@ -420,10 +420,7 @@ describe("fetchVillaBookingCalendar", () => {
       }),
       expect.objectContaining({
         headers: { Authorization: "Bearer calendar-token" },
-        next: expect.objectContaining({
-          revalidate: 900,
-          tags: expect.arrayContaining(["villa-details", "villa-detail:9"]),
-        }),
+        cache: "no-store",
       }),
     );
   });
