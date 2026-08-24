@@ -1,9 +1,9 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
 import { createHomeConfigClient } from "@/lib/site-settings/supabase";
 import { cloneDefaultSiteContactSettings } from "./defaults";
 import type {
@@ -16,7 +16,7 @@ import { normalizeSiteContactSettingsRow } from "./validation";
 const SITE_CONTACT_SETTINGS_SELECT =
   "singleton_id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,facebook_page_name,show_facebook_timeline,line_id,line_url";
 
-const getCachedSiteContactSettings = unstable_cache(
+const getCachedSiteContactSettings = createHomeConfigCachedLoader(
   async (): Promise<SiteContactSettings> => {
     const { data, error } = await createHomeConfigClient()
       .from("site_contact_settings")

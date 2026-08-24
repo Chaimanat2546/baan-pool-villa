@@ -1,7 +1,7 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 import { LEGAL_PAGE_DEFAULTS } from "./defaults";
 import { LEGAL_PAGE_SLUGS, type LegalPage, type LegalPageRow, type LegalPageSlug } from "./types";
@@ -78,7 +78,7 @@ function isLegalPageRowSlug(row: unknown): row is LegalPageRow {
   );
 }
 
-const getCachedPublishedLegalPages = unstable_cache(
+const getCachedPublishedLegalPages = createHomeConfigCachedLoader(
   fetchPublishedLegalPages,
   [CACHE_TAGS.legalPages],
   {
@@ -87,7 +87,7 @@ const getCachedPublishedLegalPages = unstable_cache(
   },
 );
 
-const getCachedPublishedLegalPagesForSitemap = unstable_cache(
+const getCachedPublishedLegalPagesForSitemap = createHomeConfigCachedLoader(
   fetchPublishedLegalPages,
   [CACHE_TAGS.legalPages, "sitemap"],
   {
@@ -107,7 +107,7 @@ function getCachedLegalPageLoader(slug: LegalPageSlug): CachedLegalPageLoader {
     return existingLoader;
   }
 
-  const loader = unstable_cache(
+  const loader = createHomeConfigCachedLoader(
     () => fetchPublishedLegalPage(slug),
     [CACHE_TAGS.legalPage(slug)],
     {

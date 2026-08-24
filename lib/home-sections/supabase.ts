@@ -1,40 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
+import { getHomeConfigSupabaseEnv } from "./environment";
 
-const HOME_CONFIG_SUPABASE_ENV_ERROR =
-  "Home config Supabase environment is missing";
+export { getHomeConfigSupabaseEnv } from "./environment";
 
 type HomeConfigSupabaseClient = ReturnType<typeof createClient>;
 
 let browserHomeConfigClient: HomeConfigSupabaseClient | null = null;
 let browserHomeConfigClientKey = "";
 
-/**
- * Reads the public Supabase environment required for home-section config
- * access.
- *
- * @returns The trimmed Supabase URL and publishable key for the home config
- * project.
- * @throws {Error} When the required public environment variables are missing.
- */
-export function getHomeConfigSupabaseEnv() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL?.trim();
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY?.trim();
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error(HOME_CONFIG_SUPABASE_ENV_ERROR);
-  }
-
-  return { supabaseUrl, supabaseKey };
-}
-
-/**
- * Creates a server-safe Supabase client for the home-section config project.
- *
- * @param accessToken - An optional bearer token used for authenticated admin
- * requests.
- * @returns A Supabase client configured for non-persistent server use.
- */
+/** Creates a server-safe Supabase client for the home config project. */
 export function createHomeConfigClient(accessToken?: string) {
   const { supabaseUrl, supabaseKey } = getHomeConfigSupabaseEnv();
 
@@ -62,13 +36,7 @@ export function createHomeConfigClient(accessToken?: string) {
  * @throws {Error} When the required public environment variables are missing.
  */
 export function createBrowserHomeConfigClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL?.trim();
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY?.trim();
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error(HOME_CONFIG_SUPABASE_ENV_ERROR);
-  }
+  const { supabaseUrl, supabaseKey } = getHomeConfigSupabaseEnv();
 
   const clientKey = `${supabaseUrl}\n${supabaseKey}`;
 

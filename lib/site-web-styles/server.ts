@@ -1,14 +1,14 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 import { cloneDefaultSiteWebStyles } from "./defaults";
 import type { SiteWebStyles } from "./types";
 import { normalizeSiteWebStyles } from "./validation";
 
-const getCachedSiteWebStyles = unstable_cache(
+const getCachedSiteWebStyles = createHomeConfigCachedLoader(
   async (): Promise<SiteWebStyles> => {
     const { data, error } = await createHomeConfigClient()
       .from("site_web_styles")
