@@ -831,9 +831,9 @@
             </tr>
             <tr>
               <td>OpenNext incremental cache</td>
-              <td>R2-backed incremental cache with a regional cache layer and temporary write-contention diagnostics.</td>
-              <td><code>open-next.config.ts</code> wraps the local R2-compatible diagnostic adapter in OpenNext's long-lived regional cache to reduce regional reads to object storage. On an R2 incremental-cache write failure it logs only an opaque cache-key fingerprint, cache type, and bounded error category/code; it never logs the raw key, request URL, or error text. The Next 16 default tag-cache behavior is retained: do not set <code>bypassTagCacheOnCacheHit</code> unless the revalidation contract is explicitly changed.</td>
-              <td>Run <code>open-next-r2-incremental-cache-diagnostics.test.ts</code>, <code>open-next.config.test.ts</code>, <code>worker-cache-policy.test.ts</code>, and <code>lib/__tests__/next-config.test.ts</code>.</td>
+              <td>OpenNext uses dummy incremental, tag, and queue implementations. <code>NEXT_INC_CACHE_R2_BUCKET</code> remains bound only for low-volume <code>html-cache-versions/</code> tokens.</td>
+              <td>OpenNext performs no persistent ISR/data-cache writes. Public HTML, JSON, and image caching remains owned by the Worker Cache API. Existing Durable Object configuration and migration history are retained but unused by OpenNext.</td>
+              <td>Run <code>open-next.config.test.ts</code>, <code>worker-html-cache-version.test.ts</code>, <code>worker-cache-policy.test.ts</code>, and <code>lib/__tests__/next-config.test.ts</code>, then run the OpenNext Cloudflare build.</td>
             </tr>
             <tr>
               <td>Villa images</td>
