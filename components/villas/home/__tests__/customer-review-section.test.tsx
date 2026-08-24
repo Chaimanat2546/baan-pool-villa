@@ -165,6 +165,7 @@ describe("CustomerReviewSection", () => {
 
     const dialog = container.querySelector('[role="dialog"]');
     expect(dialog).not.toBeNull();
+    expect(dialog?.className).toContain("z-[90]");
     expect(Array.from(dialog?.querySelectorAll("button") ?? [])).toHaveLength(
       3,
     );

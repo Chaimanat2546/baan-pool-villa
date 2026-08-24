@@ -271,7 +271,7 @@ describe("HomePage", () => {
     expect(settings.siteName).toBe(DEFAULT_SITE_SETTINGS.siteName);
   });
 
-  it("limits the homepage settings TikTok payload to the rendered videos", () => {
+  it("keeps seven unique TikTok videos in the homepage settings payload", () => {
     const settings = toHomePageSettings(
       {
         ...DEFAULT_SITE_SETTINGS,
@@ -323,6 +323,7 @@ describe("HomePage", () => {
       "7370000000000000004",
       "7370000000000000005",
       "7370000000000000006",
+      "7370000000000000007",
     ]);
   });
 
@@ -442,7 +443,7 @@ describe("HomePage", () => {
     expect(markup).toContain("data-progressive-image-fallback");
   });
 
-  it("dedupes TikTok videos by videoId and keeps max 6 visible posters", () => {
+  it("switches to a three-column TikTok grid when more than six videos are visible", () => {
     const markup = renderToStaticMarkup(
       <HomePage
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
@@ -485,6 +486,10 @@ describe("HomePage", () => {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000014",
                 videoId: " 7370000000000000014 ",
               },
+              {
+                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000016",
+                videoId: "7370000000000000016",
+              },
             ],
           },
         }}
@@ -492,14 +497,23 @@ describe("HomePage", () => {
     );
 
     const posterCount = (markup.match(/data-tiktok-poster/g) ?? []).length;
-    expect(posterCount).toBe(6);
-    expect(markup).not.toContain("www.tiktok.com/player/v1");
+    const tiktokSectionStart = markup.indexOf("data-home-tiktok");
+    const tiktokSectionEnd = markup.indexOf('data-home-guides="true"');
+    const tiktokSectionMarkup = markup.slice(tiktokSectionStart, tiktokSectionEnd);
+
+    expect(posterCount).toBe(7);
+    expect(tiktokSectionMarkup).toContain('data-tiktok-grid="true"');
+    expect(tiktokSectionMarkup).toContain("grid-cols-2");
+    expect(tiktokSectionMarkup).toContain("sm:grid-cols-3");
+    expect(tiktokSectionMarkup).toContain("lg:max-w-5xl");
+    expect(tiktokSectionMarkup).toContain("lg:mx-auto");
+    expect(tiktokSectionMarkup).not.toContain("data-scroll-rail-viewport");
+    expect(tiktokSectionMarkup).not.toContain("www.tiktok.com/player/v1");
 
     expect(markup).toContain("video/7370000000000000010");
     expect(markup).toContain("video/7370000000000000014");
     expect(markup).toContain("video/7370000000000000015");
-    expect(markup).not.toContain("video/7370000000000000016");
-    expect(markup).not.toContain("video/7370000000000000017");
+    expect(markup).toContain("video/7370000000000000016");
 
     const duplicatePlayerCount = (
       markup.match(/video\/7370000000000000010/g) ?? []
@@ -509,7 +523,15 @@ describe("HomePage", () => {
     expect(markup).toContain("video/7370000000000000015");
   });
 
-  it("limits TikTok render to first 6 normalized videos when 8 are configured", () => {
+  it("limits TikTok rendering to the first 15 normalized videos", () => {
+    const videos = Array.from({ length: 16 }, (_, index) => {
+      const videoId = `7370000000000000${String(index + 1).padStart(3, "0")}`;
+
+      return {
+        url: `https://www.tiktok.com/@baanpoolvillas/video/${videoId}`,
+        videoId,
+      };
+    });
     const markup = renderToStaticMarkup(
       <HomePage
         initialGuides={selectHomeGuideSummaries([makeGuide(1)])}
@@ -519,52 +541,18 @@ describe("HomePage", () => {
           ...DEFAULT_HOME_SETTINGS,
           tiktok: {
             accountUrl: "https://www.tiktok.com/@baanpoolvilla",
-            videos: [
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
-                videoId: "7370000000000000001",
-              },
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000002",
-                videoId: "7370000000000000002",
-              },
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000003",
-                videoId: "7370000000000000003",
-              },
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000004",
-                videoId: "7370000000000000004",
-              },
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000005",
-                videoId: "7370000000000000005",
-              },
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000006",
-                videoId: "7370000000000000006",
-              },
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000007",
-                videoId: "7370000000000000007",
-              },
-              {
-                url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000007",
-                videoId: " 7370000000000000007 ",
-              },
-            ],
+            videos,
           },
         }}
       />,
     );
 
     const posterCount = (markup.match(/data-tiktok-poster/g) ?? []).length;
-    expect(posterCount).toBe(6);
+    expect(posterCount).toBe(15);
     expect(markup).not.toContain("www.tiktok.com/player/v1");
 
     expect(markup).toContain("video/7370000000000000001");
-    expect(markup).toContain("video/7370000000000000006");
-    expect(markup).not.toContain("video/7370000000000000007");
+    expect(markup).not.toContain("video/7370000000000000016");
   });
 
   it("dedupes TikTok videos by trimmed videoId and renders canonical IDs", () => {

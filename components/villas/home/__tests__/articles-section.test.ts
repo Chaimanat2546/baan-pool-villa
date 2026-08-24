@@ -9,12 +9,36 @@ import { ArticlesSection } from "../articles-section";
 
 interface MockImageProps {
   alt: string;
+  quality?: number;
   src: string;
+  [key: string]: unknown;
 }
 
 vi.mock("next/image", () => ({
-  default: ({ alt, src }: MockImageProps) =>
-    createElement("span", { "aria-label": alt, "data-src": src }),
+  default: ({
+    alt,
+    fill,
+    loader,
+    preload,
+    quality,
+    src,
+    ...props
+  }: MockImageProps) => {
+    void fill;
+    void loader;
+    void preload;
+
+    return createElement("span", {
+      ...props,
+      "aria-label": alt,
+      "data-quality": quality,
+      "data-src": src,
+    });
+  },
+}));
+
+vi.mock("@/components/ui/near-viewport-activation", () => ({
+  useImageActivation: () => true,
 }));
 
 function makeGuide(index: number): GuidePost {
@@ -62,6 +86,16 @@ describe("selectHomeGuideSummaries", () => {
 });
 
 describe("ArticlesSection", () => {
+  it("requests full article rail images at quality 80", () => {
+    const guides = selectHomeGuideSummaries([makeGuide(0)]);
+    const markup = renderToStaticMarkup(
+      createElement(ArticlesSection, { guides }),
+    );
+
+    expect(markup).toContain('data-progressive-full="true"');
+    expect(markup).toContain('data-quality="80"');
+  });
+
   it("reserves article card body space so the CTA stays aligned", () => {
     const guides = selectHomeGuideSummaries([makeGuide(0)]);
     const markup = renderToStaticMarkup(

@@ -1,16 +1,18 @@
 "use client";
 
 import { Play } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SiTiktok } from "react-icons/si";
 
 import { useImageActivation } from "@/components/ui/near-viewport-activation";
 import { ProgressiveImage } from "@/components/ui/progressive-image";
+import { cn } from "@/lib/utils";
 import type { SiteTikTokVideoSettings } from "@/lib/site-settings/types";
 import type { TikTokVideoPreview } from "@/lib/tiktok/types";
 import { loadTikTokClientOEmbed, type TikTokClientOEmbed } from "./tiktok-client-oembed";
 
 interface TikTokLazyCardProps {
+  displayMode?: "grid" | "rail";
   index: number;
   isPlaying: boolean;
   onPlay: (videoId: string) => void;
@@ -30,6 +32,76 @@ function getPlayerSrc(videoId: string) {
   });
 
   return `https://www.tiktok.com/player/v1/${videoId}?${params.toString()}`;
+}
+
+const TIKTOK_PLAYER_ORIGIN = "https://www.tiktok.com";
+
+export function TikTokPlayerFrame({
+  className,
+  title,
+  videoId,
+}: {
+  className: string;
+  title: string;
+  videoId: string;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const requestPlaybackWithSound = useCallback(() => {
+    const playerWindow = iframeRef.current?.contentWindow;
+
+    if (!playerWindow) {
+      return;
+    }
+
+    for (const type of ["play", "unMute"] as const) {
+      playerWindow.postMessage(
+        { "x-tiktok-player": true, type, value: undefined },
+        TIKTOK_PLAYER_ORIGIN,
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    function handlePlayerMessage(event: MessageEvent<unknown>) {
+      if (
+        event.origin !== TIKTOK_PLAYER_ORIGIN ||
+        event.source !== iframeRef.current?.contentWindow ||
+        typeof event.data !== "object" ||
+        event.data === null
+      ) {
+        return;
+      }
+
+      const message = event.data as {
+        "x-tiktok-player"?: unknown;
+        type?: unknown;
+      };
+
+      if (
+        message["x-tiktok-player"] === true &&
+        message.type === "onPlayerReady"
+      ) {
+        requestPlaybackWithSound();
+      }
+    }
+
+    window.addEventListener("message", handlePlayerMessage);
+
+    return () => {
+      window.removeEventListener("message", handlePlayerMessage);
+    };
+  }, [requestPlaybackWithSound]);
+
+  return (
+    <iframe
+      allow="autoplay; fullscreen"
+      className={className}
+      loading="eager"
+      ref={iframeRef}
+      src={getPlayerSrc(videoId)}
+      title={title}
+    />
+  );
 }
 
 /**
@@ -58,12 +130,10 @@ function TikTokPlayer({
   video,
 }: Pick<TikTokLazyCardProps, "index" | "video">) {
   return (
-    <iframe
-      allow="autoplay; fullscreen"
+    <TikTokPlayerFrame
       className="h-full w-full border-0"
-      loading="eager"
-      src={getPlayerSrc(video.videoId)}
       title={`TikTok video ${index + 1}`}
+      videoId={video.videoId}
     />
   );
 }
@@ -76,6 +146,7 @@ function TikTokPlayer({
  * @returns The card element that toggles between a poster view and an embedded TikTok iframe when activated.
  */
 export function TikTokLazyCard({
+  displayMode = "rail",
   index,
   isPlaying,
   onPlay,
@@ -120,7 +191,14 @@ export function TikTokLazyCard({
   }, [imageActive, isPlaying, video]);
 
   return (
-    <article className="w-[244px] flex-shrink-0 snap-start overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_30px_rgba(15,47,53,0.08)] sm:w-[292px] lg:w-[320px]">
+    <article
+      className={cn(
+        "overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-[0_12px_30px_rgba(15,47,53,0.08)]",
+        displayMode === "grid"
+          ? "min-w-0 w-full"
+          : "w-[244px] flex-shrink-0 snap-start sm:w-[292px] lg:w-[320px]",
+      )}
+    >
       <div className="relative aspect-[9/16] bg-[var(--site-surface-soft)]">
         {isPlaying ? (
           <TikTokPlayer index={index} video={video} />
@@ -143,7 +221,11 @@ export function TikTokLazyCard({
                 fullImageLoading={index === 0 ? "eager" : "lazy"}
                 previewActive={false}
                 referrerPolicy="no-referrer"
-                sizes="(max-width: 640px) 244px, (max-width: 1024px) 292px, 320px"
+                sizes={
+                  displayMode === "grid"
+                    ? "(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 384px"
+                    : "(max-width: 640px) 244px, (max-width: 1024px) 292px, 320px"
+                }
                 src={thumbnailUrl}
               />
             ) : (

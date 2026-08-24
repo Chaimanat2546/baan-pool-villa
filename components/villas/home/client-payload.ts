@@ -2,7 +2,7 @@ import type { SiteSettings, SiteTikTokSettings } from "@/lib/site-settings/types
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
 
-const HOMEPAGE_TIKTOK_VIDEO_LIMIT = 6;
+const HOMEPAGE_TIKTOK_VIDEO_LIMIT = 15;
 
 type TikTokSettings = SiteTikTokSettings | TikTokPreviewSettings;
 type TikTokSectionVideo =

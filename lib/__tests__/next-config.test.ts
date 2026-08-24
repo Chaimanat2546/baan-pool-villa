@@ -22,7 +22,7 @@ describe("Next image config", () => {
   });
 
   it("allows image qualities used by rendered image components", () => {
-    expect(nextConfig.images?.qualities).toEqual([50, 60, 70, 75]);
+    expect(nextConfig.images?.qualities).toEqual([50, 60, 70, 75, 80]);
   });
 
   it("allows house-card and advertisement images from the R2 worker", () => {

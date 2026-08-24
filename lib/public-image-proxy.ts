@@ -24,7 +24,7 @@ export const PUBLIC_IMAGE_TRANSFORM_WIDTHS = [
   1920,
 ] as const;
 
-export const PUBLIC_IMAGE_TRANSFORM_QUALITIES = [60, 75] as const;
+export const PUBLIC_IMAGE_TRANSFORM_QUALITIES = [60, 75, 80] as const;
 
 export type PublicImageTransformWidth = (typeof PUBLIC_IMAGE_TRANSFORM_WIDTHS)[number];
 export type PublicImageTransformQuality =
