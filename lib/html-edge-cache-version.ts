@@ -56,7 +56,7 @@ export async function bumpHtmlEdgeCacheVersions(groups: string[]): Promise<void>
     const ctx = cloudflareContext.ctx as WaitUntilContext | undefined;
     await writeHtmlEdgeCacheVersionGroupsForContext({ ctx, env, groups });
   } catch {
-    // HTML edge cache versioning is a freshness accelerator. Next data-cache
-    // revalidation remains the source of truth when bindings are unavailable.
+    // HTML edge-cache versioning is a freshness accelerator. OpenNext uses a
+    // dummy incremental cache, so unavailable version writes are best-effort.
   }
 }

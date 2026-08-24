@@ -25,38 +25,24 @@
 
 **Files:**
 - Modify: `open-next.config.test.ts`
-- Inspect: `wrangler.jsonc`
-- Inspect: `worker-html-cache-version.js`
+- Test: `worker-html-cache-version.test.ts`
 
 **Interfaces:**
 - Consumes: `defineCloudflareConfig()` defaults from `@opennextjs/cloudflare`, where omitted cache overrides resolve to `"dummy"`.
-- Produces: A source-level regression test requiring no OpenNext R2, regional-cache, tag-cache, or queue override while retaining the R2 version-token binding.
+- Produces: A runtime regression test requiring OpenNext to resolve its incremental cache, tag cache, and queue to the dummy implementations. The existing HTML version-store test continues to cover the retained R2 fallback behavior.
 
 - [ ] **Step 1: Replace the current regional-cache expectation with a failing no-persistent-cache test**
 
 ```ts
-import { readFile } from "node:fs/promises";
-
 import { describe, expect, it } from "vitest";
 
-describe("OpenNext cache configuration", () => {
-  it("uses dummy OpenNext caches without removing the HTML version store", async () => {
-    const [source, wranglerSource, versionStoreSource] = await Promise.all([
-      readFile("open-next.config.ts", "utf8"),
-      readFile("wrangler.jsonc", "utf8"),
-      readFile("worker-html-cache-version.js", "utf8"),
-    ]);
+import openNextConfig from "./open-next.config";
 
-    expect(source).toContain("export default defineCloudflareConfig();");
-    expect(source).not.toContain("incrementalCache");
-    expect(source).not.toContain("withRegionalCache");
-    expect(source).not.toContain("doShardedTagCache");
-    expect(source).not.toContain("doQueue");
-    expect(wranglerSource).toContain(
-      '\"binding\": \"NEXT_INC_CACHE_R2_BUCKET\"',
-    );
-    expect(versionStoreSource).toContain("env?.NEXT_INC_CACHE_R2_BUCKET");
-    expect(versionStoreSource).toContain("html-cache-versions/");
+describe("OpenNext cache configuration", () => {
+  it("uses dummy OpenNext cache, tag cache, and queue implementations", () => {
+    expect(openNextConfig.default?.override?.incrementalCache).toBe("dummy");
+    expect(openNextConfig.default?.override?.tagCache).toBe("dummy");
+    expect(openNextConfig.default?.override?.queue).toBe("dummy");
   });
 });
 ```
@@ -69,7 +55,7 @@ Expected: FAIL because `open-next.config.ts` still configures `withRegionalCache
 
 - [ ] **Step 3: Review the failure and confirm it is caused only by the intended cache configuration**
 
-Expected failure signal: the assertion for `export default defineCloudflareConfig();` fails before implementation. Do not proceed if failure comes from a missing Wrangler binding or missing HTML version-store fallback.
+Expected failure signal: one or more resolved overrides are functions rather than `"dummy"`. Do not proceed if importing the configuration itself fails.
 
 ---
 

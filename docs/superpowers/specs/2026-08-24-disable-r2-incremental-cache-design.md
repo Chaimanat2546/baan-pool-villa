@@ -30,13 +30,13 @@ Admin saves continue to call the existing Next tag-revalidation helpers, but the
 
 ## Error Handling
 
-If the retained HTML version-token R2 access fails, the existing version helper continues to fall back safely: reads use the default version and admin version bumps remain best-effort. Application data loading and the Cloudflare Cache API keep their current error handling.
+If the retained HTML version-token store or object is unavailable, the version helper uses the default token. If a version read still fails after the Worker retry policy, the Worker safely bypasses its edge cache and fetches OpenNext instead. Version writes, including admin version bumps, remain best-effort. Application data loading and the Cloudflare Cache API keep their current error handling.
 
 ## Files and Documentation
 
 - Simplify `open-next.config.ts` to `defineCloudflareConfig()` with no cache, tag-cache, or queue overrides.
 - Delete `open-next-r2-incremental-cache-diagnostics.js` and its test.
-- Update `open-next.config.test.ts` to assert that OpenNext uses dummy defaults and does not reference the R2 adapter, regional cache, tag cache, or queue.
+- Update `open-next.config.test.ts` to assert the resolved dummy OpenNext incremental-cache, tag-cache, and queue values.
 - Update `docs/ai/structure.html` to describe the new cache ownership and targeted verification.
 
 ## Verification
