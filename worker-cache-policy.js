@@ -1,5 +1,4 @@
 const HTML_EDGE_CACHE_SECONDS = 6 * 60 * 60;
-const VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS = 15 * 60;
 const IMAGE_EDGE_CACHE_SECONDS = 365 * 24 * 60 * 60;
 const IMAGE_EDGE_STALE_SECONDS = 365 * 24 * 60 * 60;
 const HOUSE_JSON_EDGE_CACHE_SECONDS = 6 * 60 * 60;
@@ -31,7 +30,6 @@ const VILLA_IMAGE_DISPLAY_QUERY_KEYS = new Set(["imageId", "url", "w", "q"]);
 const HERO_IMAGE_QUERY_KEYS = new Set(["slide", "w", "q"]);
 
 export const HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${HTML_EDGE_CACHE_SECONDS}`;
-export const VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS}`;
 export const HTML_BROWSER_CACHE_CONTROL =
   "private, no-cache, max-age=0, must-revalidate";
 export const HTML_EDGE_CACHE_HEADER = "x-bpv-html-cache";
@@ -119,8 +117,7 @@ function isVillaDetailPath(pathname) {
 export function isPublicHtmlCachePath(pathname) {
   return (
     PUBLIC_HTML_CACHE_PATHS.has(pathname) ||
-    isGuideDetailPath(pathname) ||
-    isVillaDetailPath(pathname)
+    isGuideDetailPath(pathname)
   );
 }
 
@@ -539,10 +536,8 @@ function getJsonCacheVersionGroups(pathname) {
   return [];
 }
 
-function getHtmlCacheControl(pathname) {
-  return isVillaDetailPath(pathname)
-    ? VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL
-    : HTML_EDGE_CACHE_CONTROL;
+function getHtmlCacheControl() {
+  return HTML_EDGE_CACHE_CONTROL;
 }
 
 function getJsonCacheControl(pathname) {
@@ -655,7 +650,7 @@ export function getHtmlEdgeCacheDecision(request) {
 
   return {
     cacheKey: createHtmlEdgeCacheKey(request),
-    cacheControl: getHtmlCacheControl(url.pathname),
+    cacheControl: getHtmlCacheControl(),
     cacheable: true,
     candidate: true,
     reason: "html",

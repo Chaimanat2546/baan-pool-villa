@@ -10,7 +10,6 @@ import {
   JSON_EDGE_CACHE_CONTROL,
   JSON_EDGE_CACHE_HEADER,
   STATIC_ASSET_CACHE_CONTROL,
-  VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL,
   createHtmlEdgeCacheKey,
   createHtmlEdgeVersionToken,
   createImageEdgeCacheKey,
@@ -42,12 +41,6 @@ describe("worker HTML edge cache policy", () => {
     expect(HTML_EDGE_CACHE_CONTROL).toBe("public, max-age=0, s-maxage=21600");
   });
 
-  it("keeps villa detail HTML edge cache shared for fifteen minutes", () => {
-    expect(VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL).toBe(
-      "public, max-age=0, s-maxage=900",
-    );
-  });
-
   it("allows only the first conservative public HTML page batch", () => {
     expect(isPublicHtmlCachePath("/")).toBe(true);
     expect(isPublicHtmlCachePath("/search")).toBe(true);
@@ -59,7 +52,7 @@ describe("worker HTML edge cache policy", () => {
     expect(isPublicHtmlCachePath("/api/houses")).toBe(false);
     expect(isPublicHtmlCachePath("/admin/login")).toBe(false);
     expect(isPublicHtmlCachePath("/_next/static/chunk.js")).toBe(false);
-    expect(isPublicHtmlCachePath("/villas/9")).toBe(true);
+    expect(isPublicHtmlCachePath("/villas/9")).toBe(false);
     expect(isPublicHtmlCachePath("/guides/family-trip/extra")).toBe(false);
     expect(isPublicHtmlCachePath("/villas/9/gallery")).toBe(false);
   });
@@ -102,10 +95,11 @@ describe("worker HTML edge cache policy", () => {
     expect(decision.cacheKey?.url).toBe("https://example.com/guides");
   });
 
-  it("assigns the longer HTML cache control to villa detail pages", () => {
+  it("bypasses HTML edge caching for villa detail pages with live calendars", () => {
     expect(getHtmlEdgeCacheDecision(request("/villas/9"))).toMatchObject({
-      cacheControl: VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL,
-      cacheable: true,
+      cacheable: false,
+      candidate: false,
+      reason: "path",
     });
   });
 
@@ -127,15 +121,6 @@ describe("worker HTML edge cache policy", () => {
     });
     expect(getHtmlEdgeCacheDecision(request("/terms"))).toMatchObject({
       versionGroups: ["site-settings", "legal-pages"],
-    });
-    expect(getHtmlEdgeCacheDecision(request("/villas/9"))).toMatchObject({
-      versionGroups: [
-        "site-settings",
-        "home-sections",
-        "detail-layout",
-        "villa-details",
-        "villa-images",
-      ],
     });
   });
 
