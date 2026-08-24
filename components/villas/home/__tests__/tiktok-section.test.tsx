@@ -103,6 +103,51 @@ describe("TikTokSection", () => {
     await page.unmount();
   });
 
+  it("requests TikTok playback with sound when a selected player is ready", async () => {
+    mockViewport(true);
+    const page = await mountAdminPage(
+      <TikTokSection
+        tiktok={{
+          accountUrl: "",
+          videos: [
+            {
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+              videoId: "7370000000000000001",
+            },
+          ],
+        }}
+      />,
+    );
+
+    await click(page.container.querySelector("[data-tiktok-poster]") as HTMLElement);
+
+    const iframe = page.container.querySelector("iframe") as HTMLIFrameElement;
+    const postMessage = vi.fn();
+    Object.defineProperty(iframe, "contentWindow", {
+      configurable: true,
+      value: { postMessage },
+    });
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: { "x-tiktok-player": true, type: "onPlayerReady" },
+        origin: "https://www.tiktok.com",
+        source: iframe.contentWindow,
+      }),
+    );
+
+    expect(postMessage).toHaveBeenCalledWith(
+      { "x-tiktok-player": true, type: "play", value: undefined },
+      "https://www.tiktok.com",
+    );
+    expect(postMessage).toHaveBeenCalledWith(
+      { "x-tiktok-player": true, type: "unMute", value: undefined },
+      "https://www.tiktok.com",
+    );
+
+    await page.unmount();
+  });
+
   it("opens a large TikTok player dialog on mobile", async () => {
     mockViewport(false);
     const page = await mountAdminPage(

@@ -1,7 +1,7 @@
 "use client";
 
 import { Play } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SiTiktok } from "react-icons/si";
 
 import { useImageActivation } from "@/components/ui/near-viewport-activation";
@@ -34,6 +34,76 @@ function getPlayerSrc(videoId: string) {
   return `https://www.tiktok.com/player/v1/${videoId}?${params.toString()}`;
 }
 
+const TIKTOK_PLAYER_ORIGIN = "https://www.tiktok.com";
+
+export function TikTokPlayerFrame({
+  className,
+  title,
+  videoId,
+}: {
+  className: string;
+  title: string;
+  videoId: string;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const requestPlaybackWithSound = useCallback(() => {
+    const playerWindow = iframeRef.current?.contentWindow;
+
+    if (!playerWindow) {
+      return;
+    }
+
+    for (const type of ["play", "unMute"] as const) {
+      playerWindow.postMessage(
+        { "x-tiktok-player": true, type, value: undefined },
+        TIKTOK_PLAYER_ORIGIN,
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    function handlePlayerMessage(event: MessageEvent<unknown>) {
+      if (
+        event.origin !== TIKTOK_PLAYER_ORIGIN ||
+        event.source !== iframeRef.current?.contentWindow ||
+        typeof event.data !== "object" ||
+        event.data === null
+      ) {
+        return;
+      }
+
+      const message = event.data as {
+        "x-tiktok-player"?: unknown;
+        type?: unknown;
+      };
+
+      if (
+        message["x-tiktok-player"] === true &&
+        message.type === "onPlayerReady"
+      ) {
+        requestPlaybackWithSound();
+      }
+    }
+
+    window.addEventListener("message", handlePlayerMessage);
+
+    return () => {
+      window.removeEventListener("message", handlePlayerMessage);
+    };
+  }, [requestPlaybackWithSound]);
+
+  return (
+    <iframe
+      allow="autoplay; fullscreen"
+      className={className}
+      loading="eager"
+      ref={iframeRef}
+      src={getPlayerSrc(videoId)}
+      title={title}
+    />
+  );
+}
+
 /**
  * Type guard that detects whether a video object contains a non-empty thumbnail URL.
  *
@@ -60,12 +130,10 @@ function TikTokPlayer({
   video,
 }: Pick<TikTokLazyCardProps, "index" | "video">) {
   return (
-    <iframe
-      allow="autoplay; fullscreen"
+    <TikTokPlayerFrame
       className="h-full w-full border-0"
-      loading="eager"
-      src={getPlayerSrc(video.videoId)}
       title={`TikTok video ${index + 1}`}
+      videoId={video.videoId}
     />
   );
 }

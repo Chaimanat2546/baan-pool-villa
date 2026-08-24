@@ -9,7 +9,7 @@ import { useLockedBodyScroll } from "@/components/villas/detail/use-locked-body-
 import { selectHomeTikTokVideos } from "./client-payload";
 import type { SiteTikTokSettings } from "@/lib/site-settings/types";
 import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
-import { TikTokLazyCard } from "./tiktok-lazy-card";
+import { TikTokLazyCard, TikTokPlayerFrame } from "./tiktok-lazy-card";
 
 interface TikTokSectionProps {
   tiktok: SiteTikTokSettings | TikTokPreviewSettings;
@@ -22,12 +22,6 @@ function TikTokPlayerDialog({
   onClose: () => void;
   videoId: string;
 }) {
-  const playerParams = new URLSearchParams({
-    autoplay: "1",
-    controls: "1",
-    rel: "0",
-  });
-
   return (
     <div
       aria-label="เล่นวิดีโอ TikTok"
@@ -45,12 +39,10 @@ function TikTokPlayerDialog({
         <X aria-hidden="true" className="size-5" />
       </button>
       <div className="h-[88dvh] max-w-full aspect-[9/16] overflow-hidden rounded-lg bg-zinc-950 shadow-2xl">
-        <iframe
-          allow="autoplay; fullscreen"
+        <TikTokPlayerFrame
           className="h-full w-full border-0"
-          loading="eager"
-          src={`https://www.tiktok.com/player/v1/${videoId}?${playerParams.toString()}`}
           title="TikTok video"
+          videoId={videoId}
         />
       </div>
     </div>
