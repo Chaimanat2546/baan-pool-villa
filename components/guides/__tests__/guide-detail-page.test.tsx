@@ -8,8 +8,18 @@ import type { VillaListing } from "@/lib/villas/types";
 import { GuideDetailPage, getYouTubeEmbedUrl } from "../guide-detail-page";
 
 vi.mock("next/image", () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    <span aria-label={alt} data-src={src} />
+  default: ({
+    alt,
+    quality,
+    sizes,
+    src,
+  }: {
+    alt: string;
+    quality?: number;
+    sizes?: string;
+    src: string;
+  }) => (
+    <span aria-label={alt} data-quality={quality} data-sizes={sizes} data-src={src} />
   ),
 }));
 
@@ -324,7 +334,7 @@ describe("getYouTubeEmbedUrl", () => {
     );
   });
 
-  it("passes cover and inline guide images to the AWS image loader", () => {
+  it("delivers cover and inline guide images at the higher desktop fidelity", () => {
     const markup = renderToStaticMarkup(
       <GuideDetailPage
         guide={{
@@ -350,6 +360,8 @@ describe("getYouTubeEmbedUrl", () => {
 
     expect(markup).toContain('data-src="/api/guides/images/guide/cover"');
     expect(markup).toContain('data-src="/api/guides/images/guide/content/0"');
+    expect(markup).toContain('data-quality="80"');
+    expect(markup).toContain('data-sizes="(max-width: 768px) 100vw, 1080px"');
   });
 
   it("omits invalid guide image sources", () => {

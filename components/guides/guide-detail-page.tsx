@@ -470,7 +470,8 @@ function GuideContent({ blocks, slug }: { blocks: unknown[]; slug: string }) {
                 alt={getImageAlt(guideBlock, "รูปประกอบบทความ")}
                 className="object-cover"
                 fill
-                sizes="(max-width: 768px) 100vw, 768px"
+                quality={80}
+                sizes="(max-width: 768px) 100vw, 1080px"
                 src={imageUrl}
               />
             </div>
@@ -709,7 +710,7 @@ export function GuideDetailPage({
                 className="object-cover"
                 fill
                 preload
-                quality={75}
+                quality={80}
                 sizes="(max-width: 1024px) 100vw, 1024px"
                 src={coverImageUrl}
               />
