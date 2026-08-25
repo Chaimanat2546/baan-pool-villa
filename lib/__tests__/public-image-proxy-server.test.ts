@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchPublicImageProxyResponse } from "@/lib/public-image-proxy-server";
+import {
+  buildResolvedPublicImageProxyResponse,
+  fetchPublicImageProxyResponse,
+} from "@/lib/public-image-proxy-server";
 
 vi.mock("server-only", () => ({}));
 
@@ -67,6 +70,51 @@ describe("fetchPublicImageProxyResponse", () => {
     expect(response).not.toBeNull();
     await expect(response!.text()).resolves.toBe("image bytes");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns no proxy response when the upstream connection is lost", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("Network connection lost.")),
+    );
+
+    await expect(
+      fetchPublicImageProxyResponse("https://assets.example.com/image.webp"),
+    ).resolves.toBeNull();
+  });
+
+  it("ends quietly when the browser cancels an image request", async () => {
+    const controller = new AbortController();
+    const request = new Request("https://example.com/api/houses/images/1745?w=292", {
+      signal: controller.signal,
+    });
+    const fetchMock = vi.fn().mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => {
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+          });
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const responsePromise = buildResolvedPublicImageProxyResponse(
+      request,
+      "https://assets.example.com/image.webp",
+    );
+    controller.abort();
+
+    const response = await responsePromise;
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://assets.example.com/image.webp",
+      expect.objectContaining({
+        cache: "no-store",
+        redirect: "manual",
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    expect(response.status).toBe(204);
   });
 
   it("cancels non-image upstream response bodies before rejecting them", async () => {

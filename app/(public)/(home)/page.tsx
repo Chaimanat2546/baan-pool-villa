@@ -78,16 +78,15 @@ async function HomeInitialContent({
       <DeferredHomeContent
         criticalContent={
           <HomePageContent
+            customerReviews={initialPayload.customerReviews}
+            criticalItem={initialPayload.criticalItem}
             initialHomeSections={initialPayload.sections}
+            initialGuides={initialPayload.guides}
             criticalRailKey={initialPayload.criticalRailKey}
             homeLayout={
-              initialPayload.criticalRailKey
+              initialPayload.criticalItem
                 ? [
-                    {
-                      enabled: true,
-                      key: initialPayload.criticalRailKey,
-                      kind: "rail",
-                    },
+                    initialPayload.criticalItem,
                   ]
                 : []
             }
@@ -95,6 +94,7 @@ async function HomeInitialContent({
             villaCardStyle={villaCardStyle}
           />
         }
+        criticalItem={initialPayload.criticalItem}
         criticalRailKey={initialPayload.criticalRailKey}
         homeLayout={initialPayload.layout}
         settings={{

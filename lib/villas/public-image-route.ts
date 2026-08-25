@@ -1,6 +1,7 @@
 import type { PublicRateLimitPolicy } from "@/lib/api/rate-limit";
 import { CACHE_HEADERS } from "@/lib/cache-policy";
 import {
+  cancelledPublicImageProxyResponse,
   fetchPublicImageProxyResponse,
   normalizePublicImageProxyUrl,
   parsePublicImageProxyTransformRequest,
@@ -274,9 +275,16 @@ async function proxyVillaImage(
   const imageResponse = await fetchPublicImageProxyResponse(
     targetUrl,
     transformRequest.params,
+    request.signal,
   );
 
   if (!imageResponse) {
+    const cancelledResponse = cancelledPublicImageProxyResponse(request);
+
+    if (cancelledResponse) {
+      return cancelledResponse;
+    }
+
     return Response.json({ error: "Unable to load image" }, { status: 502 });
   }
 

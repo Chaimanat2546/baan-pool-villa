@@ -2,25 +2,51 @@
 
 import { useEffect } from "react";
 
-/** Keep homepage visits at the hero instead of restoring a prior scroll position. */
+const HOME_LAST_SCROLL_Y_KEY = "home-last-scroll-y";
+
+function getLatestHomepageScrollY(): number | null {
+  const savedScrollY = window.sessionStorage.getItem(HOME_LAST_SCROLL_Y_KEY);
+
+  if (!savedScrollY) {
+    return null;
+  }
+
+  const scrollY = Number(savedScrollY);
+
+  return Number.isFinite(scrollY) && scrollY >= 0 ? scrollY : null;
+}
+
+function isReloadNavigation(): boolean {
+  return performance
+    .getEntriesByType("navigation")
+    .some((entry) => (entry as PerformanceNavigationTiming).type === "reload");
+}
+
+/** Keeps client-side back navigation at its prior homepage position. */
 export function HomeBackNavigationScroll() {
   useEffect(() => {
-    const scrollToTop = () => window.scrollTo(0, 0);
     const previousScrollRestoration = window.history.scrollRestoration;
+    const isReload = isReloadNavigation();
+    const scrollYToRestore = isReload ? null : getLatestHomepageScrollY();
+
+    if (isReload) {
+      window.sessionStorage.removeItem(HOME_LAST_SCROLL_Y_KEY);
+    }
 
     window.history.scrollRestoration = "manual";
-    scrollToTop();
+    const restoreFrame = scrollYToRestore !== null
+      ? window.requestAnimationFrame(() => window.scrollTo(0, scrollYToRestore))
+      : null;
 
-    const handlePageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) {
-        scrollToTop();
-      }
-    };
-
-    window.addEventListener("pageshow", handlePageShow);
+    if (scrollYToRestore === null) {
+      window.scrollTo(0, 0);
+    }
 
     return () => {
-      window.removeEventListener("pageshow", handlePageShow);
+      if (restoreFrame !== null) {
+        window.cancelAnimationFrame(restoreFrame);
+      }
+
       window.history.scrollRestoration = previousScrollRestoration;
     };
   }, []);

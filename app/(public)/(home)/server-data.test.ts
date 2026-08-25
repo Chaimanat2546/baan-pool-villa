@@ -245,6 +245,29 @@ describe("deferred homepage server data", () => {
     expect(getHomepageCustomerReviewDataMock).not.toHaveBeenCalled();
   });
 
+  it("uses the first enabled fixed section as the initial homepage content", async () => {
+    getHomeSectionListingPlanMock.mockResolvedValue({
+      configs: [],
+      houseIds: ["1", "2"],
+      layout: {
+        degraded: false,
+        items: [
+          { kind: "fixed", key: "why_choose", enabled: true },
+          { kind: "rail", key: "critical", enabled: true },
+        ],
+        source: "config",
+      },
+      listingLimit: 12,
+    });
+    const { getInitialHomePageData } = await import("./server-data");
+
+    await expect(getInitialHomePageData()).resolves.toMatchObject({
+      criticalItem: { kind: "fixed", key: "why_choose", enabled: true },
+      sections: [],
+    });
+    expect(fetchHomeListingsMock).not.toHaveBeenCalled();
+  });
+
   it("logs and degrades when preparing critical villa-card previews fails", async () => {
     const error = new Error("Network connection lost.");
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);

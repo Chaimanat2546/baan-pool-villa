@@ -33,6 +33,7 @@ interface DeferredHomePayload {
 
 interface DeferredHomeContentProps {
   criticalContent: ReactNode;
+  criticalItem: HomePageLayoutItem | null;
   criticalRailKey: string | null;
   homeLayout: HomePageLayoutItem[];
   settings: HomePageContentSettings;
@@ -103,6 +104,7 @@ function getHydratedDocumentLayout(
   deferredLayout: HomePageLayoutItem[],
   homeLayout: HomePageLayoutItem[],
   criticalRailKey: string | null,
+  criticalItem: HomePageLayoutItem | null,
 ): HomePageLayoutItem[] {
   const deferredItemKeys = new Set(
     deferredLayout
@@ -113,7 +115,7 @@ function getHydratedDocumentLayout(
   return homeLayout.filter(
     (item) =>
       item.enabled &&
-      (item.kind === "rail" && item.key === criticalRailKey
+      (item.kind === criticalItem?.kind && item.key === criticalItem.key
         ? true
         : deferredItemKeys.has(`${item.kind}:${item.key}`)),
   );
@@ -121,6 +123,7 @@ function getHydratedDocumentLayout(
 
 export function DeferredHomeContent({
   criticalContent,
+  criticalItem,
   criticalRailKey,
   homeLayout,
   settings,
@@ -211,7 +214,7 @@ export function DeferredHomeContent({
   const firstDeferredItem = homeLayout.find(
     (item) =>
       item.enabled &&
-      !(item.kind === "rail" && item.key === criticalRailKey),
+      !(item.kind === criticalItem?.kind && item.key === criticalItem.key),
   );
   const renderLayoutPlaceholder = readyPayload
     ? undefined
@@ -241,6 +244,7 @@ export function DeferredHomeContent({
       <HomePageContent
         key="home-page-content"
         criticalContent={criticalContent}
+        criticalItem={criticalItem}
         criticalRailKey={criticalRailKey}
         customerReviews={readyPayload?.customerReviews}
         homeLayout={
@@ -249,6 +253,7 @@ export function DeferredHomeContent({
                 readyPayload.layout,
                 homeLayout,
                 criticalRailKey,
+                criticalItem,
               )
             : homeLayout
         }

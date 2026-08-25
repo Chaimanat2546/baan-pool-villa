@@ -119,6 +119,7 @@ function createObserverDouble() {
 
 function renderDeferredContent({
   criticalContent = <section id="critical">Critical rail</section>,
+  criticalItem = { kind: "rail", key: "critical", enabled: true },
   criticalRailKey = "critical",
   homeLayout = [
     { kind: "rail", key: "critical", enabled: true },
@@ -126,6 +127,7 @@ function renderDeferredContent({
   ],
 }: {
   criticalContent?: React.ReactNode;
+  criticalItem?: HomePageLayoutItem | null;
   criticalRailKey?: string | null;
   homeLayout?: HomePageLayoutItem[];
 } = {}) {
@@ -140,6 +142,7 @@ function renderDeferredContent({
         root.render(
           <DeferredHomeContent
             criticalContent={criticalContent}
+            criticalItem={criticalItem}
             criticalRailKey={criticalRailKey}
             homeLayout={homeLayout}
             settings={settings}
