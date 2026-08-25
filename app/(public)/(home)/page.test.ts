@@ -159,8 +159,8 @@ describe("HomePageRoute", () => {
       layout: {
         degraded: false,
         items: [
-          { kind: "fixed", key: "why_choose", enabled: true },
           { kind: "rail", key: "critical", enabled: true },
+          { kind: "fixed", key: "why_choose", enabled: true },
           { kind: "rail", key: "later", enabled: true },
           { kind: "fixed", key: "articles", enabled: true },
           { kind: "fixed", key: "customer_reviews", enabled: true },
@@ -256,8 +256,8 @@ describe("HomePageRoute", () => {
       { kind: "rail", key: "critical", enabled: true },
     ]);
     expect(deferredBoundary?.props.homeLayout).toEqual([
-      { kind: "fixed", key: "why_choose", enabled: true },
       { kind: "rail", key: "critical", enabled: true },
+      { kind: "fixed", key: "why_choose", enabled: true },
       { kind: "rail", key: "later", enabled: true },
       { kind: "fixed", key: "articles", enabled: true },
       { kind: "fixed", key: "customer_reviews", enabled: true },
