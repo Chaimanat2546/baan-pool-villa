@@ -36,6 +36,7 @@ export function Gallery({
           loading="eager"
           onClick={onImageClick}
           onError={onImageError}
+          sizes="(max-width: 1023px) 100vw, 60vw"
         />
 
         <div className="mx-auto grid w-[calc(100%_-_45px)] grid-cols-3 gap-2 sm:w-full lg:h-full lg:grid-cols-2 lg:grid-rows-2 lg:gap-1">
