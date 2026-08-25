@@ -47,7 +47,7 @@ describe("HomeBackNavigationScroll", () => {
     await page.unmount();
   });
 
-  it("keeps the current position for a normal homepage load", async () => {
+  it("scrolls to the top for a normal homepage load or refresh", async () => {
     const scrollToMock = vi.fn();
     vi.stubGlobal("scrollTo", scrollToMock);
     vi.spyOn(performance, "getEntriesByType").mockReturnValue([]);
@@ -55,7 +55,7 @@ describe("HomeBackNavigationScroll", () => {
 
     await page.mount();
 
-    expect(scrollToMock).not.toHaveBeenCalled();
+    expect(scrollToMock).toHaveBeenCalledWith(0, 0);
     await page.unmount();
   });
 });
