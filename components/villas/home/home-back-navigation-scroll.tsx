@@ -2,22 +2,14 @@
 
 import { useEffect } from "react";
 
-function isHistoryNavigation() {
-  const navigationEntry = performance.getEntriesByType(
-    "navigation",
-  )[0] as PerformanceNavigationTiming | undefined;
-
-  return navigationEntry?.type === "back_forward";
-}
-
-/** Scroll restored browser-history visits to the top before deferred home content loads. */
+/** Keep homepage visits at the hero instead of restoring a prior scroll position. */
 export function HomeBackNavigationScroll() {
   useEffect(() => {
     const scrollToTop = () => window.scrollTo(0, 0);
+    const previousScrollRestoration = window.history.scrollRestoration;
 
-    if (isHistoryNavigation()) {
-      scrollToTop();
-    }
+    window.history.scrollRestoration = "manual";
+    scrollToTop();
 
     const handlePageShow = (event: PageTransitionEvent) => {
       if (event.persisted) {
@@ -27,7 +19,10 @@ export function HomeBackNavigationScroll() {
 
     window.addEventListener("pageshow", handlePageShow);
 
-    return () => window.removeEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
   }, []);
 
   return null;
