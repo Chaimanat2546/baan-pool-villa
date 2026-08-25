@@ -305,10 +305,24 @@ export async function getInitialHomePageData(): Promise<InitialHomePageData> {
     }
   }
 
-  const [publicSection, zonesResult] = await Promise.all([
-    toInitialPublicSection(section),
+  const [publicSectionResult, zonesResult] = await Promise.all([
+    toInitialPublicSection(section).then(
+      (value) => ({ status: "fulfilled" as const, value }),
+      (reason) => ({ reason, status: "rejected" as const }),
+    ),
     zonesPromise,
   ]);
+
+  if (publicSectionResult.status === "rejected") {
+    console.error(
+      "Unable to prepare homepage critical villa cards",
+      publicSectionResult.reason,
+    );
+    villaCatalogDegraded = true;
+  }
+
+  const publicSection =
+    publicSectionResult.status === "fulfilled" ? publicSectionResult.value : null;
 
   if (zonesResult.status === "rejected") {
     console.error("Unable to load homepage villa zones", zonesResult.reason);

@@ -245,6 +245,22 @@ describe("deferred homepage server data", () => {
     expect(getHomepageCustomerReviewDataMock).not.toHaveBeenCalled();
   });
 
+  it("logs and degrades when preparing critical villa-card previews fails", async () => {
+    const error = new Error("Network connection lost.");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    withVillaCardGalleryPreviewsMock.mockRejectedValue(error);
+    const { getInitialHomePageData } = await import("./server-data");
+
+    await expect(getInitialHomePageData()).resolves.toMatchObject({
+      degradedSources: expect.objectContaining({ villaCatalog: true }),
+      sections: [],
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "Unable to prepare homepage critical villa cards",
+      error,
+    );
+  });
+
   it("builds an initial payload containing only the document critical rail", async () => {
     const serverData = await import("./server-data");
     const data = await serverData.getHomePageData();
