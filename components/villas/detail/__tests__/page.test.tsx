@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, type ReactElement } from "react";
+import { act, type ComponentType, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
@@ -17,6 +17,29 @@ import type { GalleryItem } from "../types";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
+
+const { galleryLightboxRenderMock } = vi.hoisted(() => ({
+  galleryLightboxRenderMock: vi.fn(),
+}));
+
+vi.mock("next/dynamic", async () => {
+  const { createElement, lazy, Suspense } = await import("react");
+
+  return {
+    default: <Props extends object>(loader: () => Promise<ComponentType<Props>>) => {
+      const DynamicComponent = lazy(async () => ({
+        default: await loader(),
+      }));
+
+      return (props: Props) =>
+        createElement(
+          Suspense,
+          { fallback: null },
+          createElement(DynamicComponent, props),
+        );
+    },
+  };
+});
 
 vi.mock("../gallery", () => ({
   Gallery: ({
@@ -75,8 +98,10 @@ vi.mock("../gallery", () => ({
     onClose: () => void;
     showCategorySelector?: boolean;
     thumbnailPlacement?: "bottom" | "side";
-  }) =>
-    activeItem ? (
+  }) => {
+    galleryLightboxRenderMock();
+
+    return activeItem ? (
       <div
         data-lightbox-active={activeItem.url}
         data-lightbox-category-selector={String(showCategorySelector)}
@@ -86,7 +111,8 @@ vi.mock("../gallery", () => ({
           close
         </button>
       </div>
-    ) : null,
+    ) : null;
+  },
 }));
 
 vi.mock("../gallery-overview-modal", () => ({
@@ -117,6 +143,34 @@ vi.mock("../gallery-overview-modal", () => ({
       </button>
     </div>
   ),
+}));
+
+vi.mock("../gallery-lightbox", () => ({
+  GalleryLightbox: ({
+    activeItem,
+    onClose,
+    showCategorySelector,
+    thumbnailPlacement,
+  }: {
+    activeItem: GalleryItem | null;
+    onClose: () => void;
+    showCategorySelector?: boolean;
+    thumbnailPlacement?: "bottom" | "side";
+  }) => {
+    galleryLightboxRenderMock();
+
+    return activeItem ? (
+      <div
+        data-lightbox-active={activeItem.url}
+        data-lightbox-category-selector={String(showCategorySelector)}
+        data-lightbox-thumbnail-placement={thumbnailPlacement}
+      >
+        <button data-lightbox-close type="button" onClick={onClose}>
+          close
+        </button>
+      </div>
+    ) : null;
+  },
 }));
 
 vi.mock("../detail-layout-renderer", () => ({
@@ -248,6 +302,8 @@ async function flushReact() {
       setTimeout(resolve, 0);
     });
   });
+  await vi.dynamicImportSettled();
+  await act(async () => undefined);
 }
 
 function makePage(id = listing.id, activeListing = listing) {
@@ -313,6 +369,7 @@ beforeEach(() => {
     }),
   );
   requestIdleCallbackMock.mockClear();
+  galleryLightboxRenderMock.mockClear();
   vi.stubGlobal("fetch", fetchMock);
   vi.stubGlobal("requestIdleCallback", requestIdleCallbackMock);
   vi.stubGlobal("cancelIdleCallback", vi.fn());
@@ -324,6 +381,17 @@ afterEach(() => {
 });
 
 describe("VillaDetailPage server gallery", () => {
+  it("does not render the lightbox before a gallery item is selected", async () => {
+    const page = renderPage();
+
+    await page.render(makePageWithInitialGalleryImages(serverGalleryImages));
+    await flushReact();
+
+    expect(galleryLightboxRenderMock).not.toHaveBeenCalled();
+
+    await page.unmount();
+  });
+
   it("places the mobile booking contact before the configurable detail layout", async () => {
     const page = renderPage();
 
