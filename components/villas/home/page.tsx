@@ -56,6 +56,7 @@ export type HomePageContentSettings = Pick<
 
 interface HomePageContentProps {
   criticalContent?: ReactNode;
+  criticalItem?: HomePageLayoutItem | null;
   criticalRailKey?: string | null;
   customerReviews?: HomepageCustomerReviewData;
   initialGuides?: PublicGuideSummary[];
@@ -68,6 +69,7 @@ interface HomePageContentProps {
 
 export function HomePageContent({
   criticalContent,
+  criticalItem,
   criticalRailKey,
   customerReviews = {
     images: [],
@@ -99,6 +101,14 @@ export function HomePageContent({
     <>
       {layout.map((item) => {
         if (!item.enabled) return null;
+
+        if (
+          criticalContent !== undefined &&
+          item.kind === criticalItem?.kind &&
+          item.key === criticalItem.key
+        ) {
+          return <Fragment key={`${item.kind}:${item.key}`}>{criticalContent}</Fragment>;
+        }
 
         if (item.kind === "rail") {
           if (

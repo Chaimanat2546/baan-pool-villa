@@ -105,8 +105,20 @@ function toCloudflareImageOptions(
 export async function fetchPublicImageProxyResponse(
   targetUrl: string,
   transform: PublicImageProxyTransformParams = {},
+  requestSignal?: AbortSignal,
 ): Promise<Response | null> {
   const controller = new AbortController();
+  const abortForCancelledRequest = () => {
+    controller.abort();
+  };
+
+  if (requestSignal?.aborted) {
+    abortForCancelledRequest();
+  } else {
+    requestSignal?.addEventListener("abort", abortForCancelledRequest, {
+      once: true,
+    });
+  }
   const timeout = setTimeout(() => {
     controller.abort();
   }, IMAGE_PROXY_TIMEOUT_MS);
@@ -163,8 +175,11 @@ export async function fetchPublicImageProxyResponse(
       currentUrl = redirectUrl;
       upstreamResponse = null;
     }
+  } catch {
+    return null;
   } finally {
     clearTimeout(timeout);
+    requestSignal?.removeEventListener("abort", abortForCancelledRequest);
   }
 
   return upstreamResponse
@@ -172,10 +187,20 @@ export async function fetchPublicImageProxyResponse(
     : null;
 }
 
+export function cancelledPublicImageProxyResponse(request: Request): Response | null {
+  return request.signal.aborted ? new Response(null, { status: 204 }) : null;
+}
+
 export async function buildAllowedPublicImageProxyResponse(
   request: Request,
   isAllowedUrl: PublicImageProxyAuthorizer,
 ) {
+  const cancelledResponse = cancelledPublicImageProxyResponse(request);
+
+  if (cancelledResponse) {
+    return cancelledResponse;
+  }
+
   const requestUrl = new URL(request.url);
   const targetUrl = normalizePublicImageProxyUrl(requestUrl.searchParams.get("url"));
 
@@ -196,9 +221,16 @@ export async function buildAllowedPublicImageProxyResponse(
   const imageResponse = await fetchPublicImageProxyResponse(
     targetUrl,
     transformRequest.params,
+    request.signal,
   );
 
   if (!imageResponse) {
+    const cancelledResponse = cancelledPublicImageProxyResponse(request);
+
+    if (cancelledResponse) {
+      return cancelledResponse;
+    }
+
     return Response.json({ error: "Unable to load image" }, { status: 502 });
   }
 
@@ -209,6 +241,12 @@ export async function buildResolvedPublicImageProxyResponse(
   request: Request,
   sourceUrl: string | null,
 ) {
+  const cancelledResponse = cancelledPublicImageProxyResponse(request);
+
+  if (cancelledResponse) {
+    return cancelledResponse;
+  }
+
   const targetUrl = normalizePublicImageProxyUrl(sourceUrl);
 
   if (!targetUrl) {
@@ -224,9 +262,16 @@ export async function buildResolvedPublicImageProxyResponse(
   const imageResponse = await fetchPublicImageProxyResponse(
     targetUrl,
     transformRequest.params,
+    request.signal,
   );
 
   if (!imageResponse) {
+    const cancelledResponse = cancelledPublicImageProxyResponse(request);
+
+    if (cancelledResponse) {
+      return cancelledResponse;
+    }
+
     return Response.json({ error: "Unable to load image" }, { status: 502 });
   }
 

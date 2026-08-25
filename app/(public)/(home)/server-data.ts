@@ -75,7 +75,10 @@ export type InitialHomePayload = {
 };
 
 export type InitialHomePageData = InitialHomePayload & {
+  criticalItem: HomePageLayoutItem | null;
+  customerReviews: HomepageCustomerReviewData;
   filterSummary: FilterSummary;
+  guides: PublicGuideSummary[];
 };
 
 export function getCriticalHomeRailKey(data: HomePageData): string | null {
@@ -221,29 +224,6 @@ async function resolvePlanRail(
   };
 }
 
-async function resolveFirstPlanRail(plan: HomeSectionListingPlan): Promise<{
-  degraded: boolean;
-  railKey: string | null;
-  section: ResolvedHomeSection | null;
-}> {
-  let degraded = plan.layout.degraded;
-
-  for (const item of plan.layout.items) {
-    if (!item.enabled || item.kind !== "rail") {
-      continue;
-    }
-
-    const resolved = await resolvePlanRail(plan, item.key);
-    degraded = degraded || resolved.degraded;
-
-    if (resolved.section) {
-      return { degraded, railKey: item.key, section: resolved.section };
-    }
-  }
-
-  return { degraded, railKey: null, section: null };
-}
-
 async function toInitialPublicSection(
   section: ResolvedHomeSection | null,
 ): Promise<PublicHomeSection | null> {
@@ -274,6 +254,7 @@ export async function getInitialHomePageData(): Promise<InitialHomePageData> {
   );
   const plan =
     planResult.status === "fulfilled" ? planResult.value : null;
+  let criticalItem: HomePageLayoutItem | null = null;
   let criticalRailKey: string | null = null;
   let section: ResolvedHomeSection | null = null;
   let homeSectionsDegraded = planResult.status === "rejected";
@@ -281,14 +262,28 @@ export async function getInitialHomePageData(): Promise<InitialHomePageData> {
   let fallbackLayout: HomePageLayoutItem[] = [];
 
   if (plan) {
-    try {
-      const resolved = await resolveFirstPlanRail(plan);
-      criticalRailKey = resolved.railKey;
-      section = resolved.section;
-      homeSectionsDegraded = resolved.degraded;
-    } catch (error) {
-      console.error("Unable to load homepage villa data", error);
-      villaCatalogDegraded = true;
+    for (const item of plan.layout.items) {
+      if (!item.enabled) continue;
+
+      if (item.kind === "fixed") {
+        criticalItem = item;
+        break;
+      }
+
+      try {
+        const resolved = await resolvePlanRail(plan, item.key);
+        homeSectionsDegraded = homeSectionsDegraded || resolved.degraded;
+
+        if (resolved.section) {
+          criticalItem = item;
+          criticalRailKey = item.key;
+          section = resolved.section;
+          break;
+        }
+      } catch (error) {
+        console.error("Unable to load homepage villa data", error);
+        villaCatalogDegraded = true;
+      }
     }
   } else {
     try {
@@ -296,6 +291,9 @@ export async function getInitialHomePageData(): Promise<InitialHomePageData> {
       const resolved = await getResolvedHomeSections(villas);
       section = resolved.sections.find((candidate) => candidate.villas.length > 0) ?? null;
       criticalRailKey = section?.slug ?? null;
+      criticalItem = criticalRailKey
+        ? { enabled: true, key: criticalRailKey, kind: "rail" }
+        : null;
       fallbackLayout = buildDefaultHomePageLayout(
         resolved.sections.map((candidate) => candidate.slug),
       );
@@ -305,12 +303,31 @@ export async function getInitialHomePageData(): Promise<InitialHomePageData> {
     }
   }
 
-  const [publicSectionResult, zonesResult] = await Promise.all([
+  const guidesPromise =
+    criticalItem?.kind === "fixed" && criticalItem.key === "articles"
+      ? getPublishedGuides().then(
+          (value) => ({ status: "fulfilled" as const, value }),
+          (reason) => ({ reason, status: "rejected" as const }),
+        )
+      : Promise.resolve({ status: "fulfilled" as const, value: [] });
+  const customerReviewsPromise =
+    criticalItem?.kind === "fixed" && criticalItem.key === "customer_reviews"
+      ? getHomepageCustomerReviewData().then(
+          (value) => ({ status: "fulfilled" as const, value }),
+          (reason) => ({ reason, status: "rejected" as const }),
+        )
+      : Promise.resolve({
+          status: "fulfilled" as const,
+          value: { images: [], layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT },
+        });
+  const [publicSectionResult, zonesResult, guidesResult, customerReviewsResult] = await Promise.all([
     toInitialPublicSection(section).then(
       (value) => ({ status: "fulfilled" as const, value }),
       (reason) => ({ reason, status: "rejected" as const }),
     ),
     zonesPromise,
+    guidesPromise,
+    customerReviewsPromise,
   ]);
 
   if (publicSectionResult.status === "rejected") {
@@ -328,13 +345,27 @@ export async function getInitialHomePageData(): Promise<InitialHomePageData> {
     console.error("Unable to load homepage villa zones", zonesResult.reason);
   }
 
+  if (guidesResult.status === "rejected") {
+    console.error("Unable to load homepage guide posts", guidesResult.reason);
+  }
+
+  if (customerReviewsResult.status === "rejected") {
+    console.error("Unable to load homepage customer reviews", customerReviewsResult.reason);
+  }
+
   return {
+    criticalItem,
+    customerReviews:
+      customerReviewsResult.status === "fulfilled"
+        ? customerReviewsResult.value
+        : { images: [], layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT },
     criticalRailKey: publicSection ? criticalRailKey : null,
     degradedSources: {
-      guidePosts: false,
+      guidePosts: guidesResult.status === "rejected",
       homeSections: homeSectionsDegraded,
       villaCatalog: villaCatalogDegraded || zonesResult.status === "rejected",
     },
+    guides: guidesResult.status === "fulfilled" ? selectHomeGuideSummaries(guidesResult.value) : [],
     filterSummary: {
       maxAvailablePrice: SEARCH_FACETS.maxPrice,
       zones: zonesResult.status === "fulfilled" ? zonesResult.value : [],
