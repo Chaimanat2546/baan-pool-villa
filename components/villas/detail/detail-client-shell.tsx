@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -24,9 +25,17 @@ import {
   VillaDetailGalleryError,
 } from "./detail-page-gallery";
 import { DetailLayoutRenderer } from "./detail-layout-renderer";
-import { GalleryLightbox } from "./gallery";
-import { GalleryOverviewModal } from "./gallery-overview-modal";
 import { useVillaGallery } from "./use-villa-gallery";
+
+const GalleryLightbox = dynamic(
+  () => import("./gallery-lightbox").then((module) => module.GalleryLightbox),
+);
+const GalleryOverviewModal = dynamic(
+  () =>
+    import("./gallery-overview-modal").then(
+      (module) => module.GalleryOverviewModal,
+    ),
+);
 
 type GalleryModalView = "closed" | "overview" | "lightbox";
 interface GalleryModalState {
@@ -192,28 +201,28 @@ export function VillaDetailClientShell({
         />
       ) : null}
 
-      <GalleryLightbox
-        activeItem={
-          galleryModalView === "lightbox" ? activeGalleryItem : null
-        }
-        categories={galleryCategories}
-        listing={listing}
-        onClose={() => {
-          setActiveGalleryItem(null);
-          setGalleryModalState({
-            returnToOverview: false,
-            villaId: id,
-            view: galleryModalState.returnToOverview ? "overview" : "closed",
-          });
-        }}
-        onImageError={handleImageError}
-        onSelect={setActiveGalleryItem}
-        showCategorySelector={!isCategorizedGallery}
-        style={galleryStyle}
-        thumbnailPlacement={
-          isCategorizedGallery ? "bottom" : "side"
-        }
-      />
+      {galleryModalView === "lightbox" ? (
+        <GalleryLightbox
+          activeItem={activeGalleryItem}
+          categories={galleryCategories}
+          listing={listing}
+          onClose={() => {
+            setActiveGalleryItem(null);
+            setGalleryModalState({
+              returnToOverview: false,
+              villaId: id,
+              view: galleryModalState.returnToOverview ? "overview" : "closed",
+            });
+          }}
+          onImageError={handleImageError}
+          onSelect={setActiveGalleryItem}
+          showCategorySelector={!isCategorizedGallery}
+          style={galleryStyle}
+          thumbnailPlacement={
+            isCategorizedGallery ? "bottom" : "side"
+          }
+        />
+      ) : null}
     </>
   );
 }
