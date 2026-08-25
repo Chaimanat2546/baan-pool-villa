@@ -41,7 +41,7 @@ describe("worker HTML edge cache policy", () => {
     expect(HTML_EDGE_CACHE_CONTROL).toBe("public, max-age=0, s-maxage=21600");
   });
 
-  it("allows only the first conservative public HTML page batch", () => {
+  it("allows the conservative public HTML pages and villa detail pages", () => {
     expect(isPublicHtmlCachePath("/")).toBe(true);
     expect(isPublicHtmlCachePath("/search")).toBe(true);
     expect(isPublicHtmlCachePath("/guides")).toBe(true);
@@ -52,7 +52,7 @@ describe("worker HTML edge cache policy", () => {
     expect(isPublicHtmlCachePath("/api/houses")).toBe(false);
     expect(isPublicHtmlCachePath("/admin/login")).toBe(false);
     expect(isPublicHtmlCachePath("/_next/static/chunk.js")).toBe(false);
-    expect(isPublicHtmlCachePath("/villas/9")).toBe(false);
+    expect(isPublicHtmlCachePath("/villas/9")).toBe(true);
     expect(isPublicHtmlCachePath("/guides/family-trip/extra")).toBe(false);
     expect(isPublicHtmlCachePath("/villas/9/gallery")).toBe(false);
   });
@@ -95,11 +95,19 @@ describe("worker HTML edge cache policy", () => {
     expect(decision.cacheKey?.url).toBe("https://example.com/guides");
   });
 
-  it("bypasses HTML edge caching for villa detail pages with live calendars", () => {
+  it("caches villa detail pages for fifteen minutes with their dependent data versions", () => {
     expect(getHtmlEdgeCacheDecision(request("/villas/9"))).toMatchObject({
-      cacheable: false,
-      candidate: false,
-      reason: "path",
+      cacheable: true,
+      candidate: true,
+      cacheControl: "public, max-age=0, s-maxage=900",
+      reason: "html",
+      versionGroups: [
+        "site-settings",
+        "home-sections",
+        "detail-layout",
+        "villa-details",
+        "villa-images",
+      ],
     });
   });
 

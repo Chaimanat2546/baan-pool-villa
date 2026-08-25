@@ -13,6 +13,7 @@ interface GalleryImageProps {
   loading?: "eager" | "lazy";
   onClick?: (item: GalleryItem) => void;
   onError: (url: string) => void;
+  sizes?: string;
 }
 
 export function GalleryImage({
@@ -22,6 +23,7 @@ export function GalleryImage({
   listingId,
   onClick,
   onError,
+  sizes = "(max-width: 1024px) 100vw, 50vw",
   fetchPriority,
   loading = "lazy",
 }: GalleryImageProps) {
@@ -78,7 +80,7 @@ export function GalleryImage({
             fill
             loading={loading}
             fetchPriority={fetchPriority}
-            sizes="(max-width: 1024px) 100vw, 50vw"
+            sizes={sizes}
             className="object-cover transition duration-500 group-hover:scale-[1.03]"
             onError={() => {
               reportImageError();

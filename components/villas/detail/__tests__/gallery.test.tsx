@@ -56,6 +56,7 @@ describe("Gallery", () => {
     expect(imageTags).toHaveLength(4);
     expect(imageTags[0]).toContain('loading="eager"');
     expect(imageTags[0]).toContain('fetchPriority="high"');
+    expect(imageTags[0]).toContain('sizes="(max-width: 1023px) 100vw, 60vw"');
     expect(imageTags[0]).not.toContain("priority=");
     expect(imageTags[1]).toContain('loading="lazy"');
     expect(imageTags[2]).toContain('loading="lazy"');
