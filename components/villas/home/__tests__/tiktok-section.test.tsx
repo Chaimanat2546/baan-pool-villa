@@ -170,6 +170,8 @@ describe("TikTokSection", () => {
     expect(dialog).not.toBeNull();
     expect(dialog?.className).toContain("z-[90]");
     expect(page.container.querySelectorAll("iframe")).toHaveLength(1);
+    expect(page.container.querySelector("iframe")?.src).toContain("autoplay=0");
+    expect(page.container.textContent).toContain("แตะปุ่มเล่นในวิดีโอเพื่อเปิดเสียง");
     expect(document.body.classList.contains("body-scroll-locked")).toBe(true);
 
     await click(

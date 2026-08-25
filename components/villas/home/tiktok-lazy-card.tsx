@@ -24,9 +24,9 @@ interface TikTokLazyCardProps {
  *
  * @returns The fully qualified TikTok player URL for the video (includes `autoplay`, `controls`, and `rel` query parameters).
  */
-function getPlayerSrc(videoId: string) {
+function getPlayerSrc(videoId: string, autoplay: boolean) {
   const params = new URLSearchParams({
-    autoplay: "1",
+    autoplay: autoplay ? "1" : "0",
     controls: "1",
     rel: "0",
   });
@@ -37,10 +37,12 @@ function getPlayerSrc(videoId: string) {
 const TIKTOK_PLAYER_ORIGIN = "https://www.tiktok.com";
 
 export function TikTokPlayerFrame({
+  autoplay = true,
   className,
   title,
   videoId,
 }: {
+  autoplay?: boolean;
   className: string;
   title: string;
   videoId: string;
@@ -62,6 +64,10 @@ export function TikTokPlayerFrame({
   }, []);
 
   useEffect(() => {
+    if (!autoplay) {
+      return;
+    }
+
     function handlePlayerMessage(event: MessageEvent<unknown>) {
       if (
         event.origin !== TIKTOK_PLAYER_ORIGIN ||
@@ -90,7 +96,7 @@ export function TikTokPlayerFrame({
     return () => {
       window.removeEventListener("message", handlePlayerMessage);
     };
-  }, [requestPlaybackWithSound]);
+  }, [autoplay, requestPlaybackWithSound]);
 
   return (
     <iframe
@@ -98,7 +104,7 @@ export function TikTokPlayerFrame({
       className={className}
       loading="eager"
       ref={iframeRef}
-      src={getPlayerSrc(videoId)}
+      src={getPlayerSrc(videoId, autoplay)}
       title={title}
     />
   );

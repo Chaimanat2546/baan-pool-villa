@@ -40,11 +40,15 @@ function TikTokPlayerDialog({
       </button>
       <div className="h-[88dvh] max-w-full aspect-[9/16] overflow-hidden rounded-lg bg-zinc-950 shadow-2xl">
         <TikTokPlayerFrame
+          autoplay={false}
           className="h-full w-full border-0"
           title="TikTok video"
           videoId={videoId}
         />
       </div>
+      <p className="mt-3 text-center text-sm font-medium text-white">
+        แตะปุ่มเล่นในวิดีโอเพื่อเปิดเสียง
+      </p>
     </div>
   );
 }
