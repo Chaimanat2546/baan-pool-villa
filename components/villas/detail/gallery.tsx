@@ -48,6 +48,7 @@ export function Gallery({
               listingId={listing.id}
               onClick={onImageClick}
               onError={onImageError}
+              sizes="(max-width: 1023px) 28vw, 20vw"
             />
           ) : (
             <GalleryReservedTile className="aspect-[4/3] rounded-2xl lg:aspect-auto lg:h-full lg:rounded-none" />
@@ -61,6 +62,7 @@ export function Gallery({
               listingId={listing.id}
               onClick={onImageClick}
               onError={onImageError}
+              sizes="(max-width: 1023px) 28vw, 20vw"
             />
           ) : (
             <GalleryReservedTile className="aspect-[4/3] rounded-2xl lg:aspect-auto lg:h-full lg:rounded-l-none lg:rounded-r-xl lg:rounded-bl-none" />
@@ -76,6 +78,7 @@ export function Gallery({
                 loading="lazy"
                 onClick={onImageClick}
                 onError={onImageError}
+                sizes="(max-width: 1023px) 28vw, 40vw"
               />
 
               <button

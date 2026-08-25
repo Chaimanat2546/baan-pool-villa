@@ -59,8 +59,11 @@ describe("Gallery", () => {
     expect(imageTags[0]).toContain('sizes="(max-width: 1023px) 100vw, 60vw"');
     expect(imageTags[0]).not.toContain("priority=");
     expect(imageTags[1]).toContain('loading="lazy"');
+    expect(imageTags[1]).toContain('sizes="(max-width: 1023px) 28vw, 20vw"');
     expect(imageTags[2]).toContain('loading="lazy"');
+    expect(imageTags[2]).toContain('sizes="(max-width: 1023px) 28vw, 20vw"');
     expect(imageTags[3]).toContain('loading="lazy"');
+    expect(imageTags[3]).toContain('sizes="(max-width: 1023px) 28vw, 40vw"');
   });
 
   it("does not pass Next priority prop to gallery tiles", () => {
