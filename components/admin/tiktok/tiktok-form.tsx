@@ -12,22 +12,28 @@ import {
   Trash2,
   Video,
 } from "lucide-react";
-import { DragEvent, FormEvent, useState } from "react";
+import { DragEvent, FormEvent, useEffect, useState } from "react";
 
 import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sidebar-preference";
+import { loadTikTokClientOEmbed } from "@/components/villas/home/tiktok-client-oembed";
 import {
   HOMEPAGE_TIKTOK_PREVIEW_LIMIT,
   createTikTokRowId,
   isValidPreviewAccountUrl,
   makePreviewVideoRows,
 } from "./tiktok-helpers";
-import type { AdminTikTokDraft } from "./types";
+import type {
+  AdminTikTokDraft,
+  AdminTikTokVideoDraft,
+  TikTokVillaOption,
+} from "./types";
 
 interface TikTokFormProps {
   draft: AdminTikTokDraft;
   hasUnsavedChanges: boolean;
   isSaving: boolean;
   onChange: (changes: Partial<AdminTikTokDraft>) => void;
+  onSearchVillas: (query: string, signal: AbortSignal) => Promise<TikTokVillaOption[]>;
   onSave: () => void;
 }
 
@@ -112,6 +118,48 @@ function getTikTokVideoLabel(value: string, fallbackIndex: number): string {
   return trimmed;
 }
 
+function TikTokVideoTitle({
+  fallbackIndex,
+  videoUrl,
+}: {
+  fallbackIndex: number;
+  videoUrl: string;
+}) {
+  const fallbackLabel = getTikTokVideoLabel(videoUrl, fallbackIndex);
+  const [title, setTitle] = useState(fallbackLabel);
+
+  useEffect(() => {
+    const trimmedVideoUrl = videoUrl.trim();
+    const controller = new AbortController();
+
+    if (!trimmedVideoUrl) {
+      return () => {
+        controller.abort();
+      };
+    }
+
+    void loadTikTokClientOEmbed(trimmedVideoUrl, controller.signal).then((metadata) => {
+      if (!controller.signal.aborted && metadata?.title) {
+        setTitle(metadata.title);
+      }
+    });
+
+    return () => {
+      controller.abort();
+    };
+  }, [videoUrl]);
+
+  return (
+    <p
+      className="order-3 min-w-0 basis-full line-clamp-2 text-sm font-medium text-[var(--site-muted)] lg:basis-auto lg:flex-1 lg:line-clamp-1"
+      data-tiktok-video-meta="true"
+      title={title}
+    >
+      {title}
+    </p>
+  );
+}
+
 function getVideoPreviewHref(value: string): string | null {
   const trimmed = value.trim();
 
@@ -172,11 +220,147 @@ function focusVideoInput(rowId: string) {
   document.getElementById(`tiktokVideoUrl-${rowId}`)?.focus();
 }
 
+interface TikTokVillaPickerProps {
+  index: number;
+  onSearchVillas: TikTokFormProps["onSearchVillas"];
+  onSelect: (villa: TikTokVillaOption | null) => void;
+  row: AdminTikTokVideoDraft;
+}
+
+function TikTokVillaPicker({
+  index,
+  onSearchVillas,
+  onSelect,
+  row,
+}: TikTokVillaPickerProps) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<TikTokVillaOption[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery.length === 0) {
+      return;
+    }
+
+    const controller = new AbortController();
+    let isCurrent = true;
+    const timeoutId = window.setTimeout(() => {
+      setIsSearching(true);
+      setError(null);
+
+      void onSearchVillas(trimmedQuery, controller.signal)
+        .then((nextResults) => {
+          if (isCurrent) {
+            setResults(nextResults);
+          }
+        })
+        .catch((caughtError: unknown) => {
+          if (isCurrent && !(caughtError instanceof DOMException && caughtError.name === "AbortError")) {
+            setResults([]);
+            setError(
+              caughtError instanceof Error && caughtError.message.length > 0
+                ? caughtError.message
+                : "ค้นหาบ้านพักไม่สำเร็จ",
+            );
+          }
+        })
+        .finally(() => {
+          if (isCurrent) {
+            setIsSearching(false);
+          }
+        });
+    }, 250);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [onSearchVillas, query]);
+
+  const selectedLabel = row.villaTitle ?? (row.houseId ? `บ้านพัก #${row.houseId}` : null);
+
+  function resetSearchState() {
+    setResults([]);
+    setError(null);
+    setIsSearching(false);
+  }
+
+  function handleQueryChange(value: string) {
+    if (row.houseId) {
+      onSelect(null);
+    }
+
+    setQuery(value);
+    resetSearchState();
+  }
+
+  return (
+    <div className="min-w-0 md:col-start-4 2xl:col-start-4 2xl:col-span-2">
+      <label
+        className="mb-1 block text-xs font-semibold text-[var(--site-muted)]"
+        htmlFor={`tiktokVillaSearch-${row.id}`}
+      >
+        บ้านพักที่เกี่ยวข้อง
+      </label>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
+        <input
+          className="h-9 min-w-0 w-full rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm text-[var(--site-text)] outline-none placeholder:text-[var(--site-muted)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
+          id={`tiktokVillaSearch-${row.id}`}
+          onChange={(event) => {
+            handleQueryChange(event.target.value);
+          }}
+          placeholder="ค้นหาชื่อหรือเลขบ้าน"
+          value={selectedLabel ?? query}
+        />
+        {row.houseId ? (
+          <button
+            aria-label={`ล้างบ้านพักที่เกี่ยวข้องสำหรับวิดีโอ TikTok ${index + 1}`}
+            className="h-9 shrink-0 rounded-md border border-[var(--site-border)] px-2 text-xs font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
+            onClick={() => {
+              handleQueryChange("");
+              onSelect(null);
+            }}
+            type="button"
+          >
+            ล้าง
+          </button>
+        ) : null}
+      </div>
+      {isSearching ? <p className="mt-1 text-xs text-[var(--site-muted)]">กำลังค้นหา...</p> : null}
+      {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
+      {results.length > 0 ? (
+        <div className="mt-1 grid max-h-32 overflow-y-auto rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-1">
+          {results.map((villa) => (
+            <button
+              className="min-w-0 rounded px-2 py-1.5 text-left text-xs text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
+              key={villa.id}
+              onClick={() => {
+                handleQueryChange("");
+                onSelect(villa);
+              }}
+              type="button"
+            >
+              <span className="block break-words font-semibold">{villa.title}</span>
+              <span className="block text-[var(--site-muted)]">บ้าน #{villa.id}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function addTikTokVideoRow(draft: AdminTikTokDraft): AdminTikTokDraft {
   return {
     ...draft,
-    videoRowIds: [...draft.videoRowIds, createTikTokRowId()],
-    videoUrls: [...draft.videoUrls, ""],
+    videos: [
+      ...draft.videos,
+      { houseId: null, id: createTikTokRowId(), url: "", villaTitle: null },
+    ],
   };
 }
 
@@ -185,20 +369,20 @@ export function updateTikTokVideoRow(
   index: number,
   nextValue: string,
 ): AdminTikTokDraft {
-  const nextVideoUrls = [...draft.videoUrls];
-  const nextVideoRowIds = [...draft.videoRowIds];
+  const nextVideos = [...draft.videos];
 
-  if (index >= nextVideoUrls.length) {
-    nextVideoUrls.push(nextValue);
-    nextVideoRowIds.push(createTikTokRowId());
+  if (index >= nextVideos.length) {
+    nextVideos.push({ houseId: null, id: createTikTokRowId(), url: nextValue, villaTitle: null });
   } else {
-    nextVideoUrls[index] = nextValue;
+    const currentVideo = nextVideos[index];
+    if (currentVideo) {
+      nextVideos[index] = { ...currentVideo, url: nextValue };
+    }
   }
 
   return {
     ...draft,
-    videoUrls: nextVideoUrls,
-    videoRowIds: nextVideoRowIds,
+    videos: nextVideos,
   };
 }
 
@@ -208,8 +392,7 @@ export function deleteTikTokVideoRow(
 ): AdminTikTokDraft {
   return {
     ...draft,
-    videoUrls: draft.videoUrls.filter((_, existingIndex) => existingIndex !== index),
-    videoRowIds: draft.videoRowIds.filter((_, existingIndex) => existingIndex !== index),
+    videos: draft.videos.filter((_, existingIndex) => existingIndex !== index),
   };
 }
 
@@ -218,13 +401,11 @@ export function moveTikTokVideoRow(
   index: number,
   direction: -1 | 1,
 ): AdminTikTokDraft {
-  const nextVideoUrls = moveArrayItem(draft.videoUrls, index, index + direction);
-  const nextVideoRowIds = moveArrayItem(draft.videoRowIds, index, index + direction);
+  const nextVideos = moveArrayItem(draft.videos, index, index + direction);
 
   return {
     ...draft,
-    videoRowIds: nextVideoRowIds,
-    videoUrls: nextVideoUrls,
+    videos: nextVideos,
   };
 }
 
@@ -233,13 +414,11 @@ export function moveTikTokVideoRowToIndex(
   sourceIndex: number,
   targetIndex: number,
 ): AdminTikTokDraft {
-  const nextVideoUrls = moveArrayItem(draft.videoUrls, sourceIndex, targetIndex);
-  const nextVideoRowIds = moveArrayItem(draft.videoRowIds, sourceIndex, targetIndex);
+  const nextVideos = moveArrayItem(draft.videos, sourceIndex, targetIndex);
 
   return {
     ...draft,
-    videoRowIds: nextVideoRowIds,
-    videoUrls: nextVideoUrls,
+    videos: nextVideos,
   };
 }
 
@@ -248,13 +427,14 @@ export function TikTokForm({
   hasUnsavedChanges,
   isSaving,
   onChange,
+  onSearchVillas,
   onSave,
 }: TikTokFormProps) {
   const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const [draggingVideoIndex, setDraggingVideoIndex] = useState<number | null>(null);
   const [activePreviewVideoUrl, setActivePreviewVideoUrl] = useState<string | null>(null);
-  const rows = makePreviewVideoRows(draft.videoUrls, draft.videoRowIds);
-  const normalizedRows = draft.videoUrls.map((url) => url.trim()).filter(Boolean);
+  const rows = makePreviewVideoRows(draft.videos);
+  const normalizedRows = draft.videos.map((video) => video.url.trim()).filter(Boolean);
   const visibleRows = rows.filter((row) => row.url.trim().length > 0);
   const visibleCount = Math.min(HOMEPAGE_TIKTOK_PREVIEW_LIMIT, visibleRows.length);
   const accountPreview = getAccountPreviewHref(draft.accountUrl);
@@ -266,7 +446,7 @@ export function TikTokForm({
 
   function handleAddVideo() {
     const nextDraft = addTikTokVideoRow(draft);
-    const nextRowId = nextDraft.videoRowIds.at(-1);
+    const nextRowId = nextDraft.videos.at(-1)?.id;
 
     onChange(nextDraft);
 
@@ -278,7 +458,7 @@ export function TikTokForm({
   }
 
   function handleDeleteVideo(index: number) {
-    if (index >= draft.videoUrls.length) {
+    if (index >= draft.videos.length) {
       return;
     }
 
@@ -287,7 +467,7 @@ export function TikTokForm({
 
   function handleMoveVideo(index: number, direction: -1 | 1) {
     const nextVideo = moveTikTokVideoRow(draft, index, direction);
-    const isNoop = nextVideo.videoUrls === draft.videoUrls;
+    const isNoop = nextVideo.videos === draft.videos;
 
     if (isNoop) {
       return;
@@ -327,7 +507,7 @@ export function TikTokForm({
       !Number.isInteger(sourceIndex) ||
       sourceIndex === targetIndex ||
       sourceIndex < 0 ||
-      sourceIndex >= draft.videoUrls.length
+      sourceIndex >= draft.videos.length
     ) {
       return;
     }
@@ -345,31 +525,31 @@ export function TikTokForm({
       aria-busy={isSaving}
       className={`grid min-w-0 gap-6 ${
         isDesktopNavCollapsed
-          ? "xl:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]"
-          : "xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]"
+          ? "lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]"
+          : "lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]"
       }`}
       data-unsaved={hasUnsavedChanges ? "true" : "false"}
       onSubmit={handleSubmit}
     >
       <div className="grid min-w-0 content-start gap-6">
-        <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
-          <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
+        <section className="min-w-0 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
+          <div className="grid min-w-0 gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
             <span className="inline-flex size-11 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
               <CircleUserRound aria-hidden="true" className="size-5" />
             </span>
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-[var(--site-text)]">บัญชี TikTok</h2>
-              <p className="mt-1 text-sm text-[var(--site-muted)]">
+              <p className="mt-1 break-words text-sm text-[var(--site-muted)]">
                 แก้ลิงก์บัญชีได้จากช่องนี้ ปุ่มเปิดบัญชีจะใช้ลิงก์ล่าสุดในช่องเสมอ
               </p>
-              <div className="mt-5 grid gap-4 lg:grid-cols-[160px_minmax(0,1fr)_auto] lg:items-center">
+              <div className="mt-5 grid min-w-0 gap-4 lg:grid-cols-[160px_minmax(0,1fr)_auto] lg:items-center">
                 <p className="text-sm text-[var(--site-muted)]">บัญชี TikTok</p>
                 <p className="min-w-0 truncate text-sm font-semibold text-[var(--site-text)]">
                   {getTikTokHandle(draft.accountUrl)}
                 </p>
                 {accountPreview ? (
                   <a
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] lg:w-auto"
                     href={accountPreview}
                     rel="noopener noreferrer"
                     target="_blank"
@@ -381,7 +561,7 @@ export function TikTokForm({
                   <span className="hidden lg:block" />
                 )}
               </div>
-              <div className="mt-4 grid gap-4 lg:grid-cols-[160px_minmax(0,1fr)_auto] lg:items-center">
+              <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[160px_minmax(0,1fr)_auto] lg:items-center">
                 <label
                   className="text-sm text-[var(--site-muted)]"
                   htmlFor="tiktokAccountUrl"
@@ -389,7 +569,7 @@ export function TikTokForm({
                   ลิงก์บัญชี
                 </label>
                 <input
-                  className="h-10 min-w-0 rounded-md border border-transparent bg-transparent px-0 text-sm font-medium text-[var(--site-primary)] outline-none transition placeholder:text-[var(--site-muted)] focus:border-[var(--site-border)] focus:bg-[var(--site-surface-soft)] focus:px-3 focus:ring-2 focus:ring-[var(--site-primary)]/15"
+                  className="h-10 w-full min-w-0 rounded-md border border-transparent bg-transparent px-0 text-sm font-medium text-[var(--site-primary)] outline-none transition placeholder:text-[var(--site-muted)] focus:border-[var(--site-border)] focus:bg-[var(--site-surface-soft)] focus:px-3 focus:ring-2 focus:ring-[var(--site-primary)]/15"
                   id="tiktokAccountUrl"
                   onChange={(event) => {
                     onChange({ accountUrl: event.target.value });
@@ -398,7 +578,7 @@ export function TikTokForm({
                   value={draft.accountUrl}
                 />
                 <button
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)] lg:w-auto"
                   onClick={() => {
                     document.getElementById("tiktokAccountUrl")?.focus();
                   }}
@@ -412,7 +592,7 @@ export function TikTokForm({
           </div>
         </section>
 
-        <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
+        <section className="min-w-0 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex min-w-0 items-start gap-4">
               <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
@@ -420,7 +600,7 @@ export function TikTokForm({
               </span>
               <div className="min-w-0">
                 <h2 className="text-lg font-bold text-[var(--site-text)]">วิดีโอ TikTok</h2>
-                <p className="mt-1 text-sm text-[var(--site-muted)]">
+                <p className="mt-1 break-words text-sm text-[var(--site-muted)]">
                   วิดีโอ {normalizedRows.length} รายการ เรียงตามลำดับที่จะแสดงบนหน้าแรก
                 </p>
               </div>
@@ -440,17 +620,18 @@ export function TikTokForm({
             {rows.map((row, index) => {
               const videoHref = getVideoPreviewHref(row.url);
               const playerHref = getTikTokPlayerHref(row.url);
-              const canDrag = draft.videoUrls.length > 1;
+              const canDrag = draft.videos.length > 1;
 
               return (
                 <div
                   aria-grabbed={draggingVideoIndex === index}
-                  className={`grid gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-sm transition md:grid-cols-[24px_48px_112px_minmax(0,1fr)] md:items-center 2xl:grid-cols-[24px_48px_112px_minmax(0,1fr)_auto_auto] ${
+                  className={`flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-3 shadow-sm transition ${
                     draggingVideoIndex === index
                       ? "border-[var(--site-primary)] ring-2 ring-[var(--site-primary)]/15"
                       : ""
                   }`}
                   draggable={canDrag}
+                  data-tiktok-card-header="true"
                   key={row.id}
                   onDragEnd={() => {
                     setDraggingVideoIndex(null);
@@ -465,16 +646,16 @@ export function TikTokForm({
                 >
                   <span
                     aria-label={`ลากเพื่อเรียงลำดับวิดีโอ TikTok ${index + 1}`}
-                    className="hidden cursor-grab text-[var(--site-muted)] active:cursor-grabbing lg:inline-flex"
+                    className="order-1 hidden cursor-grab text-[var(--site-muted)] active:cursor-grabbing lg:inline-flex"
                     role="button"
                     title={`ลากเพื่อเรียงลำดับวิดีโอ TikTok ${index + 1}`}
                   >
                     <GripVertical aria-hidden="true" className="size-5" />
                   </span>
-                  <span className="inline-flex size-12 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-sm font-bold text-[var(--site-primary)]">
+                  <span className="order-2 inline-flex size-12 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-sm font-bold text-[var(--site-primary)]">
                     #{index + 1}
                   </span>
-                  <div className="relative h-20 overflow-hidden rounded-md bg-[linear-gradient(135deg,#c7d2fe,#bfdbfe_45%,#fef3c7)] shadow-inner">
+                  <div className="order-3 relative h-20 w-28 overflow-hidden rounded-md bg-[linear-gradient(135deg,#c7d2fe,#bfdbfe_45%,#fef3c7)] shadow-inner">
                     {playerHref ? (
                       <button
                         aria-label={`ดูคลิปวิดีโอ TikTok ${index + 1}`}
@@ -497,15 +678,20 @@ export function TikTokForm({
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,.75),transparent_28%),linear-gradient(135deg,#c7d2fe,#bfdbfe_45%,#fef3c7)]" />
                     )}
                   </div>
-                  <div className="min-w-0">
+                  <TikTokVideoTitle
+                    fallbackIndex={index}
+                    key={`${row.id}:${row.url}`}
+                    videoUrl={row.url}
+                  />
+                  <div className="order-7 min-w-0 basis-full border-t border-[var(--site-border)] pt-3">
                     <label
-                      className="sr-only"
+                      className="mb-1 block text-xs font-semibold text-[var(--site-muted)]"
                       htmlFor={`tiktokVideoUrl-${row.id}`}
                     >
                       ลิงก์วิดีโอ TikTok {index + 1}
                     </label>
                     <input
-                      className="h-9 w-full min-w-0 rounded-md border border-transparent bg-transparent px-0 text-sm font-bold text-[var(--site-text)] outline-none transition placeholder:text-[var(--site-muted)] focus:border-[var(--site-border)] focus:bg-[var(--site-surface-soft)] focus:px-3 focus:ring-2 focus:ring-[var(--site-primary)]/15"
+                      className="h-9 w-full min-w-0 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm font-medium text-[var(--site-text)] outline-none transition placeholder:text-[var(--site-muted)] focus:bg-[var(--site-surface-soft)] focus:ring-2 focus:ring-[var(--site-primary)]/15"
                       id={`tiktokVideoUrl-${row.id}`}
                       onChange={(event) => {
                         handleVideoUpdate(index, event.target.value);
@@ -513,11 +699,25 @@ export function TikTokForm({
                       placeholder={`https://www.tiktok.com/@baanpoolvilla/video/${index + 1}`}
                       value={row.url}
                     />
-                    <p className="mt-1 truncate text-xs text-[var(--site-muted)]">
-                      {getTikTokVideoLabel(row.url, index)}
-                    </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 md:col-start-4 2xl:col-start-auto 2xl:justify-end">
+                  <div className="order-8 basis-full" data-tiktok-card-fields="true"><TikTokVillaPicker
+                    index={index}
+                    onSearchVillas={onSearchVillas}
+                    onSelect={(villa) => {
+                      const nextVideos = [...draft.videos];
+                      const currentVideo =
+                        nextVideos[index] ??
+                        { ...row, id: createTikTokRowId() };
+                      nextVideos[index] = {
+                        ...currentVideo,
+                        houseId: villa?.id ?? null,
+                        villaTitle: villa?.title ?? null,
+                      };
+                      onChange({ videos: nextVideos });
+                    }}
+                    row={row}
+                  /></div>
+                  <div className="order-4 flex w-full flex-wrap justify-start gap-2 lg:ml-auto lg:w-auto lg:justify-end">
                     {videoHref ? (
                       <a
                         className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
@@ -542,7 +742,7 @@ export function TikTokForm({
                     <button
                       aria-label={`ลบแถววิดีโอ TikTok ลำดับ ${index + 1}`}
                       className="inline-flex h-10 items-center gap-2 rounded-md border border-red-200 bg-[var(--site-surface)] px-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={draft.videoUrls.length === 0}
+                      disabled={draft.videos.length === 0}
                       onClick={() => {
                         handleDeleteVideo(index);
                       }}
@@ -553,11 +753,11 @@ export function TikTokForm({
                       ลบ
                     </button>
                   </div>
-                  <div className="flex overflow-hidden rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] md:col-start-4 md:w-max 2xl:col-start-auto 2xl:w-auto 2xl:flex-col">
+                  <div className="order-5 flex overflow-hidden rounded-md border border-[var(--site-border)] bg-[var(--site-surface)]">
                     <button
                       aria-label={`ย้ายแถววิดีโอที่ ${index + 1} ขึ้น`}
                       className="inline-flex h-9 w-10 items-center justify-center text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={index === 0 || draft.videoUrls.length < 2}
+                      disabled={index === 0 || draft.videos.length < 2}
                       onClick={() => {
                         handleMoveVideo(index, -1);
                       }}
@@ -568,10 +768,10 @@ export function TikTokForm({
                     </button>
                     <button
                       aria-label={`ย้ายแถววิดีโอที่ ${index + 1} ลง`}
-                      className="inline-flex h-9 w-10 items-center justify-center border-l border-[var(--site-border)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50 lg:border-l-0 lg:border-t"
+                      className="inline-flex h-9 w-10 items-center justify-center border-l border-[var(--site-border)] text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
                       disabled={
-                        index >= draft.videoUrls.length - 1 ||
-                        draft.videoUrls.length < 2
+                        index >= draft.videos.length - 1 ||
+                        draft.videos.length < 2
                       }
                       onClick={() => {
                         handleMoveVideo(index, 1);
@@ -589,7 +789,7 @@ export function TikTokForm({
         </section>
       </div>
 
-      <aside className="grid min-w-0 content-start gap-4 xl:sticky xl:top-36">
+      <aside className="grid min-w-0 content-start gap-4 lg:self-start lg:sticky lg:top-36">
         <section className="min-w-0 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm">
           <div className="flex items-center gap-3">
             <span className="inline-flex size-8 items-center justify-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">

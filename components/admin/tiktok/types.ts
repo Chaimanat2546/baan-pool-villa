@@ -1,9 +1,31 @@
-import type { SiteTikTokSettings } from "@/lib/site-settings/types";
+import type {
+  SiteTikTokSettings,
+  SiteTikTokVideoSettings,
+} from "@/lib/site-settings/types";
+
+export interface AdminTikTokVideoSettings extends SiteTikTokVideoSettings {
+  villaTitle?: string | null;
+}
+
+export interface AdminTikTokSettings extends Omit<SiteTikTokSettings, "videos"> {
+  videos: AdminTikTokVideoSettings[];
+}
+
+export interface AdminTikTokVideoDraft {
+  houseId: string | null;
+  id: string;
+  url: string;
+  villaTitle: string | null;
+}
+
+export interface TikTokVillaOption {
+  id: string;
+  title: string;
+}
 
 export interface AdminTikTokDraft {
   accountUrl: string;
-  videoUrls: string[];
-  videoRowIds: string[];
+  videos: AdminTikTokVideoDraft[];
 }
 
 export interface AdminTikTokResponse {
@@ -12,7 +34,7 @@ export interface AdminTikTokResponse {
   error?: string;
   errors?: string[];
   hint?: string;
-  settings?: SiteTikTokSettings;
+  settings?: AdminTikTokSettings;
   warning?: string;
   warnings?: string[];
 }

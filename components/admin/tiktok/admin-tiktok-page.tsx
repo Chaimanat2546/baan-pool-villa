@@ -22,7 +22,11 @@ import {
   mapTikTokSettingsToDraft,
   makeTikTokSnapshot,
 } from "./tiktok-helpers";
-import type { AdminTikTokDraft, AdminTikTokResponse } from "./types";
+import type {
+  AdminTikTokDraft,
+  AdminTikTokResponse,
+  TikTokVillaOption,
+} from "./types";
 
 export function AdminTikTokPage() {
   const router = useRouter();
@@ -56,6 +60,55 @@ export function AdminTikTokPage() {
 
     return token;
   }, [redirectToLogin]);
+
+  const searchVillas = useCallback(
+    async (query: string, signal: AbortSignal): Promise<TikTokVillaOption[]> => {
+      const token = await getAccessToken();
+
+      if (!token) {
+        return [];
+      }
+
+      const response = await fetch(
+        `/api/admin/tiktok/villas?q=${encodeURIComponent(query)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal,
+        },
+      );
+      const payload = await readJsonPayload(response);
+
+      if (shouldRedirectTikTokToLogin(response.status, payload as AdminTikTokResponse | null)) {
+        redirectToLogin();
+        return [];
+      }
+
+      if (!response.ok || !payload || typeof payload !== "object") {
+        const searchError =
+          extractTikTokErrors(payload, "ค้นหาบ้านพักไม่สำเร็จ")[0] ??
+          "ค้นหาบ้านพักไม่สำเร็จ";
+
+        throw new Error(
+          `ไม่สามารถค้นหาบ้านพักได้: ${searchError}`,
+        );
+      }
+
+      const villas = (payload as { villas?: unknown }).villas;
+
+      if (!Array.isArray(villas)) {
+        throw new Error("ค้นหาบ้านพักไม่สำเร็จ");
+      }
+
+      return villas.filter(
+        (villa): villa is TikTokVillaOption =>
+          typeof villa === "object" &&
+          villa !== null &&
+          typeof (villa as TikTokVillaOption).id === "string" &&
+          typeof (villa as TikTokVillaOption).title === "string",
+      );
+    },
+    [getAccessToken, redirectToLogin],
+  );
 
   const loadSettings = useCallback(
     async (token: string, showLoading: boolean) => {
@@ -258,6 +311,7 @@ export function AdminTikTokPage() {
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
           onChange={updateDraft}
+          onSearchVillas={searchVillas}
           onSave={handleSave}
         />
       )}

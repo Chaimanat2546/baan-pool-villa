@@ -2,6 +2,7 @@ import { ArrowRight, FileText, Pin } from "lucide-react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 
 import type { GuidePost } from "@/lib/guides/types";
+import { getGuideContentPreview } from "@/lib/guides/public-dto";
 import {
   buildGuideCoverImageProxyPath,
   normalizePublicImageSourceUrl,
@@ -42,8 +43,8 @@ function GuideCard({ guide, eager }: { eager?: boolean; guide: GuidePost }) {
           </div>
         )}
       </div>
-      <article className="flex flex-1 flex-col gap-3 p-4">
-        <div className="flex min-h-8 flex-wrap gap-2">
+      <article className="flex flex-col gap-3 p-4">
+        <div className="flex flex-wrap gap-2">
           {guide.isPinned ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--site-primary)] px-2.5 py-1 text-xs font-semibold text-[var(--site-on-primary)]">
               <Pin aria-hidden="true" className="size-3" />
@@ -59,13 +60,13 @@ function GuideCard({ guide, eager }: { eager?: boolean; guide: GuidePost }) {
             </span>
           ))}
         </div>
-        <h2 className="line-clamp-2 min-h-14 text-xl font-semibold leading-7 text-[var(--site-text)]">
+        <h2 className="line-clamp-2 text-xl font-semibold leading-7 text-[var(--site-text)]">
           {guide.title}
         </h2>
-        <p className="line-clamp-3 min-h-18 text-sm leading-6 text-[var(--site-muted)]">
-          {guide.excerpt}
+        <p className="line-clamp-3 text-sm leading-6 text-[var(--site-muted)]">
+          {getGuideContentPreview(guide.contentBlocks)}
         </p>
-        <span className="mt-auto inline-flex items-center gap-2 text-sm font-semibold text-[var(--site-primary)]">
+        <span className="inline-flex items-center gap-2 pt-1 text-sm font-semibold text-[var(--site-primary)]">
           อ่านบทความ <ArrowRight aria-hidden="true" className="size-4" />
         </span>
       </article>

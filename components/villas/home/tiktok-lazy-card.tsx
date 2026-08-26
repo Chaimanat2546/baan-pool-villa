@@ -1,14 +1,14 @@
 "use client";
 
-import { Play } from "lucide-react";
+import { ChevronRight, House, Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SiTiktok } from "react-icons/si";
 
 import { useImageActivation } from "@/components/ui/near-viewport-activation";
 import { ProgressiveImage } from "@/components/ui/progressive-image";
 import { cn } from "@/lib/utils";
-import type { SiteTikTokVideoSettings } from "@/lib/site-settings/types";
 import type { TikTokVideoPreview } from "@/lib/tiktok/types";
+import type { HomeTikTokVideo } from "./client-payload";
 import { loadTikTokClientOEmbed, type TikTokClientOEmbed } from "./tiktok-client-oembed";
 
 interface TikTokLazyCardProps {
@@ -16,7 +16,7 @@ interface TikTokLazyCardProps {
   index: number;
   isPlaying: boolean;
   onPlay: (videoId: string) => void;
-  video: SiteTikTokVideoSettings | TikTokVideoPreview;
+  video: HomeTikTokVideo | TikTokVideoPreview;
 }
 
 /**
@@ -119,7 +119,7 @@ export function TikTokPlayerFrame({
  * @returns `true` if `video.thumbnailUrl` exists and is not empty after trimming, `false` otherwise.
  */
 function hasThumbnail(
-  video: SiteTikTokVideoSettings | TikTokVideoPreview,
+  video: HomeTikTokVideo | TikTokVideoPreview,
 ): video is TikTokVideoPreview {
   return "thumbnailUrl" in video && video.thumbnailUrl.trim().length > 0;
 }
@@ -177,6 +177,7 @@ export function TikTokLazyCard({
       : clientPreview?.authorName
         ? clientPreview.authorName
       : "TikTok";
+  const villa = "villa" in video ? video.villa : null;
 
   useEffect(() => {
     if (hasThumbnail(video) || isPlaying || !imageActive || !video.url.trim()) {
@@ -263,6 +264,31 @@ export function TikTokLazyCard({
           </button>
         )}
       </div>
+      {villa ? (
+        <a
+          className="flex min-w-0 items-center gap-2 border-t border-[var(--site-border)] bg-[var(--site-primary-soft)] px-2.5 py-2.5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary)] hover:text-[var(--site-on-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-inset sm:gap-3 sm:px-4 sm:py-3"
+          href={`/villas/${villa.id}`}
+        >
+          <span className="hidden size-8 shrink-0 items-center justify-center rounded-md bg-[var(--site-surface)] text-[var(--site-primary)] shadow-sm sm:inline-flex sm:size-9">
+            <House aria-hidden="true" className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span
+              className="block text-xs font-medium opacity-80 sm:hidden"
+              data-tiktok-villa-mobile-label
+            >
+              ดูบ้านพัก
+            </span>
+            <span className="hidden text-xs font-medium opacity-80 sm:block">
+              ดูรายละเอียดบ้านพัก
+            </span>
+            <span className="block truncate text-sm font-semibold">
+              {villa.title}
+            </span>
+          </span>
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 sm:size-5" />
+        </a>
+      ) : null}
     </article>
   );
 }

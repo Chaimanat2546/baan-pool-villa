@@ -4,6 +4,9 @@ import type {
 } from "@/lib/admin/route-helpers";
 import { adminSupabaseErrorResponse } from "@/lib/admin/route-helpers";
 import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
+import { resolveTikTokVillaLinks, validateTikTokVideoHouseIds } from "@/lib/tiktok/villa-links";
+import { fetchHouseListings } from "@/lib/villas/server";
+import type { VillaListing } from "@/lib/villas/types";
 import { DEFAULT_SITE_SETTINGS, SITE_SETTINGS_ID } from "./defaults";
 import type { SiteSettingsRow } from "./types";
 import {
@@ -24,7 +27,7 @@ const TIKTOK_VIDEO_URLS_MULTIPLE_VALUES_ERROR = "ฟิลด์ tiktokVideoUrls
 
 export interface TikTokSettingsUpdatePayload {
   tiktok_account_url: string;
-  tiktok_video_urls: string[];
+  tiktok_video_urls: Array<{ houseId?: string; url: string }>;
 }
 
 export interface TikTokSettingsInsertPayload extends TikTokSettingsUpdatePayload {
@@ -37,12 +40,44 @@ interface StringFieldResult {
   errors: string[];
 }
 
-interface StringArrayFieldResult {
-  values: string[];
+interface TikTokVideosFieldResult {
+  values: TikTokSettingsVideoInput[];
   errors: string[];
 }
 
+interface TikTokSettingsVideoInput {
+  houseId: string | null;
+  url: string;
+}
+
 export type AdminTikTokSettingsSource = "config" | "fallback" | "none";
+
+async function addTikTokVillaTitles(
+  settings: ReturnType<typeof normalizeSiteSettingsRow>["tiktok"],
+  cachedVillas?: readonly VillaListing[],
+) {
+  if (!settings.videos.some((video) => video.houseId)) {
+    return settings;
+  }
+
+  let villas = cachedVillas;
+
+  if (!villas) {
+    try {
+      villas = await fetchHouseListings();
+    } catch {
+      return settings;
+    }
+  }
+
+  return {
+    ...settings,
+    videos: resolveTikTokVillaLinks(settings.videos, villas).map(({ villa, ...video }) => ({
+      ...video,
+      ...(villa ? { villaTitle: villa.title } : {}),
+    })),
+  };
+}
 
 function isMissingColumnError(error: SupabaseLikeError | null | undefined): boolean {
   if (!error) {
@@ -82,7 +117,7 @@ function readStringField(formData: FormData, fieldName: string): StringFieldResu
 
   if (values.length > 1) {
     const duplicateError =
-      fieldName === "tiktokVideoUrls"
+      fieldName === "tiktokVideoUrls" || fieldName === "tiktokVideos"
         ? TIKTOK_VIDEO_URLS_MULTIPLE_VALUES_ERROR
         : TIKTOK_ACCOUNT_URL_MULTIPLE_VALUES_ERROR;
 
@@ -103,10 +138,11 @@ function readStringField(formData: FormData, fieldName: string): StringFieldResu
   return { value, errors: [] };
 }
 
-function readStringArrayField(
+function readTikTokVideosField(
   formData: FormData,
-  fieldName: string,
-): StringArrayFieldResult {
+): TikTokVideosFieldResult {
+  const primaryValues = formData.getAll("tiktokVideos");
+  const fieldName = primaryValues.length > 0 ? "tiktokVideos" : "tiktokVideoUrls";
   const rawValue = readStringField(formData, fieldName);
 
   if (rawValue.errors.length > 0) {
@@ -120,16 +156,53 @@ function readStringArrayField(
   }
 
   try {
-    const parsedValue = JSON.parse(trimmedValue);
+    const parsedValue: unknown = JSON.parse(trimmedValue);
 
-    if (!Array.isArray(parsedValue) || !parsedValue.every((item) => typeof item === "string")) {
+    if (!Array.isArray(parsedValue)) {
       return {
         values: [],
         errors: [INVALID_TIKTOK_VIDEO_URL_LIST_ERROR],
       };
     }
 
-    return { values: parsedValue, errors: [] };
+    const videos = parsedValue.map((item): TikTokSettingsVideoInput | null => {
+      if (typeof item === "string") {
+        return { houseId: null, url: item.trim() };
+      }
+
+      if (typeof item !== "object" || item === null || Array.isArray(item)) {
+        return null;
+      }
+
+      const video = item as Record<string, unknown>;
+
+      if (typeof video.url !== "string") {
+        return null;
+      }
+
+      const rawHouseId = video.houseId;
+
+      if (rawHouseId !== undefined && rawHouseId !== null && typeof rawHouseId !== "string") {
+        return null;
+      }
+
+      return {
+        houseId: typeof rawHouseId === "string" ? rawHouseId.trim() || null : null,
+        url: video.url.trim(),
+      };
+    });
+
+    if (videos.some((video) => video === null)) {
+      return {
+        values: [],
+        errors: [INVALID_TIKTOK_VIDEO_URL_LIST_ERROR],
+      };
+    }
+
+    return {
+      values: videos.filter((video): video is TikTokSettingsVideoInput => video !== null),
+      errors: [],
+    };
   } catch {
     return {
       values: [],
@@ -139,18 +212,31 @@ function readStringArrayField(
 }
 
 export function parseTikTokPayload(formData: FormData): {
-  draft: ReturnType<typeof normalizeTikTokSettingsDraft>;
+  draft: {
+    accountUrl: string;
+    videos: TikTokSettingsVideoInput[];
+  };
   errors: string[];
 } {
   const accountField = readStringField(formData, "tiktokAccountUrl");
-  const videosField = readStringArrayField(formData, "tiktokVideoUrls");
+  const videosField = readTikTokVideosField(formData);
   const normalizedDraft = normalizeTikTokSettingsDraft({
     accountUrl: accountField.value,
-    videoUrls: videosField.values,
+    videoUrls: videosField.values.map((video) => video.url),
   });
 
+  const videos = videosField.values
+    .map((video) => ({
+      houseId: video.houseId,
+      url: video.url.trim(),
+    }))
+    .filter((video) => video.url.length > 0);
+
   return {
-    draft: normalizedDraft,
+    draft: {
+      accountUrl: normalizedDraft.accountUrl,
+      videos,
+    },
     errors: [
       ...accountField.errors,
       ...videosField.errors,
@@ -198,11 +284,17 @@ export async function loadAdminTikTokSettings(
 }
 
 export function toTikTokUpdatePayload(
-  draft: ReturnType<typeof normalizeTikTokSettingsDraft>,
+  draft: {
+    accountUrl: string;
+    videos: TikTokSettingsVideoInput[];
+  },
 ): TikTokSettingsUpdatePayload {
   return {
     tiktok_account_url: draft.accountUrl,
-    tiktok_video_urls: draft.videoUrls,
+    tiktok_video_urls: draft.videos.map((video) => ({
+      ...(video.houseId ? { houseId: video.houseId } : {}),
+      url: video.url,
+    })),
   };
 }
 
@@ -225,8 +317,10 @@ export async function buildAdminTikTokSettingsResponse(
     return adminSupabaseErrorResponse(error, "Unable to load TikTok settings.");
   }
 
+  const settings = normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null).tiktok;
+
   return Response.json({
-    settings: normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null).tiktok,
+    settings: await addTikTokVillaTitles(settings),
     source,
   });
 }
@@ -250,6 +344,29 @@ export async function saveAdminTikTokSettings(
 
   if (errors.length > 0) {
     return Response.json({ errors }, { status: 400 });
+  }
+
+  let validatedVillas: VillaListing[] | undefined;
+
+  if (draft.videos.some((video) => video.houseId)) {
+
+    try {
+      validatedVillas = await fetchHouseListings();
+    } catch {
+      return Response.json(
+        { errors: ["ไม่สามารถตรวจสอบบ้านพักได้ในขณะนี้"] },
+        { status: 500 },
+      );
+    }
+
+    const houseIdErrors = validateTikTokVideoHouseIds(
+      draft.videos,
+      validatedVillas,
+    );
+
+    if (houseIdErrors.length > 0) {
+      return Response.json({ errors: houseIdErrors }, { status: 400 });
+    }
   }
 
   const payload = toTikTokUpdatePayload(draft);
@@ -277,8 +394,10 @@ export async function saveAdminTikTokSettings(
 
   await revalidateSiteSettingsCache();
 
+  const settings = normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null).tiktok;
+
   return Response.json({
-    settings: normalizeSiteSettingsRow((data as SiteSettingsRow | null) ?? null).tiktok,
+    settings: await addTikTokVillaTitles(settings, validatedVillas),
     source: data ? "config" : "none",
   });
 }

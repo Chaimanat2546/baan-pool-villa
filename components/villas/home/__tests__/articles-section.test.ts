@@ -43,7 +43,12 @@ vi.mock("@/components/ui/near-viewport-activation", () => ({
 
 function makeGuide(index: number): GuidePost {
   return {
-    contentBlocks: [],
+    contentBlocks: [
+      {
+        content: [{ text: `Guide ${index} article content`, type: "text" }],
+        type: "paragraph",
+      },
+    ],
     coverImage: {
       alt: `Guide ${index} cover`,
       path: `guide-${index}.jpg`,
@@ -81,6 +86,7 @@ describe("selectHomeGuideSummaries", () => {
     expect(summaries[0]?.coverImageUrl).toBe(
       "/api/guides/images/guide-0/cover?v=source-fidelity-1",
     );
+    expect(summaries[0]?.contentPreview).toBe("Guide 0 article content");
     expect(JSON.stringify(summaries)).not.toContain("contentBlocks");
   });
 });
@@ -96,7 +102,7 @@ describe("ArticlesSection", () => {
     expect(markup).toContain('data-quality="80"');
   });
 
-  it("reserves article card body space so the CTA stays aligned", () => {
+  it("renders article content preview without reserved whitespace", () => {
     const guides = selectHomeGuideSummaries([makeGuide(0)]);
     const markup = renderToStaticMarkup(
       createElement(ArticlesSection, { guides }),
@@ -106,9 +112,10 @@ describe("ArticlesSection", () => {
 
     expect(guideAnchor?.[0]).toContain("flex h-full");
     expect(guideAnchor?.[0]).toContain("flex-col");
-    expect(markup).toContain("flex flex-1 flex-col p-6");
-    expect(markup).toContain("line-clamp-2 min-h-14");
-    expect(markup).toContain("line-clamp-3 min-h-18");
-    expect(markup).toContain("mt-auto inline-flex");
+    expect(markup).toContain("Guide 0 article content");
+    expect(markup).not.toContain("Guide 0 excerpt");
+    expect(markup).toContain("flex flex-col gap-3 p-4");
+    expect(markup).toContain("line-clamp-2 text-xl font-semibold");
+    expect(markup).toContain("line-clamp-3 text-sm");
   });
 });

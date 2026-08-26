@@ -9,6 +9,7 @@ export const HOME_GUIDE_LIMIT = 7;
 export interface PublicGuideSummary {
   coverImageAlt: string | null;
   coverImageUrl: string | null;
+  contentPreview: string;
   hasCoverImage: boolean;
   excerpt: string;
   id: string;
@@ -24,6 +25,7 @@ export function toPublicGuideSummary(guide: GuidePost): PublicGuideSummary {
   return {
     coverImageAlt: guide.coverImage?.alt ?? null,
     coverImageUrl: coverImageUrl ? buildGuideCoverImageProxyPath(guide.slug) : null,
+    contentPreview: getGuideContentPreview(guide.contentBlocks),
     hasCoverImage: Boolean(coverImageUrl),
     excerpt: guide.excerpt,
     id: guide.id,
@@ -32,6 +34,34 @@ export function toPublicGuideSummary(guide: GuidePost): PublicGuideSummary {
     tags: [...guide.tags],
     title: guide.title,
   };
+}
+
+export function getGuideContentPreview(contentBlocks: unknown[]): string {
+  const text = contentBlocks
+    .flatMap((block) => {
+      if (!block || typeof block !== "object" || Array.isArray(block)) {
+        return [];
+      }
+
+      const content = (block as { content?: unknown }).content;
+
+      if (!Array.isArray(content)) {
+        return [];
+      }
+
+      return content.flatMap((item) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return [];
+        }
+
+        const value = (item as { text?: unknown }).text;
+        return typeof value === "string" ? [value.trim()] : [];
+      });
+    })
+    .filter((value) => value.length > 0)
+    .join(" ");
+
+  return text.replace(/\s+/g, " ").trim();
 }
 
 export function toPublicGuideSummaries(

@@ -21,6 +21,8 @@ import { buildHomeJsonLd, buildSiteSettingsPageMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
+import { resolveTikTokVillaLinks } from "@/lib/tiktok/villa-links";
+import { fetchHouseListings } from "@/lib/villas/server";
 import {
   getInitialHomePageData,
   type InitialHomePageData,
@@ -144,14 +146,42 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function Page() {
   const initialHomeDataPromise = getInitialHomePageData();
-  const [settingsResult, contactSettingsResult, siteWebStyles] = await Promise.all([
-    getSiteSettings(),
+  const settingsPromise = getSiteSettings();
+  const resolvedTikTokVideosPromise = settingsPromise.then(async ({ settings }) => {
+    if (!settings.tiktok.videos.some((video) => video.houseId !== null)) {
+      return resolveTikTokVillaLinks(settings.tiktok.videos, []);
+    }
+
+    try {
+      return resolveTikTokVillaLinks(
+        settings.tiktok.videos,
+        await fetchHouseListings(),
+      );
+    } catch (error) {
+      console.error("Unable to resolve TikTok villa links", error);
+      return resolveTikTokVillaLinks(settings.tiktok.videos, []);
+    }
+  });
+  const [
+    settingsResult,
+    contactSettingsResult,
+    siteWebStyles,
+    resolvedTikTokVideos,
+  ] = await Promise.all([
+    settingsPromise,
     getSiteContactSettings(),
     getSiteWebStyles(),
+    resolvedTikTokVideosPromise,
   ]);
   const { settings } = settingsResult;
   const homePageSettings = toHomePageSettings(
-    settings,
+    {
+      ...settings,
+      tiktok: {
+        ...settings.tiktok,
+        videos: resolvedTikTokVideos,
+      },
+    },
     contactSettingsResult.settings,
   );
 

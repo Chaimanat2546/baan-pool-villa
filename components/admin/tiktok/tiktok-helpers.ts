@@ -1,8 +1,11 @@
-import type { SiteTikTokSettings } from "@/lib/site-settings/types";
-
 import { translateAdminErrorMessage } from "@/components/admin/admin-error-messages";
 import { extractAdminErrors } from "@/components/admin/admin-api-client";
-import type { AdminTikTokDraft, AdminTikTokResponse } from "./types";
+import type {
+  AdminTikTokDraft,
+  AdminTikTokResponse,
+  AdminTikTokSettings,
+  AdminTikTokVideoDraft,
+} from "./types";
 
 const ADMIN_ACCESS_ERROR_PREFIX = "Unable to verify admin access:";
 const AUTH_FAILURE_MESSAGES = new Set([
@@ -17,8 +20,7 @@ interface WarningPayloadParts {
 
 export const EMPTY_TIKTOK_DRAFT: AdminTikTokDraft = {
   accountUrl: "",
-  videoUrls: [],
-  videoRowIds: [],
+  videos: [],
 };
 
 export const HOMEPAGE_TIKTOK_PREVIEW_LIMIT = 15;
@@ -27,21 +29,26 @@ export const HOMEPAGE_TIKTOK_NOTICE =
   "หน้าหลักจะแสดงเฉพาะ 15 วิดีโอแรกจากที่บันทึกเท่านั้น";
 
 export function mapTikTokSettingsToDraft(
-  settings: SiteTikTokSettings,
+  settings: AdminTikTokSettings,
 ): AdminTikTokDraft {
   return {
     accountUrl: settings.accountUrl,
-    videoUrls: settings.videos.map((video) => video.url),
-    videoRowIds: settings.videos.map((video, index) =>
-      createStableTikTokRowId(video.url, index),
-    ),
+    videos: settings.videos.map((video, index) => ({
+      houseId: video.houseId,
+      id: createStableTikTokRowId(video.url, index),
+      url: video.url,
+      villaTitle: video.villaTitle ?? null,
+    })),
   };
 }
 
 export function makeTikTokSnapshot(draft: AdminTikTokDraft): string {
   return JSON.stringify({
     accountUrl: draft.accountUrl,
-    videoUrls: draft.videoUrls,
+    videos: draft.videos.map((video) => ({
+      houseId: video.houseId,
+      url: video.url,
+    })),
   });
 }
 
@@ -49,7 +56,15 @@ export function buildTikTokFormData(draft: AdminTikTokDraft): FormData {
   const formData = new FormData();
 
   formData.set("tiktokAccountUrl", draft.accountUrl);
-  formData.set("tiktokVideoUrls", JSON.stringify(draft.videoUrls));
+  formData.set(
+    "tiktokVideoUrls",
+    JSON.stringify(
+      draft.videos.map((video) => ({
+        houseId: video.houseId,
+        url: video.url,
+      })),
+    ),
+  );
 
   return formData;
 }
@@ -133,23 +148,24 @@ export function extractTikTokWarnings(payload: unknown): string[] {
 }
 
 export function makePreviewVideoRows(
-  videoUrls: string[],
-  videoRowIds: string[] = [],
-): Array<{ id: string; url: string }> {
-  if (videoUrls.length === 0) {
-    return [{ id: "tiktok-empty-row", url: "" }];
+  videos: AdminTikTokVideoDraft[],
+): AdminTikTokVideoDraft[] {
+  if (videos.length === 0) {
+    return [
+      { houseId: null, id: "tiktok-empty-row", url: "", villaTitle: null },
+    ];
   }
 
-  return videoUrls.map((url, index) => ({
-    id: videoRowIds[index] || `tiktok-video-row-${index}`,
-    url,
-  }));
+  return videos;
 }
 
-export function getVisibleTikTokVideoCount(videoUrls: string[]): number {
+export function getVisibleTikTokVideoCount(
+  videos: Array<Pick<AdminTikTokVideoDraft, "url"> | string>,
+): number {
   return Math.min(
     HOMEPAGE_TIKTOK_PREVIEW_LIMIT,
-    videoUrls.filter((url) => url.trim().length > 0).length,
+    videos.filter((video) => (typeof video === "string" ? video : video.url).trim().length > 0)
+      .length,
   );
 }
 

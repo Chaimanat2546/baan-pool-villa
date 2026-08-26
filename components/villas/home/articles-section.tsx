@@ -86,14 +86,14 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                   ))}
                 </div>
               </div>
-              <div className="flex flex-1 flex-col p-6">
-                <h2 className="line-clamp-2 min-h-14 text-xl font-semibold leading-7 text-[var(--site-text)]">
+              <div className="flex flex-col gap-3 p-4">
+                <h2 className="line-clamp-2 text-xl font-semibold leading-7 text-[var(--site-text)]">
                   {guide.title}
                 </h2>
-                <p className="mt-3 line-clamp-3 min-h-18 text-sm leading-6 text-[var(--site-muted)]">
-                  {guide.excerpt}
+                <p className="line-clamp-3 text-sm leading-6 text-[var(--site-muted)]">
+                  {guide.contentPreview}
                 </p>
-                <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-semibold text-[var(--site-primary)]">
+                <span className="inline-flex items-center gap-2 pt-1 text-sm font-semibold text-[var(--site-primary)]">
                   อ่านบทความ <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </span>
               </div>

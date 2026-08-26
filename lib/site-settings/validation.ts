@@ -31,6 +31,7 @@ const SEO_KEYWORD_MIN_LENGTH = 2;
 const SEO_KEYWORD_MAX_LENGTH = 60;
 const TIKTOK_HOSTS = new Set(["tiktok.com", "www.tiktok.com", "m.tiktok.com"]);
 const TIKTOK_VIDEO_ID_PATTERN = /^\d{8,30}$/;
+const POSITIVE_HOUSE_ID_PATTERN = /^[1-9]\d*$/;
 const TIKTOK_PROFILE_PATH_PATTERN = /^\/@[^/]+\/?$/;
 const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
 const TIKTOK_PLAYER_VIDEO_PATH_PATTERN = /^\/player\/v1\/(\d{8,30})\/?$/;
@@ -791,9 +792,15 @@ function normalizeTikTokVideosFromRow(
   }
 
   const videos = value
-    .filter((item): item is string => typeof item === "string")
-    .map((url) => url.trim())
-    .map((url) => {
+    .map((item) => {
+      const url =
+        typeof item === "string"
+          ? item.trim()
+          : isTikTokVideoSettingsRecord(item)
+            ? typeof item.url === "string"
+              ? item.url.trim()
+              : ""
+            : "";
       const videoId = parseTikTokVideoId(url);
 
       if (videoId === null) {
@@ -803,11 +810,33 @@ function normalizeTikTokVideosFromRow(
       return {
         url,
         videoId,
+        houseId:
+          isTikTokVideoSettingsRecord(item)
+            ? normalizeTikTokHouseId(item.houseId)
+            : null,
       };
     })
-    .filter((video): video is SiteTikTokVideoSettings => video !== null);
+    .filter((video): video is NonNullable<typeof video> => video !== null);
 
   return videos;
+}
+
+function isTikTokVideoSettingsRecord(
+  value: unknown,
+): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeTikTokHouseId(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalizedValue = value.trim();
+
+  return POSITIVE_HOUSE_ID_PATTERN.test(normalizedValue)
+    ? normalizedValue
+    : null;
 }
 
 function normalizeTikTokAccountUrl(value: string | null | undefined): string {
