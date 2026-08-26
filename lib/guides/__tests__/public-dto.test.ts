@@ -7,7 +7,12 @@ import {
 import type { GuidePost } from "../types";
 
 const guide: GuidePost = {
-  contentBlocks: [],
+  contentBlocks: [
+    {
+      content: [{ text: "เนื้อหาจริงจากบทความ", type: "text" }],
+      type: "paragraph",
+    },
+  ],
   coverImage: null,
   createdAt: "2026-06-01T00:00:00.000Z",
   excerpt: "Guide excerpt",
@@ -29,6 +34,26 @@ describe("public guide DTOs", () => {
     summary.tags.push("changed");
 
     expect(guide.tags).toEqual(["pattaya"]);
+  });
+
+  it("derives the homepage preview from readable article content instead of the excerpt", () => {
+    const summary = toPublicGuideSummary({
+      ...guide,
+      contentBlocks: [
+        { props: { url: "https://assets.example/image.jpg" }, type: "image" },
+        {
+          content: [
+            { text: "เนื้อหาแรก ", type: "text" },
+            { text: "จากบทความ", type: "text" },
+          ],
+          type: "paragraph",
+        },
+      ],
+      excerpt: "คำโปรยเดิมที่ไม่ควรแสดงบนการ์ด",
+    });
+
+    expect(summary.contentPreview).toBe("เนื้อหาแรก จากบทความ");
+    expect(summary.contentPreview).not.toContain("คำโปรยเดิม");
   });
 
   it("uses the guide cover proxy instead of exposing the asset URL", () => {

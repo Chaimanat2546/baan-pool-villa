@@ -23,6 +23,7 @@ import { CustomerReviewSection } from "../customer-review-section";
 const guide = {
   coverImageAlt: "ภาพหน้าปกคู่มือ",
   coverImageUrl: "https://example.com/guide.jpg",
+  contentPreview: "เนื้อหาคู่มือ",
   excerpt: "รายละเอียดคู่มือ",
   hasCoverImage: true,
   id: "guide-1",

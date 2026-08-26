@@ -39,6 +39,7 @@ const payload = {
     {
       coverImageAlt: "Deferred guide cover",
       coverImageUrl: "/api/guides/images/deferred-guide/cover",
+      contentPreview: "Deferred guide content",
       excerpt: "Deferred guide excerpt",
       hasCoverImage: true,
       id: "guide-1",
