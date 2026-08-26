@@ -100,7 +100,7 @@ describe("guide detail request budget", () => {
       />,
     );
 
-    expect(markup).toContain('data-src="/api/guides/images/guide-1/cover"');
+    expect(markup).toContain('data-src="/api/guides/images/guide-1/cover?v=source-fidelity-1"');
     expect(markup).toContain('data-loading="eager"');
     expect(markup).toContain("/api/guides/images");
   });

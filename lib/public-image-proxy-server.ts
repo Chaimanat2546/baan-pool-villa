@@ -240,6 +240,7 @@ export async function buildAllowedPublicImageProxyResponse(
 export async function buildResolvedPublicImageProxyResponse(
   request: Request,
   sourceUrl: string | null,
+  options?: { preserveSourceFidelity?: boolean },
 ) {
   const cancelledResponse = cancelledPublicImageProxyResponse(request);
 
@@ -261,7 +262,7 @@ export async function buildResolvedPublicImageProxyResponse(
 
   const imageResponse = await fetchPublicImageProxyResponse(
     targetUrl,
-    transformRequest.params,
+    options?.preserveSourceFidelity ? {} : transformRequest.params,
     request.signal,
   );
 

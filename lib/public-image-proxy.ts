@@ -339,12 +339,15 @@ export function buildGuideCoverImageProxyPath(
 ) {
   const normalizedSlug = normalizePathSegment(slug);
 
-  return normalizedSlug
-    ? buildPublicImageProxyPath(
-        `/api/guides/images/${normalizedSlug}/cover`,
-        options,
-      )
-    : null;
+  if (!normalizedSlug) {
+    return null;
+  }
+
+  const params = new URLSearchParams();
+  appendPublicImageTransformParams(params, options);
+  params.set("v", "source-fidelity-1");
+
+  return `/api/guides/images/${normalizedSlug}/cover?${params.toString()}`;
 }
 
 export function buildGuideContentImageProxyPath(

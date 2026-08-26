@@ -358,7 +358,7 @@ describe("getYouTubeEmbedUrl", () => {
       />,
     );
 
-    expect(markup).toContain('data-src="/api/guides/images/guide/cover"');
+    expect(markup).toContain('data-src="/api/guides/images/guide/cover?v=source-fidelity-1"');
     expect(markup).toContain('data-src="/api/guides/images/guide/content/0"');
     expect(markup).toContain('data-quality="80"');
     expect(markup).toContain('data-sizes="(max-width: 768px) 100vw, 1080px"');

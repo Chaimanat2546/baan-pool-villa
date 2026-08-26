@@ -21,6 +21,7 @@ export async function GET(
     return await buildResolvedPublicImageProxyResponse(
       request,
       guide?.coverImage?.url ?? null,
+      { preserveSourceFidelity: true },
     );
   } catch (error) {
     return publicApiErrorResponse("Unable to load image", error);

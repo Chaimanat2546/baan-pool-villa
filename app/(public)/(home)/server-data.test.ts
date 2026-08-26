@@ -342,7 +342,7 @@ describe("deferred homepage server data", () => {
     );
     expect(payload.guides).toEqual([
       expect.objectContaining({
-        coverImageUrl: "/api/guides/images/guide-one/cover",
+        coverImageUrl: "/api/guides/images/guide-one/cover?v=source-fidelity-1",
         id: "guide-1",
         slug: "guide-one",
         title: "Guide one",

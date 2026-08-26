@@ -207,7 +207,7 @@ describe("GET /api/guides/images/proxy", () => {
 });
 
 describe("GET /api/guides/images/[slug]", () => {
-  it("proxies a guide cover by slug without requiring the source URL in the request", async () => {
+  it("serves a guide cover by slug at its original fidelity", async () => {
     getPublishedGuidesMock.mockResolvedValue([guide]);
     const fetchMock = vi.fn().mockResolvedValue(
       new Response("guide bytes", {
@@ -230,15 +230,9 @@ describe("GET /api/guides/images/[slug]", () => {
       "https://assets.example.com/guide-cover.jpg",
       expect.objectContaining({
         cache: "no-store",
-        cf: {
-          image: {
-            fit: "scale-down",
-            quality: 60,
-            width: 640,
-          },
-        },
       }),
     );
+    expect(fetchMock.mock.calls[0]?.[1]).not.toHaveProperty("cf");
   });
 
   it("proxies a guide content image by slug and block index", async () => {
