@@ -6,6 +6,7 @@ import type { GuidePost } from "@/lib/guides/types";
 import type { VillaListing } from "@/lib/villas/types";
 
 import { ArticlesSection } from "../articles-section";
+import { TikTokSection } from "../tiktok-section";
 import { VillaRail } from "../villa-rail";
 
 vi.mock("next/image", () => ({
@@ -116,5 +117,25 @@ describe("homepage request budget", () => {
     expect(markup).not.toContain('loading="eager"');
     expect(markup).toContain('href="/guides/guide-1"');
     expect(markup).not.toContain('data-prefetch="false" href="/guides/guide-1"');
+  });
+
+  it("renders resolved TikTok villa links without a client villa catalog endpoint", () => {
+    const markup = renderToStaticMarkup(
+      <TikTokSection
+        tiktok={{
+          accountUrl: "",
+          videos: [
+            {
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+              videoId: "7370000000000000001",
+              villa: { id: "501", title: "บ้านพูลวิลล่าชื่อปัจจุบัน" },
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(markup).toContain('href="/villas/501"');
+    expect(markup).not.toContain("/api/houses");
   });
 });

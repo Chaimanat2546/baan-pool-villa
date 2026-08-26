@@ -6,13 +6,15 @@ import { useMemo, useState } from "react";
 
 import { ScrollRail } from "@/components/ui/scroll-rail";
 import { useLockedBodyScroll } from "@/components/villas/detail/use-locked-body-scroll";
-import { selectHomeTikTokVideos } from "./client-payload";
-import type { SiteTikTokSettings } from "@/lib/site-settings/types";
+import {
+  selectHomeTikTokVideos,
+  type HomeTikTokSettings,
+} from "./client-payload";
 import type { TikTokPreviewSettings } from "@/lib/tiktok/types";
 import { TikTokLazyCard, TikTokPlayerFrame } from "./tiktok-lazy-card";
 
 interface TikTokSectionProps {
-  tiktok: SiteTikTokSettings | TikTokPreviewSettings;
+  tiktok: HomeTikTokSettings | TikTokPreviewSettings;
 }
 
 function TikTokPlayerDialog({

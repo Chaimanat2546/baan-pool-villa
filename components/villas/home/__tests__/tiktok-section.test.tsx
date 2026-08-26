@@ -7,6 +7,8 @@ import {
   click,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
+import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
+import { DEFAULT_SITE_SETTINGS } from "@/lib/site-settings/defaults";
 
 vi.mock("next/image", () => ({
   default: ({ alt, src, ...props }: { alt: string; src: string }) => (
@@ -19,6 +21,7 @@ vi.mock("../tiktok-client-oembed", () => ({
 }));
 
 import { TikTokSection } from "../tiktok-section";
+import { toHomePageSettings } from "../client-payload";
 import { ImageActivationContext } from "@/components/ui/near-viewport-activation";
 
 function mockViewport(isDesktop: boolean) {
@@ -52,10 +55,12 @@ describe("TikTokSection", () => {
             {
               url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
               videoId: "7370000000000000001",
+              houseId: null,
             },
             {
               url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000002",
               videoId: "7370000000000000002",
+              houseId: null,
             },
           ],
         }}
@@ -90,6 +95,7 @@ describe("TikTokSection", () => {
       return {
         url: `https://www.tiktok.com/@baanpoolvilla/video/${videoId}`,
         videoId,
+        houseId: null,
       };
     });
     const page = await mountAdminPage(
@@ -113,6 +119,7 @@ describe("TikTokSection", () => {
             {
               url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
               videoId: "7370000000000000001",
+              houseId: null,
             },
           ],
         }}
@@ -158,6 +165,7 @@ describe("TikTokSection", () => {
             {
               url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
               videoId: "7370000000000000001",
+              houseId: null,
             },
           ],
         }}
@@ -192,6 +200,7 @@ describe("TikTokSection", () => {
       title: "พูลวิลล่าวิวทะเล",
       url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
       videoId: "7370000000000000001",
+      houseId: null,
     };
     const page = await mountAdminPage(
       <ImageActivationContext value={false}>
@@ -221,5 +230,96 @@ describe("TikTokSection", () => {
     expect(activatedPage.container.querySelectorAll("iframe")).toHaveLength(1);
 
     await activatedPage.unmount();
+  });
+
+  it("renders a resolved villa link without starting TikTok playback", async () => {
+    const page = await mountAdminPage(
+      <TikTokSection
+        tiktok={{
+          accountUrl: "",
+          videos: [
+            {
+              houseId: "501",
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+              videoId: "7370000000000000001",
+              villa: { id: "501", title: "บ้านพูลวิลล่าชื่อปัจจุบัน" },
+            },
+          ],
+        }}
+      />,
+    );
+
+    const villaLink = page.container.querySelector(
+      'a[href="/villas/501"]',
+    ) as HTMLAnchorElement | null;
+
+    expect(villaLink?.textContent).toContain("ดูรายละเอียดบ้านพัก");
+    expect(villaLink?.textContent).toContain("บ้านพูลวิลล่าชื่อปัจจุบัน");
+    expect(
+      villaLink?.querySelector("[data-tiktok-villa-mobile-label]")?.textContent,
+    ).toBe("ดูบ้านพัก");
+
+    villaLink?.addEventListener("click", (event) => event.preventDefault(), {
+      once: true,
+    });
+    villaLink?.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+
+    expect(page.container.querySelectorAll("iframe")).toHaveLength(0);
+    expect(page.container.querySelector("[data-tiktok-poster]")).not.toBeNull();
+
+    await page.unmount();
+  });
+
+  it("keeps only the resolved villa projection in the homepage payload", () => {
+    const payload = toHomePageSettings(
+      {
+        ...DEFAULT_SITE_SETTINGS,
+        tiktok: {
+          accountUrl: "",
+          videos: [
+            {
+              houseId: "501",
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+              videoId: "7370000000000000001",
+              villa: { id: "501", title: "บ้านพูลวิลล่าชื่อปัจจุบัน" },
+            },
+          ],
+        },
+      },
+      DEFAULT_SITE_CONTACT_SETTINGS,
+    );
+
+    expect(payload.tiktok.videos).toEqual([
+      {
+        url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+        videoId: "7370000000000000001",
+        villa: { id: "501", title: "บ้านพูลวิลล่าชื่อปัจจุบัน" },
+      },
+    ]);
+    expect(payload.tiktok.videos[0]).not.toHaveProperty("houseId");
+  });
+
+  it("omits the villa link when resolution returns null", async () => {
+    const page = await mountAdminPage(
+      <TikTokSection
+        tiktok={{
+          accountUrl: "",
+          videos: [
+            {
+              houseId: "999",
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+              videoId: "7370000000000000001",
+              villa: null,
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(page.container.querySelector('a[href^="/villas/"]')).toBeNull();
+
+    await page.unmount();
   });
 });

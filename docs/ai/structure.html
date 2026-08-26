@@ -153,7 +153,7 @@
               <tr>
                 <td><code>app/(public)/(home)/page.tsx</code></td>
                 <td><code>/</code></td>
-                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while bounded homepage villa listing, active <code>listings.location_zone</code> search zones from the <code>devillegroups</code> RPC, home-section layout/config, site-settings, site-contact-settings, and site-web-style reads come from tagged data caches. The initial server loader selects the first enabled renderable item in the saved mixed layout: a rail transfers up to twelve public card DTOs (including preview thumbnails), while articles or customer reviews load only their own data and static fixed sections use resolved settings. Later layout entries remain in the cached <code>/api/home-deferred</code> response activated at the existing 200px boundary; the document layout stays authoritative for their mount-time ordering and the initial entry is not rendered twice. <code>ProgressiveImage</code> owns a caller-selected 64px, quality-60 preview followed by the full image; gallery-card main covers and thumbnail strips obey their section boundary, and after activation the existing 240px card observer still owns the exact <code>view=card</code> manifest fetch. The route passes the resolved <code>house_card</code> variant through the streamed server tree as an explicit villa-card prop so server HTML and client hydration use the same structural card style.</td>
+                <td><code>components/villas/home/page</code>, <code>lib/seo.ts</code>, <code>lib/json-ld.ts</code>; rendered output is on demand while bounded homepage villa listing, active <code>listings.location_zone</code> search zones from the <code>devillegroups</code> RPC, home-section layout/config, site-settings, site-contact-settings, and site-web-style reads come from tagged data caches. The initial server loader selects the first enabled renderable item in the saved mixed layout: a rail transfers up to twelve public card DTOs (including preview thumbnails), while articles or customer reviews load only their own data and static fixed sections use resolved settings. Selected TikTok house IDs are resolved server-side against the cached villa catalog into a safe current <code>{ id, title }</code> link projection; missing or failed catalog entries leave their video visible without a link. Later layout entries remain in the cached <code>/api/home-deferred</code> response activated at the existing 200px boundary; the document layout stays authoritative for their mount-time ordering and the initial entry is not rendered twice. <code>ProgressiveImage</code> owns a caller-selected 64px, quality-60 preview followed by the full image; gallery-card main covers and thumbnail strips obey their section boundary, and after activation the existing 240px card observer still owns the exact <code>view=card</code> manifest fetch. The route passes the resolved <code>house_card</code> variant through the streamed server tree as an explicit villa-card prop so server HTML and client hydration use the same structural card style.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/(home)/loading.tsx</code></td>
@@ -552,7 +552,12 @@
               <tr>
                 <td><code>app/(admin)/api/admin/tiktok/route.ts</code></td>
                 <td><code>/api/admin/tiktok</code></td>
-                <td>Admin auth and delegation for TikTok settings reads and saves. Multipart parsing, TikTok URL validation, schema fallback loading, site-settings update/insert persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-tiktok-route.ts</code>.</td>
+                <td>Admin auth and delegation for TikTok settings reads and saves. Multipart parsing, TikTok URL and optional selected-house validation, schema fallback loading, site-settings update/insert persistence, response shaping, and public settings cache revalidation live in <code>lib/site-settings/admin-tiktok-route.ts</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/api/admin/tiktok/villas/route.ts</code></td>
+                <td><code>/api/admin/tiktok/villas?q=:query</code></td>
+                <td>Authenticated bounded (maximum ten) current-catalog title-or-ID search for the TikTok editor. The route rejects oversized queries before its shared cached villa-catalog read and returns only safe <code>{ id, title }</code> options; it is not public.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/marketing-tags/route.ts</code></td>
@@ -602,7 +607,7 @@
           <tbody>
             <tr>
               <td><code>components/villas/home</code></td>
-              <td>Home page sections, CMS-driven home assembly, hero/articles/activity/destination sections, TikTok block renderer (settings-driven, first-15 thumbnail preview with click-to-load player), customer proof/review section with three DB-selected layouts and lightbox, villa rails, home skeletons, minimal homepage client payloads, and a public-layout scroll tracker that keeps the last homepage position for same-tab returns.</td>
+              <td>Home page sections, CMS-driven home assembly, hero/articles/activity/destination sections, TikTok block renderer (settings-driven, first-15 thumbnail preview with click-to-load player and optional current-catalog villa link), customer proof/review section with three DB-selected layouts and lightbox, villa rails, home skeletons, minimal homepage client payloads, and a public-layout scroll tracker that keeps the last homepage position for same-tab returns.</td>
               <td>Use <code>VillaRail</code>, home shared helpers, <code>components/ui/scroll-rail</code>, and section header patterns before creating new section UI. Each saved rail can opt into <code>auto_scroll_enabled</code>; <code>VillaRail</code> forwards the resolved value to the shared Embla rail for drag, side controls, and official continuous auto-scroll. The homepage server sizes its villa listing window from home-section config before resolving sections, and client islands receive only the fields they render.</td>
             </tr>
             <tr>
@@ -612,8 +617,8 @@
             </tr>
             <tr>
               <td><code>components/admin/tiktok</code></td>
-              <td>TikTok account/video settings manager with add/delete/reorder controls, URL-only input handling, and homepage preview/status messaging for first-15 video usage.</td>
-              <td>Render edits as draft-local previews until save; keep settings contract aligned to <code>lib/site-settings</code>.</td>
+              <td>TikTok account/video settings manager with add/delete/reorder controls, per-video optional villa picker, client-side cached oEmbed title display, and homepage preview/status messaging for first-15 video usage.</td>
+              <td>Render edits as draft-local previews until save; each card uses the existing client oEmbed cache to show a fetched TikTok title with its <code>video/...</code> label as fallback, without persisting titles. The picker sends only an optional house ID through the authenticated bounded <code>/api/admin/tiktok/villas</code> search route, and the settings contract remains aligned to <code>lib/site-settings</code>.</td>
             </tr>
             <tr>
               <td><code>components/admin/marketing-tags</code></td>
@@ -697,7 +702,7 @@
             </tr>
             <tr>
               <td><code>lib/site-settings</code></td>
-              <td>Non-SEO site identity, theme colors, header/footer link hover colors, shared and separate bank highlight colors, logo background mode, favicon/logo/hero assets, TikTok, marketing tag, and detail-layout compatibility settings. Contact/bank values, SEO persistence, and Web Styles do not belong here.</td>
+              <td>Non-SEO site identity, theme colors, header/footer link hover colors, shared and separate bank highlight colors, logo background mode, favicon/logo/hero assets, TikTok, marketing tag, and detail-layout compatibility settings. TikTok video storage accepts legacy URL strings while normalizing and persisting ordered <code>{ url, houseId? }</code> JSONB entries; titles are never stored. Contact/bank values, SEO persistence, and Web Styles do not belong here.</td>
               <td><code>lib/site-settings/__tests__</code></td>
             </tr>
             <tr>
@@ -717,8 +722,8 @@
             </tr>
             <tr>
               <td><code>lib/tiktok</code></td>
-              <td>TikTok public embed metadata helpers, including server-side oEmbed thumbnail resolution for homepage previews.</td>
-              <td><code>lib/tiktok/__tests__</code></td>
+              <td>TikTok public embed metadata helpers, including server-side oEmbed thumbnail resolution for homepage previews, plus bounded villa option search, saved-ID validation, and server-side resolution of current public villa-link projections.</td>
+              <td><code>lib/tiktok/__tests__</code>, including <code>villa-links.test.ts</code></td>
             </tr>
             <tr>
               <td><code>lib/detail-layout</code></td>
@@ -861,8 +866,8 @@
               </tr>
               <tr>
                 <td>Site and SEO settings</td>
-                <td>Supabase <code>site_settings</code> for non-SEO settings plus <code>site_seo_settings</code> with exactly one row for each <code>global</code>, <code>search</code>, <code>guides</code>, and <code>villa_detail</code> page type.</td>
-                <td><code>lib/site-settings/server.ts</code> composes non-SEO settings with SEO owned by <code>lib/site-seo-settings</code>; the sources use independent <code>site-settings</code> and <code>site-seo-settings</code> cache tags. Public loads resolve both cached sources in parallel and replace only normalized <code>seo</code>/<code>pageSeo</code> when the SEO projection exists. During the expand phase, the SEO loader may fall back once to the legacy projection; after the contract migration removes the columns, the canonical table is the only database source. Load results include <code>source</code> and <code>degraded</code>; SEO share image URLs are populated from Supabase Storage uploads.</td>
+                <td>Supabase <code>site_settings</code> for non-SEO settings, including ordered <code>tiktok_video_urls</code> entries stored as <code>{ url, houseId? }</code> JSONB objects, plus <code>site_seo_settings</code> with exactly one row for each <code>global</code>, <code>search</code>, <code>guides</code>, and <code>villa_detail</code> page type.</td>
+                <td><code>lib/site-settings/server.ts</code> composes non-SEO settings with SEO owned by <code>lib/site-seo-settings</code>; the sources use independent <code>site-settings</code> and <code>site-seo-settings</code> cache tags. Public loads resolve both cached sources in parallel and replace only normalized <code>seo</code>/<code>pageSeo</code> when the SEO projection exists. During the expand phase, the SEO loader may fall back once to the legacy projection; after the contract migration removes the columns, the canonical table is the only database source. Legacy TikTok strings stay readable during rollout, but persisted TikTok entries normalize to URL plus optional positive canonical house ID; current house names resolve only from the cached catalog at public render time. Load results include <code>source</code> and <code>degraded</code>; SEO share image URLs are populated from Supabase Storage uploads.</td>
                 <td>Public/admin layouts, metadata, theme provider, and non-contact settings editors. The compatible <code>/api/admin/site-settings/seo</code> endpoint remains unchanged for clients but reads and upserts the four canonical <code>site_seo_settings</code> rows; a save revalidates the dedicated <code>site-seo-settings</code> data tag and bumps the existing <code>site-settings</code> HTML edge-cache version group.</td>
               </tr>
               <tr>
@@ -1088,8 +1093,8 @@
             </tr>
             <tr>
               <td>Site settings, TikTok settings, Marketing Tags, or villa card style</td>
-              <td><code>npm.cmd test -- components/admin/settings lib/site-settings 'app/(admin)/api/admin/site-settings/[section]/route.test.ts'</code>; add <code>lib/villas/__tests__/card-image-config-admin.test.ts</code> and <code>components/admin/villa-card-images/__tests__/admin-villa-card-images-page.test.tsx</code> when card style changes. Run <code>lib/tiktok</code> and <code>lib/__tests__/marketing-data-layer.test.ts</code> for their dedicated owners.</td>
-              <td>Add TikTok-route assertions (including /api/admin/site-settings not overwriting TikTok columns, /api/admin/tiktok normalizing URL-only payloads), Marketing Tags route/layout/DataLayer assertions, oEmbed thumbnail fallback/cache assertions, and homepage first-15/click-to-load expectations; run lint and build before completion.</td>
+              <td><code>npm.cmd test -- components/admin/settings lib/site-settings 'app/(admin)/api/admin/site-settings/[section]/route.test.ts'</code>; add <code>lib/villas/__tests__/card-image-config-admin.test.ts</code> and <code>components/admin/villa-card-images/__tests__/admin-villa-card-images-page.test.tsx</code> when card style changes. For TikTok villa links, run <code>lib/site-settings/__tests__/validation.test.ts</code>, <code>lib/site-settings/__tests__/tiktok-route.test.ts</code>, <code>lib/tiktok/__tests__/villa-links.test.ts</code>, <code>app/(admin)/api/admin/tiktok/villas/route.test.ts</code>, <code>components/admin/tiktok</code>, <code>components/villas/home/__tests__/tiktok-section.test.tsx</code>, <code>components/villas/home/__tests__/request-budget.test.tsx</code>, and <code>app/(public)/(home)/page.test.tsx</code>. Run <code>lib/__tests__/marketing-data-layer.test.ts</code> for its dedicated owner.</td>
+              <td>Add TikTok-route assertions (including /api/admin/site-settings not overwriting TikTok columns, /api/admin/tiktok normalizing URL-only payloads, invalid/stale house-ID behavior, and bounded authenticated villa search), Marketing Tags route/layout/DataLayer assertions, oEmbed thumbnail fallback/cache assertions, and homepage first-15/click-to-load/current-villa-link expectations; run lint and build before completion.</td>
             </tr>
             <tr>
               <td>Detail layout config, renderer, or builder</td>

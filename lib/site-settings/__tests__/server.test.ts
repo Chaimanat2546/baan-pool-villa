@@ -164,10 +164,12 @@ describe("getSiteSettings", () => {
             {
               url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
               videoId: "7370000000000000001",
+              houseId: null,
             },
             {
               url: "https://www.tiktok.com/player/v1/7370000000000000002",
               videoId: "7370000000000000002",
+              houseId: null,
             },
           ],
         },

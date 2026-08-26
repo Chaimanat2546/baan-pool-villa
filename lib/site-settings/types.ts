@@ -42,6 +42,7 @@ export interface SitePageSeoSettings {
 export interface SiteTikTokVideoSettings {
   url: string;
   videoId: string;
+  houseId: string | null;
 }
 
 export interface SiteTikTokSettings {

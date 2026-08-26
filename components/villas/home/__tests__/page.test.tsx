@@ -209,6 +209,7 @@ describe("HomePage", () => {
               {
                 url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
                 videoId: "7370000000000000001",
+                houseId: null,
               },
             ],
           },
@@ -281,34 +282,42 @@ describe("HomePage", () => {
           {
             url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
             videoId: "7370000000000000001",
+            houseId: null,
           },
           {
             url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
             videoId: " 7370000000000000001 ",
+            houseId: null,
           },
           {
             url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000002",
             videoId: "7370000000000000002",
+            houseId: null,
           },
           {
             url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000003",
             videoId: "7370000000000000003",
+            houseId: null,
           },
           {
             url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000004",
             videoId: "7370000000000000004",
+            houseId: null,
           },
           {
             url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000005",
             videoId: "7370000000000000005",
+            houseId: null,
           },
           {
             url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000006",
             videoId: "7370000000000000006",
+            houseId: null,
           },
           {
             url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000007",
             videoId: "7370000000000000007",
+            houseId: null,
           },
         ],
         },
@@ -362,14 +371,17 @@ describe("HomePage", () => {
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000001",
                 videoId: "7370000000000000001",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000002",
                 videoId: "7370000000000000002",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000003",
                 videoId: "7370000000000000003",
+                houseId: null,
               },
             ],
           },
@@ -420,6 +432,7 @@ describe("HomePage", () => {
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000100",
                 videoId: "7370000000000000100",
+                houseId: null,
               },
             ],
           },
@@ -457,38 +470,47 @@ describe("HomePage", () => {
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000010",
                 videoId: "7370000000000000010",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000010",
                 videoId: "7370000000000000010",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000011",
                 videoId: "7370000000000000011",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000012",
                 videoId: "7370000000000000012",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000013",
                 videoId: "7370000000000000013",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000014",
                 videoId: "7370000000000000014",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000015",
                 videoId: "7370000000000000015",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000014",
                 videoId: " 7370000000000000014 ",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000016",
                 videoId: "7370000000000000016",
+                houseId: null,
               },
             ],
           },
@@ -530,6 +552,7 @@ describe("HomePage", () => {
       return {
         url: `https://www.tiktok.com/@baanpoolvillas/video/${videoId}`,
         videoId,
+        houseId: null,
       };
     });
     const markup = renderToStaticMarkup(
@@ -569,14 +592,17 @@ describe("HomePage", () => {
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000020",
                 videoId: "7370000000000000020",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000020",
                 videoId: " 7370000000000000020 ",
+                houseId: null,
               },
               {
                 url: "https://www.tiktok.com/@baanpoolvillas/video/7370000000000000021",
                 videoId: "7370000000000000021",
+                houseId: null,
               },
             ],
           },

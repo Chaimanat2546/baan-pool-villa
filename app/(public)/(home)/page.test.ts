@@ -13,10 +13,12 @@ import { getSiteSettings } from "@/lib/site-settings/server";
 import { DEFAULT_SITE_WEB_STYLES } from "@/lib/site-web-styles/defaults";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
 import {
+  fetchHouseListings,
   fetchActiveVillaZones,
   fetchHomeListings,
   withVillaCardGalleryPreviews,
 } from "@/lib/villas/server";
+import { toHomePageSettings } from "@/components/villas/home/client-payload";
 
 const homePageContentMock = vi.hoisted(() => vi.fn(() => null));
 const deferredHomeContentMock = vi.hoisted(() => vi.fn(() => null));
@@ -83,6 +85,7 @@ vi.mock("@/lib/villas/public-dto", () => ({
 
 vi.mock("@/lib/villas/server", () => ({
   fetchActiveVillaZones: vi.fn(),
+  fetchHouseListings: vi.fn(),
   fetchHomeListings: vi.fn(),
   withVillaCardGalleryPreviews: vi.fn(async (villas: unknown[]) => villas),
 }));
@@ -97,7 +100,9 @@ const getSiteContactSettingsMock = vi.mocked(getSiteContactSettings);
 const getSiteSettingsMock = vi.mocked(getSiteSettings);
 const getSiteWebStylesMock = vi.mocked(getSiteWebStyles);
 const fetchActiveVillaZonesMock = vi.mocked(fetchActiveVillaZones);
+const fetchHouseListingsMock = vi.mocked(fetchHouseListings);
 const fetchHomeListingsMock = vi.mocked(fetchHomeListings);
+const toHomePageSettingsMock = vi.mocked(toHomePageSettings);
 const withVillaCardGalleryPreviewsMock = vi.mocked(
   withVillaCardGalleryPreviews,
 );
@@ -120,7 +125,9 @@ describe("HomePageRoute", () => {
     getSiteWebStylesMock.mockResolvedValue(DEFAULT_SITE_WEB_STYLES);
     fetchActiveVillaZonesMock.mockReset();
     fetchActiveVillaZonesMock.mockResolvedValue([]);
+    fetchHouseListingsMock.mockReset();
     fetchHomeListingsMock.mockReset();
+    toHomePageSettingsMock.mockClear();
     withVillaCardGalleryPreviewsMock.mockClear();
   });
 
@@ -422,5 +429,108 @@ describe("HomePageRoute", () => {
     await vi.waitFor(() => {
       expect(getResolvedHomeSectionsMock).toHaveBeenCalledWith([], [], true);
     });
+  });
+
+  it("resolves selected TikTok villas from the cached catalog with their current title", async () => {
+    const currentVilla = {
+      amenities: [],
+      bathrooms: 2,
+      bedrooms: 3,
+      coverImage: "/villa-501.webp",
+      distanceToSea: "500 เมตร",
+      id: "501",
+      people: 8,
+      poolType: "private",
+      price: 9000,
+      title: "บ้านพูลวิลล่าชื่อปัจจุบัน",
+      zone: "jomtien",
+      zoneLabel: "จอมเทียน",
+    };
+    getHomeSectionListingPlanMock.mockResolvedValue({
+      configs: [],
+      houseIds: [],
+      layout: { degraded: false, items: [], source: "config" },
+      listingLimit: 12,
+    });
+    getSiteSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: {
+        ...DEFAULT_SITE_SETTINGS,
+        tiktok: {
+          accountUrl: "",
+          videos: [
+            {
+              houseId: "501",
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+              videoId: "7370000000000000001",
+            },
+          ],
+        },
+      },
+      source: "config",
+    });
+    getSiteContactSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: DEFAULT_SITE_CONTACT_SETTINGS,
+      source: "config",
+    });
+    fetchHouseListingsMock.mockResolvedValue([currentVilla]);
+
+    const { default: HomePageRoute } = await import("./page");
+    await HomePageRoute();
+
+    expect(fetchHouseListingsMock).toHaveBeenCalledOnce();
+    expect(toHomePageSettingsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tiktok: {
+          accountUrl: "",
+          videos: [
+            expect.objectContaining({
+              villa: {
+                id: "501",
+                title: "บ้านพูลวิลล่าชื่อปัจจุบัน",
+              },
+            }),
+          ],
+        },
+      }),
+      DEFAULT_SITE_CONTACT_SETTINGS,
+    );
+  });
+
+  it("does not load the villa catalog when TikTok has no selected house", async () => {
+    getHomeSectionListingPlanMock.mockResolvedValue({
+      configs: [],
+      houseIds: [],
+      layout: { degraded: false, items: [], source: "config" },
+      listingLimit: 12,
+    });
+    getSiteSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: {
+        ...DEFAULT_SITE_SETTINGS,
+        tiktok: {
+          accountUrl: "",
+          videos: [
+            {
+              houseId: null,
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+              videoId: "7370000000000000001",
+            },
+          ],
+        },
+      },
+      source: "config",
+    });
+    getSiteContactSettingsMock.mockResolvedValue({
+      degraded: false,
+      settings: DEFAULT_SITE_CONTACT_SETTINGS,
+      source: "config",
+    });
+
+    const { default: HomePageRoute } = await import("./page");
+    await HomePageRoute();
+
+    expect(fetchHouseListingsMock).not.toHaveBeenCalled();
   });
 });

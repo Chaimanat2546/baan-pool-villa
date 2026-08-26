@@ -21,19 +21,25 @@ describe("TikTok helper conversions and form data serialization", () => {
       ...DEFAULT_SITE_SETTINGS.tiktok,
       accountUrl: "https://www.tiktok.com/@baanpoolvilla",
       videos: [
-        { url: "https://www.tiktok.com/@baanpoolvilla/video/1000000000000000001", videoId: "1" },
-        { url: "https://www.tiktok.com/@baanpoolvilla/video/1000000000000000002", videoId: "2" },
+        { url: "https://www.tiktok.com/@baanpoolvilla/video/1000000000000000001", videoId: "1", houseId: null },
+        { url: "https://www.tiktok.com/@baanpoolvilla/video/1000000000000000002", videoId: "2", houseId: "501" },
       ],
     });
 
     expect(draft).toMatchObject({
       accountUrl: "https://www.tiktok.com/@baanpoolvilla",
-      videoUrls: [
-        "https://www.tiktok.com/@baanpoolvilla/video/1000000000000000001",
-        "https://www.tiktok.com/@baanpoolvilla/video/1000000000000000002",
+      videos: [
+        {
+          houseId: null,
+          url: "https://www.tiktok.com/@baanpoolvilla/video/1000000000000000001",
+        },
+        {
+          houseId: "501",
+          url: "https://www.tiktok.com/@baanpoolvilla/video/1000000000000000002",
+        },
       ],
     });
-    expect(draft.videoRowIds).toEqual([
+    expect(draft.videos.map((video) => video.id)).toEqual([
       expect.stringContaining("tiktok-row-0"),
       expect.stringContaining("tiktok-row-1"),
     ]);
@@ -42,21 +48,28 @@ describe("TikTok helper conversions and form data serialization", () => {
   it("serializes all video urls into form data including beyond homepage limit", () => {
     const draft = {
       accountUrl: "https://www.tiktok.com/@baanpoolvilla",
-      videoRowIds: ["row-1", "row-2", "row-3", "row-4", "row-5", "row-6", "row-7"],
-      videoUrls: [
-        "https://www.tiktok.com/@a/video/1000000000000000001",
-        "https://www.tiktok.com/@a/video/1000000000000000002",
-        "https://www.tiktok.com/@a/video/1000000000000000003",
-        "https://www.tiktok.com/@a/video/1000000000000000004",
-        "https://www.tiktok.com/@a/video/1000000000000000005",
-        "https://www.tiktok.com/@a/video/1000000000000000006",
-        "https://www.tiktok.com/@a/video/1000000000000000007",
+      videos: [
+        { id: "row-1", url: "https://www.tiktok.com/@a/video/1000000000000000001", houseId: "501", villaTitle: "Glass House B8" },
+        { id: "row-2", url: "https://www.tiktok.com/@a/video/1000000000000000002", houseId: null, villaTitle: null },
+        { id: "row-3", url: "https://www.tiktok.com/@a/video/1000000000000000003", houseId: null, villaTitle: null },
+        { id: "row-4", url: "https://www.tiktok.com/@a/video/1000000000000000004", houseId: null, villaTitle: null },
+        { id: "row-5", url: "https://www.tiktok.com/@a/video/1000000000000000005", houseId: null, villaTitle: null },
+        { id: "row-6", url: "https://www.tiktok.com/@a/video/1000000000000000006", houseId: null, villaTitle: null },
+        { id: "row-7", url: "https://www.tiktok.com/@a/video/1000000000000000007", houseId: null, villaTitle: null },
       ],
     };
     const formData = buildTikTokFormData(draft);
 
     expect(formData.get("tiktokAccountUrl")).toBe(draft.accountUrl);
-    expect(JSON.parse(String(formData.get("tiktokVideoUrls")))).toEqual(draft.videoUrls);
+    expect(JSON.parse(String(formData.get("tiktokVideoUrls")))).toEqual([
+      { url: "https://www.tiktok.com/@a/video/1000000000000000001", houseId: "501" },
+      { url: "https://www.tiktok.com/@a/video/1000000000000000002", houseId: null },
+      { url: "https://www.tiktok.com/@a/video/1000000000000000003", houseId: null },
+      { url: "https://www.tiktok.com/@a/video/1000000000000000004", houseId: null },
+      { url: "https://www.tiktok.com/@a/video/1000000000000000005", houseId: null },
+      { url: "https://www.tiktok.com/@a/video/1000000000000000006", houseId: null },
+      { url: "https://www.tiktok.com/@a/video/1000000000000000007", houseId: null },
+    ]);
   });
 
   it("limits the admin homepage preview count to 15 videos", () => {
@@ -67,53 +80,40 @@ describe("TikTok helper conversions and form data serialization", () => {
     ).toBe(15);
   });
 
-  it("keeps row ids paired with urls when adding, moving, and deleting rows", () => {
+  it("keeps URL and villa selections paired when adding, moving, and deleting rows", () => {
     const base = {
       accountUrl: "",
-      videoRowIds: ["row-1", "row-2", "row-3"],
-      videoUrls: [
-        "https://www.tiktok.com/@a/video/1",
-        "https://www.tiktok.com/@a/video/2",
-        "https://www.tiktok.com/@a/video/3",
+      videos: [
+        { id: "row-1", url: "https://www.tiktok.com/@a/video/1", houseId: "501", villaTitle: "Glass House B8" },
+        { id: "row-2", url: "https://www.tiktok.com/@a/video/2", houseId: "502", villaTitle: "Villa Port Sand" },
+        { id: "row-3", url: "https://www.tiktok.com/@a/video/3", houseId: null, villaTitle: null },
       ],
     };
 
     const afterAdd = addTikTokVideoRow(base);
-    const afterAddRowId = afterAdd.videoRowIds[3];
-    expect(afterAdd.videoRowIds.slice(0, 3)).toEqual(["row-1", "row-2", "row-3"]);
+    const afterAddRowId = afterAdd.videos[3]?.id;
+    expect(afterAdd.videos.slice(0, 3).map((video) => video.id)).toEqual(["row-1", "row-2", "row-3"]);
     expect(typeof afterAddRowId).toBe("string");
-    expect(afterAddRowId.length).toBeGreaterThan(0);
-    expect(afterAdd.videoUrls).toEqual([
-      "https://www.tiktok.com/@a/video/1",
-      "https://www.tiktok.com/@a/video/2",
-      "https://www.tiktok.com/@a/video/3",
-      "",
+    expect(afterAddRowId?.length).toBeGreaterThan(0);
+    expect(afterAdd.videos.map(({ url, houseId, villaTitle }) => ({ url, houseId, villaTitle }))).toEqual([
+      { url: "https://www.tiktok.com/@a/video/1", houseId: "501", villaTitle: "Glass House B8" },
+      { url: "https://www.tiktok.com/@a/video/2", houseId: "502", villaTitle: "Villa Port Sand" },
+      { url: "https://www.tiktok.com/@a/video/3", houseId: null, villaTitle: null },
+      { url: "", houseId: null, villaTitle: null },
     ]);
 
     const afterMove = moveTikTokVideoRow(base, 0, 1);
-    expect(afterMove.videoUrls).toEqual([
-      "https://www.tiktok.com/@a/video/2",
-      "https://www.tiktok.com/@a/video/1",
-      "https://www.tiktok.com/@a/video/3",
-    ]);
-    expect(afterMove.videoRowIds).toEqual(["row-2", "row-1", "row-3"]);
-    expect(afterMove.videoRowIds.map((id, index) => `${id}:${afterMove.videoUrls[index]}`)).toEqual([
-      "row-2:https://www.tiktok.com/@a/video/2",
-      "row-1:https://www.tiktok.com/@a/video/1",
-      "row-3:https://www.tiktok.com/@a/video/3",
+    expect(afterMove.videos).toEqual([
+      { id: "row-2", url: "https://www.tiktok.com/@a/video/2", houseId: "502", villaTitle: "Villa Port Sand" },
+      { id: "row-1", url: "https://www.tiktok.com/@a/video/1", houseId: "501", villaTitle: "Glass House B8" },
+      { id: "row-3", url: "https://www.tiktok.com/@a/video/3", houseId: null, villaTitle: null },
     ]);
 
     const afterDelete = deleteTikTokVideoRow(afterAdd, 1);
-    expect(afterDelete.videoUrls).toEqual([
-      "https://www.tiktok.com/@a/video/1",
-      "https://www.tiktok.com/@a/video/3",
-      "",
-    ]);
-    expect(afterDelete.videoRowIds).toEqual(["row-1", "row-3", afterAddRowId]);
-    expect(afterDelete.videoRowIds.map((id, index) => `${id}:${afterDelete.videoUrls[index]}`)).toEqual([
-      "row-1:https://www.tiktok.com/@a/video/1",
-      "row-3:https://www.tiktok.com/@a/video/3",
-      `${afterAddRowId}:`,
+    expect(afterDelete.videos).toEqual([
+      { id: "row-1", url: "https://www.tiktok.com/@a/video/1", houseId: "501", villaTitle: "Glass House B8" },
+      { id: "row-3", url: "https://www.tiktok.com/@a/video/3", houseId: null, villaTitle: null },
+      { id: afterAddRowId, url: "", houseId: null, villaTitle: null },
     ]);
   });
 

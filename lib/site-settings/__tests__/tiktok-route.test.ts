@@ -5,6 +5,7 @@ import {
   getBearerToken,
 } from "@/lib/admin/home-config-auth";
 import { revalidateSiteSettingsCache } from "@/lib/cache-revalidation";
+import { fetchHouseListings } from "@/lib/villas/server";
 
 vi.mock("server-only", () => ({}));
 
@@ -21,12 +22,17 @@ vi.mock("@/lib/cache-revalidation", () => ({
   revalidateSiteSettingsCache: vi.fn(),
 }));
 
+vi.mock("@/lib/villas/server", () => ({
+  fetchHouseListings: vi.fn(),
+}));
+
 vi.mock("@/lib/site-settings/defaults", async () => import("../defaults"));
 vi.mock("@/lib/site-settings/validation", async () => import("../validation"));
 
 const assertHomeConfigAdminMock = vi.mocked(assertHomeConfigAdmin);
 const getBearerTokenMock = vi.mocked(getBearerToken);
 const revalidateSiteSettingsCacheMock = vi.mocked(revalidateSiteSettingsCache);
+const fetchHouseListingsMock = vi.mocked(fetchHouseListings);
 
 const dbRow = {
   id: "global",
@@ -125,6 +131,7 @@ describe("admin tikTok route", () => {
     vi.resetModules();
     vi.clearAllMocks();
     getBearerTokenMock.mockReturnValue("token");
+    fetchHouseListingsMock.mockResolvedValue([]);
   });
 
   it("returns 401 when bearer token is missing and does not call admin auth", async () => {
@@ -156,10 +163,12 @@ describe("admin tikTok route", () => {
           {
             url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
             videoId: "7370000000000000001",
+            houseId: null,
           },
           {
             url: "https://www.tiktok.com/player/v1/7370000000000000002",
             videoId: "7370000000000000002",
+            houseId: null,
           },
         ],
       },
@@ -168,6 +177,53 @@ describe("admin tikTok route", () => {
     expect(from).toHaveBeenCalledWith("site_settings");
     expect(query.select).toHaveBeenCalledWith("id,tiktok_account_url,tiktok_video_urls");
     expect(query.eq).toHaveBeenCalledWith("id", "global");
+  });
+
+  it("returns the current villa title for a linked TikTok video", async () => {
+    const query = siteSettingsSelectQuery({
+      data: {
+        ...dbRow,
+        tiktok_video_urls: [
+          {
+            houseId: "141",
+            url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+          },
+        ],
+      },
+      error: null,
+    });
+    const from = vi.fn().mockReturnValue(query);
+    authSupabase({ from });
+    fetchHouseListingsMock.mockResolvedValue([
+      {
+        amenities: [],
+        bathrooms: 2,
+        bedrooms: 3,
+        coverImage: null,
+        distanceToSea: "500m",
+        id: "141",
+        people: 8,
+        poolType: "private",
+        price: 5000,
+        title: "Loft House 6A",
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+    ]);
+
+    const { GET } = await import("../../../app/(admin)/api/admin/tiktok/route");
+    const response = await GET(authenticatedRequest());
+
+    await expect(response.json()).resolves.toMatchObject({
+      settings: {
+        videos: [
+          {
+            houseId: "141",
+            villaTitle: "Loft House 6A",
+          },
+        ],
+      },
+    });
   });
 
   it("falls back gracefully when TikTok columns are missing", async () => {
@@ -409,11 +465,11 @@ describe("admin tikTok route", () => {
     const expectedPayload = {
       tiktok_account_url: "https://www.tiktok.com/@baanpoolvilla",
       tiktok_video_urls: [
-        "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
-        "https://www.tiktok.com/player/v1/7370000000000000002",
-        "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000003",
-        "https://www.tiktok.com/player/v1/7370000000000000004",
-        "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000005",
+        { url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001" },
+        { url: "https://www.tiktok.com/player/v1/7370000000000000002" },
+        { url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000003" },
+        { url: "https://www.tiktok.com/player/v1/7370000000000000004" },
+        { url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000005" },
       ],
     };
 
@@ -428,7 +484,188 @@ describe("admin tikTok route", () => {
         videos: expect.any(Array),
       },
     });
+    expect(fetchHouseListingsMock).not.toHaveBeenCalled();
     expect(revalidateSiteSettingsCacheMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a linked house ID that is absent from the current catalog", async () => {
+    const from = vi.fn();
+    authSupabase({ from });
+    fetchHouseListingsMock.mockResolvedValue([
+      {
+        amenities: [],
+        bathrooms: 2,
+        bedrooms: 3,
+        coverImage: null,
+        distanceToSea: "500m",
+        id: "501",
+        people: 8,
+        poolType: "private",
+        price: 5000,
+        title: "Glass House B8",
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+    ]);
+
+    const { PUT } = await import("../../../app/(admin)/api/admin/tiktok/route");
+    const response = await PUT(
+      putRequest(
+        tiktokSettingsForm({
+          tiktokVideoUrls: JSON.stringify([
+            {
+              houseId: "999",
+              title: "Untrusted browser title",
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+            },
+          ]),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      errors: [expect.stringContaining("ไม่พบบ้านพักหมายเลข 999")],
+    });
+    expect(from).not.toHaveBeenCalled();
+    expect(revalidateSiteSettingsCacheMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a structured Thai error when linked-house validation cannot load the catalog", async () => {
+    const from = vi.fn();
+    authSupabase({ from });
+    fetchHouseListingsMock.mockRejectedValue(new Error("catalog offline"));
+
+    const { PUT } = await import("../../../app/(admin)/api/admin/tiktok/route");
+    const response = await PUT(
+      putRequest(
+        tiktokSettingsForm({
+          tiktokVideoUrls: JSON.stringify([
+            {
+              houseId: "501",
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+            },
+          ]),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toMatchObject({
+      errors: [expect.stringContaining("ไม่สามารถ")],
+    });
+    expect(from).not.toHaveBeenCalled();
+    expect(revalidateSiteSettingsCacheMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["abc", "001"])(
+    "rejects the nonempty malformed house ID %s instead of saving it as unlinked",
+    async (houseId) => {
+      const saveQuery = siteSettingsUpdateQuery({
+        data: {
+          ...dbRow,
+          tiktok_video_urls: [],
+        },
+        error: null,
+      });
+      const from = fromQueue({ site_settings: [saveQuery] });
+      authSupabase({ from });
+      fetchHouseListingsMock.mockResolvedValue([
+        {
+          amenities: [],
+          bathrooms: 2,
+          bedrooms: 3,
+          coverImage: null,
+          distanceToSea: "500m",
+          id: "501",
+          people: 8,
+          poolType: "private",
+          price: 5000,
+          title: "Glass House B8",
+          zone: "jomtien",
+          zoneLabel: "Jomtien",
+        },
+      ]);
+
+      const { PUT } = await import("../../../app/(admin)/api/admin/tiktok/route");
+      const response = await PUT(
+        putRequest(
+          tiktokSettingsForm({
+            tiktokVideoUrls: JSON.stringify([
+              {
+                houseId,
+                url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+              },
+            ]),
+          }),
+        ),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        errors: [expect.stringContaining(`ไม่พบบ้านพักหมายเลข ${houseId}`)],
+      });
+      expect(saveQuery.update).not.toHaveBeenCalled();
+      expect(revalidateSiteSettingsCacheMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("stores only a validated house ID without a browser-submitted title", async () => {
+    const saveQuery = siteSettingsUpdateQuery({
+      data: {
+        ...dbRow,
+        tiktok_video_urls: [
+          {
+            houseId: "501",
+            url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+          },
+        ],
+      },
+      error: null,
+    });
+    const from = fromQueue({ site_settings: [saveQuery] });
+    authSupabase({ from });
+    fetchHouseListingsMock.mockResolvedValue([
+      {
+        amenities: [],
+        bathrooms: 2,
+        bedrooms: 3,
+        coverImage: null,
+        distanceToSea: "500m",
+        id: "501",
+        people: 8,
+        poolType: "private",
+        price: 5000,
+        title: "Glass House B8",
+        zone: "jomtien",
+        zoneLabel: "Jomtien",
+      },
+    ]);
+
+    const { PUT } = await import("../../../app/(admin)/api/admin/tiktok/route");
+    await PUT(
+      putRequest(
+        tiktokSettingsForm({
+          tiktokVideoUrls: JSON.stringify([
+            {
+              houseId: " 501 ",
+              title: "Untrusted browser title",
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+            },
+          ]),
+        }),
+      ),
+    );
+
+    expect(saveQuery.update).toHaveBeenCalledWith({
+      tiktok_account_url: "https://www.tiktok.com/@baanpoolvilla",
+      tiktok_video_urls: [
+        {
+          houseId: "501",
+          url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+        },
+      ],
+    });
   });
 
   it("inserts a default site name when saving TikTok settings before the global row exists", async () => {
@@ -469,7 +706,7 @@ describe("admin tikTok route", () => {
     expect(updateQuery.update).toHaveBeenCalledWith({
       tiktok_account_url: "https://www.tiktok.com/@baanpoolvilla",
       tiktok_video_urls: [
-        "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+        { url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001" },
       ],
     });
     expect(insertQuery.insert).toHaveBeenCalledWith({
@@ -477,7 +714,7 @@ describe("admin tikTok route", () => {
       site_name: "Pool Villas Pattaya",
       tiktok_account_url: "https://www.tiktok.com/@baanpoolvilla",
       tiktok_video_urls: [
-        "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+        { url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001" },
       ],
     });
     expect(response.status).toBe(200);
