@@ -95,7 +95,7 @@ describe("public image proxy URL builders", () => {
         quality: 75,
         width: 1200,
       }),
-    ).toBe("/api/guides/images/family-trip/cover?w=1200&q=75");
+    ).toBe("/api/guides/images/family-trip/cover?w=1200&q=75&v=source-fidelity-1");
     expect(
       buildGuideContentImageProxyPath("family-trip", 3, {
         quality: 75,
@@ -116,7 +116,7 @@ describe("public image proxy URL builders", () => {
         quality: 80,
         width: 640,
       }),
-    ).toBe("/api/guides/images/family-trip/cover?w=640&q=80");
+    ).toBe("/api/guides/images/family-trip/cover?w=640&q=80&v=source-fidelity-1");
   });
 
   it("omits unsupported transform params from generated proxy URLs", () => {

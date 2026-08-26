@@ -79,7 +79,7 @@ describe("selectHomeGuideSummaries", () => {
       "guide-6",
     ]);
     expect(summaries[0]?.coverImageUrl).toBe(
-      "/api/guides/images/guide-0/cover",
+      "/api/guides/images/guide-0/cover?v=source-fidelity-1",
     );
     expect(JSON.stringify(summaries)).not.toContain("contentBlocks");
   });

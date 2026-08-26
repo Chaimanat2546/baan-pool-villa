@@ -37,7 +37,9 @@ describe("public guide DTOs", () => {
       coverImage: { alt: "Cover", path: "guide.webp", url: "https://assets.example/guide.webp" },
     });
 
-    expect(summary.coverImageUrl).toBe("/api/guides/images/guide/cover");
+    expect(summary.coverImageUrl).toBe(
+      "/api/guides/images/guide/cover?v=source-fidelity-1",
+    );
   });
 
   it("omits an invalid guide cover URL", () => {

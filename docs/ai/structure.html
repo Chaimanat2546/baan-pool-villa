@@ -290,7 +290,7 @@
               <tr>
                 <td><code>app/(public)/api/guides/images/[slug]/cover/route.ts</code></td>
                 <td><code>/api/guides/images/:slug/cover</code></td>
-                <td>Slug-based guide cover display proxy. Public guide cards and detail pages use this same-origin route through the custom image loader, so transformed variants are Cloudflare edge-cached without exposing the Storage host.</td>
+                <td>Slug-based guide cover display proxy. Public guide cards and detail pages use this same-origin route without exposing the Storage host; cover responses preserve the original asset fidelity so local and production rendering stay visually consistent, while guide inline-image routes retain their transformed variants.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/guides/images/[slug]/content/[index]/route.ts</code></td>
