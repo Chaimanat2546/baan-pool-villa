@@ -7,7 +7,7 @@ import {
   PRODUCTION_DEPLOYMENT_TARGETS,
   REQUIRED_BUILD_ENVIRONMENT_VARIABLES,
   REQUIRED_RUNTIME_SECRETS,
-  createDeploymentMatrix,
+  getDeploymentMatrix,
   parseWranglerConfig,
   validateBuildEnvironment,
   validateWranglerDeploymentConfig,
@@ -52,28 +52,35 @@ async function readCurrentWranglerConfig(): Promise<WranglerTestConfig> {
 }
 
 describe("production deployment config", () => {
-  it("builds the exact approved GitHub Actions matrix", () => {
-    expect(createDeploymentMatrix()).toEqual({
+  it("builds the exact approved GitHub Actions matrix from Wrangler refs", async () => {
+    const config = await readCurrentWranglerConfig();
+
+    expect(getDeploymentMatrix(config)).toEqual({
       include: [
         {
           target: "baanparty",
           siteUrl: "https://www.baanpartypattaya.com",
+          projectRef: "lpxsktjrkjzwbxvhjogo",
         },
         {
           target: "baan02",
           siteUrl: "https://www.poolvillapattaya.co.th",
+          projectRef: "vfqxpujsvgdqtrzpxobh",
         },
         {
           target: "baanPMhee",
           siteUrl: "https://www.pmheevilla.com",
+          projectRef: "zkxpozvhvmgqfrwnlfrn",
         },
         {
           target: "flukNasa",
           siteUrl: "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+          projectRef: "clrmtotmrpccddhoyxaf",
         },
         {
           target: "villaMedia",
           siteUrl: "https://villa-media-poolvilla.poolvilla.workers.dev",
+          projectRef: "nzxlbkcccfqoqqvhfmev",
         },
       ],
     });
@@ -127,6 +134,36 @@ describe("production deployment config", () => {
     expect(() => validateWranglerDeploymentConfig(config)).toThrow(
       "baan02 has a NEXT_PUBLIC_SITE_URL mismatch",
     );
+  });
+
+  it("rejects a missing project ref without exposing a configured value", async () => {
+    const config = structuredClone(await readCurrentWranglerConfig());
+
+    delete config.env.baan02.vars.CENTRAL_USER_MANAGER_PROJECT_REF;
+
+    expect(() => validateWranglerDeploymentConfig(config)).toThrow(
+      "baan02 is missing CENTRAL_USER_MANAGER_PROJECT_REF",
+    );
+  });
+
+  it("rejects an invalid project ref without exposing its value", async () => {
+    const config = structuredClone(await readCurrentWranglerConfig());
+    const invalidProjectRef = "not-a-project-ref";
+
+    config.env.baan02.vars.CENTRAL_USER_MANAGER_PROJECT_REF = invalidProjectRef;
+
+    let message = "";
+
+    try {
+      validateWranglerDeploymentConfig(config);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).toContain(
+      "baan02 has an invalid CENTRAL_USER_MANAGER_PROJECT_REF",
+    );
+    expect(message).not.toContain(invalidProjectRef);
   });
 
   it("validates a complete build environment", () => {

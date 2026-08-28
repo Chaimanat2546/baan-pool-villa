@@ -9,6 +9,13 @@ OpenNext builds as production, but the Cloudflare deploy command uses
 when a PR is merged) and use the real deploy command for
 `baanparty`, `baan02`, `baanPMhee`, `flukNasa`, and `villaMedia` independently.
 
+When the pushed commit changes a file under `supabase/migrations/**`, the
+workflow runs a five-Tenant migration gate before any Worker deploy. It applies
+source-controlled migration history to `baanparty`, `baan02`, `baanPMhee`,
+`flukNasa`, and `villaMedia`; seed files and ad-hoc patch SQL do not trigger the
+gate. Every migration target must succeed before the deploy matrix starts. If
+any Tenant migration fails, deployment is blocked for that commit.
+
 For each target, CD verifies `CLOUDFLARE_API_TOKEN` through Cloudflare
 `/client/v4/user/tokens/verify` before target validation, build, or deploy. It
 sends the token only as a Bearer credential and does not print the token or API
@@ -21,7 +28,9 @@ Do not copy a client `.env` file over `.env` for production deployment.
 | Scope | Names | Owner |
 | --- | --- | --- |
 | GitHub repository secrets | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Repository Actions settings |
+| GitHub repository or organization secret | `SUPABASE_ACCESS_TOKEN` | Authenticates the Supabase CLI for the migration gate; keep the value out of workflow output |
 | GitHub Environment secret | `SUPABASE_PUBLISHABLE_KEY` | Matching deployment environment; required for villa-catalog and sitemap builds |
+| GitHub Environment secret | `SUPABASE_DB_PASSWORD` | Unique database password for that environment's migration target |
 | GitHub Environment variables | `NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL`, `NEXT_PUBLIC_HOME_CONFIG_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Matching deployment environment |
 | Version-controlled public URL | `NEXT_PUBLIC_SITE_URL` | `scripts/production-deploy-config.mjs` and matching `wrangler.jsonc` environment |
 | Cloudflare Worker secrets | `CALENDAR_INTERNAL_API_TOKEN`, `DEVILLE_BEARER_TOKEN`, `PATTAYA_BOOKINGS_API_TOKEN`, `SUPABASE_PUBLISHABLE_KEY`, `TURNSTILE_SECRET_KEY` | Matching Wrangler environment |
@@ -50,7 +59,12 @@ must stay synchronized; never print either value.
    Worker environment without exposing
    their values. Keep the `SUPABASE_PUBLISHABLE_KEY` value synchronized with
    its matching GitHub Environment secret.
-8. Complete this setup before merging the workflow file because that merge
+8. Add `SUPABASE_ACCESS_TOKEN` at repository or organization scope. Add a
+   different `SUPABASE_DB_PASSWORD` secret to each environment:
+   `baanparty`, `baan02`, `baanPMhee`, `flukNasa`, and `villaMedia`. Never put
+   either secret value in documentation, commands, logs, summaries, or
+   artifacts.
+9. Complete this setup before merging the workflow file because that merge
    triggers the first production deployment.
 
 ## Cloudflare Token Scope
@@ -86,6 +100,11 @@ npx.cmd wrangler secret list --env villaMedia --format json
 Open the failed workflow run and choose **Re-run failed jobs**. Successful
 matrix jobs stay unchanged; the failed target rebuilds and deploys the same
 commit SHA.
+
+For a failed migration gate, correct the database or configuration issue first,
+then choose **Re-run failed jobs** for the same commit. The workflow reruns the
+failed Tenant migration jobs and keeps deployment blocked until all five targets
+pass; database rollback is not automated.
 
 If prewarm fails after deploy, the Worker remains deployed. Inspect the job
 summary to distinguish build, deploy, and prewarm outcomes.

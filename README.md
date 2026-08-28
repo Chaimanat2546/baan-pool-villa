@@ -177,6 +177,13 @@ Deployment uses OpenNext Cloudflare and Wrangler:
 Normal production releases run through
 `.github/workflows/deploy-production.yml`: pull requests targeting `master` run the same verify/build matrix with Cloudflare deploys in dry-run mode; a push to `master` (normally when a PR is merged) keeps the real deploy path through isolated matrix jobs.
 
+For a trusted push to `master`, source migrations under
+`supabase/migrations/**` run across all five Tenants before any Worker deploy;
+the migration phase is skipped when no source migration changed. A failed
+Tenant migration blocks deployment for that commit. See the
+[`docs/deployment.md`](docs/deployment.md) production deployment runbook for
+GitHub setup and same-commit recovery.
+
 The build receives `SUPABASE_PUBLISHABLE_KEY` from the matching GitHub
 Environment secret because the villa catalog and `/sitemap.xml` need it at
 build time. The matching Cloudflare Worker secret remains runtime-owned; keep

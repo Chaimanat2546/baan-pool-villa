@@ -1179,6 +1179,24 @@
           </tbody>
         </table>
       </section>
+      <section id="production-migration-gate">
+        <h2>Production Migration Gate</h2>
+        <p>
+          <code>.github/workflows/deploy-production.yml</code> owns the trusted
+          <code>master</code> push gate: changes under
+          <code>supabase/migrations/**</code> run against all five Tenant
+          environments (<code>baanparty</code>, <code>baan02</code>,
+          <code>baanPMhee</code>, <code>flukNasa</code>, and
+          <code>villaMedia</code>) before the deploy matrix. Any failed Tenant
+          blocks deployment; unchanged source migrations skip the phase.
+          <code>wrangler.jsonc</code> remains the owner of each target's
+          <code>CENTRAL_USER_MANAGER_PROJECT_REF</code>, which
+          <code>scripts/production-deploy-config.mjs</code> validates and emits
+          into the workflow matrix. Verify this contract with
+          <code>scripts/production-deploy-workflow.test.ts</code>; recover a
+          corrected same-commit run with GitHub <strong>Re-run failed jobs</strong>.
+        </p>
+      </section>
     </main>
   </body>
 </html>

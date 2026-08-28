@@ -22,11 +22,49 @@ jobs:
     timeout-minutes: 30
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      migrations_changed: ${{ steps.migrations.outputs.migrations_changed }}
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Detect changed source migrations
+        id: migrations
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != "push" ]; then
+            printf 'migrations_changed=false\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          before_sha="${{ github.event.before }}"
+          after_sha="$GITHUB_SHA"
+          zero_sha="0000000000000000000000000000000000000000"
+
+          if [ -z "$before_sha" ] || [ "$before_sha" = "$zero_sha" ]; then
+            if ! before_sha="$(git rev-parse "$after_sha^" 2>/dev/null)"; then
+              echo "::error::Cannot determine a reliable commit range for migration detection."
+              exit 1
+            fi
+          fi
+
+          if ! git cat-file -e "$before_sha^{commit}" 2>/dev/null || ! git cat-file -e "$after_sha^{commit}" 2>/dev/null; then
+            echo "::error::Cannot determine a reliable commit range for migration detection."
+            exit 1
+          fi
+
+          if ! changed_files="$(git diff --name-only "$before_sha" "$after_sha" -- supabase/migrations)"; then
+            echo "::error::Cannot determine a reliable commit range for migration detection."
+            exit 1
+          fi
+
+          if [ -n "$changed_files" ]; then
+            printf 'migrations_changed=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'migrations_changed=false\n' >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -54,9 +92,61 @@ jobs:
           matrix="$(node scripts/production-deploy-config.mjs matrix)"
           printf 'matrix=%s\n' "$matrix" >> "$GITHUB_OUTPUT"
 
+  migrate:
+    name: Migrate ${{ matrix.target }}
+    needs: verify
+    if: ${{ github.event_name == 'push' && needs.verify.outputs.migrations_changed == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.verify.outputs.matrix) }}
+    environment:
+      name: ${{ matrix.target }}
+    steps:
+      - name: Check out pushed commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+        with:
+          version: 2.115.0
+
+      - name: Link and apply source migrations
+        id: migrate
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          BPV_SUPABASE_PROJECT_REF: ${{ matrix.projectRef }}
+        run: |
+          supabase link --project-ref "$BPV_SUPABASE_PROJECT_REF"
+          supabase db push --linked --include-all
+
+      - name: Write migration summary
+        if: ${{ always() }}
+        shell: bash
+        env:
+          MIGRATION_OUTCOME: ${{ steps.migrate.outcome }}
+        run: |
+          {
+            echo "### Supabase migration: \`${{ matrix.target }}\`"
+            echo
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Project ref: \`${{ matrix.projectRef }}\`"
+            echo "- Result: ${MIGRATION_OUTCOME:-not-run}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   deploy:
     name: Deploy ${{ matrix.target }}
-    needs: verify
+    needs:
+      - verify
+      - migrate
+    if: ${{ !cancelled() && always() && needs.verify.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
