@@ -7,8 +7,19 @@ const migrationsDirectory = join(process.cwd(), "supabase", "migrations");
 const migrationName = readdirSync(migrationsDirectory).find((name) =>
   /^\d+_enforce_admin_credential_fence\.sql$/.test(name),
 );
+const restoringMigrationName = readdirSync(migrationsDirectory).find((name) =>
+  /^\d+_restore_admin_credential_fence_after_site_settings_rls\.sql$/.test(
+    name,
+  ),
+);
 const sql = migrationName
   ? readFileSync(join(migrationsDirectory, migrationName), "utf8")
+      .replace(/--.*$/gm, "")
+      .replace(/\s+/g, " ")
+      .toLowerCase()
+  : "";
+const restoringSql = restoringMigrationName
+  ? readFileSync(join(migrationsDirectory, restoringMigrationName), "utf8")
       .replace(/--.*$/gm, "")
       .replace(/\s+/g, " ")
       .toLowerCase()
@@ -109,5 +120,23 @@ describe("admin credential fence migration", () => {
       /\b(insert into|update|delete from|merge into)\s+auth\.users\b/,
     );
     expect(sql).toContain("notify pgrst, 'reload schema'");
+  });
+
+  it("restores the credential fence after the later site-settings RLS repair", () => {
+    expect(restoringMigrationName).toBeDefined();
+    expect(restoringMigrationName! > "20260730113000_repair_site_settings_admin_rls.sql").toBe(
+      true,
+    );
+    expect(restoringSql).toContain(
+      "create or replace function private.is_home_config_admin()",
+    );
+    expect(restoringSql).toContain("v_uid uuid := auth.uid()");
+    expect(restoringSql).toContain("admin_user.must_change_password = false");
+    expect(restoringSql).toContain("admin_user.credential_version > 0");
+    expect(restoringSql).toContain(
+      "admin_user.credential_version = v_jwt_credential_version",
+    );
+    expect(restoringSql).toContain("set search_path = ''");
+    expect(restoringSql).toContain("notify pgrst, 'reload schema'");
   });
 });

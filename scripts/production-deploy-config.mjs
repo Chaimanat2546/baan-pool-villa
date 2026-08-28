@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -6,6 +6,9 @@ import ts from "typescript";
 
 const WRANGLER_CONFIG_PATH = fileURLToPath(
   new URL("../wrangler.jsonc", import.meta.url),
+);
+const MIGRATIONS_DIRECTORY = fileURLToPath(
+  new URL("../supabase/migrations", import.meta.url),
 );
 
 export const PRODUCTION_DEPLOYMENT_TARGETS = Object.freeze([
@@ -49,6 +52,8 @@ export const REQUIRED_RUNTIME_SECRETS = Object.freeze([
   "TURNSTILE_SECRET_KEY",
 ]);
 
+export const PROJECT_REF_VARIABLE = "CENTRAL_USER_MANAGER_PROJECT_REF";
+
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -76,12 +81,45 @@ function normalizeHttpsOrigin(variableName, value) {
   return url.origin;
 }
 
-export function createDeploymentMatrix(
+export function normalizeProjectRef(target, value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${target} is missing ${PROJECT_REF_VARIABLE}`);
+  }
+
+  if (!/^[a-z]{20}$/.test(value.trim())) {
+    throw new Error(`${target} has an invalid ${PROJECT_REF_VARIABLE}`);
+  }
+
+  return value.trim();
+}
+
+export function getDeploymentMatrix(
+  config,
   targets = PRODUCTION_DEPLOYMENT_TARGETS,
 ) {
   return {
-    include: targets.map(({ target, siteUrl }) => ({ target, siteUrl })),
+    include: targets.map(({ target, siteUrl }) => ({
+      target,
+      siteUrl,
+      projectRef: normalizeProjectRef(
+        target,
+        config?.env?.[target]?.vars?.[PROJECT_REF_VARIABLE],
+      ),
+    })),
   };
+}
+
+export async function getTenantMigrationFilenames(
+  migrationsDirectory = MIGRATIONS_DIRECTORY,
+) {
+  const entries = await readdir(migrationsDirectory, { withFileTypes: true });
+  const filenames = entries
+    .filter(
+      (entry) => entry.isFile() && /^\d{14}_.+\.sql$/i.test(entry.name),
+    )
+    .map((entry) => entry.name)
+    .sort();
+  return filenames;
 }
 
 export function parseWranglerConfig(source, filename = "wrangler.jsonc") {
@@ -135,6 +173,17 @@ export function validateWranglerDeploymentConfig(
     const configuredSiteUrl = isRecord(targetConfig.vars)
       ? targetConfig.vars.NEXT_PUBLIC_SITE_URL
       : undefined;
+
+    try {
+      normalizeProjectRef(
+        target,
+        isRecord(targetConfig.vars)
+          ? targetConfig.vars[PROJECT_REF_VARIABLE]
+          : undefined,
+      );
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
 
     try {
       configuredOrigin = normalizeHttpsOrigin(
@@ -232,9 +281,13 @@ export async function readWranglerConfig(
 export async function runCli(argv, env = process.env) {
   const [command, target, ...extraArguments] = argv;
 
+  if (command === "tenant-migrations" && !target && extraArguments.length === 0) {
+    return (await getTenantMigrationFilenames()).join("\n");
+  }
+
   if (extraArguments.length > 0) {
     throw new Error(
-      "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia]",
+      "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia] | tenant-migrations",
     );
   }
 
@@ -242,7 +295,7 @@ export async function runCli(argv, env = process.env) {
   validateWranglerDeploymentConfig(config);
 
   if (command === "matrix" && !target) {
-    return JSON.stringify(createDeploymentMatrix());
+    return JSON.stringify(getDeploymentMatrix(config));
   }
 
   if (command === "validate") {
@@ -256,7 +309,7 @@ export async function runCli(argv, env = process.env) {
   }
 
   throw new Error(
-    "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia]",
+    "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia] | tenant-migrations",
   );
 }
 

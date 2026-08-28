@@ -26,13 +26,17 @@ const BUILD_VARIABLES = [
 const BUILD_SECRETS = ["SUPABASE_PUBLISHABLE_KEY"];
 
 function extractDeployJobHeader(workflow: string) {
-  const deployJobStart = workflow.indexOf("\n  deploy:\n");
-  const stepsStart = workflow.indexOf("\n    steps:\n", deployJobStart);
+  return extractJobHeader(workflow, "deploy");
+}
 
-  expect(deployJobStart).toBeGreaterThanOrEqual(0);
-  expect(stepsStart).toBeGreaterThan(deployJobStart);
+function extractJobHeader(workflow: string, jobName: string) {
+  const jobStart = workflow.indexOf(`\n  ${jobName}:\n`);
+  const stepsStart = workflow.indexOf("\n    steps:\n", jobStart);
 
-  return workflow.slice(deployJobStart, stepsStart);
+  expect(jobStart).toBeGreaterThanOrEqual(0);
+  expect(stepsStart).toBeGreaterThan(jobStart);
+
+  return workflow.slice(jobStart, stepsStart);
 }
 
 function extractNamedStep(workflow: string, name: string) {
@@ -73,6 +77,118 @@ describe("production deployment workflow", () => {
     );
     expect(workflow).toContain("persist-credentials: false");
     expect(workflow).toContain("node-version: 24");
+  });
+
+  it("detects source migration changes only from a reliable pushed commit range", async () => {
+    const workflow = await readWorkflow();
+    const migrationsStep = extractNamedStep(
+      workflow,
+      "Detect changed source migrations",
+    );
+
+    expect(workflow).toContain(
+      "migrations_changed: ${{ steps.migrations.outputs.migrations_changed }}",
+    );
+    expect(workflow).toContain("fetch-depth: 0");
+    expect(migrationsStep).toContain('if [ "$GITHUB_EVENT_NAME" != "push" ]');
+    expect(migrationsStep).toContain("migrations_changed=false");
+    expect(migrationsStep).toContain('before_sha="${{ github.event.before }}"');
+    expect(migrationsStep).toContain('git rev-parse "$after_sha^"');
+    expect(migrationsStep).toContain(
+      'git diff --name-only "$before_sha" "$after_sha" -- supabase/migrations',
+    );
+    expect(migrationsStep).toContain(
+      "Cannot determine a reliable commit range for migration detection.",
+    );
+  });
+
+  it("runs the Supabase migration gate per protected target with only migration credentials", async () => {
+    const workflow = await readWorkflow();
+    const migrateJobHeader = extractJobHeader(workflow, "migrate");
+    const migrationStep = extractNamedStep(
+      workflow,
+      "Link and apply Tenant migrations",
+    );
+    const migrationSummaryStep = extractNamedStep(
+      workflow,
+      "Write migration summary",
+    );
+
+    expect(migrateJobHeader).toContain("needs: verify");
+    expect(migrateJobHeader).toContain(
+      "github.event_name == 'push' && needs.verify.outputs.migrations_changed == 'true'",
+    );
+    expect(migrateJobHeader).toContain("fail-fast: false");
+    expect(migrateJobHeader).toContain("max-parallel: 2");
+    expect(migrateJobHeader).toContain(
+      "matrix: ${{ fromJSON(needs.verify.outputs.matrix) }}",
+    );
+    expect(migrateJobHeader).toContain("name: ${{ matrix.target }}");
+    expect(migrateJobHeader).toContain("timeout-minutes: 30");
+    expect(workflow).toContain(
+      "supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0",
+    );
+    expect(workflow).toContain("version: 2.115.0");
+    expect(migrationStep).toContain(
+      "SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}",
+    );
+    expect(migrationStep).toContain(
+      "SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}",
+    );
+    expect(migrationStep).toContain(
+      "BPV_SUPABASE_PROJECT_REF: ${{ matrix.projectRef }}",
+    );
+    expect(migrationStep).toContain(
+      'supabase link --project-ref "$BPV_SUPABASE_PROJECT_REF"',
+    );
+    expect(migrationStep).toContain("supabase db push --linked --include-all");
+    expect(
+      [...migrationStep.matchAll(/^          ([A-Z_]+):/gm)].map(
+        ([, name]) => name,
+      ),
+    ).toEqual([
+      "SUPABASE_ACCESS_TOKEN",
+      "SUPABASE_DB_PASSWORD",
+      "BPV_SUPABASE_PROJECT_REF",
+    ]);
+    expect(migrationStep.match(/secrets\.[^}\s]+/g)).toEqual([
+      "secrets.SUPABASE_ACCESS_TOKEN",
+      "secrets.SUPABASE_DB_PASSWORD",
+    ]);
+    expect(migrationSummaryStep).not.toMatch(/secrets\./);
+    expect(migrationSummaryStep).not.toContain("SUPABASE_ACCESS_TOKEN");
+    expect(migrationSummaryStep).not.toContain("SUPABASE_DB_PASSWORD");
+  });
+
+  it("stages only Tenant-owned migrations before applying them", async () => {
+    const workflow = await readWorkflow();
+    const manifestStep = extractNamedStep(
+      workflow,
+      "Build Tenant migration manifest",
+    );
+    const stageStep = extractNamedStep(
+      workflow,
+      "Stage Tenant-owned migrations",
+    );
+    const migrationStep = extractNamedStep(
+      workflow,
+      "Link and apply Tenant migrations",
+    );
+
+    expect(workflow).toContain(
+      "tenant_migrations: ${{ steps.tenant-migrations.outputs.tenant_migrations }}",
+    );
+    expect(manifestStep).toContain(
+      "node scripts/production-deploy-config.mjs tenant-migrations",
+    );
+    expect(stageStep).toContain(
+      "MIGRATION_FILENAMES_JSON: ${{ needs.verify.outputs.tenant_migrations }}",
+    );
+    expect(stageStep).toContain("jq -r '.[]'");
+    expect(stageStep).toContain('"supabase/migrations/$filename"');
+    expect(migrationStep).toContain(
+      'pushd "${{ steps.stage-migrations.outputs.path }}"',
+    );
   });
 
   it("isolates all five deployments through a non-fail-fast matrix", async () => {
@@ -187,7 +303,12 @@ describe("production deployment workflow", () => {
 
   it("builds, dry-runs on pull requests, deploys on pushes, and always writes a summary without prewarming", async () => {
     const workflow = await readWorkflow();
+    const deployJobHeader = extractDeployJobHeader(workflow);
 
+    expect(deployJobHeader).toContain("needs:\n      - verify\n      - migrate");
+    expect(deployJobHeader).toContain(
+      "if: ${{ !cancelled() && always() && needs.verify.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}",
+    );
     expect(workflow).toContain("npm run build:cf");
     expect(workflow).toContain(
       'npm run deploy:cf:built -- --env "$BPV_DEPLOY_TARGET"',

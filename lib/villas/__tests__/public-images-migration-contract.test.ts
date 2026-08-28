@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const MIGRATION_PATH = resolve(
-  "supabase/migrations/20260730220000_restore_public_images_read_access.sql",
+  "supabase-catalog/migrations/20260730220000_restore_public_images_read_access.sql",
 );
 
 describe("public images read access migration", () => {

@@ -70,7 +70,7 @@
             <tr>
               <td><code>supabase/</code></td>
               <td>Schema migrations and seed data</td>
-              <td>Migrations are source-controlled history; online project changes need minimal idempotent patch SQL. Public villa catalog reads require an explicit anon SELECT grant and read-only RLS policy on <code>public.images</code>; <code>20260730220000_restore_public_images_read_access.sql</code> repairs clones that retained only the authenticated-admin image policy. For the admin credential fence, complete and verify the Auth metadata backfill before applying <code>enforce_admin_credential_fence</code>.</td>
+              <td>Migrations are source-controlled history; online project changes need minimal idempotent patch SQL. <code>supabase/migrations</code> owns only the five-Tenant history. Catalog/image migrations that reference <code>public.listings</code>, <code>listing_prices</code>, <code>listing_facilities</code>, or <code>public.images</code> live under <code>supabase-catalog/migrations</code> and must run only from their owning catalog project. <code>20260828140000_restore_admin_credential_fence_after_site_settings_rls.sql</code> restores the strict credential fence after the earlier site-settings RLS repair rewrites the shared admin predicate. For the admin credential fence, complete and verify the Auth metadata backfill before applying <code>enforce_admin_credential_fence</code>.</td>
             </tr>
             <tr>
               <td><code>next.config.ts</code></td>
@@ -1178,6 +1178,28 @@
             </tr>
           </tbody>
         </table>
+      </section>
+      <section id="production-migration-gate">
+        <h2>Production Migration Gate</h2>
+        <p>
+          <code>.github/workflows/deploy-production.yml</code> owns the trusted
+          <code>master</code> push gate: changes under
+          <code>supabase/migrations/**</code> open the gate for all five Tenant
+          environments (<code>baanparty</code>, <code>baan02</code>,
+          <code>baanPMhee</code>, <code>flukNasa</code>, and
+          <code>villaMedia</code>) before the deploy matrix. The workflow stages
+          only the Tenant migrations in <code>supabase/migrations</code>;
+          catalog/image history lives separately in
+          <code>supabase-catalog/migrations</code> and is never pushed to a
+          Tenant database. Any failed Tenant migration blocks deployment;
+          unchanged source migrations skip the phase.
+          <code>wrangler.jsonc</code> remains the owner of each target's
+          <code>CENTRAL_USER_MANAGER_PROJECT_REF</code>, which
+          <code>scripts/production-deploy-config.mjs</code> validates and emits
+          into the workflow matrix. Verify this contract with
+          <code>scripts/production-deploy-workflow.test.ts</code>; recover a
+          corrected same-commit run with GitHub <strong>Re-run failed jobs</strong>.
+        </p>
       </section>
     </main>
   </body>

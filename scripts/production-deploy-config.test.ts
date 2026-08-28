@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -7,7 +7,8 @@ import {
   PRODUCTION_DEPLOYMENT_TARGETS,
   REQUIRED_BUILD_ENVIRONMENT_VARIABLES,
   REQUIRED_RUNTIME_SECRETS,
-  createDeploymentMatrix,
+  getTenantMigrationFilenames,
+  getDeploymentMatrix,
   parseWranglerConfig,
   validateBuildEnvironment,
   validateWranglerDeploymentConfig,
@@ -15,6 +16,12 @@ import {
 
 const WRANGLER_CONFIG_PATH = fileURLToPath(
   new URL("../wrangler.jsonc", import.meta.url),
+);
+const TENANT_MIGRATIONS_DIRECTORY = fileURLToPath(
+  new URL("../supabase/migrations", import.meta.url),
+);
+const CATALOG_MIGRATIONS_DIRECTORY = fileURLToPath(
+  new URL("../supabase-catalog/migrations", import.meta.url),
 );
 
 type WranglerTestConfig = Record<string, unknown> & {
@@ -52,28 +59,74 @@ async function readCurrentWranglerConfig(): Promise<WranglerTestConfig> {
 }
 
 describe("production deployment config", () => {
-  it("builds the exact approved GitHub Actions matrix", () => {
-    expect(createDeploymentMatrix()).toEqual({
+  it("keeps catalog migration history out of the Tenant migration directory", async () => {
+    const tenantFilenames = await readdir(TENANT_MIGRATIONS_DIRECTORY);
+
+    expect(tenantFilenames).not.toContain(
+      "20260622000000_create_public_villa_search_rpc.sql",
+    );
+    expect(tenantFilenames).not.toContain(
+      "20260715142000_add_home_listing_query_indexes.sql",
+    );
+    expect(tenantFilenames).not.toContain(
+      "20260730220000_restore_public_images_read_access.sql",
+    );
+
+    const catalogFilenames = await readdir(CATALOG_MIGRATIONS_DIRECTORY);
+    expect(catalogFilenames.sort()).toEqual([
+      "20260622000000_create_public_villa_search_rpc.sql",
+      "20260715142000_add_home_listing_query_indexes.sql",
+      "20260730220000_restore_public_images_read_access.sql",
+    ]);
+  });
+
+  it("selects only Tenant-owned migrations for every production database", async () => {
+    const filenames = await getTenantMigrationFilenames();
+
+    expect(filenames).toHaveLength(55);
+    expect(filenames).toContain(
+      "20260828140000_restore_admin_credential_fence_after_site_settings_rls.sql",
+    );
+    expect(filenames).not.toContain(
+      "20260622000000_create_public_villa_search_rpc.sql",
+    );
+    expect(filenames).not.toContain(
+      "20260715142000_add_home_listing_query_indexes.sql",
+    );
+    expect(filenames).not.toContain(
+      "20260730220000_restore_public_images_read_access.sql",
+    );
+  });
+
+  it("builds the exact approved GitHub Actions matrix from Wrangler refs", async () => {
+    const config = await readCurrentWranglerConfig();
+
+    expect(getDeploymentMatrix(config)).toEqual({
       include: [
         {
           target: "baanparty",
           siteUrl: "https://www.baanpartypattaya.com",
+          projectRef: "lpxsktjrkjzwbxvhjogo",
         },
         {
           target: "baan02",
           siteUrl: "https://www.poolvillapattaya.co.th",
+          projectRef: "vfqxpujsvgdqtrzpxobh",
         },
         {
           target: "baanPMhee",
           siteUrl: "https://www.pmheevilla.com",
+          projectRef: "zkxpozvhvmgqfrwnlfrn",
         },
         {
           target: "flukNasa",
           siteUrl: "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+          projectRef: "clrmtotmrpccddhoyxaf",
         },
         {
           target: "villaMedia",
           siteUrl: "https://villa-media-poolvilla.poolvilla.workers.dev",
+          projectRef: "nzxlbkcccfqoqqvhfmev",
         },
       ],
     });
@@ -127,6 +180,36 @@ describe("production deployment config", () => {
     expect(() => validateWranglerDeploymentConfig(config)).toThrow(
       "baan02 has a NEXT_PUBLIC_SITE_URL mismatch",
     );
+  });
+
+  it("rejects a missing project ref without exposing a configured value", async () => {
+    const config = structuredClone(await readCurrentWranglerConfig());
+
+    delete config.env.baan02.vars.CENTRAL_USER_MANAGER_PROJECT_REF;
+
+    expect(() => validateWranglerDeploymentConfig(config)).toThrow(
+      "baan02 is missing CENTRAL_USER_MANAGER_PROJECT_REF",
+    );
+  });
+
+  it("rejects an invalid project ref without exposing its value", async () => {
+    const config = structuredClone(await readCurrentWranglerConfig());
+    const invalidProjectRef = "not-a-project-ref";
+
+    config.env.baan02.vars.CENTRAL_USER_MANAGER_PROJECT_REF = invalidProjectRef;
+
+    let message = "";
+
+    try {
+      validateWranglerDeploymentConfig(config);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).toContain(
+      "baan02 has an invalid CENTRAL_USER_MANAGER_PROJECT_REF",
+    );
+    expect(message).not.toContain(invalidProjectRef);
   });
 
   it("validates a complete build environment", () => {
