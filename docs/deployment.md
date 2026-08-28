@@ -10,15 +10,14 @@ when a PR is merged) and use the real deploy command for
 `baanparty`, `baan02`, `baanPMhee`, `flukNasa`, and `villaMedia` independently.
 
 When the pushed commit changes a file under `supabase/migrations/**`, the
-workflow runs a five-Tenant migration gate before any Worker deploy. It builds a
-Tenant migration manifest, stages only those files in a temporary directory,
-then applies that directory to `baanparty`, `baan02`, `baanPMhee`, `flukNasa`,
-and `villaMedia`. The catalog/image migrations for `listings`,
-`listing_prices`, `listing_facilities`, and `images` remain source history but
-are explicitly excluded, so they are never applied to a Tenant database. Seed
-files and ad-hoc patch SQL do not trigger the gate. Every migration target must
-succeed before the deploy matrix starts. If any Tenant migration fails,
-deployment is blocked for that commit.
+workflow runs a five-Tenant migration gate before any Worker deploy. That
+directory owns only Tenant migrations, and the workflow stages them in a
+temporary directory before applying them to `baanparty`, `baan02`, `baanPMhee`,
+`flukNasa`, and `villaMedia`. Catalog/image history is physically separate under
+`supabase-catalog/migrations` and must be run only from the catalog database's
+own project. Seed files and ad-hoc patch SQL do not trigger the gate. Every
+migration target must succeed before the deploy matrix starts. If any Tenant
+migration fails, deployment is blocked for that commit.
 
 For each target, CD verifies `CLOUDFLARE_API_TOKEN` through Cloudflare
 `/client/v4/user/tokens/verify` before target validation, build, or deploy. It

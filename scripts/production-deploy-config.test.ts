@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -16,6 +16,12 @@ import {
 
 const WRANGLER_CONFIG_PATH = fileURLToPath(
   new URL("../wrangler.jsonc", import.meta.url),
+);
+const TENANT_MIGRATIONS_DIRECTORY = fileURLToPath(
+  new URL("../supabase/migrations", import.meta.url),
+);
+const CATALOG_MIGRATIONS_DIRECTORY = fileURLToPath(
+  new URL("../supabase-catalog/migrations", import.meta.url),
 );
 
 type WranglerTestConfig = Record<string, unknown> & {
@@ -53,6 +59,27 @@ async function readCurrentWranglerConfig(): Promise<WranglerTestConfig> {
 }
 
 describe("production deployment config", () => {
+  it("keeps catalog migration history out of the Tenant migration directory", async () => {
+    const tenantFilenames = await readdir(TENANT_MIGRATIONS_DIRECTORY);
+
+    expect(tenantFilenames).not.toContain(
+      "20260622000000_create_public_villa_search_rpc.sql",
+    );
+    expect(tenantFilenames).not.toContain(
+      "20260715142000_add_home_listing_query_indexes.sql",
+    );
+    expect(tenantFilenames).not.toContain(
+      "20260730220000_restore_public_images_read_access.sql",
+    );
+
+    const catalogFilenames = await readdir(CATALOG_MIGRATIONS_DIRECTORY);
+    expect(catalogFilenames.sort()).toEqual([
+      "20260622000000_create_public_villa_search_rpc.sql",
+      "20260715142000_add_home_listing_query_indexes.sql",
+      "20260730220000_restore_public_images_read_access.sql",
+    ]);
+  });
+
   it("selects only Tenant-owned migrations for every production database", async () => {
     const filenames = await getTenantMigrationFilenames();
 
