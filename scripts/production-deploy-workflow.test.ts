@@ -107,7 +107,7 @@ describe("production deployment workflow", () => {
     const migrateJobHeader = extractJobHeader(workflow, "migrate");
     const migrationStep = extractNamedStep(
       workflow,
-      "Link and apply source migrations",
+      "Link and apply Tenant migrations",
     );
     const migrationSummaryStep = extractNamedStep(
       workflow,
@@ -158,6 +158,37 @@ describe("production deployment workflow", () => {
     expect(migrationSummaryStep).not.toMatch(/secrets\./);
     expect(migrationSummaryStep).not.toContain("SUPABASE_ACCESS_TOKEN");
     expect(migrationSummaryStep).not.toContain("SUPABASE_DB_PASSWORD");
+  });
+
+  it("stages only Tenant-owned migrations before applying them", async () => {
+    const workflow = await readWorkflow();
+    const manifestStep = extractNamedStep(
+      workflow,
+      "Build Tenant migration manifest",
+    );
+    const stageStep = extractNamedStep(
+      workflow,
+      "Stage Tenant-owned migrations",
+    );
+    const migrationStep = extractNamedStep(
+      workflow,
+      "Link and apply Tenant migrations",
+    );
+
+    expect(workflow).toContain(
+      "tenant_migrations: ${{ steps.tenant-migrations.outputs.tenant_migrations }}",
+    );
+    expect(manifestStep).toContain(
+      "node scripts/production-deploy-config.mjs tenant-migrations",
+    );
+    expect(stageStep).toContain(
+      "MIGRATION_FILENAMES_JSON: ${{ needs.verify.outputs.tenant_migrations }}",
+    );
+    expect(stageStep).toContain("jq -r '.[]'");
+    expect(stageStep).toContain('"supabase/migrations/$filename"');
+    expect(migrationStep).toContain(
+      'pushd "${{ steps.stage-migrations.outputs.path }}"',
+    );
   });
 
   it("isolates all five deployments through a non-fail-fast matrix", async () => {

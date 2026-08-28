@@ -70,7 +70,7 @@
             <tr>
               <td><code>supabase/</code></td>
               <td>Schema migrations and seed data</td>
-              <td>Migrations are source-controlled history; online project changes need minimal idempotent patch SQL. Public villa catalog reads require an explicit anon SELECT grant and read-only RLS policy on <code>public.images</code>; <code>20260730220000_restore_public_images_read_access.sql</code> repairs clones that retained only the authenticated-admin image policy. For the admin credential fence, complete and verify the Auth metadata backfill before applying <code>enforce_admin_credential_fence</code>.</td>
+              <td>Migrations are source-controlled history; online project changes need minimal idempotent patch SQL. The Tenant migration manifest in <code>scripts/production-deploy-config.mjs</code> excludes catalog/image-only migrations for <code>public.listings</code>, <code>listing_prices</code>, <code>listing_facilities</code>, and <code>public.images</code>, while retaining them as history for their owning database. Public villa catalog reads require an explicit anon SELECT grant and read-only RLS policy on <code>public.images</code>; <code>20260730220000_restore_public_images_read_access.sql</code> repairs clones that retained only the authenticated-admin image policy. <code>20260828140000_restore_admin_credential_fence_after_site_settings_rls.sql</code> restores the strict credential fence after the earlier site-settings RLS repair rewrites the shared admin predicate. For the admin credential fence, complete and verify the Auth metadata backfill before applying <code>enforce_admin_credential_fence</code>.</td>
             </tr>
             <tr>
               <td><code>next.config.ts</code></td>
@@ -1184,11 +1184,16 @@
         <p>
           <code>.github/workflows/deploy-production.yml</code> owns the trusted
           <code>master</code> push gate: changes under
-          <code>supabase/migrations/**</code> run against all five Tenant
+          <code>supabase/migrations/**</code> open the gate for all five Tenant
           environments (<code>baanparty</code>, <code>baan02</code>,
           <code>baanPMhee</code>, <code>flukNasa</code>, and
-          <code>villaMedia</code>) before the deploy matrix. Any failed Tenant
-          blocks deployment; unchanged source migrations skip the phase.
+          <code>villaMedia</code>) before the deploy matrix. The workflow stages
+          only the Tenant-owned manifest; catalog/image migrations for
+          <code>public.listings</code>, <code>listing_prices</code>,
+          <code>listing_facilities</code>, and <code>public.images</code> remain
+          in source history but are never pushed to a Tenant database. Any failed
+          Tenant migration blocks deployment; unchanged source migrations skip
+          the phase.
           <code>wrangler.jsonc</code> remains the owner of each target's
           <code>CENTRAL_USER_MANAGER_PROJECT_REF</code>, which
           <code>scripts/production-deploy-config.mjs</code> validates and emits

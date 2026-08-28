@@ -177,10 +177,13 @@ Deployment uses OpenNext Cloudflare and Wrangler:
 Normal production releases run through
 `.github/workflows/deploy-production.yml`: pull requests targeting `master` run the same verify/build matrix with Cloudflare deploys in dry-run mode; a push to `master` (normally when a PR is merged) keeps the real deploy path through isolated matrix jobs.
 
-For a trusted push to `master`, source migrations under
-`supabase/migrations/**` run across all five Tenants before any Worker deploy;
-the migration phase is skipped when no source migration changed. A failed
-Tenant migration blocks deployment for that commit. See the
+For a trusted push to `master`, changes under `supabase/migrations/**` open the
+migration gate across all five Tenants before any Worker deploy. The gate stages
+only the Tenant-owned manifest (currently excluding the catalog/image migrations
+for `listings`, `listing_prices`, `listing_facilities`, and `images`), so those
+unrelated migrations are never applied to a Tenant database. The migration phase
+is skipped when no source migration changed. A failed Tenant migration blocks
+deployment for that commit. See the
 [`docs/deployment.md`](docs/deployment.md) production deployment runbook for
 GitHub setup and same-commit recovery.
 

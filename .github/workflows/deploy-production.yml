@@ -23,6 +23,7 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       migrations_changed: ${{ steps.migrations.outputs.migrations_changed }}
+      tenant_migrations: ${{ steps.tenant-migrations.outputs.tenant_migrations }}
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -85,6 +86,13 @@ jobs:
       - name: Run Vitest
         run: npm test
 
+      - name: Build Tenant migration manifest
+        id: tenant-migrations
+        shell: bash
+        run: |
+          tenant_migrations="$(node scripts/production-deploy-config.mjs tenant-migrations | node -e 'let input = ""; process.stdin.on("data", (chunk) => { input += chunk; }); process.stdin.on("end", () => { process.stdout.write(JSON.stringify(input.trim().split("\\n").filter(Boolean))); });')"
+          printf 'tenant_migrations=%s\n' "$tenant_migrations" >> "$GITHUB_OUTPUT"
+
       - name: Build deployment matrix
         id: matrix
         shell: bash
@@ -116,7 +124,28 @@ jobs:
         with:
           version: 2.115.0
 
-      - name: Link and apply source migrations
+      - name: Stage Tenant-owned migrations
+        id: stage-migrations
+        shell: bash
+        env:
+          MIGRATION_FILENAMES_JSON: ${{ needs.verify.outputs.tenant_migrations }}
+        run: |
+          tenant_migrations_dir="$(mktemp -d "$RUNNER_TEMP/bpv-tenant-migrations.XXXXXX")"
+          mkdir -p "$tenant_migrations_dir/supabase/migrations"
+          tenant_migrations="$(printf '%s' "$MIGRATION_FILENAMES_JSON" | jq -r '.[]')"
+
+          while IFS= read -r filename; do
+            if [[ ! "$filename" =~ ^[0-9]{14}_.+\.sql$ ]] || [[ ! -f "supabase/migrations/$filename" ]]; then
+              echo "::error::Invalid Tenant migration filename: $filename"
+              exit 1
+            fi
+
+            cp -- "supabase/migrations/$filename" "$tenant_migrations_dir/supabase/migrations/$filename"
+          done <<< "$tenant_migrations"
+
+          printf 'path=%s\n' "$tenant_migrations_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Link and apply Tenant migrations
         id: migrate
         shell: bash
         env:
@@ -124,8 +153,10 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           BPV_SUPABASE_PROJECT_REF: ${{ matrix.projectRef }}
         run: |
+          pushd "${{ steps.stage-migrations.outputs.path }}"
           supabase link --project-ref "$BPV_SUPABASE_PROJECT_REF"
           supabase db push --linked --include-all
+          popd
 
       - name: Write migration summary
         if: ${{ always() }}

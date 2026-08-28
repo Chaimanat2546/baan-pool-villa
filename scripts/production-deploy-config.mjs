@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +7,15 @@ import ts from "typescript";
 const WRANGLER_CONFIG_PATH = fileURLToPath(
   new URL("../wrangler.jsonc", import.meta.url),
 );
+const MIGRATIONS_DIRECTORY = fileURLToPath(
+  new URL("../supabase/migrations", import.meta.url),
+);
+
+export const TENANT_EXCLUDED_MIGRATION_FILENAMES = Object.freeze([
+  "20260622000000_create_public_villa_search_rpc.sql",
+  "20260715142000_add_home_listing_query_indexes.sql",
+  "20260730220000_restore_public_images_read_access.sql",
+]);
 
 export const PRODUCTION_DEPLOYMENT_TARGETS = Object.freeze([
   Object.freeze({
@@ -104,6 +113,31 @@ export function getDeploymentMatrix(
       ),
     })),
   };
+}
+
+export async function getTenantMigrationFilenames(
+  migrationsDirectory = MIGRATIONS_DIRECTORY,
+) {
+  const entries = await readdir(migrationsDirectory, { withFileTypes: true });
+  const filenames = entries
+    .filter(
+      (entry) => entry.isFile() && /^\d{14}_.+\.sql$/i.test(entry.name),
+    )
+    .map((entry) => entry.name)
+    .sort();
+  const availableFilenames = new Set(filenames);
+  const missingExcludedFilenames = TENANT_EXCLUDED_MIGRATION_FILENAMES.filter(
+    (filename) => !availableFilenames.has(filename),
+  );
+
+  if (missingExcludedFilenames.length > 0) {
+    throw new Error(
+      `Tenant migration exclusions are missing from supabase/migrations: ${missingExcludedFilenames.join(", ")}`,
+    );
+  }
+
+  const excludedFilenames = new Set(TENANT_EXCLUDED_MIGRATION_FILENAMES);
+  return filenames.filter((filename) => !excludedFilenames.has(filename));
 }
 
 export function parseWranglerConfig(source, filename = "wrangler.jsonc") {
@@ -265,9 +299,13 @@ export async function readWranglerConfig(
 export async function runCli(argv, env = process.env) {
   const [command, target, ...extraArguments] = argv;
 
+  if (command === "tenant-migrations" && !target && extraArguments.length === 0) {
+    return (await getTenantMigrationFilenames()).join("\n");
+  }
+
   if (extraArguments.length > 0) {
     throw new Error(
-      "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia]",
+      "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia] | tenant-migrations",
     );
   }
 
@@ -289,7 +327,7 @@ export async function runCli(argv, env = process.env) {
   }
 
   throw new Error(
-    "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia]",
+    "Usage: node scripts/production-deploy-config.mjs matrix | validate [baanparty|baan02|baanPMhee|flukNasa|villaMedia] | tenant-migrations",
   );
 }
 

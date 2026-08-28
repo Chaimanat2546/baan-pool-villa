@@ -7,6 +7,7 @@ import {
   PRODUCTION_DEPLOYMENT_TARGETS,
   REQUIRED_BUILD_ENVIRONMENT_VARIABLES,
   REQUIRED_RUNTIME_SECRETS,
+  getTenantMigrationFilenames,
   getDeploymentMatrix,
   parseWranglerConfig,
   validateBuildEnvironment,
@@ -52,6 +53,24 @@ async function readCurrentWranglerConfig(): Promise<WranglerTestConfig> {
 }
 
 describe("production deployment config", () => {
+  it("selects only Tenant-owned migrations for every production database", async () => {
+    const filenames = await getTenantMigrationFilenames();
+
+    expect(filenames).toHaveLength(55);
+    expect(filenames).toContain(
+      "20260828140000_restore_admin_credential_fence_after_site_settings_rls.sql",
+    );
+    expect(filenames).not.toContain(
+      "20260622000000_create_public_villa_search_rpc.sql",
+    );
+    expect(filenames).not.toContain(
+      "20260715142000_add_home_listing_query_indexes.sql",
+    );
+    expect(filenames).not.toContain(
+      "20260730220000_restore_public_images_read_access.sql",
+    );
+  });
+
   it("builds the exact approved GitHub Actions matrix from Wrangler refs", async () => {
     const config = await readCurrentWranglerConfig();
 
