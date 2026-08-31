@@ -213,12 +213,15 @@ function renderParking(context: DetailLayoutBlockContext) {
 function renderAmenities({ content, listing }: DetailLayoutBlockContext) {
   const amenities =
     content.amenities.length > 0 ? content.amenities : listing.amenities;
+  const visibleAmenities = amenities.filter(
+    (amenity) => amenity.key !== "private_pool",
+  );
 
-  if (amenities.length === 0) {
+  if (visibleAmenities.length === 0) {
     return null;
   }
 
-  return <AmenitiesSection amenities={amenities} compact />;
+  return <AmenitiesSection amenities={visibleAmenities} compact />;
 }
 
 function renderCategorizedImages({
