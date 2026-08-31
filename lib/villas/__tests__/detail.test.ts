@@ -19,7 +19,7 @@ describe("buildVillaDetailContent", () => {
 
     expect(content.amenities).toHaveLength(8);
     expect(content.amenities).toEqual(expect.arrayContaining([
-      { key: "pet", label: "นำสัตว์เลี้ยงได้" },
+      { key: "pet", label: "สัตว์เลี้ยง" },
       { key: "discotech", label: "ไฟเธค" },
       { key: "fancyring", label: "ห่วงยางแฟนซี" },
       { key: "tabletennis", label: "โต๊ะปิงปอง" },
@@ -89,7 +89,7 @@ describe("buildVillaDetailContent", () => {
       { key: "karaoke", label: "คาราโอเกะ" },
       { key: "private_pool", label: "สระว่ายน้ำส่วนตัว" },
       { key: "extra_bed", label: "เตียงเสริม" },
-      { key: "pet", label: "นำสัตว์เลี้ยงได้" },
+      { key: "pet", label: "สัตว์เลี้ยง" },
     ]);
     expect(content.sections.map((section) => section.title)).toEqual(
       expect.arrayContaining([

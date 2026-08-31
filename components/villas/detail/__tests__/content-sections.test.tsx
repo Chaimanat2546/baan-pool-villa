@@ -60,7 +60,7 @@ describe("Detail content sections", () => {
           { key: "grill", label: "เตาปิ้งย่าง" },
           { key: "tabletennis", label: "โต๊ะปิงปอง" },
           { key: "karaoke", label: "คาราโอเกะ" },
-          { key: "pet", label: "นำสัตว์เลี้ยงได้" },
+          { key: "pet", label: "สัตว์เลี้ยง" },
         ]}
       />,
     );
