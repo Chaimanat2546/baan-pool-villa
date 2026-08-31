@@ -465,6 +465,25 @@ describe("DetailLayoutRenderer", () => {
     expect(amenitiesBlockMarkup).not.toContain("Wi-Fi");
   });
 
+  it("keeps the pool out of the detail amenities block", () => {
+    const markup = render(
+      DEFAULT_DETAIL_LAYOUT,
+      {
+        amenities: [
+          { key: "private_pool", label: "สระว่ายน้ำส่วนตัว" },
+          { key: "wifi", label: "Wi-Fi" },
+        ],
+      },
+    );
+
+    const amenitiesBlockStart = markup.indexOf('data-detail-layout-block="amenities"');
+    const mapBlockStart = markup.indexOf('data-detail-layout-block="map_nearby"');
+    const amenitiesBlockMarkup = markup.slice(amenitiesBlockStart, mapBlockStart);
+
+    expect(amenitiesBlockMarkup).toContain("Wi-Fi");
+    expect(amenitiesBlockMarkup).not.toContain("สระว่ายน้ำส่วนตัว");
+  });
+
   it("hides the nearby block when only villa location text exists", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT, { nearbyPlaces: [] });
 

@@ -1,42 +1,39 @@
 import {
   Bath,
   BedDouble,
-  Bubbles,
-  CircleDot,
   CircleDotDashed,
   Disc3,
-  Flame,
-  Goal,
   LifeBuoy,
   MicVocal,
   PawPrint,
-  Table2,
   Star,
   Waves,
-  WavesArrowDown,
   WavesLadder,
   Wifi,
 } from "lucide-react";
+import { FaHotTubPerson, FaTableTennisPaddleBall } from "react-icons/fa6";
+import { GiBarbecue, GiHockey, GiKidSlide, GiPoolTriangle } from "react-icons/gi";
+import type { ElementType } from "react";
 import type { Amenity, AmenityKey } from "@/lib/villas/types";
 
 export const DEFAULT_AMENITY_PREVIEW_COUNT = 12;
 
-const AMENITY_ICONS: Record<AmenityKey, typeof Wifi> = {
-  airhockey: Goal,
+const AMENITY_ICONS: Record<AmenityKey, ElementType> = {
+  airhockey: GiHockey,
   bath: Bath,
-  billard: CircleDot,
+  billard: GiPoolTriangle,
   discotech: Disc3,
   fancyring: LifeBuoy,
   extra_bed: BedDouble,
-  grill: Flame,
-  jacuzzi: Bubbles,
+  grill: GiBarbecue,
+  jacuzzi: FaHotTubPerson,
   karaoke: MicVocal,
   pet: PawPrint,
   private_pool: WavesLadder,
-  slider: WavesArrowDown,
+  slider: GiKidSlide,
   snooker: CircleDotDashed,
   swimming_kid: Waves,
-  tabletennis: Table2,
+  tabletennis: FaTableTennisPaddleBall,
   wifi: Wifi,
 };
 

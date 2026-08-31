@@ -2,6 +2,38 @@ import { describe, expect, it } from "vitest";
 import { buildVillaDetailContent } from "../detail";
 
 describe("buildVillaDetailContent", () => {
+  it("normalizes facility aliases without duplicating pool data in amenities", () => {
+    const content = buildVillaDetailContent({
+      facilities: {
+        air_hockey: "y",
+        bathtub: "y",
+        billiard: "y",
+        disco_tech: "y",
+        kid_pool: "y",
+        pets: "y",
+        pool_float: "y",
+        swimming_pool: "y",
+        table_tennis: "y",
+      },
+    });
+
+    expect(content.amenities).toHaveLength(8);
+    expect(content.amenities).toEqual(expect.arrayContaining([
+      { key: "pet", label: "นำสัตว์เลี้ยงได้" },
+      { key: "discotech", label: "ไฟเธค" },
+      { key: "fancyring", label: "ห่วงยางแฟนซี" },
+      { key: "tabletennis", label: "โต๊ะปิงปอง" },
+      { key: "billard", label: "โต๊ะพูล" },
+      { key: "swimming_kid", label: "สระเด็ก" },
+      { key: "airhockey", label: "แอร์ฮอกกี้" },
+      { key: "bath", label: "อ่างอาบน้ำ" },
+    ]));
+    expect(content.amenities).not.toContainEqual({
+      key: "private_pool",
+      label: "สระว่ายน้ำส่วนตัว",
+    });
+  });
+
   it("extracts guest-facing facts, notes, nearby places, and amenities from the raw detail API", () => {
     const content = buildVillaDetailContent({
       h_time_checkin: "14:00:00",

@@ -68,7 +68,6 @@ describe("Detail content sections", () => {
     expect(markup).toContain('data-amenity-icon="wifi"');
     expect(markup).toContain("lucide-wifi");
     expect(markup).toContain('data-amenity-icon="grill"');
-    expect(markup).toContain("lucide-flame");
     expect(markup).toContain('data-amenity-icon="karaoke"');
     expect(markup).toContain("lucide-mic-vocal");
     expect(markup).toContain('data-amenity-icon="pet"');

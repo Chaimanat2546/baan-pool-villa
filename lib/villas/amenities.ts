@@ -46,7 +46,7 @@ export function getHouseAmenities(house: RawHouse): Amenity[] {
 }
 
 export function normalizeAmenityKey(key: string): AmenityKey | null {
-  const normalizedKey = key.trim();
+  const normalizedKey = key.trim().toLowerCase();
 
   if (!normalizedKey) {
     return null;

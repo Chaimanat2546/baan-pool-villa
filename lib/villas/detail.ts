@@ -1,5 +1,5 @@
-import { AMENITY_OPTIONS } from "./amenities";
-import type { Amenity } from "./types";
+import { AMENITY_OPTIONS, normalizeAmenityKey } from "./amenities";
+import type { Amenity, AmenityKey } from "./types";
 
 export type VillaDetailFact = {
   label: string;
@@ -450,14 +450,25 @@ function buildDetailAmenities(detail: DetailRecord): Amenity[] {
     return [];
   }
 
-  const amenities = AMENITY_OPTIONS.filter((amenity) =>
-    isEnabledFacilityValue(facilities[amenity.key]),
+  const enabledAmenityKeys = new Set<AmenityKey>();
+
+  for (const [key, value] of Object.entries(facilities)) {
+    const amenityKey = normalizeAmenityKey(key);
+
+    if (amenityKey && isEnabledFacilityValue(value)) {
+      enabledAmenityKeys.add(amenityKey);
+    }
+  }
+
+  const hasDirectPet = isEnabledFacilityValue(facilities.pet);
+  const amenities = AMENITY_OPTIONS.filter(
+    (amenity) =>
+      amenity.key === "pet"
+        ? hasDirectPet
+        : enabledAmenityKeys.has(amenity.key),
   );
 
-  if (
-    isEnabledFacilityValue(facilities.pets) &&
-    !amenities.some((amenity) => amenity.key === "pet")
-  ) {
+  if (enabledAmenityKeys.has("pet") && !hasDirectPet) {
     const petAmenity = AMENITY_OPTIONS.find((amenity) => amenity.key === "pet");
 
     if (petAmenity) {
