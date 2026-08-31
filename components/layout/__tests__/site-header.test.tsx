@@ -237,6 +237,28 @@ describe("SiteHeader", () => {
     }
   });
 
+  it("scrolls to the top when the home menu item is selected on the home page", async () => {
+    const scrollToMock = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+    const { container, root } = await renderHeader();
+
+    try {
+      const homeLink = Array.from(container.querySelectorAll<HTMLAnchorElement>('a[href="/"]'))
+        .find((link) => link.textContent?.includes("หน้าแรก"));
+      const clickEvent = new MouseEvent("click", { bubbles: true, cancelable: true });
+
+      await act(async () => {
+        homeLink?.dispatchEvent(clickEvent);
+      });
+
+      expect(clickEvent.defaultPrevented).toBe(true);
+      expect(scrollToMock).toHaveBeenCalledWith({ behavior: "smooth", top: 0 });
+    } finally {
+      await act(async () => {
+        root.unmount();
+      });
+    }
+  });
+
   it("closes the mobile sheet when a menu link is selected", async () => {
     const { container, root } = await renderHeader();
 
