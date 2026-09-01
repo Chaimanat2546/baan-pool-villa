@@ -189,6 +189,22 @@ describe("AdminShell", () => {
     await page.unmount();
   });
 
+  it("keeps detail-page section links out of the global admin navigation", async () => {
+    mocks.pathname = "/admin/detail-layout";
+
+    const page = await mountAdminPage(
+      <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+        <div>detail layout</div>
+      </AdminShell>,
+    );
+
+    expect(
+      page.container.querySelector('[data-admin-detail-layout-navigation="true"]'),
+    ).toBeNull();
+
+    await page.unmount();
+  });
+
   it("links to cover-image management and marks it active on its house routes", async () => {
     mocks.pathname = "/admin/card-images/houses/66";
 
