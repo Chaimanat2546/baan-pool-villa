@@ -56,30 +56,35 @@ function AdminNavigation({
   return (
     <nav
       aria-label="เมนูหลังบ้าน"
-      className="grid gap-1.5"
+      className="grid min-w-0 gap-1.5 overflow-x-hidden"
       data-admin-nav-layout={collapsed ? "collapsed" : "expanded"}
     >
       {ADMIN_NAV_ITEMS.filter((item) => !item.disabled).map((item) => {
         const Icon = item.icon;
         const isActive = pathname.startsWith(item.href);
+        const visibleLabel = collapsed ? item.compactLabel : item.label;
         const className = `group rounded-lg border transition ${
           collapsed
-            ? "flex min-h-16 flex-col items-center justify-center gap-1.5 px-1 py-2 text-center"
+            ? "flex min-h-14 flex-col items-center justify-center gap-1 px-1.5 py-2 text-center"
             : "flex min-h-14 items-center gap-3 px-3 py-2.5 text-left"
         } ${
           isActive
-            ? "border-[var(--site-primary)] bg-[var(--site-primary)] text-[var(--site-on-primary)]"
+            ? collapsed
+              ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)] text-[var(--site-primary)] shadow-sm"
+              : "border-[var(--site-primary)] bg-[var(--site-primary)] text-[var(--site-on-primary)]"
             : "border-transparent text-[var(--site-text)] hover:border-[var(--site-border)] hover:bg-[var(--site-surface)]"
         }`;
 
         const content = (
           <>
             <span
-              className={`inline-flex shrink-0 items-center justify-center rounded-lg ${
+              className={`inline-flex shrink-0 items-center justify-center rounded-lg transition ${
                 collapsed ? "size-8" : "size-9"
               } ${
                 isActive
-                  ? "bg-white/14 text-[var(--site-on-primary)]"
+                  ? collapsed
+                    ? "bg-[var(--site-primary)] text-[var(--site-on-primary)] shadow-sm"
+                    : "bg-white/14 text-[var(--site-on-primary)]"
                   : "bg-[var(--site-surface)] text-[var(--site-primary)]"
               }`}
             >
@@ -89,11 +94,11 @@ function AdminNavigation({
               <span
                 className={`text-sm font-semibold ${
                   collapsed
-                    ? "block text-center text-[11px] leading-3 text-pretty"
+                    ? "block max-w-full truncate px-1 text-center text-[10px] leading-3"
                     : "flex items-center gap-2"
                 }`}
               >
-                {item.label}
+                {visibleLabel}
               </span>
               {collapsed ? null : (
                 <span
@@ -112,7 +117,8 @@ function AdminNavigation({
 
         return (
           <a
-            className={className}
+            aria-label={collapsed ? item.label : undefined}
+            className={`min-w-0 max-w-full ${className}`}
             href={item.href}
             key={item.href}
             onClick={onNavigate}

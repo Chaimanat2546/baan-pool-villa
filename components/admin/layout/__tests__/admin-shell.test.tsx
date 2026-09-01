@@ -86,6 +86,16 @@ describe("AdminShell", () => {
     expect(
       page.container.querySelector('[data-admin-nav-layout="collapsed"]'),
     ).not.toBeNull();
+    expect(
+      page.container
+        .querySelector('[data-admin-nav-layout="collapsed"]')
+        ?.className,
+    ).toContain("overflow-x-hidden");
+    expect(
+      page.container.querySelector(
+        '[data-admin-nav-layout="collapsed"] a[href="/admin/card-images/houses"]',
+      )?.className,
+    ).toContain("min-w-0");
     expect(document.cookie).toContain("admin-sidebar-collapsed=true");
 
     await page.unmount();
@@ -149,6 +159,53 @@ describe("AdminShell", () => {
     expect(linkTargets).not.toContain("/admin/images");
     expect(linkTargets).not.toContain("/admin/users");
     expect(disabledItems).toHaveLength(0);
+
+    await page.unmount();
+  });
+
+  it("uses concise labels with full-name tooltips in the collapsed navigation", async () => {
+    const page = await mountAdminPage(
+      <AdminShell
+        initialDesktopNavCollapsed
+        settings={DEFAULT_SITE_SETTINGS}
+      >
+        <div>settings</div>
+      </AdminShell>,
+    );
+
+    const detailLink = page.container.querySelector<HTMLAnchorElement>(
+      '[data-admin-nav-layout="collapsed"] a[href="/admin/detail-layout"]',
+    );
+    const coverImageLink = page.container.querySelector<HTMLAnchorElement>(
+      '[data-admin-nav-layout="collapsed"] a[href="/admin/card-images/houses"]',
+    );
+
+    expect(detailLink?.textContent).toContain("รายละเอียด");
+    expect(detailLink?.textContent).not.toContain("หน้ารายละเอียดบ้านพัก");
+    expect(detailLink?.getAttribute("title")).toBe("หน้ารายละเอียดบ้านพัก");
+    expect(coverImageLink?.textContent).toContain("รูปปก");
+    expect(coverImageLink?.getAttribute("title")).toBe("จัดการรูปปกบ้าน");
+
+    await page.unmount();
+  });
+
+  it("links to cover-image management and marks it active on its house routes", async () => {
+    mocks.pathname = "/admin/card-images/houses/66";
+
+    const page = await mountAdminPage(
+      <AdminShell settings={DEFAULT_SITE_SETTINGS}>
+        <div>cover images</div>
+      </AdminShell>,
+    );
+    await flushEffects();
+
+    const coverImageLinks = Array.from(
+      page.container.querySelectorAll('nav a[href="/admin/card-images/houses"]'),
+    );
+
+    expect(coverImageLinks).toHaveLength(1);
+    expect(coverImageLinks[0]?.textContent).toContain("จัดการรูปปกบ้าน");
+    expect(coverImageLinks[0]?.className).toContain("bg-[var(--site-primary)]");
 
     await page.unmount();
   });
