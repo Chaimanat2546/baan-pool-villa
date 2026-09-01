@@ -1,5 +1,4 @@
 /** @vitest-environment jsdom */
-import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { makeJsonResponse, mountAdminPage } from "@/components/admin/__tests__/admin-page-dom-test-utils";
@@ -48,7 +47,7 @@ describe("WebStyleSettingsPage", () => {
     await page.unmount();
   });
 
-  it("loads, clears, previews, and saves optional Gallery colors", async () => {
+  it("keeps the gallery opening controls out of the web style settings page", async () => {
     mocks.readAdminAccessToken.mockResolvedValue("token");
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === "/api/admin/site-web-styles/gallery" && init?.method === "PATCH") {
@@ -84,67 +83,13 @@ describe("WebStyleSettingsPage", () => {
     const page = await mountAdminPage(
       <SettingsDirtyStateProvider><WebStyleSettingsPage /></SettingsDirtyStateProvider>,
     );
-    const galleryCard = page.container.querySelector("#gallery-modal-style");
-    expect(galleryCard).not.toBeNull();
+    expect(page.container.querySelector("#gallery-modal-style")).toBeNull();
+    expect(page.container.textContent).not.toContain("วิธีเปิดดูรูปของบ้าน");
     expect(
-      galleryCard?.querySelector<HTMLInputElement>('input[name="galleryVariant"][value="categorized-grid"]')?.checked,
-    ).toBe(true);
-    expect(galleryCard?.querySelector<HTMLInputElement>("#galleryBackgroundColor")?.value).toBe("#ffffff");
-    expect(galleryCard?.textContent).toContain("เปิดรูปใหญ่ทันที");
-    expect(galleryCard?.textContent).toContain("ดูรูปทั้งหมดแยกตามหมวดก่อน");
-
-    const categorizedPreview = galleryCard?.querySelector(
-      '[data-gallery-style-preview][data-gallery-preview-variant="categorized-grid"]',
-    );
-    expect(categorizedPreview).not.toBeNull();
-    expect(categorizedPreview?.textContent).toContain("ตัวอย่างที่ลูกค้าจะเห็น");
-    expect(categorizedPreview?.querySelector("[data-gallery-preview-categories]")).not.toBeNull();
-    expect(categorizedPreview?.querySelectorAll("[data-gallery-preview-image]").length).toBeGreaterThan(2);
-    expect(categorizedPreview?.querySelector("[data-gallery-preview-thumbnails]")).toBeNull();
-
-    act(() => {
-      galleryCard
-        ?.querySelector<HTMLInputElement>(
-          'input[name="galleryVariant"][value="lightbox"]',
-        )
-        ?.click();
-    });
-
-    const directPreview = galleryCard?.querySelector(
-      '[data-gallery-style-preview][data-gallery-preview-variant="lightbox"]',
-    );
-    expect(directPreview).not.toBeNull();
-    expect(directPreview?.querySelector("[data-gallery-preview-main-image]")?.textContent).toBe(
-      "รูปภาพ",
-    );
-    expect(directPreview?.querySelector("[data-gallery-preview-thumbnails]")).not.toBeNull();
-    expect(directPreview?.querySelector("[data-gallery-preview-categories]")).toBeNull();
-
-    act(() => {
-      galleryCard
-        ?.querySelector<HTMLInputElement>(
-          'input[name="galleryVariant"][value="categorized-grid"]',
-        )
-        ?.click();
-    });
-
-    act(() => {
-      galleryCard?.querySelector<HTMLButtonElement>("[data-clear-gallery-background]")?.click();
-    });
-    expect(galleryCard?.querySelector<HTMLInputElement>("#galleryBackgroundColor")?.value).toBe("");
-
-    await act(async () => {
-      galleryCard?.querySelector<HTMLButtonElement>("[data-gallery-style-save]")?.click();
-    });
-
-    const patchCall = fetchMock.mock.calls.find(
-      ([url, init]) => url === "/api/admin/site-web-styles/gallery" && init?.method === "PATCH",
-    );
-    expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual({
-      backgroundColor: "",
-      textColor: "#111111",
-      variant: "categorized-grid",
-    });
+      fetchMock.mock.calls.some(
+        ([url]) => url === "/api/admin/site-web-styles/gallery",
+      ),
+    ).toBe(false);
     await page.unmount();
   });
 });

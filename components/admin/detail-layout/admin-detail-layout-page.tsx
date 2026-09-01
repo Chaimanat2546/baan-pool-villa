@@ -2,13 +2,15 @@
 
 import {
   CheckCircle2,
+  ChevronDown,
   CircleAlert,
   Eye,
   RotateCcw,
   Save,
+  Settings2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { validateAnyDetailLayout } from "@/lib/detail-layout/compat";
 import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
@@ -26,6 +28,11 @@ import { useAdminSidebarCollapsed } from "@/components/admin/layout/admin-sideba
 import { AdminDetailLayoutSkeleton } from "@/components/admin/loading/admin-detail-layout-skeleton";
 
 import { BlockLibrary } from "./block-library";
+import {
+  GalleryStyleEditor,
+  type GalleryStyleEditorHandle,
+  type GalleryStyleEditorSaveState,
+} from "./gallery-style-editor";
 import { DetailLayoutPreview } from "./detail-layout-preview";
 import { makeDetailLayoutBlock } from "./detail-layout-helpers";
 import {
@@ -66,6 +73,11 @@ import type {
 } from "./types";
 
 const DETAIL_LAYOUT_PREVIEW_HREF = "/villas/2938";
+
+type DesktopSettingsPinPosition = {
+  left: number;
+  width: number;
+};
 
 function splitDetailLayoutErrors(errors: DetailLayoutV2DraftSaveError[]) {
   const errorMessagesByTarget: Record<string, string[]> = {};
@@ -238,11 +250,75 @@ export function AdminDetailLayoutPage() {
     Record<string, string[]>
   >({});
   const [notice, setNotice] = useState<string | null>(null);
+  const [isSectionNavigationExpanded, setIsSectionNavigationExpanded] =
+    useState(false);
+  const [isDesktopSettingsPinned, setIsDesktopSettingsPinned] =
+    useState(false);
+  const [desktopSettingsPinPosition, setDesktopSettingsPinPosition] =
+    useState<DesktopSettingsPinPosition | null>(null);
+  const [gallerySaveState, setGallerySaveState] =
+    useState<GalleryStyleEditorSaveState>({
+      hasUnsavedChanges: false,
+      isLoading: true,
+      isSaving: false,
+    });
+  const blockLibraryRef = useRef<HTMLElement | null>(null);
+  const galleryEditorRef = useRef<GalleryStyleEditorHandle | null>(null);
+  const sidebarRailRef = useRef<HTMLDivElement | null>(null);
 
   const normalizedActiveSelection = useMemo(
     () => (layout ? normalizeSelection(layout, activeSelection) : null),
     [activeSelection, layout],
   );
+
+  useEffect(() => {
+    const blockLibrary = blockLibraryRef.current;
+
+    if (!blockLibrary || typeof IntersectionObserver === "undefined") {
+      setIsDesktopSettingsPinned(false);
+      return;
+    }
+
+    let latestEntry: IntersectionObserverEntry | null = null;
+
+    function updateDesktopSettingsPin(entry: IntersectionObserverEntry | null) {
+      const shouldPin = Boolean(
+        window.innerWidth >= 1280 &&
+          entry &&
+          !entry.isIntersecting &&
+          entry.boundingClientRect.bottom <= 0,
+      );
+
+      if (!shouldPin) {
+        setDesktopSettingsPinPosition(null);
+        setIsDesktopSettingsPinned(false);
+        return;
+      }
+
+      const railBounds = sidebarRailRef.current?.getBoundingClientRect();
+
+      setDesktopSettingsPinPosition(
+        railBounds && railBounds.width > 0
+          ? { left: railBounds.left, width: railBounds.width }
+          : null,
+      );
+      setIsDesktopSettingsPinned(true);
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      latestEntry = entries[0] ?? null;
+      updateDesktopSettingsPin(latestEntry);
+    });
+    const handleResize = () => updateDesktopSettingsPin(latestEntry);
+
+    observer.observe(blockLibrary);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [layout]);
   const activePlacementLabel = useMemo(
     () => getPlacementLabel(layout, normalizedActiveSelection),
     [layout, normalizedActiveSelection],
@@ -254,6 +330,9 @@ export function AdminDetailLayoutPage() {
 
     return makeDetailLayoutV2Snapshot(layout) !== savedSnapshot;
   }, [layout, savedSnapshot]);
+  const hasPendingChanges =
+    hasUnsavedChanges || gallerySaveState.hasUnsavedChanges;
+  const isSavingChanges = isSaving || gallerySaveState.isSaving;
   const usedBlockTypes = useMemo(() => {
     if (!layout) {
       return [];
@@ -482,12 +561,19 @@ export function AdminDetailLayoutPage() {
   }
 
   async function handleSave() {
-    if (!layout) {
+    const shouldSaveGallery = gallerySaveState.hasUnsavedChanges;
+
+    if (!hasUnsavedChanges && !shouldSaveGallery) {
+      setNotice("ยังไม่มีข้อมูลที่เปลี่ยนแปลงให้บันทึก");
       return;
     }
 
     if (!hasUnsavedChanges) {
-      setNotice("ยังไม่มี layout ที่เปลี่ยนแปลงให้บันทึก");
+      await galleryEditorRef.current?.save();
+      return;
+    }
+
+    if (!layout) {
       return;
     }
 
@@ -524,6 +610,9 @@ export function AdminDetailLayoutPage() {
     }
 
     setIsSaving(true);
+    const gallerySavePromise = shouldSaveGallery
+      ? galleryEditorRef.current?.save()
+      : undefined;
 
     try {
       const response = await fetch("/api/admin/detail-layout", {
@@ -563,51 +652,55 @@ export function AdminDetailLayoutPage() {
         getAdminErrorMessage(caughtError, "บันทึก layout หน้า Details ไม่ได้"),
       ]);
     } finally {
+      await gallerySavePromise;
       setIsSaving(false);
     }
   }
 
   return (
-    <div className="flex w-full flex-col gap-6 text-[var(--site-text)]">
-      <div className="sticky top-[73px] z-20 -mx-4 -mt-4 border-b border-[var(--site-border)] bg-[var(--site-background)]/90 px-4 pb-4 pt-4 backdrop-blur-xl lg:top-0 lg:z-30 lg:-mx-6 lg:-mt-6 lg:px-6 lg:pt-6">
-        <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+    <div className="flex w-full flex-col gap-6 pb-24 text-[var(--site-text)] lg:pb-0">
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--site-border)] bg-[var(--site-background)]/95 px-4 py-3 shadow-[0_-8px_24px_rgb(15_23_42_/_0.12)] backdrop-blur-xl lg:sticky lg:inset-auto lg:top-0 lg:z-30 lg:-mx-6 lg:-mt-6 lg:border-b lg:border-t-0 lg:bg-[var(--site-background)]/90 lg:px-6 lg:pb-3 lg:pt-4 lg:shadow-none"
+        data-detail-layout-page-header="true"
+      >
+        <header className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div className="hidden min-w-0 lg:block">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--site-primary)]">
               Detail Layout
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-normal text-[var(--site-text)]">
+            <h1 className="mt-1 text-2xl font-bold tracking-normal text-[var(--site-text)]">
               จัดหน้า Details
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--site-muted)]">
+            <p className="mt-1 max-w-3xl text-sm leading-5 text-[var(--site-muted)]">
               จัดลำดับแถว เปิดหรือปิดการแสดงผล และวางบล็อกของหน้ารายละเอียดบ้านพักในมุมมองแบบ
               master-detail-preview
             </p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
-                  hasUnsavedChanges
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ring-1 ${
+                  hasPendingChanges
                     ? "bg-amber-50 text-amber-800 ring-amber-200"
                     : "bg-emerald-50 text-emerald-700 ring-emerald-200"
                 }`}
               >
-                {hasUnsavedChanges ? (
+                {hasPendingChanges ? (
                   <CircleAlert aria-hidden="true" className="size-3.5" />
                 ) : (
                   <CheckCircle2 aria-hidden="true" className="size-3.5" />
                 )}
-                {hasUnsavedChanges ? "มีการแก้ไขที่ยังไม่บันทึก" : "บันทึกล่าสุดแล้ว"}
+                {hasPendingChanges ? "มีการแก้ไขที่ยังไม่บันทึก" : "บันทึกล่าสุดแล้ว"}
               </span>
               {layout ? (
-                <span className="inline-flex items-center rounded-full bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
+                <span className="inline-flex items-center rounded-full bg-[var(--site-surface)] px-2.5 py-1 text-[var(--site-muted)] ring-1 ring-[var(--site-border)]">
                   ตำแหน่งที่เลือก: {activePlacementLabel}
                 </span>
               ) : null}
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 lg:justify-end">
+          <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:justify-end">
             <button
-              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+              className="hidden h-10 items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] lg:inline-flex"
               disabled={isLoading || isSaving}
               onClick={handleReset}
               type="button"
@@ -616,7 +709,7 @@ export function AdminDetailLayoutPage() {
               ค่าเริ่มต้น
             </button>
             <a
-              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-5 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)] lg:w-auto"
               href={DETAIL_LAYOUT_PREVIEW_HREF}
               rel="noopener noreferrer"
               target="_blank"
@@ -625,18 +718,19 @@ export function AdminDetailLayoutPage() {
               ดูหน้าเว็บจริง
             </a>
             <button
-              className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--site-primary)] px-6 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
-              disabled={isLoading || isSaving || !hasUnsavedChanges}
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-5 text-sm font-semibold text-[var(--site-on-primary)] shadow-lg shadow-[var(--site-primary)]/20 transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none lg:w-auto"
+              data-detail-layout-save
+              disabled={isLoading || isSavingChanges || !hasPendingChanges}
               onClick={() => {
                 void handleSave();
               }}
               type="button"
             >
               <Save aria-hidden="true" className={`size-4 ${isSaving ? "animate-pulse" : ""}`} />
-              {isSaving
+              {isSavingChanges
                 ? "กำลังบันทึก..."
-                : hasUnsavedChanges
-                  ? "บันทึก layout"
+                : hasPendingChanges
+                  ? "บันทึก"
                   : "บันทึก"}
             </button>
           </div>
@@ -660,8 +754,105 @@ export function AdminDetailLayoutPage() {
               : "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]"
           }`}
         >
-          <aside className="grid content-start gap-4 xl:sticky xl:top-36 xl:self-start">
-            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm">
+          <div
+            className="grid content-start gap-4 xl:self-start"
+            data-detail-layout-sidebar-rail="true"
+            ref={sidebarRailRef}
+          >
+            <aside
+              aria-label="การตั้งค่าหน้า Details"
+              className={`sticky top-[73px] z-20 self-start rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm lg:relative lg:top-auto xl:order-1 ${
+                isDesktopSettingsPinned
+                  ? "xl:fixed xl:top-32 xl:z-20"
+                  : "xl:relative xl:top-auto"
+              }`}
+              data-detail-layout-section-navigation="true"
+              data-detail-layout-section-navigation-pinned={
+                isDesktopSettingsPinned ? "true" : "false"
+              }
+              style={
+                isDesktopSettingsPinned && desktopSettingsPinPosition
+                  ? {
+                      left: desktopSettingsPinPosition.left,
+                      width: desktopSettingsPinPosition.width,
+                    }
+                  : undefined
+              }
+            >
+              <button
+                aria-controls="detail-layout-section-navigation"
+                aria-expanded={isSectionNavigationExpanded}
+                className="flex w-full items-center justify-between gap-3 p-4 text-left lg:hidden"
+                onClick={() => setIsSectionNavigationExpanded((current) => !current)}
+                type="button"
+              >
+                <span className="inline-flex items-center gap-2 text-sm font-bold text-[var(--site-text)]">
+                  <Settings2
+                    aria-hidden="true"
+                    className="size-4 text-[var(--site-primary)]"
+                  />
+                  การตั้งค่าหน้า Details
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`size-4 transition ${
+                    isSectionNavigationExpanded ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              <div
+                className={
+                  isSectionNavigationExpanded ? "block" : "hidden lg:block"
+                }
+              >
+                <div className="hidden border-b border-[var(--site-border)] p-4 lg:block">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--site-primary)]">
+                    การตั้งค่าหน้า Details
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--site-muted)]">
+                    เลือกส่วนที่ต้องการจัดการ
+                  </p>
+                </div>
+
+                <nav
+                  aria-label="ส่วนการตั้งค่าหน้า Details"
+                  className="grid gap-1 p-2"
+                  id="detail-layout-section-navigation"
+                >
+                  <a
+                    className="rounded-md px-3 py-2.5 text-[var(--site-text)] transition hover:bg-[var(--site-surface-tint)]"
+                    href="#detail-layout-canvas"
+                    onClick={() => setIsSectionNavigationExpanded(false)}
+                  >
+                    <span className="block text-sm font-semibold">
+                      ผังหน้า Details
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-5 text-[var(--site-muted)]">
+                      จัดลำดับแถว บล็อก และสัดส่วนหน้ารายละเอียด
+                    </span>
+                  </a>
+                  <a
+                    className="rounded-md px-3 py-2.5 text-[var(--site-text)] transition hover:bg-[var(--site-surface-tint)]"
+                    href="#gallery-opening-style"
+                    onClick={() => setIsSectionNavigationExpanded(false)}
+                  >
+                    <span className="block text-sm font-semibold">
+                      วิธีเปิดดูรูปบ้าน
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-5 text-[var(--site-muted)]">
+                      เลือกรูปแบบและสีของการแสดงรูปบ้าน
+                    </span>
+                  </a>
+                </nav>
+              </div>
+            </aside>
+
+            <section
+              className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-sm xl:order-2"
+              data-detail-layout-block-library="true"
+              ref={blockLibraryRef}
+            >
               <div className="border-b border-[var(--site-border)] pb-3">
                 <h2 className="text-base font-semibold text-[var(--site-text)]">
                   คลังบล็อก
@@ -679,10 +870,13 @@ export function AdminDetailLayoutPage() {
                 />
               </div>
             </section>
-          </aside>
+          </div>
 
-          <main className="min-w-0">
-            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+          <main className="grid min-w-0 content-start gap-6">
+            <section
+              className="scroll-mt-44 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm lg:scroll-mt-40"
+              id="detail-layout-canvas"
+            >
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--site-border)] px-4 py-4 sm:px-5">
                 <div className="min-w-0">
                   <h2 className="text-base font-semibold text-[var(--site-text)]">
@@ -857,12 +1051,35 @@ export function AdminDetailLayoutPage() {
                 </div>
               </div>
             </section>
+
+            <div className="scroll-mt-44 lg:scroll-mt-40" id="gallery-opening-style">
+              <GalleryStyleEditor
+                onSaveStateChange={setGallerySaveState}
+                ref={galleryEditorRef}
+              />
+            </div>
           </main>
 
           <aside
-            className="grid content-start gap-4 xl:col-start-2 xl:row-start-2 2xl:sticky 2xl:col-start-3 2xl:row-start-1 2xl:top-36 2xl:self-start"
+            className="grid content-start gap-4 xl:col-start-2 xl:row-start-2 2xl:sticky 2xl:col-start-3 2xl:row-start-1 2xl:top-32 2xl:self-start"
             data-detail-layout-side-panel="true"
           >
+            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
+              <div className="border-b border-[var(--site-border)] px-4 py-4">
+                <h2 className="text-base font-semibold text-[var(--site-text)]">
+                  พรีวิวย่อ
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                  ตรวจดูภาพรวมของหน้า detail พร้อมตำแหน่งที่กำลังแก้ไข
+                </p>
+              </div>
+              <div className="p-4">
+                <DetailLayoutPreview
+                  activeSelection={normalizedActiveSelection}
+                  layout={layout}
+                />
+              </div>
+            </section>
             <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
               <div className="border-b border-[var(--site-border)] px-4 py-4">
                 <h2 className="text-base font-semibold text-[var(--site-text)]">
@@ -936,22 +1153,6 @@ export function AdminDetailLayoutPage() {
               </div>
             </section>
 
-            <section className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] shadow-sm">
-              <div className="border-b border-[var(--site-border)] px-4 py-4">
-                <h2 className="text-base font-semibold text-[var(--site-text)]">
-                  พรีวิวย่อ
-                </h2>
-                <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
-                  ตรวจดูภาพรวมของหน้า detail พร้อมตำแหน่งที่กำลังแก้ไข
-                </p>
-              </div>
-              <div className="p-4">
-                <DetailLayoutPreview
-                  activeSelection={normalizedActiveSelection}
-                  layout={layout}
-                />
-              </div>
-            </section>
           </aside>
         </div>
       )}

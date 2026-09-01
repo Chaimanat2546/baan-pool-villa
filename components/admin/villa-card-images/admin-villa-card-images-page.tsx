@@ -461,15 +461,6 @@ export function AdminVillaCardImagesPage({ embedded = false }: { embedded?: bool
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link
-                className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 text-sm font-semibold text-[var(--site-primary)] shadow-sm transition hover:bg-[var(--site-primary-soft)]"
-                data-villa-card-house-list-link
-                href="/admin/card-images/houses"
-                prefetch={false}
-              >
-                <Images className="h-4 w-4" />
-                จัดการรูปปกบ้าน
-              </Link>
               <button
                 className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-semibold text-[var(--site-on-primary)] shadow-sm transition hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--site-border-strong)] disabled:text-[var(--site-on-primary)]/80 disabled:shadow-none"
                 data-villa-card-save-style

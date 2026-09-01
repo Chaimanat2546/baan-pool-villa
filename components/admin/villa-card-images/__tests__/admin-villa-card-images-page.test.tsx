@@ -95,16 +95,7 @@ describe("AdminVillaCardImagesPage", () => {
     expect(
       page.container.querySelector('[data-villa-card-preview-option="gallery"]'),
     ).not.toBeNull();
-    expect(
-      page.container
-        .querySelector("[data-villa-card-house-list-link]")
-        ?.getAttribute("href"),
-    ).toBe("/admin/card-images/houses");
-    expect(
-      page.container.querySelector(
-        '[data-villa-card-preview-option="gallery"] [data-villa-card-house-list-link]',
-      ),
-    ).toBeNull();
+    expect(page.container.querySelector("[data-villa-card-house-list-link]")).toBeNull();
     const galleryRadio = page.container.querySelector<HTMLInputElement>(
       '[name="villaCardStyle"][value="gallery"]',
     );
@@ -187,9 +178,7 @@ describe("AdminVillaCardImagesPage", () => {
 
     expect(page.container.querySelector("h1")).toBeNull();
     expect(page.container.textContent).not.toContain("Card images");
-    expect(
-      page.container.querySelector("[data-villa-card-house-list-link]"),
-    ).not.toBeNull();
+    expect(page.container.querySelector("[data-villa-card-house-list-link]")).toBeNull();
 
     await page.unmount();
   });
