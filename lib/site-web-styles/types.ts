@@ -1,11 +1,13 @@
 export type WebStyleType = "header" | "gallery" | "house_card";
 export type DesktopHeaderVariant = "centered-contact" | "right-booking";
 export type GalleryModalVariant = "lightbox" | "categorized-grid";
+export type GalleryImageSource = "standard" | "system";
 export type SiteVillaCardStyle = "classic" | "gallery";
 
 export interface GalleryStyleOptions {
   backgroundColor?: string;
   categoryOrder?: import("./gallery-categories").GalleryCategoryKey[];
+  imageSource?: GalleryImageSource;
   showCover?: boolean;
   textColor?: string;
 }

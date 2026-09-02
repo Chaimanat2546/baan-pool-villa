@@ -18,6 +18,7 @@ export function VillaDetailPage({
   id,
   initialGalleryImages = EMPTY_INITIAL_GALLERY_IMAGES,
   initialGalleryLoadFailed = false,
+  initialGalleryPreviewImages = initialGalleryImages,
   payload,
   recommendedSection,
   settings,
@@ -56,6 +57,7 @@ export function VillaDetailPage({
         id={id}
         initialGalleryImages={initialGalleryImages}
         initialGalleryLoadFailed={initialGalleryLoadFailed}
+        initialGalleryPreviewImages={initialGalleryPreviewImages}
         listing={listing}
         recommendedSection={recommendedSection}
         settings={settings}

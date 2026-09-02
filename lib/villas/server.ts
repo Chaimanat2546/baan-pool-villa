@@ -3,9 +3,10 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import type { GalleryImageSource } from "@/lib/site-web-styles/types";
 import {
   fetchVillaCoverOverrideUrls,
-  fetchVillaImages,
+  fetchVillaSourceImages,
   normalizeImageRows,
   resolveDisplayImages,
 } from "./images";
@@ -1521,6 +1522,7 @@ export async function fetchVillaDetail(
 export type VillaPageData = {
   initialGalleryImages: PublicVillaImage[];
   initialGalleryLoadFailed: boolean;
+  initialGalleryPreviewImages: PublicVillaImage[];
   payload: PublicVillaDetailPayload;
   recommendedSection: null;
 };
@@ -1534,6 +1536,7 @@ export type VillaPageData = {
  */
 export async function fetchVillaPageData(
   id: string,
+  galleryImageSource: GalleryImageSource = "standard",
 ): Promise<VillaPageData | null> {
   const listing = await getListingById(id);
 
@@ -1541,24 +1544,42 @@ export async function fetchVillaPageData(
     return null;
   }
 
-  const initialGalleryPromise = fetchVillaImages(id)
+  const initialGalleryPromise = fetchVillaSourceImages(id)
     .then((images) => ({ failed: false as const, images }))
     .catch((error: unknown) => {
       console.error("Unable to load villa detail gallery images", error);
       return { failed: true as const, images: [] };
     });
-  const [payload, galleryResult] = await Promise.all([
+  const galleryPreviewPromise =
+    galleryImageSource === "system"
+      ? resolveDisplayImages(id)
+          .catch((error: unknown) => {
+            console.error("Unable to load villa detail gallery preview images", error);
+            return null;
+          })
+      : Promise.resolve(null);
+  const [payload, galleryResult, configuredPreviewImages] = await Promise.all([
     fetchVillaDetail(id, [listing]),
     initialGalleryPromise,
+    galleryPreviewPromise,
   ]);
 
   if (!payload) {
     return null;
   }
 
+  const previewImages =
+    configuredPreviewImages && configuredPreviewImages.length > 0
+      ? configuredPreviewImages
+      : galleryResult.images;
+
   return {
     initialGalleryImages: toPublicVillaImages(id, galleryResult.images),
     initialGalleryLoadFailed: galleryResult.failed,
+    initialGalleryPreviewImages: toPublicVillaImages(
+      id,
+      previewImages,
+    ),
     payload: toPublicVillaDetailPayload(payload),
     recommendedSection: null,
   };

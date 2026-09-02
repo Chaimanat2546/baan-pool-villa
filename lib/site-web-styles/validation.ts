@@ -10,6 +10,7 @@ import type {
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const HEADER_VARIANTS = new Set(["centered-contact", "right-booking"]);
 const GALLERY_VARIANTS = new Set(["lightbox", "categorized-grid"]);
+const GALLERY_IMAGE_SOURCES = new Set(["standard", "system"]);
 const HOUSE_CARD_VARIANTS = new Set(["classic", "gallery"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -30,6 +31,9 @@ export function normalizeGalleryOptions(value: unknown): GalleryStyleOptions {
     ...(isHexColor(value.textColor) ? { textColor: value.textColor } : {}),
     ...(isGalleryCategoryOrder(value.categoryOrder)
       ? { categoryOrder: [...value.categoryOrder] }
+      : {}),
+    ...(GALLERY_IMAGE_SOURCES.has(String(value.imageSource))
+      ? { imageSource: value.imageSource as GalleryStyleOptions["imageSource"] }
       : {}),
     ...(typeof value.showCover === "boolean" ? { showCover: value.showCover } : {}),
   };
@@ -75,7 +79,7 @@ export function validateWebStyleDraft(
 
   const allowedKeys =
     type === "gallery"
-      ? new Set(["variant", "backgroundColor", "categoryOrder", "showCover", "textColor"])
+      ? new Set(["variant", "backgroundColor", "categoryOrder", "imageSource", "showCover", "textColor"])
       : new Set(["variant"]);
   const errors: string[] = [];
 
@@ -108,6 +112,12 @@ export function validateWebStyleDraft(
     }
     if (value.showCover !== undefined && typeof value.showCover !== "boolean") {
       errors.push("showCover must be a boolean.");
+    }
+    if (
+      value.imageSource !== undefined &&
+      !GALLERY_IMAGE_SOURCES.has(String(value.imageSource))
+    ) {
+      errors.push("imageSource must be standard or system.");
     }
   }
 

@@ -46,6 +46,8 @@ describe("site web styles admin route", () => {
       settings: {
         backgroundColor: "#ffffff",
         categoryOrder: DEFAULT_GALLERY_CATEGORY_ORDER,
+        imageSource: "standard",
+        showCover: true,
         variant: "categorized-grid",
       },
     });
@@ -87,6 +89,8 @@ describe("site web styles admin route", () => {
     await expect(response.json()).resolves.toEqual({
       settings: {
         categoryOrder: DEFAULT_GALLERY_CATEGORY_ORDER,
+        imageSource: "standard",
+        showCover: true,
         textColor: "#111111",
         variant: "categorized-grid",
       },

@@ -122,6 +122,23 @@ const GALLERY_OPTIONS: Array<{
   },
 ];
 
+const GALLERY_IMAGE_SOURCE_OPTIONS: Array<{
+  description: string;
+  label: string;
+  value: NonNullable<GalleryDraft["imageSource"]>;
+}> = [
+  {
+    description: "ใช้รูปทั้งหมดจากข้อมูลบ้านตามปกติ",
+    label: "รูปมาตรฐานของบ้าน",
+    value: "standard",
+  },
+  {
+    description: "ใช้ชุดรูปเดียวกับที่ตั้งไว้ใน จัดการรูปปกบ้าน",
+    label: "รูปจากระบบ",
+    value: "system",
+  },
+];
+
 const GalleryStyleEditorContent = forwardRef<
   GalleryStyleEditorHandle,
   GalleryStyleEditorProps
@@ -135,6 +152,7 @@ const GalleryStyleEditorContent = forwardRef<
       return {
         backgroundColor: settings.backgroundColor ?? "",
         categoryOrder: settings.categoryOrder ?? DEFAULT_GALLERY_CATEGORY_ORDER,
+        imageSource: settings.imageSource ?? "standard",
         showCover: settings.showCover ?? true,
         textColor: settings.textColor ?? "",
         variant: settings.variant,
@@ -257,6 +275,35 @@ const GalleryStyleEditorContent = forwardRef<
                 </label>
               ))}
             </div>
+
+            <fieldset className="grid gap-3">
+              <legend className="text-sm font-semibold text-[var(--site-text)]">
+                ชุดรูปด้านบนหน้ารายละเอียด
+              </legend>
+              <p className="-mt-2 text-xs leading-5 text-[var(--site-muted)]">
+                ใช้กับรูปใหญ่และรูปเล็กทั้งหมดในแกลเลอรีเปิดหน้ารายละเอียด
+              </p>
+              {GALLERY_IMAGE_SOURCE_OPTIONS.map((option) => (
+                <label
+                  className="flex cursor-pointer gap-3 rounded-lg border border-[var(--site-border)] p-3 has-[:checked]:border-[var(--site-primary)] has-[:checked]:bg-[var(--site-primary-soft)]"
+                  key={option.value}
+                >
+                  <input
+                    checked={draft.imageSource === option.value}
+                    name="galleryImageSource"
+                    onChange={() => state.updateDraft({ imageSource: option.value })}
+                    type="radio"
+                    value={option.value}
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold">{option.label}</span>
+                    <span className="mt-1 block text-xs leading-5 text-[var(--site-text-muted)]">
+                      {option.description}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
 
             <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3">
               <div>
@@ -422,7 +469,7 @@ const GalleryStyleEditorContent = forwardRef<
                     <span className="text-sm font-medium text-[var(--site-text)]">1. {GALLERY_CATEGORY_LABELS.cover}</span>
                     <label className="inline-flex items-center gap-2 text-sm font-medium text-[var(--site-text)]">
                       <input checked={showCoverDraft ?? true} data-gallery-show-cover disabled={state.isSaving} onChange={(event) => setShowCoverDraft(event.target.checked)} type="checkbox" />
-                      แสดงรูปปก
+                      แสดงหมวดรูปปกในแกลเลอรี่
                     </label>
                   </li>
                   {categoryOrderDraft.filter((categoryKey) => categoryKey !== "cover").map((categoryKey, index) => <SortableGalleryCategoryRow categoryKey={categoryKey} disabled={state.isSaving} index={index + 1} key={categoryKey} />)}

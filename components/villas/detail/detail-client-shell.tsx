@@ -56,6 +56,7 @@ interface VillaDetailClientShellProps {
   id: string;
   initialGalleryImages?: PublicVillaImage[];
   initialGalleryLoadFailed?: boolean;
+  initialGalleryPreviewImages?: PublicVillaImage[];
   listing: PublicVillaListing;
   recommendedSection: PublicRecommendedVillaSection | null;
   settings: SiteSettings;
@@ -74,6 +75,7 @@ export function VillaDetailClientShell({
   id,
   initialGalleryImages = [],
   initialGalleryLoadFailed = false,
+  initialGalleryPreviewImages = initialGalleryImages,
   listing,
   recommendedSection,
   settings,
@@ -87,6 +89,7 @@ export function VillaDetailClientShell({
     activeGalleryItem,
     galleryCategories,
     galleryItems,
+    galleryPreviewItems,
     galleryLoadError,
     galleryLoadStatus,
     handleGalleryImageClick,
@@ -96,10 +99,12 @@ export function VillaDetailClientShell({
     visibleGalleryItemCount,
   } = useVillaGallery({
     categoryOrder: galleryStyle.categoryOrder ?? [],
+    imageSource: galleryStyle.imageSource ?? "standard",
     showCover: galleryStyle.showCover ?? true,
     id,
     initialGalleryImages,
     initialGalleryLoadFailed,
+    initialGalleryPreviewImages,
   });
 
   const galleryModalView =
@@ -144,7 +149,7 @@ export function VillaDetailClientShell({
   return (
     <>
       <VillaDetailGallery
-        items={galleryItems}
+        items={galleryPreviewItems}
         listing={listing}
         onImageClick={handleDirectImageClick}
         onImageError={handleImageError}

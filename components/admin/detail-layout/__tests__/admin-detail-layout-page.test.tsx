@@ -419,11 +419,53 @@ describe("AdminDetailLayoutPage", () => {
             "review",
             "uncategorized",
           ],
+          imageSource: "standard",
           showCover: true,
           textColor: "#111111",
           variant: "lightbox",
         }),
         headers: expect.any(Headers),
+        method: "PATCH",
+      }),
+    );
+
+    await page.unmount();
+  });
+
+  it("lets admins select the card-configured image set for the complete detail gallery", async () => {
+    const fetchMock = makeFetchMock([
+      { body: { layout: savedLayout }, url: "/api/admin/detail-layout" },
+      {
+        body: { settings: { imageSource: "standard", variant: "lightbox" } },
+        url: "/api/admin/site-web-styles/gallery",
+      },
+      {
+        body: { settings: { imageSource: "system", variant: "lightbox" } },
+        method: "PATCH",
+        url: "/api/admin/site-web-styles/gallery",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    await flushEffects();
+    await flushEffects();
+    const systemSource = page.container.querySelector<HTMLInputElement>(
+      'input[name="galleryImageSource"][value="system"]',
+    );
+
+    expect(systemSource?.checked).toBe(false);
+
+    await click(systemSource as HTMLInputElement);
+    await click(page.container.querySelector<HTMLButtonElement>(
+      "[data-detail-layout-save]",
+    ) as HTMLButtonElement);
+    await flushEffects();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/site-web-styles/gallery",
+      expect.objectContaining({
+        body: expect.stringContaining('"imageSource":"system"'),
         method: "PATCH",
       }),
     );
@@ -557,6 +599,7 @@ describe("AdminDetailLayoutPage", () => {
         body: JSON.stringify({
           backgroundColor: "",
           categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review", "uncategorized"],
+          imageSource: "standard",
           showCover: false,
           textColor: "",
           variant: "categorized-grid",

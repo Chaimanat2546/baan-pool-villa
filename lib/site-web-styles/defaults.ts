@@ -4,6 +4,7 @@ import { DEFAULT_GALLERY_CATEGORY_ORDER } from "./gallery-categories";
 export const DEFAULT_SITE_WEB_STYLES: SiteWebStyles = {
   gallery: {
     categoryOrder: DEFAULT_GALLERY_CATEGORY_ORDER,
+    imageSource: "standard",
     showCover: true,
     variant: "lightbox",
   },

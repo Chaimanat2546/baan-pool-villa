@@ -50,6 +50,7 @@ describe("site web style validation", () => {
           "review",
           "uncategorized",
           ],
+          imageSource: "standard",
           showCover: true,
           textColor: "#111111",
         variant: "categorized-grid",
@@ -112,6 +113,24 @@ describe("site web style validation", () => {
         variant: "categorized-grid",
       }),
     ).toEqual(["categoryOrder must contain every gallery category exactly once."]);
+  });
+
+  it("keeps the selected source for the complete detail gallery image set", () => {
+    expect(
+      normalizeGalleryOptions({ imageSource: "system" }),
+    ).toEqual({ imageSource: "system" });
+    expect(
+      validateWebStyleDraft("gallery", {
+        imageSource: "system",
+        variant: "lightbox",
+      }),
+    ).toEqual([]);
+    expect(
+      validateWebStyleDraft("gallery", {
+        imageSource: "other",
+        variant: "lightbox",
+      }),
+    ).toEqual(["imageSource must be standard or system."]);
   });
 
   it("rejects unknown fields and malformed Gallery colors", () => {

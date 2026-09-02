@@ -11,20 +11,24 @@ import type { GalleryItem } from "./types";
 
 interface UseVillaGalleryOptions {
   categoryOrder: GalleryCategoryKey[];
+  imageSource: "standard" | "system";
   showCover: boolean;
   id: string;
   initialGalleryImages: PublicVillaImage[];
   initialGalleryLoadFailed: boolean;
+  initialGalleryPreviewImages: PublicVillaImage[];
 }
 
 const EMPTY_FAILED_IMAGE_URLS = new Set<string>();
 
 export function useVillaGallery({
   categoryOrder,
+  imageSource,
   showCover,
   id,
   initialGalleryImages,
   initialGalleryLoadFailed,
+  initialGalleryPreviewImages,
 }: UseVillaGalleryOptions) {
   const galleryLoadState = useMemo(
     () =>
@@ -57,16 +61,44 @@ export function useVillaGallery({
     [galleryLoadState.images],
   );
   const visibleGalleryItems = useMemo(
-    () => allGalleryItems.filter((item) => !failedImageUrls.has(item.url) && (showCover || !item.isCover)),
-    [allGalleryItems, failedImageUrls, showCover],
+    () => allGalleryItems.filter((item) => !failedImageUrls.has(item.url)),
+    [allGalleryItems, failedImageUrls],
   );
   const galleryItems = useMemo(
     () => buildDisplayGallery(visibleGalleryItems),
     [visibleGalleryItems],
   );
+  const galleryPreviewItems = useMemo(
+    () => {
+      const previewSourceImages =
+        imageSource === "system"
+          ? initialGalleryPreviewImages
+          : galleryLoadState.images;
+      const previewItems = buildGalleryItems(
+        previewSourceImages,
+        imageSource === "system",
+      ).filter((item) => !failedImageUrls.has(item.url));
+
+      return imageSource === "system"
+        ? previewItems.slice(0, 4)
+        : buildDisplayGallery(previewItems);
+    },
+    [
+      failedImageUrls,
+      galleryLoadState.images,
+      imageSource,
+      initialGalleryPreviewImages,
+    ],
+  );
   const galleryCategories = useMemo(
-    () => buildGalleryCategories(visibleGalleryItems, categoryOrder),
-    [categoryOrder, visibleGalleryItems],
+    () =>
+      buildGalleryCategories(
+        showCover
+          ? visibleGalleryItems
+          : visibleGalleryItems.filter((item) => !item.isCover),
+        categoryOrder,
+      ),
+    [categoryOrder, showCover, visibleGalleryItems],
   );
 
   const handleImageError = (imageUrl: string) => {
@@ -105,6 +137,7 @@ export function useVillaGallery({
     activeGalleryItem,
     galleryCategories,
     galleryItems,
+    galleryPreviewItems,
     galleryLoadError: galleryLoadState.error,
     galleryLoadStatus: galleryLoadState.status,
     handleGalleryImageClick,

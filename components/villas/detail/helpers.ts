@@ -45,10 +45,13 @@ function getCoverPriority(image: PublicVillaImage): number {
   return image.isCover ? 1 : 0;
 }
 
-export function buildGalleryItems(images: PublicVillaImage[]): GalleryItem[] {
+export function buildGalleryItems(
+  images: PublicVillaImage[],
+  preserveOrder = false,
+): GalleryItem[] {
   const seenUrls = new Set<string>();
   const items: GalleryItem[] = [];
-  const sortedImages = [...images].sort((a, b) => {
+  const sortedImages = preserveOrder ? images : [...images].sort((a, b) => {
     const aCoverPriority = getCoverPriority(a);
     const bCoverPriority = getCoverPriority(b);
 
