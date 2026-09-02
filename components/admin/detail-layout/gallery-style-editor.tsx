@@ -135,6 +135,7 @@ const GalleryStyleEditorContent = forwardRef<
       return {
         backgroundColor: settings.backgroundColor ?? "",
         categoryOrder: settings.categoryOrder ?? DEFAULT_GALLERY_CATEGORY_ORDER,
+        showCover: settings.showCover ?? true,
         textColor: settings.textColor ?? "",
         variant: settings.variant,
       };
@@ -151,6 +152,7 @@ const GalleryStyleEditorContent = forwardRef<
   const [categoryOrderDraft, setCategoryOrderDraft] = useState<
     typeof DEFAULT_GALLERY_CATEGORY_ORDER | null
   >(null);
+  const [showCoverDraft, setShowCoverDraft] = useState<boolean | null>(null);
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
@@ -188,6 +190,20 @@ const GalleryStyleEditorContent = forwardRef<
     state.isLoading,
     state.isSaving,
   ]);
+
+  useEffect(() => {
+    if (!categoryOrderDraft) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [categoryOrderDraft]);
 
   return (
     <section
@@ -254,7 +270,10 @@ const GalleryStyleEditorContent = forwardRef<
               <button
                 className="inline-flex min-h-10 items-center rounded-md bg-[var(--site-primary)] px-3 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
                 data-open-gallery-category-order
-                onClick={() => setCategoryOrderDraft([...categoryOrder])}
+                onClick={() => {
+                  setCategoryOrderDraft([...categoryOrder]);
+                  setShowCoverDraft(draft.showCover ?? true);
+                }}
                 type="button"
               >
                 จัดลำดับหมวดรูปภาพ
@@ -366,7 +385,10 @@ const GalleryStyleEditorContent = forwardRef<
               <button
                 aria-label="ปิดหน้าต่างจัดลำดับหมวดรูปภาพ"
                 className="grid size-9 shrink-0 place-items-center rounded-md text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)]"
-                onClick={() => setCategoryOrderDraft(null)}
+                onClick={() => {
+                  setCategoryOrderDraft(null);
+                  setShowCoverDraft(null);
+                }}
                 type="button"
               >
                 <X aria-hidden="true" className="size-5" />
@@ -394,15 +416,22 @@ const GalleryStyleEditorContent = forwardRef<
               }}
               sensors={state.isSaving ? [] : sensors}
             >
-              <SortableContext items={categoryOrderDraft} strategy={verticalListSortingStrategy}>
-                <ol aria-label="เรียงลำดับหมวดรูปภาพ" className="grid content-start gap-2 overflow-y-auto px-4 py-4">
-                  {categoryOrderDraft.map((categoryKey, index) => <SortableGalleryCategoryRow categoryKey={categoryKey} disabled={state.isSaving} index={index} key={categoryKey} />)}
+              <SortableContext items={categoryOrderDraft.filter((categoryKey) => categoryKey !== "cover")} strategy={verticalListSortingStrategy}>
+                <ol aria-label="เรียงลำดับหมวดรูปภาพ" className="grid content-start gap-2 overflow-y-auto overscroll-contain px-4 py-4">
+                  <li className="flex items-center justify-between gap-3 rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2" data-gallery-category-key="cover">
+                    <span className="text-sm font-medium text-[var(--site-text)]">1. {GALLERY_CATEGORY_LABELS.cover}</span>
+                    <label className="inline-flex items-center gap-2 text-sm font-medium text-[var(--site-text)]">
+                      <input checked={showCoverDraft ?? true} data-gallery-show-cover disabled={state.isSaving} onChange={(event) => setShowCoverDraft(event.target.checked)} type="checkbox" />
+                      แสดงรูปปก
+                    </label>
+                  </li>
+                  {categoryOrderDraft.filter((categoryKey) => categoryKey !== "cover").map((categoryKey, index) => <SortableGalleryCategoryRow categoryKey={categoryKey} disabled={state.isSaving} index={index + 1} key={categoryKey} />)}
                 </ol>
               </SortableContext>
             </DndContext>
             <div className="flex justify-end gap-2 border-t border-[var(--site-border)] px-4 py-3">
-              <button className="min-h-11 rounded-md px-3 text-sm font-semibold text-[var(--site-text)] hover:bg-[var(--site-surface-tint)] disabled:cursor-not-allowed disabled:opacity-40" data-cancel-gallery-category-order disabled={state.isSaving} onClick={() => setCategoryOrderDraft(null)} type="button">ยกเลิก</button>
-              <button className="min-h-11 rounded-md bg-[var(--site-primary)] px-3 text-sm font-semibold text-[var(--site-on-primary)] hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40" disabled={state.isSaving} onClick={() => { state.updateDraft({ categoryOrder: categoryOrderDraft }); setCategoryOrderDraft(null); }} type="button">บันทึกลำดับ</button>
+              <button className="min-h-11 rounded-md px-3 text-sm font-semibold text-[var(--site-text)] hover:bg-[var(--site-surface-tint)] disabled:cursor-not-allowed disabled:opacity-40" data-cancel-gallery-category-order disabled={state.isSaving} onClick={() => { setCategoryOrderDraft(null); setShowCoverDraft(null); }} type="button">ยกเลิก</button>
+              <button className="min-h-11 rounded-md bg-[var(--site-primary)] px-3 text-sm font-semibold text-[var(--site-on-primary)] hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40" data-save-gallery-category-order disabled={state.isSaving} onClick={() => { state.updateDraft({ categoryOrder: categoryOrderDraft, showCover: showCoverDraft ?? true }); setCategoryOrderDraft(null); setShowCoverDraft(null); }} type="button">บันทึกลำดับ</button>
             </div>
           </section>
         </div>

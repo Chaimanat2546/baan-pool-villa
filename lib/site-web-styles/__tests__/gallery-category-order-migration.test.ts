@@ -18,7 +18,7 @@ describe("gallery category order database constraint", () => {
     );
 
     expect(migration).toContain("drop constraint if exists site_web_styles_options_check");
-    expect(migration).toMatch(/options\s*-\s*'backgroundColor'\s*-\s*'textColor'\s*-\s*'categoryOrder'/i);
+    expect(migration).toMatch(/options\s*-\s*'backgroundColor'\s*-\s*'textColor'\s*-\s*'categoryOrder'\s*-\s*'showCover'/i);
     expect(migration).toMatch(/jsonb_array_length\(options\s*->\s*'categoryOrder'\)\s*=\s*11/i);
     expect(migration).toContain("notify pgrst, 'reload schema'");
   });

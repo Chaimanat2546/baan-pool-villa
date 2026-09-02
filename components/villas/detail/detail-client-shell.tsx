@@ -96,6 +96,7 @@ export function VillaDetailClientShell({
     visibleGalleryItemCount,
   } = useVillaGallery({
     categoryOrder: galleryStyle.categoryOrder ?? [],
+    showCover: galleryStyle.showCover ?? true,
     id,
     initialGalleryImages,
     initialGalleryLoadFailed,

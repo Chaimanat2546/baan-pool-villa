@@ -6,6 +6,7 @@ export type SiteVillaCardStyle = "classic" | "gallery";
 export interface GalleryStyleOptions {
   backgroundColor?: string;
   categoryOrder?: import("./gallery-categories").GalleryCategoryKey[];
+  showCover?: boolean;
   textColor?: string;
 }
 

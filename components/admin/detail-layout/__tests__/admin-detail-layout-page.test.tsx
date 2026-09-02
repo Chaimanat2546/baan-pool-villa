@@ -419,6 +419,7 @@ describe("AdminDetailLayoutPage", () => {
             "review",
             "uncategorized",
           ],
+          showCover: true,
           textColor: "#111111",
           variant: "lightbox",
         }),
@@ -478,9 +479,20 @@ describe("AdminDetailLayoutPage", () => {
     const poolDragHandle = page.container.querySelector<HTMLButtonElement>(
       '[data-gallery-category-key="pool"] [aria-label="ลากสระว่ายน้ำเพื่อจัดลำดับ"]',
     );
+    const coverDragHandle = page.container.querySelector<HTMLButtonElement>(
+      '[data-gallery-category-key="cover"] [aria-label="ลากรูปปกเพื่อจัดลำดับ"]',
+    );
+    const showCover = page.container.querySelector<HTMLInputElement>(
+      '[data-gallery-show-cover]',
+    );
 
     expect(order?.textContent).toContain("ลำดับหมวดรูปภาพ");
     expect(poolDragHandle).not.toBeNull();
+    expect(coverDragHandle).toBeNull();
+    expect(showCover?.checked).toBe(true);
+    expect(order?.querySelector("ol")?.className).toContain("overscroll-contain");
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overflow).toBe("hidden");
     expect(poolDragHandle?.style.touchAction).toBe("none");
     expect(poolDragHandle?.className).toContain("size-11");
 
@@ -493,6 +505,65 @@ describe("AdminDetailLayoutPage", () => {
     expect(
       page.container.querySelector('[data-gallery-category-order="true"]'),
     ).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+    expect(document.documentElement.style.overflow).toBe("");
+
+    await page.unmount();
+  });
+
+  it("saves a disabled cover category without moving it from the first position", async () => {
+    const fetchMock = makeFetchMock([
+      { body: { layout: savedLayout }, url: "/api/admin/detail-layout" },
+      {
+        body: {
+          settings: {
+            categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review", "uncategorized"],
+            variant: "categorized-grid",
+          },
+        },
+        url: "/api/admin/site-web-styles/gallery",
+      },
+      {
+        body: { settings: { variant: "categorized-grid" } },
+        method: "PATCH",
+        url: "/api/admin/site-web-styles/gallery",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    await flushEffects();
+    await flushEffects();
+
+    await click(page.container.querySelector<HTMLButtonElement>(
+      '[data-open-gallery-category-order]',
+    ) as HTMLButtonElement);
+    const showCover = page.container.querySelector<HTMLInputElement>(
+      '[data-gallery-show-cover]',
+    );
+    expect(showCover).not.toBeNull();
+    await click(showCover as HTMLInputElement);
+    await click(page.container.querySelector<HTMLButtonElement>(
+      '[data-save-gallery-category-order]',
+    ) as HTMLButtonElement);
+    await click(page.container.querySelector<HTMLButtonElement>(
+      '[data-detail-layout-save]',
+    ) as HTMLButtonElement);
+    await flushEffects();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/site-web-styles/gallery",
+      expect.objectContaining({
+        body: JSON.stringify({
+          backgroundColor: "",
+          categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review", "uncategorized"],
+          showCover: false,
+          textColor: "",
+          variant: "categorized-grid",
+        }),
+        method: "PATCH",
+      }),
+    );
 
     await page.unmount();
   });
@@ -653,7 +724,7 @@ describe("AdminDetailLayoutPage", () => {
     );
 
     expect(fieldError?.textContent).toContain("ฝั่ง 30 ลำดับที่ 4 ต้องมี block");
-    expect(fieldError?.closest("article")?.textContent).toContain("แถว 30 ที่ 4");
+    expect(fieldError?.closest("article")?.textContent).toContain("แถวที่ 4");
     expect(page.container.textContent).not.toContain(
       "แก้รายการเหล่านี้ก่อนบันทึก:",
     );

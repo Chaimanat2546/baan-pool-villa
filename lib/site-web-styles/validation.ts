@@ -31,6 +31,7 @@ export function normalizeGalleryOptions(value: unknown): GalleryStyleOptions {
     ...(isGalleryCategoryOrder(value.categoryOrder)
       ? { categoryOrder: [...value.categoryOrder] }
       : {}),
+    ...(typeof value.showCover === "boolean" ? { showCover: value.showCover } : {}),
   };
 }
 
@@ -74,7 +75,7 @@ export function validateWebStyleDraft(
 
   const allowedKeys =
     type === "gallery"
-      ? new Set(["variant", "backgroundColor", "categoryOrder", "textColor"])
+      ? new Set(["variant", "backgroundColor", "categoryOrder", "showCover", "textColor"])
       : new Set(["variant"]);
   const errors: string[] = [];
 
@@ -104,6 +105,9 @@ export function validateWebStyleDraft(
       !isGalleryCategoryOrder(value.categoryOrder)
     ) {
       errors.push("categoryOrder must contain every gallery category exactly once.");
+    }
+    if (value.showCover !== undefined && typeof value.showCover !== "boolean") {
+      errors.push("showCover must be a boolean.");
     }
   }
 

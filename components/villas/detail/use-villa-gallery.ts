@@ -11,6 +11,7 @@ import type { GalleryItem } from "./types";
 
 interface UseVillaGalleryOptions {
   categoryOrder: GalleryCategoryKey[];
+  showCover: boolean;
   id: string;
   initialGalleryImages: PublicVillaImage[];
   initialGalleryLoadFailed: boolean;
@@ -20,6 +21,7 @@ const EMPTY_FAILED_IMAGE_URLS = new Set<string>();
 
 export function useVillaGallery({
   categoryOrder,
+  showCover,
   id,
   initialGalleryImages,
   initialGalleryLoadFailed,
@@ -55,8 +57,8 @@ export function useVillaGallery({
     [galleryLoadState.images],
   );
   const visibleGalleryItems = useMemo(
-    () => allGalleryItems.filter((item) => !failedImageUrls.has(item.url)),
-    [allGalleryItems, failedImageUrls],
+    () => allGalleryItems.filter((item) => !failedImageUrls.has(item.url) && (showCover || !item.isCover)),
+    [allGalleryItems, failedImageUrls, showCover],
   );
   const galleryItems = useMemo(
     () => buildDisplayGallery(visibleGalleryItems),
