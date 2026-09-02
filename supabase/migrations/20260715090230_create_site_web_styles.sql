@@ -19,7 +19,7 @@ create table if not exists public.site_web_styles (
       (style_type in ('header', 'house_card') and options = '{}'::jsonb)
       or (
         style_type = 'gallery'
-        and options - 'backgroundColor' - 'textColor' = '{}'::jsonb
+        and options - 'backgroundColor' - 'textColor' - 'categoryOrder' = '{}'::jsonb
         and (
           not (options ? 'backgroundColor')
           or (
@@ -32,6 +32,15 @@ create table if not exists public.site_web_styles (
           or (
             jsonb_typeof(options -> 'textColor') = 'string'
             and options ->> 'textColor' ~ '^#[0-9A-Fa-f]{6}$'
+          )
+        )
+        and (
+          not (options ? 'categoryOrder')
+          or (
+            case when jsonb_typeof(options -> 'categoryOrder') = 'array' then
+              jsonb_array_length(options -> 'categoryOrder') = 11
+              and options -> 'categoryOrder' @> '["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review", "uncategorized"]'::jsonb
+            else false end
           )
         )
       )

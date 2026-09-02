@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDisplayGallery,
+  buildGalleryCategories,
   buildGalleryItems,
   getGalleryItemDescription,
 } from "../helpers";
@@ -174,6 +175,42 @@ describe("buildGalleryItems", () => {
       "https://webook-media.poolvilla.workers.dev/houses/999/parking.webp",
     ]);
     expect(items[2]?.zoneKey).toBe("parking");
+  });
+});
+
+describe("buildGalleryCategories", () => {
+  it("uses the configured global category order and keeps unknown categories last", () => {
+    const categories = buildGalleryCategories(
+      [
+        galleryItem("bedroom", "bedroom"),
+        galleryItem("custom", "custom"),
+        galleryItem("pool", "pool"),
+        galleryItem("cover", "cover"),
+      ],
+      ["pool", "cover", "outside", "bedroom"],
+    );
+
+    expect(categories.map((category) => category.key)).toEqual([
+      "pool",
+      "cover",
+      "bedroom",
+      "custom",
+    ]);
+  });
+
+  it("normalizes the living_room alias into the globally sortable livingroom category", () => {
+    const [item] = buildGalleryItems([
+      {
+        caption: null,
+        id: 12,
+        imageName: "living-room.jpg",
+        imageUrl: "https://images.example.com/living-room.jpg",
+        isCover: false,
+        zone: "living_room",
+      },
+    ]);
+
+    expect(item?.zoneKey).toBe("livingroom");
   });
 });
 

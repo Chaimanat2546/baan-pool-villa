@@ -37,6 +37,19 @@ describe("site web style validation", () => {
     ).toEqual({
       gallery: {
         backgroundColor: "#ffffff",
+        categoryOrder: [
+          "cover",
+          "outside",
+          "pool",
+          "inside",
+          "livingroom",
+          "bedroom",
+          "kitchen",
+          "bathroom",
+          "parking",
+          "review",
+          "uncategorized",
+        ],
         textColor: "#111111",
         variant: "categorized-grid",
       },
@@ -53,6 +66,51 @@ describe("site web style validation", () => {
       }),
     ).toEqual({});
     expect(normalizeGalleryOptions({ backgroundColor: "red" })).toEqual({});
+  });
+
+  it("keeps a valid global gallery category order and rejects an incomplete order", () => {
+    expect(
+      normalizeSiteWebStyles([
+        {
+          options: {
+            categoryOrder: [
+              "pool",
+              "cover",
+              "outside",
+              "inside",
+              "livingroom",
+              "bedroom",
+              "kitchen",
+              "bathroom",
+              "parking",
+              "review",
+              "uncategorized",
+            ],
+          },
+          style_type: "gallery",
+          style_variant: "categorized-grid",
+        },
+      ]).gallery.categoryOrder,
+    ).toEqual([
+      "pool",
+      "cover",
+      "outside",
+      "inside",
+      "livingroom",
+      "bedroom",
+      "kitchen",
+      "bathroom",
+      "parking",
+      "review",
+      "uncategorized",
+    ]);
+
+    expect(
+      validateWebStyleDraft("gallery", {
+        categoryOrder: ["cover", "outside"],
+        variant: "categorized-grid",
+      }),
+    ).toEqual(["categoryOrder must contain every gallery category exactly once."]);
   });
 
   it("rejects unknown fields and malformed Gallery colors", () => {

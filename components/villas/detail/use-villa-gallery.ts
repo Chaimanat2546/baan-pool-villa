@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
+import type { GalleryCategoryKey } from "@/lib/site-web-styles/gallery-categories";
 import { getServerGalleryLoadState } from "./detail-page-helpers";
 import {
   buildDisplayGallery,
@@ -9,6 +10,7 @@ import {
 import type { GalleryItem } from "./types";
 
 interface UseVillaGalleryOptions {
+  categoryOrder: GalleryCategoryKey[];
   id: string;
   initialGalleryImages: PublicVillaImage[];
   initialGalleryLoadFailed: boolean;
@@ -17,6 +19,7 @@ interface UseVillaGalleryOptions {
 const EMPTY_FAILED_IMAGE_URLS = new Set<string>();
 
 export function useVillaGallery({
+  categoryOrder,
   id,
   initialGalleryImages,
   initialGalleryLoadFailed,
@@ -60,8 +63,8 @@ export function useVillaGallery({
     [visibleGalleryItems],
   );
   const galleryCategories = useMemo(
-    () => buildGalleryCategories(visibleGalleryItems),
-    [visibleGalleryItems],
+    () => buildGalleryCategories(visibleGalleryItems, categoryOrder),
+    [categoryOrder, visibleGalleryItems],
   );
 
   const handleImageError = (imageUrl: string) => {

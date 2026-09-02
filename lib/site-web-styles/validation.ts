@@ -1,4 +1,5 @@
 import { cloneDefaultSiteWebStyles } from "./defaults";
+import { isGalleryCategoryOrder } from "./gallery-categories";
 import type {
   GalleryStyleOptions,
   SiteWebStyleRow,
@@ -27,6 +28,9 @@ export function normalizeGalleryOptions(value: unknown): GalleryStyleOptions {
       ? { backgroundColor: value.backgroundColor }
       : {}),
     ...(isHexColor(value.textColor) ? { textColor: value.textColor } : {}),
+    ...(isGalleryCategoryOrder(value.categoryOrder)
+      ? { categoryOrder: [...value.categoryOrder] }
+      : {}),
   };
 }
 
@@ -42,6 +46,7 @@ export function normalizeSiteWebStyles(rows: unknown): SiteWebStyles {
       GALLERY_VARIANTS.has(String(row.style_variant))
     ) {
       styles.gallery = {
+        ...styles.gallery,
         ...normalizeGalleryOptions(row.options),
         variant: row.style_variant as SiteWebStyles["gallery"]["variant"],
       };
@@ -69,7 +74,7 @@ export function validateWebStyleDraft(
 
   const allowedKeys =
     type === "gallery"
-      ? new Set(["variant", "backgroundColor", "textColor"])
+      ? new Set(["variant", "backgroundColor", "categoryOrder", "textColor"])
       : new Set(["variant"]);
   const errors: string[] = [];
 
@@ -93,6 +98,12 @@ export function validateWebStyleDraft(
       if (color !== undefined && color !== null && color !== "" && !isHexColor(color)) {
         errors.push(`${key} must be a six-digit hex color.`);
       }
+    }
+    if (
+      value.categoryOrder !== undefined &&
+      !isGalleryCategoryOrder(value.categoryOrder)
+    ) {
+      errors.push("categoryOrder must contain every gallery category exactly once.");
     }
   }
 

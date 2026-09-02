@@ -25,6 +25,9 @@ function getImageZoneKey(zone: string | null): string {
   }
 
   const zoneKey = zone.trim().toLowerCase();
+  if (zoneKey === "living_room") {
+    return "livingroom";
+  }
   return zoneKey ? zoneKey : "uncategorized";
 }
 
@@ -109,7 +112,10 @@ function getBentoZonePriority(zoneKey: string): number {
   return 3;
 }
 
-export function buildGalleryCategories(items: GalleryItem[]): GalleryCategory[] {
+export function buildGalleryCategories(
+  items: GalleryItem[],
+  categoryOrder: readonly string[],
+): GalleryCategory[] {
   const categories = new Map<string, GalleryCategory>();
   for (const item of items) {
     if (!categories.has(item.zoneKey)) {
@@ -121,7 +127,18 @@ export function buildGalleryCategories(items: GalleryItem[]): GalleryCategory[] 
     }
     categories.get(item.zoneKey)?.items.push(item);
   }
-  return Array.from(categories.values());
+  const categoryPositions = new Map(
+    categoryOrder.map((categoryKey, index) => [categoryKey, index]),
+  );
+
+  return Array.from(categories.values())
+    .map((category, index) => ({ category, index }))
+    .sort((left, right) => {
+      const leftPosition = categoryPositions.get(left.category.key) ?? Infinity;
+      const rightPosition = categoryPositions.get(right.category.key) ?? Infinity;
+      return leftPosition - rightPosition || left.index - right.index;
+    })
+    .map(({ category }) => category);
 }
 
 export function getGalleryItemDescription(item: GalleryItem): string {

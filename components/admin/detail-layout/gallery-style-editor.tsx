@@ -1,15 +1,36 @@
 "use client";
 
-import { Images, X } from "lucide-react";
+import {
+  DndContext,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { GripVertical, Images, X } from "lucide-react";
 import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useState,
 } from "react";
 
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { getContrastRatio } from "@/lib/site-settings/colors";
 import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
+import {
+  GALLERY_CATEGORY_LABELS,
+  DEFAULT_GALLERY_CATEGORY_ORDER,
+} from "@/lib/site-web-styles/gallery-categories";
 import { validateWebStyleDraft } from "@/lib/site-web-styles/validation";
 import {
   ColorControl,
@@ -38,6 +59,51 @@ export type GalleryStyleEditorSaveState = Omit<
 type GalleryStyleEditorProps = {
   onSaveStateChange?: (state: GalleryStyleEditorSaveState) => void;
 };
+
+function SortableGalleryCategoryRow({
+  categoryKey,
+  disabled,
+  index,
+}: {
+  categoryKey: (typeof DEFAULT_GALLERY_CATEGORY_ORDER)[number];
+  disabled: boolean;
+  index: number;
+}) {
+  const label = GALLERY_CATEGORY_LABELS[categoryKey];
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    disabled,
+    id: categoryKey,
+  });
+
+  return (
+    <li
+      ref={setNodeRef}
+      className="flex items-center gap-3 rounded-md border border-[var(--site-border)] px-3 py-2"
+      data-gallery-category-key={categoryKey}
+      style={{
+        transform: transform
+          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+          : undefined,
+        transition,
+      }}
+    >
+      <button
+        aria-label={`ลาก${label}เพื่อจัดลำดับ`}
+        className="grid size-11 shrink-0 place-items-center rounded-md text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)] disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={disabled}
+        style={{ touchAction: "none" }}
+        type="button"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical aria-hidden="true" className="size-5" />
+      </button>
+      <span className="text-sm font-medium text-[var(--site-text)]">
+        {index + 1}. {label}
+      </span>
+    </li>
+  );
+}
 
 const GALLERY_OPTIONS: Array<{
   description: string;
@@ -68,6 +134,7 @@ const GalleryStyleEditorContent = forwardRef<
 
       return {
         backgroundColor: settings.backgroundColor ?? "",
+        categoryOrder: settings.categoryOrder ?? DEFAULT_GALLERY_CATEGORY_ORDER,
         textColor: settings.textColor ?? "",
         variant: settings.variant,
       };
@@ -80,6 +147,15 @@ const GalleryStyleEditorContent = forwardRef<
     validate: (draft) => validateWebStyleDraft("gallery", draft),
   });
   const draft = state.draft;
+  const categoryOrder = draft?.categoryOrder ?? DEFAULT_GALLERY_CATEGORY_ORDER;
+  const [categoryOrderDraft, setCategoryOrderDraft] = useState<
+    typeof DEFAULT_GALLERY_CATEGORY_ORDER | null
+  >(null);
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const hasExplicitContrast = Boolean(
     draft && isHexColor(draft.backgroundColor) && isHexColor(draft.textColor),
   );
@@ -166,7 +242,29 @@ const GalleryStyleEditorContent = forwardRef<
               ))}
             </div>
 
-            <div className="grid gap-3">
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--site-text)]">
+                  ลำดับหมวดรูปภาพ
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
+                  ใช้กับบ้านพักทุกหลัง · {categoryOrder.length} หมวด
+                </p>
+              </div>
+              <button
+                className="inline-flex min-h-10 items-center rounded-md bg-[var(--site-primary)] px-3 text-sm font-semibold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
+                data-open-gallery-category-order
+                onClick={() => setCategoryOrderDraft([...categoryOrder])}
+                type="button"
+              >
+                จัดลำดับหมวดรูปภาพ
+              </button>
+            </section>
+
+            <div
+              className="grid gap-3 sm:grid-cols-2"
+              data-gallery-color-controls="true"
+            >
               <div className="grid gap-2">
                 <ColorControl
                   id="galleryBackgroundColor"
@@ -246,6 +344,69 @@ const GalleryStyleEditorContent = forwardRef<
           </>
         )}
       </div>
+      {categoryOrderDraft ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 grid place-items-end bg-black/50 p-0 sm:place-items-center sm:p-6"
+          role="dialog"
+        >
+          <section
+            className="grid max-h-[88dvh] w-full max-w-lg grid-rows-[auto_minmax(0,1fr)_auto] rounded-t-2xl bg-[var(--site-surface)] shadow-2xl sm:rounded-2xl"
+            data-gallery-category-order="true"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--site-border)] px-4 py-4">
+              <div>
+                <h3 className="text-base font-semibold text-[var(--site-text)]">
+                  จัดลำดับหมวดรูปภาพ
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
+                  หมวดที่ไม่มีรูปจะไม่แสดงบนเว็บไซต์
+                </p>
+              </div>
+              <button
+                aria-label="ปิดหน้าต่างจัดลำดับหมวดรูปภาพ"
+                className="grid size-9 shrink-0 place-items-center rounded-md text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)]"
+                onClick={() => setCategoryOrderDraft(null)}
+                type="button"
+              >
+                <X aria-hidden="true" className="size-5" />
+              </button>
+            </div>
+            <DndContext
+              accessibility={{
+                announcements: {
+                  onDragCancel: ({ active }) => `ยกเลิกการลาก ${GALLERY_CATEGORY_LABELS[active.id as (typeof DEFAULT_GALLERY_CATEGORY_ORDER)[number]]}`,
+                  onDragEnd: ({ active, over }) => over ? `วาง ${GALLERY_CATEGORY_LABELS[active.id as (typeof DEFAULT_GALLERY_CATEGORY_ORDER)[number]]} ที่ตำแหน่งใหม่แล้ว` : "ยกเลิกการลาก",
+                  onDragOver: ({ active, over }) => over ? `กำลังลาก ${GALLERY_CATEGORY_LABELS[active.id as (typeof DEFAULT_GALLERY_CATEGORY_ORDER)[number]]} ผ่าน ${GALLERY_CATEGORY_LABELS[over.id as (typeof DEFAULT_GALLERY_CATEGORY_ORDER)[number]]}` : undefined,
+                  onDragStart: ({ active }) => `เริ่มลาก ${GALLERY_CATEGORY_LABELS[active.id as (typeof DEFAULT_GALLERY_CATEGORY_ORDER)[number]]}`,
+                },
+                screenReaderInstructions: {
+                  draggable: "ใช้เมาส์ นิ้ว หรือแป้นพิมพ์ลากปุ่มจับเพื่อเปลี่ยนลำดับหมวดรูปภาพ",
+                },
+              }}
+              onDragEnd={(event: DragEndEvent) => {
+                if (!event.over || event.active.id === event.over.id) return;
+                const activeIndex = categoryOrderDraft.findIndex((id) => id === event.active.id);
+                const overIndex = categoryOrderDraft.findIndex((id) => id === event.over?.id);
+                if (activeIndex >= 0 && overIndex >= 0) {
+                  setCategoryOrderDraft((current) => current ? arrayMove(current, activeIndex, overIndex) : current);
+                }
+              }}
+              sensors={state.isSaving ? [] : sensors}
+            >
+              <SortableContext items={categoryOrderDraft} strategy={verticalListSortingStrategy}>
+                <ol aria-label="เรียงลำดับหมวดรูปภาพ" className="grid content-start gap-2 overflow-y-auto px-4 py-4">
+                  {categoryOrderDraft.map((categoryKey, index) => <SortableGalleryCategoryRow categoryKey={categoryKey} disabled={state.isSaving} index={index} key={categoryKey} />)}
+                </ol>
+              </SortableContext>
+            </DndContext>
+            <div className="flex justify-end gap-2 border-t border-[var(--site-border)] px-4 py-3">
+              <button className="min-h-11 rounded-md px-3 text-sm font-semibold text-[var(--site-text)] hover:bg-[var(--site-surface-tint)] disabled:cursor-not-allowed disabled:opacity-40" data-cancel-gallery-category-order disabled={state.isSaving} onClick={() => setCategoryOrderDraft(null)} type="button">ยกเลิก</button>
+              <button className="min-h-11 rounded-md bg-[var(--site-primary)] px-3 text-sm font-semibold text-[var(--site-on-primary)] hover:bg-[var(--site-primary-hover)] disabled:cursor-not-allowed disabled:opacity-40" disabled={state.isSaving} onClick={() => { state.updateDraft({ categoryOrder: categoryOrderDraft }); setCategoryOrderDraft(null); }} type="button">บันทึกลำดับ</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 });

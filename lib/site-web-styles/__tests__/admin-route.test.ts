@@ -5,6 +5,7 @@ import {
   getAdminWebStyle,
   saveAdminWebStyle,
 } from "../admin-route";
+import { DEFAULT_GALLERY_CATEGORY_ORDER } from "../gallery-categories";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/cache-revalidation", () => ({
@@ -44,6 +45,7 @@ describe("site web styles admin route", () => {
     await expect(response.json()).resolves.toEqual({
       settings: {
         backgroundColor: "#ffffff",
+        categoryOrder: DEFAULT_GALLERY_CATEGORY_ORDER,
         variant: "categorized-grid",
       },
     });
@@ -83,7 +85,11 @@ describe("site web styles admin route", () => {
       style_variant: "categorized-grid",
     });
     await expect(response.json()).resolves.toEqual({
-      settings: { textColor: "#111111", variant: "categorized-grid" },
+      settings: {
+        categoryOrder: DEFAULT_GALLERY_CATEGORY_ORDER,
+        textColor: "#111111",
+        variant: "categorized-grid",
+      },
       verified: true,
       warnings: [],
     });

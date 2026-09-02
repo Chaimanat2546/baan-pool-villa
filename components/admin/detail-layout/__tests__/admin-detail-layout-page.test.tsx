@@ -403,6 +403,19 @@ describe("AdminDetailLayoutPage", () => {
       expect.objectContaining({
         body: JSON.stringify({
           backgroundColor: "#ffffff",
+          categoryOrder: [
+            "cover",
+            "outside",
+            "pool",
+            "inside",
+            "livingroom",
+            "bedroom",
+            "kitchen",
+            "bathroom",
+            "parking",
+            "review",
+            "uncategorized",
+          ],
           textColor: "#111111",
           variant: "lightbox",
         }),
@@ -410,6 +423,102 @@ describe("AdminDetailLayoutPage", () => {
         method: "PATCH",
       }),
     );
+
+    await page.unmount();
+  });
+
+  it("edits the global gallery category order in an on-demand dialog", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { layout: savedLayout },
+        url: "/api/admin/detail-layout",
+      },
+      {
+        body: {
+          settings: {
+            categoryOrder: [
+              "cover",
+              "outside",
+              "pool",
+              "inside",
+              "livingroom",
+              "bedroom",
+              "kitchen",
+              "bathroom",
+              "parking",
+              "review",
+              "uncategorized",
+            ],
+            variant: "categorized-grid",
+          },
+        },
+        url: "/api/admin/site-web-styles/gallery",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    await flushEffects();
+    await flushEffects();
+    const openOrderDialog = page.container.querySelector<HTMLButtonElement>(
+      '[data-open-gallery-category-order]',
+    );
+
+    expect(openOrderDialog).not.toBeNull();
+    expect(
+      page.container.querySelector('[data-gallery-category-order="true"]'),
+    ).toBeNull();
+
+    await click(openOrderDialog as HTMLButtonElement);
+
+    const order = page.container.querySelector('[data-gallery-category-order="true"]');
+    const poolDragHandle = page.container.querySelector<HTMLButtonElement>(
+      '[data-gallery-category-key="pool"] [aria-label="ลากสระว่ายน้ำเพื่อจัดลำดับ"]',
+    );
+
+    expect(order?.textContent).toContain("ลำดับหมวดรูปภาพ");
+    expect(poolDragHandle).not.toBeNull();
+    expect(poolDragHandle?.style.touchAction).toBe("none");
+    expect(poolDragHandle?.className).toContain("size-11");
+
+    const cancelButton = page.container.querySelector<HTMLButtonElement>(
+      '[data-cancel-gallery-category-order]',
+    );
+    expect(cancelButton).not.toBeNull();
+    await click(cancelButton as HTMLButtonElement);
+
+    expect(
+      page.container.querySelector('[data-gallery-category-order="true"]'),
+    ).toBeNull();
+
+    await page.unmount();
+  });
+
+  it("places the Gallery color controls in two columns on wider screens", async () => {
+    const fetchMock = makeFetchMock([
+      { body: { layout: savedLayout }, url: "/api/admin/detail-layout" },
+      {
+        body: {
+          settings: {
+            backgroundColor: "#f5a432",
+            categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review", "uncategorized"],
+            textColor: "#000000",
+            variant: "categorized-grid",
+          },
+        },
+        url: "/api/admin/site-web-styles/gallery",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    await flushEffects();
+    await flushEffects();
+
+    expect(
+      page.container.querySelector('[data-gallery-color-controls="true"]')
+        ?.className,
+    ).toContain("sm:grid-cols-2");
 
     await page.unmount();
   });
