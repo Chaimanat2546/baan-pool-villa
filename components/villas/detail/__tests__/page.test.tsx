@@ -445,6 +445,164 @@ describe("VillaDetailPage server gallery", () => {
     await page.unmount();
   });
 
+  it("keeps the detail cover visible when its gallery category is disabled", async () => {
+    const page = renderPage();
+
+    await page.render(
+      <VillaDetailPage
+        bookingCalendars={bookingCalendars}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        currentBookingMonthKey={currentBookingMonthKey}
+        galleryStyle={{ ...DEFAULT_SITE_WEB_STYLES.gallery, showCover: false }}
+        id={listing.id}
+        initialGalleryImages={serverGalleryImages}
+        payload={makePayload()}
+        recommendedSection={null}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    await flushReact();
+
+    expect(page.container.querySelector("[data-gallery-item]")?.getAttribute(
+      "data-gallery-item",
+    )).toBe(apiCoverImage.imageUrl);
+    expect(
+      page.container
+        .querySelector("[data-detail-gallery-urls]")
+        ?.getAttribute("data-detail-gallery-urls"),
+    ).not.toContain(apiCoverImage.imageUrl);
+
+    await page.unmount();
+  });
+
+  it("ignores configured preview images when the standard source is selected", async () => {
+    const page = renderPage();
+    const configuredPreview = {
+      ...apiImage,
+      id: 99,
+      imageUrl: "/api/villas/9/images?imageId=99",
+    };
+
+    await page.render(
+      <VillaDetailPage
+        bookingCalendars={bookingCalendars}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        currentBookingMonthKey={currentBookingMonthKey}
+        galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
+        id={listing.id}
+        initialGalleryImages={serverGalleryImages}
+        initialGalleryPreviewImages={[configuredPreview]}
+        payload={makePayload()}
+        recommendedSection={null}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    await flushReact();
+
+    expect(
+      page.container.querySelector("[data-gallery-items]")?.getAttribute(
+        "data-gallery-items",
+      ),
+    ).not.toContain(configuredPreview.imageUrl);
+    expect(
+      page.container
+        .querySelector("[data-detail-gallery-urls]")
+        ?.getAttribute("data-detail-gallery-urls")
+        ?.split("|"),
+    ).toEqual([
+      "/api/villas/9/images?imageId=1",
+      "/api/villas/9/images?imageId=2",
+      "/api/villas/9/images?imageId=3",
+      "/api/villas/9/images?imageId=4",
+      "/api/villas/9/images?imageId=5",
+    ]);
+
+    await page.unmount();
+  });
+
+  it("keeps the configured system image order in the small header preview tiles", async () => {
+    const page = renderPage();
+    const systemPreviewImages: VillaImage[] = [
+      apiCoverImage,
+      {
+        ...apiImage,
+        id: 12,
+        imageUrl: "/api/villas/9/images?imageId=12",
+        zone: "inside",
+      },
+      {
+        ...apiImage,
+        id: 13,
+        imageUrl: "/api/villas/9/images?imageId=13",
+        zone: "outside",
+      },
+      {
+        ...apiImage,
+        id: 14,
+        imageUrl: "/api/villas/9/images?imageId=14",
+        zone: "review",
+      },
+    ];
+
+    await page.render(
+      <VillaDetailPage
+        bookingCalendars={bookingCalendars}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        currentBookingMonthKey={currentBookingMonthKey}
+        galleryStyle={{ ...DEFAULT_SITE_WEB_STYLES.gallery, imageSource: "system" }}
+        id={listing.id}
+        initialGalleryImages={serverGalleryImages}
+        initialGalleryPreviewImages={systemPreviewImages}
+        payload={makePayload()}
+        recommendedSection={null}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    await flushReact();
+
+    expect(
+      page.container.querySelector("[data-gallery-items]")?.getAttribute(
+        "data-gallery-items",
+      )?.split("|"),
+    ).toEqual(systemPreviewImages.map((image) => image.imageUrl));
+
+    await page.unmount();
+  });
+
+  it("opens the system cover when the large system preview image is clicked", async () => {
+    const page = renderPage();
+    const systemCover: VillaImage = {
+      ...apiCoverImage,
+      id: 0,
+      imageUrl: "/api/houses/images/9",
+    };
+
+    await page.render(
+      <VillaDetailPage
+        bookingCalendars={bookingCalendars}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        currentBookingMonthKey={currentBookingMonthKey}
+        galleryStyle={{ ...DEFAULT_SITE_WEB_STYLES.gallery, imageSource: "system" }}
+        id={listing.id}
+        initialGalleryImages={serverGalleryImages}
+        initialGalleryPreviewImages={[systemCover, apiImage]}
+        payload={makePayload()}
+        recommendedSection={null}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    await flushReact();
+    await clickFirstGalleryItem(page.container);
+
+    expect(
+      page.container.querySelector("[data-lightbox-active]")?.getAttribute(
+        "data-lightbox-active",
+      ),
+    ).toBe(systemCover.imageUrl);
+
+    await page.unmount();
+  });
+
   it("renders a successful empty server gallery without a skeleton", async () => {
     const page = renderPage();
 
@@ -529,7 +687,7 @@ describe("VillaDetailPage server gallery", () => {
     await page.unmount();
   });
 
-  it("uses the categorized lightbox when a preview image is clicked directly", async () => {
+  it("opens the categorized overview when a preview image is clicked", async () => {
     const page = renderPage();
 
     await page.render(
@@ -549,25 +707,8 @@ describe("VillaDetailPage server gallery", () => {
 
     await clickFirstGalleryItem(page.container);
 
-    const categorizedLightbox = page.container.querySelector(
-      "[data-lightbox-active]",
-    );
-    expect(categorizedLightbox).not.toBeNull();
-    expect(
-      categorizedLightbox?.getAttribute("data-lightbox-category-selector"),
-    ).toBe("false");
-    expect(
-      categorizedLightbox?.getAttribute("data-lightbox-thumbnail-placement"),
-    ).toBe("bottom");
-    expect(page.container.querySelector('[data-gallery-overview="true"]')).toBeNull();
-
-    await act(async () => {
-      (page.container.querySelector("[data-lightbox-close]") as HTMLButtonElement).click();
-    });
-    await flushReact();
-
     expect(page.container.querySelector("[data-lightbox-active]")).toBeNull();
-    expect(page.container.querySelector('[data-gallery-overview="true"]')).toBeNull();
+    expect(page.container.querySelector('[data-gallery-overview="true"]')).not.toBeNull();
     expect(
       fetchMock.mock.calls.filter(([input]) =>
         /^\/api\/villas\/[^/]+\/images$/.test(String(input)),

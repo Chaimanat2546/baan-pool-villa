@@ -27,8 +27,16 @@ const { createHomeConfigClientMock } = vi.hoisted(() => ({
   createHomeConfigClientMock: vi.fn(),
 }));
 
-const { fetchVillaImagesMock } = vi.hoisted(() => ({
+const {
+  fetchVillaImagesMock,
+  fetchVillaSourceImagesMock,
+  resolveConfiguredDisplayImagesMock,
+  resolveDisplayImagesMock,
+} = vi.hoisted(() => ({
   fetchVillaImagesMock: vi.fn(),
+  fetchVillaSourceImagesMock: vi.fn(),
+  resolveConfiguredDisplayImagesMock: vi.fn(),
+  resolveDisplayImagesMock: vi.fn(),
 }));
 
 vi.mock("@supabase/supabase-js", () => ({
@@ -45,6 +53,9 @@ vi.mock("../images", async () => {
   return {
     ...actual,
     fetchVillaImages: fetchVillaImagesMock,
+    fetchVillaSourceImages: fetchVillaSourceImagesMock,
+    resolveConfiguredDisplayImages: resolveConfiguredDisplayImagesMock,
+    resolveDisplayImages: resolveDisplayImagesMock,
   };
 });
 
@@ -315,6 +326,9 @@ afterEach(() => {
   createHomeConfigClientMock.mockReset();
   fetchMock.mockReset();
   fetchVillaImagesMock.mockReset();
+  fetchVillaSourceImagesMock.mockReset();
+  resolveConfiguredDisplayImagesMock.mockReset();
+  resolveDisplayImagesMock.mockReset();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -325,6 +339,9 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   mockCoverOverrides();
   fetchVillaImagesMock.mockResolvedValue([]);
+  fetchVillaSourceImagesMock.mockResolvedValue([]);
+  resolveConfiguredDisplayImagesMock.mockResolvedValue(null);
+  resolveDisplayImagesMock.mockResolvedValue([]);
 });
 
 describe("fetchHouseListings", () => {
@@ -846,6 +863,216 @@ describe("fetchVillaDetail", () => {
 });
 
 describe("fetchVillaPageData", () => {
+  it("uses the configured image set only for the detail header preview when the source is system", async () => {
+    mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(devilleDetail), { status: 200 }),
+    );
+    resolveDisplayImagesMock.mockResolvedValue([
+      {
+        caption: "System image",
+        id: 7,
+        imageName: "system.jpg",
+        imageUrl: "https://images.example.com/system.jpg",
+        isCover: false,
+        zone: "outside",
+      },
+    ]);
+    fetchVillaSourceImagesMock.mockResolvedValue([
+      {
+        caption: "Standard cover",
+        id: 8,
+        imageName: "standard-cover.jpg",
+        imageUrl: "https://images.example.com/standard-cover.jpg",
+        isCover: true,
+        zone: "cover",
+      },
+    ]);
+
+    const data = await fetchVillaPageData("9", "system");
+
+    expect(resolveDisplayImagesMock).toHaveBeenCalledWith("9");
+    expect(fetchVillaSourceImagesMock).toHaveBeenCalledWith("9");
+    expect(data?.initialGalleryImages.map((image) => image.imageUrl)).toEqual([
+      "/api/villas/9/images?imageId=8",
+    ]);
+    expect(data?.initialGalleryPreviewImages.map((image) => image.imageUrl)).toEqual([
+      "/api/houses/images/9",
+      "/api/villas/9/images?imageId=7",
+    ]);
+  });
+
+  it("uses the complete standard preview when the system has no saved cover or image order", async () => {
+    mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(devilleDetail), { status: 200 }),
+    );
+    fetchVillaSourceImagesMock.mockResolvedValue([
+      {
+        caption: "Standard cover",
+        id: 8,
+        imageName: "standard-cover.jpg",
+        imageUrl: "https://images.example.com/standard-cover.jpg",
+        isCover: true,
+        zone: "cover",
+      },
+      {
+        caption: "Standard side image",
+        id: 9,
+        imageName: "standard-side.jpg",
+        imageUrl: "https://images.example.com/standard-side.jpg",
+        isCover: false,
+        zone: "outside",
+      },
+    ]);
+
+    const data = await fetchVillaPageData("9", "system");
+
+    expect(data?.initialGalleryPreviewImages.map((image) => image.imageUrl)).toEqual([
+      "/api/houses/images/9",
+      "/api/villas/9/images?imageId=9",
+    ]);
+  });
+
+  it("uses a saved system cover as the large preview image", async () => {
+    mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(devilleDetail), { status: 200 }),
+    );
+    resolveDisplayImagesMock.mockResolvedValue([
+      {
+        caption: "System cover",
+        id: 0,
+        imageName: "system-cover.jpg",
+        imageUrl: "https://images.example.com/system-cover.jpg",
+        isCover: true,
+        zone: "cover",
+      },
+      {
+        caption: "System side image",
+        id: 7,
+        imageName: "system-side.jpg",
+        imageUrl: "https://images.example.com/system-side.jpg",
+        isCover: false,
+        zone: "outside",
+      },
+    ]);
+    fetchVillaSourceImagesMock.mockResolvedValue([
+      {
+        caption: "Standard cover",
+        id: 8,
+        imageName: "standard-cover.jpg",
+        imageUrl: "https://images.example.com/standard-cover.jpg",
+        isCover: true,
+        zone: "cover",
+      },
+    ]);
+
+    const data = await fetchVillaPageData("9", "system");
+
+    expect(data?.initialGalleryPreviewImages.map((image) => image.imageUrl)).toEqual([
+      "/api/houses/images/9",
+      "/api/villas/9/images?imageId=7",
+    ]);
+  });
+
+  it("does not repeat a configured cover image in a small preview tile", async () => {
+    mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(devilleDetail), { status: 200 }),
+    );
+    resolveDisplayImagesMock.mockResolvedValue([
+      {
+        caption: "Second cover",
+        id: 7,
+        imageName: "second-cover.jpg",
+        imageUrl: "https://images.example.com/second-cover.jpg",
+        isCover: false,
+        zone: "cover",
+      },
+    ]);
+    fetchVillaSourceImagesMock.mockResolvedValue([
+      {
+        caption: "Source cover",
+        id: 8,
+        imageName: "source-cover.jpg",
+        imageUrl: "https://images.example.com/source-cover.jpg",
+        isCover: true,
+        zone: "cover",
+      },
+      {
+        caption: "Standard side image",
+        id: 9,
+        imageName: "standard-side.jpg",
+        imageUrl: "https://images.example.com/standard-side.jpg",
+        isCover: false,
+        zone: "outside",
+      },
+    ]);
+
+    const data = await fetchVillaPageData("9", "system");
+
+    expect(data?.initialGalleryPreviewImages.map((image) => image.imageUrl)).toEqual([
+      "/api/houses/images/9",
+      "/api/villas/9/images?imageId=9",
+    ]);
+  });
+
+  it("keeps card-priority images in small preview tiles when they are not in the cover category", async () => {
+    mockSupabase();
+    vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(devilleDetail), { status: 200 }),
+    );
+    resolveDisplayImagesMock.mockResolvedValue([
+      {
+        caption: "System cover",
+        id: 0,
+        imageName: "system-cover.jpg",
+        imageUrl: "https://images.example.com/system-cover.jpg",
+        isCover: true,
+        zone: "cover",
+      },
+      {
+        caption: "Selected outside image",
+        id: 7,
+        imageName: "outside.jpg",
+        imageUrl: "https://images.example.com/outside.jpg",
+        isCover: true,
+        zone: "outside",
+      },
+      {
+        caption: "Selected inside image",
+        id: 8,
+        imageName: "inside.jpg",
+        imageUrl: "https://images.example.com/inside.jpg",
+        isCover: true,
+        zone: "inside",
+      },
+      {
+        caption: "Selected bedroom image",
+        id: 9,
+        imageName: "bedroom.jpg",
+        imageUrl: "https://images.example.com/bedroom.jpg",
+        isCover: true,
+        zone: "bedroom",
+      },
+    ]);
+
+    const data = await fetchVillaPageData("9", "system");
+
+    expect(data?.initialGalleryPreviewImages.map((image) => image.imageUrl)).toEqual([
+      "/api/houses/images/9",
+      "/api/villas/9/images?imageId=7",
+      "/api/villas/9/images?imageId=8",
+      "/api/villas/9/images?imageId=9",
+    ]);
+  });
+
   it("starts loading initial gallery images before villa detail finishes", async () => {
     mockSupabase();
     vi.stubEnv("DEVILLE_BEARER_TOKEN", "secret-token");
@@ -860,7 +1087,7 @@ describe("fetchVillaPageData", () => {
     await vi.waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();
     });
-    expect(fetchVillaImagesMock).toHaveBeenCalledWith("9");
+    expect(fetchVillaSourceImagesMock).toHaveBeenCalledWith("9");
 
     resolveDetailResponse(
       new Response(JSON.stringify(devilleDetail), { status: 200 }),
@@ -876,7 +1103,7 @@ describe("fetchVillaPageData", () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify(devilleDetail), { status: 200 }),
     );
-    fetchVillaImagesMock.mockResolvedValue([
+    fetchVillaSourceImagesMock.mockResolvedValue([
       {
         caption: null,
         id: 1,
@@ -929,7 +1156,7 @@ describe("fetchVillaPageData", () => {
       },
       recommendedSection: null,
     });
-    expect(fetchVillaImagesMock).toHaveBeenCalledWith("9");
+    expect(fetchVillaSourceImagesMock).toHaveBeenCalledWith("9");
     expect(data?.initialGalleryImages).toHaveLength(5);
     expect(data?.initialGalleryLoadFailed).toBe(false);
     expect(data?.initialGalleryImages.map((image) => image.imageUrl)).toEqual([
@@ -951,7 +1178,7 @@ describe("fetchVillaPageData", () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify(devilleDetail), { status: 200 }),
     );
-    fetchVillaImagesMock.mockRejectedValueOnce(
+    fetchVillaSourceImagesMock.mockRejectedValueOnce(
       new Error("gallery unavailable"),
     );
     const consoleError = vi

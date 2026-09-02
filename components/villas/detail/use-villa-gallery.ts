@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
+import type { GalleryCategoryKey } from "@/lib/site-web-styles/gallery-categories";
 import { getServerGalleryLoadState } from "./detail-page-helpers";
 import {
   buildDisplayGallery,
@@ -9,17 +10,50 @@ import {
 import type { GalleryItem } from "./types";
 
 interface UseVillaGalleryOptions {
+  categoryOrder: GalleryCategoryKey[];
+  imageSource: "standard" | "system";
+  showCover: boolean;
   id: string;
   initialGalleryImages: PublicVillaImage[];
   initialGalleryLoadFailed: boolean;
+  initialGalleryPreviewImages: PublicVillaImage[];
 }
 
 const EMPTY_FAILED_IMAGE_URLS = new Set<string>();
 
+function isCoverZone(zone: string | null): boolean {
+  const zoneKey = zone?.trim().toLowerCase();
+
+  return zoneKey === "cover" || zoneKey === "รูปปก" || zoneKey === "ภาพปก";
+}
+
+function buildSystemLightboxImages(
+  previewImages: PublicVillaImage[],
+  galleryImages: PublicVillaImage[],
+): PublicVillaImage[] {
+  const coverImage = previewImages[0];
+
+  if (!coverImage) {
+    return galleryImages;
+  }
+
+  return [
+    coverImage,
+    ...galleryImages.filter(
+      (image) =>
+        image.imageUrl !== coverImage.imageUrl && !isCoverZone(image.zone),
+    ),
+  ];
+}
+
 export function useVillaGallery({
+  categoryOrder,
+  imageSource,
+  showCover,
   id,
   initialGalleryImages,
   initialGalleryLoadFailed,
+  initialGalleryPreviewImages,
 }: UseVillaGalleryOptions) {
   const galleryLoadState = useMemo(
     () =>
@@ -47,9 +81,19 @@ export function useVillaGallery({
   const activeGalleryItem =
     activeGalleryState.villaId === id ? activeGalleryState.item : null;
 
+  const lightboxSourceImages = useMemo(
+    () =>
+      imageSource === "system"
+        ? buildSystemLightboxImages(
+            initialGalleryPreviewImages,
+            galleryLoadState.images,
+          )
+        : galleryLoadState.images,
+    [galleryLoadState.images, imageSource, initialGalleryPreviewImages],
+  );
   const allGalleryItems = useMemo(
-    () => buildGalleryItems(galleryLoadState.images),
-    [galleryLoadState.images],
+    () => buildGalleryItems(lightboxSourceImages),
+    [lightboxSourceImages],
   );
   const visibleGalleryItems = useMemo(
     () => allGalleryItems.filter((item) => !failedImageUrls.has(item.url)),
@@ -59,9 +103,37 @@ export function useVillaGallery({
     () => buildDisplayGallery(visibleGalleryItems),
     [visibleGalleryItems],
   );
+  const galleryPreviewItems = useMemo(
+    () => {
+      const previewSourceImages =
+        imageSource === "system"
+          ? initialGalleryPreviewImages
+          : galleryLoadState.images;
+      const previewItems = buildGalleryItems(
+        previewSourceImages,
+        imageSource === "system",
+      ).filter((item) => !failedImageUrls.has(item.url));
+
+      return imageSource === "system"
+        ? previewItems.slice(0, 4)
+        : buildDisplayGallery(previewItems);
+    },
+    [
+      failedImageUrls,
+      galleryLoadState.images,
+      imageSource,
+      initialGalleryPreviewImages,
+    ],
+  );
   const galleryCategories = useMemo(
-    () => buildGalleryCategories(visibleGalleryItems),
-    [visibleGalleryItems],
+    () =>
+      buildGalleryCategories(
+        visibleGalleryItems.filter(
+          (item) => item.zoneKey !== "uncategorized" && (showCover || !item.isCover),
+        ),
+        categoryOrder,
+      ),
+    [categoryOrder, showCover, visibleGalleryItems],
   );
 
   const handleImageError = (imageUrl: string) => {
@@ -100,6 +172,7 @@ export function useVillaGallery({
     activeGalleryItem,
     galleryCategories,
     galleryItems,
+    galleryPreviewItems,
     galleryLoadError: galleryLoadState.error,
     galleryLoadStatus: galleryLoadState.status,
     handleGalleryImageClick,

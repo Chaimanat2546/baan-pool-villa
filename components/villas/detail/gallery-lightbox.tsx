@@ -118,10 +118,10 @@ function getGalleryNavigation(
   categories: GalleryCategory[],
   activeItem: GalleryItem,
 ) {
-  const activeCategory =
-    categories.find((category) => category.key === activeItem.zoneKey) ??
-    categories[0];
-  const activeItems = activeCategory?.items ?? [];
+  const activeCategory = categories.find(
+    (category) => category.key === activeItem.zoneKey,
+  );
+  const activeItems = activeCategory?.items ?? [activeItem];
   const activeIndex = Math.max(
     activeItems.findIndex((item) => item.key === activeItem.key),
     0,

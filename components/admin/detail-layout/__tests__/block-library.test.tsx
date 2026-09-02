@@ -8,7 +8,6 @@ describe("BlockLibrary", () => {
     const markup = renderToStaticMarkup(
       <BlockLibrary
         onAddBlock={vi.fn()}
-        onDragStart={vi.fn()}
         targetLabel="ฝั่ง 70 / แถว 1 / ช่องซ้าย"
         usedBlockTypes={[]}
       />,
@@ -19,6 +18,7 @@ describe("BlockLibrary", () => {
     expect(markup).toContain("เพิ่มหรือวาง block");
     expect(markup).toContain("ฝั่ง 70 / แถว 1 / ช่องซ้าย");
     expect(markup).toContain("ที่จอดรถ");
+    expect(markup).toContain('data-detail-layout-library-block="parking"');
     expect(markup).not.toContain("max-h-[420px]");
     expect(markup).not.toContain("overflow-y-auto");
   });
@@ -27,7 +27,6 @@ describe("BlockLibrary", () => {
     const markup = renderToStaticMarkup(
       <BlockLibrary
         onAddBlock={vi.fn()}
-        onDragStart={vi.fn()}
         targetLabel="ฝั่ง 70 / แถว 1 / ช่องซ้าย"
         usedBlockTypes={["rules_pet_policy"]}
       />,
@@ -41,7 +40,6 @@ describe("BlockLibrary", () => {
     const markup = renderToStaticMarkup(
       <BlockLibrary
         onAddBlock={vi.fn()}
-        onDragStart={vi.fn()}
         targetLabel="ฝั่ง 70 / แถว 1 / ช่องซ้าย"
         usedBlockTypes={[
           "details",

@@ -1,6 +1,19 @@
 "use client";
 
 import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  type UniqueIdentifier,
+} from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import {
   CheckCircle2,
   ChevronDown,
   CircleAlert,
@@ -34,6 +47,11 @@ import {
   type GalleryStyleEditorSaveState,
 } from "./gallery-style-editor";
 import { DetailLayoutPreview } from "./detail-layout-preview";
+import {
+  detailLayoutCollisionDetection,
+  parseDetailLayoutDndId,
+  resolveDetailLayoutDrop,
+} from "./detail-layout-dnd";
 import { makeDetailLayoutBlock } from "./detail-layout-helpers";
 import {
   addDetailLayoutV2NarrowRow,
@@ -54,10 +72,8 @@ import {
   toDetailLayoutV2Config,
   toDetailLayoutV2Draft,
   updateDetailLayoutV2NarrowBlock,
-  updateDetailLayoutV2NarrowRow,
   updateDetailLayoutV2OuterRatio,
   updateDetailLayoutV2WideBlock,
-  updateDetailLayoutV2WideRow,
   updateDetailLayoutV2WideRowColumns,
   validateDetailLayoutV2DraftForSaveDetails,
   type DetailLayoutV2DraftSaveError,
@@ -236,6 +252,33 @@ function getPlacementLabel(
   return rowIndex >= 0 ? `ฝั่ง 30 / ลำดับ ${rowIndex + 1}` : "เลือกพื้นที่ก่อน";
 }
 
+function getDetailLayoutDndLabel(id: UniqueIdentifier) {
+  const parsed = parseDetailLayoutDndId(id);
+
+  if (!parsed) return "รายการนี้";
+  if (parsed.type === "library") return "บล็อกจากคลัง";
+  if (parsed.type === "wide-row") return "แถวฝั่ง 70";
+  if (parsed.type === "narrow-row") return "แถวฝั่ง 30";
+  if (parsed.type === "wide-block") return "บล็อกฝั่ง 70";
+  if (parsed.type === "narrow-block") return "บล็อกฝั่ง 30";
+  if (parsed.type === "wide-slot") return "ช่องฝั่ง 70";
+  return "ช่องฝั่ง 30";
+}
+
+const detailLayoutDndAnnouncements = {
+  onDragCancel: () => "ยกเลิกการลากแล้ว",
+  onDragEnd: ({ active, over }: DragEndEvent) =>
+    over
+      ? `วาง${getDetailLayoutDndLabel(active.id)}ที่${getDetailLayoutDndLabel(over.id)}แล้ว`
+      : "ยกเลิกการลากแล้ว",
+  onDragOver: ({ active, over }: DragEndEvent) =>
+    over
+      ? `กำลังลาก${getDetailLayoutDndLabel(active.id)}ผ่าน${getDetailLayoutDndLabel(over.id)}`
+      : `กำลังลาก${getDetailLayoutDndLabel(active.id)}`,
+  onDragStart: ({ active }: DragEndEvent) =>
+    `เริ่มลาก${getDetailLayoutDndLabel(active.id)}`,
+};
+
 export function AdminDetailLayoutPage() {
   const isDesktopNavCollapsed = useAdminSidebarCollapsed();
   const router = useRouter();
@@ -254,6 +297,8 @@ export function AdminDetailLayoutPage() {
     useState(false);
   const [isDesktopSettingsPinned, setIsDesktopSettingsPinned] =
     useState(false);
+  const [activeDetailLayoutDragId, setActiveDetailLayoutDragId] =
+    useState<UniqueIdentifier | null>(null);
   const [desktopSettingsPinPosition, setDesktopSettingsPinPosition] =
     useState<DesktopSettingsPinPosition | null>(null);
   const [gallerySaveState, setGallerySaveState] =
@@ -265,6 +310,13 @@ export function AdminDetailLayoutPage() {
   const blockLibraryRef = useRef<HTMLElement | null>(null);
   const galleryEditorRef = useRef<GalleryStyleEditorHandle | null>(null);
   const sidebarRailRef = useRef<HTMLDivElement | null>(null);
+  const dndSensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 180, tolerance: 6 },
+    }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const normalizedActiveSelection = useMemo(
     () => (layout ? normalizeSelection(layout, activeSelection) : null),
@@ -560,6 +612,134 @@ export function AdminDetailLayoutPage() {
     );
   }
 
+  function handleDetailLayoutDragStart({ active }: DragStartEvent) {
+    setActiveDetailLayoutDragId(active.id);
+  }
+
+  function handleDetailLayoutDragEnd({ active, over }: DragEndEvent) {
+    if (!layout || !over || isSavingChanges) {
+      setActiveDetailLayoutDragId(null);
+      return;
+    }
+
+    try {
+      const drop = resolveDetailLayoutDrop(active.id, over.id);
+
+      if (!drop) {
+        return;
+      }
+
+      if (drop.kind === "moveWideRow") {
+      const fromIndex = layout.mainSplit.wideRows.findIndex(
+        (row) => row.id === drop.fromRowId,
+      );
+      const toIndex = layout.mainSplit.wideRows.findIndex(
+        (row) => row.id === drop.toRowId,
+      );
+      if (fromIndex >= 0 && toIndex >= 0) {
+        updateLayout((currentLayout) =>
+          moveDetailLayoutV2WideRow(currentLayout, fromIndex, toIndex),
+        );
+      }
+        return;
+      }
+
+      if (drop.kind === "moveNarrowRow") {
+      const fromIndex = layout.mainSplit.narrowRows.findIndex(
+        (row) => row.id === drop.fromRowId,
+      );
+      const toIndex = layout.mainSplit.narrowRows.findIndex(
+        (row) => row.id === drop.toRowId,
+      );
+      if (fromIndex >= 0 && toIndex >= 0) {
+        updateLayout((currentLayout) =>
+          moveDetailLayoutV2NarrowRow(currentLayout, fromIndex, toIndex),
+        );
+      }
+        return;
+      }
+
+      if (drop.kind === "moveWideBlock") {
+      updateLayout(
+        (currentLayout) =>
+          moveDetailLayoutV2WideBlock(
+            currentLayout,
+            drop.fromRowId,
+            drop.fromBlockIndex,
+            drop.toRowId,
+            drop.toBlockIndex,
+          ),
+        { zone: "wide", rowId: drop.toRowId, blockIndex: drop.toBlockIndex },
+      );
+        return;
+      }
+
+      if (drop.kind === "moveWideToNarrow") {
+      updateLayout(
+        (currentLayout) =>
+          moveDetailLayoutV2WideBlockToNarrowRow(
+            currentLayout,
+            drop.fromRowId,
+            drop.fromBlockIndex,
+            drop.toRowId,
+          ),
+        { zone: "narrow", rowId: drop.toRowId },
+      );
+        return;
+      }
+
+      if (drop.kind === "moveNarrowToWide") {
+      updateLayout(
+        (currentLayout) =>
+          moveDetailLayoutV2NarrowBlockToWideSlot(
+            currentLayout,
+            drop.fromRowId,
+            drop.toRowId,
+            drop.toBlockIndex,
+          ),
+        { zone: "wide", rowId: drop.toRowId, blockIndex: drop.toBlockIndex },
+      );
+        return;
+      }
+
+      if (drop.kind === "moveNarrowBlock") {
+      updateLayout(
+        (currentLayout) =>
+          moveDetailLayoutV2NarrowBlock(
+            currentLayout,
+            drop.fromRowId,
+            drop.toRowId,
+          ),
+        { zone: "narrow", rowId: drop.toRowId },
+      );
+        return;
+      }
+
+      const block = makeDetailLayoutBlock(drop.type);
+      if (drop.zone === "wide") {
+      updateLayout(
+        (currentLayout) =>
+          putDetailLayoutV2WideBlockInSlot(
+            currentLayout,
+            drop.rowId,
+            drop.blockIndex,
+            block,
+          ),
+        { zone: "wide", rowId: drop.rowId, blockIndex: drop.blockIndex },
+      );
+        return;
+      }
+
+      updateLayout(
+        (currentLayout) =>
+          putDetailLayoutV2NarrowBlock(currentLayout, drop.rowId, block),
+        { zone: "narrow", rowId: drop.rowId },
+      );
+    } finally {
+      setActiveDetailLayoutDragId(null);
+    }
+  }
+
   async function handleSave() {
     const shouldSaveGallery = gallerySaveState.hasUnsavedChanges;
 
@@ -672,7 +852,7 @@ export function AdminDetailLayoutPage() {
               จัดหน้า Details
             </h1>
             <p className="mt-1 max-w-3xl text-sm leading-5 text-[var(--site-muted)]">
-              จัดลำดับแถว เปิดหรือปิดการแสดงผล และวางบล็อกของหน้ารายละเอียดบ้านพักในมุมมองแบบ
+              จัดลำดับแถวและวางบล็อกของหน้ารายละเอียดบ้านพักในมุมมองแบบ
               master-detail-preview
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
@@ -747,13 +927,21 @@ export function AdminDetailLayoutPage() {
       {isLoading || !layout ? (
         <AdminDetailLayoutSkeleton />
       ) : (
-        <div
-          className={`grid gap-6 ${
-            isDesktopNavCollapsed
-              ? "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_400px]"
-              : "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]"
-          }`}
+        <DndContext
+          accessibility={{ announcements: detailLayoutDndAnnouncements }}
+          collisionDetection={detailLayoutCollisionDetection}
+          onDragCancel={() => setActiveDetailLayoutDragId(null)}
+          onDragEnd={handleDetailLayoutDragEnd}
+          onDragStart={handleDetailLayoutDragStart}
+          sensors={dndSensors}
         >
+          <div
+            className={`grid gap-6 ${
+              isDesktopNavCollapsed
+                ? "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_400px]"
+                : "xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_360px]"
+            }`}
+          >
           <div
             className="grid content-start gap-4 xl:self-start"
             data-detail-layout-sidebar-rail="true"
@@ -863,8 +1051,8 @@ export function AdminDetailLayoutPage() {
               </div>
               <div className="mt-4">
                 <BlockLibrary
+                  disabled={isSavingChanges}
                   onAddBlock={putBlockInActiveSelection}
-                  onDragStart={() => {}}
                   targetLabel={activePlacementLabel}
                   usedBlockTypes={usedBlockTypes}
                 />
@@ -899,6 +1087,7 @@ export function AdminDetailLayoutPage() {
                 <div className={isDesktopNavCollapsed ? "" : "mx-auto max-w-5xl"}>
                   <LayoutCanvas
                     activeSelection={normalizedActiveSelection}
+                    disabled={isSavingChanges}
                     errorMessagesByTarget={errorMessagesByTarget}
                     layout={layout}
                     onAddNarrowRow={handleAddNarrowRow}
@@ -1027,16 +1216,6 @@ export function AdminDetailLayoutPage() {
                     onSelectWideBlock={(rowId, blockIndex) => {
                       setActiveSelection({ zone: "wide", rowId, blockIndex });
                     }}
-                    onToggleNarrowRow={(rowId, enabled) => {
-                      updateLayout((currentLayout) =>
-                        updateDetailLayoutV2NarrowRow(currentLayout, rowId, { enabled }),
-                      );
-                    }}
-                    onToggleWideRow={(rowId, enabled) => {
-                      updateLayout((currentLayout) =>
-                        updateDetailLayoutV2WideRow(currentLayout, rowId, { enabled }),
-                      );
-                    }}
                     onUpdateWideRow={(rowId, columns, ratio) => {
                       updateLayout((currentLayout) =>
                         updateDetailLayoutV2WideRowColumns(
@@ -1118,11 +1297,6 @@ export function AdminDetailLayoutPage() {
                       updateDetailLayoutV2NarrowBlock(currentLayout, rowId, changes),
                     );
                   }}
-                  onUpdateNarrowRow={(rowId, changes) => {
-                    updateLayout((currentLayout) =>
-                      updateDetailLayoutV2NarrowRow(currentLayout, rowId, changes),
-                    );
-                  }}
                   onUpdateWideBlock={(rowId, blockIndex, changes) => {
                     updateLayout((currentLayout) =>
                       updateDetailLayoutV2WideBlock(
@@ -1143,18 +1317,21 @@ export function AdminDetailLayoutPage() {
                       ),
                     );
                   }}
-                  onUpdateWideRowEnabled={(rowId, enabled) => {
-                    updateLayout((currentLayout) =>
-                      updateDetailLayoutV2WideRow(currentLayout, rowId, { enabled }),
-                    );
-                  }}
                   selection={normalizedActiveSelection}
                 />
               </div>
             </section>
 
           </aside>
-        </div>
+          </div>
+          <DragOverlay dropAnimation={null}>
+            {activeDetailLayoutDragId ? (
+              <div className="pointer-events-none rounded-md border border-[var(--site-primary)] bg-[var(--site-surface)] px-3 py-2 text-sm font-semibold text-[var(--site-text)] shadow-lg">
+                {getDetailLayoutDndLabel(activeDetailLayoutDragId)}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
     </div>
   );

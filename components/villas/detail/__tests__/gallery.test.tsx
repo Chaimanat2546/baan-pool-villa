@@ -119,7 +119,7 @@ describe("Gallery", () => {
       />,
     );
 
-    expect(markup).toContain("text-[var(--site-on-overlay)]");
+    expect(markup).toContain("text-white");
     expect(markup).toContain("ดูรูปที่พัก (4)");
   });
 

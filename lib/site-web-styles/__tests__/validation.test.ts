@@ -37,7 +37,21 @@ describe("site web style validation", () => {
     ).toEqual({
       gallery: {
         backgroundColor: "#ffffff",
-        textColor: "#111111",
+        categoryOrder: [
+          "cover",
+          "outside",
+          "pool",
+          "inside",
+          "livingroom",
+          "bedroom",
+          "kitchen",
+          "bathroom",
+          "parking",
+          "review",
+          ],
+          imageSource: "standard",
+          showCover: true,
+          textColor: "#111111",
         variant: "categorized-grid",
       },
       header: { variant: "right-booking" },
@@ -53,6 +67,67 @@ describe("site web style validation", () => {
       }),
     ).toEqual({});
     expect(normalizeGalleryOptions({ backgroundColor: "red" })).toEqual({});
+  });
+
+  it("keeps a valid global gallery category order and rejects an incomplete order", () => {
+    expect(
+      normalizeSiteWebStyles([
+        {
+          options: {
+            categoryOrder: [
+              "pool",
+              "cover",
+              "outside",
+              "inside",
+              "livingroom",
+              "bedroom",
+              "kitchen",
+              "bathroom",
+              "parking",
+              "review",
+            ],
+          },
+          style_type: "gallery",
+          style_variant: "categorized-grid",
+        },
+      ]).gallery.categoryOrder,
+    ).toEqual([
+      "pool",
+      "cover",
+      "outside",
+      "inside",
+      "livingroom",
+      "bedroom",
+      "kitchen",
+      "bathroom",
+      "parking",
+      "review",
+    ]);
+
+    expect(
+      validateWebStyleDraft("gallery", {
+        categoryOrder: ["cover", "outside"],
+        variant: "categorized-grid",
+      }),
+    ).toEqual(["categoryOrder must contain every gallery category exactly once."]);
+  });
+
+  it("keeps the selected source for the complete detail gallery image set", () => {
+    expect(
+      normalizeGalleryOptions({ imageSource: "system" }),
+    ).toEqual({ imageSource: "system" });
+    expect(
+      validateWebStyleDraft("gallery", {
+        imageSource: "system",
+        variant: "lightbox",
+      }),
+    ).toEqual([]);
+    expect(
+      validateWebStyleDraft("gallery", {
+        imageSource: "other",
+        variant: "lightbox",
+      }),
+    ).toEqual(["imageSource must be standard or system."]);
   });
 
   it("rejects unknown fields and malformed Gallery colors", () => {

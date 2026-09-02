@@ -3,9 +3,10 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
+import type { GalleryImageSource } from "@/lib/site-web-styles/types";
 import {
   fetchVillaCoverOverrideUrls,
-  fetchVillaImages,
+  fetchVillaSourceImages,
   normalizeImageRows,
   resolveDisplayImages,
 } from "./images";
@@ -27,6 +28,7 @@ import type {
   AmenityKey,
   VillaDetailPayload,
   VillaFilters,
+  VillaImage,
   VillaListing,
 } from "./types";
 
@@ -1521,6 +1523,7 @@ export async function fetchVillaDetail(
 export type VillaPageData = {
   initialGalleryImages: PublicVillaImage[];
   initialGalleryLoadFailed: boolean;
+  initialGalleryPreviewImages: PublicVillaImage[];
   payload: PublicVillaDetailPayload;
   recommendedSection: null;
 };
@@ -1534,6 +1537,7 @@ export type VillaPageData = {
  */
 export async function fetchVillaPageData(
   id: string,
+  galleryImageSource: GalleryImageSource = "standard",
 ): Promise<VillaPageData | null> {
   const listing = await getListingById(id);
 
@@ -1541,25 +1545,100 @@ export async function fetchVillaPageData(
     return null;
   }
 
-  const initialGalleryPromise = fetchVillaImages(id)
+  const initialGalleryPromise = fetchVillaSourceImages(id)
     .then((images) => ({ failed: false as const, images }))
     .catch((error: unknown) => {
       console.error("Unable to load villa detail gallery images", error);
       return { failed: true as const, images: [] };
     });
-  const [payload, galleryResult] = await Promise.all([
+  const galleryPreviewPromise =
+    galleryImageSource === "system"
+      ? resolveDisplayImages(id)
+          .catch((error: unknown) => {
+            console.error("Unable to load villa detail gallery preview images", error);
+            return null;
+          })
+      : Promise.resolve(null);
+  const [payload, galleryResult, configuredPreviewImages] = await Promise.all([
     fetchVillaDetail(id, [listing]),
     initialGalleryPromise,
+    galleryPreviewPromise,
   ]);
 
   if (!payload) {
     return null;
   }
 
+  const previewImages = buildDetailGalleryPreviewImages(
+    buildStandardDetailGalleryPreviewImages(listing, galleryResult.images),
+    configuredPreviewImages,
+  );
+
   return {
     initialGalleryImages: toPublicVillaImages(id, galleryResult.images),
     initialGalleryLoadFailed: galleryResult.failed,
+    initialGalleryPreviewImages: toPublicVillaImages(
+      id,
+      previewImages,
+    ),
     payload: toPublicVillaDetailPayload(payload),
     recommendedSection: null,
   };
+}
+
+function buildStandardDetailGalleryPreviewImages(
+  listing: VillaListing,
+  galleryImages: VillaImage[],
+): VillaImage[] {
+  if (!listing.coverImage) {
+    return galleryImages;
+  }
+
+  const coverImage: VillaImage = {
+    caption: null,
+    id: 0,
+    imageName: null,
+    imageUrl: listing.coverImage,
+    isCover: true,
+    zone: "cover",
+  };
+
+  return [
+    coverImage,
+    ...galleryImages.filter(
+      (image) =>
+        image.imageUrl !== coverImage.imageUrl && !isDetailCoverImage(image),
+    ),
+  ];
+}
+
+function isDetailCoverImage(image: VillaImage): boolean {
+  const zone = image.zone?.trim().toLowerCase();
+
+  return zone === "cover" || zone === "รูปปก" || zone === "ภาพปก";
+}
+
+function buildDetailGalleryPreviewImages(
+  standardImages: VillaImage[],
+  configuredImages: VillaImage[] | null,
+): VillaImage[] {
+  if (!configuredImages || configuredImages.length === 0) {
+    return standardImages;
+  }
+
+  const systemCover = configuredImages.find((image) => image.id === 0);
+  const standardCover = standardImages.find(isDetailCoverImage);
+  const mainImage = systemCover ?? standardCover ?? configuredImages[0];
+  const configuredSideImages = configuredImages.filter(
+    (image) => image.imageUrl !== mainImage.imageUrl && !isDetailCoverImage(image),
+  );
+
+  if (configuredSideImages.length > 0) {
+    return [mainImage, ...configuredSideImages];
+  }
+
+  return [
+    mainImage,
+    ...standardImages.filter((image) => image.imageUrl !== mainImage.imageUrl),
+  ];
 }

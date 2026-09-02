@@ -1,12 +1,15 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   click,
   flushEffects,
   makeFetchMock,
+  makeJsonResponse,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
@@ -403,6 +406,20 @@ describe("AdminDetailLayoutPage", () => {
       expect.objectContaining({
         body: JSON.stringify({
           backgroundColor: "#ffffff",
+          categoryOrder: [
+            "cover",
+            "outside",
+            "pool",
+            "inside",
+            "livingroom",
+            "bedroom",
+            "kitchen",
+            "bathroom",
+            "parking",
+            "review",
+          ],
+          imageSource: "standard",
+          showCover: true,
           textColor: "#111111",
           variant: "lightbox",
         }),
@@ -410,6 +427,213 @@ describe("AdminDetailLayoutPage", () => {
         method: "PATCH",
       }),
     );
+
+    await page.unmount();
+  });
+
+  it("lets admins select the card-configured image set for the complete detail gallery", async () => {
+    const fetchMock = makeFetchMock([
+      { body: { layout: savedLayout }, url: "/api/admin/detail-layout" },
+      {
+        body: { settings: { imageSource: "standard", variant: "lightbox" } },
+        url: "/api/admin/site-web-styles/gallery",
+      },
+      {
+        body: { settings: { imageSource: "system", variant: "lightbox" } },
+        method: "PATCH",
+        url: "/api/admin/site-web-styles/gallery",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    await flushEffects();
+    await flushEffects();
+    const systemSource = page.container.querySelector<HTMLInputElement>(
+      'input[name="galleryImageSource"][value="system"]',
+    );
+
+    expect(systemSource?.checked).toBe(false);
+
+    await click(systemSource as HTMLInputElement);
+    await click(page.container.querySelector<HTMLButtonElement>(
+      "[data-detail-layout-save]",
+    ) as HTMLButtonElement);
+    await flushEffects();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/site-web-styles/gallery",
+      expect.objectContaining({
+        body: expect.stringContaining('"imageSource":"system"'),
+        method: "PATCH",
+      }),
+    );
+
+    await page.unmount();
+  });
+
+  it("edits the global gallery category order in an on-demand dialog", async () => {
+    const fetchMock = makeFetchMock([
+      {
+        body: { layout: savedLayout },
+        url: "/api/admin/detail-layout",
+      },
+      {
+        body: {
+          settings: {
+            categoryOrder: [
+              "cover",
+              "outside",
+              "pool",
+              "inside",
+              "livingroom",
+              "bedroom",
+              "kitchen",
+              "bathroom",
+              "parking",
+              "review",
+            ],
+            variant: "categorized-grid",
+          },
+        },
+        url: "/api/admin/site-web-styles/gallery",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    await flushEffects();
+    await flushEffects();
+    const openOrderDialog = page.container.querySelector<HTMLButtonElement>(
+      '[data-open-gallery-category-order]',
+    );
+
+    expect(openOrderDialog).not.toBeNull();
+    expect(
+      page.container.querySelector('[data-gallery-category-order="true"]'),
+    ).toBeNull();
+
+    await click(openOrderDialog as HTMLButtonElement);
+
+    const order = page.container.querySelector('[data-gallery-category-order="true"]');
+    const poolDragHandle = page.container.querySelector<HTMLButtonElement>(
+      '[data-gallery-category-key="pool"] [aria-label="ลากสระว่ายน้ำเพื่อจัดลำดับ"]',
+    );
+    const coverDragHandle = page.container.querySelector<HTMLButtonElement>(
+      '[data-gallery-category-key="cover"] [aria-label="ลากรูปปกเพื่อจัดลำดับ"]',
+    );
+    const showCover = page.container.querySelector<HTMLInputElement>(
+      '[data-gallery-show-cover]',
+    );
+
+    expect(order?.textContent).toContain("ลำดับหมวดรูปภาพ");
+    expect(poolDragHandle).not.toBeNull();
+    expect(coverDragHandle).toBeNull();
+    expect(showCover?.checked).toBe(true);
+    expect(order?.querySelector("ol")?.className).toContain("overscroll-contain");
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(poolDragHandle?.style.touchAction).toBe("none");
+    expect(poolDragHandle?.className).toContain("size-11");
+
+    const cancelButton = page.container.querySelector<HTMLButtonElement>(
+      '[data-cancel-gallery-category-order]',
+    );
+    expect(cancelButton).not.toBeNull();
+    await click(cancelButton as HTMLButtonElement);
+
+    expect(
+      page.container.querySelector('[data-gallery-category-order="true"]'),
+    ).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+    expect(document.documentElement.style.overflow).toBe("");
+
+    await page.unmount();
+  });
+
+  it("saves a disabled cover category without moving it from the first position", async () => {
+    const fetchMock = makeFetchMock([
+      { body: { layout: savedLayout }, url: "/api/admin/detail-layout" },
+      {
+        body: {
+          settings: {
+            categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review"],
+            variant: "categorized-grid",
+          },
+        },
+        url: "/api/admin/site-web-styles/gallery",
+      },
+      {
+        body: { settings: { variant: "categorized-grid" } },
+        method: "PATCH",
+        url: "/api/admin/site-web-styles/gallery",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    await flushEffects();
+    await flushEffects();
+
+    await click(page.container.querySelector<HTMLButtonElement>(
+      '[data-open-gallery-category-order]',
+    ) as HTMLButtonElement);
+    const showCover = page.container.querySelector<HTMLInputElement>(
+      '[data-gallery-show-cover]',
+    );
+    expect(showCover).not.toBeNull();
+    await click(showCover as HTMLInputElement);
+    await click(page.container.querySelector<HTMLButtonElement>(
+      '[data-save-gallery-category-order]',
+    ) as HTMLButtonElement);
+    await click(page.container.querySelector<HTMLButtonElement>(
+      '[data-detail-layout-save]',
+    ) as HTMLButtonElement);
+    await flushEffects();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/site-web-styles/gallery",
+      expect.objectContaining({
+        body: JSON.stringify({
+          backgroundColor: "",
+          categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review"],
+          imageSource: "standard",
+          showCover: false,
+          textColor: "",
+          variant: "categorized-grid",
+        }),
+        method: "PATCH",
+      }),
+    );
+
+    await page.unmount();
+  });
+
+  it("places the Gallery color controls in two columns on wider screens", async () => {
+    const fetchMock = makeFetchMock([
+      { body: { layout: savedLayout }, url: "/api/admin/detail-layout" },
+      {
+        body: {
+          settings: {
+            backgroundColor: "#f5a432",
+            categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review"],
+            textColor: "#000000",
+            variant: "categorized-grid",
+          },
+        },
+        url: "/api/admin/site-web-styles/gallery",
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    await flushEffects();
+    await flushEffects();
+
+    expect(
+      page.container.querySelector('[data-gallery-color-controls="true"]')
+        ?.className,
+    ).toContain("sm:grid-cols-2");
 
     await page.unmount();
   });
@@ -461,6 +685,47 @@ describe("AdminDetailLayoutPage", () => {
     await page.unmount();
   });
 
+  it("keeps DnD sensor hooks stable while a layout save is pending", async () => {
+    let resolveSave: ((response: Response) => void) | undefined;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(makeJsonResponse({ body: { layout: savedLayout } }))
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveSave = resolve;
+          }),
+      );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    const buttons = Array.from(page.container.querySelectorAll("header button"));
+
+    await click(buttons[0] as HTMLButtonElement);
+    await click(buttons[1] as HTMLButtonElement);
+
+    expect(
+      consoleError.mock.calls.some((args) =>
+        args.join(" ").includes("final argument passed to useEffect changed size"),
+      ),
+    ).toBe(false);
+    expect(
+      readFileSync(
+        resolve(
+          process.cwd(),
+          "components/admin/detail-layout/admin-detail-layout-page.tsx",
+        ),
+        "utf8",
+      ),
+    ).toContain("sensors={dndSensors}");
+
+    resolveSave?.(makeJsonResponse({ body: { layout: DEFAULT_DETAIL_LAYOUT_V2 } }));
+    await flushEffects();
+    consoleError.mockRestore();
+    await page.unmount();
+  });
+
   it("shows save validation at the invalid row and scrolls to that row", async () => {
     const previousScrollIntoView = HTMLElement.prototype.scrollIntoView;
     const scrollIntoView = vi.fn();
@@ -500,7 +765,7 @@ describe("AdminDetailLayoutPage", () => {
     );
 
     expect(fieldError?.textContent).toContain("ฝั่ง 30 ลำดับที่ 4 ต้องมี block");
-    expect(fieldError?.closest("article")?.textContent).toContain("แถว 30 ที่ 4");
+    expect(fieldError?.closest("article")?.textContent).toContain("แถวที่ 4");
     expect(page.container.textContent).not.toContain(
       "แก้รายการเหล่านี้ก่อนบันทึก:",
     );

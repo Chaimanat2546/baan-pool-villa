@@ -4,19 +4,23 @@ import {
   ArrowDown,
   ArrowLeftRight,
   ArrowUp,
-  Eye,
-  EyeOff,
   GripVertical,
   Plus,
   Trash2,
   X,
 } from "lucide-react";
-import { useState, type DragEvent } from "react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import type { UniqueIdentifier } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { ReactNode } from "react";
 
 import { DETAIL_LAYOUT_OUTER_SPLIT_RATIOS } from "@/lib/detail-layout/defaults";
 
-import { isDetailLayoutBlockType } from "./detail-layout-helpers";
-import { StatusPill } from "./layout-canvas-parts";
 import type {
   DetailLayoutBlockType,
   DetailLayoutOuterRatio,
@@ -26,14 +30,6 @@ import type {
   DetailLayoutWideRatio,
 } from "./types";
 
-const WIDE_ROW_DRAG_DATA_TYPE = "application/x-detail-layout-v2-wide-row-index";
-const NARROW_ROW_DRAG_DATA_TYPE =
-  "application/x-detail-layout-v2-narrow-row-index";
-const WIDE_BLOCK_DRAG_DATA_TYPE =
-  "application/x-detail-layout-v2-wide-block-location";
-const NARROW_BLOCK_DRAG_DATA_TYPE =
-  "application/x-detail-layout-v2-narrow-block-row-id";
-
 const WIDE_ROW_OPTIONS: Array<{
   columns: DetailLayoutWideColumns;
   label: string;
@@ -42,11 +38,6 @@ const WIDE_ROW_OPTIONS: Array<{
   { columns: 1, label: "1 ช่อง" },
   { columns: 2, label: "2 ช่อง", ratio: "50/50" },
 ];
-
-interface DetailLayoutWideBlockDragLocation {
-  blockIndex: number;
-  rowId: string;
-}
 
 export type DetailLayoutCanvasSelection =
   | {
@@ -66,6 +57,7 @@ export type DetailLayoutCanvasSelection =
 
 export interface LayoutCanvasProps {
   activeSelection: DetailLayoutCanvasSelection;
+  disabled?: boolean;
   errorMessagesByTarget?: Record<string, string[]>;
   layout: DetailLayoutV2Draft;
   onAddNarrowRow: () => void;
@@ -105,8 +97,6 @@ export interface LayoutCanvasProps {
   onRemoveWideRow: (rowId: string) => void;
   onSelectNarrowRow: (rowId: string) => void;
   onSelectWideBlock: (rowId: string, blockIndex: number) => void;
-  onToggleNarrowRow: (rowId: string, enabled: boolean) => void;
-  onToggleWideRow: (rowId: string, enabled: boolean) => void;
   onUpdateWideRow: (
     rowId: string,
     columns: DetailLayoutWideColumns,
@@ -114,78 +104,49 @@ export interface LayoutCanvasProps {
   ) => void;
 }
 
-export function getDetailLayoutDropType(
-  dataTransfer: Pick<DataTransfer, "getData">,
-): DetailLayoutBlockType | null {
-  const value = dataTransfer.getData("text/plain");
-
-  return isDetailLayoutBlockType(value) ? value : null;
-}
-
-function getV2RowDragIndex(
-  dataTransfer: Pick<DataTransfer, "getData">,
-  dataType: string,
-  rowCount: number,
-): number | null {
-  const value = dataTransfer.getData(dataType);
-  const index = Number(value);
-
-  if (!Number.isInteger(index) || index < 0 || index >= rowCount) {
-    return null;
-  }
-
-  return index;
-}
-
-function getWideBlockDragLocation(
-  dataTransfer: Pick<DataTransfer, "getData">,
+export function getDetailLayoutCanvasRowSortableIds(
   layout: DetailLayoutV2Draft,
-): DetailLayoutWideBlockDragLocation | null {
-  const value = dataTransfer.getData(WIDE_BLOCK_DRAG_DATA_TYPE);
-
-  try {
-    const payload = JSON.parse(
-      value,
-    ) as Partial<DetailLayoutWideBlockDragLocation>;
-    const rowId = payload.rowId;
-    const blockIndex = payload.blockIndex;
-
-    if (
-      typeof rowId !== "string" ||
-      typeof blockIndex !== "number" ||
-      !Number.isInteger(blockIndex)
-    ) {
-      return null;
-    }
-
-    const row = layout.mainSplit.wideRows.find(
-      (candidate) => candidate.id === rowId,
-    );
-
-    if (!row || blockIndex < 0 || blockIndex >= row.blocks.length) {
-      return null;
-    }
-
-    return { blockIndex, rowId };
-  } catch {
-    return null;
-  }
+): UniqueIdentifier[] {
+  return [
+    ...layout.mainSplit.wideRows.map((row) => `wide-row:${row.id}`),
+    ...layout.mainSplit.narrowRows.map((row) => `narrow-row:${row.id}`),
+  ];
 }
 
-function getNarrowBlockDragRowId(
-  dataTransfer: Pick<DataTransfer, "getData">,
-  layout: DetailLayoutV2Draft,
-): string | null {
-  const rowId = dataTransfer.getData(NARROW_BLOCK_DRAG_DATA_TYPE);
-  const row = layout.mainSplit.narrowRows.find(
-    (candidate) => candidate.id === rowId,
-  );
+function SortableCanvasItem({
+  children,
+  id,
+}: {
+  children: (item: ReturnType<typeof useSortable>) => ReactNode;
+  id: UniqueIdentifier;
+}) {
+  const item = useSortable({ id });
 
-  return row?.block ? rowId : null;
+  return children(item);
 }
 
-function hasDragType(dataTransfer: DataTransfer, type: string): boolean {
-  return Array.from(dataTransfer.types).includes(type);
+function DraggableCanvasItem({
+  children,
+  id,
+}: {
+  children: (item: ReturnType<typeof useDraggable>) => ReactNode;
+  id: UniqueIdentifier;
+}) {
+  const item = useDraggable({ id });
+
+  return children(item);
+}
+
+function CanvasDropTarget({
+  children,
+  id,
+}: {
+  children: (target: ReturnType<typeof useDroppable>) => ReactNode;
+  id: UniqueIdentifier;
+}) {
+  const target = useDroppable({ id });
+
+  return children(target);
 }
 
 function getWideGridClass(row: DetailLayoutV2DraftWideRow): string {
@@ -232,6 +193,7 @@ function renderErrorMessages(errors: string[]) {
 
 export function LayoutCanvas({
   activeSelection,
+  disabled = false,
   errorMessagesByTarget = {},
   layout,
   onAddNarrowRow,
@@ -251,289 +213,11 @@ export function LayoutCanvas({
   onRemoveWideRow,
   onSelectNarrowRow,
   onSelectWideBlock,
-  onToggleNarrowRow,
-  onToggleWideRow,
   onUpdateWideRow,
 }: LayoutCanvasProps) {
-  const [draggingWideRowIndex, setDraggingWideRowIndex] = useState<
-    number | null
-  >(null);
-  const [dragOverWideRowIndex, setDragOverWideRowIndex] = useState<
-    number | null
-  >(null);
-  const [draggingNarrowRowIndex, setDraggingNarrowRowIndex] = useState<
-    number | null
-  >(null);
-  const [dragOverNarrowRowIndex, setDragOverNarrowRowIndex] = useState<
-    number | null
-  >(null);
-  const [draggingWideBlock, setDraggingWideBlock] =
-    useState<DetailLayoutWideBlockDragLocation | null>(null);
-  const [draggingNarrowBlockRowId, setDraggingNarrowBlockRowId] = useState<
-    string | null
-  >(null);
-  const [dragOverWideBlock, setDragOverWideBlock] =
-    useState<DetailLayoutWideBlockDragLocation | null>(null);
-  const [dragOverNarrowRowId, setDragOverNarrowRowId] = useState<string | null>(
-    null,
-  );
-
   const isWideLeft = layout.mainSplit.ratio === "70/30";
   const wideZone = renderWideZone();
   const narrowZone = renderNarrowZone();
-
-  function handleWideSlotDragOver(
-    event: DragEvent<HTMLDivElement>,
-    rowId: string,
-    blockIndex: number,
-  ) {
-    if (
-      hasDragType(event.dataTransfer, WIDE_ROW_DRAG_DATA_TYPE) ||
-      hasDragType(event.dataTransfer, NARROW_ROW_DRAG_DATA_TYPE)
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = hasDragType(
-      event.dataTransfer,
-      WIDE_BLOCK_DRAG_DATA_TYPE,
-    ) ||
-      hasDragType(event.dataTransfer, NARROW_BLOCK_DRAG_DATA_TYPE)
-      ? "move"
-      : "copy";
-    setDragOverWideBlock({ blockIndex, rowId });
-  }
-
-  function handleWideSlotDrop(
-    event: DragEvent<HTMLDivElement>,
-    rowId: string,
-    blockIndex: number,
-  ) {
-    if (
-      hasDragType(event.dataTransfer, WIDE_ROW_DRAG_DATA_TYPE) ||
-      hasDragType(event.dataTransfer, NARROW_ROW_DRAG_DATA_TYPE)
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    setDragOverWideBlock(null);
-
-    const sourceBlock = getWideBlockDragLocation(event.dataTransfer, layout);
-
-    if (sourceBlock) {
-      onMoveWideBlock(
-        sourceBlock.rowId,
-        sourceBlock.blockIndex,
-        rowId,
-        blockIndex,
-      );
-      return;
-    }
-
-    const sourceNarrowRowId = getNarrowBlockDragRowId(event.dataTransfer, layout);
-
-    if (sourceNarrowRowId) {
-      onMoveNarrowBlockToWide(sourceNarrowRowId, rowId, blockIndex);
-      return;
-    }
-
-    const type = getDetailLayoutDropType(event.dataTransfer);
-
-    if (type) {
-      onDropWideBlock(rowId, blockIndex, type);
-    }
-  }
-
-  function handleNarrowSlotDragOver(
-    event: DragEvent<HTMLDivElement>,
-    rowId: string,
-  ) {
-    if (
-      hasDragType(event.dataTransfer, WIDE_ROW_DRAG_DATA_TYPE) ||
-      hasDragType(event.dataTransfer, NARROW_ROW_DRAG_DATA_TYPE)
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect =
-      hasDragType(event.dataTransfer, WIDE_BLOCK_DRAG_DATA_TYPE) ||
-      hasDragType(event.dataTransfer, NARROW_BLOCK_DRAG_DATA_TYPE)
-        ? "move"
-        : "copy";
-    setDragOverNarrowRowId(rowId);
-  }
-
-  function handleNarrowSlotDrop(
-    event: DragEvent<HTMLDivElement>,
-    rowId: string,
-  ) {
-    if (
-      hasDragType(event.dataTransfer, WIDE_ROW_DRAG_DATA_TYPE) ||
-      hasDragType(event.dataTransfer, NARROW_ROW_DRAG_DATA_TYPE)
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    setDragOverNarrowRowId(null);
-
-    const sourceBlock = getWideBlockDragLocation(event.dataTransfer, layout);
-
-    if (sourceBlock) {
-      onMoveWideBlockToNarrow(
-        sourceBlock.rowId,
-        sourceBlock.blockIndex,
-        rowId,
-      );
-      return;
-    }
-
-    const sourceNarrowRowId = getNarrowBlockDragRowId(event.dataTransfer, layout);
-
-    if (sourceNarrowRowId) {
-      onMoveNarrowBlock(sourceNarrowRowId, rowId);
-      return;
-    }
-
-    const type = getDetailLayoutDropType(event.dataTransfer);
-
-    if (type) {
-      onDropNarrowBlock(rowId, type);
-    }
-  }
-
-  function handleWideRowDragStart(
-    event: DragEvent<HTMLButtonElement>,
-    rowIndex: number,
-  ) {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(WIDE_ROW_DRAG_DATA_TYPE, String(rowIndex));
-    setDraggingWideRowIndex(rowIndex);
-    setDragOverWideRowIndex(rowIndex);
-  }
-
-  function handleWideRowDragOver(
-    event: DragEvent<HTMLElement>,
-    rowIndex: number,
-  ) {
-    if (!hasDragType(event.dataTransfer, WIDE_ROW_DRAG_DATA_TYPE)) {
-      return;
-    }
-
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    setDragOverWideRowIndex(rowIndex);
-  }
-
-  function handleWideRowDrop(event: DragEvent<HTMLElement>, toIndex: number) {
-    if (!hasDragType(event.dataTransfer, WIDE_ROW_DRAG_DATA_TYPE)) {
-      return;
-    }
-
-    event.preventDefault();
-    const fromIndex = getV2RowDragIndex(
-      event.dataTransfer,
-      WIDE_ROW_DRAG_DATA_TYPE,
-      layout.mainSplit.wideRows.length,
-    );
-
-    setDraggingWideRowIndex(null);
-    setDragOverWideRowIndex(null);
-
-    if (fromIndex !== null && fromIndex !== toIndex) {
-      onMoveWideRow(fromIndex, toIndex);
-    }
-  }
-
-  function handleNarrowRowDragStart(
-    event: DragEvent<HTMLButtonElement>,
-    rowIndex: number,
-  ) {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(NARROW_ROW_DRAG_DATA_TYPE, String(rowIndex));
-    setDraggingNarrowRowIndex(rowIndex);
-    setDragOverNarrowRowIndex(rowIndex);
-  }
-
-  function handleNarrowRowDragOver(
-    event: DragEvent<HTMLElement>,
-    rowIndex: number,
-  ) {
-    if (!hasDragType(event.dataTransfer, NARROW_ROW_DRAG_DATA_TYPE)) {
-      return;
-    }
-
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    setDragOverNarrowRowIndex(rowIndex);
-  }
-
-  function handleNarrowRowDrop(event: DragEvent<HTMLElement>, toIndex: number) {
-    if (!hasDragType(event.dataTransfer, NARROW_ROW_DRAG_DATA_TYPE)) {
-      return;
-    }
-
-    event.preventDefault();
-    const fromIndex = getV2RowDragIndex(
-      event.dataTransfer,
-      NARROW_ROW_DRAG_DATA_TYPE,
-      layout.mainSplit.narrowRows.length,
-    );
-
-    setDraggingNarrowRowIndex(null);
-    setDragOverNarrowRowIndex(null);
-
-    if (fromIndex !== null && fromIndex !== toIndex) {
-      onMoveNarrowRow(fromIndex, toIndex);
-    }
-  }
-
-  function handleRowDragEnd() {
-    setDraggingWideRowIndex(null);
-    setDragOverWideRowIndex(null);
-    setDraggingNarrowRowIndex(null);
-    setDragOverNarrowRowIndex(null);
-  }
-
-  function handleWideBlockDragStart(
-    event: DragEvent<HTMLElement>,
-    rowId: string,
-    blockIndex: number,
-  ) {
-    const location = { blockIndex, rowId };
-
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(
-      WIDE_BLOCK_DRAG_DATA_TYPE,
-      JSON.stringify(location),
-    );
-    setDraggingWideBlock(location);
-    setDragOverWideBlock(location);
-  }
-
-  function handleNarrowBlockDragStart(
-    event: DragEvent<HTMLElement>,
-    rowId: string,
-  ) {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(NARROW_BLOCK_DRAG_DATA_TYPE, rowId);
-    setDraggingNarrowBlockRowId(rowId);
-    setDragOverNarrowRowId(rowId);
-  }
-
-  function handleBlockDragEnd() {
-    setDraggingWideBlock(null);
-    setDragOverWideBlock(null);
-    setDraggingNarrowBlockRowId(null);
-    setDragOverNarrowRowId(null);
-  }
 
   function renderWideZone() {
     return (
@@ -563,11 +247,16 @@ export function LayoutCanvas({
             </span>
           </button>
         ) : (
+          <SortableContext
+            items={layout.mainSplit.wideRows.map((row) => `wide-row:${row.id}`)}
+            strategy={verticalListSortingStrategy}
+          >
           <div className="grid gap-3">
             {layout.mainSplit.wideRows.map((row, rowIndex) =>
               renderWideRow(row, rowIndex),
             )}
           </div>
+          </SortableContext>
         )}
 
         <button
@@ -594,41 +283,31 @@ export function LayoutCanvas({
     );
     const displayErrors = [...rowErrors, ...slotErrors];
     const hasRowErrors = rowErrors.length > 0;
-    const isDraggingRow = draggingWideRowIndex === rowIndex;
-    const isDragOverRow =
-      dragOverWideRowIndex === rowIndex && draggingWideRowIndex !== rowIndex;
-
     return (
+      <SortableCanvasItem id={`wide-row:${row.id}`} key={row.id}>
+        {({ attributes, isDragging, isOver, listeners, setNodeRef, transform, transition }) => (
       <article
         className={`rounded-lg border bg-[var(--site-surface-soft)] p-2 transition ${
           hasRowErrors
             ? "border-red-300 ring-2 ring-red-100"
-            : isDragOverRow
+            : isOver
             ? "border-[var(--site-primary)] ring-2 ring-[var(--site-primary)]/15"
             : "border-[var(--site-border)]"
-        } ${row.enabled ? "" : "opacity-60"} ${
-          isDraggingRow ? "opacity-70" : ""
+        } ${isDragging ? "opacity-70" : ""
         }`}
         key={row.id}
-        onDragEnd={handleRowDragEnd}
-        onDragOver={(event) => {
-          handleWideRowDragOver(event, rowIndex);
-        }}
-        onDrop={(event) => {
-          handleWideRowDrop(event, rowIndex);
-        }}
+        ref={setNodeRef}
+        style={{ transform: CSS.Transform.toString(transform), transition }}
       >
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
           <button
-            aria-label={`ลากแถวฝั่ง 70 ลำดับที่ ${rowIndex + 1}`}
-            className="inline-flex size-8 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
-            draggable
-            onDragEnd={handleRowDragEnd}
-            onDragStart={(event) => {
-              handleWideRowDragStart(event, rowIndex);
-            }}
-            title={`ลากแถวฝั่ง 70 ลำดับที่ ${rowIndex + 1}`}
+            aria-label={`ลากแถวที่ ${rowIndex + 1}`}
+            className="inline-flex min-h-11 min-w-11 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+            title={`ลากแถวที่ ${rowIndex + 1}`}
             type="button"
+            style={{ touchAction: "none" }}
           >
             <GripVertical aria-hidden="true" className="size-4" />
           </button>
@@ -636,9 +315,8 @@ export function LayoutCanvas({
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <p className="truncate text-sm font-semibold text-[var(--site-text)]">
-                แถว 70 ที่ {rowIndex + 1}
+                แถวที่ {rowIndex + 1}
               </p>
-              <StatusPill enabled={row.enabled} />
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
               {WIDE_ROW_OPTIONS.map((option) => {
@@ -666,7 +344,7 @@ export function LayoutCanvas({
 
           <div className="col-span-2 flex flex-wrap items-center justify-end gap-1 sm:col-span-1">
             <button
-              aria-label="เลื่อนแถว 70 ขึ้น"
+              aria-label="เลื่อนแถวขึ้น"
               className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={rowIndex <= 0}
               onClick={() => {
@@ -678,7 +356,7 @@ export function LayoutCanvas({
               <ArrowUp aria-hidden="true" className="size-4" />
             </button>
             <button
-              aria-label="เลื่อนแถว 70 ลง"
+              aria-label="เลื่อนแถวลง"
               className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={rowIndex >= layout.mainSplit.wideRows.length - 1}
               onClick={() => {
@@ -690,22 +368,7 @@ export function LayoutCanvas({
               <ArrowDown aria-hidden="true" className="size-4" />
             </button>
             <button
-              aria-label={row.enabled ? "ปิดแถว 70" : "เปิดแถว 70"}
-              className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)]"
-              onClick={() => {
-                onToggleWideRow(row.id, !row.enabled);
-              }}
-              title={row.enabled ? "ปิดแถว" : "เปิดแถว"}
-              type="button"
-            >
-              {row.enabled ? (
-                <Eye aria-hidden="true" className="size-4" />
-              ) : (
-                <EyeOff aria-hidden="true" className="size-4" />
-              )}
-            </button>
-            <button
-              aria-label="ลบแถว 70"
+              aria-label="ลบแถว"
               className="inline-flex size-8 items-center justify-center rounded-md border border-red-200 bg-[var(--site-surface)] text-red-700 transition hover:bg-red-50"
               onClick={() => {
                 onRemoveWideRow(row.id);
@@ -725,6 +388,8 @@ export function LayoutCanvas({
         </div>
         {renderErrorMessages(displayErrors)}
       </article>
+        )}
+      </SortableCanvasItem>
     );
   }
 
@@ -740,55 +405,43 @@ export function LayoutCanvas({
       activeSelection?.zone === "wide" &&
       activeSelection.rowId === row.id &&
       activeSelection.blockIndex === blockIndex;
-    const isDragOver =
-      dragOverWideBlock?.rowId === row.id &&
-      dragOverWideBlock.blockIndex === blockIndex &&
-      (draggingWideBlock?.rowId !== row.id ||
-        draggingWideBlock.blockIndex !== blockIndex);
-    const isDragging =
-      draggingWideBlock?.rowId === row.id &&
-      draggingWideBlock.blockIndex === blockIndex;
-
     return (
+      <CanvasDropTarget
+        id={`wide-slot:${row.id}:${blockIndex}`}
+        key={`${row.id}-${blockIndex}`}
+      >
+        {({ isOver, setNodeRef }) => (
       <div
         className={`min-h-24 rounded-lg border p-2 transition ${
           hasSlotErrors
             ? "border-red-300 bg-red-50/40 ring-2 ring-red-100"
-            : isDragOver
+            : isOver
             ? "border-[var(--site-primary)] bg-[var(--site-surface)] ring-2 ring-[var(--site-primary)]/15"
             : isSelected
             ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
             : "border-dashed border-[var(--site-border)] bg-[var(--site-surface)]"
         }`}
-        key={`${row.id}-${blockIndex}`}
-        onDragLeave={() => {
-          setDragOverWideBlock(null);
-        }}
-        onDragOver={(event) => {
-          handleWideSlotDragOver(event, row.id, blockIndex);
-        }}
-        onDrop={(event) => {
-          handleWideSlotDrop(event, row.id, blockIndex);
-        }}
+        ref={setNodeRef}
       >
         {block ? (
+          <DraggableCanvasItem id={`wide-block:${row.id}:${blockIndex}`}>
+            {({ attributes, isDragging, listeners, setNodeRef: setBlockNodeRef }) => (
           <div
             aria-label={`ลาก block ${block.title}`}
             className={`grid h-full min-h-20 cursor-grab grid-cols-[auto_1fr_auto] gap-2 rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-2 transition active:cursor-grabbing ${
               isDragging ? "opacity-70" : ""
             }`}
-            draggable
-            onDragEnd={handleBlockDragEnd}
-            onDragStart={(event) => {
-              handleWideBlockDragStart(event, row.id, blockIndex);
-            }}
+            ref={setBlockNodeRef}
             role="group"
           >
             <button
               aria-label={`ลาก block ${block.title}`}
-              className="inline-flex size-7 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
+              className="inline-flex min-h-11 min-w-11 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
               title={`ลาก block ${block.title}`}
               type="button"
+              {...attributes}
+              {...listeners}
+              style={{ touchAction: "none" }}
             >
               <GripVertical aria-hidden="true" className="size-4" />
             </button>
@@ -816,6 +469,8 @@ export function LayoutCanvas({
               <X aria-hidden="true" className="size-4" />
             </button>
           </div>
+            )}
+          </DraggableCanvasItem>
         ) : (
           <button
             aria-pressed={isSelected}
@@ -838,6 +493,8 @@ export function LayoutCanvas({
           </button>
         )}
       </div>
+        )}
+      </CanvasDropTarget>
     );
   }
 
@@ -867,53 +524,44 @@ export function LayoutCanvas({
             </span>
           </button>
         ) : (
+          <SortableContext
+            items={layout.mainSplit.narrowRows.map((row) => `narrow-row:${row.id}`)}
+            strategy={verticalListSortingStrategy}
+          >
           <div className="grid gap-2">
             {layout.mainSplit.narrowRows.map((row, rowIndex) => {
+              const narrowBlock = row.block;
               const isSelected =
                 activeSelection?.zone === "narrow" &&
                 activeSelection.rowId === row.id;
               const rowErrors = errorMessagesByTarget[`${row.id}:row`] ?? [];
               const hasRowErrors = rowErrors.length > 0;
-              const isDragOverSlot = dragOverNarrowRowId === row.id;
-              const isDraggingBlock = draggingNarrowBlockRowId === row.id;
-              const isDraggingRow = draggingNarrowRowIndex === rowIndex;
-              const isDragOverRow =
-                dragOverNarrowRowIndex === rowIndex &&
-                draggingNarrowRowIndex !== rowIndex;
-
               return (
+                <SortableCanvasItem id={`narrow-row:${row.id}`} key={row.id}>
+                  {({ attributes, isDragging, isOver, listeners, setNodeRef, transform, transition }) => (
                 <article
                   className={`rounded-lg border bg-[var(--site-surface-soft)] p-2 transition ${
                     hasRowErrors
                       ? "border-red-300 ring-2 ring-red-100"
-                      : isDragOverRow || isDragOverSlot
+                      : isOver
                       ? "border-[var(--site-primary)] ring-2 ring-[var(--site-primary)]/15"
                       : isSelected
                       ? "border-[var(--site-primary)]"
                       : "border-[var(--site-border)]"
-                  } ${row.enabled ? "" : "opacity-60"} ${
-                    isDraggingRow ? "opacity-70" : ""
+                  } ${isDragging ? "opacity-70" : ""
                   }`}
-                  key={row.id}
-                  onDragEnd={handleRowDragEnd}
-                  onDragOver={(event) => {
-                    handleNarrowRowDragOver(event, rowIndex);
-                  }}
-                  onDrop={(event) => {
-                    handleNarrowRowDrop(event, rowIndex);
-                  }}
+                  ref={setNodeRef}
+                  style={{ transform: CSS.Transform.toString(transform), transition }}
                 >
                   <div className="mb-2 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
                     <button
-                      aria-label={`ลากแถวฝั่ง 30 ลำดับที่ ${rowIndex + 1}`}
-                      className="inline-flex size-8 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
-                      draggable
-                      onDragEnd={handleRowDragEnd}
-                      onDragStart={(event) => {
-                        handleNarrowRowDragStart(event, rowIndex);
-                      }}
-                      title={`ลากแถวฝั่ง 30 ลำดับที่ ${rowIndex + 1}`}
+                      aria-label={`ลากแถวที่ ${rowIndex + 1}`}
+                      className="inline-flex min-h-11 min-w-11 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-primary)] active:cursor-grabbing"
+                      {...attributes}
+                      {...listeners}
+                      title={`ลากแถวที่ ${rowIndex + 1}`}
                       type="button"
+                      style={{ touchAction: "none" }}
                     >
                       <GripVertical aria-hidden="true" className="size-4" />
                     </button>
@@ -928,15 +576,14 @@ export function LayoutCanvas({
                     >
                       <span className="flex min-w-0 flex-wrap items-center gap-2">
                         <span className="truncate text-sm font-semibold text-[var(--site-text)]">
-                          แถว 30 ที่ {rowIndex + 1}
+                          แถวที่ {rowIndex + 1}
                         </span>
-                        <StatusPill enabled={row.enabled} />
                       </span>
                     </button>
 
                     <div className="col-span-2 flex flex-wrap items-center justify-end gap-1 sm:col-span-1">
                       <button
-                        aria-label="เลื่อนแถว 30 ขึ้น"
+                        aria-label="เลื่อนแถวขึ้น"
                         className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)] disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={rowIndex <= 0}
                         onClick={() => {
@@ -948,7 +595,7 @@ export function LayoutCanvas({
                         <ArrowUp aria-hidden="true" className="size-4" />
                       </button>
                       <button
-                        aria-label="เลื่อนแถว 30 ลง"
+                        aria-label="เลื่อนแถวลง"
                         className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)] disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={
                           rowIndex >= layout.mainSplit.narrowRows.length - 1
@@ -962,22 +609,7 @@ export function LayoutCanvas({
                         <ArrowDown aria-hidden="true" className="size-4" />
                       </button>
                       <button
-                        aria-label={row.enabled ? "ปิดแถว 30" : "เปิดแถว 30"}
-                        className="inline-flex size-8 items-center justify-center rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] transition hover:bg-[var(--site-surface-soft)]"
-                        onClick={() => {
-                          onToggleNarrowRow(row.id, !row.enabled);
-                        }}
-                        title={row.enabled ? "ปิดแถว" : "เปิดแถว"}
-                        type="button"
-                      >
-                        {row.enabled ? (
-                          <Eye aria-hidden="true" className="size-4" />
-                        ) : (
-                          <EyeOff aria-hidden="true" className="size-4" />
-                        )}
-                      </button>
-                      <button
-                        aria-label="ลบแถว 30"
+                        aria-label="ลบแถว"
                         className="inline-flex size-8 items-center justify-center rounded-md border border-red-200 bg-[var(--site-surface)] text-red-700 transition hover:bg-red-50"
                         onClick={() => {
                           onRemoveNarrowRow(row.id);
@@ -990,6 +622,8 @@ export function LayoutCanvas({
                     </div>
                   </div>
 
+                  <CanvasDropTarget id={`narrow-slot:${row.id}`}>
+                    {({ isOver: isDragOverSlot, setNodeRef: setSlotNodeRef }) => (
                   <div
                     className={`min-h-20 rounded-lg border p-2 ${
                       isDragOverSlot
@@ -998,35 +632,29 @@ export function LayoutCanvas({
                         ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]"
                         : "border-dashed border-[var(--site-border)] bg-[var(--site-surface)]"
                     }`}
-                    onDragLeave={() => {
-                      setDragOverNarrowRowId(null);
-                    }}
-                    onDragOver={(event) => {
-                      handleNarrowSlotDragOver(event, row.id);
-                    }}
-                    onDrop={(event) => {
-                      handleNarrowSlotDrop(event, row.id);
-                    }}
+                    ref={setSlotNodeRef}
                   >
-                    {row.block ? (
+                    {narrowBlock ? (
+                      <DraggableCanvasItem id={`narrow-block:${row.id}`}>
+                        {({ attributes: blockAttributes, isDragging: isDraggingBlock, listeners: blockListeners, setNodeRef: setBlockNodeRef }) => (
                       <div
-                        aria-label={`ลาก block ${row.block.title}`}
+                        aria-label={`ลาก block ${narrowBlock.title}`}
                         className={`grid min-h-16 max-w-full cursor-grab grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 overflow-hidden rounded-md border border-[var(--site-border)] bg-[var(--site-surface)] p-2 transition active:cursor-grabbing ${
                           isDraggingBlock ? "opacity-70" : ""
                         }`}
-                        draggable
-                        onDragEnd={handleBlockDragEnd}
-                        onDragStart={(event) => {
-                          handleNarrowBlockDragStart(event, row.id);
-                        }}
+                        ref={setBlockNodeRef}
                         role="group"
                       >
-                        <span
-                          aria-hidden="true"
-                          className="inline-flex size-7 items-center justify-center rounded-md border border-[var(--site-border)] text-[var(--site-muted)]"
+                        <button
+                          aria-label={`ลาก block ${narrowBlock.title}`}
+                          className="inline-flex min-h-11 min-w-11 cursor-grab items-center justify-center rounded-md border border-[var(--site-border)] text-[var(--site-muted)] active:cursor-grabbing"
+                          type="button"
+                          {...blockAttributes}
+                          {...blockListeners}
+                          style={{ touchAction: "none" }}
                         >
                           <GripVertical aria-hidden="true" className="size-4" />
-                        </span>
+                        </button>
                         <button
                           className="min-w-0 text-left"
                           onClick={() => {
@@ -1035,7 +663,7 @@ export function LayoutCanvas({
                           type="button"
                         >
                           <span className="block truncate text-sm font-semibold text-[var(--site-text)]">
-                            {row.block.title}
+                            {narrowBlock.title}
                           </span>
                         </button>
                         <button
@@ -1050,6 +678,8 @@ export function LayoutCanvas({
                           <X aria-hidden="true" className="size-4" />
                         </button>
                       </div>
+                        )}
+                      </DraggableCanvasItem>
                     ) : (
                       <button
                         className="flex min-h-16 w-full flex-col items-center justify-center rounded-md border border-dashed border-[var(--site-border)] px-3 py-4 text-center text-sm font-semibold text-[var(--site-muted)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)]"
@@ -1065,11 +695,16 @@ export function LayoutCanvas({
                       </button>
                     )}
                   </div>
+                    )}
+                  </CanvasDropTarget>
                   {renderErrorMessages(rowErrors)}
                 </article>
+                  )}
+                </SortableCanvasItem>
               );
             })}
           </div>
+          </SortableContext>
         )}
         <button
             className=" mt-4 w-full justify-center inline-flex h-8 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-xs font-semibold text-[var(--site-text)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-surface-soft)]"
@@ -1084,6 +719,10 @@ export function LayoutCanvas({
   }
 
   return (
+    <fieldset
+      className={disabled ? "pointer-events-none opacity-60" : undefined}
+      disabled={disabled}
+    >
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="inline-flex rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-1">
@@ -1127,5 +766,6 @@ export function LayoutCanvas({
         )}
       </div>
     </div>
+    </fieldset>
   );
 }

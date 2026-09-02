@@ -21,6 +21,7 @@ export interface VillaDetailPageProps {
   id: string;
   initialGalleryImages?: PublicVillaImage[];
   initialGalleryLoadFailed?: boolean;
+  initialGalleryPreviewImages?: PublicVillaImage[];
   payload: PublicVillaDetailPayload;
   recommendedSection: PublicRecommendedVillaSection | null;
   settings: SiteSettings;

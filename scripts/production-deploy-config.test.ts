@@ -83,9 +83,12 @@ describe("production deployment config", () => {
   it("selects only Tenant-owned migrations for every production database", async () => {
     const filenames = await getTenantMigrationFilenames();
 
-    expect(filenames).toHaveLength(55);
+    expect(filenames).toHaveLength(59);
     expect(filenames).toContain(
       "20260828140000_restore_admin_credential_fence_after_site_settings_rls.sql",
+    );
+    expect(filenames).toContain(
+      "20260902164500_remove_uncategorized_gallery_category.sql",
     );
     expect(filenames).not.toContain(
       "20260622000000_create_public_villa_search_rpc.sql",

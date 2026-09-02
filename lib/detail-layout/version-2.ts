@@ -39,12 +39,12 @@ export function cloneDetailLayoutV2(
         id: row.id,
         columns: row.columns,
         ...(row.ratio === undefined ? {} : { ratio: row.ratio }),
-        enabled: row.enabled,
+        enabled: true,
         blocks: row.blocks.map(cloneBlock),
       })),
       narrowRows: layout.mainSplit.narrowRows.map((row) => ({
         id: row.id,
-        enabled: row.enabled,
+        enabled: true,
         block: cloneBlock(row.block),
       })),
     },
@@ -82,7 +82,6 @@ export function convertDetailLayoutV1ToV2(
 
     appendWideRowsFromBlocks({
       blocks: row.blocks,
-      enabled: row.enabled,
       rowId: row.id,
       wideRows,
     });
@@ -176,7 +175,7 @@ function appendSplitRow({
     wideRows.push({
       id: `${row.id}_wide`,
       columns: 1,
-      enabled: row.enabled,
+      enabled: true,
       blocks: [cloneBlock(wideBlock)],
     });
   }
@@ -192,12 +191,10 @@ function appendSplitRow({
 
 function appendWideRowsFromBlocks({
   blocks,
-  enabled,
   rowId,
   wideRows,
 }: {
   blocks: DetailLayoutBlock[];
-  enabled: boolean;
   rowId: string;
   wideRows: DetailLayoutWideRow[];
 }) {
@@ -210,7 +207,7 @@ function appendWideRowsFromBlocks({
       id,
       columns,
       ...(columns === 2 ? { ratio: "50/50" } : {}),
-      enabled,
+      enabled: true,
       blocks: rowBlocks,
     });
   }
@@ -301,7 +298,7 @@ function normalizeWideRows(
       id: normalizeId(item.id, `wide_${rowNumber}`),
       columns,
       ...(ratio === undefined ? {} : { ratio }),
-      enabled: normalizeBoolean(item.enabled, true),
+      enabled: true,
       blocks,
     });
   });
@@ -385,7 +382,7 @@ function normalizeNarrowRows(
 
     rows.push({
       id: normalizeId(item.id, `narrow_${rowNumber}`),
-      enabled: normalizeBoolean(item.enabled, true),
+      enabled: true,
       block,
     });
   });
@@ -546,10 +543,6 @@ function normalizeId(value: unknown, fallback: string): string {
   const trimmedValue = value.trim();
 
   return trimmedValue.length > 0 ? trimmedValue : fallback;
-}
-
-function normalizeBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === "boolean" ? value : fallback;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

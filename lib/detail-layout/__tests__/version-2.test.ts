@@ -161,6 +161,17 @@ describe("normalizeDetailLayoutV2", () => {
     expect(normalizeDetailLayoutV2(DEFAULT_DETAIL_LAYOUT).version).toBe(2);
     expect(normalizeDetailLayoutV2(null)).toEqual(DEFAULT_DETAIL_LAYOUT_V2);
   });
+
+  it("re-enables rows saved with the retired visibility setting", () => {
+    const layout = cloneDetailLayoutV2(DEFAULT_DETAIL_LAYOUT_V2);
+    layout.mainSplit.wideRows[0].enabled = false;
+    layout.mainSplit.narrowRows[0].enabled = false;
+
+    const normalized = normalizeDetailLayoutV2(layout);
+
+    expect(normalized.mainSplit.wideRows[0].enabled).toBe(true);
+    expect(normalized.mainSplit.narrowRows[0].enabled).toBe(true);
+  });
 });
 
 describe("cloneDetailLayoutV2", () => {

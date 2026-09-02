@@ -1,4 +1,5 @@
 import { cloneDefaultSiteWebStyles } from "./defaults";
+import { isGalleryCategoryOrder } from "./gallery-categories";
 import type {
   GalleryStyleOptions,
   SiteWebStyleRow,
@@ -9,6 +10,7 @@ import type {
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const HEADER_VARIANTS = new Set(["centered-contact", "right-booking"]);
 const GALLERY_VARIANTS = new Set(["lightbox", "categorized-grid"]);
+const GALLERY_IMAGE_SOURCES = new Set(["standard", "system"]);
 const HOUSE_CARD_VARIANTS = new Set(["classic", "gallery"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -27,6 +29,13 @@ export function normalizeGalleryOptions(value: unknown): GalleryStyleOptions {
       ? { backgroundColor: value.backgroundColor }
       : {}),
     ...(isHexColor(value.textColor) ? { textColor: value.textColor } : {}),
+    ...(isGalleryCategoryOrder(value.categoryOrder)
+      ? { categoryOrder: [...value.categoryOrder] }
+      : {}),
+    ...(GALLERY_IMAGE_SOURCES.has(String(value.imageSource))
+      ? { imageSource: value.imageSource as GalleryStyleOptions["imageSource"] }
+      : {}),
+    ...(typeof value.showCover === "boolean" ? { showCover: value.showCover } : {}),
   };
 }
 
@@ -42,6 +51,7 @@ export function normalizeSiteWebStyles(rows: unknown): SiteWebStyles {
       GALLERY_VARIANTS.has(String(row.style_variant))
     ) {
       styles.gallery = {
+        ...styles.gallery,
         ...normalizeGalleryOptions(row.options),
         variant: row.style_variant as SiteWebStyles["gallery"]["variant"],
       };
@@ -69,7 +79,7 @@ export function validateWebStyleDraft(
 
   const allowedKeys =
     type === "gallery"
-      ? new Set(["variant", "backgroundColor", "textColor"])
+      ? new Set(["variant", "backgroundColor", "categoryOrder", "imageSource", "showCover", "textColor"])
       : new Set(["variant"]);
   const errors: string[] = [];
 
@@ -93,6 +103,21 @@ export function validateWebStyleDraft(
       if (color !== undefined && color !== null && color !== "" && !isHexColor(color)) {
         errors.push(`${key} must be a six-digit hex color.`);
       }
+    }
+    if (
+      value.categoryOrder !== undefined &&
+      !isGalleryCategoryOrder(value.categoryOrder)
+    ) {
+      errors.push("categoryOrder must contain every gallery category exactly once.");
+    }
+    if (value.showCover !== undefined && typeof value.showCover !== "boolean") {
+      errors.push("showCover must be a boolean.");
+    }
+    if (
+      value.imageSource !== undefined &&
+      !GALLERY_IMAGE_SOURCES.has(String(value.imageSource))
+    ) {
+      errors.push("imageSource must be standard or system.");
     }
   }
 

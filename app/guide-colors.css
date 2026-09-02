@@ -15,6 +15,15 @@ body.body-scroll-locked {
   overflow: hidden;
 }
 
+html:has([role="dialog"][aria-modal="true"]),
+body:has([role="dialog"][aria-modal="true"]) {
+  overflow: hidden;
+}
+
+[role="dialog"][aria-modal="true"] .overflow-y-auto {
+  overscroll-behavior: contain;
+}
+
 .guide-text-color-000000 { color: #000000; }
 .guide-text-color-404040 { color: #404040; }
 .guide-text-color-666666 { color: #666666; }

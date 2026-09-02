@@ -70,17 +70,16 @@ export default async function Page({ params }: VillaPageProps) {
   const now = new Date();
   const currentBookingMonthKey =
     getBangkokBookingCalendarMonthKeys(now)[1];
+  const siteWebStylesResult = await getSiteWebStyles();
   const [
     data,
     siteSettingsResult,
     contactSettingsResult,
-    siteWebStylesResult,
     calendarPreload,
   ] = await Promise.all([
-    fetchVillaPageData(id),
+    fetchVillaPageData(id, siteWebStylesResult.gallery.imageSource),
     getSiteSettings(),
     getSiteContactSettings(),
-    getSiteWebStyles(),
     preloadVillaBookingCalendars(id, now),
   ]);
 
@@ -146,6 +145,7 @@ export default async function Page({ params }: VillaPageProps) {
         id={id}
         initialGalleryImages={data.initialGalleryImages}
         initialGalleryLoadFailed={data.initialGalleryLoadFailed}
+        initialGalleryPreviewImages={data.initialGalleryPreviewImages}
         payload={data.payload}
         recommendedSection={data.recommendedSection}
         contactSettings={contactSettingsResult.settings}

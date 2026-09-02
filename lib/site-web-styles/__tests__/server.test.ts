@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 import { DEFAULT_SITE_WEB_STYLES } from "../defaults";
+import { DEFAULT_GALLERY_CATEGORY_ORDER } from "../gallery-categories";
 import { getSiteWebStyles } from "../server";
 
 const { cacheRegistrations } = vi.hoisted(() => ({
@@ -52,7 +53,12 @@ describe("getSiteWebStyles", () => {
     });
 
     await expect(getSiteWebStyles()).resolves.toEqual({
-      gallery: { variant: "lightbox" },
+      gallery: {
+        categoryOrder: DEFAULT_GALLERY_CATEGORY_ORDER,
+        imageSource: "standard",
+        showCover: true,
+        variant: "lightbox",
+      },
       header: { variant: "right-booking" },
       houseCard: { variant: "gallery" },
     });

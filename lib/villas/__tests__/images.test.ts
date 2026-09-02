@@ -12,6 +12,7 @@ import {
   fetchVillaImages,
   normalizeImageRows,
   normalizeImageUrl,
+  resolveConfiguredDisplayImages,
   resolveDisplayImages,
   selectDefaultDisplayImages,
   validateCustomDisplayImageIds,
@@ -561,7 +562,7 @@ describe("resolveDisplayImages", () => {
     ]);
     expect(unstableCacheMock).toHaveBeenCalledWith(
       expect.any(Function),
-      [CACHE_TAGS.villaCardImage("default", "9")],
+      [`${CACHE_TAGS.villaCardImage("default", "9")}:v2`],
       {
         revalidate: CACHE_REVALIDATE_SECONDS.villaCardImages,
         tags: [
@@ -688,6 +689,31 @@ describe("resolveDisplayImages", () => {
       expect.objectContaining({ id: 10 }),
       expect.objectContaining({ id: 20 }),
       expect.objectContaining({ id: 30 }),
+    ]);
+  });
+
+  it("returns only explicitly saved cover and image order for detail previews", async () => {
+    mockCardImageConfigQuery({
+      config: {
+        data: {
+          cover_image_path: "villa-cover/9/custom.webp",
+          cover_image_url: "https://assets.example.com/villa-cover/9/custom.webp",
+          villa_card_image_items: [{ image_id: 20, sort_order: 1 }],
+        },
+        error: null,
+      },
+    });
+    mockImagesQuery({
+      data: [
+        { id: 10, property_id: 9, cover_select: 1, image_name: "pool.jpg", image_url: null, caption: null, image_zone: "outside" },
+        { id: 20, property_id: 9, cover_select: 2, image_name: "living.jpg", image_url: null, caption: null, image_zone: "inside" },
+      ],
+      error: null,
+    });
+
+    await expect(resolveConfiguredDisplayImages("9")).resolves.toEqual([
+      expect.objectContaining({ id: 0 }),
+      expect.objectContaining({ id: 20 }),
     ]);
   });
 
