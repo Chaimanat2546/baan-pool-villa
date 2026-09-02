@@ -1,12 +1,15 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   click,
   flushEffects,
   makeFetchMock,
+  makeJsonResponse,
   mountAdminPage,
 } from "@/components/admin/__tests__/admin-page-dom-test-utils";
 import { DEFAULT_DETAIL_LAYOUT_V2 } from "@/lib/detail-layout/defaults";
@@ -567,6 +570,47 @@ describe("AdminDetailLayoutPage", () => {
     );
     expect(mocks.refresh).not.toHaveBeenCalled();
 
+    await page.unmount();
+  });
+
+  it("keeps DnD sensor hooks stable while a layout save is pending", async () => {
+    let resolveSave: ((response: Response) => void) | undefined;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(makeJsonResponse({ body: { layout: savedLayout } }))
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveSave = resolve;
+          }),
+      );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", fetchMock);
+
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    const buttons = Array.from(page.container.querySelectorAll("header button"));
+
+    await click(buttons[0] as HTMLButtonElement);
+    await click(buttons[1] as HTMLButtonElement);
+
+    expect(
+      consoleError.mock.calls.some((args) =>
+        args.join(" ").includes("final argument passed to useEffect changed size"),
+      ),
+    ).toBe(false);
+    expect(
+      readFileSync(
+        resolve(
+          process.cwd(),
+          "components/admin/detail-layout/admin-detail-layout-page.tsx",
+        ),
+        "utf8",
+      ),
+    ).toContain("sensors={dndSensors}");
+
+    resolveSave?.(makeJsonResponse({ body: { layout: DEFAULT_DETAIL_LAYOUT_V2 } }));
+    await flushEffects();
+    consoleError.mockRestore();
     await page.unmount();
   });
 

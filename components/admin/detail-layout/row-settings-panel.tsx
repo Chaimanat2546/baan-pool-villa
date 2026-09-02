@@ -22,10 +22,6 @@ interface RowSettingsPanelProps {
     rowId: string,
     changes: Partial<Omit<DetailLayoutBlock, "type">>,
   ) => void;
-  onUpdateNarrowRow: (
-    rowId: string,
-    changes: Partial<Pick<DetailLayoutV2DraftNarrowRow, "enabled">>,
-  ) => void;
   onUpdateWideBlock: (
     rowId: string,
     blockIndex: number,
@@ -36,7 +32,6 @@ interface RowSettingsPanelProps {
     columns: DetailLayoutWideColumns,
     ratio?: DetailLayoutWideRatio,
   ) => void;
-  onUpdateWideRowEnabled: (rowId: string, enabled: boolean) => void;
 }
 
 const WIDE_LAYOUT_OPTIONS: Array<{
@@ -139,10 +134,8 @@ export function RowSettingsPanel({
   onRemoveWideBlock,
   onSelectWideBlock,
   onUpdateNarrowBlock,
-  onUpdateNarrowRow,
   onUpdateWideBlock,
   onUpdateWideRow,
-  onUpdateWideRowEnabled,
 }: RowSettingsPanelProps) {
   if (!selection) {
     return <EmptyPanel />;
@@ -176,18 +169,6 @@ export function RowSettingsPanel({
         </p>
 
         <div className="mt-4 grid gap-4">
-          <label className="flex items-center justify-between gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2 text-sm font-semibold text-[var(--site-text)]">
-            เปิดใช้แถว
-            <input
-              checked={row.enabled}
-              className="size-4 accent-[var(--site-primary)]"
-              onChange={(event) => {
-                onUpdateNarrowRow(row.id, { enabled: event.target.checked });
-              }}
-              type="checkbox"
-            />
-          </label>
-
           {row.block ? (
             <BlockEditor
               block={row.block}
@@ -233,18 +214,6 @@ export function RowSettingsPanel({
       </p>
 
       <div className="mt-4 grid gap-4">
-        <label className="flex items-center justify-between gap-3 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2 text-sm font-semibold text-[var(--site-text)]">
-          เปิดใช้แถว
-          <input
-            checked={row.enabled}
-            className="size-4 accent-[var(--site-primary)]"
-            onChange={(event) => {
-              onUpdateWideRowEnabled(row.id, event.target.checked);
-            }}
-            type="checkbox"
-          />
-        </label>
-
         <div className="grid gap-2">
           <p className="text-sm font-semibold text-[var(--site-text)]">
             รูปแบบแถว

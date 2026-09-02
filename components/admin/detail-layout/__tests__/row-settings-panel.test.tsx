@@ -14,10 +14,8 @@ function renderPanel(selection: DetailLayoutCanvasSelection) {
       onRemoveWideBlock={vi.fn()}
       onSelectWideBlock={vi.fn()}
       onUpdateNarrowBlock={vi.fn()}
-      onUpdateNarrowRow={vi.fn()}
       onUpdateWideBlock={vi.fn()}
       onUpdateWideRow={vi.fn()}
-      onUpdateWideRowEnabled={vi.fn()}
       selection={selection}
     />,
   );
@@ -38,7 +36,7 @@ describe("RowSettingsPanel", () => {
     expect(markup).toContain("1 ช่อง");
     expect(markup).toContain("2 ช่อง");
     expect(markup).toContain("แถว 2 ช่องใช้ 50/50 เสมอ");
-    expect(markup).not.toContain("เปิดใช้ block");
+    expect(markup).not.toContain("เปิดใช้แถว");
     expect(markup).not.toContain("ซ่อนเมื่อไม่มีข้อมูล");
     expect(markup).not.toContain("สัดส่วนคอลัมน์");
     expect(markup).not.toContain("60/40");
@@ -53,7 +51,7 @@ describe("RowSettingsPanel", () => {
     const markup = renderPanel({ zone: "narrow", rowId: row.id });
 
     expect(markup).toContain("ฝั่ง 30 / ลำดับ 1");
-    expect(markup).toContain("เปิดใช้แถว");
+    expect(markup).not.toContain("เปิดใช้แถว");
     expect(markup).not.toContain("รูปแบบแถว");
     expect(markup).not.toContain("สัดส่วนคอลัมน์");
   });
