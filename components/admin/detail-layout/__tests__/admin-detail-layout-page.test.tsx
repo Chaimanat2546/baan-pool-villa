@@ -417,7 +417,6 @@ describe("AdminDetailLayoutPage", () => {
             "bathroom",
             "parking",
             "review",
-            "uncategorized",
           ],
           imageSource: "standard",
           showCover: true,
@@ -493,7 +492,6 @@ describe("AdminDetailLayoutPage", () => {
               "bathroom",
               "parking",
               "review",
-              "uncategorized",
             ],
             variant: "categorized-grid",
           },
@@ -559,7 +557,7 @@ describe("AdminDetailLayoutPage", () => {
       {
         body: {
           settings: {
-            categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review", "uncategorized"],
+            categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review"],
             variant: "categorized-grid",
           },
         },
@@ -598,7 +596,7 @@ describe("AdminDetailLayoutPage", () => {
       expect.objectContaining({
         body: JSON.stringify({
           backgroundColor: "",
-          categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review", "uncategorized"],
+          categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review"],
           imageSource: "standard",
           showCover: false,
           textColor: "",
@@ -618,7 +616,7 @@ describe("AdminDetailLayoutPage", () => {
         body: {
           settings: {
             backgroundColor: "#f5a432",
-            categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review", "uncategorized"],
+            categoryOrder: ["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review"],
             textColor: "#000000",
             variant: "categorized-grid",
           },

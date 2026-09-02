@@ -2723,8 +2723,8 @@ create table if not exists public.site_web_styles (
           not (options ? 'categoryOrder')
           or (
             case when jsonb_typeof(options -> 'categoryOrder') = 'array' then
-              jsonb_array_length(options -> 'categoryOrder') = 11
-              and options -> 'categoryOrder' @> '["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review", "uncategorized"]'::jsonb
+              jsonb_array_length(options -> 'categoryOrder') = 10
+              and options -> 'categoryOrder' @> '["cover", "outside", "pool", "inside", "livingroom", "bedroom", "kitchen", "bathroom", "parking", "review"]'::jsonb
             else false end
           )
         )

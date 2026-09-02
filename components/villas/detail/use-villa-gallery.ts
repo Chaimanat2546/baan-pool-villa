@@ -93,9 +93,9 @@ export function useVillaGallery({
   const galleryCategories = useMemo(
     () =>
       buildGalleryCategories(
-        showCover
-          ? visibleGalleryItems
-          : visibleGalleryItems.filter((item) => !item.isCover),
+        visibleGalleryItems.filter(
+          (item) => item.zoneKey !== "uncategorized" && (showCover || !item.isCover),
+        ),
         categoryOrder,
       ),
     [categoryOrder, showCover, visibleGalleryItems],

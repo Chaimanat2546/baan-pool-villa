@@ -48,7 +48,6 @@ describe("site web style validation", () => {
           "bathroom",
           "parking",
           "review",
-          "uncategorized",
           ],
           imageSource: "standard",
           showCover: true,
@@ -86,7 +85,6 @@ describe("site web style validation", () => {
               "bathroom",
               "parking",
               "review",
-              "uncategorized",
             ],
           },
           style_type: "gallery",
@@ -104,7 +102,6 @@ describe("site web style validation", () => {
       "bathroom",
       "parking",
       "review",
-      "uncategorized",
     ]);
 
     expect(

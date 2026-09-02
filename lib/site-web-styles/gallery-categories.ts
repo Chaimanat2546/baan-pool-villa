@@ -9,7 +9,6 @@ export const GALLERY_CATEGORY_KEYS = [
   "bathroom",
   "parking",
   "review",
-  "uncategorized",
 ] as const;
 
 export type GalleryCategoryKey = (typeof GALLERY_CATEGORY_KEYS)[number];
@@ -29,7 +28,6 @@ export const GALLERY_CATEGORY_LABELS: Record<GalleryCategoryKey, string> = {
   parking: "ที่จอดรถ",
   pool: "สระว่ายน้ำ",
   review: "รีวิว",
-  uncategorized: "ไม่ระบุหมวด",
 };
 
 export function isGalleryCategoryOrder(value: unknown): value is GalleryCategoryKey[] {
