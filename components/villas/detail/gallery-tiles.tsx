@@ -86,7 +86,7 @@ export function GalleryImage({
               reportImageError();
             }}
           />
-          <span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-black text-[var(--site-on-primary)] opacity-0 backdrop-blur transition group-hover:opacity-100">
+          <span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-black text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
             {item.zoneLabel}
           </span>
         </>

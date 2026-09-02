@@ -35,6 +35,7 @@ describe("gallery tiles", () => {
     expect(decodedImageSrc).toContain("https://cdn.test/pool.jpg");
     expect(imageSrc).not.toContain("/api/villas/88/images");
     expect(markup).toContain('alt="Pool"');
+    expect(markup).toContain("text-white");
   });
 
   it("renders reserved tiles with stable markers", () => {
