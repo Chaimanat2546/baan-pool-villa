@@ -569,6 +569,40 @@ describe("VillaDetailPage server gallery", () => {
     await page.unmount();
   });
 
+  it("opens the system cover when the large system preview image is clicked", async () => {
+    const page = renderPage();
+    const systemCover: VillaImage = {
+      ...apiCoverImage,
+      id: 0,
+      imageUrl: "/api/houses/images/9",
+    };
+
+    await page.render(
+      <VillaDetailPage
+        bookingCalendars={bookingCalendars}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        currentBookingMonthKey={currentBookingMonthKey}
+        galleryStyle={{ ...DEFAULT_SITE_WEB_STYLES.gallery, imageSource: "system" }}
+        id={listing.id}
+        initialGalleryImages={serverGalleryImages}
+        initialGalleryPreviewImages={[systemCover, apiImage]}
+        payload={makePayload()}
+        recommendedSection={null}
+        settings={DEFAULT_SITE_SETTINGS}
+      />,
+    );
+    await flushReact();
+    await clickFirstGalleryItem(page.container);
+
+    expect(
+      page.container.querySelector("[data-lightbox-active]")?.getAttribute(
+        "data-lightbox-active",
+      ),
+    ).toBe(systemCover.imageUrl);
+
+    await page.unmount();
+  });
+
   it("renders a successful empty server gallery without a skeleton", async () => {
     const page = renderPage();
 
@@ -653,7 +687,7 @@ describe("VillaDetailPage server gallery", () => {
     await page.unmount();
   });
 
-  it("uses the categorized lightbox when a preview image is clicked directly", async () => {
+  it("opens the categorized overview when a preview image is clicked", async () => {
     const page = renderPage();
 
     await page.render(
@@ -673,25 +707,8 @@ describe("VillaDetailPage server gallery", () => {
 
     await clickFirstGalleryItem(page.container);
 
-    const categorizedLightbox = page.container.querySelector(
-      "[data-lightbox-active]",
-    );
-    expect(categorizedLightbox).not.toBeNull();
-    expect(
-      categorizedLightbox?.getAttribute("data-lightbox-category-selector"),
-    ).toBe("false");
-    expect(
-      categorizedLightbox?.getAttribute("data-lightbox-thumbnail-placement"),
-    ).toBe("bottom");
-    expect(page.container.querySelector('[data-gallery-overview="true"]')).toBeNull();
-
-    await act(async () => {
-      (page.container.querySelector("[data-lightbox-close]") as HTMLButtonElement).click();
-    });
-    await flushReact();
-
     expect(page.container.querySelector("[data-lightbox-active]")).toBeNull();
-    expect(page.container.querySelector('[data-gallery-overview="true"]')).toBeNull();
+    expect(page.container.querySelector('[data-gallery-overview="true"]')).not.toBeNull();
     expect(
       fetchMock.mock.calls.filter(([input]) =>
         /^\/api\/villas\/[^/]+\/images$/.test(String(input)),

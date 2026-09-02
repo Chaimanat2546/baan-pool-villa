@@ -55,6 +55,8 @@ describe("getSiteWebStyles", () => {
     await expect(getSiteWebStyles()).resolves.toEqual({
       gallery: {
         categoryOrder: DEFAULT_GALLERY_CATEGORY_ORDER,
+        imageSource: "standard",
+        showCover: true,
         variant: "lightbox",
       },
       header: { variant: "right-booking" },

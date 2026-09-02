@@ -28,6 +28,7 @@ import type {
   AmenityKey,
   VillaDetailPayload,
   VillaFilters,
+  VillaImage,
   VillaListing,
 } from "./types";
 
@@ -1568,10 +1569,10 @@ export async function fetchVillaPageData(
     return null;
   }
 
-  const previewImages =
-    configuredPreviewImages && configuredPreviewImages.length > 0
-      ? configuredPreviewImages
-      : galleryResult.images;
+  const previewImages = buildDetailGalleryPreviewImages(
+    buildStandardDetailGalleryPreviewImages(listing, galleryResult.images),
+    configuredPreviewImages,
+  );
 
   return {
     initialGalleryImages: toPublicVillaImages(id, galleryResult.images),
@@ -1583,4 +1584,61 @@ export async function fetchVillaPageData(
     payload: toPublicVillaDetailPayload(payload),
     recommendedSection: null,
   };
+}
+
+function buildStandardDetailGalleryPreviewImages(
+  listing: VillaListing,
+  galleryImages: VillaImage[],
+): VillaImage[] {
+  if (!listing.coverImage) {
+    return galleryImages;
+  }
+
+  const coverImage: VillaImage = {
+    caption: null,
+    id: 0,
+    imageName: null,
+    imageUrl: listing.coverImage,
+    isCover: true,
+    zone: "cover",
+  };
+
+  return [
+    coverImage,
+    ...galleryImages.filter(
+      (image) =>
+        image.imageUrl !== coverImage.imageUrl && !isDetailCoverImage(image),
+    ),
+  ];
+}
+
+function isDetailCoverImage(image: VillaImage): boolean {
+  const zone = image.zone?.trim().toLowerCase();
+
+  return zone === "cover" || zone === "รูปปก" || zone === "ภาพปก";
+}
+
+function buildDetailGalleryPreviewImages(
+  standardImages: VillaImage[],
+  configuredImages: VillaImage[] | null,
+): VillaImage[] {
+  if (!configuredImages || configuredImages.length === 0) {
+    return standardImages;
+  }
+
+  const systemCover = configuredImages.find((image) => image.id === 0);
+  const standardCover = standardImages.find(isDetailCoverImage);
+  const mainImage = systemCover ?? standardCover ?? configuredImages[0];
+  const configuredSideImages = configuredImages.filter(
+    (image) => image.imageUrl !== mainImage.imageUrl && !isDetailCoverImage(image),
+  );
+
+  if (configuredSideImages.length > 0) {
+    return [mainImage, ...configuredSideImages];
+  }
+
+  return [
+    mainImage,
+    ...standardImages.filter((image) => image.imageUrl !== mainImage.imageUrl),
+  ];
 }

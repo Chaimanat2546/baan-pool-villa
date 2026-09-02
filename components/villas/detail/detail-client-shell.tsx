@@ -113,6 +113,15 @@ export function VillaDetailClientShell({
   const galleryRetryHref = `/villas/${encodeURIComponent(id)}`;
 
   const handleDirectImageClick = (item: (typeof galleryItems)[number]) => {
+    if (isCategorizedGallery) {
+      setGalleryModalState({
+        returnToOverview: false,
+        villaId: id,
+        view: "overview",
+      });
+      return;
+    }
+
     setGalleryModalState({
       returnToOverview: false,
       villaId: id,

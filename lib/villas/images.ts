@@ -620,9 +620,14 @@ function selectCustomDisplayImages(
     .slice(0, VILLA_CARD_DISPLAY_IMAGE_MAX);
 }
 
+type ResolvedVillaDisplayImages = {
+  cardImages: VillaImage[];
+  configuredImages: VillaImage[];
+};
+
 async function resolveDisplayImagesFromSupabase(
   id: string,
-): Promise<VillaImage[]> {
+): Promise<ResolvedVillaDisplayImages> {
   const villaId = parseVillaId(id);
   const [{ rows, supabaseUrl }, config] = await Promise.all([
     fetchVillaCardImageRowsFromSupabase(villaId),
@@ -662,7 +667,13 @@ async function resolveDisplayImagesFromSupabase(
           ? recommendedImages
           : defaultImages;
 
-  return resolvedImages.slice(0, VILLA_CARD_DISPLAY_IMAGE_MAX);
+  return {
+    cardImages: resolvedImages.slice(0, VILLA_CARD_DISPLAY_IMAGE_MAX),
+    // Keep this separate from cardImages: cardImages intentionally fills gaps
+    // from recommendations/defaults, while the detail bento must only use
+    // images explicitly configured by an admin.
+    configuredImages: customImages.slice(0, VILLA_CARD_DISPLAY_IMAGE_MAX),
+  };
 }
 
 /**
@@ -745,13 +756,17 @@ export async function fetchVillaImageById(
   return getCachedVillaImage();
 }
 
-export async function resolveDisplayImages(id: string): Promise<VillaImage[]> {
+async function getResolvedDisplayImages(
+  id: string,
+): Promise<ResolvedVillaDisplayImages> {
   parseVillaId(id);
   const tag = CACHE_TAGS.villaImage(id);
   const cardTag = CACHE_TAGS.villaCardImage(VILLA_CARD_IMAGE_CONFIG_PAGE_KEY, id);
   const getCachedVillaCardImages = createHomeConfigCachedLoader(
     () => resolveDisplayImagesFromSupabase(id),
-    [cardTag],
+    // The cached value changed from VillaImage[] to ResolvedVillaDisplayImages.
+    // Versioning prevents persistent caches from returning the old array shape.
+    [`${cardTag}:v2`],
     {
       revalidate: CACHE_REVALIDATE_SECONDS.villaCardImages,
       tags: [CACHE_TAGS.villaCardImages, CACHE_TAGS.villaImages, tag, cardTag],
@@ -759,4 +774,21 @@ export async function resolveDisplayImages(id: string): Promise<VillaImage[]> {
   );
 
   return getCachedVillaCardImages();
+}
+
+export async function resolveDisplayImages(id: string): Promise<VillaImage[]> {
+  return (await getResolvedDisplayImages(id)).cardImages;
+}
+
+/**
+ * Returns only the cover and image order explicitly configured for a villa.
+ * Unlike resolveDisplayImages, this does not fill missing entries from card
+ * recommendations or the default gallery order.
+ */
+export async function resolveConfiguredDisplayImages(
+  id: string,
+): Promise<VillaImage[] | null> {
+  const configuredImages = (await getResolvedDisplayImages(id)).configuredImages;
+
+  return configuredImages.length > 0 ? configuredImages : null;
 }
