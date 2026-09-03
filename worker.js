@@ -29,6 +29,7 @@ import {
   runCacheRead,
   scheduleCacheWrite,
 } from "./worker-cache-resilience.js";
+import { logSuspiciousListingRequest } from "./worker-listing-security-log.js";
 
 const IMAGE_CACHE_CONTROL =
   "public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=31536000";
@@ -343,27 +344,39 @@ export class CentralUserManagerEntrypoint extends WorkerEntrypoint {
   }
 }
 
+async function fetchWorkerRequest(request, env, ctx) {
+  const centralUserManagerResponse =
+    blockPublicCentralUserManagerRequest(request);
+
+  if (centralUserManagerResponse) {
+    return centralUserManagerResponse;
+  }
+
+  // Calendar host, Bearer, and rate-limit checks must run before OpenNext
+  // and every cache lookup. Calendar responses are never shared Edge JSON.
+  const calendarAccessResponse = await handleBookingCalendarAccess(
+    request,
+    env,
+  );
+
+  if (calendarAccessResponse) {
+    return calendarAccessResponse;
+  }
+
+  return fetchWithImageEdgeCache(request, env, ctx);
+}
+
 const worker = {
   async fetch(request, env, ctx) {
-    const centralUserManagerResponse =
-      blockPublicCentralUserManagerRequest(request);
+    try {
+      const response = await fetchWorkerRequest(request, env, ctx);
+      logSuspiciousListingRequest(request, response);
 
-    if (centralUserManagerResponse) {
-      return centralUserManagerResponse;
+      return response;
+    } catch (error) {
+      logSuspiciousListingRequest(request, null);
+      throw error;
     }
-
-    // Calendar host, Bearer, and rate-limit checks must run before OpenNext
-    // and every cache lookup. Calendar responses are never shared Edge JSON.
-    const calendarAccessResponse = await handleBookingCalendarAccess(
-      request,
-      env,
-    );
-
-    if (calendarAccessResponse) {
-      return calendarAccessResponse;
-    }
-
-    return fetchWithImageEdgeCache(request, env, ctx);
   },
 };
 

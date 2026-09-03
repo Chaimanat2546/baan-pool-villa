@@ -27,6 +27,10 @@ import {
   runCacheRead,
   scheduleCacheWrite,
 } from "./worker-cache-resilience.js";
+import {
+  createSuspiciousListingRequestEvent,
+  logSuspiciousListingRequest,
+} from "./worker-listing-security-log.js";
 import worker from "./worker.js";
 
 const originalCachesDescriptor = Object.getOwnPropertyDescriptor(
@@ -36,6 +40,21 @@ const originalCachesDescriptor = Object.getOwnPropertyDescriptor(
 
 function request(path: string) {
   return new Request(`https://tenant.example${path}`);
+}
+
+function cloudflareRequest(
+  path: string,
+  init: RequestInit,
+  cf: Record<string, unknown>,
+) {
+  const result = new Request(`https://tenant.example${path}`, init);
+
+  Object.defineProperty(result, "cf", {
+    configurable: true,
+    value: cf,
+  });
+
+  return result;
 }
 
 function context() {
@@ -416,5 +435,396 @@ describe("Worker cache fail-open behavior", () => {
     expect(response.headers.get("x-bpv-image-cache")).toBe("HIT");
     expect(workerMocks.openNextFetch).not.toHaveBeenCalled();
     expect(cache.match).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Worker suspicious listing request logs", () => {
+  it.each([
+    ["/", "home_page"],
+    ["/search?zone=jomtien", "villa_search_page"],
+    ["/villas/42", "villa_detail_page"],
+    ["/api/home-sections", "home_sections_api"],
+    ["/api/home-deferred?after=hero", "home_deferred_api"],
+    ["/sitemap.xml", "villa_sitemap"],
+  ])("classifies suspicious listing access to %s", (path, routeKind) => {
+    const automatedRequest = cloudflareRequest(
+      path,
+      { headers: { "User-Agent": "curl/8.12.1" } },
+      {},
+    );
+
+    expect(
+      createSuspiciousListingRequestEvent(
+        automatedRequest,
+        new Response("ok"),
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        pathname: new URL(automatedRequest.url).pathname,
+        reasons: ["automated_user_agent"],
+        routeKind,
+      }),
+    );
+  });
+
+  it.each([
+    ["/search/", "villa_search_page"],
+    ["/villas/42/", "villa_detail_page"],
+    ["/api/houses/", "villa_catalog_api"],
+    ["/api/home-sections/", "home_sections_api"],
+    ["/api/home-deferred/", "home_deferred_api"],
+    ["/api/villas/42/", "villa_detail_api"],
+    ["/sitemap.xml/", "villa_sitemap"],
+  ])("classifies the trailing-slash listing route %s", (path, routeKind) => {
+    const event = createSuspiciousListingRequestEvent(
+      cloudflareRequest(
+        path,
+        { headers: { "User-Agent": "curl/8.12.1" } },
+        {},
+      ),
+      new Response("ok"),
+    );
+
+    expect(event).toEqual(expect.objectContaining({ routeKind }));
+  });
+
+  it("emits a numeric villa id for filtering and aggregation", () => {
+    const event = createSuspiciousListingRequestEvent(
+      cloudflareRequest(
+        "/api/villas/42",
+        { headers: { "User-Agent": "curl/8.12.1" } },
+        {},
+      ),
+      new Response("ok"),
+    );
+
+    expect(event).toEqual(expect.objectContaining({ villaId: 42 }));
+  });
+
+  it.each([
+    ["GET", null, ["missing_user_agent"]],
+    [
+      "HEAD",
+      "Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36",
+      ["listing_api_access"],
+    ],
+  ])(
+    "handles the %s User-Agent boundary without false method alerts",
+    (method, userAgent, expectedReasons) => {
+      const headers = userAgent ? { "User-Agent": userAgent } : undefined;
+      const event = createSuspiciousListingRequestEvent(
+        cloudflareRequest("/api/houses", { headers, method }, {}),
+        new Response(null, { status: 200 }),
+      );
+
+      if (expectedReasons) {
+        expect(event).toEqual(
+          expect.objectContaining({ reasons: expectedReasons }),
+        );
+        return;
+      }
+
+      expect(event).toBeNull();
+    },
+  );
+
+  it("treats a non-read method on a listing route as suspicious", () => {
+    const unexpectedMethodRequest = cloudflareRequest(
+      "/api/houses",
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36",
+        },
+        method: "POST",
+      },
+      {},
+    );
+
+    expect(
+      createSuspiciousListingRequestEvent(
+        unexpectedMethodRequest,
+        new Response("ok"),
+      ),
+    ).toEqual(
+      expect.objectContaining({ reasons: ["unexpected_method"] }),
+    );
+  });
+
+  it("records all matching reasons and bounds untrusted metadata", () => {
+    const longOrganization = `Network\u0000Operator ${"x".repeat(200)}`;
+    const longUserAgent = `curl/8.12.1 ${"y".repeat(600)}`;
+    const event = createSuspiciousListingRequestEvent(
+      cloudflareRequest(
+        "/api/houses",
+        { headers: { "User-Agent": longUserAgent }, method: "POST" },
+        { asOrganization: longOrganization },
+      ),
+      new Response("limited", { status: 429 }),
+    );
+
+    expect(event).toEqual(
+      expect.objectContaining({
+        asOrganization: expect.not.stringContaining("\u0000"),
+        reasons: [
+          "automated_user_agent",
+          "unexpected_method",
+          "http_error",
+        ],
+      }),
+    );
+    expect(event?.asOrganization).toHaveLength(160);
+    expect(event?.userAgent).toHaveLength(512);
+  });
+
+  it("does not classify an unsafe numeric villa id", () => {
+    const event = createSuspiciousListingRequestEvent(
+      cloudflareRequest(
+        "/api/villas/9007199254740992",
+        { headers: { "User-Agent": "curl/8.12.1" } },
+        {},
+      ),
+      new Response("not found", { status: 404 }),
+    );
+
+    expect(event).toBeNull();
+  });
+
+  it("logs the Cloudflare client IP and network for automated catalog access without sensitive request data", async () => {
+    const cache = {
+      match: vi.fn().mockResolvedValue(
+        new Response('{"items":[]}', {
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+      put: vi.fn(),
+    };
+    setDefaultCache(cache);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const suspiciousRequest = cloudflareRequest(
+      "/api/houses?page=1&token=must-not-appear",
+      {
+        headers: {
+          Authorization: "Bearer must-not-appear",
+          "CF-Connecting-IP": "203.0.113.42",
+          "CF-Ray": "9abcdef012345678-BKK",
+          "CF-Worker": "scraper.example",
+          Cookie: "session=must-not-appear",
+          "User-Agent": "Go-http-client/1.1",
+        },
+      },
+      {
+        asn: 13335,
+        asOrganization: "Cloudflare, Inc.",
+        colo: "BKK",
+        country: "TH",
+      },
+    );
+
+    const response = await worker.fetch(suspiciousRequest, {}, context());
+
+    expect(response.status).toBe(200);
+    expect(warn).toHaveBeenCalledWith(
+      "UA: Go-http-client/1.1 | IP: 203.0.113.42 | ASN: AS13335 | ISP: Cloudflare, Inc. | Country: TH | Colo: BKK | Host: tenant.example | Method: GET | Path: /api/houses | Route: villa_catalog_api | Status: 200 | Cache: BYPASS | Ray: 9abcdef012345678-BKK | Reason: automated_user_agent | CF-Worker: scraper.example",
+    );
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("must-not-appear");
+  });
+
+  it("logs failed listing responses even when the user agent looks like a browser", async () => {
+    const cache = {
+      match: vi.fn().mockResolvedValue(undefined),
+      put: vi.fn(),
+    };
+    setDefaultCache(cache);
+    workerMocks.openNextFetch.mockResolvedValue(
+      new Response("upstream unavailable", { status: 503 }),
+    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const failedRequest = cloudflareRequest(
+      "/api/villas/42",
+      {
+        headers: {
+          "CF-Connecting-IP": "198.51.100.7",
+          "User-Agent": "Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36",
+        },
+      },
+      {
+        asn: 45758,
+        asOrganization: "Triple T Internet",
+        colo: "BKK",
+        country: "TH",
+      },
+    );
+
+    const response = await worker.fetch(failedRequest, {}, context());
+
+    expect(response.status).toBe(503);
+    expect(warn).toHaveBeenCalledWith(
+      "UA: Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 | IP: 198.51.100.7 | ASN: AS45758 | ISP: Triple T Internet | Country: TH | Colo: BKK | Host: tenant.example | Method: GET | Path: /api/villas/42 | Route: villa_detail_api | Status: 503 | Cache: BYPASS | Ray: - | Reason: http_error | CF-Worker: -",
+    );
+  });
+
+  it("logs successful browser catalog access so a scripted browser UA cannot bypass visibility", async () => {
+    const cache = {
+      match: vi.fn().mockResolvedValue(new Response('{"items":[]}')),
+      put: vi.fn(),
+    };
+    setDefaultCache(cache);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await worker.fetch(
+      cloudflareRequest(
+        "/api/houses",
+        {
+          headers: {
+            "CF-Connecting-IP": "192.0.2.9",
+            "User-Agent": "Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36",
+          },
+        },
+        {
+          asn: 17552,
+          asOrganization: "True Internet Corporation Co., Ltd.",
+          colo: "BKK",
+          country: "TH",
+        },
+      ),
+      {},
+      context(),
+    );
+
+    expect(warn).toHaveBeenCalledWith(
+      "UA: Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 | IP: 192.0.2.9 | ASN: AS17552 | ISP: True Internet Corporation Co., Ltd. | Country: TH | Colo: BKK | Host: tenant.example | Method: GET | Path: /api/houses | Route: villa_catalog_api | Status: 200 | Cache: HIT | Ray: - | Reason: listing_api_access | CF-Worker: -",
+    );
+  });
+
+  it("does not log automated requests outside listing data routes", async () => {
+    const cache = {
+      match: vi.fn(),
+      put: vi.fn(),
+    };
+    setDefaultCache(cache);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await worker.fetch(
+      cloudflareRequest(
+        "/robots.txt",
+        {
+          headers: {
+            "CF-Connecting-IP": "203.0.113.15",
+            "User-Agent": "curl/8.12.1",
+          },
+        },
+        {
+          asn: 64500,
+          asOrganization: "Example Network",
+          colo: "BKK",
+          country: "TH",
+        },
+      ),
+      {},
+      context(),
+    );
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("logs sanitized client context when a listing request throws", async () => {
+    const cache = {
+      match: vi.fn().mockResolvedValue(undefined),
+      put: vi.fn(),
+    };
+    setDefaultCache(cache);
+    workerMocks.openNextFetch.mockRejectedValue(
+      new Error("upstream secret=must-not-appear"),
+    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const failedRequest = cloudflareRequest(
+      "/api/houses",
+      {
+        headers: {
+          "CF-Connecting-IP": "198.51.100.11",
+          "User-Agent": "Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36",
+        },
+      },
+      {
+        asn: 45629,
+        asOrganization: "Jasmine Internet Co., Ltd.",
+        colo: "BKK",
+        country: "TH",
+      },
+    );
+
+    await expect(
+      worker.fetch(failedRequest, {}, context()),
+    ).rejects.toThrow("upstream secret=must-not-appear");
+    expect(warn).toHaveBeenCalledWith(
+      "UA: Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 | IP: 198.51.100.11 | ASN: AS45629 | ISP: Jasmine Internet Co., Ltd. | Country: TH | Colo: BKK | Host: tenant.example | Method: GET | Path: /api/houses | Route: villa_catalog_api | Status: - | Cache: - | Ray: - | Reason: upstream_exception | CF-Worker: -",
+    );
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("must-not-appear");
+  });
+
+  it("preserves a successful listing response when the console logger throws", async () => {
+    const cache = {
+      match: vi.fn().mockResolvedValue(new Response('{"items":[]}')),
+      put: vi.fn(),
+    };
+    setDefaultCache(cache);
+    vi.spyOn(console, "warn").mockImplementation(() => {
+      throw new Error("logger unavailable");
+    });
+
+    const response = await worker.fetch(
+      cloudflareRequest(
+        "/api/houses",
+        { headers: { "User-Agent": "curl/8.12.1" } },
+        {},
+      ),
+      {},
+      context(),
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("preserves the original listing exception when the console logger throws", async () => {
+    const cache = {
+      match: vi.fn().mockResolvedValue(undefined),
+      put: vi.fn(),
+    };
+    setDefaultCache(cache);
+    workerMocks.openNextFetch.mockRejectedValue(new Error("origin failure"));
+    vi.spyOn(console, "warn").mockImplementation(() => {
+      throw new Error("logger unavailable");
+    });
+
+    await expect(
+      worker.fetch(
+        cloudflareRequest(
+          "/api/houses",
+          {
+            headers: {
+              "User-Agent": "Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36",
+            },
+          },
+          {},
+        ),
+        {},
+        context(),
+      ),
+    ).rejects.toThrow("origin failure");
+  });
+
+  it("does not throw when direct event logging fails", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {
+      throw new Error("logger unavailable");
+    });
+    const suspiciousRequest = cloudflareRequest(
+      "/api/houses",
+      { headers: { "User-Agent": "curl/8.12.1" } },
+      {},
+    );
+
+    expect(() =>
+      logSuspiciousListingRequest(suspiciousRequest, new Response("ok")),
+    ).not.toThrow();
   });
 });
