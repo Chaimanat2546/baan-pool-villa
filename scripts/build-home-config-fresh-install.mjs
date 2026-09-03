@@ -67,6 +67,10 @@ const HOME_CONFIG_MIGRATIONS = Object.freeze([
   "20260814130000_add_facebook_page_name_to_site_contact_settings.sql",
   "20260826000000_add_tiktok_video_house_ids.sql",
   "20260828140000_restore_admin_credential_fence_after_site_settings_rls.sql",
+  "20260902113000_add_gallery_category_order_constraint.sql",
+  "20260902140000_add_gallery_show_cover_option.sql",
+  "20260902153500_add_gallery_image_source_option.sql",
+  "20260902164500_remove_uncategorized_gallery_category.sql",
 ]);
 
 async function main() {

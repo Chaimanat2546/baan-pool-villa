@@ -13,6 +13,10 @@ const imageSourceMigrationName = readdirSync(migrationsDirectory).find((name) =>
 const removeUncategorizedMigrationName = readdirSync(migrationsDirectory).find((name) =>
   name.endsWith("_remove_uncategorized_gallery_category.sql"),
 );
+const freshInstallPath = join(
+  process.cwd(),
+  "supabase/site-settings-migrations/home-config-fresh-install.sql",
+);
 
 describe("gallery category order database constraint", () => {
   it("permits the complete categoryOrder option only for Gallery styles", () => {
@@ -57,5 +61,17 @@ describe("gallery category cleanup database constraint", () => {
     expect(migration).toContain("where category_key <> 'uncategorized'");
     expect(migration).toMatch(/jsonb_array_length\(options\s*->\s*'categoryOrder'\)\s*=\s*10/i);
     expect(migration).toContain("notify pgrst, 'reload schema'");
+  });
+});
+
+describe("fresh-install gallery style constraint", () => {
+  it("accepts the complete current Gallery options contract", () => {
+    const freshInstallSql = readFileSync(freshInstallPath, "utf8");
+
+    expect(freshInstallSql).toContain("'showCover'");
+    expect(freshInstallSql).toContain("'imageSource'");
+    expect(freshInstallSql).toContain(
+      "options ->> 'imageSource' in ('standard', 'system')",
+    );
   });
 });
