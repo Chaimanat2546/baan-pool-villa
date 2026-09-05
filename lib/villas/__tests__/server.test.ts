@@ -743,7 +743,7 @@ describe("fetchHouseListings", () => {
   });
 });
 describe("fetchVillaDetail", () => {
-  it("keeps Supabase detail values while filling missing fields from Deville Central", async () => {
+  it("uses the Deville insurance value instead of a stale Supabase value", async () => {
     const listing = {
       amenities: [],
       bathrooms: 5,
@@ -762,6 +762,7 @@ describe("fetchVillaDetail", () => {
     const upstreamDetail = {
       ...devilleDetail,
       h_additional_costs: "API additional costs",
+      h_insurance: 10000,
       h_rule: "No parties after midnight",
       h_time_checkin: "15:00:00",
     };
@@ -772,6 +773,7 @@ describe("fetchVillaDetail", () => {
     expect(payload).toMatchObject({
       detail: expect.objectContaining({
         h_additional_costs: "API additional costs",
+        h_insurance: 10000,
         h_rule: "No parties after midnight",
         h_time_checkin: "14:00:00",
       }),
@@ -816,7 +818,6 @@ describe("fetchVillaDetail", () => {
     await expect(fetchVillaDetail("9", [listing])).resolves.toEqual({
       detail: {
         h_extra: 500,
-        h_insurance: 3000,
         h_moredetail: "Large family villa",
         h_people_max: 12,
         h_time_checkin: "14:00:00",

@@ -315,7 +315,6 @@ function toAmenity(item: SupabaseFacilityJoin): Amenity | null {
 function toVillaDetail(row: SupabaseListingRow): Record<string, unknown> {
   return {
     h_extra: row.extra_beds ?? null,
-    h_insurance: row.insurance_fee ?? null,
     h_moredetail: row.description ?? null,
     h_people_max: row.max_guests ?? null,
     h_time_checkin: row.checkin_time ?? null,
