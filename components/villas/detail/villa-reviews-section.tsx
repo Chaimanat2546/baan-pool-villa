@@ -446,7 +446,7 @@ export function VillaReviewsSection({
               current ? { ...current, activeItem } : current,
             )
           }
-          showCategorySelector={!isCategorizedGallery}
+          showCategorySelector={false}
           showDownload={false}
           style={galleryStyle}
           thumbnailPlacement={isCategorizedGallery ? "bottom" : "side"}

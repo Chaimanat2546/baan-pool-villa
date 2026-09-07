@@ -143,7 +143,7 @@ describe("review section", () => {
     expect(host.querySelector('[role="dialog"]')).not.toBeNull();
     expect(host.textContent).toContain("รูปจากผู้เข้าพัก");
     expect(host.querySelectorAll('[aria-label^="ดูรูปหมวด"]')).toHaveLength(2);
-    expect(host.textContent).toContain("เลือกหมวดหมู่");
+    expect(host.textContent).not.toContain("เลือกหมวดหมู่");
     expect(
       host.querySelector('[data-gallery-thumbnail-placement="side"]'),
     ).not.toBeNull();
