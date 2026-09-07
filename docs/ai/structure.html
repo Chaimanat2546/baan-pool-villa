@@ -423,6 +423,16 @@
                 <td><code>components/admin/loading/admin-settings-skeleton</code>.</td>
               </tr>
               <tr>
+                <td><code>app/(admin)/admin/villa-reviews/page.tsx</code></td>
+                <td><code>/admin/villa-reviews</code></td>
+                <td><code>components/admin/villa-reviews/admin-villa-reviews-page</code> is the paginated, URL-filtered review list. It exposes only the masked phone, score, excerpt, image count, and date, then links to the separate edit route without discarding list state.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/villa-reviews/[id]/page.tsx</code></td>
+                <td><code>/admin/villa-reviews/:id</code></td>
+                <td><code>components/admin/villa-reviews/admin-villa-review-edit-page</code> loads one private review for full-width editing. It reuses review validation, image management, lightbox, audit history, and the authenticated save/delete APIs; the return link preserves the originating list query.</td>
+              </tr>
+              <tr>
                 <td><code>app/(admin)/admin/guides/page.tsx</code></td>
                 <td><code>/admin/guides</code></td>
                 <td>Guide article list before opening article config, using a desktop table, mobile card list, search, and seven-item pagination.</td>
@@ -533,6 +543,11 @@
                 <td><code>app/(admin)/api/admin/customer-reviews/route.ts</code></td>
                 <td><code>/api/admin/customer-reviews</code></td>
                 <td>Admin auth and delegation for customer proof/review image library reads, cropped multipart uploads, image metadata updates, hide/show, replace with a newly cropped Storage object while preserving the image row, delete with conservative upload-history and Storage cleanup, homepage queue/layout saves through <code>save_customer_review_homepage_queue</code>, and customer-review cache revalidation. Request parsing, row mapping, upload validation, Storage paths, and RPC response handling live in <code>lib/customer-reviews/admin-route.ts</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/api/admin/villa-reviews/route.ts</code> and <code>[id]/route.ts</code></td>
+                <td><code>/api/admin/villa-reviews</code></td>
+                <td>Authenticated admin-only server-paginated list (total, page, score/date/image filters and sort), private detail, multipart edit, and permanent-delete endpoints. <code>lib/villa-reviews/admin.ts</code> keeps private table and Storage paths server-only, validates retained and newly uploaded images, writes edit snapshots, removes discarded assets, and invalidates only the affected villa-review cache tag.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/api/admin/site-settings/[section]/route.ts</code></td>

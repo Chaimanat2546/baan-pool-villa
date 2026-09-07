@@ -36,7 +36,7 @@ describe("static site contact settings route", () => {
 
   it("authorizes and delegates GET and PATCH", async () => {
     const supabase = {} as never;
-    requireAdminMock.mockResolvedValue({ ok: true, supabase });
+    requireAdminMock.mockResolvedValue({ ok: true, supabase, userId: "00000000-0000-4000-8000-000000000001" });
     getMock.mockResolvedValue(Response.json({ section: "contact" }));
     patchMock.mockResolvedValue(Response.json({ section: "contact" }));
     const { GET, PATCH } = await import("./route");

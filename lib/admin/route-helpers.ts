@@ -23,6 +23,7 @@ export type AdminRouteAuthResult =
   | {
       ok: true;
       supabase: HomeConfigSupabaseClient;
+      userId: string;
     }
   | {
       ok: false;
@@ -72,7 +73,11 @@ export async function requireHomeConfigAdmin(
     };
   }
 
-  return { ok: true, supabase: adminCheck.supabase };
+  return {
+    ok: true,
+    supabase: adminCheck.supabase,
+    userId: adminCheck.userId,
+  };
 }
 
 function isNoRowsError(error: SupabaseLikeError | null | undefined): boolean {

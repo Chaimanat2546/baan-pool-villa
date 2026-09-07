@@ -109,4 +109,23 @@ describe("villa review validation", () => {
       expect.arrayContaining(["villaId", "bookingCode", "phone", "rating"]),
     );
   });
+
+  it("preserves the public submission validation result after content validation extraction", () => {
+    expect(validateReviewSubmission(validInput({
+      bookingCode: " ",
+      comment: " ",
+      phone: "123",
+      rating: 0,
+      villaId: " ",
+    }))).toEqual({
+      ok: false,
+      fieldErrors: {
+        villaId: "ไม่พบข้อมูลบ้านพัก",
+        bookingCode: "กรุณากรอกรหัสการจอง",
+        phone: "กรุณากรอกเบอร์โทรศัพท์ไทยให้ถูกต้อง",
+        rating: "กรุณาเลือกคะแนนรีวิว 1 ถึง 5",
+      },
+      detectedWords: [],
+    });
+  });
 });

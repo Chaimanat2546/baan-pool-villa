@@ -15,6 +15,7 @@ type AdminCheckResult =
   | {
       ok: true;
       supabase: HomeConfigSupabaseClient;
+      userId: string;
     }
   | {
       ok: false;
@@ -234,8 +235,9 @@ function databaseVerificationFailure(
  * admin and returns the request-scoped Supabase client on success.
  *
  * @param token - The bearer token from the incoming admin request.
- * @returns An auth result containing either the scoped Supabase client or an
- * admin-facing error with a stable machine-readable code.
+ * @returns An auth result containing either the scoped Supabase client and
+ * verified administrator ID or an admin-facing error with a stable
+ * machine-readable code.
  */
 export async function assertHomeConfigAdmin(
   token: string,
@@ -334,5 +336,5 @@ export async function assertHomeConfigAdmin(
     return credentialVersionMismatch();
   }
 
-  return { ok: true, supabase };
+  return { ok: true, supabase, userId };
 }

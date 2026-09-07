@@ -157,6 +157,10 @@ async function loadAssertHomeConfigAdmin() {
   return assertHomeConfigAdmin;
 }
 
+function expectNoUserId(result: unknown) {
+  expect(result).not.toHaveProperty("userId");
+}
+
 describe("home config admin auth", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -174,8 +178,16 @@ describe("home config admin auth", () => {
     const firstResult = await assertHomeConfigAdmin(OPAQUE_TOKEN);
     const secondResult = await assertHomeConfigAdmin(OPAQUE_TOKEN);
 
-    expect(firstResult).toEqual({ ok: true, supabase: first.client });
-    expect(secondResult).toEqual({ ok: true, supabase: second.client });
+    expect(firstResult).toEqual({
+      ok: true,
+      supabase: first.client,
+      userId: ADMIN_ID,
+    });
+    expect(secondResult).toEqual({
+      ok: true,
+      supabase: second.client,
+      userId: ADMIN_ID,
+    });
     expect(createHomeConfigClientMock).toHaveBeenNthCalledWith(1, OPAQUE_TOKEN);
     expect(createHomeConfigClientMock).toHaveBeenNthCalledWith(2, OPAQUE_TOKEN);
 
@@ -267,11 +279,13 @@ describe("home config admin auth", () => {
       createHomeConfigClientMock.mockReturnValue(fixture.client as never);
       const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
-      await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toMatchObject({
+      const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+      expect(result).toMatchObject({
         ok: false,
         code: "session_invalid",
         status: 401,
       });
+      expectNoUserId(result);
       expect(fixture.getClaims).toHaveBeenCalledOnce();
       expect(fixture.getClaims).toHaveBeenCalledWith(OPAQUE_TOKEN);
       expect(fixture.getUser).toHaveBeenCalledOnce();
@@ -290,11 +304,13 @@ describe("home config admin auth", () => {
     createHomeConfigClientMock.mockReturnValue(fixture.client as never);
     const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
-    await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toMatchObject({
+    const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+    expect(result).toMatchObject({
       ok: false,
       code: "session_invalid",
       status: 401,
     });
+    expectNoUserId(result);
     expect(fixture.getClaims).toHaveBeenCalledOnce();
     expect(fixture.getUser).toHaveBeenCalledOnce();
     expect(fixture.from).not.toHaveBeenCalled();
@@ -349,11 +365,13 @@ describe("home config admin auth", () => {
       createHomeConfigClientMock.mockReturnValue(fixture.client as never);
       const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
-      await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toMatchObject({
+      const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+      expect(result).toMatchObject({
         ok: false,
         code: "credential_version_mismatch",
         status: 403,
       });
+      expectNoUserId(result);
       expect(fixture.getClaims).toHaveBeenCalledOnce();
       expect(fixture.getUser).toHaveBeenCalledOnce();
 
@@ -397,11 +415,13 @@ describe("home config admin auth", () => {
     createHomeConfigClientMock.mockReturnValue(fixture.client as never);
     const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
-    await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toMatchObject({
+    const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+    expect(result).toMatchObject({
       ok: false,
       code,
       status: 403,
     });
+    expectNoUserId(result);
     expect(fixture.queryBuilder.select).toHaveBeenCalledWith(
       PROFILE_PROJECTION,
     );
@@ -414,9 +434,11 @@ describe("home config admin auth", () => {
     createHomeConfigClientMock.mockReturnValue(fixture.client as never);
     const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
-    await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toEqual({
+    const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+    expect(result).toEqual({
       ok: true,
       supabase: fixture.client,
+      userId: ADMIN_ID,
     });
     expect(fixture.getClaims).toHaveBeenCalledWith(OPAQUE_TOKEN);
     expect(fixture.getUser).toHaveBeenCalledWith(OPAQUE_TOKEN);
@@ -439,7 +461,8 @@ describe("home config admin auth", () => {
     createHomeConfigClientMock.mockReturnValue(fixture.client as never);
     const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
-    await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toEqual({
+    const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+    expect(result).toEqual({
       ok: false,
       message:
         "Unable to verify admin access: permission denied for admin_users",
@@ -449,6 +472,7 @@ describe("home config admin auth", () => {
       details: "RLS denied the profile read",
       hint: "Check the self-select policy",
     });
+    expectNoUserId(result);
   });
 
   it("preserves a synchronously thrown structured profile-query error", async () => {
@@ -464,7 +488,8 @@ describe("home config admin auth", () => {
     createHomeConfigClientMock.mockReturnValue(fixture.client as never);
     const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
-    await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toEqual({
+    const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+    expect(result).toEqual({
       ok: false,
       message:
         "Unable to verify admin access: permission denied for admin_users",
@@ -474,6 +499,7 @@ describe("home config admin auth", () => {
       details: "RLS denied the profile read",
       hint: "Check the self-select policy",
     });
+    expectNoUserId(result);
   });
 
   it("preserves an ordinary Error message from a rejected profile query", async () => {
@@ -482,12 +508,14 @@ describe("home config admin auth", () => {
     createHomeConfigClientMock.mockReturnValue(fixture.client as never);
     const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
-    await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toEqual({
+    const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+    expect(result).toEqual({
       ok: false,
       message: "Unable to verify admin access: database unavailable",
       code: "admin_verification_failed",
       status: 500,
     });
+    expectNoUserId(result);
   });
 
   it("redacts the token from every caught profile-query error field", async () => {
@@ -521,11 +549,13 @@ describe("home config admin auth", () => {
     createHomeConfigClientMock.mockReturnValue(fixture.client as never);
     const assertHomeConfigAdmin = await loadAssertHomeConfigAdmin();
 
-    await expect(assertHomeConfigAdmin(OPAQUE_TOKEN)).resolves.toEqual({
+    const result = await assertHomeConfigAdmin(OPAQUE_TOKEN);
+    expect(result).toEqual({
       ok: false,
       message: "Unable to verify admin access.",
       code: "admin_verification_failed",
       status: 500,
     });
+    expectNoUserId(result);
   });
 });

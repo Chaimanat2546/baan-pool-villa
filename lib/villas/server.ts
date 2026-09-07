@@ -1397,6 +1397,23 @@ export async function fetchHouseListings(): Promise<VillaListing[]> {
   return fetchCachedHouseListings();
 }
 
+/** Resolve at most one admin review page without loading the full catalog. */
+export async function fetchVillaTitlesByIds(ids: readonly string[]): Promise<Map<string, string>> {
+  const propertyIds = toUniquePropertyIds(ids.slice(0, 25));
+  if (!propertyIds.length) return new Map();
+  const { supabase } = createVillaSupabaseClient();
+  const { data, error } = await supabase.from("listings").select("property_id,title")
+    .eq("is_active", true).in("property_id", propertyIds).limit(25);
+  if (error) throw new Error("Unable to load villa titles.");
+  const titles = new Map<string, string>();
+  for (const row of data ?? []) {
+    if (typeof row.title === "string" && row.title.trim()) {
+      titles.set(String(row.property_id), row.title.trim());
+    }
+  }
+  return titles;
+}
+
 export async function fetchHomeListings(
   homeSectionHouseIds: readonly string[] = [],
   listingLimit = HOME_LISTING_LIMIT,

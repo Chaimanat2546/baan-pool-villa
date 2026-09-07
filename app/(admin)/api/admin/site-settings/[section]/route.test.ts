@@ -41,7 +41,7 @@ describe("dynamic site-settings section route", () => {
 
   it("authorizes and delegates GET with awaited dynamic params", async () => {
     const supabase = {} as never;
-    requireAdminMock.mockResolvedValue({ ok: true, supabase });
+    requireAdminMock.mockResolvedValue({ ok: true, supabase, userId: "00000000-0000-4000-8000-000000000001" });
     getResponseMock.mockResolvedValue(Response.json({ section: "brand" }));
     const { GET } = await import("./route");
     const response = await GET(request, context("brand"));
@@ -70,7 +70,7 @@ describe("dynamic site-settings section route", () => {
 
   it("authorizes and delegates PATCH with awaited dynamic params", async () => {
     const supabase = {} as never;
-    requireAdminMock.mockResolvedValue({ ok: true, supabase });
+    requireAdminMock.mockResolvedValue({ ok: true, supabase, userId: "00000000-0000-4000-8000-000000000001" });
     patchResponseMock.mockResolvedValue(Response.json({ section: "theme" }));
     const { PATCH } = await import("./route");
     const response = await PATCH(request, context("theme"));

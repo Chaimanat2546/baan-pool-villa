@@ -11,9 +11,15 @@ export function normalizeThaiPhone(value: string): string | null {
   return /^\+66\d{9}$/.test(normalized) ? normalized : null;
 }
 
-export function validateReviewFiles(files: File[]): ReviewFileValidationResult {
+export function validateReviewFiles(
+  files: File[],
+  options: { existingImageCount?: number } = {},
+): ReviewFileValidationResult {
   const errors: Record<string, string> = {};
-  if (files.length > MAX_REVIEW_IMAGES) errors.images = "แนบรูปได้สูงสุด 5 รูป";
+  const existingImageCount = options.existingImageCount ?? 0;
+  if (files.length + existingImageCount > MAX_REVIEW_IMAGES) {
+    errors.images = "แนบรูปได้สูงสุด 5 รูป";
+  }
   files.forEach((file, index) => {
     const messages: string[] = [];
     if (file.size > MAX_REVIEW_IMAGE_BYTES)

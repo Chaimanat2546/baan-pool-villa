@@ -66,6 +66,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     pageTitle: "รูปเครดิตและรีวิวลูกค้า",
   },
   {
+    compactLabel: "รีวิวบ้าน",
+    description: "แก้ไขข้อความ รูปภาพ และลบรีวิวบ้านพัก",
+    href: "/admin/villa-reviews",
+    icon: MessageSquareText,
+    label: "รีวิวบ้านพัก",
+    pageTitle: "จัดการรีวิวบ้านพัก",
+  },
+  {
     compactLabel: "รูปภาพ",
     description: "รูปภาพบ้านพักและแกลเลอรี",
     disabled: true,
