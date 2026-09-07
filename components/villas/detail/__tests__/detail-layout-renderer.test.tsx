@@ -246,6 +246,15 @@ function render(
 }
 
 describe("DetailLayoutRenderer", () => {
+  it("renders the configured guest review block with its public section", () => {
+    const markup = render({ ...DEFAULT_DETAIL_LAYOUT, rows: [{ id: "reviews", enabled: true, columns: 1, blocks: [block("villa_reviews")] }] });
+    expect(markup).toContain('data-detail-layout-block="villa_reviews"');
+    expect(markup).toContain("รีวิวจากผู้เข้าพัก");
+    expect(markup).toContain("เขียนรีวิว");
+    expect(markup).not.toContain('name="phone"');
+    expect(markup).not.toContain('name="bookingCode"');
+  });
+
   it("renders parking lines when the layout enables the parking block", () => {
     const layout: DetailLayoutConfig = {
       ...DEFAULT_DETAIL_LAYOUT,
@@ -410,7 +419,7 @@ describe("DetailLayoutRenderer", () => {
   it("keeps split items aligned to their content height", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT);
 
-    expect(markup).toContain('data-detail-layout-split="row_details_booking"');
+    expect(markup).toContain('data-detail-layout-split="row_costs_rules"');
     expect(markup).toContain("items-start");
   });
 

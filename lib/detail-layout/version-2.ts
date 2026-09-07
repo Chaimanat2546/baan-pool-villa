@@ -72,6 +72,11 @@ export function convertDetailLayoutV1ToV2(
           .filter((block) => block.type === "recommended_villas")
           .map(cloneBlock),
       );
+      appendWideRowsFromBlocks({
+        blocks: row.blocks.filter((block) => block.type !== "recommended_villas"),
+        rowId: row.id,
+        wideRows,
+      });
       return;
     }
 

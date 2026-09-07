@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CACHE_TAGS } from "./cache-policy";
 import {
+  revalidateVillaReviewsCache,
   revalidateDetailLayoutCache,
   revalidateExternalVillaCache,
   revalidateGuideCache,
@@ -45,6 +46,11 @@ const revalidateTagMock = vi.mocked(revalidateTag);
 const bumpHtmlEdgeCacheVersionsMock = vi.mocked(bumpHtmlEdgeCacheVersions);
 
 describe("cache revalidation", () => {
+  it("expires only the reviewed villa without invalidating HTML or other villas", async () => {
+    await revalidateVillaReviewsCache("villa-1");
+    expect(revalidateTagMock.mock.calls).toEqual([["villa-reviews:villa-1", { expire: 0 }]]);
+    expect(bumpHtmlEdgeCacheVersionsMock).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import {
+  checkPublicApiRateLimit,
+  reservePublicApiRateLimit,
   getPublicRateLimitClientKey,
   limitPublicApiRequest,
   PUBLIC_RATE_LIMIT_POLICIES,
@@ -27,6 +29,41 @@ async function expectTooManyRequests(
 }
 
 describe("public API rate limit helper", () => {
+  it("checks without spending slots and allows five committed reviews per hour", async () => {
+    resetPublicRateLimitForTests();
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const request = requestWithHeaders({ "CF-Connecting-IP": "203.0.113.90" });
+    for (let i = 0; i < 12; i++) expect(checkPublicApiRateLimit(request, "publicReviewSubmission")).toBeNull();
+    const failed = reservePublicApiRateLimit(request, "publicReviewSubmission");
+    failed.release();
+    failed.release();
+    for (let i = 0; i < 5; i++) {
+      const reservation = reservePublicApiRateLimit(request, "publicReviewSubmission");
+      expect(reservation.response).toBeNull();
+      reservation.commit();
+      reservation.release();
+    }
+    await expectTooManyRequests(reservePublicApiRateLimit(request, "publicReviewSubmission").response!, 3600);
+    vi.setSystemTime(3_600_000);
+    expect(checkPublicApiRateLimit(request, "publicReviewSubmission")).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it("reserves concurrent slots and does not refund an expired reservation into a new window", () => {
+    resetPublicRateLimitForTests();
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const request = requestWithHeaders({ "CF-Connecting-IP": "203.0.113.91" });
+    const old = reservePublicApiRateLimit(request, "publicReviewSubmission");
+    for (let i = 0; i < 4; i++) reservePublicApiRateLimit(request, "publicReviewSubmission");
+    expect(checkPublicApiRateLimit(request, "publicReviewSubmission")?.status).toBe(429);
+    vi.setSystemTime(3_600_000);
+    for (let i = 0; i < 5; i++) reservePublicApiRateLimit(request, "publicReviewSubmission").commit();
+    old.release();
+    expect(checkPublicApiRateLimit(request, "publicReviewSubmission")?.status).toBe(429);
+    vi.useRealTimers();
+  });
   beforeEach(() => {
     resetPublicRateLimitForTests();
     vi.useRealTimers();

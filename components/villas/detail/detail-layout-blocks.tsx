@@ -35,6 +35,7 @@ import { findFact, findSection } from "./helpers";
 import { LazyCategorizedImages } from "./lazy-categorized-images";
 import { NearbySection } from "./nearby-section";
 import type { GalleryCategory } from "./types";
+import { VillaReviewsSection } from "./villa-reviews-section";
 
 interface DetailLayoutBlockContext {
   advertisements: PublicAdvertisement[];
@@ -394,6 +395,19 @@ function renderReviewVideos({ content }: DetailLayoutBlockContext) {
   return <VideoReviewSection videos={content.videos} />;
 }
 
+function renderVillaReviews({
+  galleryStyle,
+  listing,
+}: DetailLayoutBlockContext) {
+  return (
+    <VillaReviewsSection
+      key={listing.id}
+      galleryStyle={galleryStyle}
+      villaId={listing.id}
+    />
+  );
+}
+
 function renderBookingContact({
   bookingCalendars,
   bookingSidebarId,
@@ -433,11 +447,12 @@ const blockRenderers = {
   advertisements: renderAdvertisements,
   map_nearby: renderMapNearby,
   review_videos: renderReviewVideos,
+  villa_reviews: renderVillaReviews,
   booking_contact: renderBookingContact,
   recommended_villas: renderRecommendedVillas,
 } satisfies Record<DetailLayoutBlockType, BlockRenderer>;
 
-function isAllowedBlockType(value: string): value is DetailLayoutBlockType {
+function isAllowedBlockType(value: string): value is keyof typeof blockRenderers {
   return Object.prototype.hasOwnProperty.call(blockRenderers, value);
 }
 

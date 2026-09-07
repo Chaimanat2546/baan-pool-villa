@@ -37,6 +37,24 @@ export function getHttpsOrigin(value: string | undefined): string | null {
   }
 }
 
+function getSupabaseOrigin(
+  value: string | undefined,
+  isDevelopment: boolean,
+): string | null {
+  const httpsOrigin = getHttpsOrigin(value);
+  if (httpsOrigin || !isDevelopment || !value?.trim()) return httpsOrigin;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]", "::1"].includes(url.hostname)
+      ? url.origin
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function buildContentSecurityPolicy({
   isDevelopment,
   nonce,
@@ -50,8 +68,8 @@ export function buildContentSecurityPolicy({
 }): string {
   const nonceSource = nonce ? `'nonce-${nonce}'` : null;
   const supabaseOrigins = [
-    getHttpsOrigin(supabaseUrl),
-    ...supabaseUrls.map(getHttpsOrigin),
+    getSupabaseOrigin(supabaseUrl, isDevelopment),
+    ...supabaseUrls.map((url) => getSupabaseOrigin(url, isDevelopment)),
   ].filter((source): source is string => Boolean(source));
   const scriptSources = [
     "'self'",
@@ -83,6 +101,7 @@ export function buildContentSecurityPolicy({
     "https://s3.ap-southeast-1.amazonaws.com",
     getAdvertisementImageOrigin(),
     "https://*.supabase.co",
+    ...supabaseOrigins,
     "https://*.tiktokcdn.com",
     "https://*.tiktokcdn-us.com",
     "https://fonts.gstatic.com",
@@ -128,6 +147,6 @@ export function buildContentSecurityPolicy({
     `connect-src ${connectSources.join(" ")}`,
     `frame-src 'self' ${CLOUDFLARE_TURNSTILE_ORIGIN} ${GOOGLE_TAG_MANAGER_ORIGIN} ${FACEBOOK_ORIGIN} ${FACEBOOK_WEB_ORIGIN} https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com`,
     "form-action 'self'",
-    "upgrade-insecure-requests",
+    ...(isDevelopment ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
 }

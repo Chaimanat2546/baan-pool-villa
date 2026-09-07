@@ -26,6 +26,9 @@ describe("DetailLayoutPreview", () => {
     expect(markup).toContain("ฝั่ง 70");
     expect(markup).toContain("ฝั่ง 30");
     expect(markup).toContain("รายละเอียดบ้านพัก");
+    expect(markup).toContain("รีวิวจากผู้เข้าพัก");
+    expect(markup.indexOf("รายละเอียดบ้านพัก")).toBeLessThan(markup.indexOf("รีวิวจากผู้เข้าพัก"));
+    expect(markup.indexOf("รีวิวจากผู้เข้าพัก")).toBeLessThan(markup.indexOf("จอง / ติดต่อ"));
     expect(markup).not.toContain("บ้านพักแนะนำ");
   });
 });

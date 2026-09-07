@@ -13,6 +13,16 @@ import {
 } from "../version-2";
 
 describe("DEFAULT_DETAIL_LAYOUT_V2", () => {
+  it("places full-width reviews immediately after the details row", () => {
+    const layout = normalizeDetailLayoutV2(null);
+    expect(layout.mainSplit.wideRows[1]).toMatchObject({
+      columns: 1,
+      blocks: [{ type: "villa_reviews", title: "รีวิวจากผู้เข้าพัก", enabled: true }],
+    });
+    expect(layout.mainSplit.wideRows[0].blocks[0].type).toBe("details");
+    expect(layout.mainSplit.narrowRows[0].block.type).toBe("booking_contact");
+  });
+
   it("uses locked top, a 70/30 split, wide rows, narrow rows, and locked recommended villas", () => {
     expect(DEFAULT_DETAIL_LAYOUT_V2.version).toBe(2);
     expect(DEFAULT_DETAIL_LAYOUT_V2.lockedTop).toEqual(["gallery", "intro"]);
@@ -43,8 +53,34 @@ describe("DEFAULT_DETAIL_LAYOUT_V2", () => {
 });
 
 describe("convertDetailLayoutV1ToV2", () => {
+  it("preserves reviews alongside recommended villas when converting saved V1 rows", () => {
+    const result = normalizeDetailLayoutV2({
+      version: 1,
+      lockedTop: ["gallery", "intro"],
+      rows: [{ id: "custom", columns: 2, ratio: "50/50", enabled: true,
+        blocks: [
+          { type: "villa_reviews", title: "เสียงจากผู้เข้าพัก", enabled: true, hideWhenEmpty: true },
+          { type: "recommended_villas", title: "แนะนำ", enabled: true, hideWhenEmpty: true },
+        ],
+      }],
+    });
+    expect(result.mainSplit.wideRows).toEqual([{
+      id: "custom", columns: 1, enabled: true,
+      blocks: [{ type: "villa_reviews", title: "เสียงจากผู้เข้าพัก", enabled: true, hideWhenEmpty: true }],
+    }]);
+    expect(result.lockedBottom[0].title).toBe("แนะนำ");
+  });
+
   it("moves the split wide block to wideRows and the side block to narrowRows", () => {
-    const result = convertDetailLayoutV1ToV2(DEFAULT_DETAIL_LAYOUT);
+    const result = convertDetailLayoutV1ToV2({
+      ...DEFAULT_DETAIL_LAYOUT,
+      rows: [{ id: "legacy_split", columns: 2, ratio: "70/30", enabled: true,
+        blocks: [
+          { type: "details", title: "รายละเอียด", enabled: true, hideWhenEmpty: true },
+          { type: "booking_contact", title: "จอง", enabled: true, hideWhenEmpty: true },
+        ],
+      }, ...DEFAULT_DETAIL_LAYOUT.rows.slice(3)],
+    });
 
     expect(result.version).toBe(2);
     expect(result.mainSplit.ratio).toBe("70/30");
@@ -60,6 +96,21 @@ describe("convertDetailLayoutV1ToV2", () => {
 });
 
 describe("validateDetailLayoutV2", () => {
+  it("accepts reviews in either editable zone without replacing custom rows", () => {
+    const review = { type: "villa_reviews", title: "ความคิดเห็น", enabled: true, hideWhenEmpty: true };
+    const input = {
+      ...DEFAULT_DETAIL_LAYOUT_V2,
+      mainSplit: {
+        ratio: "30/70",
+        wideRows: [{ id: "custom_wide", columns: 1, enabled: true, blocks: [review] }],
+        narrowRows: [{ id: "custom_narrow", enabled: true, block: review }],
+      },
+    };
+    const result = validateDetailLayoutV2(input);
+    expect(result.ok).toBe(true);
+    expect(result.layout).toEqual(input);
+  });
+
   it("states that wide rows support only 50/50 as the current internal ratio", () => {
     expect(DETAIL_LAYOUT_WIDE_ROW_RATIOS).toEqual(["50/50"]);
   });

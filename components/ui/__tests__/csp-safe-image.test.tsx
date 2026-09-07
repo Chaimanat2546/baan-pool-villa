@@ -32,6 +32,24 @@ describe("CspSafeImage", () => {
     expect(markup).toContain("p16-sign.tiktokcdn-us.com");
   });
 
+  it("renders loopback Supabase images directly for local development", () => {
+    const source = "http://127.0.0.1:55321/storage/v1/object/public/villa-reviews/review.webp";
+    const markup = renderToStaticMarkup(
+      <CspSafeImage
+        alt="รูปรีวิว"
+        height={160}
+        src={source}
+        unoptimized
+        width={160}
+      />,
+    );
+
+    expect(markup).toContain("<img");
+    expect(markup).toContain(source);
+    expect(markup).not.toContain("/_next/image");
+    expect(markup).not.toContain("unoptimized");
+  });
+
   it("keeps a raw signed TikTok source unchanged even when a maximum width is present", () => {
     const source =
       "https://p16-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/no-extension?x-signature=signed";

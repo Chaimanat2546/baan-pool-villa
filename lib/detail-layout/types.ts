@@ -11,6 +11,7 @@ export const DETAIL_LAYOUT_BLOCK_TYPES = [
   "advertisements",
   "map_nearby",
   "review_videos",
+  "villa_reviews",
   "booking_contact",
   "recommended_villas",
 ] as const;

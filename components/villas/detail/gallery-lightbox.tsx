@@ -61,6 +61,7 @@ function GalleryCategoryButton({
 }
 
 function GalleryThumbnailButton({
+  getImageSrc,
   isActive,
   item,
   listingId,
@@ -68,6 +69,7 @@ function GalleryThumbnailButton({
   onSelect,
   thumbnailPlacement,
 }: {
+  getImageSrc?: (item: GalleryItem, width: number, quality: number) => string | null;
   isActive: boolean;
   item: GalleryItem;
   listingId: string;
@@ -75,7 +77,8 @@ function GalleryThumbnailButton({
   onSelect: (item: GalleryItem) => void;
   thumbnailPlacement: "bottom" | "side";
 }) {
-  const thumbnailSrc = buildGalleryDisplaySrc(listingId, item, 160, 60);
+  const thumbnailSrc =
+    getImageSrc?.(item, 160, 60) ?? buildGalleryDisplaySrc(listingId, item, 160, 60);
 
   return (
     <button
@@ -199,6 +202,7 @@ export function GalleryLightbox({
   activeItem,
   categories,
   eyebrow = "แกลเลอรีรูปบ้าน",
+  getImageSrc,
   listing,
   onClose,
   onImageError,
@@ -212,7 +216,8 @@ export function GalleryLightbox({
   activeItem: GalleryItem | null;
   categories: GalleryCategory[];
   eyebrow?: string;
-  listing: VillaListing;
+  getImageSrc?: (item: GalleryItem, width: number, quality: number) => string | null;
+  listing: Pick<VillaListing, "id" | "title">;
   onClose: () => void;
   onImageError: (url: string) => void;
   onSelect: (item: GalleryItem) => void;
@@ -276,12 +281,9 @@ export function GalleryLightbox({
   const activeImageDownloadHref = showDownload
     ? buildGalleryDownloadHref(listing.id, activeItem)
     : null;
-  const activeImageDisplaySrc = buildGalleryDisplaySrc(
-    listing.id,
-    activeItem,
-    1920,
-    75,
-  );
+  const activeImageDisplaySrc =
+    getImageSrc?.(activeItem, 1920, 75) ??
+    buildGalleryDisplaySrc(listing.id, activeItem, 1920, 75);
   const lightboxTitleId = `gallery-lightbox-title-${listing.id}`;
   const lightboxTitle = title ?? getVillaTitle(listing.id, listing.title);
   const detailLabel = showCategorySelector ? "หมวดรูป" : "กิจกรรม";
@@ -569,6 +571,7 @@ export function GalleryLightbox({
 
               {activeItems.map((item) => (
                 <GalleryThumbnailButton
+                  getImageSrc={getImageSrc}
                   isActive={item.key === activeItem.key}
                   item={item}
                   key={item.key}

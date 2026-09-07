@@ -33,7 +33,9 @@ describe("detail layout V2 helpers", () => {
     expect(draft.version).toBe(2);
     expect(draft.mainSplit.ratio).toBe("70/30");
     expect(draft.mainSplit.wideRows[0].blocks[0]?.type).toBe("details");
-    expect(draft.mainSplit.narrowRows[0].block?.type).toBe("booking_contact");
+    expect(draft.mainSplit.wideRows[1].blocks[0]?.type).toBe("villa_reviews");
+    expect(draft.mainSplit.wideRows[2].blocks[0]?.type).toBe("booking_contact");
+    expect(draft.mainSplit.narrowRows[0].block?.type).toBe("rules_pet_policy");
     expect(draft.lockedBottom[0].type).toBe("recommended_villas");
   });
 
