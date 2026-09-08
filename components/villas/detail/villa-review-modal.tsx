@@ -32,6 +32,11 @@ export function VillaReviewModal({
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const focusTarget = useRef<HTMLHeadingElement>(null);
+  const bookingInput = useRef<HTMLInputElement>(null);
+  const phoneInput = useRef<HTMLInputElement>(null);
+  const ratingInput = useRef<HTMLInputElement>(null);
+  const commentInput = useRef<HTMLTextAreaElement>(null);
+  const imagesInput = useRef<HTMLInputElement>(null);
   const previewsRef = useRef<Preview[]>([]);
   const submittingRef = useRef(false);
   const [step, setStep] = useState<1 | 2>(1);
@@ -62,6 +67,23 @@ export function VillaReviewModal({
   useEffect(() => {
     focusTarget.current?.focus();
   }, [step]);
+
+  useEffect(() => {
+    const target = errors.bookingCode
+      ? bookingInput.current
+      : errors.phone
+        ? phoneInput.current
+        : errors.rating
+          ? ratingInput.current
+          : errors.comment
+            ? commentInput.current
+            : Object.keys(errors).some((key) => key === "images" || key.startsWith("images."))
+              ? imagesInput.current
+              : null;
+    if (!target) return;
+    target.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    target.focus({ preventScroll: true });
+  }, [errors]);
 
   function replacePreviews(next: Preview[]) {
     previewsRef.current = next;
@@ -116,7 +138,38 @@ export function VillaReviewModal({
       if (!normalizeThaiPhone(phone))
         nextErrors.phone = "กรุณากรอกเบอร์โทรศัพท์ไทยให้ถูกต้อง";
       setErrors(nextErrors);
-      if (Object.keys(nextErrors).length === 0) setStep(2);
+      if (Object.keys(nextErrors).length) return;
+      setPending(true);
+      try {
+        const response = await fetch(
+          `/api/villas/${encodeURIComponent(villaId)}/reviews/verification`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingCode, phone }),
+          },
+        );
+        const result = await response.json();
+        if (!response.ok) {
+          const verificationErrors: Record<string, string> = {};
+          for (const key of ["bookingCode", "phone"]) {
+            if (typeof result.fieldErrors?.[key] === "string") {
+              verificationErrors[key] = result.fieldErrors[key];
+            }
+          }
+          setErrors(verificationErrors);
+          if (!Object.keys(verificationErrors).length) {
+            setMessage("ยังตรวจสอบข้อมูลการจองไม่ได้ กรุณาลองอีกครั้ง");
+          }
+          return;
+        }
+        setErrors({});
+        setStep(2);
+      } catch {
+        setMessage("ยังตรวจสอบข้อมูลการจองไม่ได้ กรุณาลองอีกครั้ง");
+      } finally {
+        setPending(false);
+      }
       return;
     }
     const nextErrors = validateReviewFiles(
@@ -143,11 +196,6 @@ export function VillaReviewModal({
       );
       const result = await response.json();
       if (!response.ok) {
-        setMessage(
-          typeof result.error === "string"
-            ? result.error
-            : "ส่งรีวิวไม่สำเร็จ กรุณาลองอีกครั้ง",
-        );
         const fieldErrors: Record<string, string> = {};
         for (const key of [
           "bookingCode",
@@ -172,7 +220,16 @@ export function VillaReviewModal({
                 .slice(0, 20)
             : [],
         );
-        if (fieldErrors.bookingCode || fieldErrors.phone) setStep(1);
+        if (fieldErrors.bookingCode || fieldErrors.phone) {
+          setStep(1);
+          setMessage("ยืนยันข้อมูลการจองอีกครั้งไม่สำเร็จ กรุณาตรวจสอบข้อมูล");
+        } else {
+          setMessage(
+            typeof result.error === "string"
+              ? result.error
+              : "ส่งรีวิวไม่สำเร็จ กรุณาลองอีกครั้ง",
+          );
+        }
         return;
       }
       const review: PublicVillaReview = result.review;
@@ -261,6 +318,16 @@ export function VillaReviewModal({
             data-review-modal-scroll
             className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7"
           >
+          {message || pending ? (
+            <div
+              data-review-section-status
+              aria-live="polite"
+              role="status"
+              className="break-words text-sm text-red-700"
+            >
+              {message || (step === 1 ? "กำลังตรวจสอบข้อมูลการจอง…" : "กำลังส่งรีวิว…")}
+            </div>
+          ) : null}
           {step === 1 ? (
             <>
               <p className="text-sm leading-6 text-[var(--site-muted)]">
@@ -272,6 +339,7 @@ export function VillaReviewModal({
                   รหัสการจอง
                 </label>
                 <input
+                  ref={bookingInput}
                   id={`${id}-booking`}
                   name="bookingCode"
                   value={bookingCode}
@@ -291,6 +359,7 @@ export function VillaReviewModal({
                   เบอร์โทรศัพท์
                 </label>
                 <input
+                  ref={phoneInput}
                   id={`${id}-phone`}
                   name="phone"
                   type="tel"
@@ -328,6 +397,7 @@ export function VillaReviewModal({
                       className="relative cursor-pointer rounded-lg p-2 has-focus-visible:outline-2 has-focus-visible:outline-[var(--site-primary)]"
                     >
                       <input
+                        ref={value === 1 ? ratingInput : undefined}
                         className="sr-only"
                         type="radio"
                         name="rating"
@@ -355,6 +425,7 @@ export function VillaReviewModal({
                   ความคิดเห็น (ไม่บังคับ)
                 </label>
                 <textarea
+                  ref={commentInput}
                   id={`${id}-comment`}
                   name="comment"
                   rows={4}
@@ -393,6 +464,7 @@ export function VillaReviewModal({
                   JPG, PNG หรือ WebP สูงสุด 5 รูป รูปละไม่เกิน 5 MB
                 </p>
                 <input
+                  ref={imagesInput}
                   id={`${id}-images`}
                   type="file"
                   accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
@@ -452,18 +524,6 @@ export function VillaReviewModal({
               </p>
             </fieldset>
           )}
-          <div
-            aria-live="polite"
-            role="status"
-            className="break-words text-sm text-red-700"
-          >
-            {message ||
-              (pending
-                ? "กำลังส่งรีวิว…"
-                : Object.keys(errors).length
-                  ? "กรุณาตรวจสอบข้อมูลที่ระบุ"
-                  : "")}
-          </div>
           </div>
           <div
             data-review-modal-actions

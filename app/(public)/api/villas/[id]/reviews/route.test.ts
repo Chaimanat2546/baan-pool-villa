@@ -93,7 +93,10 @@ describe("public villa review POST", () => {
     vi.mocked(submitVillaReview).mockRejectedValue(new VillaReviewError("duplicate_booking_code", `${bookingCode} ${phone}`));
     const response = await POST(postRequest(), context());
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({ error: "รหัสการจองนี้เคยใช้รีวิวแล้ว" });
+    expect(await response.json()).toEqual({
+      error: "รหัสการจองนี้เคยใช้รีวิวแล้ว",
+      fieldErrors: { bookingCode: "รหัสการจองนี้เคยใช้รีวิวแล้ว" },
+    });
   });
 
   it("returns safe field errors from a rejected write instead of hiding them behind a generic message", async () => {
@@ -115,6 +118,29 @@ describe("public villa review POST", () => {
       fieldErrors: { comment: "ความคิดเห็นมีคำที่ไม่เหมาะสม" },
       detectedWords: ["คำไม่เหมาะสม"],
     });
+  });
+
+  it("does not reveal which booking field failed verification", async () => {
+    vi.mocked(submitVillaReview).mockRejectedValue(
+      new VillaReviewError(
+        "booking_verification_failed",
+        `${bookingCode} ${phone}`,
+        false,
+        { bookingCode: "ไม่พบข้อมูลการจองที่ตรงกัน" },
+      ),
+    );
+
+    const response = await POST(postRequest(), context());
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toEqual({
+      error: "กรุณาตรวจสอบข้อมูลรีวิว",
+      fieldErrors: { bookingCode: "ไม่พบข้อมูลการจองที่ตรงกัน" },
+      detectedWords: [],
+    });
+    expect(JSON.stringify(body)).not.toContain(bookingCode);
+    expect(JSON.stringify(body)).not.toContain(phone);
   });
 
   it("rejects an oversized later image with its own field error", async () => {

@@ -5,6 +5,7 @@ const fake = vi.hoisted(() => ({
   from: vi.fn(), rpc: vi.fn(), upload: vi.fn(), remove: vi.fn(),
   publicUrl: vi.fn(), cache: vi.fn(), invalidate: vi.fn(),
 }));
+const bookingVerification = vi.hoisted(() => ({ from: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ unstable_cache: fake.cache }));
 vi.mock("@/lib/cache-revalidation", () => ({ revalidateVillaReviewsCache: fake.invalidate }));
@@ -12,8 +13,11 @@ vi.mock("../supabase", () => ({ createVillaReviewsClient: () => ({
   from: fake.from, rpc: fake.rpc,
   storage: { from: () => ({ upload: fake.upload, remove: fake.remove, getPublicUrl: fake.publicUrl }) },
 }) }));
+vi.mock("../booking-verification-supabase", () => ({
+  createBookingVerificationClient: () => ({ from: bookingVerification.from }),
+}));
 
-import { getVillaReviewPage, getVillaReviewSummary, submitVillaReview } from "../server";
+import { getVillaReviewPage, getVillaReviewSummary, submitVillaReview, verifyVillaReviewBooking } from "../server";
 
 const row = (index = 1) => ({
   id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
@@ -28,11 +32,24 @@ const files = () => [new File(["one"], "one.jpg", { type: "image/jpeg" }), new F
 function query(data: unknown, count: number | null = 0, error: unknown = null) {
   const result = { data, count, error };
   const builder = {
-    select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), or: vi.fn(), single: vi.fn(),
+    select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), or: vi.fn(), single: vi.fn(), maybeSingle: vi.fn(),
     then: (resolve: (value: typeof result) => unknown) => Promise.resolve(result).then(resolve),
   };
-  for (const method of [builder.select, builder.eq, builder.order, builder.limit, builder.or, builder.single]) method.mockReturnValue(builder);
+  for (const method of [builder.select, builder.eq, builder.order, builder.limit, builder.or, builder.single, builder.maybeSingle]) method.mockReturnValue(builder);
   return builder;
+}
+
+function verificationQueries(
+  booking: unknown = { customer_id: 1, listing_id: "listing-1" },
+  customer: unknown = { phone: "+66812345678" },
+  listing: unknown = { property_id: "villa-1" },
+) {
+  return (table: string) => {
+    if (table === "bookings") return query(booking);
+    if (table === "customers") return query(customer);
+    if (table === "listings") return query(listing);
+    throw new Error(`Unexpected verification table: ${table}`);
+  };
 }
 
 describe("villa review repository", () => {
@@ -43,6 +60,8 @@ describe("villa review repository", () => {
     fake.remove.mockResolvedValue({ data: [], error: null });
     fake.publicUrl.mockImplementation((path) => ({ data: { publicUrl: `https://example.supabase.co/storage/v1/object/public/villa-reviews/${path}` } }));
     fake.rpc.mockResolvedValue({ data: row().id, error: null, status: 200 });
+    fake.from.mockImplementation(() => query({ phone: "+66812345678", property_id: "villa-1" }));
+    bookingVerification.from.mockImplementation(verificationQueries());
   });
 
   it("maps only public fields, returns five items and preserves timestamp precision in opaque cursors", async () => {
@@ -105,14 +124,78 @@ describe("villa review repository", () => {
     expect(fake.rpc).not.toHaveBeenCalled();
   });
 
+  it("rejects a booking code whose customer phone cannot be verified before uploading", async () => {
+    bookingVerification.from.mockImplementation(verificationQueries(null));
+
+    await expect(submitVillaReview(validInput(), files())).rejects.toMatchObject({
+      code: "booking_verification_failed",
+      fieldErrors: { bookingCode: "ไม่พบข้อมูลการจองที่ตรงกัน" },
+    });
+
+    expect(bookingVerification.from).toHaveBeenCalledWith("bookings");
+    expect(fake.upload).not.toHaveBeenCalled();
+    expect(fake.rpc).not.toHaveBeenCalled();
+  });
+
+  it("reads booking, customer, and listing verification data from Deville rather than the local review database", async () => {
+    await verifyVillaReviewBooking(validInput());
+
+    expect(bookingVerification.from.mock.calls.map(([table]) => table)).toEqual([
+      "bookings",
+      "customers",
+      "listings",
+    ]);
+  });
+
+  it("reports a Deville verification database failure without calling it a booking mismatch", async () => {
+    bookingVerification.from.mockReturnValue(
+      query(null, 0, { code: "42P01", message: "view missing" }),
+    );
+
+    await expect(verifyVillaReviewBooking(validInput())).rejects.toMatchObject({
+      code: "booking_verification_unavailable",
+      fieldErrors: {},
+    });
+  });
+
+  it("rejects a verified phone when the booking belongs to another villa before uploading", async () => {
+    bookingVerification.from.mockImplementation(
+      verificationQueries(undefined, undefined, { property_id: "villa-other" }),
+    );
+
+    await expect(submitVillaReview(validInput(), files())).rejects.toMatchObject({
+      code: "booking_verification_failed",
+      fieldErrors: { bookingCode: "ไม่พบข้อมูลการจองที่ตรงกัน" },
+    });
+
+    expect(fake.upload).not.toHaveBeenCalled();
+    expect(fake.rpc).not.toHaveBeenCalled();
+  });
+
   it("uploads all files before atomic RPC, normalizes fields and returns a public DTO", async () => {
-    fake.from.mockReturnValue(query(row()));
+    const booking = query({ customer_id: 1, listing_id: "listing-1" });
+    const customer = query({ phone: "+66812345678" });
+    const listing = query({ property_id: "villa-1" });
+    const publicReview = query(row());
+    bookingVerification.from.mockImplementation((table) => {
+      if (table === "bookings") return booking;
+      if (table === "customers") return customer;
+      if (table === "listings") return listing;
+      throw new Error(`Unexpected verification table: ${table}`);
+    });
+    fake.from.mockReturnValue(publicReview);
     const review = await submitVillaReview(validInput(), files());
     const paths = fake.upload.mock.calls.map(([path]) => path);
     expect(paths).toHaveLength(2);
     expect(paths.every((path) => /^villa-reviews\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png)$/.test(path))).toBe(true);
     expect(fake.rpc.mock.invocationCallOrder[0]).toBeGreaterThan(fake.upload.mock.invocationCallOrder[1]);
     expect(fake.rpc).toHaveBeenCalledWith("submit_villa_review", { p_villa_id: "villa-1", p_booking_code: "BOOK-1", p_phone_e164: "+66812345678", p_rating: 5, p_comment: "บ้านสะอาด", p_images: paths.map((path) => ({ storage_path: path, public_url: `https://example.supabase.co/storage/v1/object/public/villa-reviews/${path}` })) });
+    expect(booking.select).toHaveBeenCalledWith("customer_id,listing_id");
+    expect(booking.eq).toHaveBeenCalledWith("booking_code", "BOOK-1");
+    expect(customer.select).toHaveBeenCalledWith("phone");
+    expect(customer.eq).toHaveBeenCalledWith("id", 1);
+    expect(listing.select).toHaveBeenCalledWith("property_id");
+    expect(listing.eq).toHaveBeenCalledWith("id", "listing-1");
     expect(review.maskedPhone).toBe("xxx-xxxx-5678");
     expect(review).not.toHaveProperty("booking_code");
     expect(fake.invalidate).toHaveBeenCalledWith("villa-1");
@@ -165,7 +248,7 @@ describe("villa review repository", () => {
       code: "submission_outcome_unknown", commitOutcome: "unknown", committed: false, shouldConsumeQuota: true,
     });
     expect(fake.remove).not.toHaveBeenCalled();
-    expect(fake.from).not.toHaveBeenCalled();
+    expect(bookingVerification.from.mock.calls.map(([table]) => table)).toEqual(["bookings", "customers", "listings"]);
     expect(fake.invalidate).not.toHaveBeenCalled();
   });
 
@@ -175,6 +258,6 @@ describe("villa review repository", () => {
       code: "submission_outcome_unknown", commitOutcome: "unknown", shouldConsumeQuota: true,
     });
     expect(fake.remove).not.toHaveBeenCalled();
-    expect(fake.from).not.toHaveBeenCalled();
+    expect(bookingVerification.from.mock.calls.map(([table]) => table)).toEqual(["bookings", "customers", "listings"]);
   });
 });

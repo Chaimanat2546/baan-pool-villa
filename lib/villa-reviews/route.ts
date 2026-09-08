@@ -4,6 +4,7 @@ import { reservePublicApiRateLimit } from "@/lib/api/rate-limit";
 import {
   getVillaReviewPage,
   submitVillaReview,
+  verifyVillaReviewBooking,
   validateVillaId,
   validateVillaReviewCursor,
   VillaReviewError,
@@ -34,8 +35,14 @@ function errorResponse(error: unknown) {
   if (error instanceof VillaReviewError) {
     switch (error.code) {
       case "duplicate_booking_code":
-        return json({ error: "รหัสการจองนี้เคยใช้รีวิวแล้ว" }, 409);
+        return json({
+          error: "รหัสการจองนี้เคยใช้รีวิวแล้ว",
+          fieldErrors: { bookingCode: "รหัสการจองนี้เคยใช้รีวิวแล้ว" },
+        }, 409);
+      case "booking_verification_unavailable":
+        return json({ error: "ยังตรวจสอบข้อมูลการจองไม่ได้ กรุณาลองอีกครั้ง" }, 503);
       case "validation_error":
+      case "booking_verification_failed":
       case "invalid_cursor":
         return json({
           error: "กรุณาตรวจสอบข้อมูลรีวิว",
@@ -80,6 +87,49 @@ function textField(form: FormData, key: string): string {
     throw new VillaReviewError("validation_error", "Invalid form field");
   }
   return typeof values[0] === "string" ? values[0] : "";
+}
+
+function verificationErrorResponse(error: unknown) {
+  if (
+    error instanceof VillaReviewError &&
+    (error.code === "validation_error" || error.code === "booking_verification_failed")
+  ) {
+    return json({ fieldErrors: error.fieldErrors }, 400);
+  }
+  if (error instanceof VillaReviewError && error.code === "booking_verification_unavailable") {
+    return json({ error: "ยังตรวจสอบข้อมูลการจองไม่ได้ กรุณาลองอีกครั้ง" }, 503);
+  }
+  return json({ error: "ยังตรวจสอบข้อมูลการจองไม่ได้ กรุณาลองอีกครั้ง" }, 500);
+}
+
+export async function postPublicVillaReviewVerification(
+  request: Request,
+  villaId: string,
+) {
+  try {
+    validateVillaId(villaId);
+    if (request.headers.get("Content-Type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
+      throw new VillaReviewError("validation_error", "Invalid content type");
+    }
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      throw new VillaReviewError("validation_error", "Invalid JSON body");
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      throw new VillaReviewError("validation_error", "Invalid JSON body");
+    }
+    const value = body as Record<string, unknown>;
+    await verifyVillaReviewBooking({
+      villaId,
+      bookingCode: typeof value.bookingCode === "string" ? value.bookingCode : "",
+      phone: typeof value.phone === "string" ? value.phone : "",
+    });
+    return json({ ok: true });
+  } catch (error) {
+    return verificationErrorResponse(error);
+  }
 }
 
 export async function postPublicVillaReview(request: Request, villaId: string) {

@@ -31,6 +31,7 @@ async function fill(selector: string, value: string) {
 async function stepTwo() {
   await fill('[name="bookingCode"]', "booking-private");
   await fill('[name="phone"]', "0812345678");
+  fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) });
   await click("ถัดไป");
 }
 beforeEach(async () => {
@@ -93,6 +94,65 @@ describe("review modal", () => {
       document.querySelector<HTMLInputElement>('[name="phone"]')?.value,
     ).toBe("0812345678");
   });
+  it("verifies booking details before showing the review step and keeps a mismatch in its section", async () => {
+    await fill('[name="bookingCode"]', "booking-private");
+    await fill('[name="phone"]', "0812345678");
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({
+        fieldErrors: { bookingCode: "ไม่พบข้อมูลการจองที่ตรงกัน" },
+      }),
+    });
+
+    await click("ถัดไป");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/villas/villa-1/reviews/verification",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(document.querySelector('[name="bookingCode"]')).not.toBeNull();
+    expect(document.querySelector('[name="rating"]')).toBeNull();
+    expect(document.body.textContent).toContain("ไม่พบข้อมูลการจองที่ตรงกัน");
+    expect(document.body.textContent).not.toContain("กรุณาตรวจสอบข้อมูลที่ระบุ");
+  });
+  it("moves focus and scrolls to the first invalid experience field", async () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      value: scrollIntoView,
+      configurable: true,
+    });
+    await stepTwo();
+
+    await click("ส่งรีวิว");
+
+    const firstRating = document.querySelector<HTMLInputElement>(
+      '[name="rating"][value="1"]',
+    )!;
+    expect(document.activeElement).toBe(firstRating);
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+  it("returns to and focuses booking details when the booking code already has a review", async () => {
+    await stepTwo();
+    await act(async () =>
+      document
+        .querySelector<HTMLInputElement>('[name="rating"][value="5"]')!
+        .click(),
+    );
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({
+        error: "รหัสการจองนี้เคยใช้รีวิวแล้ว",
+        fieldErrors: { bookingCode: "รหัสการจองนี้เคยใช้รีวิวแล้ว" },
+      }),
+    });
+
+    await click("ส่งรีวิว");
+
+    const booking = document.querySelector<HTMLInputElement>('[name="bookingCode"]')!;
+    expect(booking).not.toBeNull();
+    expect(document.activeElement).toBe(booking);
+    expect(document.body.textContent).toContain("รหัสการจองนี้เคยใช้รีวิวแล้ว");
+  });
   it("keeps comment and rating after a server error, and passes only public data after success", async () => {
     await stepTwo();
     await act(async () =>
@@ -113,6 +173,12 @@ describe("review modal", () => {
     expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
       "บ้านสะอาด",
     );
+    const sectionStatus = document.querySelector("[data-review-section-status]")!;
+    const ratingField = document.querySelector('[name="rating"][value="1"]')!;
+    expect(sectionStatus.textContent).toContain("แก้ไขความคิดเห็น");
+    expect(
+      sectionStatus.compareDocumentPosition(ratingField) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
     expect(document.body.textContent).toContain("คำไม่เหมาะสม");
     expect(document.body.textContent).toContain("คำที่ตรวจพบ: คำต้องห้าม");
     expect(closed).not.toHaveBeenCalled();
@@ -139,7 +205,7 @@ describe("review modal", () => {
     await click("ส่งรีวิว");
     expect(submitted).toHaveBeenCalledWith(review);
     expect(closed).toHaveBeenCalledOnce();
-    const body = fetchMock.mock.calls[1][1].body as FormData;
+    const body = fetchMock.mock.calls[2][1].body as FormData;
     expect(body.get("phone")).toBe("0812345678");
   });
   it("rejects oversized files before creating previews and revokes valid previews on removal", async () => {
@@ -241,13 +307,13 @@ describe("review modal", () => {
           new Event("submit", { bubbles: true, cancelable: true }),
         ),
     );
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(
       document.querySelector<HTMLButtonElement>(
         '[aria-label="ปิดหน้าต่างรีวิว"]',
       )?.disabled,
     ).toBe(true);
-    const body = fetchMock.mock.calls[0][1].body as FormData;
+    const body = fetchMock.mock.calls[1][1].body as FormData;
     expect(body.get("comment")).toBe("");
     expect(body.getAll("images")).toHaveLength(2);
     await act(async () =>

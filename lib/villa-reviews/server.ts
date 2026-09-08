@@ -3,6 +3,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { revalidateVillaReviewsCache } from "@/lib/cache-revalidation";
+import { createBookingVerificationClient } from "./booking-verification-supabase";
 import { createVillaReviewsClient } from "./supabase";
 import { normalizeThaiPhone, validateReviewFiles, validateReviewSubmission } from "./validation";
 import type { PublicVillaReview, ReviewPage, ReviewSort, ReviewSubmissionInput, VillaReviewSummary } from "./types";
@@ -13,7 +14,7 @@ const BUCKET = "villa-reviews";
 const PAGE_SIZE = 5;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
-type ReviewErrorCode = "invalid_cursor" | "validation_error" | "duplicate_booking_code" | "storage_error" | "database_error" | "submission_outcome_unknown";
+type ReviewErrorCode = "invalid_cursor" | "validation_error" | "booking_verification_failed" | "booking_verification_unavailable" | "duplicate_booking_code" | "storage_error" | "database_error" | "submission_outcome_unknown";
 export type ReviewCommitOutcome = "uncommitted" | "committed" | "unknown";
 
 export class VillaReviewError extends Error {
@@ -188,6 +189,73 @@ export async function removeUploadedReviewAssets(paths: string[]): Promise<void>
   try { await createVillaReviewsClient().storage.from(BUCKET).remove(paths); } catch { /* Preserve the original write error. */ }
 }
 
+export async function verifyVillaReviewBooking(
+  input: Pick<ReviewSubmissionInput, "villaId" | "bookingCode" | "phone">,
+): Promise<void> {
+  validateVillaId(input.villaId.trim());
+  const bookingCode = input.bookingCode.trim();
+  const expectedPhone = normalizeThaiPhone(input.phone);
+  const fieldErrors: Record<string, string> = {};
+  if (!bookingCode) fieldErrors.bookingCode = "กรุณากรอกรหัสการจอง";
+  if (!expectedPhone) fieldErrors.phone = "กรุณากรอกเบอร์โทรศัพท์ไทยให้ถูกต้อง";
+  if (Object.keys(fieldErrors).length) {
+    throw new VillaReviewError(
+      "validation_error",
+      "ข้อมูลการเข้าพักไม่ถูกต้อง",
+      false,
+      fieldErrors,
+    );
+  }
+  const client = createBookingVerificationClient();
+  const booking = await client
+    .from("bookings")
+    .select("customer_id,listing_id")
+    .eq("booking_code", bookingCode)
+    .maybeSingle();
+  if (booking.error) {
+    throw new VillaReviewError(
+      "booking_verification_unavailable",
+      "ยังตรวจสอบข้อมูลการจองไม่ได้ กรุณาลองอีกครั้ง",
+    );
+  }
+  if (!booking.data || booking.data.customer_id === null || booking.data.listing_id === null) {
+    throw new VillaReviewError(
+      "booking_verification_failed",
+      "ไม่พบข้อมูลการจองที่ตรงกัน",
+      false,
+      { bookingCode: "ไม่พบข้อมูลการจองที่ตรงกัน" },
+    );
+  }
+  const [customer, listing] = await Promise.all([
+    client.from("customers").select("phone").eq("id", booking.data.customer_id).maybeSingle(),
+    client.from("listings").select("property_id").eq("id", booking.data.listing_id).maybeSingle(),
+  ]);
+  if (customer.error || listing.error) {
+    throw new VillaReviewError(
+      "booking_verification_unavailable",
+      "ยังตรวจสอบข้อมูลการจองไม่ได้ กรุณาลองอีกครั้ง",
+    );
+  }
+  const verifiedPhone =
+    customer.data && typeof customer.data.phone === "string"
+      ? normalizeThaiPhone(customer.data.phone)
+      : null;
+  const verifiedVillaId =
+    listing.data &&
+    (typeof listing.data.property_id === "string" ||
+      typeof listing.data.property_id === "number")
+      ? String(listing.data.property_id)
+      : null;
+  if (!verifiedPhone || verifiedPhone !== expectedPhone || verifiedVillaId !== input.villaId.trim()) {
+    throw new VillaReviewError(
+      "booking_verification_failed",
+      "ไม่พบข้อมูลการจองที่ตรงกัน",
+      false,
+      { bookingCode: "ไม่พบข้อมูลการจองที่ตรงกัน" },
+    );
+  }
+}
+
 export async function submitVillaReview(input: ReviewSubmissionInput, files: File[]): Promise<PublicVillaReview> {
   const validation = validateReviewSubmission(input);
   const fileValidation = validateReviewFiles(files);
@@ -197,6 +265,7 @@ export async function submitVillaReview(input: ReviewSubmissionInput, files: Fil
   }
   const villaId = input.villaId.trim();
   validateVillaId(villaId);
+  await verifyVillaReviewBooking(input);
   const client = createVillaReviewsClient();
   const storage = client.storage.from(BUCKET);
   const requestId = crypto.randomUUID();
