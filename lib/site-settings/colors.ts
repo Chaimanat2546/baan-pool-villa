@@ -220,7 +220,8 @@ export function buildSiteThemeCss(
     .map(([property, value]) => `${property}:${value}`)
     .join(";");
 
-  return `.${normalizeCssScope(scope)}{${declarations}}`;
+  const selector = scope === ":root" ? ":root" : `.${normalizeCssScope(scope)}`;
+  return `${selector}{${declarations}}`;
 }
 
 export function buildSiteThemeStylesheetHref(
