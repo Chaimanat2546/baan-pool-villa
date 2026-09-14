@@ -206,15 +206,24 @@ export function toDetailLayoutV2Config(
     lockedTop: [...draft.lockedTop],
     mainSplit: {
       ratio: draft.mainSplit.ratio,
-      wideRows: draft.mainSplit.wideRows.map((row) => ({
-        id: row.id,
-        columns: row.columns,
-        ...(row.ratio === undefined ? {} : { ratio: row.ratio }),
-        enabled: row.enabled,
-        blocks: row.blocks.filter(
+      wideRows: draft.mainSplit.wideRows.flatMap((row) => {
+        const blocks = row.blocks.filter(
           (block): block is DetailLayoutBlock => block !== null,
-        ),
-      })),
+        );
+
+        if (blocks.length === 0) {
+          return [];
+        }
+
+        const columns = blocks.length === 1 ? 1 : row.columns;
+        return [{
+          id: row.id,
+          columns,
+          ...(columns === 2 && row.ratio !== undefined ? { ratio: row.ratio } : {}),
+          enabled: row.enabled,
+          blocks,
+        }];
+      }),
       narrowRows: draft.mainSplit.narrowRows.flatMap((row) =>
         row.block
           ? [
@@ -235,39 +244,6 @@ export function validateDetailLayoutV2DraftForSaveDetails(
   draft: DetailLayoutV2Draft,
 ): DetailLayoutV2DraftSaveError[] {
   const errors: DetailLayoutV2DraftSaveError[] = [];
-
-  draft.mainSplit.wideRows.forEach((row, rowIndex) => {
-    const rowNumber = rowIndex + 1;
-    const filledBlocks = row.blocks.filter(
-      (block): block is DetailLayoutBlock => block !== null,
-    );
-    const firstBlockAfterGapIndex = row.blocks.findIndex(
-      (block, blockIndex) =>
-        block !== null &&
-        row.blocks.slice(0, blockIndex).some((slot) => slot === null),
-    );
-    const firstGapIndex =
-      firstBlockAfterGapIndex >= 0
-        ? row.blocks.findIndex(
-            (block, blockIndex) =>
-              blockIndex < firstBlockAfterGapIndex && block === null,
-          )
-        : -1;
-
-    if (filledBlocks.length === 0) {
-      errors.push({
-        message: `ฝั่ง 70 แถวที่ ${rowNumber} ต้องมี block อย่างน้อย 1 รายการ`,
-        target: `${row.id}:row`,
-      });
-    }
-
-    if (firstBlockAfterGapIndex >= 0) {
-      errors.push({
-        message: `ฝั่ง 70 แถวที่ ${rowNumber} มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง`,
-        target: `${row.id}:slot:${firstGapIndex}`,
-      });
-    }
-  });
 
   draft.mainSplit.narrowRows.forEach((row, rowIndex) => {
     if (row.block === null) {
