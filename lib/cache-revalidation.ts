@@ -10,6 +10,10 @@ import {
 const IMMEDIATE_REVALIDATION = { expire: 0 } as const;
 const VILLA_CARD_IMAGE_CONFIG_PAGE_KEY = "default";
 
+export async function revalidateVillaReviewsCache(villaId: string) {
+  revalidateTags([CACHE_TAGS.villaReviews(villaId)]);
+}
+
 function revalidateTags(tags: string[]) {
   tags.forEach((tag) => {
     revalidateTag(tag, IMMEDIATE_REVALIDATION);

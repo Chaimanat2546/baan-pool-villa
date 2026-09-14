@@ -32,7 +32,7 @@ describe("dynamic site web styles route", () => {
 
   it("authorizes and delegates Gallery GET", async () => {
     const supabase = {} as never;
-    requireAdminMock.mockResolvedValue({ ok: true, supabase });
+    requireAdminMock.mockResolvedValue({ ok: true, supabase, userId: "00000000-0000-4000-8000-000000000001" });
     getStyleMock.mockResolvedValue(Response.json({ settings: { variant: "lightbox" } }));
     const { GET } = await import("./route");
 
@@ -57,7 +57,7 @@ describe("dynamic site web styles route", () => {
 
   it("authorizes and delegates Gallery PATCH", async () => {
     const supabase = {} as never;
-    requireAdminMock.mockResolvedValue({ ok: true, supabase });
+    requireAdminMock.mockResolvedValue({ ok: true, supabase, userId: "00000000-0000-4000-8000-000000000001" });
     saveStyleMock.mockResolvedValue(Response.json({ settings: { variant: "lightbox" } }));
     const { PATCH } = await import("./route");
 

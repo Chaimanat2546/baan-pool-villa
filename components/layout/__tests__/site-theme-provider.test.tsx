@@ -15,6 +15,8 @@ describe("SiteThemeProvider", () => {
 
     expect(markup).toContain('class="site-theme min-h-full"');
     expect(markup).toContain("<style>");
+    expect(markup).toContain(":root{");
+    expect(markup).toContain("--site-primary:#064e3b");
     expect(markup).toContain(".site-theme{");
     expect(markup).toContain("--site-header-link:#ffffff");
     expect(markup).toContain("--site-header-link-hover:#eab308");

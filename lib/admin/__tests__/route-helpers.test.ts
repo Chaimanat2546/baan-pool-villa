@@ -27,6 +27,7 @@ vi.mock("@/lib/admin/home-config-auth", () => ({
 const assertHomeConfigAdminMock = vi.mocked(assertHomeConfigAdmin);
 const getBearerTokenMock = vi.mocked(getBearerToken);
 const jsonErrorMock = vi.mocked(jsonError);
+const ADMIN_ID = "11111111-1111-4111-8111-111111111111";
 const originalNodeEnv = process.env.NODE_ENV;
 const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 const testEnv = process.env as Record<string, string | undefined>;
@@ -140,11 +141,12 @@ describe("admin route helpers", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
+      userId: ADMIN_ID,
     } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(request());
 
-    expect(result).toEqual({ ok: true, supabase });
+    expect(result).toEqual({ ok: true, supabase, userId: ADMIN_ID });
     expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");
   });
 
@@ -171,6 +173,7 @@ describe("admin route helpers", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
+      userId: ADMIN_ID,
     } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(
@@ -181,7 +184,7 @@ describe("admin route helpers", () => {
       }),
     );
 
-    expect(result).toEqual({ ok: true, supabase });
+    expect(result).toEqual({ ok: true, supabase, userId: ADMIN_ID });
     expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");
   });
 
@@ -191,6 +194,7 @@ describe("admin route helpers", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
+      userId: ADMIN_ID,
     } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(
@@ -201,7 +205,7 @@ describe("admin route helpers", () => {
       }),
     );
 
-    expect(result).toEqual({ ok: true, supabase });
+    expect(result).toEqual({ ok: true, supabase, userId: ADMIN_ID });
     expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");
   });
 
@@ -232,6 +236,7 @@ describe("admin route helpers", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
+      userId: ADMIN_ID,
     } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(
@@ -242,7 +247,7 @@ describe("admin route helpers", () => {
       }),
     );
 
-    expect(result).toEqual({ ok: true, supabase });
+    expect(result).toEqual({ ok: true, supabase, userId: ADMIN_ID });
     expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");
   });
 
@@ -268,13 +273,14 @@ describe("admin route helpers", () => {
     assertHomeConfigAdminMock.mockResolvedValue({
       ok: true,
       supabase,
+      userId: ADMIN_ID,
     } as unknown as Awaited<ReturnType<typeof assertHomeConfigAdmin>>);
 
     const result = await requireHomeConfigAdmin(
       request({ method: "GET", origin: "https://attacker.example" }),
     );
 
-    expect(result).toEqual({ ok: true, supabase });
+    expect(result).toEqual({ ok: true, supabase, userId: ADMIN_ID });
     expect(assertHomeConfigAdminMock).toHaveBeenCalledWith("token");
   });
 

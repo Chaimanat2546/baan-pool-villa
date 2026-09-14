@@ -62,6 +62,7 @@ Required local keys from `.env.example`:
 | --- | --- | --- |
 | `CALENDAR_INTERNAL_API_TOKEN` | Private booking-calendar Worker/route authentication | Server-only secret |
 | `DEVILLE_BEARER_TOKEN` | Deville Central villa detail API | Server-only secret |
+| `DEVILLE_SUPABASE_SECRET_KEY` | Deville bookings verification view | Server-only secret |
 | `PATTAYA_BOOKINGS_API_TOKEN` | Pattaya booking calendar API | Server-only secret |
 | `SUPABASE_PUBLISHABLE_KEY` | Villa gallery Supabase reads | Publishable key, still keep out of logs |
 | `NEXT_PUBLIC_SITE_URL` | Canonical URLs, sitemap host, admin origin checks, prewarm fallback | Public |

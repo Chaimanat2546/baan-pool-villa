@@ -19,6 +19,8 @@ describe("BlockLibrary", () => {
     expect(markup).toContain("ฝั่ง 70 / แถว 1 / ช่องซ้าย");
     expect(markup).toContain("ที่จอดรถ");
     expect(markup).toContain('data-detail-layout-library-block="parking"');
+    expect(markup).toContain('data-detail-layout-library-block="villa_reviews"');
+    expect(markup).toContain("รีวิวจากผู้เข้าพัก");
     expect(markup).not.toContain("max-h-[420px]");
     expect(markup).not.toContain("overflow-y-auto");
   });
@@ -54,6 +56,7 @@ describe("BlockLibrary", () => {
           "advertisements",
           "map_nearby",
           "review_videos",
+          "villa_reviews",
           "booking_contact",
           "recommended_villas",
         ]}

@@ -10,7 +10,7 @@ export function SiteThemeProvider({
   children,
   settings,
 }: SiteThemeProviderProps) {
-  const themeCss = buildSiteThemeCss({
+  const themeInput = {
     accentColor: settings.accentColor,
     bankHighlightColor: settings.bankHighlightColor,
     bankAccountHighlightColor: settings.bankAccountHighlightColor,
@@ -21,11 +21,13 @@ export function SiteThemeProvider({
     headerLinkColor: settings.headerLinkColor,
     headerLinkHoverColor: settings.headerLinkHoverColor,
     primaryColor: settings.primaryColor,
-  });
+  };
+  const themeCss = buildSiteThemeCss(themeInput);
+  const portalThemeCss = buildSiteThemeCss(themeInput, ":root");
 
   return (
     <div className="site-theme min-h-full">
-      <style>{themeCss}</style>
+      <style>{`${portalThemeCss}${themeCss}`}</style>
       {children}
     </div>
   );

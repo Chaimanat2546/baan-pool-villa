@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_DETAIL_LAYOUT } from "../../../../lib/detail-layout/defaults";
+import { DEFAULT_DETAIL_LAYOUT as CURRENT_DEFAULT_DETAIL_LAYOUT } from "../../../../lib/detail-layout/defaults";
+import type { DetailLayoutConfig } from "../../../../lib/detail-layout/types";
 import { cloneDetailLayout } from "../../../../lib/detail-layout/validation";
 
 import {
@@ -17,6 +18,13 @@ import {
   validateDetailLayoutDraftForSave,
   updateDetailLayoutRowColumns,
 } from "../detail-layout-helpers";
+
+const DEFAULT_DETAIL_LAYOUT: DetailLayoutConfig = {
+  ...CURRENT_DEFAULT_DETAIL_LAYOUT,
+  rows: [{ id: "legacy_split", columns: 2, ratio: "70/30", enabled: true,
+    blocks: [makeDetailLayoutBlock("details"), makeDetailLayoutBlock("booking_contact")],
+  }, ...CURRENT_DEFAULT_DETAIL_LAYOUT.rows.slice(3)],
+};
 
 describe("detail layout helpers", () => {
   it("makes a stable snapshot for unchanged layout data", () => {

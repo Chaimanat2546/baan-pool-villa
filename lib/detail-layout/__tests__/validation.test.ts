@@ -12,6 +12,33 @@ import {
 } from "../validation";
 
 describe("normalizeDetailLayout", () => {
+  it("defaults to a full-width review row between details and booking", () => {
+    const layout = normalizeDetailLayout(null);
+    expect(layout.rows.slice(0, 3).map((row) => ({
+      columns: row.columns,
+      types: row.blocks.map((block) => block.type),
+    }))).toEqual([
+      { columns: 1, types: ["details"] },
+      { columns: 1, types: ["villa_reviews"] },
+      { columns: 1, types: ["booking_contact"] },
+    ]);
+  });
+
+  it("accepts saved reviews without replacing the custom layout", () => {
+    const result = validateDetailLayout({
+      version: 1,
+      lockedTop: ["gallery", "intro"],
+      rows: [{ id: "custom_reviews", columns: 1, enabled: true,
+        blocks: [{ type: "villa_reviews", title: "", enabled: true, hideWhenEmpty: true }],
+      }],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.layout.rows).toEqual([{
+      id: "custom_reviews", columns: 1, enabled: true,
+      blocks: [{ type: "villa_reviews", title: "รีวิวจากผู้เข้าพัก", enabled: true, hideWhenEmpty: true }],
+    }]);
+  });
+
   it("returns the default V1 layout when the input is null", () => {
     const result = normalizeDetailLayout(null);
 
@@ -239,9 +266,9 @@ describe("validateDetailLayout", () => {
     const moved = moveDetailLayoutRow(DEFAULT_DETAIL_LAYOUT, 0, 2);
 
     expect(moved.rows.map((row) => row.id).slice(0, 3)).toEqual([
-      "row_bedroom_pool",
-      "row_kitchen_amenities_images",
-      "row_details_booking",
+      "row_villa_reviews",
+      "row_booking",
+      "row_details",
     ]);
   });
 });

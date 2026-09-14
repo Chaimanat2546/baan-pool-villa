@@ -12,6 +12,19 @@ type CspSafeImageProps = ImageProps & {
   priority?: boolean;
 };
 
+function isLocalHttpImageUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+
+    return (
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]", "::1"].includes(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function isRawPreviewSource(src: ImageProps["src"]): src is string {
   if (typeof src !== "string") {
     return false;
@@ -25,7 +38,7 @@ function isRawPreviewSource(src: ImageProps["src"]): src is string {
     return !isPublicImageProxyPath(src.split("?", 1)[0]);
   }
 
-  return isAllowedTikTokCdnImageUrl(src);
+  return isAllowedTikTokCdnImageUrl(src) || isLocalHttpImageUrl(src);
 }
 
 export const CspSafeImage = forwardRef<HTMLImageElement, CspSafeImageProps>(function CspSafeImage({
@@ -59,10 +72,11 @@ export const CspSafeImage = forwardRef<HTMLImageElement, CspSafeImageProps>(func
     );
   }
 
-  const { height, quality, sizes, src, width, ...imgProps } = props;
+  const { height, quality, sizes, src, unoptimized, width, ...imgProps } = props;
   void sizes;
   void maximumWidth;
   void quality;
+  void unoptimized;
 
   const imageClassName = [fill ? "absolute inset-0 h-full w-full" : "", className]
     .filter(Boolean)

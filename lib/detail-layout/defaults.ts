@@ -39,6 +39,7 @@ export const DETAIL_LAYOUT_BLOCK_LABELS: Record<DetailLayoutBlockType, string> =
   advertisements: "กิจกรรมที่น่าสนใจ",
   map_nearby: "แผนที่และสถานที่ใกล้เคียง",
   review_videos: "รีวิวและวิดีโอ",
+  villa_reviews: "รีวิวจากผู้เข้าพัก",
   booking_contact: "จอง / ติดต่อ",
   recommended_villas: "บ้านพักแนะนำ",
 };
@@ -71,12 +72,9 @@ export const DEFAULT_DETAIL_LAYOUT: DetailLayoutConfig = {
   version: 1,
   lockedTop: ["gallery", "intro"],
   rows: [
-    row(
-      "row_details_booking",
-      2,
-      [block("details"), block("booking_contact")],
-      "70/30",
-    ),
+    row("row_details", 1, [block("details")]),
+    row("row_villa_reviews", 1, [block("villa_reviews")]),
+    row("row_booking", 1, [block("booking_contact")]),
     row("row_bedroom_pool", 2, [block("bedrooms"), block("pool")], "50/50"),
     row("row_kitchen_amenities_images", 3, [
       block("kitchen"),
@@ -112,6 +110,12 @@ export const DEFAULT_DETAIL_LAYOUT_V2: DetailLayoutV2Config = {
         ratio: "50/50",
         enabled: true,
         blocks: [block("details"), block("amenities")],
+      },
+      {
+        id: "wide_villa_reviews",
+        columns: 1,
+        enabled: true,
+        blocks: [block("villa_reviews")],
       },
       {
         id: "wide_pool_kitchen",

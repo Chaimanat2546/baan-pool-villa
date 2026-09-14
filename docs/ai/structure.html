@@ -275,7 +275,7 @@
               <tr>
                 <td><code>app/(public)/api/site-theme.css/route.ts</code></td>
                 <td><code>/api/site-theme.css</code></td>
-                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. The public shell uses <code>/api/site-theme.css</code> with validated hashless hex color params for primary/accent, header/footer link and hover colors, shared bank highlight color, and separate bank account/name/number highlight colors; user-configured colors are passed through unchanged and the shared overlay foreground stays light for darkened image badges. The admin draft preview applies the same validated CSS variables locally to its scope and does not call this route before save.</td>
+                <td>Same-origin no-store dynamic stylesheet route for scoped site theme CSS variables. The public shell uses <code>/api/site-theme.css</code> with validated hashless hex color params for primary/accent, header/footer link and hover colors, shared bank highlight color, and separate bank account/name/number highlight colors; user-configured colors are passed through unchanged and the shared overlay foreground stays light for darkened image badges. The resolved public theme is emitted on both <code>.site-theme</code> and <code>:root</code> so body-level portals inherit it. The admin draft preview applies the same validated CSS variables locally to its scope and does not call this route before save.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/guides/images/proxy/route.ts</code></td>
@@ -311,6 +311,11 @@
                 <td><code>app/(public)/api/villas/[id]/booking-calendar/route.ts</code></td>
                 <td><code>/api/villas/:id/booking-calendar</code></td>
                 <td>Private booking-calendar Route Handler for server consumers only. It requires <code>Authorization: Bearer &lt;CALENDAR_INTERNAL_API_TOKEN&gt;</code>, applies a local defense-in-depth limit of 60 requests per IP per minute, validates villa/month input including <code>months=1..14</code>, and returns every success/error response as <code>Cache-Control: private, no-store</code>. Shared response handling lives in <code>lib/villas/public-booking-calendar-route.ts</code>, backed by <code>lib/villas/booking-calendar.ts</code> for upstream normalization using the separate server-only <code>PATTAYA_BOOKINGS_API_TOKEN</code>; upstream calendar reads use <code>cache: "no-store"</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(public)/api/villas/[id]/reviews/route.ts</code></td>
+                <td><code>/api/villas/:id/reviews</code></td>
+                <td>Public read/submission route for villa reviews. The <code>/verification</code> POST validates the booking code, normalized customer phone, and <code>bookings.listing_id → listings.property_id</code> against the requested villa before the two-step modal lets a customer continue; the final multipart POST repeats the same server-only check before it uploads or saves. Review data remains in the configured local CMS Supabase project, while validation reads Deville's <code>bookings</code>, <code>customers</code>, and <code>listings</code> tables through the separate server-only <code>DEVILLE_SUPABASE_SECRET_KEY</code>. A Deville outage is reported as unavailable, never as a booking mismatch, and responses do not expose booking or phone data. The modal puts status feedback at the top of its active section and scrolls/focuses the first invalid control.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/villas/[id]/images/route.ts</code></td>
@@ -421,6 +426,16 @@
                 <td><code>app/(admin)/admin/customer-reviews/loading.tsx</code></td>
                 <td><code>/admin/customer-reviews</code> loading UI</td>
                 <td><code>components/admin/loading/admin-settings-skeleton</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/villa-reviews/page.tsx</code></td>
+                <td><code>/admin/villa-reviews</code></td>
+                <td><code>components/admin/villa-reviews/admin-villa-reviews-page</code> is the paginated, URL-filtered review list. It exposes only the masked phone, score, excerpt, image count, and date, then links to the separate edit route without discarding list state.</td>
+              </tr>
+              <tr>
+                <td><code>app/(admin)/admin/villa-reviews/[id]/page.tsx</code></td>
+                <td><code>/admin/villa-reviews/:id</code></td>
+                <td><code>components/admin/villa-reviews/admin-villa-review-edit-page</code> loads one private review for full-width editing. It reuses review validation, image management, lightbox, audit history, and the authenticated save/delete APIs; the return link preserves the originating list query.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/guides/page.tsx</code></td>
@@ -535,6 +550,11 @@
                 <td>Admin auth and delegation for customer proof/review image library reads, cropped multipart uploads, image metadata updates, hide/show, replace with a newly cropped Storage object while preserving the image row, delete with conservative upload-history and Storage cleanup, homepage queue/layout saves through <code>save_customer_review_homepage_queue</code>, and customer-review cache revalidation. Request parsing, row mapping, upload validation, Storage paths, and RPC response handling live in <code>lib/customer-reviews/admin-route.ts</code>.</td>
               </tr>
               <tr>
+                <td><code>app/(admin)/api/admin/villa-reviews/route.ts</code> and <code>[id]/route.ts</code></td>
+                <td><code>/api/admin/villa-reviews</code></td>
+                <td>Authenticated admin-only server-paginated list (total, page, score/date/image filters and sort), private detail, multipart edit, and permanent-delete endpoints. <code>lib/villa-reviews/admin.ts</code> keeps private table and Storage paths server-only, validates retained and newly uploaded images, writes edit snapshots, removes discarded assets, and invalidates only the affected villa-review cache tag.</td>
+              </tr>
+              <tr>
                 <td><code>app/(admin)/api/admin/site-settings/[section]/route.ts</code></td>
                 <td><code>/api/admin/site-settings/:section</code></td>
                 <td>Authenticated GET/PATCH for the brand, theme, hero, and SEO projections. <code>lib/site-settings/admin-section-contracts.ts</code> owns section parsing, validation, projections, and payload shaping; <code>lib/site-settings/admin-section-route.ts</code> owns persistence and cache revalidation. Contact is intentionally excluded and handled by the dedicated static route below. Asset upload history and retention cleanup live in <code>lib/site-settings/admin-asset-uploads.ts</code>.</td>
@@ -633,7 +653,7 @@
             <tr>
               <td><code>components/villas/detail</code></td>
               <td>Villa detail page/helpers/gallery shell, gallery grid, categorized gallery overview, shared full-size lightbox with a single-category bottom-thumbnail mode, gallery modal theme overrides, gallery tile components, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI/visual helpers, recommendations, layout renderer/helpers/parts, CMS-managed advertisement cards, detail skeletons, review videos backed by <code>lib/villas/detail</code> embed URLs, and villa detail DataLayer events for view/contact tracking.</td>
-              <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Review videos should use the shared lazy YouTube poster/embed UI so guide and villa video rendering stay aligned. Villa detail marketing events should go through <code>lib/marketing-data-layer.ts</code> rather than inline pushes.</td>
+              <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Public legacy V1 layouts use the same V2 conversion as the CMS without injecting editor fallback sections. The public renderer and CMS compact preview share <code>lib/detail-layout/flow.ts</code>: consecutive two-slot rows stack independently in their saved left/right slots, hidden or empty blocks do not shift the remaining slot or break the stack, and only a visible explicitly one-column row starts a full-width boundary. Empty columns and absent outer zones release their width; mobile stacks the columns in DOM order. Review videos should use the shared lazy YouTube poster/embed UI so guide and villa video rendering stay aligned. Villa detail marketing events should go through <code>lib/marketing-data-layer.ts</code> rather than inline pushes.</td>
             </tr>
             <tr>
               <td><code>components/villas/listing</code></td>
@@ -727,7 +747,7 @@
             </tr>
             <tr>
               <td><code>lib/detail-layout</code></td>
-              <td>Admin-managed detail layout types, defaults, validation, compatibility, route helpers, versioned layout definitions.</td>
+              <td>Admin-managed detail layout types, defaults, validation, compatibility, route helpers, versioned layout definitions. The shared registry includes <code>villa_reviews</code> (รีวิวจากผู้เข้าพัก), consumed by both validators and the admin block library/preview. V1 defaults use separate details, reviews, and booking rows; V2 defaults place a full-width review row after the details/amenities wide row while booking remains in the narrow column. The review migration inserts missing blocks without replacing existing layout settings.</td>
               <td><code>lib/detail-layout/__tests__</code></td>
             </tr>
             <tr>
@@ -1103,7 +1123,7 @@
             </tr>
             <tr>
               <td>Detail layout config, renderer, or builder</td>
-              <td><code>npm.cmd test -- lib/detail-layout</code> and relevant detail/admin detail-layout tests</td>
+              <td><code>npm.cmd test -- lib/detail-layout components/admin/detail-layout components/villas/detail/__tests__/detail-layout-renderer.test.tsx</code>; include empty-slot column flow, explicit full-row boundaries, legacy conversion parity, and CMS preview alignment</td>
               <td>Run lint and build before completion.</td>
             </tr>
               <tr>

@@ -6,6 +6,7 @@ export type PublicRateLimitPolicy =
   | "publicCalendar"
   | "publicDownload"
   | "publicImageManifest"
+  | "publicReviewSubmission"
   | "publicImageDelivery";
 
 interface PublicRateLimitPolicyConfig {
@@ -23,6 +24,7 @@ const MAX_RATE_LIMIT_BUCKETS = 1_000;
 const TOO_MANY_REQUESTS_MESSAGE = "Too many requests.";
 
 export const PUBLIC_RATE_LIMIT_POLICIES = {
+  publicReviewSubmission: { limit: 5, windowMs: 60 * 60 * 1000 },
   publicCatalog: {
     limit: 120,
     windowMs: ONE_MINUTE_MS,
@@ -116,6 +118,21 @@ export function limitPublicApiRequest(
   request: Request,
   policy: PublicRateLimitPolicy,
 ): Response | null {
+  const reservation = reservePublicApiRateLimit(request, policy);
+  reservation.commit();
+  return reservation.response;
+}
+
+export function checkPublicApiRateLimit(
+  request: Request,
+  policy: PublicRateLimitPolicy,
+): Response | null {
+  const bucket = getCurrentBucket(request, policy);
+  if (!bucket || bucket.count < PUBLIC_RATE_LIMIT_POLICIES[policy].limit) return null;
+  return createTooManyRequestsResponse(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000)));
+}
+
+function getCurrentBucket(request: Request, policy: PublicRateLimitPolicy): RateLimitBucket | null {
   if (
     process.env.NODE_ENV === "development" &&
     readTrimmedHeader(request.headers, "CF-Connecting-IP") === null
@@ -139,20 +156,27 @@ export function limitPublicApiRequest(
           resetAt: now + config.windowMs,
         };
 
-  buckets.set(bucketKey, bucket);
+  return bucket;
+}
 
-  if (bucket.count >= config.limit) {
-    const retryAfterSeconds = Math.max(
-      1,
-      Math.ceil((bucket.resetAt - now) / 1000),
-    );
-
-    return createTooManyRequestsResponse(retryAfterSeconds);
+export function reservePublicApiRateLimit(request: Request, policy: PublicRateLimitPolicy) {
+  const response = checkPublicApiRateLimit(request, policy);
+  const bucket = response ? null : getCurrentBucket(request, policy);
+  const key = getBucketKey(policy, getPublicRateLimitClientKey(request));
+  if (bucket) {
+    bucket.count += 1;
+    buckets.set(key, bucket);
   }
-
-  bucket.count += 1;
-
-  return null;
+  let settled = false;
+  return {
+    response,
+    commit() { settled = true; },
+    release() {
+      if (settled) return;
+      settled = true;
+      if (bucket && buckets.get(key) === bucket) bucket.count = Math.max(0, bucket.count - 1);
+    },
+  };
 }
 
 /**

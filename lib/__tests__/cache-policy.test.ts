@@ -40,6 +40,8 @@ describe("cache policy", () => {
   });
 
   it("builds stable cache tags and public paths", () => {
+    expect(CACHE_TAGS.villaReviews("42")).toBe("villa-reviews:42");
+    expect(CACHE_TAGS.villaReviews("43")).not.toBe(CACHE_TAGS.villaReviews("42"));
     expect(CACHE_TAGS.guide("family-pool-villa")).toBe(
       "guide:family-pool-villa",
     );

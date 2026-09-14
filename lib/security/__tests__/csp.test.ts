@@ -97,6 +97,36 @@ describe("content security policy", () => {
     expect(connectSrc).toContain("wss:");
   });
 
+  it("allows a local Supabase origin for images only during development", () => {
+    const localUrl = "http://127.0.0.1:55321";
+    const developmentCsp = buildContentSecurityPolicy({
+      isDevelopment: true,
+      supabaseUrl: localUrl,
+    });
+    const productionCsp = buildContentSecurityPolicy({
+      isDevelopment: false,
+      supabaseUrl: localUrl,
+    });
+
+    expect(getCspDirective(developmentCsp, "img-src")).toContain(localUrl);
+    expect(getCspDirective(developmentCsp, "connect-src")).toContain(localUrl);
+    expect(getCspDirective(productionCsp, "img-src")).not.toContain(localUrl);
+  });
+
+  it("does not upgrade local HTTP images in development", () => {
+    const developmentCsp = buildContentSecurityPolicy({
+      isDevelopment: true,
+      supabaseUrl: "http://127.0.0.1:55321",
+    });
+    const productionCsp = buildContentSecurityPolicy({
+      isDevelopment: false,
+      supabaseUrl: "https://example.supabase.co",
+    });
+
+    expect(developmentCsp).not.toContain("upgrade-insecure-requests");
+    expect(productionCsp).toContain("upgrade-insecure-requests");
+  });
+
   it("normalizes only https origins", () => {
     expect(getHttpsOrigin("https://example.com/path?q=1")).toBe(
       "https://example.com",

@@ -54,6 +54,7 @@ export function cloneDetailLayoutV2(
 
 export function convertDetailLayoutV1ToV2(
   layout: DetailLayoutConfig,
+  includeEditorDefaults = true,
 ): DetailLayoutV2Config {
   const wideRows: DetailLayoutWideRow[] = [];
   const narrowRows: DetailLayoutNarrowRow[] = [];
@@ -72,6 +73,11 @@ export function convertDetailLayoutV1ToV2(
           .filter((block) => block.type === "recommended_villas")
           .map(cloneBlock),
       );
+      appendWideRowsFromBlocks({
+        blocks: row.blocks.filter((block) => block.type !== "recommended_villas"),
+        rowId: row.id,
+        wideRows,
+      });
       return;
     }
 
@@ -92,11 +98,11 @@ export function convertDetailLayoutV1ToV2(
     lockedTop: [...layout.lockedTop] as DetailLayoutLockedTop,
     mainSplit: {
       ratio: outerRatio,
-      wideRows: wideRows.length > 0 ? wideRows : cloneDefaultWideRows(),
+      wideRows: wideRows.length > 0 || !includeEditorDefaults ? wideRows : cloneDefaultWideRows(),
       narrowRows,
     },
     lockedBottom:
-      lockedBottom.length > 0
+      lockedBottom.length > 0 || !includeEditorDefaults
         ? lockedBottom
         : DEFAULT_DETAIL_LAYOUT_V2.lockedBottom.map(cloneBlock),
   };
