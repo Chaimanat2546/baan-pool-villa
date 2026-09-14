@@ -653,7 +653,7 @@
             <tr>
               <td><code>components/villas/detail</code></td>
               <td>Villa detail page/helpers/gallery shell, gallery grid, categorized gallery overview, shared full-size lightbox with a single-category bottom-thumbnail mode, gallery modal theme overrides, gallery tile components, gallery URL/proxy helpers, intro, amenities UI helpers, policy section, booking sidebar, booking calendar UI/visual helpers, recommendations, layout renderer/helpers/parts, CMS-managed advertisement cards, detail skeletons, review videos backed by <code>lib/villas/detail</code> embed URLs, and villa detail DataLayer events for view/contact tracking.</td>
-              <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Review videos should use the shared lazy YouTube poster/embed UI so guide and villa video rendering stay aligned. Villa detail marketing events should go through <code>lib/marketing-data-layer.ts</code> rather than inline pushes.</td>
+              <td>Use detail layout blocks/renderers for admin-managed layout surfaces. Public legacy V1 layouts use the same V2 conversion as the CMS without injecting editor fallback sections. The public renderer and CMS compact preview share <code>lib/detail-layout/flow.ts</code>: consecutive two-slot rows stack independently in their saved left/right slots, hidden or empty blocks do not shift the remaining slot or break the stack, and only a visible explicitly one-column row starts a full-width boundary. Empty columns and absent outer zones release their width; mobile stacks the columns in DOM order. Review videos should use the shared lazy YouTube poster/embed UI so guide and villa video rendering stay aligned. Villa detail marketing events should go through <code>lib/marketing-data-layer.ts</code> rather than inline pushes.</td>
             </tr>
             <tr>
               <td><code>components/villas/listing</code></td>
@@ -1123,7 +1123,7 @@
             </tr>
             <tr>
               <td>Detail layout config, renderer, or builder</td>
-              <td><code>npm.cmd test -- lib/detail-layout</code> and relevant detail/admin detail-layout tests</td>
+              <td><code>npm.cmd test -- lib/detail-layout components/admin/detail-layout components/villas/detail/__tests__/detail-layout-renderer.test.tsx</code>; include empty-slot column flow, explicit full-row boundaries, legacy conversion parity, and CMS preview alignment</td>
               <td>Run lint and build before completion.</td>
             </tr>
               <tr>

@@ -1,4 +1,6 @@
+// @vitest-environment jsdom
 import { renderToStaticMarkup } from "react-dom/server";
+import { normalizeDetailLayoutV2 } from "../../../../lib/detail-layout/version-2";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DETAIL_LAYOUT,
@@ -245,7 +247,36 @@ function render(
   );
 }
 
+function parseMarkup(markup: string) {
+  const doc = document.implementation.createHTMLDocument();
+  doc.body.innerHTML = markup;
+  return doc;
+}
+
 describe("DetailLayoutRenderer", () => {
+  it("renders a legacy layout the same way as the CMS converted layout", () => {
+    expect(render(DEFAULT_DETAIL_LAYOUT)).toBe(render(normalizeDetailLayoutV2(DEFAULT_DETAIL_LAYOUT)));
+  });
+
+  it("keeps a surviving right block in its column without creating a full-width barrier", () => {
+    const layout: DetailLayoutV2Config = {
+      ...DEFAULT_DETAIL_LAYOUT_V2,
+      mainSplit: {
+        ratio: "70/30", narrowRows: [],
+        wideRows: [
+          { id: "first", columns: 2, enabled: true, blocks: [block("details"), block("pool")] },
+          { id: "second", columns: 2, enabled: true, blocks: [{ ...block("kitchen"), enabled: false }, block("amenities")] },
+          { id: "third", columns: 2, enabled: true, blocks: [block("bedrooms")] },
+        ],
+      },
+    };
+    const doc = parseMarkup(render(layout));
+    const groups = doc.querySelectorAll("[data-detail-layout-wide-rows]");
+    expect(groups).toHaveLength(1);
+    expect([...doc.querySelectorAll('[data-detail-layout-wide-column="right"] [data-detail-layout-block]')].map((node) => node.getAttribute("data-detail-layout-block"))).toEqual(["pool", "amenities"]);
+    expect([...doc.querySelectorAll('[data-detail-layout-wide-column="left"] [data-detail-layout-block]')].map((node) => node.getAttribute("data-detail-layout-block"))).toEqual(["details", "bedrooms"]);
+  });
+
   it("renders the configured guest review block with its public section", () => {
     const markup = render({ ...DEFAULT_DETAIL_LAYOUT, rows: [{ id: "reviews", enabled: true, columns: 1, blocks: [block("villa_reviews")] }] });
     expect(markup).toContain('data-detail-layout-block="villa_reviews"');
@@ -355,7 +386,7 @@ describe("DetailLayoutRenderer", () => {
   it("keeps the deferred recommendation block in the full-width layout row", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT);
 
-    expect(markup).toContain('data-detail-layout-row="row_recommended"');
+    expect(markup).toContain('data-detail-layout-area="lockedBottom"');
     expect(markup).toContain('data-detail-layout-block="recommended_villas"');
     expect(markup).not.toContain('data-detail-recommended-villas="deferred-rail"');
   });
@@ -419,7 +450,7 @@ describe("DetailLayoutRenderer", () => {
   it("keeps split items aligned to their content height", () => {
     const markup = render(DEFAULT_DETAIL_LAYOUT);
 
-    expect(markup).toContain('data-detail-layout-split="row_costs_rules"');
+    expect(markup).toContain('data-detail-layout-split="mainSplit"');
     expect(markup).toContain("items-start");
   });
 
@@ -567,7 +598,6 @@ describe("DetailLayoutRenderer", () => {
     );
     const detailsIndex = markup.indexOf(
       'data-detail-layout-block="details"',
-      leftColumnIndex,
     );
     const bedroomsIndex = markup.indexOf(
       'data-detail-layout-block="bedrooms"',
@@ -586,17 +616,18 @@ describe("DetailLayoutRenderer", () => {
       rightColumnIndex,
     );
 
-    expect(markup).toContain('data-detail-layout-split="split_booking"');
+    expect(markup).toContain('data-detail-layout-split="mainSplit"');
     expect(leftColumnIndex).toBeGreaterThan(-1);
     expect(rightColumnIndex).toBeGreaterThan(leftColumnIndex);
-    expect(detailsIndex).toBeGreaterThan(leftColumnIndex);
+    expect(detailsIndex).toBeGreaterThan(-1);
+    expect(detailsIndex).toBeLessThan(leftColumnIndex);
     expect(bedroomsIndex).toBeGreaterThan(detailsIndex);
     expect(kitchenIndex).toBeGreaterThan(bedroomsIndex);
     expect(poolIndex).toBeGreaterThan(rightColumnIndex);
     expect(amenitiesIndex).toBeGreaterThan(poolIndex);
     expect(markup).toContain('data-detail-layout-area="narrow"');
     expect(markup).toContain('data-detail-layout-block="booking_contact"');
-    expect(markup).toContain('data-detail-layout-row="full_recommended"');
+    expect(markup).toContain('data-detail-layout-area="lockedBottom"');
   });
 
   it("supports swapped 30/70 split sections", () => {
@@ -621,7 +652,7 @@ describe("DetailLayoutRenderer", () => {
 
     const markup = render(layout);
     const splitIndex = markup.indexOf(
-      'data-detail-layout-split="split_left_sidebar"',
+      'data-detail-layout-split="mainSplit"',
     );
     const narrowIndex = markup.indexOf(
       'data-detail-layout-area="narrow"',
@@ -667,9 +698,9 @@ describe("DetailLayoutRenderer", () => {
 
     const markup = render(layout);
     const recommendedRowIndex = markup.indexOf(
-      'data-detail-layout-row="locked_recommended"',
+      'data-detail-layout-area="lockedBottom"',
     );
-    const splitIndex = markup.indexOf('data-detail-layout-split="split_booking"');
+    const splitIndex = markup.indexOf('data-detail-layout-split="mainSplit"');
     const recommendedBlockIndex = markup.indexOf(
       'data-detail-layout-block="recommended_villas"',
     );
@@ -677,7 +708,8 @@ describe("DetailLayoutRenderer", () => {
     expect(splitIndex).toBeGreaterThan(-1);
     expect(recommendedRowIndex).toBeGreaterThan(splitIndex);
     expect(recommendedBlockIndex).toBeGreaterThan(recommendedRowIndex);
-    expect(markup).toContain("lg:grid-cols-1");
+    const doc = parseMarkup(markup);
+    expect(doc.querySelector('[data-detail-layout-area="lockedBottom"]')?.parentElement).toBe(doc.querySelector('[data-detail-layout-split]')?.parentElement);
   });
 
   it("does not render booking contact when the block is disabled", () => {

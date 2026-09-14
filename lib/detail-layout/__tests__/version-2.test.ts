@@ -53,6 +53,11 @@ describe("DEFAULT_DETAIL_LAYOUT_V2", () => {
 });
 
 describe("convertDetailLayoutV1ToV2", () => {
+  it("does not inject editor defaults when converting only saved public content", () => {
+    const result = convertDetailLayoutV1ToV2({ ...DEFAULT_DETAIL_LAYOUT, rows: [] }, false);
+    expect(result.mainSplit.wideRows).toEqual([]);
+    expect(result.lockedBottom).toEqual([]);
+  });
   it("preserves reviews alongside recommended villas when converting saved V1 rows", () => {
     const result = normalizeDetailLayoutV2({
       version: 1,

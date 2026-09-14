@@ -1,9 +1,7 @@
 import type {
   AnyDetailLayoutConfig,
   DetailLayoutBlock,
-  DetailLayoutConfig,
   DetailLayoutNarrowRow,
-  DetailLayoutRow,
   DetailLayoutV2Config,
 } from "@/lib/detail-layout/types";
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
@@ -18,15 +16,9 @@ import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import type { ReactNode } from "react";
 import { renderDetailLayoutBlock } from "./detail-layout-blocks";
+import { ratioGridClassMap } from "./detail-layout-renderer-helpers";
+import { convertDetailLayoutV1ToV2 } from "@/lib/detail-layout/version-2";
 import {
-  appendWideRows,
-  isLockedFullWidthRow,
-  isSplitRow,
-  ratioGridClassMap,
-} from "./detail-layout-renderer-helpers";
-import {
-  renderSplitSection,
-  renderStandardRow,
   renderV2LockedBottom,
   renderV2NarrowArea,
   renderV2WideArea,
@@ -65,13 +57,6 @@ interface DetailLayoutRenderContext {
   villaCardStyle?: SiteVillaCardStyle;
 }
 
-function renderRowBlocks(
-  row: DetailLayoutRow,
-  context: DetailLayoutRenderContext,
-): RenderedDetailLayoutBlock[] {
-  return renderBlocks(row.id, row.blocks, context);
-}
-
 function renderBlocks(
   rowId: string,
   blocks: DetailLayoutBlock[],
@@ -92,6 +77,7 @@ function renderBlocks(
 
     renderedBlocks.push({
       key: `${rowId}-${block.type}-${blockIndex}`,
+      slotIndex: blockIndex,
       node,
       type: block.type,
     });
@@ -105,75 +91,6 @@ function renderNarrowRowBlock(
   context: DetailLayoutRenderContext,
 ): RenderedDetailLayoutBlock | null {
   return renderBlocks(row.id, [row.block], context)[0] ?? null;
-}
-
-function renderV1Layout(
-  layout: DetailLayoutConfig,
-  context: DetailLayoutRenderContext,
-) {
-  const enabledRows = layout.rows.filter((row) => row.enabled);
-  const renderedRows: ReactNode[] = [];
-
-  for (let rowIndex = 0; rowIndex < enabledRows.length; rowIndex += 1) {
-    const row = enabledRows[rowIndex];
-    const blocks = renderRowBlocks(row, context);
-
-    if (blocks.length === 0) {
-      continue;
-    }
-
-    if (isLockedFullWidthRow(blocks) || !isSplitRow(row, blocks)) {
-      renderedRows.push(renderStandardRow(row, blocks));
-      continue;
-    }
-
-    const ratio = row.ratio;
-    const wideRows: RenderedDetailLayoutBlock[][] = [];
-    const narrowBlocks: RenderedDetailLayoutBlock[] = [];
-    const [firstBlock, secondBlock, ...remainingBlocks] = blocks;
-
-    if (ratio === "70/30") {
-      wideRows.push([firstBlock]);
-      narrowBlocks.push(secondBlock);
-    } else {
-      narrowBlocks.push(firstBlock);
-      wideRows.push([secondBlock]);
-    }
-
-    appendWideRows(wideRows, remainingBlocks);
-
-    let nextRowIndex = rowIndex + 1;
-
-    while (nextRowIndex < enabledRows.length) {
-      const nextRow = enabledRows[nextRowIndex];
-      const nextBlocks = renderRowBlocks(nextRow, context);
-
-      if (nextBlocks.length === 0) {
-        nextRowIndex += 1;
-        continue;
-      }
-
-      if (isLockedFullWidthRow(nextBlocks) || isSplitRow(nextRow, nextBlocks)) {
-        break;
-      }
-
-      appendWideRows(wideRows, nextBlocks);
-      nextRowIndex += 1;
-    }
-
-    renderedRows.push(
-      renderSplitSection({
-        id: row.id,
-        narrowBlocks,
-        ratio,
-        wideRows,
-      }),
-    );
-
-    rowIndex = nextRowIndex - 1;
-  }
-
-  return renderedRows;
 }
 
 function renderV2Layout(
@@ -223,7 +140,7 @@ function renderV2Layout(
     wideArea === null && narrowArea === null ? null : (
       <div
         key="split-v2-main"
-        className={`grid min-w-0 items-start gap-6 ${ratioGridClassMap[layout.mainSplit.ratio]}`}
+        className={`grid min-w-0 items-start gap-6 ${wideArea !== null && narrowArea !== null ? ratioGridClassMap[layout.mainSplit.ratio] : "lg:grid-cols-1"}`}
         data-detail-layout-split="mainSplit"
         data-detail-layout-split-ratio={layout.mainSplit.ratio}
       >
@@ -282,10 +199,11 @@ export function DetailLayoutRenderer({
     settings,
     villaCardStyle,
   };
-  const renderedRows =
-    layout.version === 2
-      ? renderV2Layout(layout, context)
-      : renderV1Layout(layout, context);
+  const displayLayout = layout.version === 2 ? layout : convertDetailLayoutV1ToV2({
+    ...layout,
+    rows: layout.rows.filter((row) => row.enabled),
+  }, false);
+  const renderedRows = renderV2Layout(displayLayout, context);
 
   if (renderedRows.length === 0) {
     return null;

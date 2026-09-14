@@ -1,17 +1,13 @@
 import type { DetailLayoutCanvasSelection } from "./layout-canvas";
+import { groupDetailLayoutWideRows } from "@/lib/detail-layout/flow";
 import type {
   DetailLayoutBlock,
   DetailLayoutV2Draft,
-  DetailLayoutV2DraftWideRow,
 } from "./types";
 
 interface DetailLayoutPreviewProps {
   activeSelection: DetailLayoutCanvasSelection;
   layout: DetailLayoutV2Draft;
-}
-
-function getWideGridClass(row: DetailLayoutV2DraftWideRow): string {
-  return row.columns === 1 ? "grid-cols-1" : "grid-cols-2";
 }
 
 function PreviewBlock({
@@ -43,37 +39,43 @@ export function DetailLayoutPreview({
   const isWideLeft = layout.mainSplit.ratio === "70/30";
   const enabledWideRows = layout.mainSplit.wideRows.filter((row) => row.enabled);
   const enabledNarrowRows = layout.mainSplit.narrowRows.filter(
-    (row) => row.enabled,
+    (row) => row.enabled && row.block?.enabled,
   );
+  const wideGroups = groupDetailLayoutWideRows(enabledWideRows.map((row) => ({
+    ...row,
+    blocks: row.blocks.flatMap((block, slotIndex) => block?.enabled ? [{
+      slotIndex,
+      key: `${row.id}-${slotIndex}`,
+      node: <PreviewBlock
+        block={block}
+        isActive={activeSelection?.zone === "wide" && activeSelection.rowId === row.id && activeSelection.blockIndex === slotIndex}
+      />,
+    }] : []),
+  })));
 
-  const widePreview = (
-    <div className="grid gap-1.5">
+  const widePreview = wideGroups.length === 0 ? null : (
+    <div className="grid min-w-0 content-start gap-1.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--site-primary)]">
         ฝั่ง 70
       </p>
-      {enabledWideRows.map((row) => (
-        <div
-          className={`grid gap-1 rounded-md border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-1 ${getWideGridClass(row)}`}
-          key={row.id}
-        >
-          {row.blocks.map((block, blockIndex) => (
-            <PreviewBlock
-              block={block}
-              isActive={
-                activeSelection?.zone === "wide" &&
-                activeSelection.rowId === row.id &&
-                activeSelection.blockIndex === blockIndex
-              }
-              key={`${row.id}-${blockIndex}`}
-            />
-          ))}
+      {wideGroups.map((group) => group.kind === "full" ? (
+        <div key={group.row.id} className="grid min-w-0 gap-1">
+          {group.row.blocks.map((block) => <div key={block.key}>{block.node}</div>)}
+        </div>
+      ) : (
+        <div key={group.rows.map((row) => row.id).join(" ")} className={`grid min-w-0 items-start gap-1 ${group.leftColumn.length && group.rightColumn.length ? "grid-cols-2" : "grid-cols-1"}`}>
+          {[group.leftColumn, group.rightColumn].map((column, index) => column.length > 0 ? (
+            <div key={index} data-detail-preview-column={index === 0 ? "left" : "right"} className="grid min-w-0 content-start gap-1">
+              {column.map((block) => <div key={block.key}>{block.node}</div>)}
+            </div>
+          ) : null)}
         </div>
       ))}
     </div>
   );
 
-  const narrowPreview = (
-    <div className="grid gap-1.5">
+  const narrowPreview = enabledNarrowRows.length === 0 ? null : (
+    <div className="grid min-w-0 content-start gap-1.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--site-primary)]">
         ฝั่ง 30
       </p>
@@ -96,7 +98,7 @@ export function DetailLayoutPreview({
         <div>
           <h2 className="text-sm font-semibold text-[var(--site-text)]">ตัวอย่างย่อ</h2>
           <p className="mt-0.5 text-xs leading-5 text-[var(--site-muted)]">
-            โครงรวมที่หน้าเว็บจะแสดง
+            บล็อกเรียงต่อในคอลัมน์เดิม แถว 1 ช่องเริ่มใต้ทั้งสองคอลัมน์
           </p>
         </div>
         <span className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--site-primary)]">
@@ -106,8 +108,8 @@ export function DetailLayoutPreview({
 
       <div className="grid gap-2 rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-2">
         <div
-          className={`grid gap-2 ${
-            isWideLeft
+          className={`grid items-start gap-2 ${
+            !wideGroups.length || !enabledNarrowRows.length ? "grid-cols-1" : isWideLeft
               ? "grid-cols-[minmax(0,7fr)_minmax(0,3fr)]"
               : "grid-cols-[minmax(0,3fr)_minmax(0,7fr)]"
           }`}

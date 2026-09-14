@@ -1,21 +1,17 @@
 import type {
   DetailLayoutBlockType,
-  DetailLayoutRow,
   DetailLayoutWideRatio,
   DetailLayoutWideRow,
 } from "@/lib/detail-layout/types";
 import type { ReactNode } from "react";
+import { groupDetailLayoutWideRows } from "@/lib/detail-layout/flow";
 import {
-  getRowGridClass,
-  isLockedFullWidthRow,
   ratioGridClassMap,
-  splitV2WideColumns,
-  splitWideColumns,
-  type DetailLayoutSplitRatio,
 } from "./detail-layout-renderer-helpers";
 
 export interface RenderedDetailLayoutBlock {
   key: string;
+  slotIndex: number;
   node: ReactNode;
   type: DetailLayoutBlockType;
 }
@@ -25,13 +21,6 @@ export interface RenderedDetailLayoutWideRow {
   columns: DetailLayoutWideRow["columns"];
   id: string;
   ratio?: DetailLayoutWideRatio;
-}
-
-interface RenderSplitSectionProps {
-  id: string;
-  narrowBlocks: RenderedDetailLayoutBlock[];
-  ratio: DetailLayoutSplitRatio;
-  wideRows: RenderedDetailLayoutBlock[][];
 }
 
 export function renderBlockContainer(block: RenderedDetailLayoutBlock) {
@@ -49,43 +38,6 @@ export function renderBlockContainer(block: RenderedDetailLayoutBlock) {
   );
 }
 
-export function renderStandardRow(
-  row: DetailLayoutRow,
-  blocks: RenderedDetailLayoutBlock[],
-) {
-  const rowGridClass = isLockedFullWidthRow(blocks)
-    ? "lg:grid-cols-1"
-    : getRowGridClass(row, blocks.length);
-
-  return (
-    <div
-      key={row.id}
-      className={`grid min-w-0 items-start gap-6 ${rowGridClass}`}
-      data-detail-layout-row={row.id}
-    >
-      {blocks.map(renderBlockContainer)}
-    </div>
-  );
-}
-
-export function renderWideArea(wideRows: RenderedDetailLayoutBlock[][]) {
-  const { leftColumn, rightColumn } = splitWideColumns(wideRows);
-
-  return (
-    <div
-      className="grid min-w-0 gap-6 lg:grid-cols-2"
-      data-detail-layout-area="wide"
-    >
-      <div className="grid min-w-0 content-start gap-6" data-detail-layout-wide-column="left">
-        {leftColumn.map(renderBlockContainer)}
-      </div>
-      <div className="grid min-w-0 content-start gap-6" data-detail-layout-wide-column="right">
-        {rightColumn.map(renderBlockContainer)}
-      </div>
-    </div>
-  );
-}
-
 export function renderNarrowArea(blocks: RenderedDetailLayoutBlock[]) {
   return (
     <aside
@@ -94,36 +46,6 @@ export function renderNarrowArea(blocks: RenderedDetailLayoutBlock[]) {
     >
       {blocks.map(renderBlockContainer)}
     </aside>
-  );
-}
-
-export function renderSplitSection({
-  id,
-  narrowBlocks,
-  ratio,
-  wideRows,
-}: RenderSplitSectionProps) {
-  const wideArea = renderWideArea(wideRows);
-  const narrowArea = renderNarrowArea(narrowBlocks);
-
-  return (
-    <div
-      key={`split-${id}`}
-      className={`grid min-w-0 items-start gap-6 ${ratioGridClassMap[ratio]}`}
-      data-detail-layout-split={id}
-    >
-      {ratio === "70/30" ? (
-        <>
-          {wideArea}
-          {narrowArea}
-        </>
-      ) : (
-        <>
-          {narrowArea}
-          {wideArea}
-        </>
-      )}
-    </div>
   );
 }
 
@@ -144,60 +66,35 @@ export function renderV2WideStackGroup(
   rows: RenderedDetailLayoutWideRow[],
   ratio: DetailLayoutWideRatio,
 ) {
-  const { leftColumn, rightColumn } = splitV2WideColumns(rows);
+  const group = groupDetailLayoutWideRows(rows)[0];
+  if (!group || group.kind !== "columns") return null;
+  const { leftColumn, rightColumn } = group;
   const rowIds = rows.map((row) => row.id).join(" ");
 
   return (
     <div
       key={rowIds}
-      className={`grid min-w-0 gap-6 ${ratioGridClassMap[ratio]}`}
+      className={`grid min-w-0 gap-6 ${leftColumn.length && rightColumn.length ? ratioGridClassMap[ratio] : "lg:grid-cols-1"}`}
       data-detail-layout-area="wide"
       data-detail-layout-wide-ratio={ratio}
       data-detail-layout-wide-rows={rowIds}
     >
-      <div className="grid min-w-0 content-start gap-6" data-detail-layout-wide-column="left">
+      {leftColumn.length > 0 ? <div className="grid min-w-0 content-start gap-6" data-detail-layout-wide-column="left">
         {leftColumn.map(renderBlockContainer)}
-      </div>
-      <div className="grid min-w-0 content-start gap-6" data-detail-layout-wide-column="right">
+      </div> : null}
+      {rightColumn.length > 0 ? <div className="grid min-w-0 content-start gap-6" data-detail-layout-wide-column="right">
         {rightColumn.map(renderBlockContainer)}
-      </div>
+      </div> : null}
     </div>
   );
 }
 
 export function renderV2WideArea(rows: RenderedDetailLayoutWideRow[]) {
-  const renderedRows: ReactNode[] = [];
-  let stackRows: RenderedDetailLayoutWideRow[] = [];
-  let stackRatio: DetailLayoutWideRatio | null = null;
-
-  const flushStackRows = () => {
-    if (stackRows.length === 0 || stackRatio === null) {
-      return;
-    }
-
-    renderedRows.push(renderV2WideStackGroup(stackRows, stackRatio));
-    stackRows = [];
-    stackRatio = null;
-  };
-
-  rows.forEach((row) => {
-    if (row.columns === 1 || row.blocks.length <= 1) {
-      flushStackRows();
-      renderedRows.push(renderV2WideFullRow(row));
-      return;
-    }
-
-    const rowRatio = row.ratio ?? "50/50";
-
-    if (stackRatio !== null && stackRatio !== rowRatio) {
-      flushStackRows();
-    }
-
-    stackRatio = rowRatio;
-    stackRows.push(row);
-  });
-
-  flushStackRows();
+  const renderedRows = groupDetailLayoutWideRows(rows).map((group) =>
+    group.kind === "full"
+      ? renderV2WideFullRow(group.row)
+      : renderV2WideStackGroup(group.rows, "50/50"),
+  );
 
   if (renderedRows.length === 0) {
     return null;
