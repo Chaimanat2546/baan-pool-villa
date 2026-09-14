@@ -76,7 +76,6 @@ describe("detail layout V2 helpers", () => {
       throw new Error("Expected a wide draft row");
     }
 
-    const gapMessage = `ฝั่ง 70 แถวที่ ${draft.mainSplit.wideRows.length} มีช่องว่างก่อน block กรุณาเติมหรือลบ block ด้านหลัง`;
     const withBlock = putDetailLayoutV2WideBlockInSlot(
       draft,
       row.id,
@@ -89,11 +88,7 @@ describe("detail layout V2 helpers", () => {
         (block) => block?.type ?? null,
       ),
     ).toEqual([null, "pool"]);
-    expect(validateDetailLayoutV2DraftForSave(withBlock)).toContain(gapMessage);
-    expect(validateDetailLayoutV2DraftForSaveDetails(withBlock)).toContainEqual({
-      message: gapMessage,
-      target: `${row.id}:slot:0`,
-    });
+    expect(validateDetailLayoutV2DraftForSaveDetails(withBlock)).toEqual([]);
 
     const removed = removeDetailLayoutV2WideBlock(withBlock, row.id, 1);
 
@@ -239,5 +234,48 @@ describe("detail layout V2 helpers", () => {
     expect(config).toEqual(DEFAULT_DETAIL_LAYOUT_V2);
     expect(config).not.toBe(DEFAULT_DETAIL_LAYOUT_V2);
     expect(validateDetailLayoutV2(config).ok).toBe(true);
+  });
+
+  it.each([0, 1])("compacts a lone block from slot %i only when preparing to save", (slot) => {
+    const draft = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2);
+    const block = makeDetailLayoutBlock("pool");
+    draft.mainSplit.wideRows = [{
+      id: "single", columns: 2, ratio: "50/50", enabled: true,
+      blocks: slot === 0 ? [block, null] : [null, block],
+    }];
+    const before = structuredClone(draft);
+
+    expect(validateDetailLayoutV2DraftForSaveDetails(draft)).toEqual([]);
+    const config = toDetailLayoutV2Config(draft);
+    expect(config.mainSplit.wideRows).toEqual([{
+      id: "single", columns: 1, enabled: true, blocks: [block],
+    }]);
+    expect(validateDetailLayoutV2(config).ok).toBe(true);
+    expect(toDetailLayoutV2Draft(config).mainSplit.wideRows[0].blocks).toEqual([block]);
+    expect(draft).toEqual(before);
+  });
+
+  it("drops empty one- and two-slot rows while preserving filled row order", () => {
+    const draft = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2);
+    const filledRows = structuredClone(draft.mainSplit.wideRows);
+    draft.mainSplit.wideRows.splice(1, 0,
+      { id: "empty-one", columns: 1, enabled: true, blocks: [null] },
+      { id: "empty-two", columns: 2, ratio: "50/50", enabled: true, blocks: [null, null] },
+    );
+    expect(validateDetailLayoutV2DraftForSaveDetails(draft)).toEqual([]);
+    const config = toDetailLayoutV2Config(draft);
+    expect(config.mainSplit.wideRows).toEqual(filledRows);
+    expect(config.mainSplit.narrowRows).toEqual(DEFAULT_DETAIL_LAYOUT_V2.mainSplit.narrowRows);
+    expect(config.lockedBottom).toEqual(DEFAULT_DETAIL_LAYOUT_V2.lockedBottom);
+  });
+
+  it("saves an empty wide area after its last empty row is removed", () => {
+    const draft = toDetailLayoutV2Draft(DEFAULT_DETAIL_LAYOUT_V2);
+    draft.mainSplit.wideRows = [{ id: "empty", columns: 2, ratio: "50/50", enabled: true, blocks: [null, null] }];
+    expect(validateDetailLayoutV2DraftForSaveDetails(draft)).toEqual([]);
+    const config = toDetailLayoutV2Config(draft);
+    expect(config.mainSplit.wideRows).toEqual([]);
+    expect(validateDetailLayoutV2(config).ok).toBe(true);
+    expect(toDetailLayoutV2Draft(config).mainSplit.wideRows).toEqual([]);
   });
 });

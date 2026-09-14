@@ -269,8 +269,8 @@ function normalizeWideRows(
   value: unknown,
   errors: string[],
 ): DetailLayoutWideRow[] | null {
-  if (!Array.isArray(value) || value.length === 0) {
-    errors.push("ฝั่ง 70 ต้องมีแถวอย่างน้อย 1 แถว");
+  if (!Array.isArray(value)) {
+    errors.push("ฝั่ง 70 ต้องมีรายการแถว");
     return null;
   }
 

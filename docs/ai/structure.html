@@ -747,7 +747,7 @@
             </tr>
             <tr>
               <td><code>lib/detail-layout</code></td>
-              <td>Admin-managed detail layout types, defaults, validation, compatibility, route helpers, versioned layout definitions. The shared registry includes <code>villa_reviews</code> (รีวิวจากผู้เข้าพัก), consumed by both validators and the admin block library/preview. V1 defaults use separate details, reviews, and booking rows; V2 defaults place a full-width review row after the details/amenities wide row while booking remains in the narrow column. The review migration inserts missing blocks without replacing existing layout settings.</td>
+              <td>Admin-managed detail layout types, defaults, validation, compatibility, route helpers, versioned layout definitions. The shared registry includes <code>villa_reviews</code> (รีวิวจากผู้เข้าพัก), consumed by both validators and the admin block library/preview. V1 defaults use separate details, reviews, and booking rows; V2 defaults place a full-width review row after the details/amenities wide row while booking remains in the narrow column. The review migration inserts missing blocks without replacing existing layout settings. The admin V2 save conversion removes empty wide rows and turns either lone occupied slot into a one-column row without an internal ratio; editing keeps draft slots intact until save succeeds. V2 validation and persistence allow an empty wide-row array after the last empty row is removed, without restoring defaults.</td>
               <td><code>lib/detail-layout/__tests__</code></td>
             </tr>
             <tr>
@@ -1123,7 +1123,7 @@
             </tr>
             <tr>
               <td>Detail layout config, renderer, or builder</td>
-              <td><code>npm.cmd test -- lib/detail-layout components/admin/detail-layout components/villas/detail/__tests__/detail-layout-renderer.test.tsx components/villas/detail/__tests__/lazy-categorized-images.test.tsx</code>; include empty-slot column flow, explicit full-row boundaries, legacy conversion parity, and CMS preview alignment</td>
+              <td><code>npm.cmd test -- lib/detail-layout components/admin/detail-layout components/villas/detail/__tests__/detail-layout-renderer.test.tsx components/villas/detail/__tests__/lazy-categorized-images.test.tsx</code>; include save-time removal of empty wide rows, compaction of either lone wide slot into one column, empty-wide-area API persistence, unchanged draft slots until save succeeds, explicit full-row boundaries, legacy conversion parity, and CMS preview alignment</td>
               <td>Run lint and build before completion.</td>
             </tr>
               <tr>

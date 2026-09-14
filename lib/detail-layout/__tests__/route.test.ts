@@ -475,6 +475,20 @@ describe("admin detail layout route", () => {
     expect(jsonErrorMock).not.toHaveBeenCalled();
   });
 
+  it("persists an empty wide area without restoring default rows", async () => {
+    const detailLayout = structuredClone(DEFAULT_DETAIL_LAYOUT_V2);
+    detailLayout.mainSplit.wideRows = [];
+    const query = detailLayoutUpdateQuery({
+      data: { id: SITE_SETTINGS_ID, detail_layout: detailLayout }, error: null,
+    });
+    authSupabase({ from: vi.fn().mockReturnValue(query) });
+    const { PUT } = await import("../../../app/(admin)/api/admin/detail-layout/route");
+    const response = await PUT(putRequest({ layout: detailLayout }));
+    expect(response.status).toBe(200);
+    expect(query.update).toHaveBeenCalledWith({ detail_layout: detailLayout });
+    await expect(response.json()).resolves.toEqual({ layout: detailLayout });
+  });
+
   it("creates the global settings row with defaults when PUT update finds no row", async () => {
     const detailLayout = customLayout();
     const updateQuery = detailLayoutUpdateQuery({

@@ -685,6 +685,48 @@ describe("AdminDetailLayoutPage", () => {
     await page.unmount();
   });
 
+  it.each(["first", "second", "both"])("saves a compact wide row after removing %s slot", async (removed) => {
+    const originalRow = DEFAULT_DETAIL_LAYOUT_V2.mainSplit.wideRows[0];
+    const initial = {
+      ...savedLayout,
+      mainSplit: { ...savedLayout.mainSplit, wideRows: [originalRow] },
+    };
+    const remaining = removed === "both" ? [] : [{
+      id: originalRow.id, columns: 1, enabled: true,
+      blocks: [originalRow.blocks[removed === "first" ? 1 : 0]],
+    }];
+    const saved = { ...initial, mainSplit: { ...initial.mainSplit, wideRows: remaining } };
+    const fetchMock = makeFetchMock([
+      { body: { layout: initial }, url: "/api/admin/detail-layout" },
+      { body: { layout: saved }, url: "/api/admin/detail-layout", method: "PUT" },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await mountAdminPage(<AdminDetailLayoutPage />);
+    const getWideRow = () => Array.from(page.container.querySelectorAll("button"))
+      .find((button) => button.textContent === "1 ช่อง")?.closest("article");
+    const row = getWideRow()!;
+    const removeButtons = row.querySelectorAll<HTMLButtonElement>('[aria-label="ลบ block"]');
+    await click(removeButtons[removed === "second" ? 1 : 0]);
+    if (removed === "both") {
+      await click(row.querySelector<HTMLButtonElement>('[aria-label="ลบ block"]')!);
+    }
+    expect(row.textContent).toContain("กด block จากคลังเพื่อใส่ช่องนี้");
+    await click(page.container.querySelector<HTMLButtonElement>('[data-detail-layout-save]')!);
+    await flushEffects();
+    const request = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(request).toBeDefined();
+    expect(JSON.parse(String(request![1]!.body))).toEqual({ layout: saved });
+    expect(page.container.textContent).toContain("บันทึก layout หน้า Details แล้ว");
+    if (removed === "both") {
+      expect(getWideRow()).toBeUndefined();
+    } else {
+      expect(getWideRow()!.querySelectorAll('[aria-label="ลบ block"]')).toHaveLength(1);
+      expect(getWideRow()!.textContent).not.toContain("ลาก block ลงช่องนี้");
+    }
+    expect(page.container.querySelector<HTMLButtonElement>('[data-detail-layout-save]')!.disabled).toBe(true);
+    await page.unmount();
+  });
+
   it("keeps DnD sensor hooks stable while a layout save is pending", async () => {
     let resolveSave: ((response: Response) => void) | undefined;
     const fetchMock = vi
