@@ -227,6 +227,7 @@ function renderAmenities({ content, listing }: DetailLayoutBlockContext) {
 
 function renderCategorizedImages({
   galleryCategories,
+  galleryStyle,
   listing,
 }: DetailLayoutBlockContext) {
   const previewCategories = galleryCategories
@@ -247,6 +248,7 @@ function renderCategorizedImages({
       title="รูปภาพตามหมวดหมู่"
     >
       <LazyCategorizedImages
+        galleryStyle={galleryStyle}
         listingId={listing.id}
         previewCategories={previewCategories}
       />

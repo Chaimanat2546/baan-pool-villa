@@ -10,8 +10,8 @@ import { GalleryLightbox } from "../gallery-lightbox";
 import type { GalleryCategory, GalleryItem } from "../types";
 
 vi.mock("next/image", () => ({
-  default: (props: { alt?: string; src?: string }) => (
-    <span data-gallery-image={props.alt} data-src={props.src} />
+  default: (props: { alt?: string; src?: string; sizes?: string }) => (
+    <span data-gallery-image={props.alt} data-src={props.src} data-sizes={props.sizes} />
   ),
 }));
 
@@ -133,6 +133,7 @@ describe("GalleryLightbox", () => {
 
     expect(markup).toContain('data-gallery-thumbnail-placement="bottom"');
     expect(markup).toContain('data-gallery-thumbnail-strip="bottom"');
+    expect(markup).toContain('data-sizes="(max-width: 1024px) 100vw, calc(100vw - 48px)"');
     expect(markup).not.toContain("เลือกหมวดหมู่");
     expect(markup.match(/ดูรูปหมวดPool/g) ?? []).toHaveLength(2);
   });

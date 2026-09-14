@@ -419,7 +419,9 @@ export function GalleryLightbox({
 
               fetchPriority="high"
 
-              sizes="(max-width: 1024px) 100vw, calc(100vw - 400px)"
+              sizes={thumbnailPlacement === "bottom"
+                ? "(max-width: 1024px) 100vw, calc(100vw - 48px)"
+                : "(max-width: 1024px) 100vw, calc(100vw - 400px)"}
 
               className="object-contain"
 
