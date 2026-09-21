@@ -19,6 +19,7 @@ export interface VillaDetailPageProps {
   currentBookingMonthKey: string;
   galleryStyle: GalleryStyleSettings;
   id: string;
+  startingGuestCapacity?: number | null;
   initialGalleryImages?: PublicVillaImage[];
   initialGalleryLoadFailed?: boolean;
   initialGalleryPreviewImages?: PublicVillaImage[];

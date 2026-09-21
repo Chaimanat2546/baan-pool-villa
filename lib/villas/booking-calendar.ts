@@ -45,6 +45,18 @@ export interface BookingCalendarMonth {
   status: "available";
 }
 
+export function getMinimumGuestCapacity(
+  calendars: Record<string, BookingCalendarMonth>,
+): number | null {
+  const capacities = Object.values(calendars).flatMap((calendar) =>
+    Object.values(calendar.days)
+      .map((day) => Number(day.guestCapacity))
+      .filter((capacity) => Number.isInteger(capacity) && capacity > 0),
+  );
+
+  return capacities.length > 0 ? Math.min(...capacities) : null;
+}
+
 export interface RawBookingCalendarResponse {
   base_price?: RawWeekdayPrice | null;
   bookings?: RawBooking[] | null;

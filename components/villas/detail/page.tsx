@@ -22,6 +22,7 @@ export function VillaDetailPage({
   payload,
   recommendedSection,
   settings,
+  startingGuestCapacity,
   villaCardStyle,
 }: VillaDetailPageProps) {
   const { listing } = payload;
@@ -64,7 +65,11 @@ export function VillaDetailPage({
         villaCardStyle={villaCardStyle}
       >
         <div className="mx-auto w-full max-w-[402px] px-[22.5px] py-8 sm:max-w-7xl sm:px-6 lg:px-8">
-          <VillaIntro content={content} listing={listing} />
+          <VillaIntro
+            content={content}
+            listing={listing}
+            startingGuestCapacity={startingGuestCapacity}
+          />
 
           {showMobileBookingContact ? (
             <div className="mt-4 lg:hidden" data-mobile-booking-contact="true">

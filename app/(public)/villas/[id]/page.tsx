@@ -23,6 +23,7 @@ import {
   getBangkokBookingCalendarMonthKeys,
   preloadVillaBookingCalendars,
 } from "@/lib/villas/booking-calendar-preload";
+import { getMinimumGuestCapacity } from "@/lib/villas/booking-calendar";
 import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
 interface VillaPageProps {
@@ -88,6 +89,9 @@ export default async function Page({ params }: VillaPageProps) {
   }
 
   const listing = data.payload.listing;
+  const startingGuestCapacity = getMinimumGuestCapacity(
+    calendarPreload.calendars,
+  );
   const advertisements = await getDetailAdvertisements(
     siteSettingsResult.settings.detailLayout,
     listing.zone,
@@ -105,7 +109,7 @@ export default async function Page({ params }: VillaPageProps) {
       "@context": "https://schema.org",
       "@type": "VacationRental",
       name: getVillaTitle(listing),
-      description: getVillaSearchIntentSummary(listing),
+      description: getVillaSearchIntentSummary(listing, startingGuestCapacity),
       image: coverImageUrl ? [coverImageUrl] : undefined,
       url: absoluteUrl(`/villas/${listing.id}`),
       address: {
@@ -150,6 +154,7 @@ export default async function Page({ params }: VillaPageProps) {
         recommendedSection={data.recommendedSection}
         contactSettings={contactSettingsResult.settings}
         settings={siteSettingsResult.settings}
+        startingGuestCapacity={startingGuestCapacity}
         villaCardStyle={siteWebStylesResult.houseCard.variant}
       />
     </>

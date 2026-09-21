@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fetchVillaBookingCalendar,
+  getMinimumGuestCapacity,
   normalizeBookingCalendar,
   type RawBookingCalendarResponse,
 } from "../booking-calendar";
@@ -53,6 +54,40 @@ describe("normalizeBookingCalendar", () => {
     expect(calendar.days["2026-06-20"]).toMatchObject({
       price: 18900,
     });
+  });
+
+  it("finds the minimum guest capacity shown across preloaded calendar months", () => {
+    const june = normalizeBookingCalendar(
+      {
+        ...baseResponse,
+        base_price: {
+          ...baseResponse.base_price,
+          people_mon: "18",
+          people_tue: "12",
+          people_wed: "18",
+        },
+      },
+      "2026-06",
+    );
+
+    expect(getMinimumGuestCapacity({ "2026-06": june })).toBe(12);
+    expect(getMinimumGuestCapacity({})).toBeNull();
+
+    const promotion = normalizeBookingCalendar(
+      {
+        ...baseResponse,
+        protime_promotions: [
+          {
+            protime_start: "2026-06-16",
+            protime_end: "2026-06-16",
+            protime_people_tue: "12",
+          },
+        ],
+      },
+      "2026-06",
+    );
+
+    expect(getMinimumGuestCapacity({ "2026-06": promotion })).toBe(12);
   });
 
   it("marks promotion days without calendar icons and with promotion weekday price", () => {
