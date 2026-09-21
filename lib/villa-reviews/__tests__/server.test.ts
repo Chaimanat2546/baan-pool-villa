@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReviewSubmissionInput } from "../types";
 
 const fake = vi.hoisted(() => ({
@@ -53,6 +53,8 @@ function verificationQueries(
 }
 
 describe("villa review repository", () => {
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
     vi.resetAllMocks();
     fake.cache.mockImplementation((fn) => fn);
@@ -76,6 +78,51 @@ describe("villa review repository", () => {
     expect(cursor.createdAt).toBe("2026-09-07T00:00:00.123456+00:00");
     expect(fake.from.mock.calls.every(([table]) => table === "villa_reviews_public")).toBe(true);
     expect(fake.cache).toHaveBeenCalledWith(expect.any(Function), expect.arrayContaining(["villa-1"]), { tags: ["villa-reviews:villa-1"], revalidate: 43200 });
+  });
+
+  it("falls back to a direct review read when the review cache rejects", async () => {
+    fake.cache.mockImplementation(() => () => Promise.reject(new Error("cache unavailable")));
+    fake.from.mockReturnValue(query([]));
+
+    await expect(getVillaReviewPage("villa-1", "newest", null)).resolves.toEqual({
+      items: [],
+      nextCursor: null,
+      summary: {
+        totalCount: 0,
+        averageRating: 0,
+        ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      },
+    });
+    expect(fake.from).toHaveBeenCalledTimes(6);
+  });
+
+  it("does not retry a database error raised while filling the review cache", async () => {
+    fake.from.mockReturnValue(query([], 0, { message: "database unavailable" }));
+
+    await expect(getVillaReviewPage("villa-1", "newest", null)).rejects.toMatchObject({
+      code: "database_error",
+    });
+    expect(fake.from).toHaveBeenCalledTimes(6);
+  });
+
+  it("falls back to a direct review read when the review cache does not resolve", async () => {
+    vi.useFakeTimers();
+    fake.cache.mockImplementation(() => () => new Promise(() => {}));
+    fake.from.mockReturnValue(query([]));
+
+    const pending = getVillaReviewPage("villa-1", "newest", null);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    await expect(Promise.race([pending, Promise.resolve("cache still pending")])).resolves.toEqual({
+      items: [],
+      nextCursor: null,
+      summary: {
+        totalCount: 0,
+        averageRating: 0,
+        ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      },
+    });
+    expect(fake.from).toHaveBeenCalledTimes(6);
   });
 
   it("keeps local loopback review image URLs in development data", async () => {

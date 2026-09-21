@@ -149,10 +149,10 @@ function CompactLineList({
         listing={listing}
       />
       <details
-        className="rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2"
+        className="group"
         data-detail-compact-list="true"
       >
-        <summary className="cursor-pointer text-sm font-black text-[var(--site-primary)]">
+        <summary className="group-open:hidden mt-3 cursor-pointer text-sm font-black text-[var(--site-primary)]">
           ดูรายละเอียดเพิ่มอีก {hiddenLines.length.toLocaleString("th-TH")}{" "}
           รายการ
         </summary>
