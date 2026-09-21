@@ -171,10 +171,21 @@ export function getVillaDescription(villa: VillaListing): string {
   ].join(" | ");
 }
 
-export function getVillaSearchIntentSummary(villa: VillaListing): string {
+export function getVillaSearchIntentSummary(
+  villa: VillaListing,
+  startingGuestCapacity?: number | null,
+): string {
+  const guestSummary =
+    startingGuestCapacity !== null &&
+    startingGuestCapacity !== undefined &&
+    startingGuestCapacity > 0 &&
+    startingGuestCapacity <= villa.people
+      ? `เริ่มต้น ${startingGuestCapacity.toLocaleString("th-TH")} คน เสริมได้ถึง ${villa.people.toLocaleString("th-TH")} คน`
+      : `รองรับ ${villa.people.toLocaleString("th-TH")} คน`;
+
   return [
     `${getVillaTitle(villa)} เหมาะสำหรับกลุ่มที่ต้องการบ้านพักพัทยาพร้อมสระส่วนตัว`,
-    `รองรับ ${villa.people.toLocaleString("th-TH")} คน`,
+    guestSummary,
     `${villa.bedrooms.toLocaleString("th-TH")} ห้องนอน`,
     `ทำเล ${villa.zoneLabel}`,
     `ราคาเริ่มต้น ${villa.price?.toLocaleString("th-TH") ?? ""} บาทต่อคืน`,

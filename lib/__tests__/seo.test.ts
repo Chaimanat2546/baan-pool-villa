@@ -625,6 +625,9 @@ describe("SEO helpers", () => {
     expect(getVillaSearchIntentSummary(sampleVilla)).toContain(
       "ราคาเริ่มต้น 12,000 บาทต่อคืน",
     );
+    expect(getVillaSearchIntentSummary(sampleVilla, 8)).toContain(
+      "เริ่มต้น 8 คน เสริมได้ถึง 12 คน",
+    );
     expect(metadata).toMatchObject({
       title: "พูลวิลล่า 901 Jomtien พัทยา",
       description:

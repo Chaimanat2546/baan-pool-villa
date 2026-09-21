@@ -19,10 +19,12 @@ export function VillaIntro({
   content,
 
   listing,
+  startingGuestCapacity,
 }: {
   content: VillaDetailContent;
 
   listing: VillaListing;
+  startingGuestCapacity?: number | null;
 }) {
   return (
     <section className="border-b border-[var(--site-border)] pb-6">
@@ -44,7 +46,7 @@ export function VillaIntro({
       )}
 
       <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--site-muted)]">
-        {getVillaSearchIntentSummary(listing)}
+        {getVillaSearchIntentSummary(listing, startingGuestCapacity)}
       </p>
 
       <nav
