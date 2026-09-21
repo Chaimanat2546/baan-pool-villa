@@ -1,4 +1,4 @@
-import { ProfanityFilter as ThaiProfanityFilter } from "bad-words-thai";
+import { detectProhibitedWords } from "./profanity";
 
 import type {
   AdminReviewUpdateInput,
@@ -20,56 +20,12 @@ export {
   validateReviewFiles,
 } from "./input-validation";
 
-const profanityFilter = new ThaiProfanityFilter({
-  languages: ["thai", "english"],
-});
-await profanityFilter.initialize();
-
 function addError(
   errors: Record<string, string>,
   field: string,
   message: string,
 ) {
   errors[field] = errors[field] ? `${errors[field]} ${message}` : message;
-}
-
-function exactDetectedSubstring(
-  source: string,
-  detected: {
-    language: "thai" | "english" | "karaoke";
-    length: number;
-    originalWord: string;
-    position: number;
-  },
-): string {
-  const matchedPosition = source.indexOf(
-    detected.originalWord,
-    detected.position,
-  );
-  const start = matchedPosition === -1 ? detected.position : matchedPosition;
-  let end = start + Math.max(detected.length, detected.originalWord.length);
-
-  if (detected.language === "english") {
-    while (/[a-z0-9]/i.test(source[end] ?? "")) end += 1;
-  }
-
-  return source.slice(start, end);
-}
-
-function detectProhibitedWords(comment: string): string[] {
-  const thaiText = comment.replace(/[^\u0E00-\u0E7F\s]/g, " ");
-  const englishText = comment.replace(/[^\x00-\x7F]/g, " ");
-  const words = [thaiText, englishText].flatMap((text) =>
-    text
-      ? profanityFilter
-          .check(text)
-          .detectedWords.map((detected) =>
-            exactDetectedSubstring(text, detected),
-          )
-      : [],
-  );
-
-  return [...new Set(words)];
 }
 
 function validateReviewContent(input: {

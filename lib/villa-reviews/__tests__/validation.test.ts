@@ -99,6 +99,20 @@ describe("villa review validation", () => {
     );
   });
 
+  it.each([
+    ["บ้านเหี้ย but FUCK!", ["เหี้ย", "FUCK"]],
+    ["ค;ว;ย", ["ค;ว;ย"]],
+    ["คุวย", ["คุวย"]],
+    ["หีบ เหี้ย", ["เหี้ย"]],
+    ["fuck fuck", ["fuck"]],
+  ])("retains dictionary, evasion, allowlist and original text handling: %s", (comment, detectedWords) => {
+    expect(validateReviewSubmission(validInput({ comment })).detectedWords).toEqual(detectedWords);
+  });
+
+  it.each(["หีบ หิมะ หิน", "บ้านสะอาด great stay", "comfortable classic room"])("accepts clean text: %s", (comment) => {
+    expect(validateReviewSubmission(validInput({ comment })).ok).toBe(true);
+  });
+
   it("reports field-keyed errors for malformed required review values", () => {
     const result = validateReviewSubmission(
       validInput({ bookingCode: " ", comment: " ", phone: "123", rating: 6, villaId: " " }),

@@ -5,7 +5,7 @@ import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { revalidateVillaReviewsCache } from "@/lib/cache-revalidation";
 import { createBookingVerificationClient } from "./booking-verification-supabase";
 import { createVillaReviewsClient } from "./supabase";
-import { normalizeThaiPhone, validateReviewFiles, validateReviewSubmission } from "./validation";
+import { normalizeThaiPhone, validateReviewFiles } from "./input-validation";
 import type { PublicVillaReview, ReviewPage, ReviewSort, ReviewSubmissionInput, VillaReviewSummary } from "./types";
 
 const PUBLIC_COLUMNS = "id,villa_id,rating,comment,masked_phone,images,created_at,updated_at";
@@ -311,6 +311,7 @@ export async function verifyVillaReviewBooking(
 }
 
 export async function submitVillaReview(input: ReviewSubmissionInput, files: File[]): Promise<PublicVillaReview> {
+  const { validateReviewSubmission } = await import("./validation");
   const validation = validateReviewSubmission(input);
   const fileValidation = validateReviewFiles(files);
   if (!validation.ok || !fileValidation.ok) {

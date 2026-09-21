@@ -1,7 +1,6 @@
 /**
  * @vitest-environment jsdom
  */
-import type { ComponentProps } from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
