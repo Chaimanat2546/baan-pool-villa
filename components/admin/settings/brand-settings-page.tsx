@@ -1,6 +1,7 @@
 "use client";
 
 import { Building2 } from "lucide-react";
+import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { SITE_LOGO_BACKGROUND_CLASSES, SITE_LOGO_BACKGROUND_LABELS, SITE_LOGO_BACKGROUNDS } from "@/lib/site-settings/logo-background";
 import { validateUploadMetadata } from "@/lib/site-settings/validation";
@@ -34,7 +35,7 @@ export function BrandSettingsPage() {
         <AssetUploadField currentAlt={draft.faviconImage.alt} currentLabel="ไอคอนปัจจุบัน" currentUrl={draft.faviconImage.url} description="ไฟล์ PNG / JPG / WebP สำหรับไอคอนแท็บเบราว์เซอร์และไอคอนบนมือถือ" id="faviconFile" label="ไอคอนเว็บไซต์" selectedFile={draft.faviconFile} onFileChange={(faviconFile) => state.updateDraft({ faviconFile })} validateFile={(file) => validateUploadMetadata("favicon", file.type, file.size, file.name)} />
         <div className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4"><p className="text-sm font-semibold">พื้นหลังโลโก้</p><p className="mt-1 text-xs text-[var(--site-muted)]">ใช้กับโลโก้ใน Header และ Footer เมื่อไฟล์โลโก้ไม่มีพื้นหลัง</p><div className="mt-3 grid gap-2 sm:grid-cols-4">{SITE_LOGO_BACKGROUNDS.map((background) => { const isActive = draft.logoBackground === background; return <button aria-pressed={isActive} className={`rounded-md border px-3 py-2 text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-primary)] ${isActive ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)] text-[var(--site-primary)]" : "border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-text)] hover:border-[var(--site-border-strong)]"}`} key={background} onClick={() => state.updateDraft({ logoBackground: background })} type="button" value={background}><span className={`mb-2 block h-8 rounded border border-[var(--site-border-strong)] ${SITE_LOGO_BACKGROUND_CLASSES[background]}`} />{SITE_LOGO_BACKGROUND_LABELS[background]}</button>; })}</div></div>
       </SectionCard>
-      <aside className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm"><h2 className="font-bold">ตัวอย่างแบรนด์</h2><div className={`mt-4 rounded-md p-4 ${SITE_LOGO_BACKGROUND_CLASSES[draft.logoBackground]}`}><img alt={draft.logoImage.alt} className="mx-auto h-20 max-w-full object-contain" src={draft.logoImage.url} /></div><p className="mt-3 text-center text-sm font-semibold">{draft.siteName || "Pool Villas Pattaya"}</p></aside>
+      <aside className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm"><h2 className="font-bold">ตัวอย่างแบรนด์</h2><div className={`mt-4 rounded-md p-4 ${SITE_LOGO_BACKGROUND_CLASSES[draft.logoBackground]}`}><Image alt={draft.logoImage.alt} className="mx-auto h-20 w-auto max-w-full object-contain" height={80} width={256} unoptimized src={draft.logoImage.url} /></div><p className="mt-3 text-center text-sm font-semibold">{draft.siteName || "Pool Villas Pattaya"}</p></aside>
     </div> : null}
   </div>;
 }

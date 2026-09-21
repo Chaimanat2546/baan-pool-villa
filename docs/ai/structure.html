@@ -1091,6 +1091,19 @@
       </section>
 
       <section id="verification-map">
+        <p>
+          Villa guest reviews: <code>lib/villa-reviews/server.ts</code> and
+          <code>route.ts</code> load content validation only for submissions;
+          GET and booking verification use <code>input-validation.ts</code>.
+          <code>profanity.ts</code> owns synchronous Thai dictionary matching
+          (bad-words-thai submodules) and English matching (obscenity).
+          Do not import the bad-words-thai package root or initialize CLD3:
+          its runtime Wasm compilation hangs module loading on Workers.
+          Run <code>npm.cmd test -- lib/villa-reviews</code>, including
+          <code>worker-validation.test.ts</code> for actual workerd execution
+          and <code>read-loading.test.ts</code> for GET/moderation isolation,
+          plus the public and admin villa-review route suites.
+        </p>
         <h2>Verification Map</h2>
         <table>
           <thead>

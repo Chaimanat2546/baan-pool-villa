@@ -8,6 +8,7 @@ const migrationPath = resolve(
 
 async function readMigration() {
   return (await readFile(migrationPath, "utf8"))
+    .replace(/\r\n/g, "\n")
     .replace(/--[^\n]*/g, "")
     .toLowerCase();
 }

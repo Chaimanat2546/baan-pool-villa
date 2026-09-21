@@ -10,7 +10,7 @@ import {
   VillaReviewError,
 } from "./server";
 import type { PublicVillaReview, ReviewSubmissionInput } from "./types";
-import { validateReviewFiles, validateReviewSubmission } from "./validation";
+import { validateReviewFiles } from "./input-validation";
 
 function json(body: unknown, status = 200) {
   // Data reads are cached by the repository's per-villa tag. Avoid a second
@@ -158,6 +158,7 @@ export async function postPublicVillaReview(request: Request, villaId: string) {
       return json({ error: "กรุณาตรวจสอบข้อมูลรีวิว", fieldErrors: { images: "กรุณาเลือกไฟล์รูปภาพ" } }, 400);
     }
     files = images as File[];
+    const { validateReviewSubmission } = await import("./validation");
     const validation = validateReviewSubmission(input);
     const fileValidation = validateReviewFiles(files);
     if (!validation.ok || !fileValidation.ok) {

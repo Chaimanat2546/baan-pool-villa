@@ -15,7 +15,6 @@ vi.mock("next/link", () => ({
   default: ({
     children,
     href,
-    onNavigate: _onNavigate,
     prefetch,
     ...props
   }: AnchorHTMLAttributes<HTMLAnchorElement> & {
@@ -23,11 +22,13 @@ vi.mock("next/link", () => ({
     href: string;
     onNavigate?: (event: { preventDefault: () => void }) => void;
     prefetch?: boolean;
-  }) => (
-    <a data-prefetch={String(prefetch)} href={href} {...props}>
+  }) => {
+    // Next's navigation callback is not a native anchor attribute.
+    delete props.onNavigate;
+    return <a data-prefetch={String(prefetch)} href={href} {...props}>
       {children}
-    </a>
-  ),
+    </a>;
+  },
 }));
 
 vi.mock("next/navigation", () => ({
