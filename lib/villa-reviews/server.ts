@@ -172,8 +172,13 @@ export async function getVillaReviewSummary(villaId: string): Promise<VillaRevie
     const ratings = [1, 2, 3, 4, 5] as const;
     const counts = await Promise.all(ratings.map(async (rating) => {
       const result = await client.from(PUBLIC_VIEW).select("id", { count: "exact", head: true })
-        .eq("villa_id", villaId).eq("rating", rating);
-      if (result.error || result.count === null) throw new VillaReviewError("database_error", "โหลดสรุปรีวิวไม่สำเร็จ");
+        .eq("villa_id", villaId).eq("rating", rating).retry(false);
+      if (result.error || result.count === null) {
+        console.warn("Villa review Supabase read failed", {
+          operation: "summary", reason: result.error ? "supabase_error" : "missing_count", status: result.status,
+        });
+        throw new VillaReviewError("database_error", "โหลดสรุปรีวิวไม่สำเร็จ");
+      }
       return result.count;
     }));
     const totalCount = counts.reduce((sum, count) => sum + count, 0);
@@ -206,8 +211,14 @@ export async function getVillaReviewPage(villaId: string, sort: ReviewSort, curs
       const value = sort === "newest" ? after.createdAt : after.rating;
       query = query.or(`${orderKey}.${comparison}.${value},and(${orderKey}.eq.${value},id.${comparison}.${after.id})`);
     }
+    query = query.retry(false);
     const result = await query;
-    if (result.error || !Array.isArray(result.data)) throw new VillaReviewError("database_error", "โหลดรีวิวไม่สำเร็จ");
+    if (result.error || !Array.isArray(result.data)) {
+      console.warn("Villa review Supabase read failed", {
+        operation: "page", reason: result.error ? "supabase_error" : "invalid_data", status: result.status,
+      });
+      throw new VillaReviewError("database_error", "โหลดรีวิวไม่สำเร็จ");
+    }
     const rows = result.data as PublicRow[];
     const items = rows.slice(0, PAGE_SIZE).map(mapPublicReview);
     const last = items.at(-1);

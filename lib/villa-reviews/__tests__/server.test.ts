@@ -32,10 +32,10 @@ const files = () => [new File(["one"], "one.jpg", { type: "image/jpeg" }), new F
 function query(data: unknown, count: number | null = 0, error: unknown = null) {
   const result = { data, count, error };
   const builder = {
-    select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), or: vi.fn(), single: vi.fn(), maybeSingle: vi.fn(),
+    select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), or: vi.fn(), retry: vi.fn(), single: vi.fn(), maybeSingle: vi.fn(),
     then: (resolve: (value: typeof result) => unknown) => Promise.resolve(result).then(resolve),
   };
-  for (const method of [builder.select, builder.eq, builder.order, builder.limit, builder.or, builder.single, builder.maybeSingle]) method.mockReturnValue(builder);
+  for (const method of [builder.select, builder.eq, builder.order, builder.limit, builder.or, builder.retry, builder.single, builder.maybeSingle]) method.mockReturnValue(builder);
   return builder;
 }
 
@@ -77,6 +77,7 @@ describe("villa review repository", () => {
     const cursor = JSON.parse(Buffer.from(page.nextCursor!, "base64url").toString());
     expect(cursor.createdAt).toBe("2026-09-07T00:00:00.123456+00:00");
     expect(fake.from.mock.calls.every(([table]) => table === "villa_reviews_public")).toBe(true);
+    expect(fake.from.mock.results.every(({ value }) => value.retry.mock.calls.some((args: unknown[]) => args[0] === false))).toBe(true);
     expect(fake.cache).toHaveBeenCalledWith(expect.any(Function), expect.arrayContaining(["villa-1"]), { tags: ["villa-reviews:villa-1"], revalidate: 43200 });
   });
 
