@@ -440,8 +440,16 @@ describe("DetailLayoutRenderer", () => {
     );
 
     const markup = render(DEFAULT_DETAIL_LAYOUT, { sections });
+    const compactDetails = markup.match(
+      /<details[^>]*data-detail-compact-list="true"[^>]*>/,
+    )?.[0];
 
     expect(markup).toContain('data-detail-compact-list="true"');
+    expect(compactDetails).toBeDefined();
+    expect(compactDetails).toContain('class="group"');
+    expect(compactDetails).not.toContain("rounded-xl");
+    expect(markup).toContain('class="group" data-detail-compact-list="true"');
+    expect(markup).toContain("group-open:hidden");
     expect(markup).toContain("<summary");
     expect(markup).toContain("long detail line 1");
     expect(markup).toContain("long detail line 8");
