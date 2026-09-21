@@ -12,6 +12,7 @@ const PUBLIC_COLUMNS = "id,villa_id,rating,comment,masked_phone,images,created_a
 const PUBLIC_VIEW = "villa_reviews_public";
 const BUCKET = "villa-reviews";
 const PAGE_SIZE = 5;
+const REVIEW_CACHE_TIMEOUT_MS = 5_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 type ReviewErrorCode = "invalid_cursor" | "validation_error" | "booking_verification_failed" | "booking_verification_unavailable" | "duplicate_booking_code" | "storage_error" | "database_error" | "submission_outcome_unknown";
@@ -128,9 +129,45 @@ export function validateVillaId(villaId: string) {
   }
 }
 
+class CachedReviewSourceError extends Error {
+  constructor(public readonly cause: unknown) {
+    super("Villa review source read failed while filling the cache");
+  }
+}
+
+function cacheReviewLoad<T>(loadDirect: () => Promise<T>): () => Promise<T> {
+  return async () => {
+    try {
+      return await loadDirect();
+    } catch (error) {
+      throw new CachedReviewSourceError(error);
+    }
+  };
+}
+
+async function loadReviewWithCacheFallback<T>(
+  loadCached: () => Promise<T>,
+  loadDirect: () => Promise<T>,
+): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      loadCached(),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("Villa review cache timed out")), REVIEW_CACHE_TIMEOUT_MS);
+      }),
+    ]);
+  } catch (error) {
+    if (error instanceof CachedReviewSourceError) throw error.cause;
+    return loadDirect();
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 export async function getVillaReviewSummary(villaId: string): Promise<VillaReviewSummary> {
   validateVillaId(villaId);
-  return unstable_cache(async () => {
+  const loadDirect = async () => {
     const client = createVillaReviewsClient();
     const ratings = [1, 2, 3, 4, 5] as const;
     const counts = await Promise.all(ratings.map(async (rating) => {
@@ -145,9 +182,11 @@ export async function getVillaReviewSummary(villaId: string): Promise<VillaRevie
       totalCount, averageRating: totalCount ? weighted / totalCount : 0,
       ratingCounts: { 1: counts[0], 2: counts[1], 3: counts[2], 4: counts[3], 5: counts[4] },
     };
-  }, ["villa-review-summary", villaId], {
+  };
+  const loadCached = unstable_cache(cacheReviewLoad(loadDirect), ["villa-review-summary", villaId], {
     tags: [CACHE_TAGS.villaReviews(villaId)], revalidate: CACHE_REVALIDATE_SECONDS.villaReviews,
-  })();
+  });
+  return loadReviewWithCacheFallback(loadCached, loadDirect);
 }
 
 export async function getVillaReviewPage(villaId: string, sort: ReviewSort, cursor: string | null): Promise<ReviewPage> {
@@ -156,7 +195,7 @@ export async function getVillaReviewPage(villaId: string, sort: ReviewSort, curs
     throw new VillaReviewError("validation_error", "รูปแบบเรียงรีวิวไม่ถูกต้อง");
   }
   const after = validateVillaReviewCursor(villaId, sort, cursor);
-  const loadPage = unstable_cache(async () => {
+  const loadDirect = async () => {
     const client = createVillaReviewsClient();
     const ascending = sort === "rating_asc";
     const orderKey = sort === "newest" ? "created_at" : "rating";
@@ -176,10 +215,14 @@ export async function getVillaReviewPage(villaId: string, sort: ReviewSort, curs
       villaId, sort, id: last.id, createdAt: last.createdAt, rating: last.rating,
     } satisfies ReviewCursor)).toString("base64url") : null;
     return { items, nextCursor };
-  }, ["villa-review-page", villaId, sort, cursor ?? ""], {
+  };
+  const loadCached = unstable_cache(cacheReviewLoad(loadDirect), ["villa-review-page", villaId, sort, cursor ?? ""], {
     tags: [CACHE_TAGS.villaReviews(villaId)], revalidate: CACHE_REVALIDATE_SECONDS.villaReviews,
   });
-  const [page, summary] = await Promise.all([loadPage(), getVillaReviewSummary(villaId)]);
+  const [page, summary] = await Promise.all([
+    loadReviewWithCacheFallback(loadCached, loadDirect),
+    getVillaReviewSummary(villaId),
+  ]);
   return { ...page, summary };
 }
 
