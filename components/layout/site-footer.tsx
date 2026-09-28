@@ -92,9 +92,13 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
       text: `LINE : ${contactSettings.contact.lineId}`,
     },
     ...contactSettings.contact.emails.map((email, index) => ({
-      href: `mailto:${email}`,
+      href: `https://mail.google.com/mail/?${new URLSearchParams({
+        fs: "1",
+        to: email,
+        view: "cm",
+      })}`,
       key: `email-${index}-${email}`,
-      text: email,
+      text: `Email : ${email}`,
     })),
     {
       href: contactSettings.contact.messengerUrl,
