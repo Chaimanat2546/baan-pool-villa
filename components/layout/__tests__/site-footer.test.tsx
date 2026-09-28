@@ -96,7 +96,7 @@ describe("SiteFooter", () => {
     expect(markup).not.toContain("text-[var(--site-on-primary)]");
   });
 
-  it("renders every configured contact email as a mailto link", () => {
+  it("renders every configured contact email as a labeled Gmail compose link", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter
         contactSettings={{
@@ -110,10 +110,14 @@ describe("SiteFooter", () => {
       />,
     );
 
-    expect(markup).toContain("reservations@example.com");
-    expect(markup).toContain("sales@example.com");
-    expect(markup).toContain('href="mailto:reservations@example.com"');
-    expect(markup).toContain('href="mailto:sales@example.com"');
+    expect(markup).toContain("Email : reservations@example.com");
+    expect(markup).toContain("Email : sales@example.com");
+    expect(markup).toContain(
+      'href="https://mail.google.com/mail/?fs=1&amp;to=reservations%40example.com&amp;view=cm"',
+    );
+    expect(markup).toContain(
+      'href="https://mail.google.com/mail/?fs=1&amp;to=sales%40example.com&amp;view=cm"',
+    );
   });
 
   it("applies the readable primary text color directly to the footer", () => {
