@@ -20,7 +20,7 @@ describe("site contact links", () => {
     });
     expect(
       buildContactLinks({
-        email: "",
+        emails: [],
         phoneContacts: [],
         messengerUrl: "https://example.com/messenger",
         showFacebookTimeline: true,

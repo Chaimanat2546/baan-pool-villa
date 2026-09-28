@@ -33,7 +33,7 @@ const THEME_PREVIEW_CONTACT_SETTINGS: SiteContactSettings = {
     accountNumber: "123-4-56789-0",
   },
   contact: {
-    email: "",
+    emails: [],
     phoneContacts: [
       { name: "คุณมินท์", phone: "081-234-5678", time: "ช่วง 09.00-18.00" },
       { name: "คุณนนท์", phone: "089-876-5432", time: "ช่วง 10.00-20.00" },

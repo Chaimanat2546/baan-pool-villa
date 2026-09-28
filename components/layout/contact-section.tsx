@@ -16,16 +16,14 @@ export function ContactSection({ settings }: ContactSectionProps) {
       title: contact.time,
       href: buildPhoneHref(contact.phone),
     })),
-    ...(settings.contact.email
-      ? [{
-        detail: settings.contact.email,
+    ...settings.contact.emails.map((email, index) => ({
+        detail: email,
         icon: Mail,
-        key: "email",
+        key: `email-${index}-${email}`,
         label: "อีเมล:",
         title: "อีเมลสำหรับติดต่อ",
-        href: `mailto:${settings.contact.email}`,
-      }]
-      : []),
+        href: `mailto:${email}`,
+      })),
     {
       detail: settings.contact.lineId,
       icon: MessageCircle,

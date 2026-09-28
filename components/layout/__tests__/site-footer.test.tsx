@@ -96,14 +96,14 @@ describe("SiteFooter", () => {
     expect(markup).not.toContain("text-[var(--site-on-primary)]");
   });
 
-  it("renders the configured contact email as a mailto link", () => {
+  it("renders every configured contact email as a mailto link", () => {
     const markup = renderToStaticMarkup(
       <SiteFooter
         contactSettings={{
           ...DEFAULT_SITE_CONTACT_SETTINGS,
           contact: {
             ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
-            email: "reservations@example.com",
+            emails: ["reservations@example.com", "sales@example.com"],
           },
         } as unknown as SiteContactSettings}
         settings={DEFAULT_SITE_SETTINGS}
@@ -111,7 +111,9 @@ describe("SiteFooter", () => {
     );
 
     expect(markup).toContain("reservations@example.com");
+    expect(markup).toContain("sales@example.com");
     expect(markup).toContain('href="mailto:reservations@example.com"');
+    expect(markup).toContain('href="mailto:sales@example.com"');
   });
 
   it("applies the readable primary text color directly to the footer", () => {

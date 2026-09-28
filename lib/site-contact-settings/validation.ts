@@ -27,12 +27,6 @@ function httpUrl(value: string | null, fallback: string): string {
   }
 }
 
-function email(value: string | null, fallback: string): string {
-  const normalized = value?.trim() ?? "";
-  if (!normalized) return fallback;
-  return isEmail(normalized) ? normalized : fallback;
-}
-
 function isEmail(value: string): boolean {
   if (value.includes(" ")) return false;
   const atIndex = value.indexOf("@");
@@ -40,6 +34,14 @@ function isEmail(value: string): boolean {
   const domain = value.slice(atIndex + 1);
   const dotIndex = domain.lastIndexOf(".");
   return dotIndex > 0 && dotIndex < domain.length - 1;
+}
+
+function contactEmails(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length > 3) return null;
+  const normalized = value.map((email) =>
+    typeof email === "string" ? email.trim() : "",
+  );
+  return normalized.every(isEmail) ? normalized : null;
 }
 
 function phoneContacts(value: unknown): SitePhoneContact[] | null {
@@ -87,7 +89,9 @@ export function normalizeSiteContactSettingsRow(
       ),
     },
     contact: {
-      email: email(row.email, DEFAULT_SITE_CONTACT_SETTINGS.contact.email),
+      emails:
+        contactEmails(row.emails) ??
+        [...DEFAULT_SITE_CONTACT_SETTINGS.contact.emails],
       phoneContacts:
         phoneContacts(row.phone_contacts) ??
         cloneDefaultSiteContactSettings().contact.phoneContacts,
@@ -119,7 +123,7 @@ export function normalizeSiteContactSettingsDraft(
     bankAccountName: draft.bankAccountName.trim(),
     bankName: draft.bankName.trim(),
     bankAccountNumber: draft.bankAccountNumber.trim(),
-    email: draft.email.trim(),
+    emails: draft.emails.map((email) => email.trim()),
     phoneContacts: draft.phoneContacts.map((contact) => ({
       name: contact.name.trim(),
       phone: contact.phone.trim(),
@@ -149,9 +153,12 @@ export function validateSiteContactSettingsDraft(
   if (!draft.bankAccountName.trim()) errors.push("ต้องใส่ชื่อบัญชีธนาคาร");
   if (!draft.bankName.trim()) errors.push("ต้องใส่ชื่อธนาคาร");
   if (!draft.bankAccountNumber.trim()) errors.push("ต้องใส่เลขบัญชีธนาคาร");
-  if (draft.email.trim() && !isEmail(draft.email.trim())) {
-    errors.push("อีเมลสำหรับติดต่อไม่ถูกต้อง");
-  }
+  if (draft.emails.length > 3) errors.push("ต้องมีอีเมลสำหรับติดต่อไม่เกิน 3 รายการ");
+  draft.emails.forEach((email, index) => {
+    if (!isEmail(email.trim())) {
+      errors.push(`อีเมลสำหรับติดต่อรายการที่ ${index + 1} ไม่ถูกต้อง`);
+    }
+  });
   if (!draft.phoneContacts.length) errors.push("ต้องใส่เบอร์โทรอย่างน้อย 1 รายการ");
   if (draft.phoneContacts.length > 4) errors.push("ต้องมีเบอร์โทรไม่เกิน 4 รายการ");
   draft.phoneContacts.forEach((contact, index) => {

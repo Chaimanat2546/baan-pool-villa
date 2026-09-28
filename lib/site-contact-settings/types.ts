@@ -11,7 +11,7 @@ export interface SitePhoneContact {
 }
 
 export interface SiteContactChannels {
-  email: string;
+  emails: string[];
   phoneContacts: SitePhoneContact[];
   messengerUrl: string;
   facebookPageName?: string;
@@ -29,7 +29,7 @@ export interface SiteContactSettingsDraft {
   bankAccountName: string;
   bankName: string;
   bankAccountNumber: string;
-  email: string;
+  emails: string[];
   phoneContacts: SitePhoneContact[];
   messengerUrl: string;
   facebookPageName: string;
@@ -43,7 +43,7 @@ export interface SiteContactSettingsRow {
   bank_account_name: string | null;
   bank_name: string | null;
   bank_account_number: string | null;
-  email: string | null;
+  emails: unknown;
   phone_contacts: unknown;
   messenger_url: string | null;
   facebook_page_name?: string | null;

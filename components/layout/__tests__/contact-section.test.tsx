@@ -70,7 +70,7 @@ describe("ContactSection", () => {
             showFacebookTimeline: false,
             lineId: "@customline",
             lineUrl: "https://line.me/R/ti/p/@customline",
-            email: "reservations@example.com",
+            emails: ["reservations@example.com", "sales@example.com"],
           },
         } as unknown as typeof DEFAULT_SITE_CONTACT_SETTINGS}
       />,
@@ -82,6 +82,7 @@ describe("ContactSection", () => {
     expect(markup).toContain("0991234567");
     expect(markup).toContain("@customline");
     expect(markup).toContain("reservations@example.com");
+    expect(markup).toContain("sales@example.com");
     expect(markup).toContain('href="mailto:reservations@example.com"');
   });
 

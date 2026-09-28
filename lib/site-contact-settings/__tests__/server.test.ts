@@ -49,7 +49,7 @@ describe("getSiteContactSettings", () => {
         bank_account_name: "Account Name",
         bank_name: "Bank Name",
         bank_account_number: "123-4-56789-0",
-        email: "reservations@example.com",
+        emails: ["reservations@example.com"],
         phone_contacts: [
           { name: "Game", phone: "0617485213", time: "07.00-15.00" },
         ],
