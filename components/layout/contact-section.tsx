@@ -1,4 +1,4 @@
-import { CreditCard, MessageCircle, Phone } from "lucide-react";
+import { CreditCard, Mail, MessageCircle, Phone } from "lucide-react";
 import { buildPhoneHref } from "@/lib/site-contact";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 
@@ -16,6 +16,14 @@ export function ContactSection({ settings }: ContactSectionProps) {
       title: contact.time,
       href: buildPhoneHref(contact.phone),
     })),
+    ...settings.contact.emails.map((email, index) => ({
+        detail: email,
+        icon: Mail,
+        key: `email-${index}-${email}`,
+        label: "อีเมล:",
+        title: "อีเมลสำหรับติดต่อ",
+        href: `mailto:${email}`,
+      })),
     {
       detail: settings.contact.lineId,
       icon: MessageCircle,

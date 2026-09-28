@@ -29,11 +29,13 @@ describe("ContactSettingsPage", () => {
     const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/admin/site-settings/contact");
     expect(body).not.toEqual(expect.objectContaining({ seoTitle: expect.anything() }));
-    expect(Object.keys(body).sort()).toEqual(["bankAccountName", "bankAccountNumber", "bankName", "facebookPageName", "lineId", "lineUrl", "messengerUrl", "phoneContacts", "showFacebookTimeline"].sort());
+    expect(Object.keys(body).sort()).toEqual(["bankAccountName", "bankAccountNumber", "bankName", "emails", "facebookPageName", "lineId", "lineUrl", "messengerUrl", "phoneContacts", "showFacebookTimeline"].sort());
     expect(body.showFacebookTimeline).toBe(false);
     expect(page.container.querySelector('input[aria-label="แสดง Facebook Timeline"]')).not.toBeNull();
     expect(page.container.textContent).toContain("ข้อมูลบัญชีธนาคาร");
     expect(page.container.textContent).toContain("ช่องทางแชตและโซเชียล");
+    expect(page.container.querySelector("#email-0")).toBeNull();
+    expect(page.container.textContent).toContain("เพิ่มอีเมล");
     const addButton = [...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("เพิ่มผู้ติดต่อ"));
     expect(addButton?.getAttribute("type")).toBe("button");
     expect(addButton?.className).toContain("focus:ring-2");
