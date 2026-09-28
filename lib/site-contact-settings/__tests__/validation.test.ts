@@ -18,6 +18,7 @@ const validDraft: SiteContactSettingsDraft = {
   bankAccountName: "Account Name",
   bankName: "Bank Name",
   bankAccountNumber: "123-4-56789-0",
+  email: "reservations@example.com",
   phoneContacts: [{ name: "Game", phone: "0617485213", time: "07.00-15.00" }],
   messengerUrl: "https://www.facebook.com/baanpoolvillas",
   facebookPageName: "พี่หมี พูลวิลล่าพัทยา",
@@ -32,6 +33,7 @@ function row(overrides: Partial<SiteContactSettingsRow> = {}): SiteContactSettin
     bank_account_name: " Account Name ",
     bank_name: " Bank Name ",
     bank_account_number: " 123-4-56789-0 ",
+    email: " reservations@example.com ",
     phone_contacts: [
       { name: " Game ", phone: " 0617485213 ", time: " 07.00-15.00 " },
     ],
@@ -53,6 +55,7 @@ describe("site contact settings validation", () => {
         accountNumber: "123-4-56789-0",
       },
       contact: {
+        email: "reservations@example.com",
         phoneContacts: [
           { name: "Game", phone: "0617485213", time: "07.00-15.00" },
         ],
@@ -77,6 +80,7 @@ describe("site contact settings validation", () => {
     ).toMatchObject({
       contact: {
         ...DEFAULT_SITE_CONTACT_SETTINGS.contact,
+        email: "reservations@example.com",
         facebookPageName: "พี่หมี พูลวิลล่าพัทยา",
         showFacebookTimeline: false,
       },
@@ -122,6 +126,20 @@ describe("site contact settings validation", () => {
         })),
       }),
     ).toContain("ต้องมีเบอร์โทรไม่เกิน 4 รายการ");
+  });
+
+  it("normalizes one contact email and rejects an invalid email address", () => {
+    const draft = { ...validDraft, email: "  reservations@example.com  " };
+
+    expect(normalizeSiteContactSettingsDraft(draft)).toMatchObject({
+      email: "reservations@example.com",
+    });
+    expect(
+      validateSiteContactSettingsDraft({
+        ...draft,
+        email: "not-an-email",
+      }),
+    ).toContain("อีเมลสำหรับติดต่อไม่ถูกต้อง");
   });
 
   it("clones phone contacts in the default fallback", () => {

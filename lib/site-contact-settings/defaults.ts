@@ -7,6 +7,7 @@ export const DEFAULT_SITE_CONTACT_SETTINGS: SiteContactSettings = {
     accountNumber: "398-289-7482",
   },
   contact: {
+    email: "",
     phoneContacts: [
       {
         name: "คุณเกม",

@@ -17,6 +17,7 @@ const savedRow = {
   bank_account_name: "Account Name",
   bank_name: "Bank Name",
   bank_account_number: "123-4-56789-0",
+  email: "reservations@example.com",
   phone_contacts: [
     { name: "Game", phone: "0617485213", time: "07.00-15.00" },
   ],
@@ -30,6 +31,7 @@ const validDraft = {
   bankAccountName: " Account Name ",
   bankName: " Bank Name ",
   bankAccountNumber: " 123-4-56789-0 ",
+  email: " reservations@example.com ",
   phoneContacts: [
     { name: " Game ", phone: " 0617485213 ", time: " 07.00-15.00 " },
   ],
@@ -68,7 +70,7 @@ describe("site contact settings admin route helper", () => {
     });
     expect(query.from).toHaveBeenCalledWith("site_contact_settings");
     expect(query.select).toHaveBeenCalledWith(
-      "singleton_id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,facebook_page_name,show_facebook_timeline,line_id,line_url",
+      "singleton_id,bank_account_name,bank_name,bank_account_number,email,phone_contacts,messenger_url,facebook_page_name,show_facebook_timeline,line_id,line_url",
     );
     expect(query.eq).toHaveBeenCalledWith("singleton_id", true);
   });
@@ -107,7 +109,7 @@ describe("site contact settings admin route helper", () => {
     expect(query.from).toHaveBeenCalledTimes(1);
     expect(query.from).toHaveBeenCalledWith("site_contact_settings");
     expect(query.upsert).toHaveBeenCalledWith(
-      { ...savedRow, facebook_page_name: "พี่หมี พูลวิลล่าพัทยา", show_facebook_timeline: false, singleton_id: true },
+      { ...savedRow, email: "reservations@example.com", facebook_page_name: "พี่หมี พูลวิลล่าพัทยา", show_facebook_timeline: false, singleton_id: true },
       { onConflict: "singleton_id" },
     );
     expect(await response.json()).toMatchObject({

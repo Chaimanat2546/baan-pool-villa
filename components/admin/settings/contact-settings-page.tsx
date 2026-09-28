@@ -45,6 +45,14 @@ export function ContactSettingsPage() {
             </div>
             <div className="mt-4 grid gap-4 lg:grid-cols-3">
               <TextControl
+                id="email"
+                inputMode="email"
+                label="อีเมลสำหรับติดต่อ"
+                onChange={(email) => state.updateDraft({ email })}
+                placeholder="reservations@example.com"
+                value={draft.email}
+              />
+              <TextControl
                 id="bankAccountName"
                 label="ชื่อบัญชี"
                 onChange={(bankAccountName) => {
@@ -243,7 +251,7 @@ export function ContactSettingsPage() {
             </label>
           </div>
         </SectionCard>
-          <aside className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm"><h2 className="font-bold">สรุปข้อมูลติดต่อ</h2><dl className="mt-4 grid gap-3 text-sm"><div className="flex justify-between gap-3"><dt className="text-[var(--site-muted)]">เบอร์โทร</dt><dd className="font-semibold">{draft.phoneContacts.filter((item) => item.name.trim() || item.phone.trim() || item.time.trim()).length} รายการ</dd></div><div className="flex justify-between gap-3"><dt className="text-[var(--site-muted)]">Messenger</dt><dd className="max-w-40 truncate font-semibold">{draft.messengerUrl}</dd></div><div className="flex justify-between gap-3"><dt className="text-[var(--site-muted)]">LINE</dt><dd className="font-semibold">{draft.lineId}</dd></div></dl><div className="mt-5 rounded-md bg-[var(--site-primary-soft)] p-4"><Landmark className="size-5 text-[var(--site-primary)]" /><p className="mt-2 font-semibold">{bankPreviewName}</p><p className="mt-1 text-sm">{bankPreviewNumber}</p><p className="text-sm text-[var(--site-muted)]">{bankPreviewAccountName}</p></div></aside>
+          <aside className="rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-sm"><h2 className="font-bold">สรุปข้อมูลติดต่อ</h2><dl className="mt-4 grid gap-3 text-sm"><div className="flex justify-between gap-3"><dt className="text-[var(--site-muted)]">เบอร์โทร</dt><dd className="font-semibold">{draft.phoneContacts.filter((item) => item.name.trim() || item.phone.trim() || item.time.trim()).length} รายการ</dd></div><div className="flex justify-between gap-3"><dt className="text-[var(--site-muted)]">อีเมล</dt><dd className="max-w-40 truncate font-semibold">{draft.email || "ยังไม่ได้ตั้งค่า"}</dd></div><div className="flex justify-between gap-3"><dt className="text-[var(--site-muted)]">Messenger</dt><dd className="max-w-40 truncate font-semibold">{draft.messengerUrl}</dd></div><div className="flex justify-between gap-3"><dt className="text-[var(--site-muted)]">LINE</dt><dd className="font-semibold">{draft.lineId}</dd></div></dl><div className="mt-5 rounded-md bg-[var(--site-primary-soft)] p-4"><Landmark className="size-5 text-[var(--site-primary)]" /><p className="mt-2 font-semibold">{bankPreviewName}</p><p className="mt-1 text-sm">{bankPreviewNumber}</p><p className="text-sm text-[var(--site-muted)]">{bankPreviewAccountName}</p></div></aside>
         </div>
       ) : null}
     </div>

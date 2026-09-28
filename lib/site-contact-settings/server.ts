@@ -14,7 +14,7 @@ import type {
 import { normalizeSiteContactSettingsRow } from "./validation";
 
 const SITE_CONTACT_SETTINGS_SELECT =
-  "singleton_id,bank_account_name,bank_name,bank_account_number,phone_contacts,messenger_url,facebook_page_name,show_facebook_timeline,line_id,line_url";
+  "singleton_id,bank_account_name,bank_name,bank_account_number,email,phone_contacts,messenger_url,facebook_page_name,show_facebook_timeline,line_id,line_url";
 
 const getCachedSiteContactSettings = createHomeConfigCachedLoader(
   async (): Promise<SiteContactSettings> => {
@@ -27,7 +27,7 @@ const getCachedSiteContactSettings = createHomeConfigCachedLoader(
     if (error || !data) throw new Error("Site contact settings are unavailable");
     return normalizeSiteContactSettingsRow(data as SiteContactSettingsRow);
   },
-  [`${CACHE_TAGS.siteContactSettings}:v1`],
+  [`${CACHE_TAGS.siteContactSettings}:v2`],
   {
     revalidate: CACHE_REVALIDATE_SECONDS.siteContactSettings,
     tags: [CACHE_TAGS.siteContactSettings],

@@ -70,8 +70,9 @@ describe("ContactSection", () => {
             showFacebookTimeline: false,
             lineId: "@customline",
             lineUrl: "https://line.me/R/ti/p/@customline",
+            email: "reservations@example.com",
           },
-        }}
+        } as unknown as typeof DEFAULT_SITE_CONTACT_SETTINGS}
       />,
     );
 
@@ -80,6 +81,8 @@ describe("ContactSection", () => {
     expect(markup).toContain("คุณทดสอบ");
     expect(markup).toContain("0991234567");
     expect(markup).toContain("@customline");
+    expect(markup).toContain("reservations@example.com");
+    expect(markup).toContain('href="mailto:reservations@example.com"');
   });
 
   it("renders duplicate phone contact values without duplicate React key warnings", async () => {

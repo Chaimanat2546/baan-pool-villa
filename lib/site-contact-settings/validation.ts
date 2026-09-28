@@ -27,6 +27,21 @@ function httpUrl(value: string | null, fallback: string): string {
   }
 }
 
+function email(value: string | null, fallback: string): string {
+  const normalized = value?.trim() ?? "";
+  if (!normalized) return fallback;
+  return isEmail(normalized) ? normalized : fallback;
+}
+
+function isEmail(value: string): boolean {
+  if (value.includes(" ")) return false;
+  const atIndex = value.indexOf("@");
+  if (atIndex <= 0 || atIndex !== value.lastIndexOf("@")) return false;
+  const domain = value.slice(atIndex + 1);
+  const dotIndex = domain.lastIndexOf(".");
+  return dotIndex > 0 && dotIndex < domain.length - 1;
+}
+
 function phoneContacts(value: unknown): SitePhoneContact[] | null {
   if (!Array.isArray(value) || value.length === 0) return null;
 
@@ -72,6 +87,7 @@ export function normalizeSiteContactSettingsRow(
       ),
     },
     contact: {
+      email: email(row.email, DEFAULT_SITE_CONTACT_SETTINGS.contact.email),
       phoneContacts:
         phoneContacts(row.phone_contacts) ??
         cloneDefaultSiteContactSettings().contact.phoneContacts,
@@ -103,6 +119,7 @@ export function normalizeSiteContactSettingsDraft(
     bankAccountName: draft.bankAccountName.trim(),
     bankName: draft.bankName.trim(),
     bankAccountNumber: draft.bankAccountNumber.trim(),
+    email: draft.email.trim(),
     phoneContacts: draft.phoneContacts.map((contact) => ({
       name: contact.name.trim(),
       phone: contact.phone.trim(),
@@ -132,6 +149,9 @@ export function validateSiteContactSettingsDraft(
   if (!draft.bankAccountName.trim()) errors.push("ต้องใส่ชื่อบัญชีธนาคาร");
   if (!draft.bankName.trim()) errors.push("ต้องใส่ชื่อธนาคาร");
   if (!draft.bankAccountNumber.trim()) errors.push("ต้องใส่เลขบัญชีธนาคาร");
+  if (draft.email.trim() && !isEmail(draft.email.trim())) {
+    errors.push("อีเมลสำหรับติดต่อไม่ถูกต้อง");
+  }
   if (!draft.phoneContacts.length) errors.push("ต้องใส่เบอร์โทรอย่างน้อย 1 รายการ");
   if (draft.phoneContacts.length > 4) errors.push("ต้องมีเบอร์โทรไม่เกิน 4 รายการ");
   draft.phoneContacts.forEach((contact, index) => {

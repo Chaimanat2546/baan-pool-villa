@@ -49,6 +49,7 @@ describe("getSiteContactSettings", () => {
         bank_account_name: "Account Name",
         bank_name: "Bank Name",
         bank_account_number: "123-4-56789-0",
+        email: "reservations@example.com",
         phone_contacts: [
           { name: "Game", phone: "0617485213", time: "07.00-15.00" },
         ],
@@ -68,7 +69,7 @@ describe("getSiteContactSettings", () => {
     expect(query.eq).toHaveBeenCalledWith("singleton_id", true);
     expect(unstable_cache).toHaveBeenCalledWith(
       expect.any(Function),
-      [`${CACHE_TAGS.siteContactSettings}:v1`],
+      [`${CACHE_TAGS.siteContactSettings}:v2`],
       {
         revalidate: CACHE_REVALIDATE_SECONDS.siteContactSettings,
         tags: [CACHE_TAGS.siteContactSettings],

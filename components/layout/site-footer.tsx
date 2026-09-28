@@ -91,6 +91,13 @@ export function SiteFooter({ contactSettings, settings }: SiteFooterProps) {
       key: "line",
       text: `LINE : ${contactSettings.contact.lineId}`,
     },
+    ...(contactSettings.contact.email
+      ? [{
+        href: `mailto:${contactSettings.contact.email}`,
+        key: "email",
+        text: contactSettings.contact.email,
+      }]
+      : []),
     {
       href: contactSettings.contact.messengerUrl,
       key: "messenger",

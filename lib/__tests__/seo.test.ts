@@ -123,6 +123,7 @@ const contactSettings: SiteContactSettings = {
     accountNumber: "398-289-7482",
   },
   contact: {
+    email: "",
     phoneContacts: [
       {
         name: "Game",
