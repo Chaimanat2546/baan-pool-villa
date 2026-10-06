@@ -18,9 +18,12 @@ import type { GalleryItem } from "../types";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
-const { galleryLightboxRenderMock } = vi.hoisted(() => ({
+const { galleryLightboxRenderMock, analyticsTrackMock } = vi.hoisted(() => ({
+  analyticsTrackMock: vi.fn(),
   galleryLightboxRenderMock: vi.fn(),
 }));
+
+vi.mock("@/lib/analytics/client", () => ({ track: analyticsTrackMock }));
 
 vi.mock("next/dynamic", async () => {
   const { createElement, lazy, Suspense } = await import("react");
@@ -361,6 +364,7 @@ async function clickFirstGalleryItem(container: HTMLElement) {
 }
 
 beforeEach(() => {
+  analyticsTrackMock.mockClear();
   fetchMock.mockReset();
   fetchMock.mockResolvedValue(
     new Response(JSON.stringify({ images: serverGalleryImages }), {
@@ -786,6 +790,17 @@ describe("VillaDetailPage server gallery", () => {
       ),
     ).toHaveLength(0);
 
+    expect(analyticsTrackMock).toHaveBeenCalledTimes(1);
+    expect(analyticsTrackMock).toHaveBeenLastCalledWith({event_name:"gallery_open",channel:null,villa_id:listing.id,page_path:window.location.pathname});
+    await act(async () => {
+      (page.container.querySelector("[data-overview-close]") as HTMLButtonElement).click();
+    });
+    await flushReact();
+    await act(async () => {
+      (page.container.querySelector("[data-gallery-view-all]") as HTMLButtonElement).click();
+    });
+    await flushReact();
+    expect(analyticsTrackMock).toHaveBeenCalledTimes(2);
     await page.unmount();
   });
 

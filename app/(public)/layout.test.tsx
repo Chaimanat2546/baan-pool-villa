@@ -66,7 +66,7 @@ describe("PublicLayout", () => {
     });
     mockedGetSiteSettings.mockResolvedValue({
       degraded: false,
-      settings: DEFAULT_SITE_SETTINGS,
+      settings: { ...DEFAULT_SITE_SETTINGS, googleTagManagerId: "GTM-LEGACY12" },
       source: "config",
     });
     mockedGetSiteWebStyles.mockResolvedValue({
@@ -80,6 +80,8 @@ describe("PublicLayout", () => {
       children: <main>ชุดบ้านพัก</main>,
     });
     const markup = renderToStaticMarkup(element);
+    expect(markup).not.toContain("googletagmanager");
+    expect(markup).not.toContain("GTM-LEGACY12");
 
     expect(markup).toContain('data-villa-card-style-provider="gallery"');
     expect(markup).toContain("ชุดบ้านพัก");

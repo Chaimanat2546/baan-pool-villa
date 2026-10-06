@@ -125,7 +125,8 @@ function renderInlineContent(content: LegalTextContent[]): ReactNode[] {
       return item.text;
     }
 
-    const isExternal = href.startsWith("http://") || href.startsWith("https://");
+    const isExternal =
+      href.startsWith("http://") || href.startsWith("https://");
 
     return (
       <a
@@ -141,12 +142,10 @@ function renderInlineContent(content: LegalTextContent[]): ReactNode[] {
   });
 }
 
-function isSupportedLegalBlockType(type: unknown): type is
-  | "paragraph"
-  | "heading"
-  | "bulletListItem"
-  | "numberedListItem"
-  | "quote" {
+function isSupportedLegalBlockType(
+  type: unknown,
+): type is
+  "paragraph" | "heading" | "bulletListItem" | "numberedListItem" | "quote" {
   return (
     type === "paragraph" ||
     type === "heading" ||
@@ -172,7 +171,10 @@ function renderBlocks(blocks: unknown[]): ReactNode[] {
       continue;
     }
 
-    if (current.type === "bulletListItem" || current.type === "numberedListItem") {
+    if (
+      current.type === "bulletListItem" ||
+      current.type === "numberedListItem"
+    ) {
       const listType = current.type;
       const listItems: ReactNode[] = [];
 
@@ -233,7 +235,10 @@ function renderBlocks(blocks: unknown[]): ReactNode[] {
     switch (current.type) {
       case "paragraph":
         renderedBlocks.push(
-          <p className="break-words whitespace-pre-wrap text-lg leading-8" key={index}>
+          <p
+            className="break-words whitespace-pre-wrap text-lg leading-8"
+            key={index}
+          >
             {inlineContent}
           </p>,
         );
@@ -303,6 +308,39 @@ export function LegalPage({ page, settings }: LegalPageProps) {
         <section className="grid gap-5 break-words" data-legal-page-content>
           {renderBlocks(page.contentBlocks as unknown[])}
         </section>
+        {page.slug === "privacy" ? (
+          <section
+            aria-labelledby="analytics-privacy"
+            className="grid gap-4 text-lg leading-8"
+          >
+            <h2 id="analytics-privacy" className="text-2xl font-semibold">
+              สถิติแบบไม่ติดตามบุคคล
+            </h2>
+            <p>
+              เว็บไซต์นับการเปิดหน้า การกดติดต่อ และการเปิดรูป
+              เพื่อดูภาพรวมการใช้งาน โดยไม่สร้างรหัสผู้เข้าชมหรือ session
+              ไม่ใช้คุกกี้หรือพื้นที่จัดเก็บในเบราว์เซอร์เพื่อเก็บสถิติ
+              และไม่เชื่อมเหตุการณ์เป็นประวัติรายบุคคล
+            </p>
+            <p>
+              ข้อมูลสถิติประกอบด้วยประเภทเหตุการณ์ หมวดหรือเส้นทางหน้าสาธารณะ
+              รหัสบ้าน ช่องทางติดต่อ และเวลาที่ระบบรับเหตุการณ์ ไม่เก็บชื่อ
+              เบอร์โทร ข้อความค้นหา URL ต้นทาง IP หรือข้อมูลอุปกรณ์ในฐานสถิติ
+              รหัสเหตุการณ์ใช้ป้องกันการนับซ้ำจากการส่งซ้ำเท่านั้น
+            </p>
+            <p>
+              ข้อมูลเหตุการณ์เก็บไว้ 180 วัน โดยมีงานลบข้อมูลเก่าทุกวัน
+              รายงานแสดงยอดรวมและไม่มีจำนวนผู้เข้าชมที่ไม่ซ้ำ
+              เว็บไซต์ไม่ส่งสถิตินี้ให้ Google และไม่โหลด GTM, GA4 หรือแท็กวัดผล
+              Google Ads
+            </p>
+            <p>
+              ระบบโฮสต์ยังประมวลผล IP
+              และข้อมูลทางเทคนิคที่จำเป็นต่อการรับส่งข้อมูล การป้องกันสแปม
+              และความปลอดภัย แยกจากฐานสถิติการใช้งานข้างต้น
+            </p>
+          </section>
+        ) : null}
       </article>
       {settings ? <ContactSection settings={settings} /> : null}
     </main>

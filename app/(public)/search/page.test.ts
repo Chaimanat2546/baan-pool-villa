@@ -186,7 +186,7 @@ describe("SearchPage route", () => {
       searchParams: Promise.resolve({ id: "902", sort: "price_desc" }),
     });
 
-    const searchPageElement = rendered.props.children;
+    const searchPageElement = rendered.props.children[1];
 
     expect(fetchVillaSearchPageMock).toHaveBeenCalledWith(
       expect.objectContaining({

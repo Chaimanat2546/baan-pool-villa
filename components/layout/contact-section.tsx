@@ -1,3 +1,4 @@
+import { AnalyticsContactLink } from "@/components/layout/analytics-contact-link";
 import { CreditCard, Mail, MessageCircle, Phone } from "lucide-react";
 import { buildPhoneHref } from "@/lib/site-contact";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
@@ -63,7 +64,8 @@ export function ContactSection({ settings }: ContactSectionProps) {
             const Icon = card.icon;
 
             return (
-              <a
+              <AnalyticsContactLink
+                channel={card.key === "line" ? "line" : card.href.startsWith("tel:") ? "phone" : null}
                 href={card.href}
                 target={card.href.startsWith("http") ? "_blank" : undefined}
                 rel={card.href.startsWith("http") ? "noopener noreferrer" : undefined}
@@ -82,7 +84,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   <span>{card.label}</span>
                   <span className="text-[var(--site-accent)]">{card.detail}</span>
                 </p>
-              </a>
+              </AnalyticsContactLink>
             );
           })}
         </div>

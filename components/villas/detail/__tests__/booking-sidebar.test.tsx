@@ -245,7 +245,8 @@ function clickCalendarNavButton(
 
 describe("BookingSidebar", () => {
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn());
+    localStorage.clear();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 201 })));
   });
 
   afterEach(() => {
@@ -291,7 +292,7 @@ describe("BookingSidebar", () => {
     expect(markup).toContain("เช็คอิน 13:00 · เช็คเอาท์ 11:00");
   });
 
-  it("pushes booking contact click events to the dataLayer", async () => {
+  it("does not send Google events even with a legacy ads grant", async () => {
     const page = await renderBookingSidebar();
     const lineLink = Array.from(page.container.querySelectorAll<HTMLAnchorElement>("a")).find(
       (link) => link.href === DEFAULT_SITE_CONTACT_SETTINGS.contact.lineUrl,
@@ -303,22 +304,7 @@ describe("BookingSidebar", () => {
       lineLink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect((window as typeof window & { dataLayer?: unknown[] }).dataLayer).toEqual([
-      expect.objectContaining({
-        contact_channel: "line",
-        contact_location: "booking_sidebar",
-        event: "booking_contact_click",
-        value: 12000,
-        ecommerce: expect.objectContaining({
-          items: [
-            expect.objectContaining({
-              item_id: "66",
-              price: 12000,
-            }),
-          ],
-        }),
-      }),
-    ]);
+    expect((window as typeof window & { dataLayer?: unknown[] }).dataLayer).toBeUndefined();
 
     await page.cleanup();
   });

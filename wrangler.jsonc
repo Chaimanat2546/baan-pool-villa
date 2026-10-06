@@ -25,6 +25,7 @@
 	"env": {
 		"baanparty": {
 			"name": "baan-party",
+			"triggers": { "crons": ["15 0 * * *"] },
 			"version_metadata": {
 				"binding": "CF_VERSION_METADATA"
 			},
@@ -32,6 +33,8 @@
 				"binding": "IMAGES"
 			},
 			"ratelimits": [
+				{ "name": "ANALYTICS_EVENT_RATE_LIMITER", "namespace_id": "91113", "simple": { "limit": 120, "period": 60 } },
+				{ "name": "ANALYTICS_REPORT_RATE_LIMITER", "namespace_id": "91213", "simple": { "limit": 20, "period": 60 } },
 				{
 					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "91013",
@@ -45,6 +48,11 @@
 				"NEXT_PUBLIC_SITE_URL": "https://www.baanpartypattaya.com",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
 				"CENTRAL_USER_MANAGER_TENANT_ID": "a7f10ab9-db3a-400f-8185-03aabe8041db",
+				"ANALYTICS_SITE_ID": "a7f10ab9-db3a-400f-8185-03aabe8041db",
+				"ANALYTICS_ENABLED": "true",
+				"ANALYTICS_RETENTION_ENABLED": "true",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://www.baanpartypattaya.com",
+				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://lpxsktjrkjzwbxvhjogo.supabase.co",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "lpxsktjrkjzwbxvhjogo"
 			},
 			"services": [
@@ -87,6 +95,7 @@
 			],
 			"secrets": {
 				"required": [
+					"ANALYTICS_REPORT_READ_TOKEN",
 					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
@@ -98,6 +107,7 @@
 		},
 		"baan02": {
 			"name": "pool-villa-pattaya-co-th",
+			"triggers": { "crons": ["15 0 * * *"] },
 			"version_metadata": {
 				"binding": "CF_VERSION_METADATA"
 			},
@@ -105,6 +115,8 @@
 				"binding": "IMAGES"
 			},
 			"ratelimits": [
+				{ "name": "ANALYTICS_EVENT_RATE_LIMITER", "namespace_id": "92113", "simple": { "limit": 120, "period": 60 } },
+				{ "name": "ANALYTICS_REPORT_RATE_LIMITER", "namespace_id": "92213", "simple": { "limit": 20, "period": 60 } },
 				{
 					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "92013",
@@ -118,6 +130,11 @@
 				"NEXT_PUBLIC_SITE_URL": "https://www.poolvillapattaya.co.th",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
 				"CENTRAL_USER_MANAGER_TENANT_ID": "9fd7c645-563a-4cce-85ac-20ffb8f3bfc0",
+				"ANALYTICS_SITE_ID": "9fd7c645-563a-4cce-85ac-20ffb8f3bfc0",
+				"ANALYTICS_ENABLED": "true",
+				"ANALYTICS_RETENTION_ENABLED": "true",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://www.poolvillapattaya.co.th",
+				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://vfqxpujsvgdqtrzpxobh.supabase.co",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "vfqxpujsvgdqtrzpxobh"
 			},
 			"services": [
@@ -160,6 +177,7 @@
 			],
 			"secrets": {
 				"required": [
+					"ANALYTICS_REPORT_READ_TOKEN",
 					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
@@ -171,6 +189,7 @@
 		},
 		"baanPMhee": {
 			"name": "baan-p-mhee",
+			"triggers": { "crons": ["15 0 * * *"] },
 			"version_metadata": {
 				"binding": "CF_VERSION_METADATA"
 			},
@@ -178,6 +197,8 @@
 				"binding": "IMAGES"
 			},
 			"ratelimits": [
+				{ "name": "ANALYTICS_EVENT_RATE_LIMITER", "namespace_id": "93113", "simple": { "limit": 120, "period": 60 } },
+				{ "name": "ANALYTICS_REPORT_RATE_LIMITER", "namespace_id": "93213", "simple": { "limit": 20, "period": 60 } },
 				{
 					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "93013",
@@ -191,6 +212,11 @@
 				"NEXT_PUBLIC_SITE_URL": "https://www.pmheevilla.com",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
 				"CENTRAL_USER_MANAGER_TENANT_ID": "93b00ab0-df98-4a1d-9411-0b96750e7191",
+				"ANALYTICS_SITE_ID": "93b00ab0-df98-4a1d-9411-0b96750e7191",
+				"ANALYTICS_ENABLED": "true",
+				"ANALYTICS_RETENTION_ENABLED": "true",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://www.pmheevilla.com",
+				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://zkxpozvhvmgqfrwnlfrn.supabase.co",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "zkxpozvhvmgqfrwnlfrn"
 			},
 			"services": [
@@ -233,6 +259,7 @@
 			],
 			"secrets": {
 				"required": [
+					"ANALYTICS_REPORT_READ_TOKEN",
 					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
@@ -244,6 +271,7 @@
 		},
 		"flukNasa": {
 			"name": "fluk-nasa-poolvilla",
+			"triggers": { "crons": ["15 0 * * *"] },
 			"version_metadata": {
 				"binding": "CF_VERSION_METADATA"
 			},
@@ -251,6 +279,8 @@
 				"binding": "IMAGES"
 			},
 			"ratelimits": [
+				{ "name": "ANALYTICS_EVENT_RATE_LIMITER", "namespace_id": "95113", "simple": { "limit": 120, "period": 60 } },
+				{ "name": "ANALYTICS_REPORT_RATE_LIMITER", "namespace_id": "95213", "simple": { "limit": 20, "period": 60 } },
 				{
 					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "95013",
@@ -266,6 +296,10 @@
 				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://clrmtotmrpccddhoyxaf.supabase.co",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
 				"CENTRAL_USER_MANAGER_TENANT_ID": "ce440408-3844-4a06-a5ae-56a4fac8acf8",
+				"ANALYTICS_SITE_ID": "ce440408-3844-4a06-a5ae-56a4fac8acf8",
+				"ANALYTICS_ENABLED": "true",
+				"ANALYTICS_RETENTION_ENABLED": "true",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "clrmtotmrpccddhoyxaf"
 			},
 			"services": [
@@ -308,6 +342,7 @@
 			],
 			"secrets": {
 				"required": [
+					"ANALYTICS_REPORT_READ_TOKEN",
 					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
@@ -319,6 +354,7 @@
 		},
 		"villaMedia": {
 			"name": "villa-media-poolvilla",
+			"triggers": { "crons": ["15 0 * * *"] },
 			"version_metadata": {
 				"binding": "CF_VERSION_METADATA"
 			},
@@ -326,6 +362,8 @@
 				"binding": "IMAGES"
 			},
 			"ratelimits": [
+				{ "name": "ANALYTICS_EVENT_RATE_LIMITER", "namespace_id": "96113", "simple": { "limit": 120, "period": 60 } },
+				{ "name": "ANALYTICS_REPORT_RATE_LIMITER", "namespace_id": "96213", "simple": { "limit": 20, "period": 60 } },
 				{
 					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "96013",
@@ -341,6 +379,10 @@
 				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://nzxlbkcccfqoqqvhfmev.supabase.co",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
 				"CENTRAL_USER_MANAGER_TENANT_ID": "f216699f-30cc-4076-822c-88657ca4efda",
+				"ANALYTICS_SITE_ID": "f216699f-30cc-4076-822c-88657ca4efda",
+				"ANALYTICS_ENABLED": "true",
+				"ANALYTICS_RETENTION_ENABLED": "true",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://villa-media-poolvilla.poolvilla.workers.dev",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "nzxlbkcccfqoqqvhfmev"
 			},
 			"services": [
@@ -383,6 +425,7 @@
 			],
 			"secrets": {
 				"required": [
+					"ANALYTICS_REPORT_READ_TOKEN",
 					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",
@@ -394,6 +437,7 @@
 		},
 		"staging": {
 			"name": "baan-pool-villa-staging",
+			"triggers": { "crons": ["15 0 * * *"] },
 			"version_metadata": {
 				"binding": "CF_VERSION_METADATA"
 			},
@@ -401,6 +445,8 @@
 				"binding": "IMAGES"
 			},
 			"ratelimits": [
+				{ "name": "ANALYTICS_EVENT_RATE_LIMITER", "namespace_id": "94113", "simple": { "limit": 120, "period": 60 } },
+				{ "name": "ANALYTICS_REPORT_RATE_LIMITER", "namespace_id": "94213", "simple": { "limit": 20, "period": 60 } },
 				{
 					"name": "CALENDAR_API_RATE_LIMITER",
 					"namespace_id": "94013",
@@ -416,6 +462,10 @@
 				"SUPABASE_URL": "https://sxvkhzhqtrpxgzumsswl.supabase.co",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
 				"CENTRAL_USER_MANAGER_TENANT_ID": "2b4e0c23-b66c-43c8-892c-ac1a9b5f2ccb",
+				"ANALYTICS_SITE_ID": "2b4e0c23-b66c-43c8-892c-ac1a9b5f2ccb",
+				"ANALYTICS_ENABLED": "true",
+				"ANALYTICS_RETENTION_ENABLED": "true",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://baan-pool-villa-staging.chaymanus2003.workers.dev",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "lsbbbbibhtbwrvrqggwq"
 			},
 			"services": [
@@ -458,6 +508,7 @@
 			],
 			"secrets": {
 				"required": [
+					"ANALYTICS_REPORT_READ_TOKEN",
 					"CALENDAR_INTERNAL_API_TOKEN",
 					"DEVILLE_BEARER_TOKEN",
 					"PATTAYA_BOOKINGS_API_TOKEN",

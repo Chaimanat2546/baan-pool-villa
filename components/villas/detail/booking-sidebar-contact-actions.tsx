@@ -1,6 +1,6 @@
+import { AnalyticsContactLink } from "@/components/layout/analytics-contact-link";
 import { Phone } from "lucide-react";
 import { LineIcon, MessengerIcon } from "@/components/layout/contact-icons";
-import { pushBookingContactClick } from "@/lib/marketing-data-layer";
 import type { VillaListing } from "@/lib/villas/types";
 
 interface BookingSidebarContactActionsProps {
@@ -12,21 +12,21 @@ interface BookingSidebarContactActionsProps {
     phone: string;
     time: string;
   }[];
-  trackingLocation: string;
 }
 
 export function BookingSidebarContactActions({
   contactLinks,
   listing,
   phoneContacts,
-  trackingLocation,
 }: BookingSidebarContactActionsProps) {
   return (
     <div className="mt-4 grid gap-3">
       <div className="grid gap-2">
         {phoneContacts.map((contact, index) => (
-          <a
+          <AnalyticsContactLink
             className="inline-flex items-center justify-between gap-3 rounded-xl border border-[var(--site-border)] px-4 py-3 text-sm font-black text-[var(--site-text)] transition hover:border-[var(--site-primary)] hover:bg-[var(--site-primary-soft)]"
+            channel="phone"
+            villaId={listing.id}
             href={contact.href}
             key={index}
           >
@@ -39,43 +39,33 @@ export function BookingSidebarContactActions({
             <span className="shrink-0 text-[11px] text-[var(--site-muted)]">
               {contact.time.replace("ช่วง ", "")}
             </span>
-          </a>
+          </AnalyticsContactLink>
         ))}
       </div>
 
-      <a
+      <AnalyticsContactLink
         className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] px-4 py-3 text-sm font-black text-[var(--site-primary)] transition hover:bg-[var(--site-surface-tint)]"
+        channel="chat"
+        villaId={listing.id}
         href={contactLinks.messenger}
-        onClick={() => {
-          pushBookingContactClick({
-            channel: "messenger",
-            listing,
-            location: trackingLocation,
-          });
-        }}
         rel="noreferrer"
         target="_blank"
       >
         <MessengerIcon className="h-6 w-6" />
         แชทเลย
-      </a>
+      </AnalyticsContactLink>
 
-      <a
+      <AnalyticsContactLink
         className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-4 py-3 text-sm font-black text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
+        channel="line"
+        villaId={listing.id}
         href={contactLinks.line}
-        onClick={() => {
-          pushBookingContactClick({
-            channel: "line",
-            listing,
-            location: trackingLocation,
-          });
-        }}
         rel="noreferrer"
         target="_blank"
       >
         <LineIcon className="h-6 w-6" />
         จองผ่าน LINE
-      </a>
+      </AnalyticsContactLink>
     </div>
   );
 }

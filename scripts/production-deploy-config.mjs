@@ -45,6 +45,8 @@ export const REQUIRED_BUILD_ENVIRONMENT_VARIABLES = Object.freeze([
 ]);
 
 export const REQUIRED_RUNTIME_SECRETS = Object.freeze([
+  "ANALYTICS_REPORT_READ_TOKEN",
+  "SUPABASE_SECRET_KEY",
   "CALENDAR_INTERNAL_API_TOKEN",
   "DEVILLE_BEARER_TOKEN",
   "PATTAYA_BOOKINGS_API_TOKEN",
@@ -197,6 +199,16 @@ export function validateWranglerDeploymentConfig(
 
     if (configuredOrigin !== expectedOrigin) {
       errors.push(`${target} has a NEXT_PUBLIC_SITE_URL mismatch.`);
+    }
+
+    const analytics = targetConfig.vars ?? {};
+    if (analytics.ANALYTICS_ENABLED !== "true" || analytics.ANALYTICS_RETENTION_ENABLED !== "true"
+      || !analytics.ANALYTICS_SITE_ID || analytics.ANALYTICS_SITE_ID !== analytics.CENTRAL_USER_MANAGER_TENANT_ID
+      || analytics.NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL !== `https://${analytics.CENTRAL_USER_MANAGER_PROJECT_REF}.supabase.co`
+      || !analytics.ANALYTICS_ALLOWED_ORIGINS?.split(",").map(value => value.trim()).includes(expectedOrigin)
+      || !targetConfig.triggers?.crons?.includes("15 0 * * *")
+      || !["ANALYTICS_EVENT_RATE_LIMITER", "ANALYTICS_REPORT_RATE_LIMITER"].every(name => targetConfig.ratelimits?.some(binding => binding.name === name))) {
+      errors.push(`${target} has incomplete analytics configuration.`);
     }
 
     const declaredSecrets =

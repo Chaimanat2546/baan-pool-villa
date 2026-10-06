@@ -385,7 +385,7 @@
               <tr>
                 <td><code>app/(admin)/admin/marketing-tags/page.tsx</code></td>
                 <td><code>/admin/marketing-tags</code></td>
-                <td><code>components/admin/marketing-tags/admin-marketing-tags-page</code>; dedicated GTM ID editor and tracking-surface status map for Google Ads/GTM work.</td>
+                <td><code>components/admin/marketing-tags/admin-marketing-tags-page</code>; Search-only advertising status; no GTM editor or website conversion tracking.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/marketing-tags/loading.tsx</code></td>
@@ -642,7 +642,7 @@
             </tr>
             <tr>
               <td><code>components/admin/marketing-tags</code></td>
-              <td>Marketing Tags admin page for GTM ID editing, save feedback, and page/event coverage status for Google Ads and GTM tracking.</td>
+              <td>Search-only advertising status page. Existing GTM settings remain stored for compatibility but public pages never consume them.</td>
               <td>Persist only through <code>/api/admin/marketing-tags</code>; never accept raw script/code input in the client form.</td>
             </tr>
             <tr>
@@ -1238,6 +1238,34 @@
           <code>scripts/production-deploy-workflow.test.ts</code>; recover a
           corrected same-commit run with GitHub <strong>Re-run failed jobs</strong>.
         </p>
+      </section>
+      <section id="site-analytics">
+        <h2>Site Analytics and Search-only advertising</h2>
+        <p>First-party statistics count events without visitor/session identifiers or a consent banner.
+          The obsolete consent provider/store have been removed. No public or admin page loads GTM,
+          GA4, Google conversion or remarketing tags; legacy browser preferences are unused.
+          <code>components/legal/legal-page.tsx</code> adds the current analytics notice to privacy content.</p>
+        <p><code>AnalyticsPageReady</code> marks successful public pages after data readiness;
+          <code>AnalyticsContactLink</code> owns direct contact clicks; detail-client-shell owns
+          gallery opening transitions. <code>lib/analytics/client.ts</code> owns best-effort
+          fetch-only transport with credentials omitted, no referrer, explicit payload fields, per-event UUID reuse and bounded retries. No analytics browser storage, query strings, user/session IDs or destinations are stored. Validation reduces article slugs to /guides on both client and server. IP-based edge abuse quotas remain separate from analytics persistence.</p>
+        <p><code>worker-analytics-access.js</code> guards the three
+          <code>/api/analytics/v1/{events,report,health}</code> endpoints before OpenNext.
+          Thin routes call <code>lib/analytics/{routes,validation,server,config}.ts</code>.
+          All responses use private, no-store. Existing catalog cache policies remain unchanged.
+          Villa IDs are numeric listing property IDs. Tenant storage uses
+          NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL and SUPABASE_SECRET_KEY, never catalog SUPABASE_URL.</p>
+        <p><code>supabase/migrations/20261006000000_create_site_analytics.sql</code> owns
+          tenant event/metadata tables, private privileged functions and restricted public
+          wrappers. Report aggregates in a database snapshot; metadata records initial DB
+          initialization and monotonic retention coverage. <code>worker-analytics-retention.js</code>
+          runs bounded daily cleanup at 00:15 UTC. All five production target configs enable
+          collector and retention; deployment remains the existing full CI matrix.</p>
+        <p>Verification: <code>npm.cmd test -- lib/analytics worker-analytics-access.test.ts worker-analytics-retention.test.ts</code>,
+          <code>node scripts/test-site-analytics-db.mjs</code> (isolated PGlite prerequisite),
+          lint/build and <code>npx.cmd playwright test tests/site-analytics.spec.ts</code>
+          against the production server. Operations, token rotation and release checks:
+          <code>docs/analytics/operations.md</code>.</p>
       </section>
     </main>
   </body>

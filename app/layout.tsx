@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
 
-import { GoogleTagManagerOnInteraction } from "@/components/layout/google-tag-manager-on-interaction";
 import { buildSiteSettingsGlobalMetadata } from "@/lib/seo";
 import { getSiteSettings } from "@/lib/site-settings/server";
 
@@ -34,27 +33,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { settings } = await getSiteSettings();
-  const googleTagManagerId = settings.googleTagManagerId;
 
   return (
     <html lang="th" className={`${prompt.variable} h-full antialiased`}>
       <body className="min-h-full bg-[#f4f7f4] text-[#063f35]">
-        {googleTagManagerId ? (
-          <noscript>
-            <iframe
-              className="hidden"
-              height={0}
-              src={`https://www.googletagmanager.com/ns.html?id=${googleTagManagerId}`}
-              title="Google Tag Manager"
-              width={0}
-            />
-          </noscript>
-        ) : null}
         {children}
-        {googleTagManagerId ? (
-          <GoogleTagManagerOnInteraction gtmId={googleTagManagerId} />
-        ) : null}
       </body>
     </html>
   );

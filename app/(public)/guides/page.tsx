@@ -1,3 +1,4 @@
+import { AnalyticsPageReady } from "@/components/layout/analytics-page-ready";
 import type { Metadata } from "next";
 
 import { GuideListPage } from "@/components/guides/guide-list-page";
@@ -25,5 +26,5 @@ export default async function GuidesPageRoute() {
     console.error("Unable to prerender guide list page", error);
   }
 
-  return <GuideListPage guides={guides} />;
+  return <><AnalyticsPageReady pagePath="/guides" /><GuideListPage guides={guides} /></>;
 }

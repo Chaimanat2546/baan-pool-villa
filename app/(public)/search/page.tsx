@@ -1,3 +1,4 @@
+import { AnalyticsPageReady } from "@/components/layout/analytics-page-ready";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
@@ -46,6 +47,7 @@ export default async function Page({ searchParams }: SearchPageRouteProps) {
 
   return (
     <Suspense fallback={null}>
+      {!error ? <AnalyticsPageReady pagePath="/search" /> : null}
       <SearchPage
         initialLoadError={error}
         initialVillas={villas}

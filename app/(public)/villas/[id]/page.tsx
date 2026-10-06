@@ -1,3 +1,4 @@
+import { AnalyticsPageReady } from "@/components/layout/analytics-page-ready";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -137,6 +138,7 @@ export default async function Page({ params }: VillaPageProps) {
 
   return (
     <>
+      <AnalyticsPageReady pagePath={`/villas/${listing.id}`} villaId={listing.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
