@@ -301,8 +301,8 @@ After the first automatic production release:
    - `https://www.baanpartypattaya.com`
    - `https://www.poolvillapattaya.co.th`
    - `https://www.pmheevilla.com`
-   - `https://fluk-nasa-poolvilla.poolvilla.workers.dev`
-   - `https://villa-media-poolvilla.poolvilla.workers.dev`
+   - `https://nasapoolvilla.com`
+   - `https://pukmoodpoolvilla.com`
 3. In browser network tools, confirm there are no unexpected `/_next/image` or
    `_rsc` requests and route/API request counts remain bounded for each flow.
 4. Request allowlisted public HTML twice and confirm `x-bpv-html-cache`

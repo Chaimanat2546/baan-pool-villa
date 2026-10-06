@@ -2,6 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
+import { guardAnalyticsRequest } from "../worker-analytics-access.js";
 
 import {
   PRODUCTION_DEPLOYMENT_TARGETS,
@@ -130,12 +131,12 @@ describe("production deployment config", () => {
         },
         {
           target: "flukNasa",
-          siteUrl: "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+          siteUrl: "https://nasapoolvilla.com",
           projectRef: "clrmtotmrpccddhoyxaf",
         },
         {
           target: "villaMedia",
-          siteUrl: "https://villa-media-poolvilla.poolvilla.workers.dev",
+          siteUrl: "https://pukmoodpoolvilla.com",
           projectRef: "nzxlbkcccfqoqqvhfmev",
         },
       ],
@@ -265,4 +266,23 @@ describe("production deployment config", () => {
       validateBuildEnvironment("unapproved-client", createValidBuildEnvironment()),
     ).toThrow("Unknown production deployment target: unapproved-client");
   });
+});
+
+// Exercise the actual origin guard against the production configuration.
+it.each([
+  ["flukNasa", "https://nasapoolvilla.com", "https://fluk-nasa-poolvilla.poolvilla.workers.dev"],
+  ["villaMedia", "https://pukmoodpoolvilla.com", "https://villa-media-poolvilla.poolvilla.workers.dev"],
+])("accepts custom and legacy origins for %s without accepting unrelated domains", async (target, canonical, legacy) => {
+  const config = await readCurrentWranglerConfig();
+  const vars = config.env[target].vars;
+  expect(vars.NEXT_PUBLIC_SITE_URL).toBe(canonical);
+  for (const origin of [canonical, legacy]) {
+    expect(await guardAnalyticsRequest(new Request(`${origin}/api/analytics/v1/events`, {
+      method: "POST", headers: {origin, "content-type":"application/json"}, body:"{}",
+    }), vars, false)).toBeNull();
+  }
+  const rejected = await guardAnalyticsRequest(new Request(`${canonical}/api/analytics/v1/events`, {
+    method:"POST", headers:{origin:"https://unrelated.invalid", "content-type":"application/json"}, body:"{}",
+  }), vars, false);
+  expect(rejected?.status).toBe(403);
 });
