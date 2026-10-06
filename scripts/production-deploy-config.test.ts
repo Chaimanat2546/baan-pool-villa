@@ -59,6 +59,11 @@ async function readCurrentWranglerConfig(): Promise<WranglerTestConfig> {
 }
 
 describe("production deployment config", () => {
+  it("rejects a release that leaves any domain's collector disabled", async () => {
+    const config = await readCurrentWranglerConfig();
+    config.env.baan02.vars.ANALYTICS_ENABLED = "false";
+    expect(() => validateWranglerDeploymentConfig(config)).toThrow("analytics");
+  });
   it("keeps catalog migration history out of the Tenant migration directory", async () => {
     const tenantFilenames = await readdir(TENANT_MIGRATIONS_DIRECTORY);
 
@@ -149,6 +154,8 @@ describe("production deployment config", () => {
       "SUPABASE_PUBLISHABLE_KEY",
     ]);
     expect(REQUIRED_RUNTIME_SECRETS).toEqual([
+      "ANALYTICS_REPORT_READ_TOKEN",
+      "SUPABASE_SECRET_KEY",
       "CALENDAR_INTERNAL_API_TOKEN",
       "DEVILLE_BEARER_TOKEN",
       "PATTAYA_BOOKINGS_API_TOKEN",

@@ -1,3 +1,4 @@
+import { AnalyticsPageReady } from "@/components/layout/analytics-page-ready";
 import type { Metadata } from "next";
 
 import { LegalPage } from "@/components/legal/legal-page";
@@ -24,5 +25,5 @@ export default async function TermsRoute() {
     getSiteContactSettings(),
   ]);
 
-  return <LegalPage page={page} settings={contactSettingsResult.settings} />;
+  return <><AnalyticsPageReady pagePath="/terms" /><LegalPage page={page} settings={contactSettingsResult.settings} /></>;
 }

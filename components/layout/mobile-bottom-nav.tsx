@@ -1,5 +1,6 @@
 "use client";
 
+import { AnalyticsContactLink } from "./analytics-contact-link";
 import { Phone, PhoneCall, X } from "lucide-react";
 import { useState } from "react";
 import { buildContactLinks, withPhoneHref } from "@/lib/site-contact";
@@ -53,7 +54,8 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
             <span className={bottomNavLabelClass}>โทร</span>
           </button>
 
-          <a
+          <AnalyticsContactLink
+            channel="chat"
             href={contactLinks.messenger}
             aria-label="แชทผ่าน Messenger"
             className={separatedBottomNavActionClass}
@@ -67,9 +69,10 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
               <FacebookIcon className={messengerIconClass} />
             </span>
             <span className={bottomNavLabelClass}>แชท</span>
-          </a>
+          </AnalyticsContactLink>
 
-          <a
+          <AnalyticsContactLink
+            channel="line"
             href={contactLinks.line}
             aria-label="ติดต่อผ่าน LINE"
             className={separatedBottomNavActionClass}
@@ -83,7 +86,7 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
               <LineIcon className={lineIconClass} />
             </span>
             <span className={bottomNavLabelClass}>LINE</span>
-          </a>
+          </AnalyticsContactLink>
 
           {settings.contact.lineId ? (
             <p className="col-span-3 break-all border-t border-[var(--site-border)] px-2 py-1.5 text-center text-[11px] font-semibold leading-none text-[var(--site-muted)]">
@@ -131,8 +134,9 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
 
             <div className="mt-5 grid gap-3">
               {phoneContacts.map((contact) => (
-                <a
+                <AnalyticsContactLink
                   key={contact.phone}
+                  channel="phone"
                   href={contact.href}
                   className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-4 text-left"
                 >
@@ -147,7 +151,7 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--site-primary)] text-[var(--site-on-primary)]">
                     <Phone className="h-5 w-5" />
                   </span>
-                </a>
+                </AnalyticsContactLink>
               ))}
             </div>
           </div>

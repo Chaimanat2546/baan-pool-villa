@@ -1,3 +1,4 @@
+import { AnalyticsPageReady } from "@/components/layout/analytics-page-ready";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
@@ -74,6 +75,7 @@ async function HomeInitialContent({
 
   return (
     <>
+      <AnalyticsPageReady pagePath="/" />
       <HomeDeferredDegradedMarker
         degradedSources={initialPayload.degradedSources}
       />

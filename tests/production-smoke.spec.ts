@@ -145,9 +145,14 @@ test("public home renders SEO metadata and stays within a production smoke budge
   );
   await expect(page.locator('link[rel="canonical"]')).toHaveCount(1);
   const initialDocumentHtml = await response?.text();
-  expect(
-    initialDocumentHtml?.match(/data-villa-card-main-image="true"/g) ?? [],
-  ).toHaveLength(4);
+  // The rail renders twelve card wrappers but activates only four full images.
+  // Count images in the server document, not the wrappers' navigation markers.
+  const initialFullImageCount = await page.evaluate((html) => {
+    const document = new DOMParser().parseFromString(html, "text/html");
+    return document.querySelector('[data-home-villa-rail="true"]')
+      ?.querySelectorAll('[data-villa-card-main-image="true"] [data-progressive-full]').length ?? 0;
+  }, initialDocumentHtml ?? "");
+  expect(initialFullImageCount).toBe(4);
 
   const { excludedImageSources, firstRailFullImageSources } = await page.evaluate(() => {
     const attributionWindow = window as typeof window & {
@@ -168,7 +173,12 @@ test("public home renders SEO metadata and stays within a production smoke budge
     };
   });
   const initialFullCoverResponses = selectFirstRailFullImageResponseEvents({
-    excludedImageSources,
+    // CMS may reuse a cover elsewhere. Count every request for shared URLs
+    // against the first-rail budget, a conservative upper bound rather than
+    // dropping ambiguous requests or requiring artificially unique content.
+    excludedImageSources: excludedImageSources.filter(
+      (source) => !firstRailFullImageSources.includes(source),
+    ),
     firstRailFullImageSources,
     responses: successfulImageResponses,
   });
@@ -245,7 +255,7 @@ test("admin routes keep unauthenticated users on login and expose theme vars", a
 }) => {
   await page.goto("/admin/settings", { waitUntil: "domcontentloaded" });
 
-  await expect(page).toHaveURL(/\/admin\/login$/);
+  await expect(page).toHaveURL(/\/admin\/login(?:\?error=admin-access)?$/);
   await expectHealthyPage(page);
   await expect(page.locator('input[type="email"]')).toBeVisible();
 

@@ -29,7 +29,8 @@ describe("GuidesPageRoute", () => {
 
     const { default: GuidesPageRoute } = await import("./page");
 
-    await expect(GuidesPageRoute()).resolves.toMatchObject({
+    const rendered = await GuidesPageRoute();
+    expect(rendered.props.children[1]).toMatchObject({
       props: {
         guides: [],
       },

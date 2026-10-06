@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/lib/analytics/client";
 import { MapPin, Menu, Phone, X } from "lucide-react";
 import { LineIcon } from "@/components/layout/contact-icons";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
@@ -210,7 +211,8 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
           <div className={`${desktopHeaderVariant === "right-booking" ? "hidden" : "hidden items-center justify-self-end gap-2 lg:col-start-3 lg:flex"}`}>
             {primaryPhoneHref && primaryPhoneHref !== "#" ? (
               <a
-                href={primaryPhoneHref}
+                onClick={() => track({event_name:"contact_click",channel:"phone",villa_id:null,page_path:window.location.pathname})}
+                      href={primaryPhoneHref}
                 className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-[var(--site-surface)] px-3 text-xs font-semibold leading-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] xl:h-9 xl:px-4 xl:text-sm"
               >
                 <Phone className="h-4 w-4" aria-hidden="true" />
@@ -218,7 +220,8 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
               </a>
             ) : null}
             <a
-              href={contactSettings.contact.lineUrl}
+              onClick={() => track({event_name:"contact_click",channel:"line",villa_id:null,page_path:window.location.pathname})}
+                      href={contactSettings.contact.lineUrl}
                 className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-[var(--site-surface)] px-2.5 text-xs font-semibold leading-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] xl:h-9 xl:px-3 xl:text-sm"
               rel="noreferrer"
               target="_blank"
@@ -272,6 +275,7 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
                 {primaryPhoneHref && primaryPhoneHref !== "#" ? (
                   <SheetClose asChild>
                     <a
+                      onClick={() => track({event_name:"contact_click",channel:"phone",villa_id:null,page_path:window.location.pathname})}
                       href={primaryPhoneHref}
                       className="flex items-center gap-2 px-5 py-4 text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
                     >
@@ -282,7 +286,8 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
                 ) : null}
                 <SheetClose asChild>
                   <a
-                    href={contactSettings.contact.lineUrl}
+                    onClick={() => track({event_name:"contact_click",channel:"line",villa_id:null,page_path:window.location.pathname})}
+                      href={contactSettings.contact.lineUrl}
                     className="flex items-center gap-2 px-5 py-4 text-[var(--site-text)] transition hover:bg-[var(--site-primary-soft)]"
                     rel="noreferrer"
                     target="_blank"

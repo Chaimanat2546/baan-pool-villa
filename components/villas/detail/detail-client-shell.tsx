@@ -1,11 +1,11 @@
 "use client";
 
+import { track } from "@/lib/analytics/client";
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
-import { pushVillaDetailView } from "@/lib/marketing-data-layer";
 import type { SiteSettings } from "@/lib/site-settings/types";
 import type { SiteContactSettings } from "@/lib/site-contact-settings/types";
 import type {
@@ -81,7 +81,6 @@ export function VillaDetailClientShell({
   settings,
   villaCardStyle,
 }: VillaDetailClientShellProps) {
-  const pushedViewItemIdRef = useRef<string | null>(null);
   const [galleryModalState, setGalleryModalState] = useState<GalleryModalState>(
     { returnToOverview: false, villaId: id, view: "closed" },
   );
@@ -111,6 +110,14 @@ export function VillaDetailClientShell({
     galleryModalState.villaId === id ? galleryModalState.view : "closed";
   const isCategorizedGallery = galleryStyle.variant === "categorized-grid";
   const galleryRetryHref = `/villas/${encodeURIComponent(id)}`;
+
+  const previousGalleryView = useRef("closed");
+  useEffect(() => {
+    if (previousGalleryView.current === "closed" && galleryModalView !== "closed") {
+      track({event_name:"gallery_open",channel:null,villa_id:id,page_path:window.location.pathname});
+    }
+    previousGalleryView.current = galleryModalView;
+  }, [galleryModalView,id]);
 
   const handleDirectImageClick = (item: (typeof galleryItems)[number]) => {
     if (isCategorizedGallery) {
@@ -146,14 +153,6 @@ export function VillaDetailClientShell({
     }
   };
 
-  useEffect(() => {
-    if (pushedViewItemIdRef.current === listing.id) {
-      return;
-    }
-
-    pushedViewItemIdRef.current = listing.id;
-    pushVillaDetailView(listing);
-  }, [listing]);
 
   return (
     <>

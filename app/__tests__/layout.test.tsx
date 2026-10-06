@@ -34,11 +34,6 @@ vi.mock("next/script", () => ({
   ),
 }));
 
-vi.mock("@/components/layout/google-tag-manager-on-interaction", () => ({
-  GoogleTagManagerOnInteraction: ({ gtmId }: { gtmId: string }) => (
-    <span data-gtm-id={gtmId} />
-  ),
-}));
 
 vi.mock("@/lib/site-settings/server", () => ({
   getSiteSettings: vi.fn(),
@@ -76,13 +71,13 @@ describe("RootLayout", () => {
     expect(markup).not.toContain("googletagmanager.com");
   });
 
-  it("renders the interaction-gated Google Tag Manager loader and noscript iframe from site settings", async () => {
+  it("does not load GTM from the shared root even with a configured ID", async () => {
     const markup = await renderRootLayout({
       ...DEFAULT_SITE_SETTINGS,
       googleTagManagerId: "GTM-ABC1234",
     } as unknown as SiteSettings);
 
-    expect(markup).toContain("https://www.googletagmanager.com/ns.html?id=GTM-ABC1234");
-    expect(markup).toContain('data-gtm-id="GTM-ABC1234"');
+    expect(markup).not.toContain("googletagmanager.com");
+    expect(markup).not.toContain('data-gtm-id=');
   });
 });

@@ -13,17 +13,22 @@ export default async function PublicLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [{ settings }, { settings: contactSettings }, styles] = await Promise.all([
-    getSiteSettings(),
-    getSiteContactSettings(),
-    getSiteWebStyles(),
-  ]);
+  const [{ settings }, { settings: contactSettings }, styles] =
+    await Promise.all([
+      getSiteSettings(),
+      getSiteContactSettings(),
+      getSiteWebStyles(),
+    ]);
 
   return (
     <SiteThemeProvider settings={settings}>
       <div className="min-h-full pb-32 md:pb-0">
         <HomeHistoryScrollTracker />
-        <SiteHeader contactSettings={contactSettings} desktopHeaderVariant={styles.header.variant} settings={settings} />
+        <SiteHeader
+          contactSettings={contactSettings}
+          desktopHeaderVariant={styles.header.variant}
+          settings={settings}
+        />
         <VillaCardStyleProvider value={styles.houseCard.variant}>
           {children}
         </VillaCardStyleProvider>

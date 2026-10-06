@@ -32,50 +32,8 @@ export interface MarketingTrackingSurface {
   title: string;
 }
 
-export const MARKETING_TRACKING_SURFACES: MarketingTrackingSurface[] = [
-  {
-    description: "GTM script ทำงานทุก public route เมื่อมี GTM ID",
-    eventName: "page_view",
-    path: "ทุก public page",
-    status: "pageview",
-    title: "ทุกหน้าเว็บไซต์",
-  },
-  {
-    description: "ส่งข้อมูลบ้านพักสำหรับ Dynamic Remarketing และ GA4 ecommerce",
-    eventName: "view_item",
-    path: "/villas/[id]",
-    status: "ready",
-    title: "หน้ารายละเอียดบ้านพัก",
-  },
-  {
-    description: "วัดคลิกปุ่มจองผ่าน LINE พร้อม item_id, item_name และ price",
-    eventName: "booking_contact_click",
-    path: "/villas/[id]#contact",
-    status: "ready",
-    title: "ปุ่มจองผ่าน LINE",
-  },
-  {
-    description: "วัดคลิกปุ่ม Messenger พร้อมข้อมูลบ้านพักใน booking sidebar",
-    eventName: "booking_contact_click",
-    path: "/villas/[id]#contact",
-    status: "ready",
-    title: "ปุ่ม Messenger",
-  },
-  {
-    description: "มี GTM pageview แล้ว แต่ยังไม่มี context บ้านพักเฉพาะรายการ",
-    eventName: "page_view",
-    path: "/search",
-    status: "pageview",
-    title: "หน้าค้นหา",
-  },
-  {
-    description: "มี GTM pageview แล้ว เหมาะต่อยอดเป็น content engagement",
-    eventName: "page_view",
-    path: "/guides และ /guides/[slug]",
-    status: "pageview",
-    title: "บทความ",
-  },
-];
+// Legacy settings stay readable for rollback; this site no longer loads Google tags.
+export const MARKETING_TRACKING_SURFACES: MarketingTrackingSurface[] = [];
 
 interface StringFieldResult {
   errors: string[];

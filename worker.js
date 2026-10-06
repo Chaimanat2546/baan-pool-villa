@@ -21,6 +21,8 @@ import {
   withStaticAssetCacheHeaders,
 } from "./worker-cache-policy.js";
 import { handleBookingCalendarAccess } from "./worker-calendar-access.js";
+import { guardAnalyticsRequest } from "./worker-analytics-access.js";
+import { pruneAnalytics } from "./worker-analytics-retention.js";
 import {
   blockPublicCentralUserManagerRequest,
 } from "./worker-central-user-manager.js";
@@ -345,6 +347,8 @@ export class CentralUserManagerEntrypoint extends WorkerEntrypoint {
 }
 
 async function fetchWorkerRequest(request, env, ctx) {
+  const analyticsRejection = await guardAnalyticsRequest(request, env);
+  if (analyticsRejection) return analyticsRejection;
   const centralUserManagerResponse =
     blockPublicCentralUserManagerRequest(request);
 
@@ -367,6 +371,9 @@ async function fetchWorkerRequest(request, env, ctx) {
 }
 
 const worker = {
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(pruneAnalytics(env));
+  },
   async fetch(request, env, ctx) {
     try {
       const response = await fetchWorkerRequest(request, env, ctx);

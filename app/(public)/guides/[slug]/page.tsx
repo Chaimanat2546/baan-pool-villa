@@ -1,3 +1,4 @@
+import { AnalyticsPageReady } from "@/components/layout/analytics-page-ready";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -160,6 +161,7 @@ export default async function GuideDetailRoute({ params }: GuidePageProps) {
 
   return (
     <>
+      <AnalyticsPageReady pagePath={`/guides/${guide.slug}`} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
