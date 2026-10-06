@@ -291,7 +291,7 @@
 				}
 			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+				"NEXT_PUBLIC_SITE_URL": "https://nasapoolvilla.com",
 				"NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAADiuJYOCcasn14A8",
 				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://clrmtotmrpccddhoyxaf.supabase.co",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
@@ -299,7 +299,7 @@
 				"ANALYTICS_SITE_ID": "ce440408-3844-4a06-a5ae-56a4fac8acf8",
 				"ANALYTICS_ENABLED": "true",
 				"ANALYTICS_RETENTION_ENABLED": "true",
-				"ANALYTICS_ALLOWED_ORIGINS": "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://nasapoolvilla.com,https://fluk-nasa-poolvilla.poolvilla.workers.dev",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "clrmtotmrpccddhoyxaf"
 			},
 			"services": [
@@ -374,7 +374,7 @@
 				}
 			],
 			"vars": {
-				"NEXT_PUBLIC_SITE_URL": "https://villa-media-poolvilla.poolvilla.workers.dev",
+				"NEXT_PUBLIC_SITE_URL": "https://pukmoodpoolvilla.com",
 				"NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAADiuJYOCcasn14A8",
 				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://nzxlbkcccfqoqqvhfmev.supabase.co",
 				"CENTRAL_USER_MANAGER_AGENT_ENABLED": "true",
@@ -382,7 +382,7 @@
 				"ANALYTICS_SITE_ID": "f216699f-30cc-4076-822c-88657ca4efda",
 				"ANALYTICS_ENABLED": "true",
 				"ANALYTICS_RETENTION_ENABLED": "true",
-				"ANALYTICS_ALLOWED_ORIGINS": "https://villa-media-poolvilla.poolvilla.workers.dev",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://pukmoodpoolvilla.com,https://villa-media-poolvilla.poolvilla.workers.dev",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "nzxlbkcccfqoqqvhfmev"
 			},
 			"services": [

@@ -1252,7 +1252,7 @@
         <p><code>worker-analytics-access.js</code> guards the three
           <code>/api/analytics/v1/{events,report,health}</code> endpoints before OpenNext.
           Thin routes call <code>lib/analytics/{routes,validation,server,config}.ts</code>.
-          All responses use private, no-store. Existing catalog cache policies remain unchanged.
+          All responses use private, no-store. flukNasa uses https://nasapoolvilla.com and villaMedia uses https://pukmoodpoolvilla.com for canonical URLs and CI; analytics allows both these exact origins and their existing workers.dev origins. Existing catalog cache policies remain unchanged.
           Villa IDs are numeric listing property IDs. Tenant storage uses
           NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL and SUPABASE_SECRET_KEY, never catalog SUPABASE_URL.</p>
         <p><code>supabase/migrations/20261006000000_create_site_analytics.sql</code> owns

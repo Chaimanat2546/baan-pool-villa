@@ -26,11 +26,11 @@ export const PRODUCTION_DEPLOYMENT_TARGETS = Object.freeze([
   }),
   Object.freeze({
     target: "flukNasa",
-    siteUrl: "https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+    siteUrl: "https://nasapoolvilla.com",
   }),
   Object.freeze({
     target: "villaMedia",
-    siteUrl: "https://villa-media-poolvilla.poolvilla.workers.dev",
+    siteUrl: "https://pukmoodpoolvilla.com",
   }),
 ]);
 
