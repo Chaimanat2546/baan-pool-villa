@@ -58,7 +58,7 @@ describe("PublicLayout", () => {
     mockedGetSiteWebStyles.mockReset();
   });
 
-  it("passes the site villa card style setting to public page content", async () => {
+  it.each(["GTM-LEGACY12", ""])("renders public settings with GTM ID %s", async (googleTagManagerId) => {
     mockedGetSiteContactSettings.mockResolvedValue({
       degraded: false,
       settings: DEFAULT_SITE_CONTACT_SETTINGS,
@@ -66,7 +66,7 @@ describe("PublicLayout", () => {
     });
     mockedGetSiteSettings.mockResolvedValue({
       degraded: false,
-      settings: { ...DEFAULT_SITE_SETTINGS, googleTagManagerId: "GTM-LEGACY12" },
+      settings: { ...DEFAULT_SITE_SETTINGS, googleTagManagerId },
       source: "config",
     });
     mockedGetSiteWebStyles.mockResolvedValue({
@@ -80,8 +80,11 @@ describe("PublicLayout", () => {
       children: <main>ชุดบ้านพัก</main>,
     });
     const markup = renderToStaticMarkup(element);
-    expect(markup).not.toContain("googletagmanager");
-    expect(markup).not.toContain("GTM-LEGACY12");
+    if (googleTagManagerId) {
+      expect(markup).toContain(`https://www.googletagmanager.com/ns.html?id=${googleTagManagerId}`);
+    } else {
+      expect(markup).not.toContain("googletagmanager");
+    }
 
     expect(markup).toContain('data-villa-card-style-provider="gallery"');
     expect(markup).toContain("ชุดบ้านพัก");

@@ -20,7 +20,7 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test("counts without consent, identifying headers, storage or Google tags", async ({
+test("counts independently without consent, identifying headers or storage", async ({
   page,
   context,
 }, testInfo) => {
@@ -116,7 +116,7 @@ test("analytics emits one page view per document and excludes 404/admin", async 
   expect(unexpected).toHaveLength(0);
 });
 
-test("legacy ads consent never loads Google tags", async ({ page }) => {
+test("GTM follows site settings independently of obsolete local consent", async ({ page }) => {
   await page.addInitScript(() =>
     localStorage.setItem(
       "bpv.tracking-consent",
@@ -141,12 +141,14 @@ test("legacy ads consent never loads Google tags", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "ตั้งค่าความเป็นส่วนตัว", exact: true }),
   ).toHaveCount(0);
-  await page.reload();
-  expect(requests).toHaveLength(0);
-  expect(
-    await page.evaluate(
-      () =>
-        typeof (window as typeof window & { dataLayer?: unknown[] }).dataLayer,
-    ),
-  ).toBe("undefined");
+  const html = await page.content();
+  const configuredId = html.match(/ns\.html\?id=(GTM-[A-Z0-9]+)/)?.[1];
+  await page.locator("h1").click();
+  await page.keyboard.press("Tab");
+  if (configuredId) {
+    await expect.poll(() => requests.filter((url) => url.includes("/gtm.js?")).length).toBe(1);
+    expect(requests[0]).toContain(`id=${configuredId}`);
+  } else {
+    expect(requests).toHaveLength(0);
+  }
 });

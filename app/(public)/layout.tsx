@@ -1,3 +1,4 @@
+import { GoogleTagManagerOnInteraction } from "@/components/layout/google-tag-manager-on-interaction";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -22,6 +23,12 @@ export default async function PublicLayout({
 
   return (
     <SiteThemeProvider settings={settings}>
+      {settings.googleTagManagerId ? (
+        <>
+          <noscript><iframe className="hidden" height={0} width={0} src={`https://www.googletagmanager.com/ns.html?id=${settings.googleTagManagerId}`} title="Google Tag Manager" /></noscript>
+          <GoogleTagManagerOnInteraction gtmId={settings.googleTagManagerId} />
+        </>
+      ) : null}
       <div className="min-h-full pb-32 md:pb-0">
         <HomeHistoryScrollTracker />
         <SiteHeader

@@ -108,7 +108,7 @@
               <tr>
                 <td><code>app/layout.tsx</code></td>
                 <td>All routes</td>
-                <td>Root HTML/body shell, site-settings-backed global metadata/icon links/Google Tag Manager script rendering, global CSS/font wiring, and <code>revalidate = 0</code> so rendered App Router pages are produced on demand while explicit data caches remain tagged and time-based.</td>
+                <td>Root HTML/body shell, site-settings-backed global metadata/icon links, global CSS/font wiring, and <code>revalidate = 0</code> so rendered App Router pages are produced on demand while explicit data caches remain tagged and time-based.</td>
               </tr>
               <tr>
                 <td><code>app/sitemap.ts</code></td>
@@ -385,7 +385,7 @@
               <tr>
                 <td><code>app/(admin)/admin/marketing-tags/page.tsx</code></td>
                 <td><code>/admin/marketing-tags</code></td>
-                <td><code>components/admin/marketing-tags/admin-marketing-tags-page</code>; Search-only advertising status; no GTM editor or website conversion tracking.</td>
+                <td><code>components/admin/marketing-tags/admin-marketing-tags-page</code>; Per-site GTM editor and existing Google event setup guide; independent from first-party statistics.</td>
               </tr>
               <tr>
                 <td><code>app/(admin)/admin/marketing-tags/loading.tsx</code></td>
@@ -642,7 +642,7 @@
             </tr>
             <tr>
               <td><code>components/admin/marketing-tags</code></td>
-              <td>Search-only advertising status page. Existing GTM settings remain stored for compatibility but public pages never consume them.</td>
+              <td>Per-site GTM settings editor, validation and event setup guide. Public layout consumes the tenant GTM ID; clearing it disables Google loading only.</td>
               <td>Persist only through <code>/api/admin/marketing-tags</code>; never accept raw script/code input in the client form.</td>
             </tr>
             <tr>
@@ -1242,8 +1242,7 @@
       <section id="site-analytics">
         <h2>Site Analytics and Search-only advertising</h2>
         <p>First-party statistics count events without visitor/session identifiers or a consent banner.
-          The obsolete consent provider/store have been removed. No public or admin page loads GTM,
-          GA4, Google conversion or remarketing tags; legacy browser preferences are unused.
+          The obsolete consent provider/store have been removed. The public layout restores configured tenant GTM through <code>components/layout/google-tag-manager-on-interaction.tsx</code> after first interaction (with a noscript fallback); admin pages do not load it. <code>lib/marketing-data-layer.ts</code> owns the independent Google view_item and booking_contact_click payloads, emitted by detail-client-shell and booking-sidebar-contact-actions. Legacy browser preferences are unused. Owner-managed Google tags and consent configuration are separate from our collector.
           <code>components/legal/legal-page.tsx</code> adds the current analytics notice to privacy content.</p>
         <p><code>AnalyticsPageReady</code> marks successful public pages after data readiness;
           <code>AnalyticsContactLink</code> owns direct contact clicks; detail-client-shell owns

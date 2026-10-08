@@ -1,3 +1,4 @@
+import { pushBookingContactClick } from "@/lib/marketing-data-layer";
 import { AnalyticsContactLink } from "@/components/layout/analytics-contact-link";
 import { Phone } from "lucide-react";
 import { LineIcon, MessengerIcon } from "@/components/layout/contact-icons";
@@ -45,6 +46,7 @@ export function BookingSidebarContactActions({
 
       <AnalyticsContactLink
         className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] px-4 py-3 text-sm font-black text-[var(--site-primary)] transition hover:bg-[var(--site-surface-tint)]"
+        onClick={() => pushBookingContactClick({channel:"messenger",listing,location:"booking_sidebar"})}
         channel="chat"
         villaId={listing.id}
         href={contactLinks.messenger}
@@ -57,6 +59,7 @@ export function BookingSidebarContactActions({
 
       <AnalyticsContactLink
         className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-4 py-3 text-sm font-black text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
+        onClick={() => pushBookingContactClick({channel:"line",listing,location:"booking_sidebar"})}
         channel="line"
         villaId={listing.id}
         href={contactLinks.line}

@@ -1,8 +1,10 @@
-> Current decision (2026-10-06): non-person-tracking event counts replace consent-gated analytics. No consent banner/preferences or analytics cookies/storage; fetch omits credentials and referrer. Per-event IDs only deduplicate retries, never identify visitors. Guide slugs normalize to `/guides` on client/server. Google website measurement remains disabled. Raw event retention stays 180 days with daily cleanup. Infrastructure IP processing for transport/security remains separate. Earlier consent/beacon instructions below are historical and superseded. See `docs/analytics/privacy-audit.md`.
+> Update 2026-10-07: restore owner GTM, original dataLayer events and the admin GTM editor alongside the independent collector. The Google-removal decision below is superseded; see `docs/analytics/operations.md`.
+
+> Historical decision (2026-10-06): non-person-tracking event counts replace consent-gated analytics. No consent banner/preferences or analytics cookies/storage; fetch omits credentials and referrer. Per-event IDs only deduplicate retries, never identify visitors. Guide slugs normalize to `/guides` on client/server. Google website measurement remains disabled. Raw event retention stays 180 days with daily cleanup. Infrastructure IP processing for transport/security remains separate. Earlier consent/beacon instructions below are historical and superseded. See `docs/analytics/privacy-audit.md`.
 
 # Site Analytics และ Google Ads Consent — แบบระบบ
 
-## Current decision — Search ads only (2026-10-06)
+## Historical decision — Search ads only (2026-10-06)
 
 The user explicitly chose no Google measurement on the website. Remove GTM/GA4/conversion/remarketing runtime and dataLayer producers; existing stored GTM IDs must not activate tags. The consent UI now controls only the first-party collector and keeps its previously agreed opt-in/180-day policy. The legacy ads field remains solely for stored-preference compatibility and is reset to false on save. The admin marketing page explains this mode instead of offering an inactive GTM editor. Google Ads campaign settings and published GTM containers were not changed. Earlier dual-consent implementation details below are historical and superseded for Google tracking.
 
