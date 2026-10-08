@@ -4,14 +4,44 @@ import { loadTikTokClientOEmbed } from "../tiktok-client-oembed";
 
 describe("loadTikTokClientOEmbed", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it("loads safe TikTok thumbnail metadata from the public oEmbed endpoint", async () => {
+  it("does not extend stored metadata expiry when promoting it to memory", async () => {
+    vi.useFakeTimers();
+    const now = Date.now();
+    const getItem = vi.fn(() => JSON.stringify({
+      expiresAt: now + 1_000,
+      thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/expiring.jpg",
+    }));
+    vi.stubGlobal("localStorage", { getItem, removeItem: vi.fn(), setItem: vi.fn() });
+    const fetcher = vi.fn(async () => Response.json(null));
+    const url = "https://www.tiktok.com/@baanpoolvilla/video/7647091019053583690";
+
+    expect(await loadTikTokClientOEmbed(url, undefined, fetcher)).not.toBeNull();
+    vi.setSystemTime(now + 1_001);
+    expect(await loadTikTokClientOEmbed(url, undefined, fetcher)).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("expires successful client metadata after twelve hours", async () => {
+    vi.useFakeTimers();
+    const fetcher = vi.fn(async () => Response.json({
+      thumbnail_url: "https://p16-sign.tiktokcdn-us.com/ttl.jpg",
+    }));
+    const url = "https://www.tiktok.com/@baanpoolvilla/video/7647091019053583691";
+    await loadTikTokClientOEmbed(url, undefined, fetcher);
+    vi.setSystemTime(Date.now() + 43_200_001);
+    await loadTikTokClientOEmbed(url, undefined, fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("loads safe TikTok thumbnail metadata through the same-origin API", async () => {
     const fetcher = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       expect(String(url)).toBe(
-        "https://www.tiktok.com/oembed?url=https%3A%2F%2Fwww.tiktok.com%2F%40baanpoolvilla%2Fvideo%2F7647091019053583624",
+        "/api/tiktok/oembed?url=https%3A%2F%2Fwww.tiktok.com%2F%40baanpoolvilla%2Fvideo%2F7647091019053583624",
       );
       expect(init?.signal).toBeInstanceOf(AbortSignal);
 

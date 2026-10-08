@@ -283,6 +283,11 @@
                 <td>Legacy validated guide image proxy for URL-addressed callers. Normal public render paths use <code>next/image</code> with the custom image loader instead.</td>
               </tr>
               <tr>
+                <td><code>app/(public)/api/tiktok/oembed/route.ts</code></td>
+                <td><code>/api/tiktok/oembed?url=:videoUrl</code></td>
+                <td>Same-origin metadata endpoint for homepage posters and admin titles. The public rate limiter runs before <code>lib/tiktok/oembed.ts</code> validates one bounded TikTok video URL, strips tracking parameters, and fetches the fixed upstream endpoint without redirects. Successful allowlisted thumbnail/title/author metadata uses the shared 12-hour upstream and CDN cache policy; unavailable or malformed upstream data returns a non-cached null fallback. No embed HTML is forwarded.</td>
+              </tr>
+              <tr>
                 <td><code>app/(public)/api/tiktok/images/proxy/route.ts</code></td>
                 <td><code>/api/tiktok/images/proxy</code></td>
                 <td>Legacy validated TikTok thumbnail transform proxy retained for older clients. Current homepage TikTok cards do not call it because Cloudflare Image Resizing cannot reliably fetch TikTok's signed CDN URLs; they load the allowlisted signed thumbnail directly after near-viewport activation and show the existing neutral placeholder until it loads.</td>
@@ -742,8 +747,8 @@
             </tr>
             <tr>
               <td><code>lib/tiktok</code></td>
-              <td>TikTok public embed metadata helpers, including server-side oEmbed thumbnail resolution for homepage previews, plus bounded villa option search, saved-ID validation, and server-side resolution of current public villa-link projections.</td>
-              <td><code>lib/tiktok/__tests__</code>, including <code>villa-links.test.ts</code></td>
+              <td>TikTok public embed metadata helpers: <code>oembed.ts</code> owns server-side validation/fetch/response shaping for <code>/api/tiktok/oembed</code>, reusing the video URL predicate in site-settings validation and the public image CDN allowlist. <code>components/villas/home/tiktok-client-oembed.ts</code> is the shared homepage/admin browser consumer; it calls only the same-origin endpoint and caches successful metadata for 12 hours without extending stored expiry. This folder also owns bounded villa option search, saved-ID validation, and server-side resolution of current public villa-link projections.</td>
+              <td><code>lib/tiktok/__tests__</code>, including <code>villa-links.test.ts</code> and <code>oembed.test.ts</code>; <code>components/villas/home/__tests__/tiktok-client-oembed.test.ts</code>. Verify same-origin lazy metadata requests, fallback posters, and click-to-load playback in production at desktop/mobile widths.</td>
             </tr>
             <tr>
               <td><code>lib/detail-layout</code></td>

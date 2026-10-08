@@ -851,7 +851,7 @@ function isValidTikTokAccountUrl(value: string): boolean {
   return videoId === null && isValidTikTokHostAndPath(value, TIKTOK_PROFILE_PATH_PATTERN);
 }
 
-function isValidTikTokVideoUrl(value: string): boolean {
+export function isValidTikTokVideoUrl(value: string): boolean {
   return parseTikTokVideoId(value) !== null;
 }
 

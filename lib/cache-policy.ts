@@ -49,6 +49,7 @@ export const CACHE_TAGS = {
 } as const;
 
 export const CACHE_HEADERS = {
+  tiktokOEmbed: "public, max-age=0, s-maxage=43200",
   homeSections: "public, s-maxage=43200, stale-while-revalidate=43200",
   customerReviews: "public, s-maxage=43200, stale-while-revalidate=43200",
   villaDetail: "public, s-maxage=43200, stale-while-revalidate=43200",
