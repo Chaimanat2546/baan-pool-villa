@@ -1,11 +1,23 @@
-> Current decision (2026-10-06): non-person-tracking event counts replace consent-gated analytics. No consent banner/preferences or analytics cookies/storage; fetch omits credentials and referrer. Per-event IDs only deduplicate retries, never identify visitors. Guide slugs normalize to `/guides` on client/server. Google website measurement remains disabled. Raw event retention stays 180 days with daily cleanup. Infrastructure IP processing for transport/security remains separate. Earlier consent/beacon instructions below are historical and superseded. See `docs/analytics/privacy-audit.md`.
-
 # Site Analytics operations
 
-## Current decision — Search ads only (2026-10-06)
+## Current decision — owner GTM alongside first-party statistics (2026-10-07)
 
-The user explicitly chose no Google measurement on the website. Remove GTM/GA4/conversion/remarketing runtime and dataLayer producers; existing stored GTM IDs must not activate tags. First-party statistics count events without visitor/session identifiers, analytics cookies or browser storage. The consent UI/store and preference controls have been removed; legacy saved choices are unused. The admin marketing page explains this mode instead of offering an inactive GTM editor. Google Ads campaign settings and published GTM containers were not changed. Earlier dual-consent implementation details below are historical and superseded for Google tracking.
+Restore the tenant's saved GTM container on public routes after the first pointer, keyboard or scroll interaction, with a noscript fallback. Admin routes never load GTM. `/admin/marketing-tags` edits the existing `google_tag_manager_id`; blank disables Google loading without disabling our collector. No schema changes are needed. Existing saved IDs become active again on deployment. Settings saves retain the existing tagged-cache revalidation.
 
+Google dataLayer events retain their old contracts: `view_item` on villa detail and `booking_contact_click` for LINE/Messenger in the booking sidebar. The owner manages GA/Ads tags, publication and consent configuration in their container. Our code does not automatically grant Google consent. The original delayed loader is preserved, so passive visits without interaction do not run JavaScript GTM. Google page_view depends on configured container tags, not a separate application event.
+
+Our collector remains independent: page_view/contact_click/gallery_open, no visitor/session identifiers, no analytics cookies/storage, fetch credentials/referrer omitted, raw retention 180 days. Legacy local consent preferences remain unused. Privacy copy distinguishes these statistics from owner Google tracking. Campaigns and published containers are not edited.
+
+Historical verification and earlier decisions below describe their dated implementation, not the current Google behavior.
+
+## Restoration verification — 2026-10-07
+
+- Full Vitest: 283 files / 2,376 tests passed, including tenant settings, admin save/validation, Google payloads, StrictMode view deduplication and dual contact emission. ESLint passed.
+- Docker production Next.js build and TypeScript passed. Desktop and Pixel 5 browser checks passed; admin editor and privacy screenshots inspected.
+- Six Playwright analytics cases passed with a configured fixture GTM container. GTM loaded once per interacted public document and did not load in admin.
+- Two browser flows each produced one Google view_item and two booking_contact_click events (LINE/Messenger) in dataLayer. Google network requests were intercepted; this does not prove a published GA/Ads tag fired or a conversion reached Google.
+- Our collector returned 201 for all eight test events (four page views and four contact clicks total). Each event ID was matched against an actual row in isolated Docker PostgreSQL. Admin browser save used a fixture API; server persistence/authorization remained covered by unit tests.
+- No production database, Google container or campaign was modified, and no deployment was performed for this restoration.
 
 ## Scope and rollout
 

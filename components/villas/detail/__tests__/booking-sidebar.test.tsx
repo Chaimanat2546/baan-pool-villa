@@ -292,7 +292,7 @@ describe("BookingSidebar", () => {
     expect(markup).toContain("เช็คอิน 13:00 · เช็คเอาท์ 11:00");
   });
 
-  it("does not send Google events even with a legacy ads grant", async () => {
+  it("sends one Google event and one first-party event for a contact click", async () => {
     const page = await renderBookingSidebar();
     const lineLink = Array.from(page.container.querySelectorAll<HTMLAnchorElement>("a")).find(
       (link) => link.href === DEFAULT_SITE_CONTACT_SETTINGS.contact.lineUrl,
@@ -304,7 +304,10 @@ describe("BookingSidebar", () => {
       lineLink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect((window as typeof window & { dataLayer?: unknown[] }).dataLayer).toBeUndefined();
+    expect((window as typeof window & { dataLayer?: unknown[] }).dataLayer).toHaveLength(1);
+    expect((window as typeof window & { dataLayer?: unknown[] }).dataLayer?.[0]).toMatchObject({event:"booking_contact_click",contact_channel:"line",contact_location:"booking_sidebar"});
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toMatchObject({event_name:"contact_click",channel:"line",villa_id:listing.id});
 
     await page.cleanup();
   });

@@ -1,3 +1,5 @@
+> Update 2026-10-07: the owner approved restoring per-domain GTM, original Google events and the admin editor alongside our independent collector. The no-Google findings below are historical. Non-person-tracking guarantees apply only to our collector; Google tags may use cookies and owner-managed consent. See `operations.md` for current behavior.
+
 # Non-person-tracking statistics audit — 2026-10-06
 
 Approved scope: count public page views, contact clicks and gallery opens without profiling visitors; remove the consent banner. Google Ads remains Search advertising only, without website tags.

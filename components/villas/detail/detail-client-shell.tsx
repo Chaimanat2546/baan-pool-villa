@@ -1,5 +1,6 @@
 "use client";
 
+import { pushVillaDetailView } from "@/lib/marketing-data-layer";
 import { track } from "@/lib/analytics/client";
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
@@ -110,6 +111,13 @@ export function VillaDetailClientShell({
     galleryModalState.villaId === id ? galleryModalState.view : "closed";
   const isCategorizedGallery = galleryStyle.variant === "categorized-grid";
   const galleryRetryHref = `/villas/${encodeURIComponent(id)}`;
+
+  const pushedViewItemIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (pushedViewItemIdRef.current === listing.id) return;
+    pushedViewItemIdRef.current = listing.id;
+    pushVillaDetailView(listing);
+  }, [listing]);
 
   const previousGalleryView = useRef("closed");
   useEffect(() => {

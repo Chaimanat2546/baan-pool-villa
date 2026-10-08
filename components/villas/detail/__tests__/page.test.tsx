@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, type ComponentType, type ReactElement } from "react";
+import { act, StrictMode, type ComponentType, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
@@ -385,6 +385,18 @@ afterEach(() => {
 });
 
 describe("VillaDetailPage server gallery", () => {
+  it("queues one Google view_item across StrictMode effects and rerenders", async () => {
+    const target = window as typeof window & { dataLayer?: Record<string, unknown>[] };
+    target.dataLayer = [];
+    const page = renderPage();
+    await page.render(<StrictMode>{makePage()}</StrictMode>);
+    await flushReact();
+    await page.render(<StrictMode>{makePage()}</StrictMode>);
+    await flushReact();
+    expect(target.dataLayer.filter((event) => event.event === "view_item")).toHaveLength(1);
+    await page.unmount();
+    delete target.dataLayer;
+  });
   it("does not render the lightbox before a gallery item is selected", async () => {
     const page = renderPage();
 

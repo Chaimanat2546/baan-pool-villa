@@ -125,7 +125,12 @@ describe("admin marketing tags route", () => {
         googleTagManagerId: "GTM-ABC1234",
       },
       source: "config",
-      trackingSurfaces: [],
+      trackingSurfaces: expect.arrayContaining([
+        expect.objectContaining({
+          path: "/villas/[id]",
+          status: "ready",
+        }),
+      ]),
     });
     expect(query.select).toHaveBeenCalledWith("id,google_tag_manager_id");
     expect(query.eq).toHaveBeenCalledWith("id", "global");
