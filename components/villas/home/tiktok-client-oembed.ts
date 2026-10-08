@@ -1,3 +1,5 @@
+import { CACHE_REVALIDATE_SECONDS } from "@/lib/cache-policy";
+
 interface TikTokClientOEmbedPayload {
   author_name?: unknown;
   thumbnail_url?: unknown;
@@ -10,9 +12,8 @@ export interface TikTokClientOEmbed {
   title: string;
 }
 
-const TIKTOK_OEMBED_ENDPOINT = "https://www.tiktok.com/oembed";
-const TIKTOK_CLIENT_OEMBED_CACHE_PREFIX = "baan-pool-villa:tiktok-oembed:";
-const TIKTOK_CLIENT_OEMBED_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const TIKTOK_CLIENT_OEMBED_CACHE_PREFIX = "baan-pool-villa:tiktok-oembed:v2:";
+const TIKTOK_CLIENT_OEMBED_CACHE_TTL_MS = CACHE_REVALIDATE_SECONDS.tiktokOEmbed * 1000;
 
 interface CachedTikTokClientOEmbed extends TikTokClientOEmbed {
   expiresAt: number;
@@ -40,10 +41,7 @@ function readSafeImageUrl(value: unknown): string {
 }
 
 function buildTikTokOEmbedUrl(videoUrl: string): string {
-  const requestUrl = new URL(TIKTOK_OEMBED_ENDPOINT);
-  requestUrl.searchParams.set("url", videoUrl);
-
-  return requestUrl.toString();
+  return `/api/tiktok/oembed?${new URLSearchParams({ url: videoUrl })}`;
 }
 
 function getCacheKey(videoUrl: string): string {
@@ -54,7 +52,7 @@ function toFreshMetadata(
   cached: CachedTikTokClientOEmbed | null,
   now = Date.now(),
 ): TikTokClientOEmbed | null {
-  if (!cached || cached.expiresAt <= now || !readSafeImageUrl(cached.thumbnailUrl)) {
+  if (!cached || !Number.isFinite(cached.expiresAt) || cached.expiresAt <= now || !readSafeImageUrl(cached.thumbnailUrl)) {
     return null;
   }
 
@@ -65,7 +63,7 @@ function toFreshMetadata(
   };
 }
 
-function readLocalStorageCache(videoUrl: string): TikTokClientOEmbed | null {
+function readLocalStorageCache(videoUrl: string): CachedTikTokClientOEmbed | null {
   try {
     const cachedValue = globalThis.localStorage?.getItem(getCacheKey(videoUrl));
 
@@ -73,18 +71,18 @@ function readLocalStorageCache(videoUrl: string): TikTokClientOEmbed | null {
       return null;
     }
 
-    const metadata = toFreshMetadata(JSON.parse(cachedValue) as CachedTikTokClientOEmbed | null);
+    const cached = JSON.parse(cachedValue) as CachedTikTokClientOEmbed | null;
+    const metadata = toFreshMetadata(cached);
 
     if (!metadata) {
       globalThis.localStorage?.removeItem(getCacheKey(videoUrl));
     }
 
-    return metadata;
+    return metadata && cached ? { ...metadata, expiresAt: cached.expiresAt } : null;
   } catch {
     return null;
   }
 }
-
 function writeCaches(videoUrl: string, metadata: TikTokClientOEmbed): void {
   const cached: CachedTikTokClientOEmbed = {
     ...metadata,
@@ -115,16 +113,13 @@ export async function loadTikTokClientOEmbed(
   const storageMetadata = readLocalStorageCache(trimmedVideoUrl);
 
   if (storageMetadata) {
-    memoryCache.set(trimmedVideoUrl, {
-      ...storageMetadata,
-      expiresAt: Date.now() + TIKTOK_CLIENT_OEMBED_CACHE_TTL_MS,
-    });
-    return storageMetadata;
+    memoryCache.set(trimmedVideoUrl, storageMetadata);
+    return toFreshMetadata(storageMetadata);
   }
 
   try {
     const response = await fetcher(buildTikTokOEmbedUrl(trimmedVideoUrl), {
-      cache: "force-cache",
+      cache: "default",
       signal,
     });
 
@@ -132,7 +127,10 @@ export async function loadTikTokClientOEmbed(
       return null;
     }
 
-    const payload = (await response.json()) as TikTokClientOEmbedPayload;
+    const payload = (await response.json()) as TikTokClientOEmbedPayload | null;
+    if (!payload) {
+      return null;
+    }
     const thumbnailUrl = readSafeImageUrl(payload.thumbnail_url);
 
     if (!thumbnailUrl) {
