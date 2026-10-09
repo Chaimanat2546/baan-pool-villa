@@ -4,6 +4,7 @@ import { SiTiktok } from "react-icons/si";
 import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { NearViewportActivation } from "@/components/ui/near-viewport-activation";
 import { ScrollRail } from "@/components/ui/scroll-rail";
 import { useLockedBodyScroll } from "@/components/villas/detail/use-locked-body-scroll";
 import {
@@ -123,14 +124,19 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
           data-tiktok-grid
         >
           {videos.map((video, index) => (
-            <TikTokLazyCard
-              displayMode="grid"
-              index={index}
-              isPlaying={activeVideoId === video.videoId}
+            <NearViewportActivation
+              initiallyActive={false}
               key={video.videoId}
-              onPlay={handlePlay}
-              video={video}
-            />
+              rootMargin="200px"
+            >
+              <TikTokLazyCard
+                displayMode="grid"
+                index={index}
+                isPlaying={activeVideoId === video.videoId}
+                onPlay={handlePlay}
+                video={video}
+              />
+            </NearViewportActivation>
           ))}
         </div>
       ) : (
@@ -141,13 +147,18 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
           label="วิดีโอ TikTok"
         >
           {videos.map((video, index) => (
-            <TikTokLazyCard
-              index={index}
-              isPlaying={activeVideoId === video.videoId}
+            <NearViewportActivation
+              initiallyActive={false}
               key={video.videoId}
-              onPlay={handlePlay}
-              video={video}
-            />
+              rootMargin="200px"
+            >
+              <TikTokLazyCard
+                index={index}
+                isPlaying={activeVideoId === video.videoId}
+                onPlay={handlePlay}
+                video={video}
+              />
+            </NearViewportActivation>
           ))}
         </ScrollRail>
       )}

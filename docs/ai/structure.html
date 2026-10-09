@@ -285,12 +285,12 @@
               <tr>
                 <td><code>app/(public)/api/tiktok/oembed/route.ts</code></td>
                 <td><code>/api/tiktok/oembed?url=:videoUrl</code></td>
-                <td>Same-origin metadata endpoint for homepage posters and admin titles. The public rate limiter runs before <code>lib/tiktok/oembed.ts</code> validates one bounded TikTok video URL, strips tracking parameters, and fetches the fixed upstream endpoint without redirects. Successful allowlisted thumbnail/title/author metadata uses the shared 12-hour upstream and CDN cache policy; unavailable or malformed upstream data returns a non-cached null fallback. No embed HTML is forwarded.</td>
+                <td>Same-origin metadata endpoint for admin titles and legacy clients. The public rate limiter runs before <code>lib/tiktok/oembed.ts</code> validates one bounded TikTok video URL, strips tracking parameters, and fetches the fixed upstream endpoint without redirects. Successful allowlisted thumbnail/title/author metadata uses the shared 12-hour upstream and CDN cache policy; an upstream TikTok rate limit returns a safe non-cached <code>429</code> with <code>Retry-After</code>, while other unavailable or malformed upstream data returns a non-cached null fallback. No embed HTML is forwarded.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/tiktok/images/proxy/route.ts</code></td>
                 <td><code>/api/tiktok/images/proxy</code></td>
-                <td>Legacy validated TikTok thumbnail transform proxy retained for older clients. Current homepage TikTok cards do not call it because Cloudflare Image Resizing cannot reliably fetch TikTok's signed CDN URLs; they load the allowlisted signed thumbnail directly after near-viewport activation and show the existing neutral placeholder until it loads.</td>
+                <td>Legacy validated TikTok thumbnail transform proxy retained for supported older clients. Current homepage TikTok cards do not call it: each card lazy-mounts TikTok's own player near the viewport, so TikTok owns poster delivery.</td>
               </tr>
               <tr>
                 <td><code>app/(public)/api/guides/images/[slug]/cover/route.ts</code></td>
@@ -632,7 +632,7 @@
           <tbody>
             <tr>
               <td><code>components/villas/home</code></td>
-              <td>Home page sections, CMS-driven home assembly, hero/articles/activity/destination sections, TikTok block renderer (settings-driven, first-15 thumbnail preview with click-to-load player and optional current-catalog villa link), customer proof/review section with three DB-selected layouts and lightbox, villa rails, home skeletons, minimal homepage client payloads, and a public-layout scroll tracker that keeps the last homepage position for same-tab returns.</td>
+              <td>Home page sections, CMS-driven home assembly, hero/articles/activity/destination sections, TikTok block renderer (settings-driven, per-card near-viewport TikTok Player preview without autoplay and optional current-catalog villa link), customer proof/review section with three DB-selected layouts and lightbox, villa rails, home skeletons, minimal homepage client payloads, and a public-layout scroll tracker that keeps the last homepage position for same-tab returns.</td>
               <td>Use <code>VillaRail</code>, home shared helpers, <code>components/ui/scroll-rail</code>, and section header patterns before creating new section UI. Each saved rail can opt into <code>auto_scroll_enabled</code>; <code>VillaRail</code> forwards the resolved value to the shared Embla rail for drag, side controls, and official continuous auto-scroll. The homepage server sizes its villa listing window from home-section config before resolving sections, and client islands receive only the fields they render.</td>
             </tr>
             <tr>

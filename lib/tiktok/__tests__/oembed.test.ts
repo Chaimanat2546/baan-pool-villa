@@ -5,6 +5,7 @@ vi.mock("server-only", () => ({}));
 
 const video = "https://www.tiktok.com/@baanpool/video/7474970557352578309";
 const thumbnail = "https://p16-sign.tiktokcdn-us.com/cover.jpg?x-signature=signed";
+const muscdnThumbnail = "https://p16.muscdn.com/obj/tos-maliva-p-0068/cover.jpg";
 const cacheWrite = vi.fn();
 
 // Keep Next's real cache wrapper; replace only its persistent backing store.
@@ -57,6 +58,20 @@ describe("GET /api/tiktok/oembed", () => {
     );
   });
 
+  it("returns a TikTok thumbnail served from the official muscdn host", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      thumbnail_url: muscdnThumbnail,
+    })));
+
+    const response = await request(new URLSearchParams({ url: video }).toString());
+
+    await expect(response.json()).resolves.toEqual({
+      author_name: "",
+      thumbnail_url: muscdnThumbnail,
+      title: "",
+    });
+  });
+
   it("recovers after invalid HTTP 200 metadata and caches only the validated result", async () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(new Response("<html>temporary upstream error</html>"))
@@ -67,6 +82,22 @@ describe("GET /api/tiktok/oembed", () => {
     await expect((await request(query)).json()).resolves.toMatchObject({ title: "Recovered" });
     await expect((await request(query)).json()).resolves.toMatchObject({ title: "Recovered" });
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns a retryable status when TikTok rate-limits the metadata request", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("rate limited", {
+      headers: { "Retry-After": "1" },
+      status: 429,
+    })));
+
+    const response = await request(new URLSearchParams({ url: video }).toString());
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("1");
+    await expect(response.json()).resolves.toEqual({
+      error: "TikTok metadata is temporarily unavailable.",
+    });
+    expect(cacheWrite).not.toHaveBeenCalled();
   });
 
   it.each([

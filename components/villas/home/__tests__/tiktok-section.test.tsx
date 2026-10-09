@@ -1,7 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   click,
@@ -21,6 +22,7 @@ vi.mock("../tiktok-client-oembed", () => ({
 }));
 
 import { TikTokSection } from "../tiktok-section";
+import { TikTokLazyCard } from "../tiktok-lazy-card";
 import { toHomePageSettings } from "../client-payload";
 import { ImageActivationContext } from "@/components/ui/near-viewport-activation";
 
@@ -41,8 +43,57 @@ function mockViewport(isDesktop: boolean) {
 }
 
 describe("TikTokSection", () => {
+  beforeEach(() => {
+    vi.stubGlobal("IntersectionObserver", class {
+      disconnect = vi.fn();
+      observe = vi.fn();
+      unobserve = vi.fn();
+    });
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("mounts a non-autoplay TikTok player when an individual card activates", async () => {
+    const page = await mountAdminPage(
+      <ImageActivationContext value>
+        <TikTokLazyCard
+          index={0}
+          isPlaying={false}
+          onPlay={vi.fn()}
+          video={{
+            houseId: null,
+            url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001",
+            videoId: "7370000000000000001",
+          }}
+        />
+      </ImageActivationContext>,
+    );
+
+    const iframe = page.container.querySelector("iframe");
+    expect(iframe?.src).toContain("https://www.tiktok.com/player/v1/7370000000000000001");
+    expect(iframe?.src).toContain("autoplay=0");
+    expect(page.container.querySelector("[data-tiktok-poster]")).not.toBeNull();
+
+    await page.unmount();
+  });
+
+  it("creates an independent lazy activation boundary for each TikTok card", () => {
+    const markup = renderToStaticMarkup(
+      <TikTokSection
+        tiktok={{
+          accountUrl: "",
+          videos: [
+            { houseId: null, url: "https://www.tiktok.com/@baanpoolvilla/video/1", videoId: "1" },
+            { houseId: null, url: "https://www.tiktok.com/@baanpoolvilla/video/2", videoId: "2" },
+          ],
+        }}
+      />,
+    );
+
+    expect(markup.match(/data-near-viewport-activation/g)).toHaveLength(2);
+    expect(markup).not.toContain("tiktok.com/player/v1/");
   });
 
   it("keeps only one TikTok player active when switching videos", async () => {
@@ -193,7 +244,7 @@ describe("TikTokSection", () => {
     await page.unmount();
   });
 
-  it("loads only the signed TikTok thumbnail after the section activates", async () => {
+  it("keeps an inactive TikTok card as a lightweight fallback", async () => {
     const video = {
       authorName: "Baan Pool Villa",
       thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/cover.jpg",
@@ -203,33 +254,13 @@ describe("TikTokSection", () => {
       houseId: null,
     };
     const page = await mountAdminPage(
-      <ImageActivationContext value={false}>
-        <TikTokSection tiktok={{ accountUrl: "", videos: [video] }} />
-      </ImageActivationContext>,
+      <TikTokSection tiktok={{ accountUrl: "", videos: [video] }} />,
     );
 
     expect(page.container.querySelector("[data-tiktok-poster]")).not.toBeNull();
-    expect(page.container.querySelector("[data-progressive-full]")).toBeNull();
-    expect(page.container.querySelector("[data-progressive-image-fallback]")).not.toBeNull();
+    expect(page.container.querySelectorAll("iframe")).toHaveLength(0);
 
     await page.unmount();
-
-    const activatedPage = await mountAdminPage(
-      <ImageActivationContext value>
-        <TikTokSection tiktok={{ accountUrl: "", videos: [video] }} />
-      </ImageActivationContext>,
-    );
-
-    expect(activatedPage.container.querySelector("[data-progressive-preview]")).toBeNull();
-    expect(
-      activatedPage.container
-        .querySelector("[data-progressive-full]")
-        ?.getAttribute("src"),
-    ).toBe(video.thumbnailUrl);
-    await click(activatedPage.container.querySelector("[data-tiktok-poster]") as HTMLElement);
-    expect(activatedPage.container.querySelectorAll("iframe")).toHaveLength(1);
-
-    await activatedPage.unmount();
   });
 
   it("renders a resolved villa link without starting TikTok playback", async () => {

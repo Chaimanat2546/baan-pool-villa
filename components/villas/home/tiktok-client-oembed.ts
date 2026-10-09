@@ -14,12 +14,17 @@ export interface TikTokClientOEmbed {
 
 const TIKTOK_CLIENT_OEMBED_CACHE_PREFIX = "baan-pool-villa:tiktok-oembed:v2:";
 const TIKTOK_CLIENT_OEMBED_CACHE_TTL_MS = CACHE_REVALIDATE_SECONDS.tiktokOEmbed * 1000;
+const TIKTOK_CLIENT_OEMBED_REQUEST_INTERVAL_MS = 1_000;
+const TIKTOK_CLIENT_OEMBED_RETRY_DELAY_MS = 2_000;
+const TIKTOK_CLIENT_OEMBED_MAX_ATTEMPTS = 2;
 
 interface CachedTikTokClientOEmbed extends TikTokClientOEmbed {
   expiresAt: number;
 }
 
 const memoryCache = new Map<string, CachedTikTokClientOEmbed>();
+let queuedRequest: Promise<void> = Promise.resolve();
+let nextRequestAt = 0;
 
 function readString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -42,6 +47,44 @@ function readSafeImageUrl(value: unknown): string {
 
 function buildTikTokOEmbedUrl(videoUrl: string): string {
   return `/api/tiktok/oembed?${new URLSearchParams({ url: videoUrl })}`;
+}
+
+function waitFor(ms: number, signal?: AbortSignal): Promise<void> {
+  if (ms <= 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeout = globalThis.setTimeout(resolve, ms);
+
+    signal?.addEventListener("abort", () => {
+      globalThis.clearTimeout(timeout);
+      reject(signal.reason);
+    }, { once: true });
+  });
+}
+
+function queueTikTokOEmbedRequest<T>(
+  callback: () => Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
+  const run = async () => {
+    if (signal?.aborted) {
+      throw signal.reason;
+    }
+
+    const requestedDelay = nextRequestAt - Date.now();
+    const delay = requestedDelay > TIKTOK_CLIENT_OEMBED_REQUEST_INTERVAL_MS
+      ? 0
+      : Math.max(0, requestedDelay);
+    await waitFor(delay, signal);
+    nextRequestAt = Date.now() + TIKTOK_CLIENT_OEMBED_REQUEST_INTERVAL_MS;
+    return callback();
+  };
+  const result = queuedRequest.then(run, run);
+  queuedRequest = result.then(() => undefined, () => undefined);
+
+  return result;
 }
 
 function getCacheKey(videoUrl: string): string {
@@ -118,12 +161,25 @@ export async function loadTikTokClientOEmbed(
   }
 
   try {
-    const response = await fetcher(buildTikTokOEmbedUrl(trimmedVideoUrl), {
-      cache: "default",
-      signal,
-    });
+    let response: Response | null = null;
 
-    if (!response.ok) {
+    for (let attempt = 1; attempt <= TIKTOK_CLIENT_OEMBED_MAX_ATTEMPTS; attempt += 1) {
+      response = await queueTikTokOEmbedRequest(
+        () => fetcher(buildTikTokOEmbedUrl(trimmedVideoUrl), {
+          cache: "default",
+          signal,
+        }),
+        signal,
+      );
+
+      if (response.status !== 429 || attempt === TIKTOK_CLIENT_OEMBED_MAX_ATTEMPTS) {
+        break;
+      }
+
+      await waitFor(TIKTOK_CLIENT_OEMBED_RETRY_DELAY_MS, signal);
+    }
+
+    if (!response?.ok) {
       return null;
     }
 

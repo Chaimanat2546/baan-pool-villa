@@ -8,6 +8,13 @@ import { isValidTikTokVideoUrl } from "@/lib/site-settings/validation";
 
 const MAX_VIDEO_URL_LENGTH = 2048;
 const OEMBED_TIMEOUT_MS = 6000;
+const OEMBED_RETRY_AFTER_SECONDS = 1;
+
+class TikTokOEmbedRateLimitError extends Error {
+  constructor() {
+    super("TikTok metadata is temporarily unavailable.");
+  }
+}
 
 function readVideoUrl(request: Request): string | null {
   const entries = [...new URL(request.url).searchParams.entries()];
@@ -43,6 +50,10 @@ async function fetchTikTokOEmbed(videoUrl: string) {
     redirect: "error",
     signal: AbortSignal.timeout(OEMBED_TIMEOUT_MS),
   });
+
+  if (response.status === 429) {
+    throw new TikTokOEmbedRateLimitError();
+  }
 
   if (!response.ok) {
     throw new Error("TikTok metadata unavailable.");
@@ -82,7 +93,17 @@ export async function buildTikTokOEmbedResponse(request: Request): Promise<Respo
     return Response.json(await getCachedTikTokOEmbed(videoUrl), {
       headers: { "Cache-Control": CACHE_HEADERS.tiktokOEmbed },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof TikTokOEmbedRateLimitError) {
+      return Response.json({ error: error.message }, {
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": OEMBED_RETRY_AFTER_SECONDS.toString(),
+        },
+        status: 429,
+      });
+    }
+
     // The existing poster/title fallback also covers unavailable upstream metadata.
   }
 

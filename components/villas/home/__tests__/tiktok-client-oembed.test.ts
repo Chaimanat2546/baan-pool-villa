@@ -88,6 +88,25 @@ describe("loadTikTokClientOEmbed", () => {
     ).resolves.toBeNull();
   });
 
+  it("retries a rate-limited metadata request before falling back", async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(Response.json({
+        thumbnail_url: "https://p16-sign.tiktokcdn-us.com/recovered.jpeg",
+      }));
+
+    await expect(
+      loadTikTokClientOEmbed(
+        "https://www.tiktok.com/@baanpoolvilla/video/7647091019053583629",
+        undefined,
+        fetcher,
+      ),
+    ).resolves.toMatchObject({
+      thumbnailUrl: "https://p16-sign.tiktokcdn-us.com/recovered.jpeg",
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it("reuses in-memory metadata for the same video URL", async () => {
     const fetcher = vi.fn(async () =>
       Response.json({
