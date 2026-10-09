@@ -217,7 +217,9 @@ describe("HomePage", () => {
       />,
     );
 
-    expect(markup.match(/data-near-viewport-activation/g)).toHaveLength(4);
+    // TikTok adds one card-level activation boundary so its player (and its
+    // poster) is not requested until the card nears the viewport.
+    expect(markup.match(/data-near-viewport-activation/g)).toHaveLength(5);
     expect(markup.indexOf('id="featured"')).toBeLessThan(
       markup.indexOf("data-near-viewport-activation"),
     );
