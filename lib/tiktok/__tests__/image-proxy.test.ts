@@ -44,6 +44,28 @@ describe("GET /api/tiktok/images/proxy", () => {
     });
   });
 
+  it("allows a TikTok thumbnail served from the official muscdn host", async () => {
+    const source = "https://p16.muscdn.com/obj/tos-maliva-p-0068/cover.jpg";
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("thumbnail bytes", { headers: { "Content-Type": "image/webp" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { GET } = await import(
+      "../../../app/(public)/api/tiktok/images/proxy/route"
+    );
+    const params = new URLSearchParams({ url: source });
+
+    const response = await GET(
+      new Request(`https://example.com/api/tiktok/images/proxy?${params}`),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(source, expect.objectContaining({
+      cache: "no-store",
+      redirect: "manual",
+    }));
+  });
+
   it("rejects non-TikTok and lookalike hosts before fetching", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

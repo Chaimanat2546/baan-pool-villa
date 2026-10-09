@@ -302,6 +302,7 @@ export function isAllowedTikTokCdnImageUrl(sourceUrl: string): boolean {
   }
 
   return (
+    hostname === "p16.muscdn.com" ||
     hostname.endsWith(".tiktokcdn.com") ||
     hostname.endsWith(".tiktokcdn-us.com")
   );

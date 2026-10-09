@@ -1,15 +1,13 @@
 "use client";
 
 import { ChevronRight, House, Play } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { SiTiktok } from "react-icons/si";
 
 import { useImageActivation } from "@/components/ui/near-viewport-activation";
-import { ProgressiveImage } from "@/components/ui/progressive-image";
 import { cn } from "@/lib/utils";
 import type { TikTokVideoPreview } from "@/lib/tiktok/types";
 import type { HomeTikTokVideo } from "./client-payload";
-import { loadTikTokClientOEmbed, type TikTokClientOEmbed } from "./tiktok-client-oembed";
 
 interface TikTokLazyCardProps {
   displayMode?: "grid" | "rail";
@@ -111,20 +109,6 @@ export function TikTokPlayerFrame({
 }
 
 /**
- * Type guard that detects whether a video object contains a non-empty thumbnail URL.
- *
- * When this function returns `true`, the `video` value is narrowed to `TikTokVideoPreview`.
- *
- * @param video - The video object to inspect
- * @returns `true` if `video.thumbnailUrl` exists and is not empty after trimming, `false` otherwise.
- */
-function hasThumbnail(
-  video: HomeTikTokVideo | TikTokVideoPreview,
-): video is TikTokVideoPreview {
-  return "thumbnailUrl" in video && video.thumbnailUrl.trim().length > 0;
-}
-
-/**
  * Render an iframe TikTok player for the given video.
  *
  * @param index - Zero-based position of the video; used in the iframe title for accessibility
@@ -132,11 +116,13 @@ function hasThumbnail(
  * @returns The configured `<iframe>` element that embeds the TikTok player with autoplay and fullscreen enabled
  */
 function TikTokPlayer({
+  autoplay,
   index,
   video,
-}: Pick<TikTokLazyCardProps, "index" | "video">) {
+}: Pick<TikTokLazyCardProps, "index" | "video"> & { autoplay: boolean }) {
   return (
     <TikTokPlayerFrame
+      autoplay={autoplay}
       className="h-full w-full border-0"
       title={`TikTok video ${index + 1}`}
       videoId={video.videoId}
@@ -145,11 +131,11 @@ function TikTokPlayer({
 }
 
 /**
- * Render a TikTok "lazy" video card that displays a poster (thumbnail or gradient) and replaces it with an embedded player when played.
+ * Render a TikTok video card that lazy-mounts TikTok's player near the viewport.
  *
  * @param index - Zero-based index used for display, accessibility labels, and the iframe title.
- * @param video - Video metadata or preview object; if it contains a non-empty `thumbnailUrl`, a poster image is shown, otherwise a gradient poster is used. Title and author fall back to sensible defaults when missing.
- * @returns The card element that toggles between a poster view and an embedded TikTok iframe when activated.
+ * @param video - Video metadata used to build the player URL and fallback label.
+ * @returns The card element that keeps a lightweight fallback until its player activates.
  */
 export function TikTokLazyCard({
   displayMode = "rail",
@@ -158,44 +144,17 @@ export function TikTokLazyCard({
   onPlay,
   video,
 }: TikTokLazyCardProps) {
-  const imageActive = useImageActivation();
-  const [clientPreview, setClientPreview] = useState<TikTokClientOEmbed | null>(
-    null,
-  );
-  const thumbnailUrl = hasThumbnail(video)
-    ? video.thumbnailUrl.trim()
-    : (clientPreview?.thumbnailUrl ?? "");
+  const playerActive = useImageActivation();
   const title =
     "title" in video && video.title.trim().length > 0
       ? video.title.trim()
-      : clientPreview?.title
-        ? clientPreview.title
       : `video/${video.videoId}`;
   const authorName =
     "authorName" in video && video.authorName.trim().length > 0
       ? video.authorName.trim()
-      : clientPreview?.authorName
-        ? clientPreview.authorName
       : "TikTok";
   const villa = "villa" in video ? video.villa : null;
-
-  useEffect(() => {
-    if (hasThumbnail(video) || isPlaying || !imageActive || !video.url.trim()) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    void loadTikTokClientOEmbed(video.url, controller.signal).then((metadata) => {
-      if (metadata) {
-        setClientPreview(metadata);
-      }
-    });
-
-    return () => {
-      controller.abort();
-    };
-  }, [imageActive, isPlaying, video]);
+  const showPlayer = playerActive || isPlaying;
 
   return (
     <article
@@ -207,40 +166,22 @@ export function TikTokLazyCard({
       )}
     >
       <div className="relative aspect-[9/16] bg-[var(--site-surface-soft)]">
-        {isPlaying ? (
-          <TikTokPlayer index={index} video={video} />
-        ) : (
+        {showPlayer ? <TikTokPlayer autoplay={isPlaying} index={index} video={video} /> : null}
+        {!isPlaying ? (
           <button
             type="button"
-            className="group relative grid h-full w-full place-items-center overflow-hidden text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2"
+            className="group absolute inset-0 grid h-full w-full place-items-center overflow-hidden text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2"
             data-tiktok-poster
             onClick={() => {
               onPlay(video.videoId);
             }}
           >
-            {thumbnailUrl ? (
-              <ProgressiveImage
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                decoding="async"
-                fill
-                fullImageActive={imageActive}
-                fullImageLoading={index === 0 ? "eager" : "lazy"}
-                previewActive={false}
-                referrerPolicy="no-referrer"
-                sizes={
-                  displayMode === "grid"
-                    ? "(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 384px"
-                    : "(max-width: 640px) 244px, (max-width: 1024px) 292px, 320px"
-                }
-                src={thumbnailUrl}
-              />
-            ) : (
+            {!showPlayer ? (
               <span
                 aria-hidden="true"
                 className="absolute inset-0 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--site-primary)_86%,black),color-mix(in_srgb,var(--site-primary)_34%,white)_48%,color-mix(in_srgb,var(--site-accent)_42%,white))]"
               />
-            )}
+            ) : null}
             <span
               aria-hidden="true"
               className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/65 to-transparent"
@@ -262,7 +203,7 @@ export function TikTokLazyCard({
             </span>
             <span className="sr-only">เล่นวิดีโอ TikTok รายการที่ {index + 1}</span>
           </button>
-        )}
+        ) : null}
       </div>
       {villa ? (
         <a
