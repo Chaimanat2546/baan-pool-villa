@@ -51,7 +51,7 @@
 				"ANALYTICS_SITE_ID": "a7f10ab9-db3a-400f-8185-03aabe8041db",
 				"ANALYTICS_ENABLED": "true",
 				"ANALYTICS_RETENTION_ENABLED": "true",
-				"ANALYTICS_ALLOWED_ORIGINS": "https://www.baanpartypattaya.com",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://www.baanpartypattaya.com,https://baanpartypattaya.com",
 				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://lpxsktjrkjzwbxvhjogo.supabase.co",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "lpxsktjrkjzwbxvhjogo"
 			},
@@ -133,7 +133,7 @@
 				"ANALYTICS_SITE_ID": "9fd7c645-563a-4cce-85ac-20ffb8f3bfc0",
 				"ANALYTICS_ENABLED": "true",
 				"ANALYTICS_RETENTION_ENABLED": "true",
-				"ANALYTICS_ALLOWED_ORIGINS": "https://www.poolvillapattaya.co.th",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://www.poolvillapattaya.co.th,https://poolvillapattaya.co.th",
 				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://vfqxpujsvgdqtrzpxobh.supabase.co",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "vfqxpujsvgdqtrzpxobh"
 			},
@@ -215,7 +215,7 @@
 				"ANALYTICS_SITE_ID": "93b00ab0-df98-4a1d-9411-0b96750e7191",
 				"ANALYTICS_ENABLED": "true",
 				"ANALYTICS_RETENTION_ENABLED": "true",
-				"ANALYTICS_ALLOWED_ORIGINS": "https://www.pmheevilla.com",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://www.pmheevilla.com,https://pmheevilla.com",
 				"NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL": "https://zkxpozvhvmgqfrwnlfrn.supabase.co",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "zkxpozvhvmgqfrwnlfrn"
 			},
@@ -299,7 +299,7 @@
 				"ANALYTICS_SITE_ID": "ce440408-3844-4a06-a5ae-56a4fac8acf8",
 				"ANALYTICS_ENABLED": "true",
 				"ANALYTICS_RETENTION_ENABLED": "true",
-				"ANALYTICS_ALLOWED_ORIGINS": "https://nasapoolvilla.com,https://fluk-nasa-poolvilla.poolvilla.workers.dev",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://nasapoolvilla.com,https://www.nasapoolvilla.com,https://fluk-nasa-poolvilla.poolvilla.workers.dev",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "clrmtotmrpccddhoyxaf"
 			},
 			"services": [
@@ -382,7 +382,7 @@
 				"ANALYTICS_SITE_ID": "f216699f-30cc-4076-822c-88657ca4efda",
 				"ANALYTICS_ENABLED": "true",
 				"ANALYTICS_RETENTION_ENABLED": "true",
-				"ANALYTICS_ALLOWED_ORIGINS": "https://pukmoodpoolvilla.com,https://villa-media-poolvilla.poolvilla.workers.dev",
+				"ANALYTICS_ALLOWED_ORIGINS": "https://pukmoodpoolvilla.com,https://www.pukmoodpoolvilla.com,https://villa-media-poolvilla.poolvilla.workers.dev",
 				"CENTRAL_USER_MANAGER_PROJECT_REF": "nzxlbkcccfqoqqvhfmev"
 			},
 			"services": [

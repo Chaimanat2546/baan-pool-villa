@@ -39,8 +39,12 @@ is loaded. No visitor/session identifiers are generated; event IDs only deduplic
   NEXT_PUBLIC_HOME_CONFIG_SUPABASE_URL must match CENTRAL_USER_MANAGER_PROJECT_REF.
   Never use catalog SUPABASE_URL for analytics. Existing required Worker secrets remain.
 - ANALYTICS_SITE_ID equals the target's existing canonical tenant UUID.
-  ANALYTICS_ALLOWED_ORIGINS lists exact public origins; add a verified secondary origin
-  if it serves the site without redirecting to the canonical origin.
+  ANALYTICS_ALLOWED_ORIGINS lists exact public origins, including both HTTPS www and
+  apex origins for all five production sites. Both variants serve the site without
+  redirecting and use the same per-target site identity, so accepted events combine
+  in one report. Existing workers.dev origins remain allowed for flukNasa and villaMedia.
+  Deploy the updated Worker configuration before expecting secondary-origin collection;
+  events previously rejected with ORIGIN_NOT_ALLOWED cannot be recovered by this change.
 - flukNasa canonical/CI URL is https://nasapoolvilla.com; villaMedia is https://pukmoodpoolvilla.com. Their analytics origin allowlists also retain their existing workers.dev origins. The prior workers.dev-only allowlists rejected custom-domain events with ORIGIN_NOT_ALLOWED. Build and deploy the updated configuration together so canonical metadata and runtime guards agree.
 - Event/report Cloudflare rate limit bindings are separate from calendar quotas.
   Current per-location limits are 120 event requests per minute/IP and 20 report/health
