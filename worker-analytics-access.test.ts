@@ -1,6 +1,38 @@
 import { expect, it } from "vitest";
 import { guardAnalyticsRequest } from "./worker-analytics-access.js";
 import { createSuspiciousListingRequestEvent } from "./worker-listing-security-log.js";
+import { readWranglerConfig } from "./scripts/production-deploy-config.mjs";
+
+it.each([
+  ["baanparty", "baanpartypattaya.com"],
+  ["baan02", "poolvillapattaya.co.th"],
+  ["baanPMhee", "pmheevilla.com"],
+  ["flukNasa", "nasapoolvilla.com"],
+  ["villaMedia", "pukmoodpoolvilla.com"],
+])("accepts both public host variants for %s but rejects unlisted hosts", async (target, domain) => {
+  const config = await readWranglerConfig();
+  const vars = config.env[target].vars;
+  for (const prefix of ["", "www.", "untrusted."]) {
+    const origin = `https://${prefix}${domain}`;
+    const response = await guardAnalyticsRequest(
+      new Request(`${origin}/api/analytics/v1/events`, {
+        method: "POST",
+        headers: {
+          origin,
+          "sec-fetch-site": "same-origin",
+          "content-type": "application/json",
+        },
+      }),
+      vars,
+      false,
+    );
+    if (prefix === "untrusted.") {
+      expect(response?.status).toBe(403);
+    } else {
+      expect(response, origin).toBeNull();
+    }
+  }
+});
 it("does not log analytics request metadata through the listing security logger", () => {
   const request = new Request("https://example.com/api/analytics/v1/events", {
     method: "POST",
