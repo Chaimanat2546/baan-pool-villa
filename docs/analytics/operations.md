@@ -185,3 +185,13 @@ After the user explicitly chose no Google website measurement:
 
 Published tag inventory and scope are recorded in google-tags-audit.md. No campaign,
 published GTM container, production deployment, or online setting was changed.
+
+## Hourly report upgrade (2026-10-16; source implementation)
+
+POST /api/analytics/v1/report also accepts contract_version 1.1 with granularity hour, identical from_date/to_date, and paired from_time/to_time at whole Thai clock hours. Start accepts 00:00–23:00, end accepts 01:00–24:00, and start must be earlier. Bounds are [start,end), clipped to as_of. Contract 1.0 and health responses remain compatible. Unknown/malformed fields are rejected by HTTP validation and RPC independently.
+
+The additive owner is supabase/migrations/20261016000000_add_hourly_site_analytics.sql; online patch supabase/patches/20261016_hourly_site_analytics.sql has the same DDL. Preserve invoker wrapper, grants, collector events and 180-day cleanup. Apply only to the intended tenant, never shared catalog or Webook Supabase. Raw timestamps represent server ingestion time. 1.1 adds ordered UTC hourly start/end rows; daily/totals/villas/unattributed all use the selected clock bounds. Future buckets are omitted, current hour is clipped to as_of and no raw events are exposed.
+
+Local check without PGlite installation: node scripts/test-hourly-site-analytics-db.mjs <local-supabase_db_container>. The runner creates/drops only its own disposable database and reads no .env. It exercises upgraded RPC plus legacy 2,000/10,001-villa cases, sums, Thai midnight, snapshots, fractional-time rejection, villa filters, coverage, role/tenant denial, replay and retention/rollback. The original PGlite runner remains available separately.
+
+Roll out tenant Staging SQL + Worker before consumer integration. Source files alone do not prove that any online project was changed. Production master pushes run the full migration/deploy matrix, so merging needs explicit new production authorization; verify 1.0 and 1.1 on all five tenants. Application rollback may continue using 1.0 without removing the additive upgrade or dropping events.

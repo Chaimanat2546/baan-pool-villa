@@ -104,6 +104,7 @@ export function validateReportQuery(
   value: unknown,
   now = new Date(),
 ): { query: AnalyticsReportQuery; start: string; end: string } {
+  const hourly = Boolean(value && typeof value === "object" && "contract_version" in value && value.contract_version === "1.1");
   const v = object(
     value,
     [
@@ -113,10 +114,11 @@ export function validateReportQuery(
       "timezone",
       "as_of",
       "villa_id",
+      ...(hourly ? ["granularity", "from_time", "to_time"] : []),
     ],
     "INVALID_QUERY",
   );
-  if (v.contract_version !== "1.0")
+  if (v.contract_version !== "1.0" && v.contract_version !== "1.1")
     throw new AnalyticsError("UNSUPPORTED_CONTRACT");
   if (
     v.timezone !== "Asia/Bangkok" ||
@@ -144,9 +146,19 @@ export function validateReportQuery(
     to > day(new Date(asOf + 7 * 3600000).toISOString().slice(0, 10))
   )
     throw new AnalyticsError("INVALID_RANGE");
+  let start = from - 7 * 3600000;
+  let end = to + 17 * 3600000;
+  if (hourly) {
+    if (v.granularity !== "hour" || from !== to || typeof v.from_time !== "string" || typeof v.to_time !== "string"
+      || !/^(?:[01]\d|2[0-3]):00$/.test(v.from_time)
+      || !/^(?:(?:0[1-9]|1\d|2[0-3]):00|24:00)$/.test(v.to_time)
+      || v.from_time >= v.to_time) throw new AnalyticsError("INVALID_RANGE");
+    start += Number(v.from_time.slice(0, 2)) * 3600000;
+    end = from - 7 * 3600000 + Number(v.to_time.slice(0, 2)) * 3600000;
+  }
   return {
     query: v as unknown as AnalyticsReportQuery,
-    start: new Date(from - 7 * 3600000).toISOString(),
-    end: new Date(Math.min(to + 17 * 3600000, asOf)).toISOString(),
+    start: new Date(start).toISOString(),
+    end: new Date(Math.min(end, asOf)).toISOString(),
   };
 }

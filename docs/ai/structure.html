@@ -1265,6 +1265,7 @@
           initialization and monotonic retention coverage. <code>worker-analytics-retention.js</code>
           runs bounded daily cleanup at 00:15 UTC. All five production target configs enable
           collector and retention; deployment remains the existing full CI matrix.</p>
+        <p>Hourly reports use contract 1.1 on the same authenticated report route. Types/validation remain in lib/analytics; supabase/migrations/20261016000000_add_hourly_site_analytics.sql and the matching 20261016_hourly_site_analytics.sql patch own the additive RPC upgrade. Whole Thai clock-hour selections are bounded to one day, as_of clips observations, and hourly/daily/totals use the same filtered event set; contract 1.0 remains daily. No collector fields or new tracking identity are added. The Docker disposable-database runner scripts/test-hourly-site-analytics-db.mjs plus hourly-site-analytics-test.sql and legacy-site-analytics-test.sql verify both contracts without a remote database or new package installation.</p>
         <p>Verification: <code>npm.cmd test -- lib/analytics worker-analytics-access.test.ts worker-analytics-retention.test.ts</code>,
           <code>node scripts/test-site-analytics-db.mjs</code> (isolated PGlite prerequisite),
           lint/build and <code>npx.cmd playwright test tests/site-analytics.spec.ts</code>
