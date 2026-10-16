@@ -32,16 +32,17 @@ beforeEach(() => {
   vi.resetAllMocks();
 });
 afterEach(() => vi.unstubAllEnvs());
-it("serves authorized hourly reports and rejects invalid times before storage", async () => {
+it.each(["1.1", "1.2"])("serves authorized %s reports and rejects invalid times before storage", async version => {
   const token = "fixture-report-token".repeat(3);
   vi.stubEnv("ANALYTICS_REPORT_READ_TOKEN", token);
-  const query = { contract_version: "1.1", granularity: "hour", from_date: "2026-10-01", to_date: "2026-10-01", from_time: "09:00", to_time: "18:00", timezone: "Asia/Bangkok", as_of: "2026-10-02T00:00:00.000Z", villa_id: null };
+  const query = { contract_version: version, granularity: version === "1.1" ? "hour" : "day", from_date: "2026-10-01", to_date: "2026-10-01", from_time: "09:00", to_time: "18:00", timezone: "Asia/Bangkok", as_of: "2026-10-02T00:00:00.000Z", villa_id: null };
   const reportRequest = (value: unknown, auth = token) => new Request("https://example.com/api/analytics/v1/report", { method: "POST", headers: { Authorization: `Bearer ${auth}`, "Content-Type": "application/json" }, body: JSON.stringify(value) });
-  storage.getAnalyticsReport.mockResolvedValue({ contract_version: "1.1", hourly: [] });
+  const report = { contract_version: version, ...(version === "1.1" ? { hourly: [] } : { daily: [] }) };
+  storage.getAnalyticsReport.mockResolvedValue(report);
   const response = await handleAnalyticsRequest(reportRequest(query));
   expect(response.status).toBe(200);
   expect(response.headers.get("cache-control")).toBe("private, no-store");
-  expect(await response.json()).toEqual({ contract_version: "1.1", hourly: [] });
+  expect(await response.json()).toEqual(report);
   expect(storage.getAnalyticsReport).toHaveBeenCalledWith(query);
   storage.getAnalyticsReport.mockClear();
   expect((await handleAnalyticsRequest(reportRequest({ ...query, from_time: "09:30" }))).status).toBe(422);

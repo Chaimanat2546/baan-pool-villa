@@ -25,7 +25,13 @@ export interface AnalyticsHourlyReportQuery extends AnalyticsReportFields {
   from_time: string;
   to_time: string;
 }
-export type AnalyticsReportQuery = AnalyticsDailyReportQuery | AnalyticsHourlyReportQuery;
+export interface AnalyticsDailyWindowReportQuery extends AnalyticsReportFields {
+  contract_version: "1.2";
+  granularity: "day";
+  from_time: string;
+  to_time: string;
+}
+export type AnalyticsReportQuery = AnalyticsDailyReportQuery | AnalyticsHourlyReportQuery | AnalyticsDailyWindowReportQuery;
 export class AnalyticsError extends Error {
   constructor(
     public code: string,

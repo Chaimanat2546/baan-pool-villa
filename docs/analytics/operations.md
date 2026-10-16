@@ -195,3 +195,12 @@ The additive owner is supabase/migrations/20261016000000_add_hourly_site_analyti
 Local check without PGlite installation: node scripts/test-hourly-site-analytics-db.mjs <local-supabase_db_container>. The runner creates/drops only its own disposable database and reads no .env. It exercises upgraded RPC plus legacy 2,000/10,001-villa cases, sums, Thai midnight, snapshots, fractional-time rejection, villa filters, coverage, role/tenant denial, replay and retention/rollback. The original PGlite runner remains available separately.
 
 Roll out tenant Staging SQL + Worker before consumer integration. Source files alone do not prove that any online project was changed. Production master pushes run the full migration/deploy matrix, so merging needs explicit new production authorization; verify 1.0 and 1.1 on all five tenants. Application rollback may continue using 1.0 without removing the additive upgrade or dropping events.
+
+
+## Recurring daily time windows (contract 1.2)
+
+POST /api/analytics/v1/report accepts contract_version=1.2, granularity=day, from_date/to_date, from_time/to_time, timezone=Asia/Bangkok, as_of and villa_id. The same [from_time,to_time) window applies independently to every inclusive calendar date. End24:00 is next midnight; overnight and minute-level windows are rejected. Response uses daily/totals/villas/unattributed/coverage with exact query echo and no hourly field. Contracts1.0/1.1 retain their original behavior.
+
+Tenant migration 20261016010000_add_daily_time_window_analytics.sql and its matching 20261016_daily_time_window_analytics.sql patch upgrade the existing private RPC; do not apply to the catalog. Deploy/apply only with authorization. Verify an actual authenticated1.2 report and sum invariants per allowlisted tenant before consumer rollout; health1.0 alone does not prove1.2 readiness. A non-upgraded source returns422; consumers must not silently substitute full-day totals.
+
+Local database verification (no .env or remote writes): node scripts/test-daily-time-window-site-analytics-db.mjs <local-supabase_db_container>. This creates and drops its own disposable database and checks recurring/hourly/legacy contracts, boundaries, snapshot, retention, sums, roles and replay.
