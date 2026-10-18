@@ -13,6 +13,7 @@ import {
   formatCalendarMonthKey,
   formatThaiCalendarDate,
   getFallbackCalendarDay,
+  isCalendarDateSelectable,
   startOfCalendarDate,
   type BookingCalendarDay,
   type BookingCalendarMonth,
@@ -83,6 +84,11 @@ export function BookingCalendarPanel({
   const selectedCalendarDay = selectedCalendarDate
     ? getCalendarDay(selectedCalendarDate)
     : null;
+  const isDateDisabled = (date: Date) =>
+    !isCalendarDateSelectable({ date, todayStart }) ||
+    isOutsideVisibleMonth(date) ||
+    bookingCalendar?.month !== visibleMonthKey ||
+    getCalendarDay(date).disabled;
 
   useLockedBodyScroll(Boolean(selectedCalendarDate));
 
@@ -92,17 +98,9 @@ export function BookingCalendarPanel({
         mode="single"
         month={visibleMonth}
         onMonthChange={setVisibleMonth}
-        disabled={(date) =>
-          isOutsideVisibleMonth(date) ||
-          bookingCalendar?.month !== visibleMonthKey ||
-          getCalendarDay(date).disabled
-        }
+        disabled={isDateDisabled}
         onSelect={(date) => {
-          if (
-            date &&
-            !isOutsideVisibleMonth(date) &&
-            !getCalendarDay(date).disabled
-          ) {
+          if (date && !isDateDisabled(date)) {
             setIsCalendarTipDismissed(true);
             setSelectedCalendarDate(date);
           }
@@ -148,7 +146,6 @@ export function BookingCalendarPanel({
                 isFirstAvailable={isFirstAvailable}
                 isOutsideVisibleMonth={isOutsideVisibleMonth}
                 isPast={isPast}
-                isPastVisibleMonth={isPastVisibleMonth}
                 isToday={isToday}
                 onDismissTip={() => {
                   setIsCalendarTipDismissed(true);

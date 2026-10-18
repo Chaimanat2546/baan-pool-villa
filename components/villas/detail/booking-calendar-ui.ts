@@ -53,16 +53,11 @@ export function startOfCalendarDate(date: Date): Date {
 export function isCalendarDateSelectable({
   date,
   todayStart,
-  visibleMonth,
 }: {
   date: Date;
   todayStart: Date;
-  visibleMonth: Date;
 }) {
-  return (
-    visibleMonth < new Date(todayStart.getFullYear(), todayStart.getMonth(), 1) ||
-    startOfCalendarDate(date) >= todayStart
-  );
+  return startOfCalendarDate(date) >= todayStart;
 }
 
 export function addCalendarMonths(date: Date, monthOffset: number): Date {

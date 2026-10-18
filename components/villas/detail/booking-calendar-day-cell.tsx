@@ -21,7 +21,6 @@ interface BookingCalendarDayCellProps extends ComponentProps<
   isFirstAvailable: boolean;
   isOutsideVisibleMonth: boolean;
   isPast: boolean;
-  isPastVisibleMonth: boolean;
   isToday: boolean;
   onDismissTip: () => void;
 }
@@ -34,33 +33,32 @@ export function BookingCalendarDayCell({
   isFirstAvailable,
   isOutsideVisibleMonth,
   isPast,
-  isPastVisibleMonth,
   isToday,
   onDismissTip,
   ...props
 }: BookingCalendarDayCellProps) {
   const shouldShowCalendarData = !isOutsideVisibleMonth;
   const isBlockedBooking = shouldShowCalendarData && calendarDay.disabled;
+  const isPastUnbooked = isPast && !calendarDay.disabled;
+  const isDisabled = isBlockedBooking || isPast || props.disabled;
+  const shouldShowDayDetails = shouldShowCalendarData && !isPastUnbooked;
   const firstAvailableTooltipAlign =
     day.date.getDay() <= 1
       ? "start"
       : day.date.getDay() >= 5
         ? "end"
         : "center";
-  const showFireText =
-    shouldShowCalendarData &&
-    !isOutsideVisibleMonth &&
-    calendarDay.icons.includes("fire");
+  const showFireText = shouldShowDayDetails && calendarDay.icons.includes("fire");
 
   return (
     <>
       <CalendarDayButton
         {...props}
-        aria-disabled={isBlockedBooking ? true : props["aria-disabled"]}
+        aria-disabled={isDisabled ? true : props["aria-disabled"]}
         className={cn(
           className,
-          isPast && !isPastVisibleMonth && !calendarDay.disabled
-            ? "bg-[var(--site-surface-tint)] text-[var(--site-muted)] ring-0 hover:bg-[var(--site-surface-tint)] hover:text-[var(--site-muted)] "
+          isPastUnbooked
+            ? "bg-[var(--site-surface-tint)] text-[var(--site-muted)] ring-0 hover:bg-[var(--site-surface-tint)] hover:text-[var(--site-muted)] disabled:opacity-100 "
             : null,
           shouldShowCalendarData && isToday
             ? "border border-[var(--site-primary)] text-[var(--site-primary)] ring-2 ring-[var(--site-primary)]/20 hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)] "
@@ -68,9 +66,7 @@ export function BookingCalendarDayCell({
           isOutsideVisibleMonth
             ? "bg-[var(--site-surface-soft)] text-[var(--site-muted)] opacity-45 ring-0 shadow-none hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-muted)] disabled:opacity-45 "
             : null,
-          shouldShowCalendarData && !isOutsideVisibleMonth
-            ? getCalendarToneClass(calendarDay)
-            : null,
+          shouldShowDayDetails ? getCalendarToneClass(calendarDay) : null,
           isBlockedBooking
             ? "pointer-events-none cursor-not-allowed disabled:!opacity-100 "
             : null,
@@ -85,8 +81,8 @@ export function BookingCalendarDayCell({
         }
         data-calendar-first-available={isFirstAvailable ? "true" : undefined}
         day={day}
-        disabled={isBlockedBooking || props.disabled}
-        tabIndex={isBlockedBooking ? -1 : props.tabIndex}
+        disabled={isDisabled}
+        tabIndex={isDisabled ? -1 : props.tabIndex}
       >
         <CalendarDayOverlay day={calendarDay} />
         <div className="relative z-10 pt-[5px] leading-none">
@@ -101,8 +97,7 @@ export function BookingCalendarDayCell({
           >
             {day.date.getDate()}
           </span>
-          {shouldShowCalendarData &&
-          !isOutsideVisibleMonth &&
+          {shouldShowDayDetails &&
           !calendarDay.disabled &&
           calendarDay.displayPrice ? (
             <span
@@ -117,8 +112,7 @@ export function BookingCalendarDayCell({
               {calendarDay.displayPrice}
             </span>
           ) : null}
-          {shouldShowCalendarData &&
-          !isOutsideVisibleMonth &&
+          {shouldShowDayDetails &&
           !calendarDay.disabled &&
           calendarDay.guestCapacity ? (
             <span
@@ -130,13 +124,7 @@ export function BookingCalendarDayCell({
             </span>
           ) : null}
         </div>
-        <CalendarDayIcons
-          icons={
-            shouldShowCalendarData && !isOutsideVisibleMonth
-              ? calendarDay.icons
-              : []
-          }
-        />
+        <CalendarDayIcons icons={shouldShowDayDetails ? calendarDay.icons : []} />
         {isFirstAvailable ? <CalendarFirstAvailablePointer /> : null}
       </CalendarDayButton>
       {isFirstAvailable && !isCalendarTipDismissed ? (

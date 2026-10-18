@@ -87,22 +87,26 @@ describe("booking calendar UI helpers", () => {
     ).toBeNull();
   });
 
-  it("allows inspecting dates in a prior visible month", () => {
+  it("rejects past dates and allows today and future dates", () => {
     const todayStart = new Date(2026, 6, 13);
 
     expect(
       isCalendarDateSelectable({
         date: new Date(2026, 5, 16),
         todayStart,
-        visibleMonth: new Date(2026, 5, 1),
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isCalendarDateSelectable({
         date: new Date(2026, 6, 12),
         todayStart,
-        visibleMonth: new Date(2026, 6, 1),
       }),
     ).toBe(false);
+    expect(
+      isCalendarDateSelectable({ date: new Date(2026, 6, 13), todayStart }),
+    ).toBe(true);
+    expect(
+      isCalendarDateSelectable({ date: new Date(2026, 7, 1), todayStart }),
+    ).toBe(true);
   });
 });

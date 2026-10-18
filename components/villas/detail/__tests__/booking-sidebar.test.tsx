@@ -575,7 +575,7 @@ describe("BookingSidebar", () => {
     await page.cleanup();
   });
 
-  it("shows past dates and opens a date detail modal for available days", async () => {
+  it("disables past dates and opens details for available future days", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
     const page = await renderBookingSidebar();
@@ -586,14 +586,14 @@ describe("BookingSidebar", () => {
       button.getAttribute("aria-label")?.startsWith("15 มิถุนายน 2569"),
     );
 
-    expect(pastDate?.disabled).toBe(false);
+    expect(pastDate?.disabled).toBe(true);
     expect(pastDate?.className).toContain("bg-[var(--site-surface-tint)]");
     expect(pastDate?.className).not.toContain("opacity-60");
 
     await act(async () => {
       pastDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    expect(page.container.querySelector("[data-date-detail-dialog]")).not.toBeNull();
+    expect(page.container.querySelector("[data-date-detail-dialog]")).toBeNull();
 
     const normalDate = Array.from(
       page.container.querySelectorAll<HTMLButtonElement>("button"),
@@ -643,7 +643,7 @@ describe("BookingSidebar", () => {
     await page.cleanup();
   });
 
-  it("shows available past days but keeps booked past days unselectable", async () => {
+  it("prevents opening past unbooked dates while keeping today's details available", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-23T04:00:00.000Z"));
     const page = await renderBookingSidebar();
@@ -655,11 +655,21 @@ describe("BookingSidebar", () => {
     const availablePastDate = findDate("15");
     const bookedPastDate = findDate("19");
 
-    expect(availablePastDate?.disabled).toBe(false);
-    expect(availablePastDate?.textContent).toContain("9,900");
+    expect(availablePastDate?.disabled).toBe(true);
+    expect(availablePastDate?.getAttribute("aria-disabled")).toBe("true");
+    expect(availablePastDate?.tabIndex).toBe(-1);
+    expect(availablePastDate?.textContent).toBe("15");
 
     await act(async () => {
       availablePastDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(page.container.querySelector("[data-date-detail-dialog]")).toBeNull();
+    expect(document.body.classList.contains("body-scroll-locked")).toBe(false);
+
+    const today = findDate("23");
+    expect(today?.disabled).toBe(false);
+    await act(async () => {
+      today?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(page.container.querySelector("[data-date-detail-dialog]")).not.toBeNull();
 
@@ -740,7 +750,7 @@ describe("BookingSidebar", () => {
     await page.cleanup();
   });
 
-  it("renders prices and status markers when viewing a prior month", async () => {
+  it("shows only date numbers for unbooked days in a prior month and preserves booking markers", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
     const page = await renderBookingSidebar();
@@ -761,7 +771,22 @@ describe("BookingSidebar", () => {
     const holidayDate = findPriorDate("20");
     const hotproDate = findPriorDate("21");
 
-    expect(promotionDate?.textContent).toContain("5,900");
+    for (const date of [promotionDate, holidayDate, hotproDate]) {
+      expect(date).toBeDefined();
+      expect(date?.disabled).toBe(true);
+      expect(date?.tabIndex).toBe(-1);
+      expect(date?.textContent).toBe(
+        date?.querySelector("[data-calendar-day-number]")?.textContent,
+      );
+      expect(date?.querySelector("[data-calendar-day-price]")).toBeNull();
+      expect(date?.querySelector("[data-calendar-day-capacity]")).toBeNull();
+      expect(date?.querySelector("[data-calendar-icon='fire']")).toBeNull();
+      expect(date?.className).not.toContain("bg-yellow-500");
+    }
+    await act(async () => {
+      promotionDate?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(page.container.querySelector("[data-date-detail-dialog]")).toBeNull();
     expect(waitingDate?.disabled).toBe(true);
     expect(waitingDate?.className).toContain("bg-emerald-700");
     expect(bookedDate?.disabled).toBe(true);
@@ -769,8 +794,48 @@ describe("BookingSidebar", () => {
     expect(
       bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
     ).not.toBeNull();
-    expect(holidayDate?.className).toContain("bg-yellow-500");
-    expect(hotproDate?.querySelector("[data-calendar-icon='fire']")).not.toBeNull();
+    await page.cleanup();
+  });
+
+  it("hides past prices, capacity, and promotions within the current month while keeping today's price", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-23T04:00:00.000Z"));
+    const page = await renderBookingSidebar();
+
+    for (const day of [15, 17, 20, 21, 22]) {
+      const date = page.container.querySelector<HTMLButtonElement>(
+        `button[data-day='2026-06-${day}']`,
+      );
+      expect(date).not.toBeNull();
+      expect(date?.textContent).toBe(String(day));
+      expect(date?.querySelector("[data-calendar-day-price]")).toBeNull();
+      expect(date?.querySelector("[data-calendar-day-capacity]")).toBeNull();
+      expect(date?.querySelector("[data-calendar-icon='fire']")).toBeNull();
+      expect(date?.className).not.toContain("bg-yellow-500");
+      expect(
+        date?.querySelector("[data-calendar-day-number]")?.className,
+      ).not.toContain("text-white");
+    }
+
+    const today = page.container.querySelector("button[data-day='2026-06-23']");
+    expect(today?.querySelector("[data-calendar-day-price]")?.textContent).toBe(
+      "9,900",
+    );
+    expect(today?.querySelector("[data-calendar-day-capacity]")?.textContent).toBe(
+      "12",
+    );
+    const waitingDate = page.container.querySelector<HTMLButtonElement>(
+      "button[data-day='2026-06-18']",
+    );
+    const bookedDate = page.container.querySelector<HTMLButtonElement>(
+      "button[data-day='2026-06-19']",
+    );
+    expect(waitingDate?.disabled).toBe(true);
+    expect(waitingDate?.className).toContain("bg-emerald-700");
+    expect(bookedDate?.disabled).toBe(true);
+    expect(
+      bookedDate?.querySelector("[data-calendar-overlay='booked-stripes']"),
+    ).not.toBeNull();
 
     await page.cleanup();
   });
@@ -870,7 +935,9 @@ describe("BookingSidebar", () => {
         ?.querySelector("[data-calendar-day-capacity] svg")
         ?.getAttribute("class"),
     ).toContain("size-[10px]");
-    expect(pastDate?.querySelector("[data-calendar-day-price]")).not.toBeNull();
+    expect(pastDate?.textContent).toBe("15");
+    expect(pastDate?.querySelector("[data-calendar-day-price]")).toBeNull();
+    expect(pastDate?.querySelector("[data-calendar-day-capacity]")).toBeNull();
     expect(baseDate?.dataset.calendarDayKind).toBe("base");
     expect(baseDate?.querySelector("[data-calendar-icon-slot='empty']")).not.toBeNull();
     expect(baseDate?.textContent).toContain("9,900");
