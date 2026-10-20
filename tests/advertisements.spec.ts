@@ -142,12 +142,13 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
   expect(page.url()).toContain("/admin/advertisements");
   await page.getByRole("button", { name: "บันทึกโฆษณา", exact: true }).click();
   await expect(
-    page.getByText("บันทึกโฆษณาแล้ว", { exact: true }),
+    page.getByText("บันทึกแล้ว", { exact: true }),
   ).toBeVisible();
   expect(saves).toBe(2);
   await expect(page.getByText("ยังไม่อัปโหลด", { exact: false })).toHaveCount(
     0,
   );
+  await expect(page.getByText("บันทึกแล้ว", { exact: true })).toHaveCount(0, { timeout: 6000 });
   await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
   await expect(page.getByRole("table")).toContainText("กิจกรรมที่กำหนดเอง");
 });
@@ -171,6 +172,7 @@ test("editing twelve images keeps save in reach on every screen", async ({ page,
   await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
   const save = page.getByRole("button", { name: "บันทึกโฆษณา", exact: true });
   await expect(save).toBeInViewport();
+  expect((await page.locator("form > header").boundingBox())!.height).toBeLessThanOrEqual(56);
   await expect(page.getByRole("complementary", { name: "ตัวอย่างโฆษณา" })).toHaveCount(0);
   if (!isMobile) {
     for (const width of [1366, 1920]) {
@@ -187,7 +189,14 @@ test("editing twelve images keeps save in reach on every screen", async ({ page,
   await expect(save).toBeInViewport();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("twelve-images-editor.png"), fullPage: true });
+  await page.locator("form > header").screenshot({ path: testInfo.outputPath("single-row-toolbar.png") });
   await page.locator('input[name="title"]').fill("ยังไม่บันทึก");
+  expect((await page.locator("form > header").boundingBox())!.height).toBeLessThanOrEqual(56);
+  if (isMobile) {
+    await page.setViewportSize({ width: 320, height: 720 });
+    expect((await page.locator("form > header").boundingBox())!.height).toBeLessThanOrEqual(56);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
   page.once("dialog", dialog => dialog.dismiss());
   await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue("ยังไม่บันทึก");

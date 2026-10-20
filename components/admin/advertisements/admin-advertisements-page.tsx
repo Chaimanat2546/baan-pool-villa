@@ -53,6 +53,11 @@ export function AdminAdvertisementsPage() {
   const objectUrls = useRef(new Set<string>());
   const listHeading = useRef<HTMLHeadingElement>(null);
   const loadVersion = useRef(0);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
   useEffect(() => { if (!editor) listHeading.current?.focus(); }, [editor]);
   const revokeUrls = useCallback(() => {
     objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
@@ -250,7 +255,7 @@ export function AdminAdvertisementsPage() {
         })),
       });
       setDirty(false);
-      setNotice("บันทึกโฆษณาแล้ว");
+      setNotice("บันทึกแล้ว");
       setWarnings(
         Array.isArray(body.warnings) ? (body.warnings as string[]) : [],
       );
@@ -293,7 +298,7 @@ export function AdminAdvertisementsPage() {
       setBusy(false);
     }
   };
-  const feedback = <AdminFeedback errors={errors} errorTitle="ดำเนินการไม่สำเร็จ" notice={notice} warnings={warnings} />;
+  const feedback = <AdminFeedback errors={errors} errorTitle="ดำเนินการไม่สำเร็จ" notice={editor ? null : notice} warnings={warnings} />;
   return (
     <div className="grid min-w-0 gap-4 text-[var(--site-text)]">
       {editor ? (
@@ -302,6 +307,7 @@ export function AdminAdvertisementsPage() {
           editor={editor}
           dirty={dirty}
           disabled={busy || loading}
+          notice={notice}
           feedback={feedback}
           onChange={update}
           onImages={changeImages}
