@@ -19,8 +19,6 @@ import {
   validateAdvertisementUpload,
 } from "./validation";
 
-const SELECT =
-  "id,title,zone,is_active,sort_order,updated_at,site_advertisement_images(id,storage_path,display_order)";
 const rejectedTransactionCodes = new Set([
   "40001",
   "22023",
@@ -51,32 +49,34 @@ export async function listAdminAdvertisements(
   const { page, filters, errors } = parseAdvertisementListQuery(new URL(request.url).searchParams);
   if (errors.length) return invalid(errors);
   const pageSize = ADVERTISEMENT_PAGE_SIZE;
-  let query = supabase
-    .from("site_advertisements")
-    .select(SELECT, { count: "exact" });
-  if (filters.search) {
-    const literal = filters.search.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
-    query = query.ilike("title", `%${literal}%`);
-  }
-  if (filters.zone) query = query.eq("zone", filters.zone);
-  if (filters.status !== "all") query = query.eq("is_active", filters.status === "active");
-  const { data, error, count } = await query
-    .order("sort_order", { ascending: true })
-    .order("id", { ascending: true })
-    .range((page - 1) * pageSize, page * pageSize - 1);
+  const { data, error } = await supabase.rpc("list_site_advertisements", {
+    p_page: page,
+    p_search: filters.search,
+    p_zone: filters.zone,
+    p_status: filters.status,
+  });
   if (error)
     return adminSupabaseErrorResponse(
       error,
       "โหลดโฆษณาไม่สำเร็จ กรุณาตรวจสอบการติดตั้งฐานข้อมูลโฆษณาของเว็บนี้",
     );
+  if (!isRecord(data) || !Array.isArray(data.advertisements) || data.advertisements.length > pageSize
+    || typeof data.total !== "number" || !Number.isSafeInteger(data.total) || data.total < 0) {
+    return Response.json({ error: "ข้อมูลรายการโฆษณาจากฐานข้อมูลไม่ถูกต้อง กรุณาลองใหม่" }, { status: 503 });
+  }
   const advertisements: AdminAdvertisement[] = [];
-  for (const row of data ?? []) {
+  for (const row of data.advertisements) {
     if (
+      !isRecord(row) ||
       !isAdvertisementId(row.id) ||
       typeof row.title !== "string" ||
+      typeof row.zone !== "string" ||
+      typeof row.is_active !== "boolean" ||
+      typeof row.sort_order !== "number" ||
       typeof row.updated_at !== "string"
     )
       return invalid(["ข้อมูลโฆษณาในฐานข้อมูลไม่ถูกต้อง"]);
+    const adId = row.id;
     const images = (
       Array.isArray(row.site_advertisement_images)
         ? row.site_advertisement_images
@@ -92,7 +92,7 @@ export async function listAdminAdvertisements(
         } =>
           isRecord(image) &&
           isAdvertisementId(image.id) &&
-          isAdvertisementStoragePath(image.storage_path, row.id) &&
+          isAdvertisementStoragePath(image.storage_path, adId) &&
           typeof image.display_order === "number",
       )
       .sort((a, b) => a.display_order - b.display_order)
@@ -115,7 +115,7 @@ export async function listAdminAdvertisements(
   }
   return Response.json({
     advertisements,
-    total: count ?? advertisements.length,
+    total: data.total,
     page,
     pageSize,
   });

@@ -7,7 +7,8 @@ const { PGlite } = await import(
     import.meta.url,
   )
 );
-const db = new PGlite();
+const { pg_trgm } = await import(new URL("../.superpowers/analytics-test-runtime/node_modules/@electric-sql/pglite/dist/contrib/pg_trgm.js", import.meta.url));
+const db = new PGlite({ extensions: { pg_trgm } });
 const userId = "10000000-0000-4000-8000-000000000001";
 const adId = "20000000-0000-4000-8000-000000000001";
 const imageId = "30000000-0000-4000-8000-000000000001";
@@ -15,7 +16,7 @@ const nextId = "30000000-0000-4000-8000-000000000002";
 const thirdId = "30000000-0000-4000-8000-000000000003";
 const image = (id) => ({ id, storagePath: `${adId}/${id}.webp` });
 try {
-  await db.exec(`create role anon; create role authenticated; create schema private; create schema auth; create schema storage;
+  await db.exec(`create role anon; create role authenticated; create schema private; create schema auth; create schema storage; create schema extensions;
     create table auth.users (id uuid primary key);
     create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('test.user', true),'')::uuid $$;
     create function private.is_home_config_admin() returns boolean language plpgsql as $$ begin return coalesce(current_setting('test.admin', true),'false') = 'true'; end $$;
@@ -74,6 +75,9 @@ try {
   const autoOrderPatch = await readFile(new URL("../supabase/migrations/20261020030000_auto_order_site_advertisements.sql", import.meta.url), "utf8");
   await db.exec(autoOrderPatch);
   await db.exec(autoOrderPatch);
+  const queryPatch = await readFile(new URL("../supabase/migrations/20261020040000_optimize_site_advertisement_queries.sql", import.meta.url), "utf8");
+  await db.exec(queryPatch);
+  await db.exec(queryPatch);
   await db.exec("set role authenticated");
   await assert.rejects(save({ ...ad, updatedAt: saved.updatedAt }, [image(imageId), image(nextId), image(thirdId)]), /Invalid advertisement images/);
   assert.equal((await db.query("select * from public.site_advertisement_images")).rows.length, 3, "rejected save must leave the old snapshot intact");
@@ -178,6 +182,51 @@ try {
     await save({ ...newAd, id: newAdId }, [{ id: newImageId, storagePath }]);
     assert.equal((await db.query("select sort_order from public.site_advertisements where id = $1", [newAdId])).rows[0].sort_order, expectedOrder, "new advertisements append without a client rank");
   }
+  await db.exec("reset role");
+  await db.query(`insert into public.site_advertisements(id,title,zone,is_active,sort_order)
+    select md5('index-fixture-'||i)::uuid, case when i=49999 then $1 else 'กิจกรรมทั่วไป '||i end,
+    case when i%2=0 then 'all' else 'pattaya' end, i%3<>0, i+10000 from generate_series(1,50000) i`,
+    ["ล่องเรือชมทะเล Sunset 50%_ราคา" + String.fromCharCode(92) + "พิเศษ"]);
+  // Flush bulk-load GIN pending entries; the disposable runtime has no autovacuum worker.
+  await db.exec("vacuum (analyze) public.site_advertisements");
+  const explain = async (sql, values=[]) => (await db.query("explain (format json) "+sql, values)).rows[0]["QUERY PLAN"][0].Plan;
+  const planIndexes = plan => [plan["Index Name"], ...(plan.Plans ?? []).flatMap(planIndexes)].filter(Boolean);
+  assert.ok(planIndexes(await explain("select id from public.site_advertisements order by sort_order,id limit 8")).includes("site_advertisements_order_idx"));
+  assert.ok(planIndexes(await explain("select max(sort_order) from public.site_advertisements")).includes("site_advertisements_order_idx"));
+  // The private RPC runs its SELECT as the table owner after checking admin access.
+  for (const term of ["%Sunset%", "%ล่องเรือชมทะเล%"]){
+    const titlePlan = await explain("select id from public.site_advertisements where title ilike $1 order by sort_order,id limit 8", [term]);
+    assert.ok(planIndexes(titlePlan).includes("site_advertisements_title_trgm_idx"), JSON.stringify(titlePlan));
+  }
+  const list = async (page=1, search="", zone="", status="all") =>
+    (await db.query("select public.list_site_advertisements($1,$2,$3,$4) as result", [page,search,zone,status])).rows[0].result;
+  await db.exec("set role authenticated; select set_config('test.admin','true',false)");
+  const firstPage = await list();
+  const secondPage = await list(2);
+  assert.equal(firstPage.advertisements.length, 8);
+  assert.equal(firstPage.total, 50002);
+  assert.equal(secondPage.total, firstPage.total);
+  assert.ok(secondPage.advertisements.every(row => !firstPage.advertisements.some(first => first.id===row.id)));
+  for (const term of ["ล่องเรือชมทะเล", "SUNSET", "50%_ราคา" + String.fromCharCode(92)]) {
+    const result = await list(1,term,"pattaya","active");
+    assert.equal(result.total,1, "Thai, case-insensitive and escaped literal searches must retain exact matches");
+    assert.equal(result.advertisements.length,1);
+  }
+  assert.equal((await list(2,"ล่องเรือชมทะเล")).total,1);
+  assert.equal((await list(2,"ล่องเรือชมทะเล")).advertisements.length,0);
+  assert.equal((await list(1,"' OR true --")).total,0);
+  assert.equal((await list(1,"ล่องเรือชมทะเล","pattaya","inactive")).total,0);
+  for (const args of [[0,"","","all"],[1,"","invalid","all"],[1,"","","invalid"],[1,"a".repeat(161),"","all"]]) {
+    await assert.rejects(list(...args), /Invalid advertisement list filters/);
+  }
+  await db.exec("select set_config('test.admin','false',false)");
+  await assert.rejects(list(), /Admin access required/);
+  await db.exec("set role anon");
+  await assert.rejects(list(), /permission denied/);
+  await db.exec("reset role; alter extension pg_trgm set schema public");
+  await db.exec(queryPatch);
+  assert.equal((await db.query("select n.nspname from pg_extension e join pg_namespace n on n.oid=e.extnamespace where e.extname='pg_trgm'")).rows[0].nspname,"public", "migration must preserve an existing extension schema");
+  console.log("PASS: 50,002-record order/MAX/Thai search index plans, admin RPC pagination/filtering/literal escaping, denied anonymous/non-admin reads and extension-schema preservation");
   console.log(
     "PASS: automatic append order and preserved edit order, two-image save limit, preserved legacy images, idempotent migrations, local ownership, atomic save/order/delete, stale edits, public RLS, authorization and retained history",
   );
