@@ -416,9 +416,22 @@ test("website confirmation modals preserve drafts, trap focus and confirm naviga
   } else await page.getByRole("link", { name: "ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด", exact: true }).click();
   const leave = page.getByRole("alertdialog", { name: "ออกจากหน้านี้?", exact: true });
   await expect(leave).toBeVisible();
+  if (isMobile) {
+    await leave.getByRole("button", { name: "แก้ไขต่อ", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "เมนูหลังบ้าน", exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+    await page.locator('a[href="/admin/sections"]:visible').click();
+    await expect(leave).toBeVisible();
+    await page.setViewportSize({ width: 1200, height: 800 });
+    await leave.getByRole("button", { name: "แก้ไขต่อ", exact: true }).click();
+    expect(await page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
+    await page.locator('a[href="/admin/sections"]:visible').click();
+    await expect(leave).toBeVisible();
+  }
   await leave.getByRole("button", { name: "ออกจากหน้านี้", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(isMobile ? "/admin/sections$" : "/admin/detail-layout$"));
   if (isMobile) await expect(page.getByRole("button", { name: "ปิดเมนูหลังบ้าน", exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
   expect(nativeDialogs).toEqual([]);
 });
 
@@ -531,6 +544,59 @@ test("admin navigation stays readable with pale primary colors", async ({ page, 
     await expect(selected).toHaveCSS("background-color", "rgb(255, 176, 0)");
     expect(await page.getByRole("main").boundingBox()).toEqual(collapsedGeometry);
     await page.screenshot({ path: testInfo.outputPath("theme-yellow-collapsed.png"), fullPage: true });
+  }
+});
+
+test("admin branding, icon tooltips and fullscreen mobile menu", async ({ page, isMobile }, testInfo) => {
+  await page.route("**/api/admin/advertisements**", route => route.fulfill({ json: { advertisements: [], total: 0 } }));
+  await page.goto("/admin/advertisements");
+  await expect(page.getByRole("table")).toBeVisible();
+  if (isMobile) {
+    const open = page.getByRole("button", { name: "เปิดเมนูหลังบ้าน", exact: true });
+    await open.click();
+    const menu = page.getByRole("dialog", { name: "เมนูหลังบ้าน", exact: true });
+    await expect(menu).toBeVisible();
+    const viewport = page.viewportSize()!;
+    const bounds = (await menu.boundingBox())!;
+    expect(bounds.x).toBe(0);
+    expect(bounds.y).toBe(0);
+    expect(bounds.width).toBe(viewport.width);
+    expect(bounds.height).toBe(viewport.height);
+    await expect(menu.getByRole("img")).toBeVisible();
+    await expect.poll(() => menu.getByRole("img").evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    const close = menu.getByRole("button", { name: "ปิดเมนูหลังบ้าน", exact: true });
+    await expect(close).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(menu.getByRole("link", { name: "ตั้งค่าเว็บ", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(close).toBeFocused();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+    await page.screenshot({ path: testInfo.outputPath("fullscreen-logo-menu.png"), fullPage: true });
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(open).toBeFocused();
+    expect(await page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
+    await open.click();
+    await page.setViewportSize({ width: 1200, height: 800 });
+    await expect(menu).toHaveCount(0);
+    expect(await page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
+  } else {
+    const sidebar = page.locator("[data-admin-sidebar-state]");
+    await expect(sidebar.getByRole("img")).toBeVisible();
+    await expect.poll(() => sidebar.getByRole("img").evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    await page.getByRole("button", { name: "ย่อแถบเมนูหลังบ้าน", exact: true }).click();
+    const link = sidebar.getByRole("link", { name: "หน้ารายละเอียดบ้านพัก", exact: true });
+    await expect(link.locator("span")).toHaveClass("sr-only");
+    await expect(sidebar.getByRole("img")).toBeVisible();
+    await link.hover();
+    await expect(page.getByRole("tooltip")).toHaveText("หน้ารายละเอียดบ้านพัก");
+    await page.screenshot({ path: testInfo.outputPath("collapsed-logo-tooltip.png"), fullPage: true });
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await link.focus();
+    await expect(page.getByRole("tooltip")).toHaveText("หน้ารายละเอียดบ้านพัก");
+    await page.getByRole("button", { name: "ขยายแถบเมนูหลังบ้าน", exact: true }).click();
+    await expect(link.locator("span")).not.toHaveClass("sr-only");
   }
 });
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { lockAdminDialogScroll } from "@/components/admin/admin-dialog-scroll-lock";
+
 import { useEffect, useId, useRef } from "react";
 import type { AdvertisementConfirmation } from "./use-advertisement-confirmation";
 
@@ -17,16 +19,12 @@ export function AdvertisementConfirmationDialog({ confirmation, onCancel, onConf
     const dialog = dialogRef.current;
     if (!dialog) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
     dialog.showModal();
     cancelRef.current?.focus();
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
+    const releaseScroll = lockAdminDialogScroll();
     return () => {
       dialog.close();
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
+      releaseScroll();
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, []);

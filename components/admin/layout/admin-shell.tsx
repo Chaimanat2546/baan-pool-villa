@@ -3,20 +3,21 @@
 import {
   ChevronLeft,
   ChevronRight,
-  House,
   LogOut,
   Menu,
   PanelLeftOpen,
-  X,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { readAdminSessionState } from "@/components/admin/admin-auth";
 import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
-import { ADMIN_NAV_ITEMS, getActiveAdminNavItem } from "./admin-nav";
+import { getActiveAdminNavItem } from "./admin-nav";
+import { AdminBrand } from "./admin-brand";
+import { AdminMobileNavigation } from "./admin-mobile-navigation";
+import { AdminNavigation } from "./admin-navigation";
 import {
   setAdminSidebarPreference,
   useAdminSidebarCollapsed,
@@ -26,72 +27,6 @@ interface AdminShellProps {
   children: React.ReactNode;
   initialDesktopNavCollapsed?: boolean;
   settings: SiteSettings;
-}
-
-function AdminNavigation({
-  collapsed = false,
-  onNavigate,
-}: {
-  collapsed?: boolean;
-  onNavigate?: () => void;
-}) {
-  const pathname = usePathname();
-
-  return (
-    <nav
-      aria-label="เมนูหลังบ้าน"
-      className="grid min-w-0 gap-1.5 overflow-x-hidden"
-      data-admin-nav-layout={collapsed ? "collapsed" : "expanded"}
-    >
-      {ADMIN_NAV_ITEMS.filter((item) => !item.disabled).map((item) => {
-        const Icon = item.icon;
-        const isActive = pathname.startsWith(item.href);
-        const visibleLabel = collapsed ? item.compactLabel : item.label;
-        const className = `group rounded-md transition focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] ${
-          collapsed
-            ? "flex min-h-12 flex-col items-center justify-center gap-1 px-1 py-2 text-center"
-            : "flex min-h-9 items-center gap-2.5 px-2.5 py-2 text-left pointer-coarse:min-h-11"
-        } ${
-          isActive
-            ? "bg-[var(--site-primary)] text-[var(--site-on-primary)]"
-            : "text-[var(--site-text)] hover:bg-[var(--site-primary-soft)]"
-        }`;
-
-        const content = (
-          <>
-            <span className={`inline-flex size-4 shrink-0 items-center justify-center ${isActive ? "text-[var(--site-on-primary)]" : "text-[var(--site-primary)]"}`}>
-              <Icon aria-hidden="true" className="size-4" />
-            </span>
-            <span className={`min-w-0 ${collapsed ? "w-full" : "flex-1"}`}>
-              <span
-                className={`text-xs ${isActive ? "font-semibold" : "font-normal"} ${
-                  collapsed
-                    ? "block max-w-full truncate px-1 text-center text-[10px] leading-3"
-                    : "block break-words"
-                }`}
-              >
-                {visibleLabel}
-              </span>
-            </span>
-          </>
-        );
-
-        return (
-          <a
-            aria-label={collapsed ? item.label : undefined}
-            aria-current={isActive ? "page" : undefined}
-            className={`min-w-0 max-w-full ${className}`}
-            href={item.href}
-            key={item.href}
-            onClick={onNavigate}
-            title={collapsed ? item.label : undefined}
-          >
-            {content}
-          </a>
-        );
-      })}
-    </nav>
-  );
 }
 
 export function AdminShell({
@@ -105,6 +40,7 @@ export function AdminShell({
     initialDesktopNavCollapsed,
   );
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const closeMobileNav = useCallback(() => setIsMobileNavOpen(false), []);
   const activeItem = getActiveAdminNavItem(pathname);
   const isAuthPage =
     pathname === "/admin/login" ||
@@ -198,10 +134,9 @@ export function AdminShell({
   return (
     <div className={`min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)] lg:grid ${isDesktopNavCollapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[208px_minmax(0,1fr)]"}`}>
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-5 lg:flex" data-admin-sidebar-state={isDesktopNavCollapsed ? "collapsed" : "expanded"}>
-        <div className={`flex min-w-0 items-center gap-2 ${isDesktopNavCollapsed ? "justify-center" : "rounded-md bg-[var(--site-primary)] px-1 text-[var(--site-on-primary)]"}`}>
-          {!isDesktopNavCollapsed && <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/12 text-[var(--site-on-primary)]"><House aria-hidden="true" className="size-4" /></span>}
-          {!isDesktopNavCollapsed && <p className="min-w-0 flex-1 break-words text-sm font-semibold">{settings.siteName}</p>}
-          <button aria-label={isDesktopNavCollapsed ? "ขยายแถบเมนูหลังบ้าน" : "ย่อแถบเมนูหลังบ้าน"} title={isDesktopNavCollapsed ? "ขยายแถบเมนูหลังบ้าน" : "ย่อแถบเมนูหลังบ้าน"} className={`inline-flex shrink-0 items-center justify-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 ${isDesktopNavCollapsed ? "size-11 border border-[var(--site-border)] text-[var(--site-text)] hover:bg-[var(--site-primary-soft)] focus-visible:outline-[var(--site-primary)]" : "size-8 text-[var(--site-on-primary)] hover:bg-white/12 focus-visible:outline-[var(--site-on-primary)]"}`} onClick={() => setAdminSidebarPreference(!isDesktopNavCollapsed)} type="button">
+        <div className={`flex min-w-0 items-center gap-3 ${isDesktopNavCollapsed ? "flex-col" : "justify-between"}`}>
+          <AdminBrand collapsed={isDesktopNavCollapsed} settings={settings} />
+          <button aria-label={isDesktopNavCollapsed ? "ขยายแถบเมนูหลังบ้าน" : "ย่อแถบเมนูหลังบ้าน"} title={isDesktopNavCollapsed ? "ขยายแถบเมนูหลังบ้าน" : "ย่อแถบเมนูหลังบ้าน"} className="inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-[var(--site-border)] text-[var(--site-text)] hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]" onClick={() => setAdminSidebarPreference(!isDesktopNavCollapsed)} type="button">
             {isDesktopNavCollapsed ? <PanelLeftOpen aria-hidden="true" className="size-5" /> : <ChevronLeft aria-hidden="true" className="size-4" />}
           </button>
         </div>
@@ -222,18 +157,7 @@ export function AdminShell({
         </header>
         <main className={`w-full px-4 py-6 sm:px-6 lg:px-7 ${isDesktopNavCollapsed ? "" : "mx-auto max-w-[1480px]"}`}>{children}</main>
       </div>
-      {isMobileNavOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button aria-label="ปิดเมนูหลังบ้าน" className="absolute inset-0 bg-black/35" onClick={() => setIsMobileNavOpen(false)} type="button" />
-          <aside className="relative flex h-full w-[min(300px,88vw)] flex-col bg-[var(--site-surface)] px-4 py-5 shadow-xl">
-            <div className="flex min-w-0 items-center justify-between gap-3 rounded-md bg-[var(--site-primary)] text-[var(--site-on-primary)]">
-              <p className="min-w-0 break-words text-sm font-semibold">{settings.siteName}</p>
-              <button aria-label="ปิดเมนูหลังบ้าน" className="inline-flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-white/12" onClick={() => setIsMobileNavOpen(false)} type="button"><X aria-hidden="true" className="size-5" /></button>
-            </div>
-            <div className="mt-5 flex-1 overflow-y-auto"><AdminNavigation onNavigate={() => setIsMobileNavOpen(false)} /></div>
-          </aside>
-        </div>
-      )}
+      {isMobileNavOpen && <AdminMobileNavigation onClose={closeMobileNav} settings={settings} />}
     </div>
   );
 }
