@@ -173,7 +173,8 @@ try {
     const newImageId = crypto.randomUUID();
     const storagePath = `${newAdId}/${newImageId}.webp`;
     await db.query("insert into public.site_advertisement_uploads (id,storage_path) values ($1,$2)", [newImageId, storagePath]);
-    const { sortOrder: _ignored, ...newAd } = ad;
+    const newAd = { ...ad };
+    delete newAd.sortOrder;
     await save({ ...newAd, id: newAdId }, [{ id: newImageId, storagePath }]);
     assert.equal((await db.query("select sort_order from public.site_advertisements where id = $1", [newAdId])).rows[0].sort_order, expectedOrder, "new advertisements append without a client rank");
   }
