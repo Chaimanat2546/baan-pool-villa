@@ -1,0 +1,119 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  saveAdminAdvertisement,
+  deleteAdminAdvertisement,
+} from "../admin-route";
+import {
+  cleanupAdvertisementAssets,
+  uploadAdvertisementAssets,
+} from "../admin-assets";
+import { revalidateAdvertisementsCache } from "@/lib/cache-revalidation";
+vi.mock("server-only", () => ({}));
+vi.mock("../admin-assets", () => ({
+  cleanupAdvertisementAssets: vi.fn(async () => []),
+  uploadAdvertisementAssets: vi.fn(),
+}));
+vi.mock("@/lib/cache-revalidation", () => ({
+  revalidateAdvertisementsCache: vi.fn(),
+}));
+const id = "10000000-0000-4000-8000-000000000001",
+  imageId = "20000000-0000-4000-8000-000000000001";
+const image = { id: imageId, storagePath: `${id}/${imageId}.webp` };
+const draft = {
+  id,
+  title: "กิจกรรม",
+  zone: "all",
+  sortOrder: 0,
+  isActive: true,
+  updatedAt: null,
+  images: [{ uploadIndex: 0 }],
+};
+function request(value: unknown = draft, files = true) {
+  const form = new FormData();
+  form.set("advertisement", JSON.stringify(value));
+  if (files)
+    form.append("images", new File(["png"], "a.png", { type: "image/png" }));
+  return new Request("https://example.com/api/admin/advertisements", {
+    method: "POST",
+    body: form,
+  });
+}
+const rpc = vi.fn();
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(uploadAdvertisementAssets).mockResolvedValue({
+    assets: [image],
+    response: null,
+  });
+});
+describe("site advertisement persistence", () => {
+  it("rejects malformed draft before uploads or database calls", async () => {
+    expect(
+      (
+        await saveAdminAdvertisement(request({ ...draft, zone: "oops" }), {
+          rpc,
+        } as never)
+      ).status,
+    ).toBe(400);
+    expect(uploadAdvertisementAssets).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+  it("rejects missing file references", async () => {
+    expect(
+      (await saveAdminAdvertisement(request(draft, false), { rpc } as never))
+        .status,
+    ).toBe(400);
+    expect(uploadAdvertisementAssets).not.toHaveBeenCalled();
+  });
+  it("persists an ordered snapshot and invalidates only after success", async () => {
+    rpc.mockResolvedValue({
+      data: { id, updatedAt: "2026-10-20T12:00:00Z", removedPaths: [] },
+      error: null,
+    });
+    expect(
+      (await saveAdminAdvertisement(request(), { rpc } as never)).status,
+    ).toBe(200);
+    expect(rpc).toHaveBeenCalledWith("save_site_advertisement", {
+      p_ad: draft,
+      p_images: [image],
+    });
+    expect(revalidateAdvertisementsCache).toHaveBeenCalledOnce();
+  });
+  it("reports conflicts and cleans only uploads rejected by the transaction", async () => {
+    rpc.mockResolvedValue({
+      data: null,
+      error: { code: "40001", message: "changed" },
+    });
+    expect(
+      (await saveAdminAdvertisement(request(), { rpc } as never)).status,
+    ).toBe(409);
+    expect(cleanupAdvertisementAssets).toHaveBeenCalledWith(expect.anything(), [
+      image.storagePath,
+    ]);
+    expect(revalidateAdvertisementsCache).not.toHaveBeenCalled();
+  });
+  it("retains uploaded files if a network failure leaves the commit uncertain", async () => {
+    rpc.mockResolvedValue({
+      data: null,
+      error: { message: "Failed to fetch" },
+    });
+    expect(
+      (await saveAdminAdvertisement(request(), { rpc } as never)).status,
+    ).toBeGreaterThanOrEqual(400);
+    expect(cleanupAdvertisementAssets).not.toHaveBeenCalled();
+  });
+  it("does not delete files after a conflicting delete", async () => {
+    rpc.mockResolvedValue({
+      error: { code: "40001", message: "changed" },
+      data: null,
+    });
+    const req = new Request("https://example.com/api/admin/advertisements", {
+      method: "DELETE",
+      body: JSON.stringify({ id, updatedAt: "2026-10-20T12:00:00Z" }),
+    });
+    expect((await deleteAdminAdvertisement(req, { rpc } as never)).status).toBe(
+      409,
+    );
+    expect(cleanupAdvertisementAssets).not.toHaveBeenCalled();
+  });
+});

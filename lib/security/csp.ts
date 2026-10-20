@@ -1,4 +1,3 @@
-import { getAdvertisementImageOrigin } from "../advertisements/image-url";
 
 export const CLOUDFLARE_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 export const CLOUDFLARE_INSIGHTS_ORIGIN = "https://static.cloudflareinsights.com";
@@ -99,7 +98,6 @@ export function buildContentSecurityPolicy({
     "https://www.devillegroups.com",
     "https://i.ytimg.com",
     "https://s3.ap-southeast-1.amazonaws.com",
-    getAdvertisementImageOrigin(),
     "https://*.supabase.co",
     ...supabaseOrigins,
     "https://*.tiktokcdn.com",

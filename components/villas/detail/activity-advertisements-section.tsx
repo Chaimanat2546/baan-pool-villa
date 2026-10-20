@@ -4,6 +4,8 @@ import { ImageIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
+import { DETAIL_LAYOUT_BLOCK_LABELS } from "@/lib/detail-layout/defaults";
+import { buildAwsImageUrl } from "@/lib/aws-image-url";
 import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
 import type { VillaListing } from "@/lib/villas/types";
 import { GalleryLightbox } from "./gallery";
@@ -39,10 +41,12 @@ export function ActivityAdvertisementsSection({
   advertisements,
   galleryStyle,
   listing,
+  title = DETAIL_LAYOUT_BLOCK_LABELS.advertisements,
 }: {
   advertisements: PublicAdvertisement[];
   galleryStyle: GalleryStyleSettings;
   listing: VillaListing;
+  title?: string;
 }) {
   const [activeAdvertisement, setActiveAdvertisement] =
     useState<PublicAdvertisement | null>(null);
@@ -116,8 +120,8 @@ export function ActivityAdvertisementsSection({
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
           <ImageIcon className="h-5 w-5" />
         </span>
-        <h2 className="text-xl font-black text-[var(--site-text)]">
-          กิจกรรมที่น่าสนใจ
+        <h2 className="min-w-0 break-words text-xl font-black text-[var(--site-text)]">
+          {title.trim() || DETAIL_LAYOUT_BLOCK_LABELS.advertisements}
         </h2>
       </div>
 
@@ -162,6 +166,7 @@ export function ActivityAdvertisementsSection({
         activeItem={activeItem}
         categories={categories}
         eyebrow="แกลเลอรีกิจกรรม"
+        getImageSrc={(item, width, quality) => buildAwsImageUrl({ src: item.url, width, quality })}
         listing={listing}
         onClose={() => {
           setActiveItem(null);

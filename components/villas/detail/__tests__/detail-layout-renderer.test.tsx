@@ -845,7 +845,7 @@ describe("DetailLayoutRenderer", () => {
             id: "wide_ad",
             columns: 1,
             enabled: true,
-            blocks: [block("advertisements")],
+            blocks: [{ ...block("advertisements"), title: "เที่ยวให้ครบ" }],
           },
         ],
         narrowRows: [],
@@ -877,6 +877,8 @@ describe("DetailLayoutRenderer", () => {
 
     const wideMarkup = render(wideLayout);
     const narrowMarkup = render(narrowLayout);
+
+    expect(wideMarkup).toContain("เที่ยวให้ครบ");
 
     expect(wideMarkup).toContain('data-detail-layout-block="advertisements"');
     expect(

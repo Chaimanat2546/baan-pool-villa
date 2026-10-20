@@ -1,45 +1,6 @@
 import type { NextConfig } from "next";
 
-import { DEFAULT_ADVERTISEMENT_IMAGE_URL_PATTERN } from "./lib/advertisements/image-url";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
-
-function getAdvertisementImageRemotePattern() {
-  const pattern =
-    process.env.NEXT_PUBLIC_ADVERTISEMENT_IMAGE_URL_PATTERN ??
-    DEFAULT_ADVERTISEMENT_IMAGE_URL_PATTERN;
-
-  try {
-    const url = new URL(pattern);
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    const firstPlaceholderIndex = pathParts.findIndex((part) =>
-      part.startsWith(":"),
-    );
-    const prefixParts =
-      firstPlaceholderIndex === -1
-        ? pathParts
-        : pathParts.slice(0, firstPlaceholderIndex);
-    const pathPrefix =
-      prefixParts.length > 0 ? `/${prefixParts.join("/")}/` : "/";
-
-    if (url.protocol === "https:") {
-      return {
-        protocol: "https" as const,
-        hostname: url.hostname,
-        pathname: `${pathPrefix}**`,
-        search: "",
-      };
-    }
-  } catch {
-    // Fall through to the production default.
-  }
-
-  return {
-    protocol: "https" as const,
-    hostname: "webook-media.poolvilla.workers.dev",
-    pathname: "/advertisements/**",
-    search: "",
-  };
-}
 
 const securityHeaders = [
   {
@@ -161,7 +122,6 @@ const nextConfig: NextConfig = {
         pathname: "/**",
         search: "",
       },
-      getAdvertisementImageRemotePattern(),
     ],
   },
 };
