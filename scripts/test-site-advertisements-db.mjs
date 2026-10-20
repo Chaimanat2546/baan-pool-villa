@@ -12,6 +12,7 @@ const userId = "10000000-0000-4000-8000-000000000001";
 const adId = "20000000-0000-4000-8000-000000000001";
 const imageId = "30000000-0000-4000-8000-000000000001";
 const nextId = "30000000-0000-4000-8000-000000000002";
+const thirdId = "30000000-0000-4000-8000-000000000003";
 const image = (id) => ({ id, storagePath: `${adId}/${id}.webp` });
 try {
   await db.exec(`create role anon; create role authenticated; create schema private; create schema auth; create schema storage;
@@ -48,6 +49,7 @@ try {
     );
   await upload(imageId);
   await upload(nextId);
+  await upload(thirdId);
   const ad = {
     id: adId,
     title: "กิจกรรม",
@@ -63,7 +65,17 @@ try {
         [JSON.stringify(draft), JSON.stringify(images)],
       )
     ).rows[0].result;
-  let saved = await save(ad, [image(imageId), image(nextId)]);
+  let saved = await save(ad, [image(imageId), image(nextId), image(thirdId)]);
+  await db.exec("reset role");
+  const imageLimitPatch = await readFile(new URL("../supabase/migrations/20261020020000_limit_site_advertisement_images_to_two.sql", import.meta.url), "utf8");
+  await db.exec(imageLimitPatch);
+  await db.exec(imageLimitPatch);
+  assert.equal((await db.query("select * from public.site_advertisement_images")).rows.length, 3, "migration must preserve older images");
+  await db.exec("set role authenticated");
+  await assert.rejects(save({ ...ad, updatedAt: saved.updatedAt }, [image(imageId), image(nextId), image(thirdId)]), /Invalid advertisement images/);
+  assert.equal((await db.query("select * from public.site_advertisement_images")).rows.length, 3, "rejected save must leave the old snapshot intact");
+  saved = await save({ ...ad, updatedAt: saved.updatedAt }, [image(imageId), image(nextId)]);
+  assert.deepEqual(saved.removedPaths, [image(thirdId).storagePath]);
   assert.equal(saved.id, adId);
   for (const role of ["anon", "authenticated"]) {
     await db.exec(`set role ${role}; select set_config('test.admin','false',false)`);
@@ -147,10 +159,10 @@ try {
   assert.equal(
     (await db.query("select * from public.site_advertisement_uploads")).rows
       .length,
-    2,
+    3,
   );
   console.log(
-    "PASS: idempotent migration, local ownership, atomic save/order/delete, stale edits, no asset reuse, public RLS, admin authorization and retained history",
+    "PASS: two-image save limit, preserved legacy images, idempotent migrations, local ownership, atomic save/order/delete, stale edits, public RLS, authorization and retained history",
   );
 } finally {
   await db.close();

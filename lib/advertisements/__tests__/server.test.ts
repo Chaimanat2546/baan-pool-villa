@@ -62,6 +62,14 @@ beforeEach(() => {
   } as never);
 });
 describe("site-owned advertisements", () => {
+  it("shows only the first two ordered images from an older oversized advertisement", async () => {
+    const ids = [3, 1, 2].map(n => `20000000-0000-4000-8000-${String(n).padStart(12, "0")}`);
+    result.data = [{ ...row, site_advertisement_images: ids.map((imageId, index) => ({ id: imageId, storage_path: `${id}/${imageId}.webp`, display_order: [2, 0, 1][index] })) }];
+    expect((await getActiveAdvertisements())[0].imageUrls).toEqual([
+      `/api/advertisements/images/${ids[1]}`,
+      `/api/advertisements/images/${ids[2]}`,
+    ]);
+  });
   it("reads this site's CMS and exposes only local image routes", async () => {
     expect(await getActiveAdvertisements(" Pattaya ")).toEqual([
       {

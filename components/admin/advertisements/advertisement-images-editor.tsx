@@ -55,6 +55,7 @@ export function AdvertisementImagesEditor({ images, disabled, onChange, onError,
           }}
         />
       </div>
+      {images.length > ADVERTISEMENT_IMAGE_LIMIT && <p role="alert" className="mb-3 text-xs text-red-700">มีรูปเกินกำหนด กรุณาลดให้เหลือไม่เกิน {ADVERTISEMENT_IMAGE_LIMIT} รูปก่อนบันทึก</p>}
       {images.length === 0 && <p className="rounded-md bg-[var(--site-surface-soft)] px-4 py-8 text-center text-sm text-[var(--site-muted)]">เพิ่มรูปอย่างน้อย 1 รูป</p>}
       <ol className="grid grid-cols-3 gap-2 min-[400px]:grid-cols-[repeat(auto-fill,minmax(100px,112px))] sm:gap-3">
         {images.map((image, index) => (
@@ -78,7 +79,7 @@ export function AdvertisementImagesEditor({ images, disabled, onChange, onError,
           onChange(images.filter(image => image.key !== selected.key));
         }} className={`${actionClass} ml-auto sm:ml-1`}><Trash2 aria-hidden="true" className="size-4" />ลบรูป</button>
       </div>
-      <p className="mt-2 text-[11px] leading-5 text-[var(--site-muted)]">เลือกรูปเพื่อจัดลำดับหรือลบ · JPG, PNG, WebP ไม่เกินรูปละ 6 MB · อัปโหลดเมื่อบันทึก</p>
+      <p className="mt-2 text-[11px] leading-5 text-[var(--site-muted)]">สูงสุด {ADVERTISEMENT_IMAGE_LIMIT} รูป · JPG, PNG, WebP ไม่เกินรูปละ 6 MB · อัปโหลดเมื่อบันทึก</p>
     </section>
   );
 }

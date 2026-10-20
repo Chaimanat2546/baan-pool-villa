@@ -18,6 +18,11 @@ describe("site advertisement migration", () => {
       readFileSync("supabase/migrations/20261020010000_fix_site_advertisement_public_reads.sql", "utf8"),
     );
   });
+  it("ships the two-image restriction as an identical online patch", () => {
+    expect(readFileSync("supabase/patches/20261020_site_advertisement_two_images.sql", "utf8")).toBe(
+      readFileSync("supabase/migrations/20261020020000_limit_site_advertisement_images_to_two.sql", "utf8"),
+    );
+  });
   it("keeps privileged mutations private and scoped", () => {
     expect(sql).toContain("security definer set search_path = pg_catalog");
     expect(sql).toContain("security invoker set search_path = pg_catalog");

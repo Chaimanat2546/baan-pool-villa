@@ -16,6 +16,17 @@ function order(container: HTMLElement) {
   return Array.from(container.querySelectorAll("ol img")).map(img => img.getAttribute("src"));
 }
 describe("advertisement image selection", () => {
+  it("disables adding images at two and lets an older oversized gallery be reduced", async () => {
+    const page = await mountAdminPage(<Harness />);
+    expect(page.container.textContent).toContain("3/2");
+    expect(action(page.container, "เพิ่มรูป").disabled).toBe(true);
+    await click(action(page.container, "ลบรูป"));
+    expect(page.container.textContent).toContain("2/2");
+    expect(action(page.container, "เพิ่มรูป").disabled).toBe(true);
+    await click(action(page.container, "ลบรูป"));
+    expect(action(page.container, "เพิ่มรูป").disabled).toBe(false);
+    await page.unmount();
+  });
   it("moves the selected image and keeps it selected when making it the cover", async () => {
     const page = await mountAdminPage(<Harness />);
     await click(action(page.container, "เลือกรูปที่ 3"));

@@ -129,6 +129,8 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
     .setInputFiles(path.resolve("public/images/villa-card-preview-1.jpg"));
   expect(saves).toBe(0);
   await expect(page.getByText("ยังไม่อัปโหลด", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "เพิ่มรูป", exact: true })).toBeDisabled();
+  await expect(page.getByLabel("เพิ่มรูปโฆษณา")).toBeDisabled();
   await page
     .getByRole("button", { name: "เลือกรูปที่ 2", exact: true })
     .click();
@@ -156,12 +158,12 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
   await expect(page.getByRole("table")).toContainText("กิจกรรมที่กำหนดเอง");
 });
 
-test("editing twelve images keeps save in reach on every screen", async ({ page, isMobile }, testInfo) => {
+test("two-image editor keeps save in reach on every screen", async ({ page, isMobile }, testInfo) => {
   const ad = {
     id,
     title: "กิจกรรมสำหรับครอบครัวและกลุ่มเพื่อน พร้อมบริการล่องเรือชมพระอาทิตย์ตก",
     zone: "all", isActive: true, sortOrder: 0, updatedAt: "2026-10-20T12:00:00Z",
-    images: Array.from({ length: 12 }, (_, index) => ({
+    images: Array.from({ length: 2 }, (_, index) => ({
       id: `20000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
       url: "/images/villa-card-preview-cover.png", storagePath: "",
     })),
@@ -191,7 +193,7 @@ test("editing twelve images keeps save in reach on every screen", async ({ page,
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight / 2));
   await expect(save).toBeInViewport();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath("twelve-images-editor.png"), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath("two-images-editor.png"), fullPage: true });
   await page.locator("form > header").screenshot({ path: testInfo.outputPath("single-row-toolbar.png") });
   await page.locator('input[name="title"]').fill("ยังไม่บันทึก");
   expect((await page.locator("form > header").boundingBox())!.height).toBeLessThanOrEqual(56);

@@ -31,11 +31,14 @@ describe("advertisement draft validation", () => {
       parseAdvertisementDraft({ ...draft, ...change }).errors.length,
     ).toBeGreaterThan(0);
   });
-  it("bounds image count", () =>
+  it("accepts two images", () => {
+    expect(parseAdvertisementDraft({ ...draft, images: [{ uploadIndex: 0 }, { uploadIndex: 1 }] }).errors).toEqual([]);
+  });
+  it("rejects three images", () =>
     expect(
       parseAdvertisementDraft({
         ...draft,
-        images: Array.from({ length: 13 }, (_, uploadIndex) => ({
+        images: Array.from({ length: 3 }, (_, uploadIndex) => ({
           uploadIndex,
         })),
       }).draft,

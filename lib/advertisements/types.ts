@@ -6,7 +6,7 @@ export interface PublicAdvertisement {
 }
 
 export const ADVERTISEMENT_BUCKET = "advertisement-assets";
-export const ADVERTISEMENT_IMAGE_LIMIT = 12;
+export const ADVERTISEMENT_IMAGE_LIMIT = 2;
 export interface AdvertisementImage {
   id: string;
   storagePath: string;

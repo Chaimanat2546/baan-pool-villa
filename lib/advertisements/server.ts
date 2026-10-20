@@ -2,7 +2,7 @@ import "server-only";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
-import { ADVERTISEMENT_BUCKET, type PublicAdvertisement } from "./types";
+import { ADVERTISEMENT_BUCKET, ADVERTISEMENT_IMAGE_LIMIT, type PublicAdvertisement } from "./types";
 import {
   isAdvertisementId,
   isAdvertisementStoragePath,
@@ -35,6 +35,7 @@ export function toPublicAdvertisement(
         Number.isInteger(image.display_order),
     )
     .sort((a, b) => Number(a.display_order) - Number(b.display_order))
+    .slice(0, ADVERTISEMENT_IMAGE_LIMIT)
     .map((image) => `/api/advertisements/images/${image.id}`);
   return imageUrls.length
     ? { id: adId, title: row.title.trim(), imageUrl: imageUrls[0], imageUrls }
@@ -63,7 +64,7 @@ async function loadActiveAdvertisements(
 }
 export const getActiveAdvertisements = createHomeConfigCachedLoader(
   loadActiveAdvertisements,
-  [CACHE_TAGS.advertisements, "site-owned-v1"],
+  [CACHE_TAGS.advertisements, "site-owned-two-images-v1"],
   {
     revalidate: CACHE_REVALIDATE_SECONDS.advertisements,
     tags: [CACHE_TAGS.advertisements],

@@ -47,6 +47,13 @@ beforeEach(() => {
   });
 });
 describe("site advertisement persistence", () => {
+  it("rejects a third image before uploading or calling the database", async () => {
+    const response = await saveAdminAdvertisement(request({ ...draft, images: [0, 1, 2].map(uploadIndex => ({ uploadIndex })) }), { rpc } as never);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ errors: expect.arrayContaining(["กรุณาเลือกรูป 1–2 รูป"]) });
+    expect(uploadAdvertisementAssets).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
   it("rejects malformed draft before uploads or database calls", async () => {
     expect(
       (
