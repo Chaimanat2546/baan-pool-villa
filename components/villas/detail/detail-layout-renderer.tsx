@@ -28,6 +28,7 @@ import type { GalleryCategory } from "./types";
 
 export interface DetailLayoutRendererProps {
   advertisements: PublicAdvertisement[];
+  advertisementCursor?: string | null;
   bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId?: string;
   contactSettings: SiteContactSettings;
@@ -44,6 +45,7 @@ export interface DetailLayoutRendererProps {
 
 interface DetailLayoutRenderContext {
   advertisements: PublicAdvertisement[];
+  advertisementCursor?: string | null;
   bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId?: string;
   contactSettings: SiteContactSettings;
@@ -172,6 +174,7 @@ function renderV2Layout(
 
 export function DetailLayoutRenderer({
   advertisements,
+  advertisementCursor,
   bookingCalendars,
   bookingSidebarId,
   contactSettings,
@@ -187,6 +190,7 @@ export function DetailLayoutRenderer({
 }: DetailLayoutRendererProps) {
   const context = {
     advertisements,
+    advertisementCursor,
     bookingCalendars,
     bookingSidebarId,
     contactSettings,

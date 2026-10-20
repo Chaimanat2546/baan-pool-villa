@@ -109,7 +109,7 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
   ).toBeVisible();
   await expect(page.getByRole("table", { name: "รายการโฆษณา" })).toBeVisible();
   await expect(page.getByRole("button", { name: "เพิ่มโฆษณา", exact: true })).toBeEnabled();
-  await expect(page.locator("form")).toHaveCount(0);
+  await expect(page.locator('form[aria-label="ฟอร์มโฆษณา"]' )).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("advertisement-table.png"), fullPage: true });
   await page.getByRole("button", { name: `แก้ไขโฆษณา ${ad.title}`, exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
@@ -187,7 +187,7 @@ test("editor accepts dropped files locally and uploads only on save", async ({ p
   await page.goto("/admin/advertisements");
   await page.getByRole("button", { name: "แก้ไขโฆษณา รูปโฆษณาแบบลากวาง", exact: true }).click();
   const area = page.locator('section[aria-label="รูปโฆษณา"]');
-  const feedback = page.locator("form").getByRole("alert");
+  const feedback = page.locator('form[aria-label="ฟอร์มโฆษณา"]' ).getByRole("alert");
   await expect(page.getByRole("button", { name: "เลือกไฟล์หรือลากรูปมาวาง", exact: true })).toBeVisible();
   const invalid = await page.evaluateHandle(() => {
     const data = new DataTransfer();
@@ -236,7 +236,7 @@ test("compact editor puts save after the fields and images", async ({ page, isMo
     json: { advertisements: [ad], total: 1 },
   }));
   await page.goto("/admin/advertisements");
-  await expect(page.locator("form")).toHaveCount(0);
+  await expect(page.locator('form[aria-label="ฟอร์มโฆษณา"]' )).toHaveCount(0);
   if (!isMobile) {
     await page.setViewportSize({ width: 1920, height: 900 });
     for (const state of ["expanded", "collapsed"]) {
@@ -251,14 +251,14 @@ test("compact editor puts save after the fields and images", async ({ page, isMo
   await page.getByRole("button", { name: `แก้ไขโฆษณา ${ad.title}`, exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
   const save = page.getByRole("button", { name: "บันทึกโฆษณา", exact: true });
-  await expect(page.locator("form > footer").getByRole("button", { name: "บันทึกโฆษณา", exact: true })).toBeVisible();
+  await expect(page.locator('form[aria-label="ฟอร์มโฆษณา"] > footer').getByRole("button", { name: "บันทึกโฆษณา", exact: true })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "ตัวอย่างโฆษณา" })).toHaveCount(0);
   if (!isMobile) {
     for (const [width, height] of [[1024, 768], [1366, 768], [1920, 900], [2560, 1080]]) {
       await page.setViewportSize({ width, height });
       for (const state of ["expanded", "collapsed"]) {
         const sidebar = await page.locator(`[data-admin-sidebar-state="${state}"]`).boundingBox();
-        const form = await page.locator("form").boundingBox();
+        const form = await page.locator('form[aria-label="ฟอร์มโฆษณา"]' ).boundingBox();
         expect(form!.width).toBeLessThanOrEqual(840);
         expect(Math.abs(form!.x + form!.width / 2 - (width + sidebar!.width) / 2)).toBeLessThanOrEqual(1);
         await expect(save).toBeInViewport({ ratio: 1 });
@@ -277,7 +277,7 @@ test("compact editor puts save after the fields and images", async ({ page, isMo
   await expect(save).toBeInViewport();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("two-images-editor.png"), fullPage: true });
-  await page.locator("form > footer").screenshot({ path: testInfo.outputPath("form-actions.png") });
+  await page.locator('form[aria-label="ฟอร์มโฆษณา"] > footer').screenshot({ path: testInfo.outputPath("form-actions.png") });
   await page.locator('input[name="title"]').fill("ยังไม่บันทึก");
   if (isMobile) {
     await page.setViewportSize({ width: 320, height: 720 });
@@ -298,7 +298,7 @@ test("compact editor puts save after the fields and images", async ({ page, isMo
     await expect(page.getByRole("heading", { name: "เพิ่มโฆษณา", exact: true })).toBeVisible();
     for (const state of ["collapsed", "expanded"]) {
       const sidebar = await page.locator(`[data-admin-sidebar-state="${state}"]`).boundingBox();
-      const form = await page.locator("form").boundingBox();
+      const form = await page.locator('form[aria-label="ฟอร์มโฆษณา"]' ).boundingBox();
       expect(Math.abs(form!.x + form!.width / 2 - (1366 + sidebar!.width) / 2)).toBeLessThanOrEqual(1);
       await expect(save).toBeInViewport({ ratio: 1 });
       await page.screenshot({ path: testInfo.outputPath(`create-${state}.png`), fullPage: true });
@@ -334,7 +334,7 @@ test("empty and database-error states remain usable", async ({ page }) => {
 });
 
 test("table pagination returns to the previous page after deleting its last record", async ({ page }) => {
-  const records = Array.from({ length: 21 }, (_, index) => ({
+  const records = Array.from({ length: 9 }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
     title: `กิจกรรม ${index + 1}`, zone: "all", isActive: true,
     sortOrder: index, updatedAt: "2026-10-20T12:00:00Z", images: [],
@@ -347,18 +347,18 @@ test("table pagination returns to the previous page after deleting its last reco
       return route.fulfill({ json: { warnings: [] } });
     }
     const currentPage = Number(new URL(route.request().url()).searchParams.get("page"));
-    return route.fulfill({ json: { advertisements: records.slice((currentPage - 1) * 20, currentPage * 20), total: records.length } });
+    return route.fulfill({ json: { advertisements: records.slice((currentPage - 1) * 8, currentPage * 8), total: records.length } });
   });
   await page.goto("/admin/advertisements");
-  await expect(page.getByRole("table").getByRole("row")).toHaveCount(21);
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(9);
   await page.getByRole("button", { name: "ถัดไป", exact: true }).click();
-  await page.getByRole("button", { name: "แก้ไขโฆษณา กิจกรรม 21", exact: true }).click();
+  await page.getByRole("button", { name: "แก้ไขโฆษณา กิจกรรม 9", exact: true }).click();
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "ลบโฆษณา", exact: true }).click();
-  await expect(page.getByRole("table").getByRole("row")).toHaveCount(21);
-  await expect(page.getByRole("table")).not.toContainText("กิจกรรม 21");
-  await expect(page.locator("form")).toHaveCount(0);
-  expect(deletedId).toBe("40000000-0000-4000-8000-000000000021");
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(9);
+  await expect(page.getByRole("table")).not.toContainText("กิจกรรม 9");
+  await expect(page.locator('form[aria-label="ฟอร์มโฆษณา"]' )).toHaveCount(0);
+  expect(deletedId).toBe("40000000-0000-4000-8000-000000000009");
 });
 
 test("admin navigation stays readable with pale primary colors", async ({ page, isMobile }) => {
@@ -400,6 +400,63 @@ test("admin navigation stays readable with pale primary colors", async ({ page, 
   }
 });
 
+test("editor table filters search the database and preserve eight-item pagination", async ({ page }, testInfo) => {
+  const records = Array.from({ length: 12 }, (_, index) => ({
+    id: `40000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+    title: index === 11 ? "บริการรถรับส่ง" : `เรือ ${index + 1}`,
+    zone: index === 10 ? "jomtien" : "pattaya", isActive: index !== 9,
+    sortOrder: index, updatedAt: "2026-10-20T12:00:00Z", images: [{ id: imageId, storagePath: "", url: "/images/villa-card-preview-cover.png" }],
+  }));
+  const queries: URLSearchParams[] = [];
+  await page.route("**/api/admin/advertisements**", async route => {
+    if (route.request().method() === "POST") {
+      const request = route.request();
+      const form = await new Request(request.url(), { method: "POST", headers: { "Content-Type": request.headers()["content-type"] }, body: new Uint8Array(request.postDataBuffer()!) }).formData();
+      const draft = JSON.parse(String(form.get("advertisement")));
+      const record = records.find(ad => ad.id === draft.id)!;
+      record.isActive = draft.isActive;
+      return route.fulfill({ json: { id: record.id, updatedAt: record.updatedAt, images: record.images, warnings: [] } });
+    }
+    const params = new URL(route.request().url()).searchParams;
+    queries.push(params);
+    const filtered = records.filter(ad => (!params.get("search") || ad.title.includes(params.get("search")!)) && (!params.get("zone") || ad.zone === params.get("zone")) && (params.get("status") !== "active" || ad.isActive));
+    const start = (Number(params.get("page")) - 1) * 8;
+    return route.fulfill({ json: { advertisements: filtered.slice(start, start + 8), total: filtered.length } });
+  });
+  await page.goto("/admin/advertisements");
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(9);
+  await page.getByRole("button", { name: "ถัดไป", exact: true }).click();
+  await page.getByRole("searchbox", { name: "ค้นหาชื่อโฆษณา" }).fill("เรือ");
+  await page.getByRole("combobox", { name: "โซน", exact: true }).selectOption("pattaya");
+  await page.getByRole("combobox", { name: "สถานะ", exact: true }).selectOption("active");
+  await page.getByRole("button", { name: "ค้นหา", exact: true }).click();
+  await expect(page.getByText("หน้า 1 / 2", { exact: true })).toBeVisible();
+  expect(Object.fromEntries(queries.at(-1)!)).toEqual({ page: "1", search: "เรือ", zone: "pattaya", status: "active" });
+  await page.screenshot({ path: testInfo.outputPath("filtered-table.png"), fullPage: true });
+  await page.getByRole("button", { name: "ถัดไป", exact: true }).click();
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(2);
+  expect(queries.at(-1)?.get("search")).toBe("เรือ");
+  await page.getByRole("button", { name: "แก้ไขโฆษณา เรือ 9", exact: true }).click();
+  await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
+  await expect(page.getByText("หน้า 2 / 2", { exact: true })).toBeVisible();
+  await expect(page.getByRole("searchbox")).toHaveValue("เรือ");
+  await page.getByRole("button", { name: "แก้ไขโฆษณา เรือ 9", exact: true }).click();
+  await page.getByRole("checkbox", { name: "เปิดแสดงบนเว็บไซต์", exact: true }).uncheck();
+  await page.getByRole("button", { name: "บันทึกโฆษณา", exact: true }).click();
+  await expect(page.getByText("บันทึกแล้ว", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(9);
+  await expect(page.getByRole("table")).not.toContainText("เรือ 9");
+  expect(queries.at(-1)?.get("page")).toBe("1");
+  expect(queries.at(-1)?.get("status")).toBe("active");
+  await page.getByRole("searchbox").fill("ไม่พบรายการ");
+  await page.getByRole("button", { name: "ค้นหา", exact: true }).click();
+  await expect(page.getByText("ไม่พบโฆษณาที่ตรงกับการค้นหา", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "ล้าง", exact: true }).click();
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(9);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test("public detail keeps document navigation and bounded image/API requests", async ({
   page,
 }, testInfo) => {
@@ -414,7 +471,18 @@ test("public detail keeps document navigation and bounded image/API requests", a
   page.on("request", (request) => requests.push(request.url()));
   const response = await page.goto(href!, { waitUntil: "networkidle" });
   expect(response?.ok()).toBe(true);
+  await expect(page.getByRole("heading", { name: "ไม่พบบ้านพักนี้", exact: true })).toHaveCount(0);
+  await expect(page.locator("[data-detail-layout-block]").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Application error");
+  const activity = page.locator("[data-detail-advertisement-card]").first();
+  if (await activity.count()) {
+    await activity.click();
+    const gallery = page.getByRole("dialog");
+    await expect(gallery).toBeVisible();
+    expect((await gallery.boundingBox())!.width).toBe(page.viewportSize()!.width);
+    await page.getByRole("button", { name: "ปิดแกลเลอรี", exact: true }).click();
+    await expect(gallery).toHaveCount(0);
+  }
   expect(
     requests.filter((url) => new URL(url).searchParams.has("_rsc")),
   ).toHaveLength(0);

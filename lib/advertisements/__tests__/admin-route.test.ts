@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   saveAdminAdvertisement,
   deleteAdminAdvertisement,
+  listAdminAdvertisements,
 } from "../admin-route";
 import {
   cleanupAdvertisementAssets,
@@ -44,6 +45,33 @@ beforeEach(() => {
   vi.mocked(uploadAdvertisementAssets).mockResolvedValue({
     assets: [image],
     response: null,
+  });
+});
+
+describe("advertisement list queries", () => {
+  function client() {
+    const query = { select: vi.fn(), order: vi.fn(), eq: vi.fn(), ilike: vi.fn(), range: vi.fn() };
+    for (const fn of [query.select, query.order, query.eq, query.ilike]) fn.mockReturnValue(query);
+    query.range.mockResolvedValue({ data: [], count: 17, error: null });
+    const from = vi.fn(() => query);
+    return { query, from };
+  }
+  it("pages eight records and applies literal title, zone and status filters before paging", async () => {
+    const { query, from } = client();
+    const params = new URLSearchParams({ page: "2", search: " เรือ_50% ", zone: "pattaya", status: "inactive" });
+    const response = await listAdminAdvertisements(new Request(`https://example.com/?${params}`), { from } as never);
+    expect(response.status).toBe(200);
+    expect(query.range).toHaveBeenCalledWith(8, 15);
+    expect(query.eq).toHaveBeenCalledWith("zone", "pattaya");
+    expect(query.eq).toHaveBeenCalledWith("is_active", false);
+    expect(query.ilike).toHaveBeenCalledWith("title", "%เรือ\\_50\\%%");
+    expect(await response.json()).toMatchObject({ page: 2, pageSize: 8, total: 17 });
+  });
+  it.each(["page=0", "status=bad", "zone=bad", `search=${"a".repeat(161)}`])("rejects invalid filters before querying: %s", async params => {
+    const { from } = client();
+    const response = await listAdminAdvertisements(new Request(`https://example.com/?${params}`), { from } as never);
+    expect(response.status).toBe(400);
+    expect(from).not.toHaveBeenCalled();
   });
 });
 describe("site advertisement persistence", () => {

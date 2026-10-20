@@ -39,6 +39,7 @@ import { VillaReviewsSection } from "./villa-reviews-section";
 
 interface DetailLayoutBlockContext {
   advertisements: PublicAdvertisement[];
+  advertisementCursor?: string | null;
   bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId?: string;
   contactSettings: SiteContactSettings;
@@ -353,16 +354,18 @@ function renderRulesPetPolicy({
 
 function renderAdvertisements({
   advertisements,
+  advertisementCursor,
   galleryStyle,
   listing,
 }: DetailLayoutBlockContext, block: DetailLayoutBlock) {
-  if (advertisements.length === 0) {
+  if (advertisements.length === 0 && !advertisementCursor) {
     return null;
   }
 
   return (
     <ActivityAdvertisementsSection
       advertisements={advertisements}
+      nextCursor={advertisementCursor}
       galleryStyle={galleryStyle}
       listing={listing}
       title={block.title}

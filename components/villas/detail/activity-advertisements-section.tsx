@@ -1,7 +1,7 @@
 "use client";
 
 import { ImageIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { CspSafeImage as Image } from "@/components/ui/csp-safe-image";
 import type { PublicAdvertisement } from "@/lib/advertisements/types";
 import { DETAIL_LAYOUT_BLOCK_LABELS } from "@/lib/detail-layout/defaults";
@@ -9,9 +9,10 @@ import { buildAwsImageUrl } from "@/lib/aws-image-url";
 import type { GalleryStyleSettings } from "@/lib/site-web-styles/types";
 import type { VillaListing } from "@/lib/villas/types";
 import { GalleryLightbox } from "./gallery";
+import { ScrollRail } from "@/components/ui/scroll-rail";
+import { useAdvertisementRail } from "./use-advertisement-rail";
+import styles from "./activity-advertisements-section.module.css";
 import type { GalleryCategory, GalleryItem } from "./types";
-
-const DETAIL_ACTIVITY_LIMIT = 3;
 
 function getAdvertisementImageUrls(advertisement: PublicAdvertisement) {
   return advertisement.imageUrls?.length
@@ -39,15 +40,18 @@ function toActivityItem(
 
 export function ActivityAdvertisementsSection({
   advertisements,
+  nextCursor = null,
   galleryStyle,
   listing,
   title = DETAIL_LAYOUT_BLOCK_LABELS.advertisements,
 }: {
   advertisements: PublicAdvertisement[];
+  nextCursor?: string | null;
   galleryStyle: GalleryStyleSettings;
   listing: VillaListing;
   title?: string;
 }) {
+  const rail = useAdvertisementRail(advertisements, nextCursor, listing.zone);
   const [activeAdvertisement, setActiveAdvertisement] =
     useState<PublicAdvertisement | null>(null);
   const [activeItem, setActiveItem] = useState<GalleryItem | null>(null);
@@ -56,8 +60,7 @@ export function ActivityAdvertisementsSection({
   );
   const visibleAdvertisements = useMemo(
     () =>
-      advertisements
-        .slice(0, DETAIL_ACTIVITY_LIMIT)
+      rail.items
         .map((advertisement) => ({
           advertisement,
           imageUrls: getAdvertisementImageUrls(advertisement).filter(
@@ -65,8 +68,12 @@ export function ActivityAdvertisementsSection({
           ),
         }))
         .filter(({ imageUrls }) => imageUrls.length > 0),
-    [advertisements, failedImageUrls],
+    [rail.items, failedImageUrls],
   );
+  const { onActiveIndexChange } = rail;
+  const handleActiveIndexChange = useCallback((index: number) => {
+    onActiveIndexChange(index, visibleAdvertisements.map(item => item.advertisement));
+  }, [onActiveIndexChange, visibleAdvertisements]);
   const activeItems = useMemo(
     () =>
       activeAdvertisement
@@ -107,13 +114,13 @@ export function ActivityAdvertisementsSection({
     );
   };
 
-  if (visibleAdvertisements.length === 0) {
+  if (visibleAdvertisements.length === 0 && !rail.cursor) {
     return null;
   }
 
   return (
     <section
-      className="overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-[0_10px_30px_rgba(6,63,53,0.06)]"
+      className="min-w-0 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-[0_10px_30px_rgba(6,63,53,0.06)]"
       data-detail-advertisements-section="true"
     >
       <div className="flex items-center gap-3">
@@ -125,10 +132,11 @@ export function ActivityAdvertisementsSection({
         </h2>
       </div>
 
-      <div className="mt-5 max-h-[292px] space-y-3 overflow-y-auto overflow-x-hidden pr-2">
+      <div className={styles.rail}>
+      <ScrollRail label="โฆษณา" controlsPosition="bottom" className="mt-5 py-1" onActiveIndexChange={handleActiveIndexChange}>
         {visibleAdvertisements.map(({ advertisement, imageUrls }) => (
           <button
-            className="group flex w-full min-w-0 gap-3 overflow-hidden rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] p-3 text-left shadow-[0_10px_30px_rgba(6,63,53,0.06)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_16px_34px_rgba(6,63,53,0.11)]"
+            className={`${styles.card} group flex flex-col overflow-hidden rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] text-left transition hover:border-[var(--site-border-strong)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)]`}
             data-detail-advertisement-card="true"
             key={advertisement.id}
             onClick={() => {
@@ -137,8 +145,8 @@ export function ActivityAdvertisementsSection({
             }}
             type="button"
           >
-            <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-xl bg-[var(--site-surface-tint)]">
-              <Image
+            <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-[var(--site-surface-tint)]">
+              {rail.activeIds.has(advertisement.id) ? <Image
                 alt={advertisement.title}
                 className="object-cover transition duration-500 group-hover:scale-[1.03]"
                 fill
@@ -146,11 +154,11 @@ export function ActivityAdvertisementsSection({
                   handleImageError(imageUrls[0]);
                 }}
                 quality={60}
-                sizes="112px"
+                sizes="(max-width: 640px) 280px, 320px"
                 src={imageUrls[0]}
-              />
+              /> : <ImageIcon aria-hidden="true" className="absolute inset-0 m-auto size-8 text-[var(--site-muted)]" />}
             </div>
-            <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 self-stretch py-1">
+            <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-3">
               <h3 className="line-clamp-2 text-base font-black leading-6 text-[var(--site-text)]">
                 {advertisement.title}
               </h3>
@@ -160,6 +168,13 @@ export function ActivityAdvertisementsSection({
             </div>
           </button>
         ))}
+      </ScrollRail>
+      {rail.cursor && <div className="mt-3 flex items-center justify-center gap-2 text-xs text-[var(--site-muted)]">
+        {rail.loading ? <span role="status">กำลังโหลดโฆษณา…</span> : <>
+          {rail.error && <span role="alert">โหลดโฆษณาเพิ่มเติมไม่สำเร็จ</span>}
+          <button type="button" onClick={() => void rail.loadMore()} className="min-h-11 rounded px-2 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--site-primary)]">{rail.error ? "ลองใหม่" : "ดูโฆษณาเพิ่มเติม"}</button>
+        </>}
+      </div>}
       </div>
 
       <GalleryLightbox

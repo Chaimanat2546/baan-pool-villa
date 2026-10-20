@@ -1,10 +1,39 @@
 import { SEARCH_ZONE_OPTIONS } from "@/lib/villas/search-options";
-import { ADVERTISEMENT_IMAGE_LIMIT, type AdvertisementDraft } from "./types";
+import { ADVERTISEMENT_IMAGE_LIMIT, type AdvertisementDraft, type AdvertisementListFilters } from "./types";
 
 export const ADVERTISEMENT_ZONES = [
   { label: "ทุกโซน", value: "all" },
   ...SEARCH_ZONE_OPTIONS,
 ];
+
+export function normalizeAdvertisementVillaZone(value?: string): string | undefined {
+  const zone = value?.trim().toLowerCase();
+  return zone && ADVERTISEMENT_ZONES.some(item => item.value === zone) ? zone : undefined;
+}
+
+export function parseAdvertisementListQuery(params: URLSearchParams) {
+  const rawPage = params.get("page") ?? "1";
+  const search = (params.get("search") ?? "").trim();
+  const zone = params.get("zone") ?? "";
+  const status = params.get("status") ?? "all";
+  const errors: string[] = [];
+  if (!/^[1-9]\d{0,4}$/.test(rawPage)) errors.push("เลขหน้าไม่ถูกต้อง");
+  if (search.length > 160) errors.push("คำค้นหาต้องไม่เกิน 160 ตัวอักษร");
+  if (zone && !ADVERTISEMENT_ZONES.some(item => item.value === zone)) errors.push("โซนไม่ถูกต้อง");
+  if (status !== "all" && status !== "active" && status !== "inactive") errors.push("สถานะไม่ถูกต้อง");
+  return {
+    page: Number(rawPage),
+    filters: { search, zone, status } as AdvertisementListFilters,
+    errors,
+  };
+}
+
+export function parseAdvertisementCursor(value: string) {
+  const [order, id, extra] = value.split(":");
+  return extra === undefined && /^(0|[1-9]\d{0,3})$/.test(order) && isAdvertisementId(id)
+    ? { order: Number(order), id: id.toLowerCase() }
+    : null;
+}
 export function isAdvertisementId(value: unknown): value is string {
   return (
     typeof value === "string" &&

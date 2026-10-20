@@ -5,6 +5,18 @@ export interface PublicAdvertisement {
   title: string;
 }
 
+export interface PublicAdvertisementPage {
+  advertisements: PublicAdvertisement[];
+  nextCursor: string | null;
+}
+
+export const ADVERTISEMENT_PAGE_SIZE = 8;
+export interface AdvertisementListFilters {
+  search: string;
+  zone: string;
+  status: "all" | "active" | "inactive";
+}
+
 export const ADVERTISEMENT_BUCKET = "advertisement-assets";
 export const ADVERTISEMENT_IMAGE_LIMIT = 2;
 export interface AdvertisementImage {

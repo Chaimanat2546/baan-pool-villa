@@ -12,6 +12,7 @@ interface ScrollRailProps {
   className?: string;
   label: string;
   controlsClassName?: string;
+  controlsPosition?: "sides" | "bottom";
   autoScroll?: boolean;
   alwaysShowControls?: boolean;
   onActiveIndexChange?: (index: number) => void;
@@ -23,6 +24,7 @@ export function ScrollRail({
   children,
   className,
   controlsClassName,
+  controlsPosition = "sides",
   label,
   onActiveIndexChange,
 }: ScrollRailProps) {
@@ -150,31 +152,30 @@ export function ScrollRail({
       draggedRef.current = false;
     }
   }, []);
+  const previousControl = alwaysShowControls ? (
+    <button type="button" aria-label={`เลื่อน${label}ไปทางซ้าย`}
+      className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)]"
+      onClick={scrollPrev}><ChevronLeft aria-hidden="true" className="h-5 w-5" /></button>
+  ) : null;
+  const nextControl = alwaysShowControls ? (
+    <button type="button" aria-label={`เลื่อน${label}ไปทางขวา`}
+      className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)]"
+      onClick={scrollNext}><ChevronRight aria-hidden="true" className="h-5 w-5" /></button>
+  ) : null;
   return (
     <div className="relative">
       <div
-        data-scroll-rail-controls="sides"
+        data-scroll-rail-controls={controlsPosition}
         className="flex min-w-0 sm:items-center sm:gap-3"
       >
-        <div
+        {controlsPosition === "sides" && <div
           className={cn(
             "hidden sm:flex shrink-0 min-h-11 items-center justify-center",
             controlsClassName,
           )}
         >
-          {alwaysShowControls ? (
-            <button
-              type="button"
-              aria-label={`เลื่อน${label}ไปทางซ้าย`}
-              className={cn(
-                "grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]",
-              )}
-              onClick={scrollPrev}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-          ) : null}
-        </div>
+          {previousControl}
+        </div>}
 
         <div
           ref={emblaRef}
@@ -189,6 +190,7 @@ export function ScrollRail({
           className={cn(
             "min-w-0 flex-1 snap-x overflow-hidden",
             "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden mx-2 lg:mx-0 md:mx-2",
+            controlsPosition === "bottom" && "mx-0 md:mx-0",
             className,
           )}
         >
@@ -197,26 +199,16 @@ export function ScrollRail({
           </div>
         </div>
 
-        <div
+        {controlsPosition === "sides" && <div
           className={cn(
             "hidden sm:flex shrink-0 min-h-11 items-center justify-center",
             controlsClassName,
           )}
         >
-          {alwaysShowControls ? (
-            <button
-              type="button"
-              aria-label={`เลื่อน${label}ไปทางขวา`}
-              className={cn(
-                "grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)]",
-              )}
-              onClick={scrollNext}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          ) : null}
-        </div>
+          {nextControl}
+        </div>}
       </div>
+      {controlsPosition === "bottom" && alwaysShowControls && <div className={cn("mt-3 flex justify-end gap-2", controlsClassName)}>{previousControl}{nextControl}</div>}
     </div>
   );
 }

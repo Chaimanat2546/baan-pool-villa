@@ -2,11 +2,13 @@ import "server-only";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
 import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
 import { createHomeConfigClient } from "@/lib/home-sections/supabase";
-import { ADVERTISEMENT_BUCKET, ADVERTISEMENT_IMAGE_LIMIT, type PublicAdvertisement } from "./types";
+import { ADVERTISEMENT_BUCKET, ADVERTISEMENT_IMAGE_LIMIT, ADVERTISEMENT_PAGE_SIZE, type PublicAdvertisement, type PublicAdvertisementPage } from "./types";
 import {
   isAdvertisementId,
   isAdvertisementStoragePath,
   isRecord,
+  parseAdvertisementCursor,
+  normalizeAdvertisementVillaZone,
 } from "./validation";
 
 export function toPublicAdvertisement(
@@ -43,8 +45,9 @@ export function toPublicAdvertisement(
 }
 async function loadActiveAdvertisements(
   villaZone?: string,
-): Promise<PublicAdvertisement[]> {
-  const zone = villaZone?.trim().toLowerCase();
+  after?: string,
+): Promise<PublicAdvertisementPage> {
+  const zone = normalizeAdvertisementVillaZone(villaZone);
   let query = createHomeConfigClient()
     .from("site_advertisements")
     .select(
@@ -52,19 +55,27 @@ async function loadActiveAdvertisements(
     )
     .eq("is_active", true);
   query = zone ? query.in("zone", [zone, "all"]) : query.eq("zone", "all");
+  if (after) {
+    const cursor = parseAdvertisementCursor(after);
+    if (!cursor) throw new Error("Invalid advertisement cursor");
+    query = query.or(`sort_order.gt.${cursor.order},and(sort_order.eq.${cursor.order},id.gt.${cursor.id})`);
+  }
   const { data, error } = await query
     .order("sort_order", { ascending: true })
     .order("id", { ascending: true })
-    .limit(8);
+    .limit(ADVERTISEMENT_PAGE_SIZE + 1);
   if (error || !Array.isArray(data))
     throw new Error("Advertisements are unavailable");
-  return data
-    .map(toPublicAdvertisement)
-    .filter((ad): ad is PublicAdvertisement => ad !== null);
+  const rows = data.slice(0, ADVERTISEMENT_PAGE_SIZE);
+  const last = rows.at(-1);
+  return {
+    advertisements: rows.map(toPublicAdvertisement).filter((ad): ad is PublicAdvertisement => ad !== null),
+    nextCursor: data.length > ADVERTISEMENT_PAGE_SIZE && last ? `${last.sort_order}:${last.id}` : null,
+  };
 }
 export const getActiveAdvertisements = createHomeConfigCachedLoader(
   loadActiveAdvertisements,
-  [CACHE_TAGS.advertisements, "site-owned-two-images-v1"],
+  [CACHE_TAGS.advertisements, "site-owned-cursor-pages-v1"],
   {
     revalidate: CACHE_REVALIDATE_SECONDS.advertisements,
     tags: [CACHE_TAGS.advertisements],

@@ -46,6 +46,62 @@ async function mountAdvertisements() {
   return page!;
 }
 describe("advertisement editor", () => {
+  it("returns to a valid filtered page when saving removes its last matching record", async () => {
+    let saved = false;
+    const calls: URL[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
+      const url = new URL(input, "https://example.com");
+      calls.push(url);
+      if (init?.method === "POST") {
+        saved = true;
+        return makeJsonResponse({ body: { updatedAt: ad.updatedAt, images: ad.images } });
+      }
+      const currentPage = url.searchParams.get("page");
+      return makeJsonResponse({ body: {
+        advertisements: saved ? (currentPage === "2" ? [] : [{ ...ad, title: "ยังเปิดแสดง" }]) : [ad],
+        total: saved ? 8 : 9,
+      } });
+    }));
+    const page = await mountAdvertisements();
+    const status = page.container.querySelectorAll("select")[1];
+    await act(async () => { status.value = "active"; status.dispatchEvent(new Event("change", { bubbles: true })); });
+    await act(async () => {
+      page.container.querySelector('form[aria-label="ค้นหาและกรองโฆษณา"]')!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await flushEffects();
+    });
+    await act(async () => { await click(Array.from(page.container.querySelectorAll("button")).find(button => button.textContent === "ถัดไป")!); });
+    await click(editButton(page.container));
+    await click(page.container.querySelector('input[type="checkbox"]')!);
+    await act(async () => { await click(page.container.querySelector('button[type="submit"]')!); await flushEffects(); });
+    await click(page.container.querySelector('button[aria-label="กลับรายการโฆษณา"]')!);
+    expect(page.container.querySelector("table")?.textContent).toContain("ยังเปิดแสดง");
+    expect(calls.at(-1)?.searchParams.get("page")).toBe("1");
+    expect(calls.at(-1)?.searchParams.get("status")).toBe("active");
+    await page.unmount();
+  });
+  it("applies database filters at page one and keeps them when paging and returning from Edit", async () => {
+    const calls: URL[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: string) => {
+      calls.push(new URL(input, "https://example.com"));
+      return makeJsonResponse({ body: { advertisements: [ad], total: 9 } });
+    }));
+    const page = await mountAdvertisements();
+    const search = page.container.querySelector<HTMLInputElement>('input[type="search"]')!;
+    await changeInput(search, " เที่ยว ");
+    const filterForm = page.container.querySelector('form[aria-label="ค้นหาและกรองโฆษณา"]')!;
+    act(() => filterForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    await flushEffects();
+    expect(calls.at(-1)?.searchParams.get("search")).toBe("เที่ยว");
+    expect(calls.at(-1)?.searchParams.get("page")).toBe("1");
+    await click(Array.from(page.container.querySelectorAll("button")).find(button => button.textContent === "ถัดไป")!);
+    expect(calls.at(-1)?.searchParams.get("page")).toBe("2");
+    expect(calls.at(-1)?.searchParams.get("search")).toBe("เที่ยว");
+    await click(editButton(page.container));
+    await click(page.container.querySelector('button[aria-label="กลับรายการโฆษณา"]')!);
+    expect(page.container.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("เที่ยว");
+    expect(page.container.textContent).toContain("หน้า 2 / 2");
+    await page.unmount();
+  });
   it("keeps an uploaded non-cover image selected after saving it", async () => {
     vi.stubGlobal("fetch", makeFetchMock([
       { url: "/api/admin/advertisements?page=1", body: { advertisements: [ad], total: 1 } },
@@ -75,7 +131,7 @@ describe("advertisement editor", () => {
     vi.stubGlobal("fetch", makeFetchMock([{url: "/api/admin/advertisements?page=1", body: { advertisements: [ad], total: 1 }}]));
     const page = await mountAdvertisements();
     expect(page.container.querySelector("table")).not.toBeNull();
-    expect(page.container.querySelector("form")).toBeNull();
+    expect(page.container.querySelector('form[aria-label="ฟอร์มโฆษณา"]')).toBeNull();
     await click(editButton(page.container));
     expect(page.container.querySelector("table")).toBeNull();
     expect(page.container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe(ad.title);
@@ -88,7 +144,7 @@ describe("advertisement editor", () => {
     confirm.mockReturnValue(true);
     await click(Array.from(page.container.querySelectorAll<HTMLButtonElement>("button")).find(button => button.textContent === "ยกเลิก")!);
     expect(page.container.querySelector("table")).not.toBeNull();
-    expect(page.container.querySelector("form")).toBeNull();
+    expect(page.container.querySelector('form[aria-label="ฟอร์มโฆษณา"]')).toBeNull();
     await page.unmount();
   });
   it("locks record selection while a reload is pending", async () => {

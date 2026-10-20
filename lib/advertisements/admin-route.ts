@@ -9,12 +9,13 @@ import {
   cleanupAdvertisementAssets,
   uploadAdvertisementAssets,
 } from "./admin-assets";
-import { ADVERTISEMENT_BUCKET, type AdminAdvertisement } from "./types";
+import { ADVERTISEMENT_BUCKET, ADVERTISEMENT_PAGE_SIZE, type AdminAdvertisement } from "./types";
 import {
   isAdvertisementId,
   isAdvertisementStoragePath,
   isRecord,
   parseAdvertisementDraft,
+  parseAdvertisementListQuery,
   validateAdvertisementUpload,
 } from "./validation";
 
@@ -47,13 +48,19 @@ export async function listAdminAdvertisements(
   request: Request,
   supabase: HomeConfigSupabaseClient,
 ) {
-  const rawPage = new URL(request.url).searchParams.get("page") ?? "1";
-  if (!/^[1-9]\d{0,4}$/.test(rawPage)) return invalid(["เลขหน้าไม่ถูกต้อง"]);
-  const page = Number(rawPage),
-    pageSize = 20;
-  const { data, error, count } = await supabase
+  const { page, filters, errors } = parseAdvertisementListQuery(new URL(request.url).searchParams);
+  if (errors.length) return invalid(errors);
+  const pageSize = ADVERTISEMENT_PAGE_SIZE;
+  let query = supabase
     .from("site_advertisements")
-    .select(SELECT, { count: "exact" })
+    .select(SELECT, { count: "exact" });
+  if (filters.search) {
+    const literal = filters.search.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+    query = query.ilike("title", `%${literal}%`);
+  }
+  if (filters.zone) query = query.eq("zone", filters.zone);
+  if (filters.status !== "all") query = query.eq("is_active", filters.status === "active");
+  const { data, error, count } = await query
     .order("sort_order", { ascending: true })
     .order("id", { ascending: true })
     .range((page - 1) * pageSize, page * pageSize - 1);

@@ -1,14 +1,15 @@
 "use client";
 
 import { CspSafeImage } from "@/components/ui/csp-safe-image";
-import type { AdminAdvertisement } from "@/lib/advertisements/types";
+import { ADVERTISEMENT_PAGE_SIZE, type AdminAdvertisement } from "@/lib/advertisements/types";
 import { ADVERTISEMENT_ZONES } from "@/lib/advertisements/validation";
 
-export function AdvertisementList({ items, page, total, loading, onEdit, onPage }: {
+export function AdvertisementList({ items, page, total, filtered = false, loading, onEdit, onPage }: {
   items: AdminAdvertisement[];
   page: number;
   total: number;
   loading: boolean;
+  filtered?: boolean;
   onEdit: (ad: AdminAdvertisement) => void;
   onPage: (page: number) => void;
 }) {
@@ -49,13 +50,13 @@ export function AdvertisementList({ items, page, total, loading, onEdit, onPage 
               </tr>
             );
           })}
-          {!loading && items.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-[var(--site-muted)]">ยังไม่มีโฆษณา</td></tr>}
+          {!loading && items.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-[var(--site-muted)]">{filtered ? "ไม่พบโฆษณาที่ตรงกับการค้นหา" : "ยังไม่มีโฆษณา"}</td></tr>}
         </tbody>
       </table>
-      {total > 20 && <div className="flex items-center justify-between border-t border-[var(--site-border)] px-4 py-3 text-xs">
+      {total > ADVERTISEMENT_PAGE_SIZE && <div className="flex items-center justify-between border-t border-[var(--site-border)] px-4 py-3 text-xs">
         <button type="button" disabled={loading || page === 1} onClick={() => onPage(page - 1)} className="min-h-9 rounded-lg border border-[var(--site-border)] px-3 disabled:opacity-40">ก่อนหน้า</button>
-        <span>หน้า {page} / {Math.ceil(total / 20)}</span>
-        <button type="button" disabled={loading || page * 20 >= total} onClick={() => onPage(page + 1)} className="min-h-9 rounded-lg border border-[var(--site-border)] px-3 disabled:opacity-40">ถัดไป</button>
+        <span>หน้า {page} / {Math.ceil(total / ADVERTISEMENT_PAGE_SIZE)}</span>
+        <button type="button" disabled={loading || page * ADVERTISEMENT_PAGE_SIZE >= total} onClick={() => onPage(page + 1)} className="min-h-9 rounded-lg border border-[var(--site-border)] px-3 disabled:opacity-40">ถัดไป</button>
       </div>}
     </section>
   );

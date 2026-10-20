@@ -47,6 +47,7 @@ interface GalleryModalState {
 
 interface VillaDetailClientShellProps {
   advertisements: PublicAdvertisement[];
+  advertisementCursor?: string | null;
   bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId: string;
   children: ReactNode;
@@ -66,6 +67,7 @@ interface VillaDetailClientShellProps {
 
 export function VillaDetailClientShell({
   advertisements,
+  advertisementCursor,
   bookingCalendars,
   bookingSidebarId,
   children,
@@ -186,6 +188,7 @@ export function VillaDetailClientShell({
 
       <DetailLayoutRenderer
         advertisements={advertisements}
+        advertisementCursor={advertisementCursor}
         bookingCalendars={bookingCalendars}
         bookingSidebarId={bookingSidebarId}
         contactSettings={contactSettings}

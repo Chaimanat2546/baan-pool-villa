@@ -14,6 +14,7 @@ import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 
 export interface VillaDetailPageProps {
   advertisements?: PublicAdvertisement[];
+  advertisementCursor?: string | null;
   bookingCalendars: Record<string, BookingCalendarMonth>;
   contactSettings: SiteContactSettings;
   currentBookingMonthKey: string;

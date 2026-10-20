@@ -16,7 +16,7 @@ import {
   shouldRedirectToLogin,
 } from "@/components/admin/admin-api-client";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
-import type { AdminAdvertisement } from "@/lib/advertisements/types";
+import { ADVERTISEMENT_PAGE_SIZE, type AdminAdvertisement, type AdvertisementListFilters } from "@/lib/advertisements/types";
 import {
   isRecord,
   parseAdvertisementDraft,
@@ -24,6 +24,7 @@ import {
 import type { DraftImage } from "./advertisement-images-editor";
 import { AdvertisementEditor, type AdvertisementEditorDraft as Editor } from "./advertisement-editor";
 import { AdvertisementList } from "./advertisement-list";
+import { AdvertisementFilters } from "./advertisement-filters";
 
 const buttonClass =
   "inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-xs font-medium transition focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11";
@@ -53,6 +54,7 @@ export function AdminAdvertisementsPage() {
   const objectUrls = useRef(new Set<string>());
   const listHeading = useRef<HTMLHeadingElement>(null);
   const loadVersion = useRef(0);
+  const [filters, setFilters] = useState<AdvertisementListFilters>({ search: "", zone: "", status: "all" });
   useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(null), 3000);
@@ -119,9 +121,13 @@ export function AdminAdvertisementsPage() {
     [router],
   );
   const load = useCallback(
-    (nextPage: number, resetEditor = true) => {
+    function loadPage(nextPage: number, resetEditor = true): Promise<void> {
       const version = ++loadVersion.current;
-      return api(`/api/admin/advertisements?page=${nextPage}`)
+      const params = new URLSearchParams({ page: String(nextPage) });
+      if (filters.search) params.set("search", filters.search);
+      if (filters.zone) params.set("zone", filters.zone);
+      if (filters.status !== "all") params.set("status", filters.status);
+      return api(`/api/admin/advertisements?${params}`)
         .then((body) => {
           if (version !== loadVersion.current) return;
           if (
@@ -129,6 +135,8 @@ export function AdminAdvertisementsPage() {
             typeof body.total !== "number"
           )
             throw new Error("รูปแบบรายการโฆษณาไม่ถูกต้อง");
+          const lastPage = Math.max(1, Math.ceil(body.total / ADVERTISEMENT_PAGE_SIZE));
+          if (nextPage > lastPage) return loadPage(lastPage, resetEditor);
           const records = body.advertisements as AdminAdvertisement[];
           setItems(records);
           setTotal(body.total);
@@ -149,7 +157,7 @@ export function AdminAdvertisementsPage() {
           if (version === loadVersion.current) setLoading(false);
         });
     },
-    [api, revokeUrls],
+    [api, filters, revokeUrls],
   );
   useEffect(() => {
     void load(1);
@@ -331,7 +339,16 @@ export function AdminAdvertisementsPage() {
             </div>
           </header>
           {feedback}
-          <AdvertisementList items={items} page={page} total={total} loading={loading || busy} onEdit={select} onPage={reload} />
+          <AdvertisementFilters initial={filters} disabled={busy || loading} onApply={nextFilters => {
+            if (busy || loading) return;
+            setLoading(true);
+            setErrors([]);
+            setFilters(nextFilters);
+            setItems([]);
+            setPage(1);
+            setTotal(0);
+          }} />
+          <AdvertisementList items={items} page={page} total={total} filtered={Boolean(filters.search || filters.zone || filters.status !== "all")} loading={loading || busy} onEdit={select} onPage={reload} />
           <Link href="/admin/detail-layout" prefetch={false} className="justify-self-start text-xs text-[var(--site-muted)] underline-offset-4 hover:underline">ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด</Link>
         </>
       )}

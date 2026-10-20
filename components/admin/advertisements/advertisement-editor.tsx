@@ -31,7 +31,7 @@ export function AdvertisementEditor({ editor, dirty, disabled, notice, feedback,
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus(); }, []);
   return (
-    <form onSubmit={onSave} className="mx-auto grid w-full max-w-[840px] min-w-0 gap-4">
+    <form aria-label="ฟอร์มโฆษณา" onSubmit={onSave} className="mx-auto grid w-full max-w-[840px] min-w-0 gap-4">
       <header className="grid min-w-0 justify-items-start gap-1">
         <button type="button" aria-label="กลับรายการโฆษณา" disabled={disabled} onClick={onBack}
           className="inline-flex min-h-7 items-center gap-1.5 rounded text-xs text-[var(--site-muted)] hover:text-[var(--site-text)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">
