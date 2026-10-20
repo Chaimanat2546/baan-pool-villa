@@ -69,25 +69,25 @@ export function AdvertisementImagesEditor({
           เพิ่มรูปอย่างน้อย 1 รูป
         </p>
       )}
-      <ol className="grid gap-2">
+      <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {images.map((image, index) => (
           <li
-            className="flex min-w-0 items-center gap-3 rounded-lg border border-[var(--site-border)] p-2"
+            className="grid min-w-0 content-start gap-2 rounded-lg border border-[var(--site-border)] p-2"
             key={image.key}
           >
             <CspSafeImage
               src={image.url}
               alt={`รูปโฆษณาที่ ${index + 1}`}
-              width={72}
-              height={56}
-              className="h-14 w-18 shrink-0 rounded object-cover"
+              width={320}
+              height={240}
+              className="aspect-[4/3] w-full rounded object-cover"
               unoptimized
             />
-            <span className="min-w-0 flex-1 truncate text-xs">
+            <span className="min-w-0 truncate text-xs font-semibold">
               {index === 0 ? "ภาพปก" : `รูปที่ ${index + 1}`}
               {image.file ? " · ยังไม่อัปโหลด" : ""}
             </span>
-            <div className="flex shrink-0 gap-1">
+            <div className="flex items-center justify-between gap-1">
               <button
                 aria-label={`เลื่อนรูป ${index + 1} ขึ้น`}
                 type="button"

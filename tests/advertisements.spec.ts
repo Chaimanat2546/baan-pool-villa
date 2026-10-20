@@ -145,6 +145,42 @@ test("site advertisement editor previews locally and preserves failed saves", as
   );
 });
 
+test("editing twelve images keeps save in reach on every screen", async ({ page, isMobile }, testInfo) => {
+  const ad = {
+    id,
+    title: "กิจกรรมสำหรับครอบครัวและกลุ่มเพื่อน พร้อมบริการล่องเรือชมพระอาทิตย์ตก",
+    zone: "all", isActive: true, sortOrder: 0, updatedAt: "2026-10-20T12:00:00Z",
+    images: Array.from({ length: 12 }, (_, index) => ({
+      id: `20000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+      url: "/images/villa-card-preview-cover.png", storagePath: "",
+    })),
+  };
+  await page.route("**/api/admin/advertisements**", route => route.fulfill({
+    json: { advertisements: [ad], total: 1 },
+  }));
+  await page.goto("/admin/advertisements");
+  await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
+  const save = page.getByRole("button", { name: "บันทึกโฆษณา", exact: true });
+  await expect(save).toBeInViewport();
+  if (isMobile) {
+    await expect(page.getByRole("combobox", { name: "เลือกโฆษณา", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "ดูตัวอย่าง", exact: true }).click();
+    await expect(page.getByRole("complementary", { name: "ตัวอย่างโฆษณา" }).getByRole("img")).toBeVisible();
+  } else {
+    for (const width of [1366, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      const form = await page.locator("form").boundingBox();
+      const list = await page.getByRole("complementary", { name: "รายการโฆษณา" }).boundingBox();
+      expect(form!.width).toBeGreaterThan(list!.width * 2);
+      await expect(save).toBeInViewport();
+    }
+  }
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight / 2));
+  await expect(save).toBeInViewport();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("twelve-images-editor.png"), fullPage: true });
+});
+
 test("empty and database-error states remain usable", async ({ page }) => {
   let error = false;
   await page.route("**/api/admin/advertisements**", (route) =>

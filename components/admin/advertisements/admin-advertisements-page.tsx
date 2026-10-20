@@ -17,7 +17,7 @@ import {
 } from "@/components/admin/admin-api-client";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
 import { CspSafeImage } from "@/components/ui/csp-safe-image";
-import type { AdminAdvertisement } from "@/lib/advertisements/types";
+import { ADVERTISEMENT_IMAGE_LIMIT, type AdminAdvertisement } from "@/lib/advertisements/types";
 import {
   ADVERTISEMENT_ZONES,
   isRecord,
@@ -61,6 +61,7 @@ export function AdminAdvertisementsPage() {
   const [errors, setErrors] = useState<string[]>([]),
     [warnings, setWarnings] = useState<string[]>([]),
     [notice, setNotice] = useState<string | null>(null);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const objectUrls = useRef(new Set<string>());
   const loadVersion = useRef(0);
   const revokeUrls = useCallback(() => {
@@ -296,7 +297,7 @@ export function AdminAdvertisementsPage() {
     }
   };
   return (
-    <div className="grid min-w-0 gap-4 text-[var(--site-text)]">
+    <div className="@container grid min-w-0 gap-3 text-[var(--site-text)]">
       <header
         className={`${panelClass} flex flex-wrap items-center justify-between gap-3`}
       >
@@ -305,9 +306,8 @@ export function AdminAdvertisementsPage() {
             <Megaphone className="size-5 text-[var(--site-primary)]" />
             จัดการโฆษณา
           </h1>
-          <p className="mt-1 text-sm leading-6 text-[var(--site-muted)]">
-            โฆษณาและรูปของเว็บนี้ แสดงในหน้ารายละเอียดบ้านพักตามโซน สูงสุด 3
-            รายการ
+          <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
+            จัดการรูปและกิจกรรมของเว็บนี้ แสดงตามโซนสูงสุด 3 รายการ
           </p>
         </div>
         <button
@@ -327,7 +327,7 @@ export function AdminAdvertisementsPage() {
         notice={notice}
         warnings={warnings}
       />
-      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[230px_minmax(0,1fr)] 2xl:grid-cols-[230px_minmax(0,1fr)_300px]">
+      <div className="grid min-w-0 items-start gap-3 @3xl:grid-cols-[190px_minmax(0,1fr)] @5xl:grid-cols-[minmax(180px,1fr)_minmax(0,3fr)_minmax(200px,1fr)]">
         <aside className={`${panelClass} grid gap-3`} aria-label="รายการโฆษณา">
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-bold">รายการ ({total})</h2>
@@ -352,7 +352,23 @@ export function AdminAdvertisementsPage() {
               ยังไม่มีโฆษณา
             </p>
           ) : (
-            <ul className="grid gap-2">
+            <>
+            <label className="grid gap-2 text-xs font-semibold @3xl:hidden">
+              เลือกโฆษณา
+              <select
+                className={inputClass}
+                disabled={busy || loading}
+                value={items.some((ad) => ad.id === editor?.id) ? (editor?.id ?? "") : ""}
+                onChange={(event) => {
+                  const ad = items.find((item) => item.id === event.target.value);
+                  if (ad) select(ad);
+                }}
+              >
+                <option value="" disabled>เลือกรายการที่ต้องการแก้ไข</option>
+                {items.map((ad) => <option key={ad.id} value={ad.id}>{ad.title}</option>)}
+              </select>
+            </label>
+            <ul className="hidden gap-2 @3xl:grid @3xl:max-h-[65dvh] @3xl:overflow-y-auto">
               {items.map((ad) => (
                 <li key={ad.id}>
                   <button
@@ -373,7 +389,9 @@ export function AdminAdvertisementsPage() {
                 </li>
               ))}
             </ul>
+            </>
           )}
+          {total > 20 && (
           <div className="flex items-center justify-between text-xs">
             <button
               type="button"
@@ -393,20 +411,15 @@ export function AdminAdvertisementsPage() {
               ถัดไป
             </button>
           </div>
+          )}
         </aside>
         {editor ? (
-          <form onSubmit={save} className={`${panelClass} grid gap-5`}>
+          <form id="advertisement-editor" onSubmit={save} className={`${panelClass} grid gap-4`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-bold">
                 {editor.updatedAt ? "แก้ไขโฆษณา" : "เพิ่มโฆษณาใหม่"}
               </h2>
-              <span className="text-xs text-[var(--site-muted)]">
-                {dirty
-                  ? "มีการแก้ไขที่ยังไม่บันทึก"
-                  : editor.updatedAt
-                    ? "ข้อมูลที่บันทึกแล้ว"
-                    : "ยังไม่บันทึก"}
-              </span>
+              <span className="text-xs text-[var(--site-muted)]">{editor.images.length}/{ADVERTISEMENT_IMAGE_LIMIT} รูป</span>
             </div>
             <fieldset disabled={busy || loading} className="grid min-w-0 gap-4">
               <label className="grid gap-2 text-sm font-semibold">
@@ -472,7 +485,7 @@ export function AdminAdvertisementsPage() {
                 onObjectUrl={(url) => objectUrls.current.add(url)}
               />
             </fieldset>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--site-border)] pt-4">
+            {editor.updatedAt && <div className="border-t border-[var(--site-border)] pt-3">
               <button
                 type="button"
                 disabled={busy || !editor.updatedAt}
@@ -482,15 +495,7 @@ export function AdminAdvertisementsPage() {
                 <Trash2 className="size-4" />
                 ลบโฆษณา
               </button>
-              <button
-                type="submit"
-                disabled={busy || loading}
-                className={`${buttonClass} bg-[var(--site-primary)] text-[var(--site-on-primary)] hover:opacity-90`}
-              >
-                <Save className="size-4" />
-                {busy ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
-              </button>
-            </div>
+            </div>}
           </form>
         ) : (
           <div
@@ -500,10 +505,18 @@ export function AdminAdvertisementsPage() {
           </div>
         )}
         <aside
-          className={`${panelClass} grid gap-4 xl:col-start-2 2xl:col-start-auto`}
+          className={`${panelClass} grid gap-3 @3xl:col-start-2 @5xl:col-start-auto`}
           aria-label="ตัวอย่างโฆษณา"
         >
-          <h2 className="font-bold">ตัวอย่างรายการ</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold">ตัวอย่างรายการ</h2>
+            <button type="button" className="text-xs font-semibold text-[var(--site-primary)] underline @5xl:hidden"
+              aria-expanded={previewExpanded} aria-controls="advertisement-preview"
+              onClick={() => setPreviewExpanded((expanded) => !expanded)}>
+              {previewExpanded ? "ย่อตัวอย่าง" : "ดูตัวอย่าง"}
+            </button>
+          </div>
+          <div id="advertisement-preview" className={`${previewExpanded ? "grid" : "hidden"} gap-3 @5xl:grid`}>
           {editor?.images[0] ? (
             <div className="overflow-hidden rounded-xl border border-[var(--site-border)]">
               <CspSafeImage
@@ -539,8 +552,22 @@ export function AdminAdvertisementsPage() {
               หน้ารายละเอียดบ้านพัก
             </Link>
           </p>
+          </div>
         </aside>
       </div>
+      {editor && (
+        <div className="sticky bottom-0 z-20 flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg">
+          <div className="min-w-0 text-xs text-[var(--site-muted)]" role="status">
+            <p className="font-semibold text-[var(--site-text)]">{dirty ? "มีการแก้ไขที่ยังไม่บันทึก" : editor.updatedAt ? "ข้อมูลที่บันทึกแล้ว" : "โฆษณาใหม่"}</p>
+            <p className="mt-1">{editor.images.length} รูป · {editor.isActive ? "เปิดแสดง" : "ปิดแสดง"}</p>
+          </div>
+          <button type="submit" form="advertisement-editor" disabled={busy || loading}
+            className={`${buttonClass} shrink-0 bg-[var(--site-primary)] text-[var(--site-on-primary)] hover:opacity-90`}>
+            <Save className="size-4" />
+            {busy ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
