@@ -12,7 +12,7 @@ export type AdvertisementEditorDraft = Omit<AdminAdvertisement, "updatedAt" | "i
   images: DraftImage[];
 };
 
-const inputClass = "h-9 w-full min-w-0 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-base focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/20 sm:text-sm";
+const inputClass = "h-11 w-full min-w-0 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-base focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/20 sm:h-9 sm:text-sm pointer-coarse:min-h-11";
 
 export function AdvertisementEditor({ editor, dirty, disabled, notice, feedback, onChange, onImages, onObjectUrl, onError, onSave, onBack, onDelete }: {
   editor: AdvertisementEditorDraft;
@@ -57,17 +57,17 @@ export function AdvertisementEditor({ editor, dirty, disabled, notice, feedback,
         </section>
         <AdvertisementImagesEditor images={editor.images} disabled={disabled} onChange={onImages} onError={onError} onObjectUrl={onObjectUrl} />
       </fieldset>
-      <footer className="flex min-w-0 flex-wrap items-center gap-2" aria-label="บันทึกหรือยกเลิก">
+      <footer className="grid min-w-0 grid-cols-[minmax(0,1fr)_88px] items-center gap-2 sm:flex sm:flex-wrap" aria-label="บันทึกหรือยกเลิก">
         <button type="submit" disabled={disabled} aria-label={disabled ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-medium text-[var(--site-on-primary)] hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-medium whitespace-nowrap text-[var(--site-on-primary)] hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">
           <Check aria-hidden="true" className="size-4" />{disabled ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
         </button>
         <button type="button" disabled={disabled} onClick={onBack} className="min-h-10 rounded-md px-3 text-sm text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">ยกเลิก</button>
-        {((dirty && !disabled) || notice) && <span role="status" className={`text-xs ${notice ? "text-emerald-700" : "text-[var(--site-muted)]"}`}>{notice ?? "ยังไม่บันทึก"}</span>}
+        {((dirty && !disabled) || notice) && <span role="status" className={`col-span-2 text-xs ${notice ? "text-emerald-700" : "text-[var(--site-muted)]"}`}>{notice ?? "ยังไม่บันทึก"}</span>}
       </footer>
-      <div className="flex items-start justify-between gap-3 text-[11px] text-[var(--site-muted)]">
-        <Link href="/admin/detail-layout" prefetch={false} className="py-2 underline-offset-4 hover:underline">ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด</Link>
-        {editor.updatedAt && <button type="button" disabled={disabled} onClick={onDelete} className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md px-2 text-xs text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-700 disabled:opacity-40"><Trash2 aria-hidden="true" className="size-3.5" />ลบโฆษณา</button>}
+      <div className="flex flex-col items-start gap-2 text-[11px] text-[var(--site-muted)] sm:flex-row sm:justify-between sm:gap-3">
+        <Link href="/admin/detail-layout" prefetch={false} className="inline-flex min-h-11 items-center py-2 underline-offset-4 hover:underline sm:min-h-0">ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด</Link>
+        {editor.updatedAt && <button type="button" disabled={disabled} onClick={onDelete} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-md px-2 text-xs text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-700 disabled:opacity-40 sm:min-h-9 pointer-coarse:min-h-11"><Trash2 aria-hidden="true" className="size-3.5" />ลบโฆษณา</button>}
       </div>
     </form>
   );

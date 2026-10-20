@@ -326,13 +326,13 @@ export function AdminAdvertisementsPage() {
         />
       ) : (
         <>
-          <header className="flex flex-wrap items-center justify-between gap-3">
+          <header className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="min-w-0">
               <h1 ref={listHeading} tabIndex={-1} className="text-xl font-medium outline-none">
                 จัดการโฆษณา<span className="ml-3 text-xs font-normal text-[var(--site-muted)]">{total} รายการ</span>
               </h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
               <button type="button" disabled={busy || loading} className={`${buttonClass} text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)]`} onClick={() => reload(page)}><RefreshCw aria-hidden="true" className="size-4" />โหลดใหม่</button>
               <button data-create-advertisement type="button" disabled={busy || loading} className={`${buttonClass} bg-[var(--site-primary)] text-[var(--site-on-primary)] hover:opacity-90`} onClick={() => select()}><Plus className="size-4" />เพิ่มโฆษณา</button>
             </div>

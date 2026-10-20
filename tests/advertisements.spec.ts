@@ -316,6 +316,45 @@ test("compact editor puts save after the fields and images", async ({ page, isMo
   }
 });
 
+test("mobile advertisements keep filters, image uploads and actions usable at narrow widths", async ({ page, isMobile }, testInfo) => {
+  test.skip(!isMobile, "Mobile touch layout");
+  const title = "กิจกรรมสำหรับครอบครัวและกลุ่มเพื่อนพร้อมบริการล่องเรือชมพระอาทิตย์ตก";
+  await page.route("**/api/admin/advertisements**", route => route.fulfill({ json: {
+    advertisements: [{ id, title, zone: "all", isActive: true, sortOrder: 0, updatedAt: "2026-10-20T12:00:00Z", images: [{ id: imageId, storagePath: "", url: "/images/villa-card-preview-cover.png" }] }], total: 9,
+  } }));
+  await page.goto("/admin/advertisements");
+  const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+  for (const width of [320, 360, 390, 430]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const control of [page.getByRole("searchbox"), page.getByRole("combobox", { name: "โซน", exact: true }), page.getByRole("button", { name: "ค้นหา", exact: true }), page.getByRole("button", { name: "ถัดไป", exact: true })]) {
+      expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    }
+    const zone = await page.getByRole("combobox", { name: "โซน", exact: true }).boundingBox();
+    const status = await page.getByRole("combobox", { name: "สถานะ", exact: true }).boundingBox();
+    expect(zone!.y).toBe(status!.y);
+    await expect(page.getByRole("table")).toContainText("เปิดแสดง");
+    await expect.poll(fits).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`mobile-list-${width}.png`), fullPage: true });
+  }
+  await page.getByRole("button", { name: `แก้ไขโฆษณา ${title}`, exact: true }).click();
+  for (const width of [320, 360, 390, 430]) {
+    await page.setViewportSize({ width, height: 800 });
+    const titleControl = page.locator('input[name="title"]');
+    const save = page.getByRole("button", { name: "บันทึกโฆษณา", exact: true });
+    expect((await titleControl.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    expect((await save.boundingBox())!.width).toBeGreaterThanOrEqual(160);
+    const image = await page.getByRole("button", { name: "เลือกรูปที่ 1", exact: true }).boundingBox();
+    const upload = await page.getByRole("button", { name: "เลือกไฟล์หรือลากรูปมาวาง", exact: true }).boundingBox();
+    expect(Math.abs(image!.y - upload!.y)).toBeLessThanOrEqual(1);
+    await expect.poll(fits).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`mobile-editor-${width}.png`), fullPage: true });
+  }
+  await page.locator('input[name="title"]').fill("ร่างบนมือถือ");
+  await page.getByRole("button", { name: "เปิดเมนูหลังบ้าน", exact: true }).click();
+  await page.getByRole("button", { name: "ปิดเมนูหลังบ้าน", exact: true }).last().click();
+  await expect(page.locator('input[name="title"]')).toHaveValue("ร่างบนมือถือ");
+});
+
 test("empty and database-error states remain usable", async ({ page }) => {
   let error = false;
   await page.route("**/api/admin/advertisements**", (route) =>

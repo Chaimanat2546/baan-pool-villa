@@ -87,9 +87,9 @@ export function AdvertisementImagesEditor({ images, disabled, onChange, onError,
         />
       </div>
       {images.length > ADVERTISEMENT_IMAGE_LIMIT && <p role="alert" className="mb-3 text-xs text-red-700">มีรูปเกินกำหนด กรุณาลดให้เหลือไม่เกิน {ADVERTISEMENT_IMAGE_LIMIT} รูปก่อนบันทึก</p>}
-      <ol className="flex min-w-0 flex-wrap items-start gap-3">
+      <ol className="grid min-w-0 grid-cols-2 items-start gap-3 sm:flex sm:flex-wrap">
         {images.map((image, index) => (
-          <li key={image.key} className="grid w-28 min-w-0 content-start gap-1.5">
+          <li key={image.key} className="grid w-full min-w-0 max-w-28 content-start gap-1.5 sm:w-28">
             <button type="button" aria-label={`เลือกรูปที่ ${index + 1}`} aria-pressed={index === selectedIndex} disabled={disabled} onClick={() => setSelectedKey(image.key)}
               className={`min-w-0 rounded-md border p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-50 ${index === selectedIndex ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)] ring-1 ring-[var(--site-primary)]" : "border-[var(--site-border)] bg-[var(--site-surface)] hover:border-[var(--site-border-strong)]"}`}>
               <CspSafeImage src={image.url} alt={`รูปโฆษณาที่ ${index + 1}`} width={112} height={76} className="h-[68px] w-full rounded-sm object-cover sm:h-[76px]" draggable={false} unoptimized />
@@ -98,7 +98,7 @@ export function AdvertisementImagesEditor({ images, disabled, onChange, onError,
             {image.file && <span className="text-center text-[11px] text-[var(--site-muted)]">ยังไม่อัปโหลด</span>}
           </li>
         ))}
-        {canAdd && <li className={`max-w-full ${images.length ? "w-36" : "w-64"}`}>
+        {canAdd && <li className={`max-w-full ${images.length ? "w-full sm:w-36" : "col-span-2 w-full sm:w-64"}`}>
           <button type="button" aria-label="เลือกไฟล์หรือลากรูปมาวาง" disabled={disabled} onClick={() => input.current?.click()}
             className={`flex min-h-[86px] w-full flex-col items-center justify-center gap-1.5 rounded-md border border-dashed px-2 py-3 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 ${highlightDrop ? "border-[var(--site-primary)]" : "border-[var(--site-border-strong)] bg-[var(--site-surface-soft)] hover:border-[var(--site-primary)]"}`}>
             <Upload aria-hidden="true" className="size-4 shrink-0 text-[var(--site-muted)]" />
@@ -107,15 +107,15 @@ export function AdvertisementImagesEditor({ images, disabled, onChange, onError,
           </button>
         </li>}
       </ol>
-      {selected && <div role="group" aria-label="จัดการรูปที่เลือก" className="mt-2 flex flex-wrap items-center gap-1">
+      {selected && <div role="group" aria-label="จัดการรูปที่เลือก" className="mt-2 grid grid-cols-2 items-center gap-1 sm:flex sm:flex-wrap">
         <span role="status" className="sr-only">{`เลือกรูปที่ ${selectedIndex + 1}${selectedIndex === 0 ? " · ภาพปก" : ""}`}</span>
-        <button type="button" aria-label="เลื่อนรูปไปก่อนหน้า" disabled={disabled || !selected || selectedIndex === 0} onClick={() => move(selectedIndex - 1)} className={`${actionClass} w-9 px-0 pointer-coarse:min-w-11`}><ArrowLeft aria-hidden="true" className="size-4" /></button>
-        <button type="button" aria-label="เลื่อนรูปไปถัดไป" disabled={disabled || !selected || selectedIndex === images.length - 1} onClick={() => move(selectedIndex + 1)} className={`${actionClass} w-9 px-0 pointer-coarse:min-w-11`}><ArrowRight aria-hidden="true" className="size-4" /></button>
+        <button type="button" aria-label="เลื่อนรูปไปก่อนหน้า" disabled={disabled || !selected || selectedIndex === 0} onClick={() => move(selectedIndex - 1)} className={`${actionClass} w-full px-0 sm:w-9 pointer-coarse:min-w-11`}><ArrowLeft aria-hidden="true" className="size-4" /></button>
+        <button type="button" aria-label="เลื่อนรูปไปถัดไป" disabled={disabled || !selected || selectedIndex === images.length - 1} onClick={() => move(selectedIndex + 1)} className={`${actionClass} w-full px-0 sm:w-9 pointer-coarse:min-w-11`}><ArrowRight aria-hidden="true" className="size-4" /></button>
         <button type="button" disabled={disabled || !selected || selectedIndex === 0} onClick={() => move(0)} className={`${actionClass} border border-[var(--site-border-strong)]`}>ตั้งเป็นภาพปก</button>
         <button type="button" disabled={disabled || !selected} onClick={() => {
           setSelectedKey(images[selectedIndex + 1]?.key ?? images[selectedIndex - 1]?.key ?? null);
           onChange(images.filter(image => image.key !== selected.key));
-        }} className={`${actionClass} ml-1`}><Trash2 aria-hidden="true" className="size-4" />ลบรูป</button>
+        }} className={`${actionClass} sm:ml-1`}><Trash2 aria-hidden="true" className="size-4" />ลบรูป</button>
       </div>}
       <p className="mt-2 text-[11px] leading-5 text-[var(--site-muted)]">สูงสุด {ADVERTISEMENT_IMAGE_LIMIT} รูป · JPG, PNG, WebP ไม่เกินรูปละ 6 MB · อัปโหลดเมื่อบันทึก</p>
     </section>
