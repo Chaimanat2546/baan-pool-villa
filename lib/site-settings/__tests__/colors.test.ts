@@ -58,6 +58,9 @@ describe("theme fallback constants", () => {
 });
 
 describe("getReadableTextColor", () => {
+  it("keeps saturated brand colors readable when slate and white both miss normal text contrast", () => {
+    expectContrast(getReadableTextColor("#ff0000"), "#ff0000");
+  });
   it("uses white on dark colors and dark text on light colors", () => {
     expect(getReadableTextColor("#064e3b")).toBe("#ffffff");
     expect(getReadableTextColor("#eab308")).toBe("#0f172a");
@@ -72,6 +75,12 @@ describe("getReadableTextColor", () => {
 });
 
 describe("buildSiteThemeStyle", () => {
+  it.each(["#ffffff", "#fef9c3", "#ffb000", "#ff0000", "#064e3b"])("keeps inherited admin text readable with primary %s", primaryColor => {
+    const style = buildSiteThemeStyle({ primaryColor, accentColor: "#eab308" });
+    expectContrast(style["--site-text"], style["--site-surface"]);
+    expectContrast(style["--site-muted"], style["--site-surface"]);
+    expectContrast(style["--site-on-primary"], style["--site-primary"]);
+  });
   it("builds semantic CSS variables from primary and accent colors", () => {
     const style = buildSiteThemeStyle({
       primaryColor: "#064e3b",

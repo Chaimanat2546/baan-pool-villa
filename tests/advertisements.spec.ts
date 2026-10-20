@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { loadEnvConfig } from "@next/env";
 import path from "node:path";
+import { buildSiteThemeStyle } from "@/lib/site-settings/colors";
 
 loadEnvConfig(process.cwd());
 const id = "10000000-0000-4000-8000-000000000001";
@@ -361,15 +362,25 @@ test("table pagination returns to the previous page after deleting its last reco
   expect(deletedId).toBe("40000000-0000-4000-8000-000000000009");
 });
 
-test("admin navigation stays readable with pale primary colors", async ({ page, isMobile }) => {
+test("admin navigation stays readable with pale primary colors", async ({ page, isMobile }, testInfo) => {
   await page.route("**/api/admin/advertisements**", route => route.fulfill({ json: { advertisements: [], total: 0 } }));
   await page.goto("/admin/advertisements");
   await expect(page.getByRole("table")).toBeVisible();
   if (isMobile) await page.getByRole("button", { name: "เปิดเมนูหลังบ้าน", exact: true }).click();
   const selected = page.locator('nav:visible a[aria-current="page"]');
   await expect(selected).toHaveCount(1);
-  for (const primary of ["#ffffff", "#fef9c3", "#ff0000"]) {
-    await page.addStyleTag({ content: `.site-theme { --site-primary: ${primary} !important; } nav a { transition: none !important; }` });
+  const geometry = await page.getByRole("main").boundingBox();
+  for (const primary of ["#ffffff", "#fef9c3", "#ffb000", "#ff0000", "#064e3b"]) {
+    const theme = buildSiteThemeStyle({ primaryColor: primary, accentColor: "#eab308" });
+    await page.addStyleTag({ content: `.site-theme { ${Object.entries(theme).map(([key, value]) => `${key}:${value} !important`).join(";")} } .site-theme * { transition: none !important; }` });
+    const inherited = await page.getByRole("main").evaluate(main => {
+      const css = getComputedStyle(main);
+      return Object.fromEntries(["--site-text", "--site-surface-soft", "--site-surface-tint", "--site-border", "--site-border-strong"].map(key => [key, css.getPropertyValue(key).trim()]));
+    });
+    for (const [key, value] of Object.entries(inherited)) expect(value).toBe(theme[key as keyof typeof theme]);
+    const rgb = primary.slice(1).match(/../g)!.map(channel => Number.parseInt(channel, 16));
+    await expect(selected).toHaveCSS("background-color", `rgb(${rgb.join(", ")})`);
+    expect(await page.getByRole("main").boundingBox()).toEqual(geometry);
     const contrast = await selected.evaluate(link => {
       const style = getComputedStyle(link);
       const context = document.createElement("canvas").getContext("2d")!;
@@ -386,6 +397,9 @@ test("admin navigation stays readable with pale primary colors", async ({ page, 
       return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
     });
     expect(contrast).toBeGreaterThanOrEqual(4.5);
+    if (["#ffb000", "#ff0000", "#064e3b"].includes(primary)) {
+      await page.screenshot({ path: testInfo.outputPath(`theme-${primary.slice(1)}.png`), fullPage: true });
+    }
   }
   if (isMobile) {
     await page.getByRole("button", { name: "ปิดเมนูหลังบ้าน", exact: true }).last().click();
@@ -397,6 +411,12 @@ test("admin navigation stays readable with pale primary colors", async ({ page, 
     const logout = sidebar.getByRole("button", { name: "ออกจากระบบ", exact: true });
     await expect(logout).toBeInViewport({ ratio: 1 });
     expect((await logout.boundingBox())!.height).toBeLessThanOrEqual(48);
+    const collapsedGeometry = await page.getByRole("main").boundingBox();
+    const yellow = buildSiteThemeStyle({ primaryColor: "#ffb000", accentColor: "#eab308" });
+    await page.addStyleTag({ content: `.site-theme { ${Object.entries(yellow).map(([key, value]) => `${key}:${value} !important`).join(";")} }` });
+    await expect(selected).toHaveCSS("background-color", "rgb(255, 176, 0)");
+    expect(await page.getByRole("main").boundingBox()).toEqual(collapsedGeometry);
+    await page.screenshot({ path: testInfo.outputPath("theme-yellow-collapsed.png"), fullPage: true });
   }
 });
 
