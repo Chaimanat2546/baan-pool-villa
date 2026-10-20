@@ -158,6 +158,60 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
   await expect(page.getByRole("table")).toContainText("กิจกรรมที่กำหนดเอง");
 });
 
+test("editor accepts dropped files locally and uploads only on save", async ({ page }, testInfo) => {
+  let saves = 0;
+  let images = [{ id: imageId, storagePath: `${id}/${imageId}.webp`, url: "/images/villa-card-preview-3.jpg" }];
+  await page.route("**/api/admin/advertisements**", async route => {
+    if (route.request().method() === "POST") {
+      saves++;
+      const request = route.request();
+      const form = await new Request(request.url(), { method: "POST", headers: { "Content-Type": request.headers()["content-type"] }, body: new Uint8Array(request.postDataBuffer()!) }).formData();
+      expect(form.getAll("images")).toHaveLength(1);
+      const draft = JSON.parse(String(form.get("advertisement")));
+      expect(draft.images).toEqual([{ id: imageId }, { uploadIndex: 0 }]);
+      images = [...images, { id: "30000000-0000-4000-8000-000000000001", storagePath: "", url: "/images/villa-card-preview-3.jpg" }];
+      return route.fulfill({ json: { id, updatedAt: "2026-10-20T12:00:01Z", images, warnings: [] } });
+    }
+    return route.fulfill({ json: { advertisements: [{ id, title: "รูปโฆษณาแบบลากวาง", zone: "all", sortOrder: 0, isActive: true, updatedAt: "2026-10-20T12:00:00Z", images }], total: 1 } });
+  });
+  await page.goto("/admin/advertisements");
+  await page.getByRole("button", { name: "แก้ไขโฆษณา รูปโฆษณาแบบลากวาง", exact: true }).click();
+  const area = page.locator('section[aria-label="รูปโฆษณา"]');
+  const feedback = page.locator("form").getByRole("alert");
+  await expect(page.getByRole("button", { name: "เลือกไฟล์หรือลากรูปมาวาง", exact: true })).toBeVisible();
+  const invalid = await page.evaluateHandle(() => {
+    const data = new DataTransfer();
+    data.items.add(new File(["<svg/>"], "invalid.svg", { type: "image/svg+xml" }));
+    return data;
+  });
+  await area.dispatchEvent("drop", { dataTransfer: invalid });
+  await expect(feedback).toContainText("รูปต้องเป็น JPG, PNG หรือ WebP");
+  const valid = await page.evaluateHandle(() => {
+    const data = new DataTransfer();
+    const bytes = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zp4sAAAAASUVORK5CYII="), character => character.charCodeAt(0));
+    data.items.add(new File([bytes], "dropped.png", { type: "image/png" }));
+    return data;
+  });
+  await area.dispatchEvent("dragenter", { dataTransfer: valid });
+  await area.dispatchEvent("dragover", { dataTransfer: valid });
+  await page.screenshot({ path: testInfo.outputPath("file-drop-zone.png"), fullPage: true });
+  await area.dispatchEvent("drop", { dataTransfer: valid });
+  await expect(area.getByRole("img")).toHaveCount(2);
+  await expect(feedback).toHaveCount(0);
+  await expect(page.getByText("ยังไม่อัปโหลด", { exact: true })).toBeVisible();
+  expect(saves).toBe(0);
+  await area.dispatchEvent("drop", { dataTransfer: valid });
+  await expect(feedback).toContainText("เลือกรูปได้สูงสุด 2 รูป");
+  await expect(area.getByRole("img")).toHaveCount(2);
+  expect(saves).toBe(0);
+  await page.getByRole("button", { name: "บันทึกโฆษณา", exact: true }).click();
+  await expect(page.getByText("บันทึกแล้ว", { exact: true })).toBeVisible();
+  await expect(page.getByText("ยังไม่อัปโหลด", { exact: true })).toHaveCount(0);
+  expect(saves).toBe(1);
+  await invalid.dispose();
+  await valid.dispose();
+});
+
 test("two-image editor keeps save in reach on every screen", async ({ page, isMobile }, testInfo) => {
   const ad = {
     id,
