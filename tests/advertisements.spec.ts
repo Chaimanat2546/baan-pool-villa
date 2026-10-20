@@ -48,7 +48,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("site advertisement editor keeps uploads local and preserves failed saves", async ({
-  page,
+  page, isMobile,
 }, testInfo) => {
   let saves = 0;
   let ad = {
@@ -131,6 +131,16 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
   await expect(page.getByText("ยังไม่อัปโหลด", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "เลือกไฟล์หรือลากรูปมาวาง", exact: true })).toHaveCount(0);
   await expect(page.getByLabel("เพิ่มรูปโฆษณา")).toBeDisabled();
+  if (!isMobile) {
+    const localImage = await page.getByRole("img", { name: "รูปโฆษณาที่ 2", exact: true }).getAttribute("src");
+    for (const toggle of ["ย่อแถบเมนูหลังบ้าน", "ขยายแถบเมนูหลังบ้าน"]) {
+      await page.getByRole("button", { name: toggle, exact: true }).click();
+      await expect(page.locator('input[name="title"]')).toHaveValue("กิจกรรมที่กำหนดเอง");
+      await expect(page.getByRole("img", { name: "รูปโฆษณาที่ 2", exact: true })).toHaveAttribute("src", localImage!);
+      await expect(page.getByText("ยังไม่อัปโหลด", { exact: true })).toBeVisible();
+      expect(saves).toBe(0);
+    }
+  }
   await page
     .getByRole("button", { name: "เลือกรูปที่ 2", exact: true })
     .click();
@@ -227,20 +237,37 @@ test("compact editor puts save after the fields and images", async ({ page, isMo
   }));
   await page.goto("/admin/advertisements");
   await expect(page.locator("form")).toHaveCount(0);
+  if (!isMobile) {
+    await page.setViewportSize({ width: 1920, height: 900 });
+    for (const state of ["expanded", "collapsed"]) {
+      const workspace = await page.getByRole("main").locator(":scope > div").boundingBox();
+      const sidebar = await page.locator(`[data-admin-sidebar-state="${state}"]`).boundingBox();
+      expect(workspace!.width).toBeLessThanOrEqual(1280);
+      expect(Math.abs(workspace!.x + workspace!.width / 2 - (1920 + sidebar!.width) / 2)).toBeLessThanOrEqual(1);
+      await page.screenshot({ path: testInfo.outputPath(`table-${state}.png`), fullPage: true });
+      await page.getByRole("button", { name: state === "expanded" ? "ย่อแถบเมนูหลังบ้าน" : "ขยายแถบเมนูหลังบ้าน", exact: true }).click();
+    }
+  }
   await page.getByRole("button", { name: `แก้ไขโฆษณา ${ad.title}`, exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
   const save = page.getByRole("button", { name: "บันทึกโฆษณา", exact: true });
   await expect(page.locator("form > footer").getByRole("button", { name: "บันทึกโฆษณา", exact: true })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "ตัวอย่างโฆษณา" })).toHaveCount(0);
   if (!isMobile) {
-    for (const [width, height] of [[1366, 768], [1920, 900]]) {
+    for (const [width, height] of [[1024, 768], [1366, 768], [1920, 900], [2560, 1080]]) {
       await page.setViewportSize({ width, height });
-      const form = await page.locator("form").boundingBox();
-      expect(form!.width).toBeLessThanOrEqual(840);
-      await expect(save).toBeInViewport({ ratio: 1 });
-      const fields = await page.locator("fieldset").boundingBox();
-      expect((await save.boundingBox())!.y).toBeGreaterThanOrEqual(fields!.y + fields!.height);
-      if (width === 1366) await page.screenshot({ path: testInfo.outputPath("compact-1366.png"), fullPage: true });
+      for (const state of ["expanded", "collapsed"]) {
+        const sidebar = await page.locator(`[data-admin-sidebar-state="${state}"]`).boundingBox();
+        const form = await page.locator("form").boundingBox();
+        expect(form!.width).toBeLessThanOrEqual(840);
+        expect(Math.abs(form!.x + form!.width / 2 - (width + sidebar!.width) / 2)).toBeLessThanOrEqual(1);
+        await expect(save).toBeInViewport({ ratio: 1 });
+        const fields = await page.locator("fieldset").boundingBox();
+        expect((await save.boundingBox())!.y).toBeGreaterThanOrEqual(fields!.y + fields!.height);
+        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        if (width === 1366 || width === 1920) await page.screenshot({ path: testInfo.outputPath(`editor-${width}-${state}.png`), fullPage: true });
+        await page.getByRole("button", { name: state === "expanded" ? "ย่อแถบเมนูหลังบ้าน" : "ขยายแถบเมนูหลังบ้าน", exact: true }).click();
+      }
     }
   }
   const thumbnail = await page.getByRole("img", { name: "รูปโฆษณาที่ 1", exact: true }).boundingBox();
@@ -262,6 +289,22 @@ test("compact editor puts save after the fields and images", async ({ page, isMo
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
   await expect(page.getByRole("table")).toContainText(ad.title);
+  if (!isMobile) {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.getByRole("button", { name: "ย่อแถบเมนูหลังบ้าน", exact: true }).click();
+    await page.reload();
+    await expect(page.locator('[data-admin-sidebar-state="collapsed"]')).toBeVisible();
+    await page.getByRole("button", { name: "เพิ่มโฆษณา", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "เพิ่มโฆษณา", exact: true })).toBeVisible();
+    for (const state of ["collapsed", "expanded"]) {
+      const sidebar = await page.locator(`[data-admin-sidebar-state="${state}"]`).boundingBox();
+      const form = await page.locator("form").boundingBox();
+      expect(Math.abs(form!.x + form!.width / 2 - (1366 + sidebar!.width) / 2)).toBeLessThanOrEqual(1);
+      await expect(save).toBeInViewport({ ratio: 1 });
+      await page.screenshot({ path: testInfo.outputPath(`create-${state}.png`), fullPage: true });
+      if (state === "collapsed") await page.getByRole("button", { name: "ขยายแถบเมนูหลังบ้าน", exact: true }).click();
+    }
+  }
 });
 
 test("empty and database-error states remain usable", async ({ page }) => {
@@ -349,7 +392,11 @@ test("admin navigation stays readable with pale primary colors", async ({ page, 
     await expect(page.locator('nav:visible')).toHaveCount(0);
   } else {
     await page.getByRole("button", { name: "ย่อแถบเมนูหลังบ้าน", exact: true }).click();
-    await expect(page.locator('[data-admin-sidebar-state="collapsed"]')).toBeVisible();
+    const sidebar = page.locator('[data-admin-sidebar-state="collapsed"]');
+    await expect(sidebar).toBeVisible();
+    const logout = sidebar.getByRole("button", { name: "ออกจากระบบ", exact: true });
+    await expect(logout).toBeInViewport({ ratio: 1 });
+    expect((await logout.boundingBox())!.height).toBeLessThanOrEqual(48);
   }
 });
 

@@ -229,8 +229,8 @@ export function AdminShell({
           {!isDesktopNavCollapsed && <p className="mb-2 px-2.5 text-[11px] text-[var(--site-muted)]">จัดการเว็บไซต์</p>}
           <AdminNavigation collapsed={isDesktopNavCollapsed} />
         </div>
-        <button className={`mt-4 inline-flex min-h-10 items-center gap-2 border-t border-[var(--site-border)] pt-3 text-xs text-[var(--site-muted)] hover:text-[var(--site-text)] ${isDesktopNavCollapsed ? "flex-col justify-center" : "px-2.5"}`} onClick={handleLogout} type="button">
-          <LogOut aria-hidden="true" className="size-4" /><span>ออกจากระบบ</span>
+        <button aria-label="ออกจากระบบ" title={isDesktopNavCollapsed ? "ออกจากระบบ" : undefined} className={`mt-4 inline-flex min-h-10 shrink-0 items-center gap-2 border-t border-[var(--site-border)] pt-3 text-xs text-[var(--site-muted)] hover:text-[var(--site-text)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] ${isDesktopNavCollapsed ? "justify-center" : "px-2.5"}`} onClick={handleLogout} type="button">
+          <LogOut aria-hidden="true" className="size-4" /><span className={isDesktopNavCollapsed ? "sr-only" : undefined}>ออกจากระบบ</span>
         </button>
       </aside>
       <div className="min-w-0">

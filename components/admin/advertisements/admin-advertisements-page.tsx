@@ -300,7 +300,7 @@ export function AdminAdvertisementsPage() {
   };
   const feedback = <AdminFeedback errors={errors} errorTitle="ดำเนินการไม่สำเร็จ" notice={editor ? null : notice} warnings={warnings} />;
   return (
-    <div className="grid min-w-0 gap-5 text-[var(--site-text)]">
+    <div className="mx-auto grid w-full max-w-[1280px] min-w-0 gap-5 text-[var(--site-text)]">
       {editor ? (
         <AdvertisementEditor
           key={editor.id}
