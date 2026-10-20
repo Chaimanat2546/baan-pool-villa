@@ -608,7 +608,14 @@ test("public detail keeps document navigation and bounded image/API requests", a
   await expect(page.getByRole("heading", { name: "ไม่พบบ้านพักนี้", exact: true })).toHaveCount(0);
   await expect(page.locator("[data-detail-layout-block]").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Application error");
-  const activity = page.locator("[data-detail-advertisement-card]").first();
+  const activities = page.locator("[data-detail-advertisement-card]");
+  if (await activities.count() > 1) {
+    const first = (await activities.nth(0).boundingBox())!;
+    const second = (await activities.nth(1).boundingBox())!;
+    expect(Math.abs(first.x - second.x)).toBeLessThanOrEqual(1);
+    expect(second.y).toBeGreaterThan(first.y + first.height);
+  }
+  const activity = activities.first();
   if (await activity.count()) {
     await activity.click();
     const gallery = page.getByRole("dialog");

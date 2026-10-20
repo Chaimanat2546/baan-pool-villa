@@ -1,17 +1,16 @@
 .rail {
-  container: activities / inline-size;
+  min-width: 0;
+}
+
+.column {
+  display: grid;
+  flex: 0 0 100%;
+  min-width: 0;
+  align-content: start;
+  gap: 12px;
 }
 
 .card {
-  flex: 0 0 86%;
+  width: 100%;
   min-width: 0;
-  scroll-snap-align: start;
-}
-
-@container activities (min-width: 520px) {
-  .card { flex-basis: calc((100% - 20px) / 2); }
-}
-
-@container activities (min-width: 760px) {
-  .card { flex-basis: calc((100% - 40px) / 3); }
 }

@@ -20,7 +20,7 @@ const fixture = build({
 });
 
 for (const brokenImages of [false, true]) {
-test(`public advertisement rail shows three desktop cards and loads the ninth on demand${brokenImages ? " after image failures" : ""}`, async ({ page, isMobile }, testInfo) => {
+test(`public advertisement rail shows three stacked rows and loads the ninth on demand${brokenImages ? " after image failures" : ""}`, async ({ page, isMobile }, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   const output = (await fixture).outputFiles;
@@ -54,7 +54,12 @@ test(`public advertisement rail shows three desktop cards and loads the ninth on
       const box = card.getBoundingClientRect(); return box.left >= view.left - 1 && box.right <= view.right + 1;
     }).length;
   });
-  expect(shown).toBe(isMobile ? 1 : 3);
+  expect(shown).toBe(3);
+  const rows = await Promise.all([0, 1, 2].map(index => cards.nth(index).boundingBox()));
+  expect(Math.abs(rows[0]!.x - rows[1]!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(rows[1]!.x - rows[2]!.x)).toBeLessThanOrEqual(1);
+  expect(rows[1]!.y).toBeGreaterThan(rows[0]!.y + rows[0]!.height);
+  expect(rows[2]!.y).toBeGreaterThan(rows[1]!.y + rows[1]!.height);
   await page.screenshot({ path: testInfo.outputPath("rail-initial.png"), fullPage: true });
   if (!isMobile) {
     await page.locator("#root > div").evaluate(node => { (node as HTMLElement).style.width = "360px"; });
