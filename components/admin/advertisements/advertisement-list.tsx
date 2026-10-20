@@ -13,11 +13,8 @@ export function AdvertisementList({ items, page, total, loading, onEdit, onPage 
   onPage: (page: number) => void;
 }) {
   return (
-    <section aria-label="รายการโฆษณา" aria-busy={loading} className="min-w-0 overflow-hidden rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)]">
-      <div className="border-b border-[var(--site-border)] px-4 py-3 text-sm font-semibold">
-        รายการ ({total})
-        {loading && <span role="status" className="ml-3 text-xs font-normal text-[var(--site-muted)]">กำลังโหลดโฆษณา…</span>}
-      </div>
+    <section aria-label="รายการโฆษณา" aria-busy={loading} className="min-w-0 overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
+      {loading && <p role="status" className="border-b border-[var(--site-border)] px-4 py-3 text-xs text-[var(--site-muted)]">กำลังโหลดโฆษณา…</p>}
       <table className="w-full table-fixed text-left text-sm">
         <caption className="sr-only">รายการโฆษณา</caption>
         <thead className="bg-[var(--site-surface-soft)] text-xs text-[var(--site-muted)]">
@@ -34,7 +31,7 @@ export function AdvertisementList({ items, page, total, loading, onEdit, onPage 
           {items.map((ad) => {
             const zone = ADVERTISEMENT_ZONES.find((item) => item.value === ad.zone)?.label ?? ad.zone;
             return (
-              <tr key={ad.id} className="hover:bg-[var(--site-primary-soft)]/40">
+              <tr key={ad.id} className="hover:bg-[var(--site-surface-soft)]">
                 <th scope="row" className="px-4 py-3 text-left font-medium">
                   <div className="flex min-w-0 items-center gap-3">
                     {ad.images[0] && <CspSafeImage src={ad.images[0].url} alt="" width={48} height={36} unoptimized className="hidden h-9 w-12 shrink-0 rounded object-cover sm:block" />}
@@ -45,10 +42,10 @@ export function AdvertisementList({ items, page, total, loading, onEdit, onPage 
                   </div>
                 </th>
                 <td className="hidden px-3 py-3 text-xs md:table-cell">{zone}</td>
-                <td className="px-2 py-3"><span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-xs ${ad.isActive ? "bg-emerald-50 text-emerald-700" : "bg-[var(--site-surface-soft)] text-[var(--site-muted)]"}`}>{ad.isActive ? "เปิดแสดง" : "ปิดแสดง"}</span></td>
+                <td className="px-2 py-3"><span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs"><span aria-hidden="true" className={`size-1.5 rounded-full ${ad.isActive ? "bg-emerald-600" : "bg-[var(--site-muted)]"}`} />{ad.isActive ? "เปิดแสดง" : "ปิดแสดง"}</span></td>
                 <td className="hidden px-3 py-3 tabular-nums md:table-cell">{ad.sortOrder}</td>
                 <td className="hidden px-3 py-3 tabular-nums md:table-cell">{ad.images.length}</td>
-                <td className="px-3 py-3"><button type="button" aria-label={`แก้ไขโฆษณา ${ad.title}`} disabled={loading} onClick={() => onEdit(ad)} className="min-h-9 rounded-lg border border-[var(--site-border)] px-2.5 text-xs font-semibold text-[var(--site-primary)] hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40">แก้ไข</button></td>
+                <td className="px-3 py-3"><button type="button" aria-label={`แก้ไขโฆษณา ${ad.title}`} disabled={loading} onClick={() => onEdit(ad)} className="min-h-9 rounded-md px-2 text-xs text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">แก้ไข</button></td>
               </tr>
             );
           })}

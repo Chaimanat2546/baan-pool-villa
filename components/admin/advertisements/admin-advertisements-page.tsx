@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Megaphone, Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import {
   extractAdminErrors,
@@ -26,7 +26,7 @@ import { AdvertisementEditor, type AdvertisementEditorDraft as Editor } from "./
 import { AdvertisementList } from "./advertisement-list";
 
 const buttonClass =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[var(--site-border)] px-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40";
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-xs font-medium transition focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11";
 function toEditor(ad: AdminAdvertisement): Editor {
   return {
     ...ad,
@@ -249,7 +249,7 @@ export function AdminAdvertisementsPage() {
         title: draft.title,
         updatedAt: body.updatedAt,
         images: editor.images.map((image, index) => ({
-          key: savedImages[index].id,
+          key: image.key,
           id: savedImages[index].id,
           url: image.url,
         })),
@@ -300,7 +300,7 @@ export function AdminAdvertisementsPage() {
   };
   const feedback = <AdminFeedback errors={errors} errorTitle="ดำเนินการไม่สำเร็จ" notice={editor ? null : notice} warnings={warnings} />;
   return (
-    <div className="grid min-w-0 gap-4 text-[var(--site-text)]">
+    <div className="grid min-w-0 gap-5 text-[var(--site-text)]">
       {editor ? (
         <AdvertisementEditor
           key={editor.id}
@@ -321,20 +321,18 @@ export function AdminAdvertisementsPage() {
         <>
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <h1 ref={listHeading} tabIndex={-1} className="flex items-center gap-2 text-xl font-bold outline-none">
-                <Megaphone className="size-5 text-[var(--site-primary)]" />จัดการโฆษณา
+              <h1 ref={listHeading} tabIndex={-1} className="text-xl font-medium outline-none">
+                จัดการโฆษณา<span className="ml-3 text-xs font-normal text-[var(--site-muted)]">{total} รายการ</span>
               </h1>
-              <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
-                กิจกรรมและรูปของเว็บนี้ · <Link href="/admin/detail-layout" prefetch={false} className="font-semibold text-[var(--site-primary)] underline">ตั้งชื่อหัวข้อและตำแหน่ง</Link>
-              </p>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" disabled={busy || loading} className={`${buttonClass} hover:bg-[var(--site-primary-soft)]`} onClick={() => reload(page)}><RefreshCw className="size-4" />โหลดใหม่</button>
+              <button type="button" disabled={busy || loading} className={`${buttonClass} text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)]`} onClick={() => reload(page)}><RefreshCw aria-hidden="true" className="size-4" />โหลดใหม่</button>
               <button data-create-advertisement type="button" disabled={busy || loading} className={`${buttonClass} bg-[var(--site-primary)] text-[var(--site-on-primary)] hover:opacity-90`} onClick={() => select()}><Plus className="size-4" />เพิ่มโฆษณา</button>
             </div>
           </header>
           {feedback}
           <AdvertisementList items={items} page={page} total={total} loading={loading || busy} onEdit={select} onPage={reload} />
+          <Link href="/admin/detail-layout" prefetch={false} className="justify-self-start text-xs text-[var(--site-muted)] underline-offset-4 hover:underline">ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด</Link>
         </>
       )}
     </div>

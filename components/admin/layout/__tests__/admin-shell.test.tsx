@@ -221,7 +221,7 @@ describe("AdminShell", () => {
 
     expect(coverImageLinks).toHaveLength(1);
     expect(coverImageLinks[0]?.textContent).toContain("จัดการรูปปกบ้าน");
-    expect(coverImageLinks[0]?.className).toContain("bg-[var(--site-primary)]");
+    expect(coverImageLinks[0]?.getAttribute("aria-current")).toBe("page");
 
     await page.unmount();
   });

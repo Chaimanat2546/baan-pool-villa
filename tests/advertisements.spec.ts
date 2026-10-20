@@ -105,7 +105,7 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
   await expect(
     page
       .getByRole("main")
-      .getByRole("heading", { name: "จัดการโฆษณา", exact: true }),
+      .getByRole("heading", { name: /จัดการโฆษณา/ }),
   ).toBeVisible();
   await expect(page.getByRole("table", { name: "รายการโฆษณา" })).toBeVisible();
   await expect(page.getByRole("button", { name: "เพิ่มโฆษณา", exact: true })).toBeEnabled();
@@ -130,7 +130,10 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
   expect(saves).toBe(0);
   await expect(page.getByText("ยังไม่อัปโหลด", { exact: false })).toBeVisible();
   await page
-    .getByRole("button", { name: "เลื่อนรูป 2 ขึ้น", exact: true })
+    .getByRole("button", { name: "เลือกรูปที่ 2", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "เลื่อนรูปไปก่อนหน้า", exact: true })
     .click();
   await page.getByRole("button", { name: "บันทึกโฆษณา", exact: true }).click();
   await expect(
@@ -257,6 +260,41 @@ test("table pagination returns to the previous page after deleting its last reco
   await expect(page.getByRole("table")).not.toContainText("กิจกรรม 21");
   await expect(page.locator("form")).toHaveCount(0);
   expect(deletedId).toBe("40000000-0000-4000-8000-000000000021");
+});
+
+test("admin navigation stays readable with pale primary colors", async ({ page, isMobile }) => {
+  await page.route("**/api/admin/advertisements**", route => route.fulfill({ json: { advertisements: [], total: 0 } }));
+  await page.goto("/admin/advertisements");
+  await expect(page.getByRole("table")).toBeVisible();
+  if (isMobile) await page.getByRole("button", { name: "เปิดเมนูหลังบ้าน", exact: true }).click();
+  const selected = page.locator('nav:visible a[aria-current="page"]');
+  await expect(selected).toHaveCount(1);
+  for (const primary of ["#ffffff", "#fef9c3", "#ff0000"]) {
+    await page.addStyleTag({ content: `.site-theme { --site-primary: ${primary} !important; } nav a { transition: none !important; }` });
+    const contrast = await selected.evaluate(link => {
+      const style = getComputedStyle(link);
+      const context = document.createElement("canvas").getContext("2d")!;
+      function luminance(color: string) {
+        context.fillStyle = color;
+        context.fillRect(0, 0, 1, 1);
+        const rgb = Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3).map(value => {
+          const channel = value / 255;
+          return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+        });
+        return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+      }
+      const text = luminance(style.color), background = luminance(style.backgroundColor);
+      return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
+    });
+    expect(contrast).toBeGreaterThanOrEqual(4.5);
+  }
+  if (isMobile) {
+    await page.getByRole("button", { name: "ปิดเมนูหลังบ้าน", exact: true }).last().click();
+    await expect(page.locator('nav:visible')).toHaveCount(0);
+  } else {
+    await page.getByRole("button", { name: "ย่อแถบเมนูหลังบ้าน", exact: true }).click();
+    await expect(page.locator('[data-admin-sidebar-state="collapsed"]')).toBeVisible();
+  }
 });
 
 test("public detail keeps document navigation and bounded image/API requests", async ({

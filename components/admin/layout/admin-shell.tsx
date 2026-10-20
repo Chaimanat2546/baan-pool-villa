@@ -3,6 +3,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  House,
   LogOut,
   Menu,
   X,
@@ -15,6 +16,7 @@ import { createBrowserHomeConfigClient } from "@/lib/home-sections/supabase";
 import type { SiteSettings } from "@/lib/site-settings/types";
 
 import { ADMIN_NAV_ITEMS, getActiveAdminNavItem } from "./admin-nav";
+import styles from "./admin-shell.module.css";
 import {
   setAdminSidebarPreference,
   useAdminSidebarCollapsed,
@@ -63,54 +65,31 @@ function AdminNavigation({
         const Icon = item.icon;
         const isActive = pathname.startsWith(item.href);
         const visibleLabel = collapsed ? item.compactLabel : item.label;
-        const className = `group rounded-lg border transition ${
+        const className = `group rounded-md transition focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] ${
           collapsed
-            ? "flex min-h-14 flex-col items-center justify-center gap-1 px-1.5 py-2 text-center"
-            : "flex min-h-14 items-center gap-3 px-3 py-2.5 text-left"
+            ? "flex min-h-12 flex-col items-center justify-center gap-1 px-1 py-2 text-center"
+            : "flex min-h-9 items-center gap-2.5 px-2.5 py-2 text-left pointer-coarse:min-h-11"
         } ${
           isActive
-            ? collapsed
-              ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)] text-[var(--site-primary)] shadow-sm"
-              : "border-[var(--site-primary)] bg-[var(--site-primary)] text-[var(--site-on-primary)]"
-            : "border-transparent text-[var(--site-text)] hover:border-[var(--site-border)] hover:bg-[var(--site-surface)]"
+            ? "bg-[var(--site-surface-tint)] text-[var(--site-text)]"
+            : "text-[var(--site-muted)] hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-text)]"
         }`;
 
         const content = (
           <>
-            <span
-              className={`inline-flex shrink-0 items-center justify-center rounded-lg transition ${
-                collapsed ? "size-8" : "size-9"
-              } ${
-                isActive
-                  ? collapsed
-                    ? "bg-[var(--site-primary)] text-[var(--site-on-primary)] shadow-sm"
-                    : "bg-white/14 text-[var(--site-on-primary)]"
-                  : "bg-[var(--site-surface)] text-[var(--site-primary)]"
-              }`}
-            >
-              <Icon aria-hidden="true" className="size-4.5" />
+            <span className="inline-flex size-4 shrink-0 items-center justify-center">
+              <Icon aria-hidden="true" className="size-4" />
             </span>
             <span className={`min-w-0 ${collapsed ? "w-full" : "flex-1"}`}>
               <span
-                className={`text-sm font-semibold ${
+                className={`text-xs ${isActive ? "font-semibold" : "font-normal"} ${
                   collapsed
                     ? "block max-w-full truncate px-1 text-center text-[10px] leading-3"
-                    : "flex items-center gap-2"
+                    : "block break-words"
                 }`}
               >
                 {visibleLabel}
               </span>
-              {collapsed ? null : (
-                <span
-                  className={`mt-0.5 block text-xs leading-4 ${
-                    isActive
-                      ? "text-[var(--site-on-primary)]/74"
-                      : "text-[var(--site-muted)]"
-                  }`}
-                >
-                  {item.description}
-                </span>
-              )}
             </span>
           </>
         );
@@ -118,6 +97,7 @@ function AdminNavigation({
         return (
           <a
             aria-label={collapsed ? item.label : undefined}
+            aria-current={isActive ? "page" : undefined}
             className={`min-w-0 max-w-full ${className}`}
             href={item.href}
             key={item.href}
@@ -235,184 +215,45 @@ export function AdminShell({
   }
 
   return (
-    <div
-      className={`min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)] lg:grid ${
-        isDesktopNavCollapsed
-          ? "lg:grid-cols-[84px_minmax(0,1fr)]"
-          : "lg:grid-cols-[280px_minmax(0,1fr)]"
-      }`}
-    >
-      <aside
-        className={`sticky top-0 hidden h-dvh border-r border-[var(--site-border)] bg-[var(--site-surface)] py-4 lg:flex lg:flex-col ${
-          isDesktopNavCollapsed ? "px-2" : "px-4"
-        }`}
-        data-admin-sidebar-state={isDesktopNavCollapsed ? "collapsed" : "expanded"}
-      >
-        <div
-          className={`rounded-lg bg-[var(--site-primary)] text-[var(--site-on-primary)] ${
-            isDesktopNavCollapsed ? "px-2 py-2.5" : "px-4 py-4"
-          }`}
-        >
-          <div
-            className={`flex ${
-              isDesktopNavCollapsed
-                ? "flex-col items-center gap-2"
-                : "items-start justify-between gap-3"
-            }`}
-          >
-            <div className={`min-w-0 ${isDesktopNavCollapsed ? "text-center" : ""}`}>
-              {isDesktopNavCollapsed ? null : (
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--site-on-primary)]/75">
-                  หลังบ้าน
-                </p>
-              )}
-              {isDesktopNavCollapsed ? (
-                <p className="mt-1 text-base font-semibold tracking-[0.08em]">
-                  {compactSiteMark}
-                </p>
-              ) : (
-                <>
-                  <p className="mt-1 text-xl font-semibold tracking-normal">
-                    {settings.siteName}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--site-on-primary)]/72">
-                    จัดการข้อมูลที่แสดงบนเว็บไซต์
-                  </p>
-                </>
-              )}
-            </div>
-            <button
-              aria-label={
-                isDesktopNavCollapsed
-                  ? "ขยายแถบเมนูหลังบ้าน"
-                  : "ย่อแถบเมนูหลังบ้าน"
-              }
-              className={`inline-flex shrink-0 items-center justify-center rounded-lg bg-white/12 text-[var(--site-on-primary)] transition hover:bg-white/18 ${
-                isDesktopNavCollapsed ? "size-8" : "size-9"
-              }`}
-              onClick={() => {
-                setAdminSidebarPreference(!isDesktopNavCollapsed);
-              }}
-              type="button"
-            >
-              {isDesktopNavCollapsed ? (
-                <ChevronRight aria-hidden="true" className="size-4.5" />
-              ) : (
-                <ChevronLeft aria-hidden="true" className="size-4.5" />
-              )}
-            </button>
-          </div>
+    <div className={`${styles.workspace} min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)] lg:grid ${isDesktopNavCollapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[208px_minmax(0,1fr)]"}`}>
+      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-5 lg:flex" data-admin-sidebar-state={isDesktopNavCollapsed ? "collapsed" : "expanded"}>
+        <div className={`flex min-w-0 gap-2 ${isDesktopNavCollapsed ? "flex-col items-center" : "items-center px-1"}`}>
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[var(--site-primary-soft)] text-[var(--site-primary)]"><House aria-hidden="true" className="size-4" /></span>
+          {!isDesktopNavCollapsed && <p className="min-w-0 flex-1 break-words text-sm font-semibold">{settings.siteName}</p>}
+          <button aria-label={isDesktopNavCollapsed ? "ขยายแถบเมนูหลังบ้าน" : "ย่อแถบเมนูหลังบ้าน"} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-[var(--site-muted)] hover:bg-[var(--site-surface-soft)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)]" onClick={() => setAdminSidebarPreference(!isDesktopNavCollapsed)} type="button">
+            {isDesktopNavCollapsed ? <ChevronRight aria-hidden="true" className="size-4" /> : <ChevronLeft aria-hidden="true" className="size-4" />}
+          </button>
         </div>
-
-        <div
-          className={`mt-4 flex-1 overflow-y-auto ${
-            isDesktopNavCollapsed ? "" : "pr-1"
-          }`}
-        >
+        {isDesktopNavCollapsed && <p className="mt-1 truncate text-center text-[10px] text-[var(--site-muted)]" title={settings.siteName}>{compactSiteMark}</p>}
+        <div className="mt-7 min-h-0 flex-1 overflow-y-auto">
+          {!isDesktopNavCollapsed && <p className="mb-2 px-2.5 text-[11px] text-[var(--site-muted)]">จัดการเว็บไซต์</p>}
           <AdminNavigation collapsed={isDesktopNavCollapsed} />
         </div>
-
-        <button
-          className={`mt-4 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] ${
-            isDesktopNavCollapsed
-              ? "inline-flex min-h-16 flex-col items-center justify-center gap-1.5 px-1 py-2 text-center text-[11px] leading-3"
-              : "inline-flex h-11 items-center justify-center gap-2 px-4"
-          }`}
-          onClick={handleLogout}
-          type="button"
-        >
-          <LogOut aria-hidden="true" className="size-4" />
-          <span className={isDesktopNavCollapsed ? "leading-4" : ""}>
-            ออกจากระบบ
-          </span>
+        <button className={`mt-4 inline-flex min-h-10 items-center gap-2 border-t border-[var(--site-border)] pt-3 text-xs text-[var(--site-muted)] hover:text-[var(--site-text)] ${isDesktopNavCollapsed ? "flex-col justify-center" : "px-2.5"}`} onClick={handleLogout} type="button">
+          <LogOut aria-hidden="true" className="size-4" /><span>ออกจากระบบ</span>
         </button>
       </aside>
-
       <div className="min-w-0">
-        <header className="sticky top-0 z-30 border-b border-[var(--site-border)] bg-[var(--site-surface-soft)]/92 px-4 py-3 backdrop-blur sm:px-6 lg:hidden">
-          <div className="mx-auto flex w-full max-w-[1480px] items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <button
-                aria-label="เปิดเมนูหลังบ้าน"
-                className="inline-flex size-10 items-center justify-center rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] text-[var(--site-primary)] lg:hidden"
-                onClick={() => {
-                  setIsMobileNavOpen(true);
-                }}
-                type="button"
-              >
-                <Menu aria-hidden="true" className="size-5" />
-              </button>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-[var(--site-muted)]">
-                  หลังบ้าน
-                </p>
-                <h1 className="truncate text-lg font-semibold text-[var(--site-text)] sm:text-xl">
-                  {activeItem.pageTitle}
-                </h1>
-              </div>
-            </div>
-
-            <button
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"
-              onClick={handleLogout}
-              type="button"
-            >
-              <LogOut aria-hidden="true" className="size-4" />
-              <span className="hidden sm:inline">ออกจากระบบ</span>
-            </button>
-          </div>
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[var(--site-border)] bg-[var(--site-surface)] px-4 text-xs text-[var(--site-muted)] sm:px-6 lg:static lg:px-7">
+          <button aria-label="เปิดเมนูหลังบ้าน" className="inline-flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-[var(--site-surface-soft)] lg:hidden" onClick={() => setIsMobileNavOpen(true)} type="button"><Menu aria-hidden="true" className="size-5" /></button>
+          <span className="hidden sm:inline">เว็บไซต์</span><ChevronRight aria-hidden="true" className="hidden size-3 sm:block" />
+          <span className="min-w-0 truncate">{activeItem.label}</span>
+          <button aria-label="ออกจากระบบ" className="ml-auto inline-flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-[var(--site-surface-soft)] lg:hidden" onClick={handleLogout} type="button"><LogOut aria-hidden="true" className="size-4" /></button>
         </header>
-
-        <main
-          className={`w-full px-4 py-4 sm:px-6 lg:px-8 ${
-            isDesktopNavCollapsed ? "" : "mx-auto max-w-[1480px]"
-          }`}
-        >
-          {children}
-        </main>
+        <main className={`w-full px-4 py-6 sm:px-6 lg:px-7 ${isDesktopNavCollapsed ? "" : "mx-auto max-w-[1480px]"}`}>{children}</main>
       </div>
-
-      {isMobileNavOpen ? (
+      {isMobileNavOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <button
-            aria-label="ปิดเมนูหลังบ้าน"
-            className="absolute inset-0 bg-[var(--site-primary)]/45"
-            onClick={() => {
-              setIsMobileNavOpen(false);
-            }}
-            type="button"
-          />
-          <aside className="relative flex h-full w-[min(340px,88vw)] flex-col bg-[var(--site-surface)] px-4 py-4 shadow-xl">
-            <div className="flex items-start justify-between gap-3 rounded-lg bg-[var(--site-primary)] px-4 py-4 text-[var(--site-on-primary)]">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--site-on-primary)]/75">
-                  หลังบ้าน
-                </p>
-                <p className="mt-1 text-xl font-semibold tracking-normal">
-                  {settings.siteName}
-                </p>
-              </div>
-              <button
-                aria-label="ปิดเมนูหลังบ้าน"
-                className="inline-flex size-9 items-center justify-center rounded-lg bg-white/12 text-[var(--site-on-primary)]"
-                onClick={() => {
-                  setIsMobileNavOpen(false);
-                }}
-                type="button"
-              >
-                <X aria-hidden="true" className="size-5" />
-              </button>
+          <button aria-label="ปิดเมนูหลังบ้าน" className="absolute inset-0 bg-black/35" onClick={() => setIsMobileNavOpen(false)} type="button" />
+          <aside className="relative flex h-full w-[min(300px,88vw)] flex-col bg-[var(--site-surface)] px-4 py-5 shadow-xl">
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <p className="min-w-0 break-words text-sm font-semibold">{settings.siteName}</p>
+              <button aria-label="ปิดเมนูหลังบ้าน" className="inline-flex size-10 shrink-0 items-center justify-center rounded-md hover:bg-[var(--site-surface-soft)]" onClick={() => setIsMobileNavOpen(false)} type="button"><X aria-hidden="true" className="size-5" /></button>
             </div>
-            <div className="mt-4 flex-1 overflow-y-auto">
-              <AdminNavigation
-                onNavigate={() => {
-                  setIsMobileNavOpen(false);
-                }}
-              />
-            </div>
+            <div className="mt-5 flex-1 overflow-y-auto"><AdminNavigation onNavigate={() => setIsMobileNavOpen(false)} /></div>
           </aside>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
