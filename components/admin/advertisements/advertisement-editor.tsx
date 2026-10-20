@@ -42,8 +42,10 @@ export function AdvertisementEditor({ editor, dirty, disabled, notice, feedback,
       {feedback}
       <fieldset disabled={disabled} className="min-w-0 divide-y divide-[var(--site-border)] rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
         <section className="grid gap-3 p-4 sm:p-5" aria-label="ข้อมูลโฆษณา">
-          <label className="grid gap-1 text-xs font-medium">ชื่อโฆษณา<input name="title" maxLength={160} required className={inputClass} value={editor.title} onChange={event => onChange({ title: event.target.value })} /></label>
-          <label className="grid min-w-0 gap-1 text-xs font-medium">โซนที่แสดง<select className={inputClass} value={editor.zone} onChange={event => onChange({ zone: event.target.value })}>{ADVERTISEMENT_ZONES.map(zone => <option key={zone.value} value={zone.value}>{zone.label}</option>)}</select></label>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-end">
+            <label className="grid min-w-0 gap-1 text-xs font-medium">ชื่อโฆษณา<input name="title" maxLength={160} required className={inputClass} value={editor.title} onChange={event => onChange({ title: event.target.value })} /></label>
+            <label className="grid min-w-0 gap-1 text-xs font-medium">โซนที่แสดง<select className={inputClass} value={editor.zone} onChange={event => onChange({ zone: event.target.value })}>{ADVERTISEMENT_ZONES.map(zone => <option key={zone.value} value={zone.value}>{zone.label}</option>)}</select></label>
+          </div>
           <label className="flex min-h-9 cursor-pointer items-center justify-between gap-4 text-sm pointer-coarse:min-h-11">
             เปิดแสดงบนเว็บไซต์
             <span className="relative inline-flex shrink-0">
