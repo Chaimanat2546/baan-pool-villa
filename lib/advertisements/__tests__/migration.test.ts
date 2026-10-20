@@ -32,6 +32,17 @@ describe("site advertisement migration", () => {
     expect(orderingSql).toContain("private.is_home_config_admin()");
     expect(orderingSql).toContain("jsonb_array_length(p_images) not between 1 and 2");
   });
+  it("ships the query optimization as an identical patch with an authorized private list RPC", () => {
+    const querySql = readFileSync("supabase/migrations/20261020040000_optimize_site_advertisement_queries.sql", "utf8");
+    expect(readFileSync("supabase/patches/20261020_optimize_site_advertisement_queries.sql", "utf8")).toBe(querySql);
+    expect(querySql).toContain("(sort_order, id)");
+    expect(querySql).toContain("gin_trgm_ops");
+    expect(querySql).toContain("security definer set search_path = pg_catalog");
+    expect(querySql).toContain("security invoker set search_path = pg_catalog");
+    expect(querySql).toContain("private.is_home_config_admin()");
+    expect(querySql).toContain("limit 8 offset $4");
+    expect(querySql).toContain("from public, anon");
+  });
   it("keeps privileged mutations private and scoped", () => {
     expect(sql).toContain("security definer set search_path = pg_catalog");
     expect(sql).toContain("security invoker set search_path = pg_catalog");

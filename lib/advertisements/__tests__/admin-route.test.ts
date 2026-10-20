@@ -41,6 +41,7 @@ function request(value: unknown = draft, files = true) {
 const rpc = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
+  rpc.mockReset();
   vi.mocked(uploadAdvertisementAssets).mockResolvedValue({
     assets: [image],
     response: null,
@@ -48,31 +49,35 @@ beforeEach(() => {
 });
 
 describe("advertisement list queries", () => {
-  function client() {
-    const query = { select: vi.fn(), order: vi.fn(), eq: vi.fn(), ilike: vi.fn(), range: vi.fn() };
-    for (const fn of [query.select, query.order, query.eq, query.ilike]) fn.mockReturnValue(query);
-    query.range.mockResolvedValue({ data: [], count: 17, error: null });
-    const from = vi.fn(() => query);
-    return { query, from };
-  }
-  it("pages eight records and applies literal title, zone and status filters before paging", async () => {
-    const { query, from } = client();
+  it("passes validated filters to the admin-only database page RPC", async () => {
+    rpc.mockResolvedValue({ data: { advertisements: [], total: 17 }, error: null });
     const params = new URLSearchParams({ page: "2", search: " เรือ_50% ", zone: "pattaya", status: "inactive" });
-    const response = await listAdminAdvertisements(new Request(`https://example.com/?${params}`), { from } as never);
+    const response = await listAdminAdvertisements(new Request(`https://example.com/?${params}`), { rpc } as never);
     expect(response.status).toBe(200);
-    expect(query.range).toHaveBeenCalledWith(8, 15);
-    expect(query.eq).toHaveBeenCalledWith("zone", "pattaya");
-    expect(query.eq).toHaveBeenCalledWith("is_active", false);
-    expect(query.ilike).toHaveBeenCalledWith("title", "%เรือ\\_50\\%%");
+    expect(rpc).toHaveBeenCalledWith("list_site_advertisements", { p_page: 2, p_search: "เรือ_50%", p_zone: "pattaya", p_status: "inactive" });
     expect(await response.json()).toMatchObject({ page: 2, pageSize: 8, total: 17 });
   });
+  it("maps RPC image snapshots to the existing editor response", async () => {
+    rpc.mockResolvedValue({ data: { total: 1, advertisements: [{ id, title: "เรือ", zone: "all", is_active: true, sort_order: 4, updated_at: "2026-10-20T12:00:00Z", site_advertisement_images: [{ id: imageId, storage_path: image.storagePath, display_order: 0 }] }] }, error: null });
+    const getPublicUrl = vi.fn(() => ({ data: { publicUrl: "https://example.com/image.webp" } }));
+    const response = await listAdminAdvertisements(new Request("https://example.com/"), { rpc, storage: { from: () => ({ getPublicUrl }) } } as never);
+    expect(await response.json()).toMatchObject({ total: 1, advertisements: [{ id, sortOrder: 4, isActive: true, images: [{ id: imageId, storagePath: image.storagePath, url: "https://example.com/image.webp" }] }] });
+  });
   it.each(["page=0", "status=bad", "zone=bad", `search=${"a".repeat(161)}`])("rejects invalid filters before querying: %s", async params => {
-    const { from } = client();
-    const response = await listAdminAdvertisements(new Request(`https://example.com/?${params}`), { from } as never);
+    const response = await listAdminAdvertisements(new Request(`https://example.com/?${params}`), { rpc } as never);
     expect(response.status).toBe(400);
-    expect(from).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+  it("surfaces RPC errors and rejects a malformed page response", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "42501", message: "Admin access required" } });
+    const response = await listAdminAdvertisements(new Request("https://example.com/"), { rpc } as never);
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(await response.json()).toMatchObject({ code: "42501" });
+    rpc.mockResolvedValueOnce({ data: { advertisements: [], total: -1 }, error: null });
+    expect((await listAdminAdvertisements(new Request("https://example.com/"), { rpc } as never)).status).toBe(503);
   });
 });
+
 describe("site advertisement persistence", () => {
   it("rejects a third image before uploading or calling the database", async () => {
     const response = await saveAdminAdvertisement(request({ ...draft, images: [0, 1, 2].map(uploadIndex => ({ uploadIndex })) }), { rpc } as never);
