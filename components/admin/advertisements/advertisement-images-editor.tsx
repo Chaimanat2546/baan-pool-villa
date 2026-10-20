@@ -69,31 +69,31 @@ export function AdvertisementImagesEditor({
           เพิ่มรูปอย่างน้อย 1 รูป
         </p>
       )}
-      <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <ol className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
         {images.map((image, index) => (
           <li
-            className="grid min-w-0 content-start gap-2 rounded-lg border border-[var(--site-border)] p-2"
+            className="grid min-w-0 content-start gap-1.5 rounded-lg border border-[var(--site-border)] p-1.5"
             key={image.key}
           >
             <CspSafeImage
               src={image.url}
               alt={`รูปโฆษณาที่ ${index + 1}`}
-              width={320}
-              height={240}
-              className="aspect-[4/3] w-full rounded object-cover"
+              width={112}
+              height={84}
+              className="h-[84px] w-full rounded object-cover"
               unoptimized
             />
             <span className="min-w-0 truncate text-xs font-semibold">
               {index === 0 ? "ภาพปก" : `รูปที่ ${index + 1}`}
-              {image.file ? " · ยังไม่อัปโหลด" : ""}
             </span>
-            <div className="flex items-center justify-between gap-1">
+            {image.file && <span className="truncate text-[10px] text-[var(--site-muted)]">ยังไม่อัปโหลด</span>}
+            <div className="flex items-center justify-between gap-0.5">
               <button
                 aria-label={`เลื่อนรูป ${index + 1} ขึ้น`}
                 type="button"
                 disabled={disabled || index === 0}
                 onClick={() => move(index, -1)}
-                className="rounded p-2 hover:bg-[var(--site-primary-soft)] disabled:opacity-30"
+                className="inline-flex h-8 w-7 items-center justify-center rounded hover:bg-[var(--site-primary-soft)] disabled:opacity-30"
               >
                 <ArrowUp className="size-4" />
               </button>
@@ -102,7 +102,7 @@ export function AdvertisementImagesEditor({
                 type="button"
                 disabled={disabled || index === images.length - 1}
                 onClick={() => move(index, 1)}
-                className="rounded p-2 hover:bg-[var(--site-primary-soft)] disabled:opacity-30"
+                className="inline-flex h-8 w-7 items-center justify-center rounded hover:bg-[var(--site-primary-soft)] disabled:opacity-30"
               >
                 <ArrowDown className="size-4" />
               </button>
@@ -111,7 +111,7 @@ export function AdvertisementImagesEditor({
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(images.filter((_, i) => i !== index))}
-                className="rounded p-2 text-red-700 hover:bg-red-50"
+                className="inline-flex h-8 w-7 items-center justify-center rounded text-red-700 hover:bg-red-50"
               >
                 <Trash2 className="size-4" />
               </button>

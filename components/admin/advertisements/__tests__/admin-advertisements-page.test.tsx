@@ -32,9 +32,32 @@ const ad = {
 beforeEach(() => {
   mocks.replace.mockReset();
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+function editButton(container: HTMLElement) {
+  return container.querySelector<HTMLButtonElement>(`button[aria-label="แก้ไขโฆษณา ${ad.title}"]`)!;
+}
 describe("advertisement editor", () => {
-  it("locks the draft while a reload is pending so a late response cannot discard new edits", async () => {
+  it("starts in the table and opens the chosen record only when editing", async () => {
+    vi.stubGlobal("fetch", makeFetchMock([{url: "/api/admin/advertisements?page=1", body: { advertisements: [ad], total: 1 }}]));
+    const page = await mountAdminPage(<AdminAdvertisementsPage />);
+    expect(page.container.querySelector("table")).not.toBeNull();
+    expect(page.container.querySelector("form")).toBeNull();
+    await click(editButton(page.container));
+    expect(page.container.querySelector("table")).toBeNull();
+    expect(page.container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe(ad.title);
+    await changeInput(page.container.querySelector('input[name="title"]')!, "ยังไม่บันทึก");
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const back = page.container.querySelector<HTMLButtonElement>('button[aria-label="กลับรายการโฆษณา"]')!;
+    await click(back);
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(page.container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe("ยังไม่บันทึก");
+    confirm.mockReturnValue(true);
+    await click(back);
+    expect(page.container.querySelector("table")).not.toBeNull();
+    expect(page.container.querySelector("form")).toBeNull();
+    await page.unmount();
+  });
+  it("locks record selection while a reload is pending", async () => {
     const first = makeJsonResponse({
       body: { advertisements: [ad], total: 1 },
     });
@@ -52,10 +75,10 @@ describe("advertisement editor", () => {
       )!,
     );
     expect(
-      page.container.querySelector<HTMLFieldSetElement>("fieldset")?.disabled,
+      editButton(page.container)?.disabled,
     ).toBe(true);
     expect(
-      page.container.querySelector<HTMLButtonElement>('button[type="submit"]')
+      page.container.querySelector<HTMLButtonElement>('[data-create-advertisement]')
         ?.disabled,
     ).toBe(true);
     await page.unmount();
@@ -91,6 +114,7 @@ describe("advertisement editor", () => {
     ]);
     vi.stubGlobal("fetch", fetchMock);
     const page = await mountAdminPage(<AdminAdvertisementsPage />);
+    await click(editButton(page.container));
     await changeInput(
       page.container.querySelector('input[name="title"]')!,
       "หัวข้อใหม่",

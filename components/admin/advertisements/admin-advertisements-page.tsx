@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Megaphone, Plus, Save, Trash2 } from "lucide-react";
+import { Megaphone, Plus, RefreshCw } from "lucide-react";
 import { readAdminAccessToken } from "@/components/admin/admin-auth";
 import {
   extractAdminErrors,
@@ -16,27 +16,17 @@ import {
   shouldRedirectToLogin,
 } from "@/components/admin/admin-api-client";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
-import { ADVERTISEMENT_IMAGE_LIMIT, type AdminAdvertisement } from "@/lib/advertisements/types";
+import type { AdminAdvertisement } from "@/lib/advertisements/types";
 import {
-  ADVERTISEMENT_ZONES,
   isRecord,
   parseAdvertisementDraft,
 } from "@/lib/advertisements/validation";
-import {
-  AdvertisementImagesEditor,
-  type DraftImage,
-} from "./advertisement-images-editor";
+import type { DraftImage } from "./advertisement-images-editor";
+import { AdvertisementEditor, type AdvertisementEditorDraft as Editor } from "./advertisement-editor";
+import { AdvertisementList } from "./advertisement-list";
 
-type Editor = Omit<AdminAdvertisement, "updatedAt" | "images"> & {
-  updatedAt: string | null;
-  images: DraftImage[];
-};
-const inputClass =
-  "h-10 w-full min-w-0 rounded-lg border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-sm outline-none focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/20";
-const panelClass =
-  "min-w-0 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4";
 const buttonClass =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[var(--site-border)] px-3 text-sm font-semibold transition hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[var(--site-border)] px-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40";
 function toEditor(ad: AdminAdvertisement): Editor {
   return {
     ...ad,
@@ -61,7 +51,9 @@ export function AdminAdvertisementsPage() {
     [warnings, setWarnings] = useState<string[]>([]),
     [notice, setNotice] = useState<string | null>(null);
   const objectUrls = useRef(new Set<string>());
+  const listHeading = useRef<HTMLHeadingElement>(null);
   const loadVersion = useRef(0);
+  useEffect(() => { if (!editor) listHeading.current?.focus(); }, [editor]);
   const revokeUrls = useCallback(() => {
     objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
     objectUrls.current.clear();
@@ -122,7 +114,7 @@ export function AdminAdvertisementsPage() {
     [router],
   );
   const load = useCallback(
-    (nextPage: number, selectFirst = true) => {
+    (nextPage: number, resetEditor = true) => {
       const version = ++loadVersion.current;
       return api(`/api/admin/advertisements?page=${nextPage}`)
         .then((body) => {
@@ -136,9 +128,9 @@ export function AdminAdvertisementsPage() {
           setItems(records);
           setTotal(body.total);
           setPage(nextPage);
-          if (selectFirst) {
+          if (resetEditor) {
             revokeUrls();
-            setEditor(records[0] ? toEditor(records[0]) : null);
+            setEditor(null);
             setDirty(false);
           }
         })
@@ -186,6 +178,13 @@ export function AdminAdvertisementsPage() {
     setErrors([]);
     setNotice(null);
     setWarnings([]);
+  };
+  const backToList = () => {
+    if (busy || loading || !mayDiscard()) return;
+    revokeUrls();
+    setEditor(null);
+    setDirty(false);
+    setErrors([]);
   };
   const update = (changes: Partial<Editor>) => {
     setEditor((current) => (current ? { ...current, ...changes } : null));
@@ -294,231 +293,43 @@ export function AdminAdvertisementsPage() {
       setBusy(false);
     }
   };
+  const feedback = <AdminFeedback errors={errors} errorTitle="ดำเนินการไม่สำเร็จ" notice={notice} warnings={warnings} />;
   return (
-    <div className="@container grid min-w-0 gap-3 text-[var(--site-text)]">
-      <header
-        className={`${panelClass} flex flex-wrap items-center justify-between gap-3`}
-      >
-        <div className="min-w-0">
-          <h1 className="flex items-center gap-2 text-xl font-bold">
-            <Megaphone className="size-5 text-[var(--site-primary)]" />
-            จัดการโฆษณา
-          </h1>
-          <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
-            จัดการรูปและกิจกรรมของเว็บนี้ แสดงตามโซนสูงสุด 3 รายการ
-            {" · "}
-            <Link href="/admin/detail-layout" prefetch={false} className="font-semibold text-[var(--site-primary)] underline">
-              ตั้งชื่อหัวข้อและตำแหน่ง
-            </Link>
-          </p>
-        </div>
-        <button
-          data-create-advertisement
-          type="button"
+    <div className="grid min-w-0 gap-4 text-[var(--site-text)]">
+      {editor ? (
+        <AdvertisementEditor
+          key={editor.id}
+          editor={editor}
+          dirty={dirty}
           disabled={busy || loading}
-          className={buttonClass}
-          onClick={() => select()}
-        >
-          <Plus className="size-4" />
-          เพิ่มโฆษณา
-        </button>
-      </header>
-      <AdminFeedback
-        errors={errors}
-        errorTitle="ดำเนินการไม่สำเร็จ"
-        notice={notice}
-        warnings={warnings}
-      />
-      <div className="grid min-w-0 items-start gap-3 @3xl:grid-cols-[190px_minmax(0,1fr)]">
-        <aside className={`${panelClass} grid gap-3`} aria-label="รายการโฆษณา">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="font-bold">รายการ ({total})</h2>
-            <button
-              type="button"
-              disabled={busy || loading}
-              className="text-xs underline"
-              onClick={() => reload(page)}
-            >
-              โหลดใหม่
-            </button>
-          </div>
-          {loading ? (
-            <p
-              role="status"
-              className="animate-pulse py-5 text-sm text-[var(--site-muted)]"
-            >
-              กำลังโหลดโฆษณา…
-            </p>
-          ) : items.length === 0 ? (
-            <p className="py-5 text-sm text-[var(--site-muted)]">
-              ยังไม่มีโฆษณา
-            </p>
-          ) : (
-            <>
-            <label className="grid gap-2 text-xs font-semibold @3xl:hidden">
-              เลือกโฆษณา
-              <select
-                className={inputClass}
-                disabled={busy || loading}
-                value={items.some((ad) => ad.id === editor?.id) ? (editor?.id ?? "") : ""}
-                onChange={(event) => {
-                  const ad = items.find((item) => item.id === event.target.value);
-                  if (ad) select(ad);
-                }}
-              >
-                <option value="" disabled>เลือกรายการที่ต้องการแก้ไข</option>
-                {items.map((ad) => <option key={ad.id} value={ad.id}>{ad.title}</option>)}
-              </select>
-            </label>
-            <ul className="hidden gap-2 @3xl:grid @3xl:max-h-[65dvh] @3xl:overflow-y-auto">
-              {items.map((ad) => (
-                <li key={ad.id}>
-                  <button
-                    type="button"
-                    disabled={busy || loading}
-                    aria-pressed={editor?.id === ad.id}
-                    onClick={() => select(ad)}
-                    className={`grid w-full min-w-0 gap-2 rounded-lg border p-3 text-left hover:border-[var(--site-primary)] ${editor?.id === ad.id ? "border-[var(--site-primary)] bg-[var(--site-primary-soft)]" : "border-[var(--site-border)]"}`}
-                  >
-                    <span className="line-clamp-2 break-words text-sm font-semibold">
-                      {ad.title}
-                    </span>
-                    <span className="text-xs text-[var(--site-muted)]">
-                      {ad.isActive ? "เปิดแสดง" : "ปิดแสดง"} · ลำดับ{" "}
-                      {ad.sortOrder}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            </>
-          )}
-          {total > 20 && (
-          <div className="flex items-center justify-between text-xs">
-            <button
-              type="button"
-              disabled={busy || loading || page === 1}
-              onClick={() => reload(page - 1)}
-              className="rounded border border-[var(--site-border)] p-2 disabled:opacity-30"
-            >
-              ก่อนหน้า
-            </button>
-            <span>หน้า {page}</span>
-            <button
-              type="button"
-              disabled={busy || loading || page * 20 >= total}
-              onClick={() => reload(page + 1)}
-              className="rounded border border-[var(--site-border)] p-2 disabled:opacity-30"
-            >
-              ถัดไป
-            </button>
-          </div>
-          )}
-        </aside>
-        {editor ? (
-          <form id="advertisement-editor" onSubmit={save} className={`${panelClass} grid gap-4`}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-bold">
-                {editor.updatedAt ? "แก้ไขโฆษณา" : "เพิ่มโฆษณาใหม่"}
-              </h2>
-              <span className="text-xs text-[var(--site-muted)]">{editor.images.length}/{ADVERTISEMENT_IMAGE_LIMIT} รูป</span>
-            </div>
-            <fieldset disabled={busy || loading} className="grid min-w-0 gap-4">
-              <label className="grid gap-2 text-sm font-semibold">
-                ชื่อโฆษณา
-                <input
-                  name="title"
-                  maxLength={160}
-                  required
-                  className={inputClass}
-                  value={editor.title}
-                  onChange={(event) => update({ title: event.target.value })}
-                />
-              </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid gap-2 text-sm font-semibold">
-                  โซนที่แสดง
-                  <select
-                    className={inputClass}
-                    value={editor.zone}
-                    onChange={(event) => update({ zone: event.target.value })}
-                  >
-                    {ADVERTISEMENT_ZONES.map((zone) => (
-                      <option key={zone.value} value={zone.value}>
-                        {zone.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-2 text-sm font-semibold">
-                  ลำดับการแสดง
-                  <input
-                    type="number"
-                    min={0}
-                    max={9999}
-                    required
-                    className={inputClass}
-                    value={editor.sortOrder}
-                    onChange={(event) =>
-                      update({ sortOrder: Number(event.target.value) })
-                    }
-                  />
-                </label>
-              </div>
-              <p className="text-xs text-[var(--site-muted)]">
-                เลขน้อยแสดงก่อน ระบบแสดงเฉพาะโซนของบ้านและรายการทุกโซน
+          feedback={feedback}
+          onChange={update}
+          onImages={changeImages}
+          onObjectUrl={(url) => objectUrls.current.add(url)}
+          onError={setErrors}
+          onSave={save}
+          onBack={backToList}
+          onDelete={() => void remove()}
+        />
+      ) : (
+        <>
+          <header className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 ref={listHeading} tabIndex={-1} className="flex items-center gap-2 text-xl font-bold outline-none">
+                <Megaphone className="size-5 text-[var(--site-primary)]" />จัดการโฆษณา
+              </h1>
+              <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
+                กิจกรรมและรูปของเว็บนี้ · <Link href="/admin/detail-layout" prefetch={false} className="font-semibold text-[var(--site-primary)] underline">ตั้งชื่อหัวข้อและตำแหน่ง</Link>
               </p>
-              <label className="flex items-center gap-2 text-sm font-semibold">
-                <input
-                  type="checkbox"
-                  checked={editor.isActive}
-                  onChange={(event) =>
-                    update({ isActive: event.target.checked })
-                  }
-                  className="size-4 accent-[var(--site-primary)]"
-                />
-                เปิดแสดงบนเว็บไซต์
-              </label>
-              <AdvertisementImagesEditor
-                images={editor.images}
-                disabled={busy || loading}
-                onChange={changeImages}
-                onError={setErrors}
-                onObjectUrl={(url) => objectUrls.current.add(url)}
-              />
-            </fieldset>
-            {editor.updatedAt && <div className="border-t border-[var(--site-border)] pt-3">
-              <button
-                type="button"
-                disabled={busy || !editor.updatedAt}
-                className={`${buttonClass} text-red-700`}
-                onClick={() => void remove()}
-              >
-                <Trash2 className="size-4" />
-                ลบโฆษณา
-              </button>
-            </div>}
-          </form>
-        ) : (
-          <div
-            className={`${panelClass} py-12 text-center text-sm text-[var(--site-muted)]`}
-          >
-            เลือกรายการหรือเพิ่มโฆษณาเพื่อเริ่มจัดการ
-          </div>
-        )}
-      </div>
-      {editor && (
-        <div className="sticky bottom-0 z-20 flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg">
-          <div className="min-w-0 text-xs text-[var(--site-muted)]" role="status">
-            <p className="font-semibold text-[var(--site-text)]">{dirty ? "มีการแก้ไขที่ยังไม่บันทึก" : editor.updatedAt ? "ข้อมูลที่บันทึกแล้ว" : "โฆษณาใหม่"}</p>
-            <p className="mt-1">{editor.images.length} รูป · {editor.isActive ? "เปิดแสดง" : "ปิดแสดง"}</p>
-          </div>
-          <button type="submit" form="advertisement-editor" disabled={busy || loading}
-            className={`${buttonClass} shrink-0 bg-[var(--site-primary)] text-[var(--site-on-primary)] hover:opacity-90`}>
-            <Save className="size-4" />
-            {busy ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
-          </button>
-        </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" disabled={busy || loading} className={`${buttonClass} hover:bg-[var(--site-primary-soft)]`} onClick={() => reload(page)}><RefreshCw className="size-4" />โหลดใหม่</button>
+              <button data-create-advertisement type="button" disabled={busy || loading} className={`${buttonClass} bg-[var(--site-primary)] text-[var(--site-on-primary)] hover:opacity-90`} onClick={() => select()}><Plus className="size-4" />เพิ่มโฆษณา</button>
+            </div>
+          </header>
+          {feedback}
+          <AdvertisementList items={items} page={page} total={total} loading={loading || busy} onEdit={select} onPage={reload} />
+        </>
       )}
     </div>
   );

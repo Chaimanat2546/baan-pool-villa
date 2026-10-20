@@ -98,7 +98,7 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
       });
     }
     return route.fulfill({
-      json: { advertisements: [ad], total: 1, page: 1, pageSize: 20 },
+      json: { advertisements: [ad, { ...ad, id: "10000000-0000-4000-8000-000000000002", title: "บริการรถรับส่งสนามบิน", zone: "pattaya", isActive: false, images: [] }], total: 2, page: 1, pageSize: 20 },
     });
   });
   await page.goto("/admin/advertisements");
@@ -107,6 +107,11 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
       .getByRole("main")
       .getByRole("heading", { name: "จัดการโฆษณา", exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("table", { name: "รายการโฆษณา" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "เพิ่มโฆษณา", exact: true })).toBeEnabled();
+  await expect(page.locator("form")).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("advertisement-table.png"), fullPage: true });
+  await page.getByRole("button", { name: `แก้ไขโฆษณา ${ad.title}`, exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
   await expect(page.locator("body")).not.toContainText("Application error");
   await expect
@@ -143,6 +148,8 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
   await expect(page.getByText("ยังไม่อัปโหลด", { exact: false })).toHaveCount(
     0,
   );
+  await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
+  await expect(page.getByRole("table")).toContainText("กิจกรรมที่กำหนดเอง");
 });
 
 test("editing twelve images keeps save in reach on every screen", async ({ page, isMobile }, testInfo) => {
@@ -159,25 +166,34 @@ test("editing twelve images keeps save in reach on every screen", async ({ page,
     json: { advertisements: [ad], total: 1 },
   }));
   await page.goto("/admin/advertisements");
+  await expect(page.locator("form")).toHaveCount(0);
+  await page.getByRole("button", { name: `แก้ไขโฆษณา ${ad.title}`, exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
   const save = page.getByRole("button", { name: "บันทึกโฆษณา", exact: true });
   await expect(save).toBeInViewport();
   await expect(page.getByRole("complementary", { name: "ตัวอย่างโฆษณา" })).toHaveCount(0);
-  if (isMobile) {
-    await expect(page.getByRole("combobox", { name: "เลือกโฆษณา", exact: true })).toBeVisible();
-  } else {
+  if (!isMobile) {
     for (const width of [1366, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       const form = await page.locator("form").boundingBox();
-      const list = await page.getByRole("complementary", { name: "รายการโฆษณา" }).boundingBox();
-      expect(form!.width).toBeGreaterThan(list!.width * 2);
+      expect(form!.width).toBeLessThanOrEqual(920);
       await expect(save).toBeInViewport();
     }
   }
+  const thumbnail = await page.getByRole("img", { name: "รูปโฆษณาที่ 1", exact: true }).boundingBox();
+  expect(thumbnail!.width).toBeLessThanOrEqual(140);
+  expect(thumbnail!.height).toBeLessThanOrEqual(90);
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight / 2));
   await expect(save).toBeInViewport();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("twelve-images-editor.png"), fullPage: true });
+  await page.locator('input[name="title"]').fill("ยังไม่บันทึก");
+  page.once("dialog", dialog => dialog.dismiss());
+  await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
+  await expect(page.locator('input[name="title"]')).toHaveValue("ยังไม่บันทึก");
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
+  await expect(page.getByRole("table")).toContainText(ad.title);
 });
 
 test("empty and database-error states remain usable", async ({ page }) => {
@@ -196,12 +212,42 @@ test("empty and database-error states remain usable", async ({ page }) => {
   await expect(page.getByText("ยังไม่มีโฆษณา", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "เพิ่มโฆษณา", exact: true }).click();
   await expect(page.locator('input[name="title"]')).toBeVisible();
+  await expect(page.getByText("เพิ่มรูปอย่างน้อย 1 รูป", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
   error = true;
   await page.getByRole("button", { name: "โหลดใหม่", exact: true }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "โหลดโฆษณาไม่สำเร็จ" }),
   ).toBeVisible();
   expect(page.url()).toContain("/admin/advertisements");
+});
+
+test("table pagination returns to the previous page after deleting its last record", async ({ page }) => {
+  const records = Array.from({ length: 21 }, (_, index) => ({
+    id: `40000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+    title: `กิจกรรม ${index + 1}`, zone: "all", isActive: true,
+    sortOrder: index, updatedAt: "2026-10-20T12:00:00Z", images: [],
+  }));
+  let deletedId: string | undefined;
+  await page.route("**/api/admin/advertisements**", async route => {
+    if (route.request().method() === "DELETE") {
+      deletedId = route.request().postDataJSON().id;
+      records.pop();
+      return route.fulfill({ json: { warnings: [] } });
+    }
+    const currentPage = Number(new URL(route.request().url()).searchParams.get("page"));
+    return route.fulfill({ json: { advertisements: records.slice((currentPage - 1) * 20, currentPage * 20), total: records.length } });
+  });
+  await page.goto("/admin/advertisements");
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(21);
+  await page.getByRole("button", { name: "ถัดไป", exact: true }).click();
+  await page.getByRole("button", { name: "แก้ไขโฆษณา กิจกรรม 21", exact: true }).click();
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "ลบโฆษณา", exact: true }).click();
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(21);
+  await expect(page.getByRole("table")).not.toContainText("กิจกรรม 21");
+  await expect(page.locator("form")).toHaveCount(0);
+  expect(deletedId).toBe("40000000-0000-4000-8000-000000000021");
 });
 
 test("public detail keeps document navigation and bounded image/API requests", async ({
