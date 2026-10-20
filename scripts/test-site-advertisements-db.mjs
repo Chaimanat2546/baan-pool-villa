@@ -17,7 +17,9 @@ try {
   await db.exec(`create role anon; create role authenticated; create schema private; create schema auth; create schema storage;
     create table auth.users (id uuid primary key);
     create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('test.user', true),'')::uuid $$;
-    create function private.is_home_config_admin() returns boolean language sql as $$ select coalesce(current_setting('test.admin', true),'false') = 'true' $$;
+    create function private.is_home_config_admin() returns boolean language plpgsql as $$ begin return coalesce(current_setting('test.admin', true),'false') = 'true'; end $$;
+    revoke all on function private.is_home_config_admin() from public, anon;
+    grant execute on function private.is_home_config_admin() to authenticated;
     create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
     create table storage.objects (id uuid primary key, bucket_id text, name text); alter table storage.objects enable row level security;
     grant usage on schema auth, storage to anon, authenticated; grant select,insert,update,delete on storage.objects to authenticated;
@@ -32,6 +34,12 @@ try {
   );
   await db.exec(sql);
   await db.exec(sql);
+  const publicReadFix = await readFile(
+    new URL("../supabase/migrations/20261020010000_fix_site_advertisement_public_reads.sql", import.meta.url),
+    "utf8",
+  );
+  await db.exec(publicReadFix);
+  await db.exec(publicReadFix);
   await db.exec("set role authenticated");
   const upload = async (id) =>
     db.query(
@@ -57,6 +65,12 @@ try {
     ).rows[0].result;
   let saved = await save(ad, [image(imageId), image(nextId)]);
   assert.equal(saved.id, adId);
+  for (const role of ["anon", "authenticated"]) {
+    await db.exec(`set role ${role}; select set_config('test.admin','false',false)`);
+    assert.equal((await db.query("select * from public.site_advertisements")).rows.length, 1);
+    assert.equal((await db.query("select * from public.site_advertisement_images")).rows.length, 2);
+  }
+  await db.exec("set role authenticated; select set_config('test.admin','true',false)");
   await assert.rejects(save(ad, [image(imageId)]), /changed/);
   await assert.rejects(
     save(
@@ -106,6 +120,8 @@ try {
   await db.exec(
     "set role authenticated; select set_config('test.admin','false',false)",
   );
+  assert.equal((await db.query("select * from public.site_advertisements")).rows.length, 0);
+  assert.equal((await db.query("select * from public.site_advertisement_images")).rows.length, 0);
   await assert.rejects(save(ad, [image(imageId)]), /Admin access required/);
   await assert.rejects(
     db.query(
@@ -114,6 +130,8 @@ try {
     ),
   );
   await db.exec("select set_config('test.admin','true',false)");
+  assert.equal((await db.query("select * from public.site_advertisements")).rows.length, 1);
+  assert.equal((await db.query("select * from public.site_advertisement_images")).rows.length, 1);
   const deleted = (
     await db.query("select public.delete_site_advertisement($1,$2) as result", [
       adId,
