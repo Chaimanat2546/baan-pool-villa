@@ -55,7 +55,7 @@ try {
     title: "กิจกรรม",
     zone: "all",
     isActive: true,
-    sortOrder: 0,
+    sortOrder: 7,
     updatedAt: null,
   };
   const save = async (draft, images) =>
@@ -71,10 +71,14 @@ try {
   await db.exec(imageLimitPatch);
   await db.exec(imageLimitPatch);
   assert.equal((await db.query("select * from public.site_advertisement_images")).rows.length, 3, "migration must preserve older images");
+  const autoOrderPatch = await readFile(new URL("../supabase/migrations/20261020030000_auto_order_site_advertisements.sql", import.meta.url), "utf8");
+  await db.exec(autoOrderPatch);
+  await db.exec(autoOrderPatch);
   await db.exec("set role authenticated");
   await assert.rejects(save({ ...ad, updatedAt: saved.updatedAt }, [image(imageId), image(nextId), image(thirdId)]), /Invalid advertisement images/);
   assert.equal((await db.query("select * from public.site_advertisement_images")).rows.length, 3, "rejected save must leave the old snapshot intact");
-  saved = await save({ ...ad, updatedAt: saved.updatedAt }, [image(imageId), image(nextId)]);
+  saved = await save({ ...ad, sortOrder: 9999, updatedAt: saved.updatedAt }, [image(imageId), image(nextId)]);
+  assert.equal((await db.query("select sort_order from public.site_advertisements where id = $1", [adId])).rows[0].sort_order, 7, "editing must preserve the stored rank even if a legacy client sends another");
   assert.deepEqual(saved.removedPaths, [image(thirdId).storagePath]);
   assert.equal(saved.id, adId);
   for (const role of ["anon", "authenticated"]) {
@@ -161,8 +165,20 @@ try {
       .length,
     3,
   );
+  for (const [index, expectedOrder] of [[2, 0], [3, 10000]]) {
+    if (index === 3) {
+      await db.exec("reset role; update public.site_advertisements set sort_order = 9999; set role authenticated");
+    }
+    const newAdId = `20000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+    const newImageId = crypto.randomUUID();
+    const storagePath = `${newAdId}/${newImageId}.webp`;
+    await db.query("insert into public.site_advertisement_uploads (id,storage_path) values ($1,$2)", [newImageId, storagePath]);
+    const { sortOrder: _ignored, ...newAd } = ad;
+    await save({ ...newAd, id: newAdId }, [{ id: newImageId, storagePath }]);
+    assert.equal((await db.query("select sort_order from public.site_advertisements where id = $1", [newAdId])).rows[0].sort_order, expectedOrder, "new advertisements append without a client rank");
+  }
   console.log(
-    "PASS: two-image save limit, preserved legacy images, idempotent migrations, local ownership, atomic save/order/delete, stale edits, public RLS, authorization and retained history",
+    "PASS: automatic append order and preserved edit order, two-image save limit, preserved legacy images, idempotent migrations, local ownership, atomic save/order/delete, stale edits, public RLS, authorization and retained history",
   );
 } finally {
   await db.close();

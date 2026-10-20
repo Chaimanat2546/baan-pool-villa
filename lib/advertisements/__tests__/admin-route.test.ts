@@ -24,7 +24,6 @@ const draft = {
   id,
   title: "กิจกรรม",
   zone: "all",
-  sortOrder: 0,
   isActive: true,
   updatedAt: null,
   images: [{ uploadIndex: 0 }],
@@ -113,6 +112,12 @@ describe("site advertisement persistence", () => {
       p_images: [image],
     });
     expect(revalidateAdvertisementsCache).toHaveBeenCalledOnce();
+  });
+  it("does not forward client-provided advertisement ranks to persistence", async () => {
+    rpc.mockResolvedValue({ data: { id, updatedAt: "2026-10-20T12:00:00Z", removedPaths: [] }, error: null });
+    const response = await saveAdminAdvertisement(request({ ...draft, sortOrder: 9999 }), { rpc } as never);
+    expect(response.status).toBe(200);
+    expect(rpc.mock.calls[0][1].p_ad).not.toHaveProperty("sortOrder");
   });
   it("reports conflicts and cleans only uploads rejected by the transaction", async () => {
     rpc.mockResolvedValue({

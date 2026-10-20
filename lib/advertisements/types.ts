@@ -38,7 +38,6 @@ export interface AdvertisementDraft {
   title: string;
   zone: string;
   isActive: boolean;
-  sortOrder: number;
   updatedAt: string | null;
   images: ({ id: string } | { uploadIndex: number })[];
 }

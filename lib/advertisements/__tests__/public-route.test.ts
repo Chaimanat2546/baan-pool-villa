@@ -6,9 +6,15 @@ vi.mock("../server", () => ({ getActiveAdvertisements: vi.fn() }));
 vi.mock("@/lib/api/rate-limit", () => ({ limitPublicApiRequest: vi.fn() }));
 beforeEach(() => { vi.clearAllMocks(); });
 describe("public advertisement pages", () => {
-  it.each(["zone=bad", "after=bad", "after=1:invalid", "after=10000:10000000-0000-4000-8000-000000000001"])("rejects invalid input: %s", async query => {
+  it.each(["zone=bad", "after=bad", "after=1:invalid", "after=2147483648:10000000-0000-4000-8000-000000000001"])("rejects invalid input: %s", async query => {
     expect((await GET(new Request(`https://example.com/api/advertisements?${query}`))).status).toBe(400);
     expect(getActiveAdvertisements).not.toHaveBeenCalled();
+  });
+  it("continues from an automatic rank above the former manual limit", async () => {
+    vi.mocked(getActiveAdvertisements).mockResolvedValue({ advertisements: [], nextCursor: null });
+    const after = "10000:10000000-0000-4000-8000-000000000001";
+    expect((await GET(new Request(`https://example.com/api/advertisements?after=${after}`))).status).toBe(200);
+    expect(getActiveAdvertisements).toHaveBeenCalledWith(undefined, after);
   });
   it("returns the requested active zone page with shared caching", async () => {
     vi.mocked(getActiveAdvertisements).mockResolvedValue({ advertisements: [], nextCursor: null });

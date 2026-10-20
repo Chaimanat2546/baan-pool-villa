@@ -30,7 +30,7 @@ export function parseAdvertisementListQuery(params: URLSearchParams) {
 
 export function parseAdvertisementCursor(value: string) {
   const [order, id, extra] = value.split(":");
-  return extra === undefined && /^(0|[1-9]\d{0,3})$/.test(order) && isAdvertisementId(id)
+  return extra === undefined && /^(0|[1-9]\d{0,9})$/.test(order) && Number(order) <= 2147483647 && isAdvertisementId(id)
     ? { order: Number(order), id: id.toLowerCase() }
     : null;
 }
@@ -73,13 +73,6 @@ export function parseAdvertisementDraft(value: unknown): {
   if (!ADVERTISEMENT_ZONES.some(({ value: zone }) => zone === value.zone))
     errors.push("กรุณาเลือกโซนที่ถูกต้อง");
   if (typeof value.isActive !== "boolean") errors.push("สถานะโฆษณาไม่ถูกต้อง");
-  if (
-    typeof value.sortOrder !== "number" ||
-    !Number.isInteger(value.sortOrder) ||
-    value.sortOrder < 0 ||
-    value.sortOrder > 9999
-  )
-    errors.push("ลำดับต้องเป็นจำนวนเต็มตั้งแต่ 0 ถึง 9999");
   if (
     value.updatedAt !== null &&
     (typeof value.updatedAt !== "string" ||
@@ -129,7 +122,6 @@ export function parseAdvertisementDraft(value: unknown): {
           title,
           zone: value.zone as string,
           isActive: value.isActive as boolean,
-          sortOrder: value.sortOrder as number,
           updatedAt: value.updatedAt as string | null,
           images,
         },

@@ -251,6 +251,14 @@ test("compact editor puts save after the fields and images", async ({ page, isMo
   }
   await page.getByRole("button", { name: `แก้ไขโฆษณา ${ad.title}`, exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
+  await expect(page.getByRole("spinbutton")).toHaveCount(0);
+  const visibility = page.getByRole("switch", { name: "เปิดแสดงบนเว็บไซต์", exact: true });
+  await expect(visibility).toBeChecked();
+  await visibility.focus();
+  await page.keyboard.press("Space");
+  await expect(visibility).not.toBeChecked();
+  await page.keyboard.press("Space");
+  await expect(visibility).toBeChecked();
   const save = page.getByRole("button", { name: "บันทึกโฆษณา", exact: true });
   await expect(page.locator('form[aria-label="ฟอร์มโฆษณา"] > footer').getByRole("button", { name: "บันทึกโฆษณา", exact: true })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "ตัวอย่างโฆษณา" })).toHaveCount(0);
@@ -461,7 +469,7 @@ test("editor table filters search the database and preserve eight-item paginatio
   await expect(page.getByText("หน้า 2 / 2", { exact: true })).toBeVisible();
   await expect(page.getByRole("searchbox")).toHaveValue("เรือ");
   await page.getByRole("button", { name: "แก้ไขโฆษณา เรือ 9", exact: true }).click();
-  await page.getByRole("checkbox", { name: "เปิดแสดงบนเว็บไซต์", exact: true }).uncheck();
+  await page.getByRole("switch", { name: "เปิดแสดงบนเว็บไซต์", exact: true }).uncheck();
   await page.getByRole("button", { name: "บันทึกโฆษณา", exact: true }).click();
   await expect(page.getByText("บันทึกแล้ว", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();

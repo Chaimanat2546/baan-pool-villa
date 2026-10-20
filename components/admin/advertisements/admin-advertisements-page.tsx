@@ -182,7 +182,6 @@ export function AdminAdvertisementsPage() {
             title: "",
             zone: "all",
             isActive: true,
-            sortOrder: 0,
             updatedAt: null,
             images: [],
           },

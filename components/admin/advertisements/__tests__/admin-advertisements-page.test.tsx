@@ -46,6 +46,27 @@ async function mountAdvertisements() {
   return page!;
 }
 describe("advertisement editor", () => {
+  it("removes manual ordering and saves visibility only after submitting the switch change", async () => {
+    const fetchMock = makeFetchMock([
+      { url: "/api/admin/advertisements?page=1", body: { advertisements: [ad], total: 1 } },
+      { url: "/api/admin/advertisements", method: "POST", body: { updatedAt: ad.updatedAt, images: ad.images } },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await mountAdvertisements();
+    await click(editButton(page.container));
+    expect(page.container.querySelector('input[type="number"]')).toBeNull();
+    const visibility = page.container.querySelector<HTMLInputElement>('input[role="switch"]')!;
+    expect(visibility).not.toBeNull();
+    expect(visibility.checked).toBe(true);
+    await click(visibility);
+    expect(visibility.checked).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await click(page.container.querySelector('button[type="submit"]')!);
+    const payload = JSON.parse((fetchMock.mock.calls[1][1]?.body as FormData).get("advertisement") as string);
+    expect(payload.isActive).toBe(false);
+    expect(payload).not.toHaveProperty("sortOrder");
+    await page.unmount();
+  });
   it("returns to a valid filtered page when saving removes its last matching record", async () => {
     let saved = false;
     const calls: URL[] = [];

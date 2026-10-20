@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseAdvertisementDraft,
+  parseAdvertisementCursor,
   validateAdvertisementUpload,
 } from "../validation";
 const id = "10000000-0000-4000-8000-000000000001";
@@ -9,18 +10,30 @@ const draft = {
   title: " กิจกรรม ",
   zone: "all",
   isActive: true,
-  sortOrder: 0,
   updatedAt: null,
   images: [{ uploadIndex: 0 }],
 };
 describe("advertisement draft validation", () => {
+  it("accepts automatic ranks beyond the former manual limit but rejects out-of-range or injected cursors", () => {
+    for (const order of [0, 9999, 10000, 2147483647]) {
+      expect(parseAdvertisementCursor(`${order}:${id}`)).toEqual({ order, id });
+    }
+    for (const order of ["2147483648", "-1", "01", "1e4", "1,or(id.eq.bad)", "99999999999999999999999999"]) {
+      expect(parseAdvertisementCursor(`${order}:${id}`)).toBeNull();
+    }
+  });
   it("normalizes title and accepts explicitly ordered uploads", () => {
     expect(parseAdvertisementDraft(draft).draft?.title).toBe("กิจกรรม");
+  });
+  it("leaves advertisement ordering to the database and ignores legacy client ranks", () => {
+    expect(parseAdvertisementDraft(draft).errors).toEqual([]);
+    const result = parseAdvertisementDraft({ ...draft, sortOrder: -1 });
+    expect(result.errors).toEqual([]);
+    expect(result.draft).not.toHaveProperty("sortOrder");
   });
   it.each([
     { title: " " },
     { zone: "unknown" },
-    { sortOrder: -1 },
     { isActive: "true" },
     { images: [] },
     { images: [{ uploadIndex: 0 }, { uploadIndex: 0 }] },

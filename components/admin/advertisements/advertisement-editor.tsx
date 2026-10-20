@@ -7,7 +7,7 @@ import type { AdminAdvertisement } from "@/lib/advertisements/types";
 import { ADVERTISEMENT_ZONES } from "@/lib/advertisements/validation";
 import { AdvertisementImagesEditor, type DraftImage } from "./advertisement-images-editor";
 
-export type AdvertisementEditorDraft = Omit<AdminAdvertisement, "updatedAt" | "images"> & {
+export type AdvertisementEditorDraft = Omit<AdminAdvertisement, "updatedAt" | "images" | "sortOrder"> & {
   updatedAt: string | null;
   images: DraftImage[];
 };
@@ -43,11 +43,15 @@ export function AdvertisementEditor({ editor, dirty, disabled, notice, feedback,
       <fieldset disabled={disabled} className="min-w-0 divide-y divide-[var(--site-border)] rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
         <section className="grid gap-3 p-4 sm:p-5" aria-label="ข้อมูลโฆษณา">
           <label className="grid gap-1 text-xs font-medium">ชื่อโฆษณา<input name="title" maxLength={160} required className={inputClass} value={editor.title} onChange={event => onChange({ title: event.target.value })} /></label>
-          <div className="grid grid-cols-[minmax(0,1fr)_80px] items-end gap-4">
-            <label className="grid min-w-0 gap-1 text-xs font-medium">โซนที่แสดง<select className={inputClass} value={editor.zone} onChange={event => onChange({ zone: event.target.value })}>{ADVERTISEMENT_ZONES.map(zone => <option key={zone.value} value={zone.value}>{zone.label}</option>)}</select></label>
-            <label className="grid gap-1 text-xs font-medium">ลำดับ<input type="number" min={0} max={9999} required className={inputClass} value={editor.sortOrder} onChange={event => onChange({ sortOrder: Number(event.target.value) })} /></label>
-          </div>
-          <label className="flex min-h-7 items-center gap-2 text-xs pointer-coarse:min-h-11"><input type="checkbox" checked={editor.isActive} onChange={event => onChange({ isActive: event.target.checked })} className="size-4 accent-[var(--site-primary)]" />เปิดแสดงบนเว็บไซต์</label>
+          <label className="grid min-w-0 gap-1 text-xs font-medium">โซนที่แสดง<select className={inputClass} value={editor.zone} onChange={event => onChange({ zone: event.target.value })}>{ADVERTISEMENT_ZONES.map(zone => <option key={zone.value} value={zone.value}>{zone.label}</option>)}</select></label>
+          <label className="flex min-h-9 cursor-pointer items-center justify-between gap-4 text-sm pointer-coarse:min-h-11">
+            เปิดแสดงบนเว็บไซต์
+            <span className="relative inline-flex shrink-0">
+              <input type="checkbox" role="switch" checked={editor.isActive} onChange={event => onChange({ isActive: event.target.checked })} className="peer absolute inset-0 z-10 m-0 h-full w-full cursor-pointer opacity-0" />
+              <span aria-hidden="true" className="h-6 w-11 rounded-full border border-[var(--site-border-strong)] bg-[var(--site-muted)] peer-checked:border-[var(--site-primary)] peer-checked:bg-[var(--site-primary)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--site-primary)] peer-disabled:opacity-40" />
+              <span aria-hidden="true" className="pointer-events-none absolute top-1 left-1 size-4 rounded-full bg-[var(--site-surface)] peer-checked:translate-x-5 peer-checked:bg-[var(--site-on-primary)]" />
+            </span>
+          </label>
         </section>
         <AdvertisementImagesEditor images={editor.images} disabled={disabled} onChange={onImages} onError={onError} onObjectUrl={onObjectUrl} />
       </fieldset>
