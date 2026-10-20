@@ -129,7 +129,7 @@ test("site advertisement editor keeps uploads local and preserves failed saves",
     .setInputFiles(path.resolve("public/images/villa-card-preview-1.jpg"));
   expect(saves).toBe(0);
   await expect(page.getByText("ยังไม่อัปโหลด", { exact: false })).toBeVisible();
-  await expect(page.getByRole("button", { name: "เพิ่มรูป", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "เลือกไฟล์หรือลากรูปมาวาง", exact: true })).toHaveCount(0);
   await expect(page.getByLabel("เพิ่มรูปโฆษณา")).toBeDisabled();
   await page
     .getByRole("button", { name: "เลือกรูปที่ 2", exact: true })
@@ -212,7 +212,7 @@ test("editor accepts dropped files locally and uploads only on save", async ({ p
   await valid.dispose();
 });
 
-test("two-image editor keeps save in reach on every screen", async ({ page, isMobile }, testInfo) => {
+test("compact editor puts save after the fields and images", async ({ page, isMobile }, testInfo) => {
   const ad = {
     id,
     title: "กิจกรรมสำหรับครอบครัวและกลุ่มเพื่อน พร้อมบริการล่องเรือชมพระอาทิตย์ตก",
@@ -230,34 +230,34 @@ test("two-image editor keeps save in reach on every screen", async ({ page, isMo
   await page.getByRole("button", { name: `แก้ไขโฆษณา ${ad.title}`, exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
   const save = page.getByRole("button", { name: "บันทึกโฆษณา", exact: true });
-  await expect(save).toBeInViewport();
-  expect((await page.locator("form > header").boundingBox())!.height).toBeLessThanOrEqual(56);
+  await expect(page.locator("form > footer").getByRole("button", { name: "บันทึกโฆษณา", exact: true })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "ตัวอย่างโฆษณา" })).toHaveCount(0);
   if (!isMobile) {
-    for (const width of [1366, 1920]) {
-      await page.setViewportSize({ width, height: 900 });
+    for (const [width, height] of [[1366, 768], [1920, 900]]) {
+      await page.setViewportSize({ width, height });
       const form = await page.locator("form").boundingBox();
-      expect(form!.width).toBeLessThanOrEqual(920);
-      await expect(save).toBeInViewport();
+      expect(form!.width).toBeLessThanOrEqual(840);
+      await expect(save).toBeInViewport({ ratio: 1 });
+      const fields = await page.locator("fieldset").boundingBox();
+      expect((await save.boundingBox())!.y).toBeGreaterThanOrEqual(fields!.y + fields!.height);
+      if (width === 1366) await page.screenshot({ path: testInfo.outputPath("compact-1366.png"), fullPage: true });
     }
   }
   const thumbnail = await page.getByRole("img", { name: "รูปโฆษณาที่ 1", exact: true }).boundingBox();
   expect(thumbnail!.width).toBeLessThanOrEqual(140);
   expect(thumbnail!.height).toBeLessThanOrEqual(90);
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight / 2));
+  await save.scrollIntoViewIfNeeded();
   await expect(save).toBeInViewport();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("two-images-editor.png"), fullPage: true });
-  await page.locator("form > header").screenshot({ path: testInfo.outputPath("single-row-toolbar.png") });
+  await page.locator("form > footer").screenshot({ path: testInfo.outputPath("form-actions.png") });
   await page.locator('input[name="title"]').fill("ยังไม่บันทึก");
-  expect((await page.locator("form > header").boundingBox())!.height).toBeLessThanOrEqual(56);
   if (isMobile) {
     await page.setViewportSize({ width: 320, height: 720 });
-    expect((await page.locator("form > header").boundingBox())!.height).toBeLessThanOrEqual(56);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   page.once("dialog", dialog => dialog.dismiss());
-  await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
+  await page.getByRole("button", { name: "ยกเลิก", exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue("ยังไม่บันทึก");
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();

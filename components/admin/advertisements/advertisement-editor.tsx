@@ -12,7 +12,7 @@ export type AdvertisementEditorDraft = Omit<AdminAdvertisement, "updatedAt" | "i
   images: DraftImage[];
 };
 
-const inputClass = "h-10 w-full min-w-0 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-base focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/20 sm:text-sm";
+const inputClass = "h-9 w-full min-w-0 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-base focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/20 sm:text-sm";
 
 export function AdvertisementEditor({ editor, dirty, disabled, notice, feedback, onChange, onImages, onObjectUrl, onError, onSave, onBack, onDelete }: {
   editor: AdvertisementEditorDraft;
@@ -31,50 +31,38 @@ export function AdvertisementEditor({ editor, dirty, disabled, notice, feedback,
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus(); }, []);
   return (
-    <form onSubmit={onSave} className="grid w-full max-w-[920px] min-w-0 gap-5">
-      <header className="sticky top-14 z-20 flex h-12 min-w-0 items-center gap-2 bg-[var(--site-surface-soft)] lg:top-0">
-        <button
-          type="button" aria-label="กลับรายการโฆษณา" title="กลับรายการ"
-          disabled={disabled} onClick={onBack}
-          className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:size-11"
-        >
-          <ArrowLeft className="size-4" />
+    <form onSubmit={onSave} className="grid w-full max-w-[840px] min-w-0 gap-4">
+      <header className="grid min-w-0 justify-items-start gap-1">
+        <button type="button" aria-label="กลับรายการโฆษณา" disabled={disabled} onClick={onBack}
+          className="inline-flex min-h-7 items-center gap-1.5 rounded text-xs text-[var(--site-muted)] hover:text-[var(--site-text)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">
+          <ArrowLeft aria-hidden="true" className="size-3.5" />กลับรายการ
         </button>
-        <h1 ref={heading} tabIndex={-1} className="min-w-0 flex-1 truncate text-base font-medium outline-none sm:text-xl">
-          {editor.updatedAt ? "แก้ไขโฆษณา" : "เพิ่มโฆษณา"}
-        </h1>
-        {((dirty && !disabled) || notice) && (
-          <span role="status" className={`shrink-0 whitespace-nowrap text-[11px] ${notice ? "text-emerald-700" : "text-[var(--site-muted)]"}`}>
-            {notice ?? "ยังไม่บันทึก"}
-          </span>
-        )}
-        <button
-          type="submit" disabled={disabled}
-          aria-label={disabled ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
-          className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md bg-[var(--site-primary)] px-3 text-sm font-medium text-[var(--site-on-primary)] hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:h-11"
-        >
-          <Check aria-hidden="true" className="size-4" />
-          {disabled ? "กำลังบันทึก…" : "บันทึก"}
-        </button>
+        <h1 ref={heading} tabIndex={-1} className="min-w-0 text-xl font-medium outline-none">{editor.updatedAt ? "แก้ไขโฆษณา" : "เพิ่มโฆษณา"}</h1>
       </header>
       {feedback}
       <fieldset disabled={disabled} className="min-w-0 divide-y divide-[var(--site-border)] rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
-        <section className="grid gap-4 p-4 sm:p-6" aria-label="ข้อมูลโฆษณา">
-          <h2 className="text-sm font-medium">ข้อมูลโฆษณา</h2>
-          <label className="grid gap-1.5 text-xs font-medium">ชื่อโฆษณา<input name="title" maxLength={160} required className={inputClass} value={editor.title} onChange={(event) => onChange({ title: event.target.value })} /></label>
-          <div className="grid grid-cols-[minmax(0,1fr)_80px] items-end gap-4 sm:grid-cols-[minmax(0,1fr)_80px_minmax(0,0.8fr)]">
-            <label className="grid min-w-0 gap-1.5 text-xs font-medium">โซนที่แสดง<select className={inputClass} value={editor.zone} onChange={(event) => onChange({ zone: event.target.value })}>{ADVERTISEMENT_ZONES.map(zone => <option key={zone.value} value={zone.value}>{zone.label}</option>)}</select></label>
-            <label className="grid gap-1.5 text-xs font-medium">ลำดับ<input type="number" min={0} max={9999} required className={inputClass} value={editor.sortOrder} onChange={(event) => onChange({ sortOrder: Number(event.target.value) })} /></label>
-            <label className="col-span-2 grid gap-1.5 text-xs sm:col-span-1"><span className="hidden font-medium sm:block">การแสดงผล</span><span className="flex min-h-10 items-center gap-2"><input type="checkbox" checked={editor.isActive} onChange={(event) => onChange({ isActive: event.target.checked })} className="size-4 accent-[var(--site-primary)]" />เปิดแสดงบนเว็บไซต์</span></label>
+        <section className="grid gap-3 p-4 sm:p-5" aria-label="ข้อมูลโฆษณา">
+          <label className="grid gap-1 text-xs font-medium">ชื่อโฆษณา<input name="title" maxLength={160} required className={inputClass} value={editor.title} onChange={event => onChange({ title: event.target.value })} /></label>
+          <div className="grid grid-cols-[minmax(0,1fr)_80px] items-end gap-4">
+            <label className="grid min-w-0 gap-1 text-xs font-medium">โซนที่แสดง<select className={inputClass} value={editor.zone} onChange={event => onChange({ zone: event.target.value })}>{ADVERTISEMENT_ZONES.map(zone => <option key={zone.value} value={zone.value}>{zone.label}</option>)}</select></label>
+            <label className="grid gap-1 text-xs font-medium">ลำดับ<input type="number" min={0} max={9999} required className={inputClass} value={editor.sortOrder} onChange={event => onChange({ sortOrder: Number(event.target.value) })} /></label>
           </div>
-          <p className="text-[11px] text-[var(--site-muted)]">เลขลำดับน้อยจะแสดงก่อน · แสดงตามโซนของบ้านและรายการทุกโซน</p>
+          <label className="flex min-h-7 items-center gap-2 text-xs pointer-coarse:min-h-11"><input type="checkbox" checked={editor.isActive} onChange={event => onChange({ isActive: event.target.checked })} className="size-4 accent-[var(--site-primary)]" />เปิดแสดงบนเว็บไซต์</label>
         </section>
         <AdvertisementImagesEditor images={editor.images} disabled={disabled} onChange={onImages} onError={onError} onObjectUrl={onObjectUrl} />
       </fieldset>
-      <footer className="flex items-start justify-between gap-3 text-[11px] text-[var(--site-muted)]">
+      <footer className="flex min-w-0 flex-wrap items-center gap-2" aria-label="บันทึกหรือยกเลิก">
+        <button type="submit" disabled={disabled} aria-label={disabled ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-medium text-[var(--site-on-primary)] hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">
+          <Check aria-hidden="true" className="size-4" />{disabled ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
+        </button>
+        <button type="button" disabled={disabled} onClick={onBack} className="min-h-10 rounded-md px-3 text-sm text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">ยกเลิก</button>
+        {((dirty && !disabled) || notice) && <span role="status" className={`text-xs ${notice ? "text-emerald-700" : "text-[var(--site-muted)]"}`}>{notice ?? "ยังไม่บันทึก"}</span>}
+      </footer>
+      <div className="flex items-start justify-between gap-3 text-[11px] text-[var(--site-muted)]">
         <Link href="/admin/detail-layout" prefetch={false} className="py-2 underline-offset-4 hover:underline">ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด</Link>
         {editor.updatedAt && <button type="button" disabled={disabled} onClick={onDelete} className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md px-2 text-xs text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-700 disabled:opacity-40"><Trash2 aria-hidden="true" className="size-3.5" />ลบโฆษณา</button>}
-      </footer>
+      </div>
     </form>
   );
 }

@@ -29,6 +29,9 @@ function action(container: HTMLElement, label: string) {
 function order(container: HTMLElement) {
   return Array.from(container.querySelectorAll("ol img")).map(img => img.getAttribute("src"));
 }
+function uploadInput(container: HTMLElement) {
+  return container.querySelector<HTMLInputElement>('input[type="file"]')!;
+}
 describe("advertisement image selection", () => {
   it("accepts dropped files as local drafts in their original order", async () => {
     const onObjectUrl = vi.fn();
@@ -38,7 +41,7 @@ describe("advertisement image selection", () => {
     expect(order(page.container)).toEqual(["blob:dropped-1", "blob:dropped-2"]);
     expect(onObjectUrl.mock.calls).toEqual([["blob:dropped-1"], ["blob:dropped-2"]]);
     expect(page.container.textContent?.match(/ยังไม่อัปโหลด/g)).toHaveLength(2);
-    expect(action(page.container, "เพิ่มรูป").disabled).toBe(true);
+    expect(uploadInput(page.container).disabled).toBe(true);
     await page.unmount();
   });
   it("rejects a dropped third file without replacing existing images", async () => {
@@ -74,12 +77,12 @@ describe("advertisement image selection", () => {
   it("disables adding images at two and lets an older oversized gallery be reduced", async () => {
     const page = await mountAdminPage(<Harness />);
     expect(page.container.textContent).toContain("3/2");
-    expect(action(page.container, "เพิ่มรูป").disabled).toBe(true);
+    expect(uploadInput(page.container).disabled).toBe(true);
     await click(action(page.container, "ลบรูป"));
     expect(page.container.textContent).toContain("2/2");
-    expect(action(page.container, "เพิ่มรูป").disabled).toBe(true);
+    expect(uploadInput(page.container).disabled).toBe(true);
     await click(action(page.container, "ลบรูป"));
-    expect(action(page.container, "เพิ่มรูป").disabled).toBe(false);
+    expect(uploadInput(page.container).disabled).toBe(false);
     await page.unmount();
   });
   it("moves the selected image and keeps it selected when making it the cover", async () => {
@@ -103,15 +106,16 @@ describe("advertisement image selection", () => {
     await click(action(page.container, "ลบรูป"));
     expect(order(page.container)).toEqual([]);
     expect(page.container.textContent).toContain("เพิ่มรูปอย่างน้อย 1 รูป");
-    expect(action(page.container, "ลบรูป").disabled).toBe(true);
-    expect(action(page.container, "เพิ่มรูป").disabled).toBe(false);
+    expect(page.container.querySelector('[aria-label="จัดการรูปที่เลือก"]')).toBeNull();
+    expect(uploadInput(page.container).disabled).toBe(false);
     await page.unmount();
   });
   it("locks selection and image actions during a save", async () => {
     const page = await mountAdminPage(<Harness disabled />);
-    for (const label of ["เลือกรูปที่ 2", "เพิ่มรูป", "เลื่อนรูปไปถัดไป", "ลบรูป"]) {
+    for (const label of ["เลือกรูปที่ 2", "เลื่อนรูปไปถัดไป", "ลบรูป"]) {
       expect(action(page.container, label)?.disabled).toBe(true);
     }
+    expect(uploadInput(page.container).disabled).toBe(true);
     expect(order(page.container)).toEqual(["/images/a.webp", "/images/b.webp", "/images/c.webp"]);
     await page.unmount();
   });

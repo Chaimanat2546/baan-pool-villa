@@ -86,7 +86,7 @@ describe("advertisement editor", () => {
     expect(confirm).toHaveBeenCalledOnce();
     expect(page.container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe("ยังไม่บันทึก");
     confirm.mockReturnValue(true);
-    await click(back);
+    await click(Array.from(page.container.querySelectorAll<HTMLButtonElement>("button")).find(button => button.textContent === "ยกเลิก")!);
     expect(page.container.querySelector("table")).not.toBeNull();
     expect(page.container.querySelector("form")).toBeNull();
     await page.unmount();
