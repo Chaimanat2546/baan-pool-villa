@@ -37,7 +37,7 @@ describe("content security policy", () => {
     );
     expect(imgSrc).toContain("https://devillegroups.com");
     expect(imgSrc).toContain("https://www.devillegroups.com");
-    expect(imgSrc).toContain("https://webook-media.poolvilla.workers.dev");
+    expect(imgSrc).not.toContain("https://webook-media.poolvilla.workers.dev");
     expect(imgSrc).toContain("https://s3.ap-southeast-1.amazonaws.com");
     expect(imgSrc).toContain("https://fonts.gstatic.com");
     expect(imgSrc).toContain("https://www.googletagmanager.com");

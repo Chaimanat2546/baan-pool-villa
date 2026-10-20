@@ -1,0 +1,16 @@
+.rail {
+  min-width: 0;
+}
+
+.column {
+  display: grid;
+  flex: 0 0 100%;
+  min-width: 0;
+  align-content: start;
+  gap: 12px;
+}
+
+.card {
+  width: 100%;
+  min-width: 0;
+}

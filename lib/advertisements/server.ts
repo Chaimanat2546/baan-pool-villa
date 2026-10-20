@@ -1,171 +1,114 @@
 import "server-only";
-
-import { createClient } from "@supabase/supabase-js";
-import { unstable_cache } from "next/cache";
-
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
-import { buildAdvertisementImageUrl } from "./image-url";
-import type { PublicAdvertisement } from "./types";
-
-type AdvertisementImageRow = {
-  created_at: unknown;
-  image_name: unknown;
-  image_order: unknown;
-};
-
-type AdvertisementRow = {
-  advertisement_images: unknown;
-  id: unknown;
-  is_active: unknown;
-  title: unknown;
-};
-
-const DEFAULT_ADVERTISEMENT_SUPABASE_URL =
-  "https://rqizfiayvcbozlzuvbok.supabase.co";
-const ADVERTISEMENT_LIMIT = 8;
-const ADVERTISEMENT_SELECT =
-  "id,title,is_active,advertisement_images(image_name,image_order,created_at)";
-
-function normalizeAdvertisementZone(value: string | null | undefined) {
-  const zone = value?.trim().toLowerCase();
-  return zone || null;
-}
-
-function getAdvertisementSupabaseConfig() {
-  const supabaseUrl =
-    process.env.SUPABASE_URL ??
-    process.env.NEXT_PUBLIC_SUPABASE_URL ??
-    DEFAULT_ADVERTISEMENT_SUPABASE_URL;
-  const supabaseKey =
-    process.env.SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseKey) {
-    throw new Error("Advertisement Supabase config is missing");
-  }
-
-  return { supabaseKey, supabaseUrl };
-}
-
-function createAdvertisementSupabaseClient() {
-  const { supabaseKey, supabaseUrl } = getAdvertisementSupabaseConfig();
-
-  return createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: false,
-    },
-  });
-}
-
-function toOrder(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value)
-    ? value
-    : Number.MAX_SAFE_INTEGER;
-}
-
-function toImageRows(value: unknown): AdvertisementImageRow[] {
-  return Array.isArray(value) ? (value as AdvertisementImageRow[]) : [];
-}
-
-function getImageUrls(
-  advertisementId: string,
-  images: AdvertisementImageRow[],
-): string[] {
-  const sortedImages = [...images].sort((a, b) => {
-    const orderDiff = toOrder(a.image_order) - toOrder(b.image_order);
-
-    if (orderDiff !== 0) {
-      return orderDiff;
-    }
-
-    return String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
-  });
-
-  const imageUrls: string[] = [];
-
-  for (const image of sortedImages) {
-    const imageUrl = buildAdvertisementImageUrl({
-      advertisementId,
-      imageName: image.image_name,
-    });
-
-    if (imageUrl && !imageUrls.includes(imageUrl)) {
-      imageUrls.push(imageUrl);
-    }
-  }
-
-  return imageUrls;
-}
+import { createHomeConfigCachedLoader } from "@/lib/home-sections/cache";
+import { createHomeConfigClient } from "@/lib/home-sections/supabase";
+import { ADVERTISEMENT_BUCKET, ADVERTISEMENT_IMAGE_LIMIT, ADVERTISEMENT_PAGE_SIZE, type PublicAdvertisement, type PublicAdvertisementPage } from "./types";
+import {
+  isAdvertisementId,
+  isAdvertisementStoragePath,
+  isRecord,
+  parseAdvertisementCursor,
+  normalizeAdvertisementVillaZone,
+} from "./validation";
 
 export function toPublicAdvertisement(
-  row: AdvertisementRow,
+  row: unknown,
 ): PublicAdvertisement | null {
   if (
-    typeof row.id !== "string" ||
+    !isRecord(row) ||
+    !isAdvertisementId(row.id) ||
+    row.is_active !== true ||
     typeof row.title !== "string" ||
-    row.is_active !== true
-  ) {
+    !row.title.trim() ||
+    row.title.trim().length > 160
+  )
     return null;
+  const adId = row.id;
+  const images = Array.isArray(row.site_advertisement_images)
+    ? row.site_advertisement_images
+    : [];
+  const imageUrls = images
+    .filter(
+      (image): image is Record<string, unknown> =>
+        isRecord(image) &&
+        isAdvertisementId(image.id) &&
+        isAdvertisementStoragePath(image.storage_path, adId) &&
+        image.storage_path === `${adId}/${image.id}.webp` &&
+        Number.isInteger(image.display_order),
+    )
+    .sort((a, b) => Number(a.display_order) - Number(b.display_order))
+    .slice(0, ADVERTISEMENT_IMAGE_LIMIT)
+    .map((image) => `/api/advertisements/images/${image.id}`);
+  return imageUrls.length
+    ? { id: adId, title: row.title.trim(), imageUrl: imageUrls[0], imageUrls }
+    : null;
+}
+async function loadActiveAdvertisements(
+  villaZone?: string,
+  after?: string,
+): Promise<PublicAdvertisementPage> {
+  const zone = normalizeAdvertisementVillaZone(villaZone);
+  let query = createHomeConfigClient()
+    .from("site_advertisements")
+    .select(
+      "id,title,zone,is_active,sort_order,site_advertisement_images(id,storage_path,display_order)",
+    )
+    .eq("is_active", true);
+  query = zone ? query.in("zone", [zone, "all"]) : query.eq("zone", "all");
+  if (after) {
+    const cursor = parseAdvertisementCursor(after);
+    if (!cursor) throw new Error("Invalid advertisement cursor");
+    query = query.or(`sort_order.gt.${cursor.order},and(sort_order.eq.${cursor.order},id.gt.${cursor.id})`);
   }
-
-  const title = row.title.trim();
-  const imageUrls = getImageUrls(row.id, toImageRows(row.advertisement_images));
-  const imageUrl = imageUrls[0];
-
-  if (!title || !imageUrl) {
-    return null;
-  }
-
+  const { data, error } = await query
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(ADVERTISEMENT_PAGE_SIZE + 1);
+  if (error || !Array.isArray(data))
+    throw new Error("Advertisements are unavailable");
+  const rows = data.slice(0, ADVERTISEMENT_PAGE_SIZE);
+  const last = rows.at(-1);
   return {
-    id: row.id,
-    imageUrl,
-    imageUrls,
-    title,
+    advertisements: rows.map(toPublicAdvertisement).filter((ad): ad is PublicAdvertisement => ad !== null),
+    nextCursor: data.length > ADVERTISEMENT_PAGE_SIZE && last ? `${last.sort_order}:${last.id}` : null,
   };
 }
-
-async function fetchActiveAdvertisements(
-  villaZone?: string,
-): Promise<PublicAdvertisement[]> {
-  const zone = normalizeAdvertisementZone(villaZone);
-  let query = createAdvertisementSupabaseClient()
-    .from("advertisements")
-    .select(ADVERTISEMENT_SELECT)
-    .eq("is_active", true);
-
-  if (zone) {
-    query = query.in("zone", [zone, "all"]);
-  }
-
-  const { data, error } = await query.order("created_at", {
-    ascending: false,
-  });
-
-  if (error || !Array.isArray(data)) {
-    throw new Error("Advertisements are unavailable");
-  }
-
-  return (data as AdvertisementRow[])
-    .map(toPublicAdvertisement)
-    .filter((ad): ad is PublicAdvertisement => ad !== null)
-    .slice(0, ADVERTISEMENT_LIMIT);
-}
-
-const fetchCachedActiveAdvertisements = unstable_cache(
-  fetchActiveAdvertisements,
-  [CACHE_TAGS.advertisements],
+export const getActiveAdvertisements = createHomeConfigCachedLoader(
+  loadActiveAdvertisements,
+  [CACHE_TAGS.advertisements, "site-owned-cursor-pages-v1"],
   {
     revalidate: CACHE_REVALIDATE_SECONDS.advertisements,
     tags: [CACHE_TAGS.advertisements],
   },
 );
-
-export async function getActiveAdvertisements(
-  villaZone?: string,
-): Promise<PublicAdvertisement[]> {
-  return fetchCachedActiveAdvertisements(villaZone);
+const loadImageSource = createHomeConfigCachedLoader(
+  async (id: string): Promise<string | null> => {
+    const supabase = createHomeConfigClient();
+    const { data, error } = await supabase
+      .from("site_advertisement_images")
+      .select("id,storage_path,site_advertisements!inner(is_active)")
+      .eq("id", id)
+      .eq("site_advertisements.is_active", true)
+      .maybeSingle();
+    if (error) throw new Error("Advertisement image is unavailable");
+    if (
+      !data ||
+      !isRecord(data.site_advertisements) ||
+      data.site_advertisements.is_active !== true ||
+      !isAdvertisementStoragePath(data.storage_path) ||
+      !data.storage_path.endsWith(`/${id}.webp`)
+    )
+      return null;
+    return supabase.storage
+      .from(ADVERTISEMENT_BUCKET)
+      .getPublicUrl(data.storage_path).data.publicUrl;
+  },
+  [CACHE_TAGS.advertisements, "image-site-owned-v1"],
+  {
+    revalidate: CACHE_REVALIDATE_SECONDS.advertisements,
+    tags: [CACHE_TAGS.advertisements],
+  },
+);
+export async function getAdvertisementImageSource(id: string) {
+  return isAdvertisementId(id) ? loadImageSource(id) : null;
 }

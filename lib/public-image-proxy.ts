@@ -50,6 +50,7 @@ export function isPublicImageProxyPath(pathname: string): boolean {
     /^\/api\/villas\/[1-9]\d*\/images$/.test(pathname) ||
     /^\/api\/guides\/images\/[^/]+\/(?:cover|content\/\d+)$/.test(pathname) ||
     /^\/api\/customer-reviews\/images\/[^/]+$/.test(pathname) ||
+    /^\/api\/advertisements\/images\/[^/]+$/.test(pathname) ||
     /^\/api\/site-assets\/images\/(?:hero|logo)$/.test(pathname) ||
     pathname === "/api/tiktok/images/proxy"
   );

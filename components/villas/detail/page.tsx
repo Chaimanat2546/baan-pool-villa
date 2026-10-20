@@ -11,6 +11,7 @@ const EMPTY_ADVERTISEMENTS: NonNullable<VillaDetailPageProps["advertisements"]> 
 
 export function VillaDetailPage({
   advertisements = EMPTY_ADVERTISEMENTS,
+  advertisementCursor,
   bookingCalendars,
   contactSettings,
   currentBookingMonthKey,
@@ -50,6 +51,7 @@ export function VillaDetailPage({
         key={id}
         bookingSidebarId={bookingSidebarId}
         advertisements={advertisements}
+        advertisementCursor={advertisementCursor}
         bookingCalendars={bookingCalendars}
         contactSettings={contactSettings}
         content={content}

@@ -1,0 +1,335 @@
+"use client";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Plus, RefreshCw } from "lucide-react";
+import { readAdminAccessToken } from "@/components/admin/admin-auth";
+import {
+  extractAdminErrors,
+  readJsonPayload,
+  shouldRedirectToLogin,
+} from "@/components/admin/admin-api-client";
+import { AdminFeedback } from "@/components/admin/admin-feedback";
+import { ADVERTISEMENT_PAGE_SIZE, type AdminAdvertisement, type AdvertisementListFilters } from "@/lib/advertisements/types";
+import {
+  isRecord,
+  parseAdvertisementDraft,
+} from "@/lib/advertisements/validation";
+import type { DraftImage } from "./advertisement-images-editor";
+import { AdvertisementEditor, type AdvertisementEditorDraft as Editor } from "./advertisement-editor";
+import { AdvertisementList } from "./advertisement-list";
+import { AdvertisementFilters } from "./advertisement-filters";
+import { AdvertisementConfirmationDialog } from "./advertisement-confirmation-dialog";
+import { useAdvertisementConfirmation } from "./use-advertisement-confirmation";
+
+const buttonClass =
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-xs font-medium transition focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11";
+function toEditor(ad: AdminAdvertisement): Editor {
+  return {
+    ...ad,
+    images: ad.images.map((image) => ({
+      id: image.id,
+      key: image.id,
+      url: image.url,
+    })),
+  };
+}
+
+export function AdminAdvertisementsPage() {
+  const router = useRouter();
+  const [items, setItems] = useState<AdminAdvertisement[]>([]);
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [page, setPage] = useState(1),
+    [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false),
+    [dirty, setDirty] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]),
+    [warnings, setWarnings] = useState<string[]>([]),
+    [notice, setNotice] = useState<string | null>(null);
+  const objectUrls = useRef(new Set<string>());
+  const listHeading = useRef<HTMLHeadingElement>(null);
+  const errorSummary = useRef<HTMLDivElement>(null);
+  const loadVersion = useRef(0);
+  const [filters, setFilters] = useState<AdvertisementListFilters>({ search: "", zone: "", status: "all" });
+  const confirmation = useAdvertisementConfirmation(dirty);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+  useEffect(() => { if (!editor) listHeading.current?.focus(); }, [editor]);
+  useEffect(() => { if (errors.length) errorSummary.current?.focus(); }, [errors]);
+  const revokeUrls = useCallback(() => {
+    objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    objectUrls.current.clear();
+  }, []);
+  useEffect(() => () => revokeUrls(), [revokeUrls]);
+  const api = useCallback(
+    async (url: string, init?: RequestInit) => {
+      const token = await readAdminAccessToken();
+      if (!token) {
+        router.replace("/admin/login");
+        throw new Error("กรุณาเข้าสู่ระบบใหม่");
+      }
+      const response = await fetch(url, {
+        ...init,
+        headers: { ...init?.headers, Authorization: `Bearer ${token}` },
+      });
+      const body = await readJsonPayload(response);
+      if (!response.ok) {
+        if (shouldRedirectToLogin(response.status, body))
+          router.replace("/admin/login");
+        throw new Error(
+          extractAdminErrors(body, "ดำเนินการไม่สำเร็จ กรุณาลองอีกครั้ง").join(
+            "\n",
+          ),
+        );
+      }
+      if (!isRecord(body)) throw new Error("รูปแบบข้อมูลตอบกลับไม่ถูกต้อง");
+      return body;
+    },
+    [router],
+  );
+  const load = useCallback(
+    function loadPage(nextPage: number, resetEditor = true): Promise<void> {
+      const version = ++loadVersion.current;
+      const params = new URLSearchParams({ page: String(nextPage) });
+      if (filters.search) params.set("search", filters.search);
+      if (filters.zone) params.set("zone", filters.zone);
+      if (filters.status !== "all") params.set("status", filters.status);
+      return api(`/api/admin/advertisements?${params}`)
+        .then((body) => {
+          if (version !== loadVersion.current) return;
+          if (
+            !Array.isArray(body.advertisements) ||
+            typeof body.total !== "number"
+          )
+            throw new Error("รูปแบบรายการโฆษณาไม่ถูกต้อง");
+          const lastPage = Math.max(1, Math.ceil(body.total / ADVERTISEMENT_PAGE_SIZE));
+          if (nextPage > lastPage) return loadPage(lastPage, resetEditor);
+          const records = body.advertisements as AdminAdvertisement[];
+          setItems(records);
+          setTotal(body.total);
+          setPage(nextPage);
+          if (resetEditor) {
+            revokeUrls();
+            setEditor(null);
+            setDirty(false);
+          }
+        })
+        .catch((error: unknown) => {
+          if (version === loadVersion.current)
+            setErrors([
+              error instanceof Error ? error.message : "โหลดโฆษณาไม่สำเร็จ",
+            ]);
+        })
+        .finally(() => {
+          if (version === loadVersion.current) setLoading(false);
+        });
+    },
+    [api, filters, revokeUrls],
+  );
+  useEffect(() => {
+    void load(1);
+  }, [load]);
+  const reload = (nextPage: number) => {
+    if (busy || loading) return;
+    confirmation.discardBefore(() => {
+      setLoading(true);
+      setErrors([]);
+      void load(nextPage);
+    });
+  };
+  const select = (ad?: AdminAdvertisement) => {
+    if (busy || loading) return;
+    confirmation.discardBefore(() => {
+      revokeUrls();
+      setEditor(
+        ad
+          ? toEditor(ad)
+          : {
+              id: crypto.randomUUID(),
+              title: "",
+              zone: "all",
+              isActive: true,
+              updatedAt: null,
+              images: [],
+            },
+      );
+      setDirty(false);
+      setErrors([]);
+      setNotice(null);
+      setWarnings([]);
+    });
+  };
+  const backToList = () => {
+    if (busy || loading) return;
+    confirmation.discardBefore(() => {
+      revokeUrls();
+      setEditor(null);
+      setDirty(false);
+      setErrors([]);
+    });
+  };
+  const update = (changes: Partial<Editor>) => {
+    setEditor((current) => (current ? { ...current, ...changes } : null));
+    setDirty(true);
+    setNotice(null);
+  };
+  const changeImages = (images: DraftImage[]) => {
+    for (const image of editor?.images ?? []) {
+      if (
+        !images.some((next) => next.url === image.url) &&
+        objectUrls.current.has(image.url)
+      ) {
+        URL.revokeObjectURL(image.url);
+        objectUrls.current.delete(image.url);
+      }
+    }
+    update({ images });
+  };
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!editor || busy || loading) return;
+    const files: File[] = [];
+    const images = editor.images.map((image) =>
+      image.file
+        ? { uploadIndex: files.push(image.file) - 1 }
+        : { id: image.id },
+    );
+    const { draft, errors: validationErrors } = parseAdvertisementDraft({
+      ...editor,
+      images,
+    });
+    if (!draft) {
+      setErrors(validationErrors);
+      return;
+    }
+    setBusy(true);
+    setErrors([]);
+    setWarnings([]);
+    setNotice(null);
+    try {
+      const form = new FormData();
+      form.set("advertisement", JSON.stringify(draft));
+      files.forEach((file) => form.append("images", file));
+      const body = await api("/api/admin/advertisements", {
+        method: "POST",
+        body: form,
+      });
+      if (
+        typeof body.updatedAt !== "string" ||
+        !Array.isArray(body.images) ||
+        body.images.length !== editor.images.length
+      )
+        throw new Error("ยังยืนยันผลบันทึกไม่ได้ กรุณาโหลดข้อมูลล่าสุด");
+      const savedImages = body.images as { id: string }[];
+      setEditor({
+        ...editor,
+        title: draft.title,
+        updatedAt: body.updatedAt,
+        images: editor.images.map((image, index) => ({
+          key: image.key,
+          id: savedImages[index].id,
+          url: image.url,
+        })),
+      });
+      setDirty(false);
+      setNotice("บันทึกแล้ว");
+      setWarnings(
+        Array.isArray(body.warnings) ? (body.warnings as string[]) : [],
+      );
+      await load(page, false);
+    } catch (error) {
+      setErrors([
+        error instanceof Error ? error.message : "บันทึกโฆษณาไม่สำเร็จ",
+      ]);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    if (!editor?.updatedAt || busy || loading) return;
+    setBusy(true);
+    setErrors([]);
+    setNotice(null);
+    try {
+      const body = await api("/api/admin/advertisements", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editor.id, updatedAt: editor.updatedAt }),
+      });
+      revokeUrls();
+      setEditor(null);
+      setDirty(false);
+      setWarnings(
+        Array.isArray(body.warnings) ? (body.warnings as string[]) : [],
+      );
+      setNotice("ลบโฆษณาแล้ว");
+      await load(items.length === 1 && page > 1 ? page - 1 : page);
+    } catch (error) {
+      setErrors([error instanceof Error ? error.message : "ลบโฆษณาไม่สำเร็จ"]);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const feedbackContent = <AdminFeedback errors={errors} errorTitle="ดำเนินการไม่สำเร็จ" notice={editor ? null : notice} warnings={warnings} />;
+  const feedback = errors.length ? <div ref={errorSummary} role="region" aria-label="ข้อผิดพลาดในการจัดการโฆษณา" tabIndex={-1} className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]">{feedbackContent}</div> : feedbackContent;
+  return (
+    <div className="mx-auto grid w-full max-w-[1280px] min-w-0 gap-5 text-[var(--site-text)]">
+      {editor ? (
+        <AdvertisementEditor
+          key={editor.id}
+          editor={editor}
+          dirty={dirty}
+          disabled={busy || loading}
+          notice={notice}
+          feedback={feedback}
+          onChange={update}
+          onImages={changeImages}
+          onObjectUrl={(url) => objectUrls.current.add(url)}
+          onError={setErrors}
+          onSave={save}
+          onBack={backToList}
+          onDelete={() => {
+            if (editor.updatedAt && !busy && !loading) confirmation.deleteBefore(editor.title, () => void remove());
+          }}
+        />
+      ) : (
+        <>
+          <header className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 ref={listHeading} tabIndex={-1} className="text-xl font-medium outline-none">
+                จัดการโฆษณา<span className="ml-3 text-xs font-normal text-[var(--site-muted)]">{total} รายการ</span>
+              </h1>
+            </div>
+            <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
+              <button type="button" disabled={busy || loading} className={`${buttonClass} text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)]`} onClick={() => reload(page)}><RefreshCw aria-hidden="true" className="size-4" />โหลดใหม่</button>
+              <button data-create-advertisement type="button" disabled={busy || loading} className={`${buttonClass} bg-[var(--site-primary)] text-[var(--site-on-primary)] hover:opacity-90`} onClick={() => select()}><Plus className="size-4" />เพิ่มโฆษณา</button>
+            </div>
+          </header>
+          {feedback}
+          <AdvertisementFilters initial={filters} disabled={busy || loading} onApply={nextFilters => {
+            if (busy || loading) return;
+            setLoading(true);
+            setErrors([]);
+            setFilters(nextFilters);
+            setItems([]);
+            setPage(1);
+            setTotal(0);
+          }} />
+          <AdvertisementList items={items} page={page} total={total} filtered={Boolean(filters.search || filters.zone || filters.status !== "all")} loading={loading || busy} onEdit={select} onPage={reload} />
+          <Link href="/admin/detail-layout" prefetch={false} className="justify-self-start text-xs text-[var(--site-muted)] underline-offset-4 hover:underline">ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด</Link>
+        </>
+      )}
+      {confirmation.pending && <AdvertisementConfirmationDialog confirmation={confirmation.pending} onCancel={confirmation.cancel} onConfirm={confirmation.confirm} />}
+    </div>
+  );
+}

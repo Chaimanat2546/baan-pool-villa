@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CACHE_TAGS } from "./cache-policy";
 import {
+  revalidateAdvertisementsCache,
   revalidateVillaReviewsCache,
   revalidateDetailLayoutCache,
   revalidateExternalVillaCache,
@@ -29,6 +30,7 @@ vi.mock("next/cache", () => ({
 
 vi.mock("./html-edge-cache-version", () => ({
   HTML_CACHE_VERSION_GROUPS: {
+    advertisements: "advertisements",
     detailLayout: "detail-layout",
     guides: "guides",
     homeSections: "home-sections",
@@ -50,6 +52,11 @@ describe("cache revalidation", () => {
     await revalidateVillaReviewsCache("villa-1");
     expect(revalidateTagMock.mock.calls).toEqual([["villa-reviews:villa-1", { expire: 0 }]]);
     expect(bumpHtmlEdgeCacheVersionsMock).not.toHaveBeenCalled();
+  });
+  it("expires site advertisement data and only the matching HTML version group", async () => {
+    await revalidateAdvertisementsCache();
+    expect(revalidateTagMock).toHaveBeenCalledWith(CACHE_TAGS.advertisements, { expire: 0 });
+    expect(bumpHtmlEdgeCacheVersionsMock).toHaveBeenCalledWith(["advertisements"]);
   });
   beforeEach(() => {
     vi.clearAllMocks();

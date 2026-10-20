@@ -10,6 +10,11 @@ import {
 const IMMEDIATE_REVALIDATION = { expire: 0 } as const;
 const VILLA_CARD_IMAGE_CONFIG_PAGE_KEY = "default";
 
+export async function revalidateAdvertisementsCache() {
+  revalidateTags([CACHE_TAGS.advertisements]);
+  await bumpHtmlEdgeCacheVersions([HTML_CACHE_VERSION_GROUPS.advertisements]);
+}
+
 export async function revalidateVillaReviewsCache(villaId: string) {
   revalidateTags([CACHE_TAGS.villaReviews(villaId)]);
 }

@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { VillaDetailPage } from "@/components/villas/detail/page";
 import { hasEnabledDetailLayoutBlock } from "@/components/villas/detail/detail-page-helpers";
 import { getActiveAdvertisements } from "@/lib/advertisements/server";
-import type { PublicAdvertisement } from "@/lib/advertisements/types";
+import type { PublicAdvertisementPage } from "@/lib/advertisements/types";
 import type { AnyDetailLayoutConfig } from "@/lib/detail-layout/types";
 import { serializeJsonLd } from "@/lib/json-ld";
 import {
@@ -34,14 +34,14 @@ interface VillaPageProps {
 async function getDetailAdvertisements(
   layout: AnyDetailLayoutConfig,
   villaZone: string,
-): Promise<PublicAdvertisement[]> {
+): Promise<PublicAdvertisementPage> {
   if (!hasEnabledDetailLayoutBlock(layout, "advertisements")) {
-    return [];
+    return { advertisements: [], nextCursor: null };
   }
 
   return getActiveAdvertisements(villaZone).catch((reason) => {
     console.error("Unable to load villa detail advertisements", reason);
-    return [];
+    return { advertisements: [], nextCursor: null };
   });
 }
 
@@ -144,7 +144,8 @@ export default async function Page({ params }: VillaPageProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <VillaDetailPage
-        advertisements={advertisements}
+        advertisements={advertisements.advertisements}
+        advertisementCursor={advertisements.nextCursor}
         bookingCalendars={calendarPreload.calendars}
         currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={siteWebStylesResult.gallery}

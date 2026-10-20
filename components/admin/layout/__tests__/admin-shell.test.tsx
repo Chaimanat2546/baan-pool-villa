@@ -163,7 +163,7 @@ describe("AdminShell", () => {
     await page.unmount();
   });
 
-  it("uses concise labels with full-name tooltips in the collapsed navigation", async () => {
+  it("keeps full accessible names while collapsing menu labels", async () => {
     const page = await mountAdminPage(
       <AdminShell
         initialDesktopNavCollapsed
@@ -180,12 +180,24 @@ describe("AdminShell", () => {
       '[data-admin-nav-layout="collapsed"] a[href="/admin/card-images/houses"]',
     );
 
-    expect(detailLink?.textContent).toContain("รายละเอียด");
-    expect(detailLink?.textContent).not.toContain("หน้ารายละเอียดบ้านพัก");
-    expect(detailLink?.getAttribute("title")).toBe("หน้ารายละเอียดบ้านพัก");
-    expect(coverImageLink?.textContent).toContain("รูปปก");
-    expect(coverImageLink?.getAttribute("title")).toBe("จัดการรูปปกบ้าน");
+    expect(detailLink?.getAttribute("aria-label")).toBe("หน้ารายละเอียดบ้านพัก");
+    expect(detailLink?.querySelector("span")?.className).toBe("sr-only");
+    expect(coverImageLink?.getAttribute("aria-label")).toBe("จัดการรูปปกบ้าน");
+    expect(coverImageLink?.querySelector("span")?.className).toBe("sr-only");
 
+    await page.unmount();
+  });
+
+  it("uses the website logo proxy and falls back when the configured image fails", async () => {
+    const page = await mountAdminPage(
+      <AdminShell settings={{ ...DEFAULT_SITE_SETTINGS, logoImage: { path: "custom.webp", url: "https://example.com/custom.webp", alt: "โลโก้เว็บทดสอบ" } }}>
+        <div>settings</div>
+      </AdminShell>,
+    );
+    const logo = page.container.querySelector<HTMLImageElement>('img[alt="โลโก้เว็บทดสอบ"]');
+    expect(decodeURIComponent(logo?.getAttribute("src") ?? "")).toContain("/api/site-assets/images/logo");
+    act(() => logo?.dispatchEvent(new Event("error")));
+    expect(decodeURIComponent(logo?.getAttribute("src") ?? "")).toContain(DEFAULT_SITE_SETTINGS.logoImage.url);
     await page.unmount();
   });
 
@@ -221,7 +233,7 @@ describe("AdminShell", () => {
 
     expect(coverImageLinks).toHaveLength(1);
     expect(coverImageLinks[0]?.textContent).toContain("จัดการรูปปกบ้าน");
-    expect(coverImageLinks[0]?.className).toContain("bg-[var(--site-primary)]");
+    expect(coverImageLinks[0]?.getAttribute("aria-current")).toBe("page");
 
     await page.unmount();
   });

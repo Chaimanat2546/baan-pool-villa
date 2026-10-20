@@ -96,18 +96,19 @@ export function getContrastRatio(
  * Chooses the more readable text color for a given background.
  *
  * @param backgroundHex - The background color in `#RRGGBB` format.
- * @returns Either white or dark slate text, whichever has better contrast.
+ * @returns White or dark slate text, with black when both miss normal text contrast.
  */
 export function getReadableTextColor(
   backgroundHex: string,
-): "#ffffff" | "#0f172a" {
+): "#ffffff" | "#0f172a" | "#000000" {
   const lightText = "#ffffff";
   const darkText = "#0f172a";
 
-  return getContrastRatio(lightText, backgroundHex) >
+  const preferred = getContrastRatio(lightText, backgroundHex) >
     getContrastRatio(darkText, backgroundHex)
     ? lightText
     : darkText;
+  return getContrastRatio(preferred, backgroundHex) >= 4.5 ? preferred : "#000000";
 }
 
 function ensureReadableOnBackground(
@@ -167,8 +168,8 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
     accentColor,
     primaryColor,
   );
-  const textColor = mixHexColors(primaryColor, "#020617", 0.44);
-  const mutedTextColor = mixHexColors(textColor, "#64748b", 0.58);
+  const textColor = ensureReadableOnBackground(mixHexColors(primaryColor, "#020617", 0.44), "#ffffff");
+  const mutedTextColor = ensureReadableOnBackground(mixHexColors(textColor, "#64748b", 0.58), "#ffffff");
 
   return {
     "--site-accent": accentColor,

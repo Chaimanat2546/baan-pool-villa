@@ -48,6 +48,7 @@ export const STATIC_ASSET_CACHE_CONTROL =
 
 export const HTML_CACHE_VERSION_GROUPS = {
   detailLayout: "detail-layout",
+  advertisements: "advertisements",
   customerReviews: "customer-reviews",
   guides: "guides",
   homeSections: "home-sections",
@@ -212,6 +213,7 @@ function getHtmlCacheVersionGroups(pathname) {
       HTML_CACHE_VERSION_GROUPS.siteSettings,
       HTML_CACHE_VERSION_GROUPS.homeSections,
       HTML_CACHE_VERSION_GROUPS.detailLayout,
+      HTML_CACHE_VERSION_GROUPS.advertisements,
       HTML_CACHE_VERSION_GROUPS.villaDetails,
       HTML_CACHE_VERSION_GROUPS.villaImages,
     ];
@@ -354,7 +356,8 @@ function isResolvedPublicImageProxyPath(pathname) {
   return (
     isHouseCoverImageProxyPath(pathname) ||
     isGuideCoverImageProxyPath(pathname) ||
-    isGuideContentImageProxyPath(pathname)
+    isGuideContentImageProxyPath(pathname) ||
+    /^\/api\/advertisements\/images\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(pathname)
   );
 }
 

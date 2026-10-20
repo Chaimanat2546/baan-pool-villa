@@ -1,0 +1,74 @@
+"use client";
+
+import { useEffect, useRef, type FormEvent, type ReactNode } from "react";
+import { ArrowLeft, Check, Trash2 } from "lucide-react";
+import Link from "next/link";
+import type { AdminAdvertisement } from "@/lib/advertisements/types";
+import { ADVERTISEMENT_ZONES } from "@/lib/advertisements/validation";
+import { AdvertisementImagesEditor, type DraftImage } from "./advertisement-images-editor";
+
+export type AdvertisementEditorDraft = Omit<AdminAdvertisement, "updatedAt" | "images" | "sortOrder"> & {
+  updatedAt: string | null;
+  images: DraftImage[];
+};
+
+const inputClass = "h-11 w-full min-w-0 rounded-md border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-3 text-base focus:border-[var(--site-primary)] focus:ring-2 focus:ring-[var(--site-primary)]/20 sm:h-9 sm:text-sm pointer-coarse:min-h-11";
+
+export function AdvertisementEditor({ editor, dirty, disabled, notice, feedback, onChange, onImages, onObjectUrl, onError, onSave, onBack, onDelete }: {
+  editor: AdvertisementEditorDraft;
+  dirty: boolean;
+  disabled: boolean;
+  notice: string | null;
+  feedback: ReactNode;
+  onChange: (changes: Partial<AdvertisementEditorDraft>) => void;
+  onImages: (images: DraftImage[]) => void;
+  onObjectUrl: (url: string) => void;
+  onError: (errors: string[]) => void;
+  onSave: (event: FormEvent) => void;
+  onBack: () => void;
+  onDelete: () => void;
+}) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { heading.current?.focus(); }, []);
+  return (
+    <form aria-label="ฟอร์มโฆษณา" onSubmit={onSave} className="mx-auto grid w-full max-w-[840px] min-w-0 gap-4">
+      <header className="grid min-w-0 justify-items-start gap-1">
+        <button type="button" aria-label="กลับรายการโฆษณา" disabled={disabled} onClick={onBack}
+          className="inline-flex min-h-7 items-center gap-1.5 rounded text-xs text-[var(--site-muted)] hover:text-[var(--site-text)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">
+          <ArrowLeft aria-hidden="true" className="size-3.5" />กลับรายการ
+        </button>
+        <h1 ref={heading} tabIndex={-1} className="min-w-0 text-xl font-medium outline-none">{editor.updatedAt ? "แก้ไขโฆษณา" : "เพิ่มโฆษณา"}</h1>
+      </header>
+      {feedback}
+      <fieldset disabled={disabled} className="min-w-0 divide-y divide-[var(--site-border)] rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)]">
+        <section className="grid gap-3 p-4 sm:p-5" aria-label="ข้อมูลโฆษณา">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-end">
+            <label className="grid min-w-0 gap-1 text-xs font-medium">ชื่อโฆษณา<input name="title" maxLength={160} required className={inputClass} value={editor.title} onChange={event => onChange({ title: event.target.value })} /></label>
+            <label className="grid min-w-0 gap-1 text-xs font-medium">โซนที่แสดง<select className={inputClass} value={editor.zone} onChange={event => onChange({ zone: event.target.value })}>{ADVERTISEMENT_ZONES.map(zone => <option key={zone.value} value={zone.value}>{zone.label}</option>)}</select></label>
+          </div>
+          <label className="flex min-h-9 cursor-pointer items-center justify-between gap-4 text-sm pointer-coarse:min-h-11">
+            เปิดแสดงบนเว็บไซต์
+            <span className="relative inline-flex shrink-0">
+              <input type="checkbox" role="switch" checked={editor.isActive} onChange={event => onChange({ isActive: event.target.checked })} className="peer absolute inset-0 z-10 m-0 h-full w-full cursor-pointer opacity-0" />
+              <span aria-hidden="true" className="h-6 w-11 rounded-full border border-[var(--site-border-strong)] bg-[var(--site-muted)] peer-checked:border-[var(--site-primary)] peer-checked:bg-[var(--site-primary)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--site-primary)] peer-disabled:opacity-40" />
+              <span aria-hidden="true" className="pointer-events-none absolute top-1 left-1 size-4 rounded-full bg-[var(--site-surface)] peer-checked:translate-x-5 peer-checked:bg-[var(--site-on-primary)]" />
+            </span>
+          </label>
+        </section>
+        <AdvertisementImagesEditor images={editor.images} disabled={disabled} onChange={onImages} onError={onError} onObjectUrl={onObjectUrl} />
+      </fieldset>
+      <footer className="grid min-w-0 grid-cols-[minmax(0,1fr)_88px] items-center gap-2 sm:flex sm:flex-wrap" aria-label="บันทึกหรือยกเลิก">
+        <button type="submit" disabled={disabled} aria-label={disabled ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[var(--site-primary)] px-4 text-sm font-medium whitespace-nowrap text-[var(--site-on-primary)] hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">
+          <Check aria-hidden="true" className="size-4" />{disabled ? "กำลังบันทึก…" : "บันทึกโฆษณา"}
+        </button>
+        <button type="button" disabled={disabled} onClick={onBack} className="min-h-10 rounded-md px-3 text-sm text-[var(--site-muted)] hover:bg-[var(--site-surface-tint)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11">ยกเลิก</button>
+        {((dirty && !disabled) || notice) && <span role="status" className={`col-span-2 text-xs ${notice ? "text-emerald-700" : "text-[var(--site-muted)]"}`}>{notice ?? "ยังไม่บันทึก"}</span>}
+      </footer>
+      <div className="flex flex-col items-start gap-2 text-[11px] text-[var(--site-muted)] sm:flex-row sm:justify-between sm:gap-3">
+        <Link href="/admin/detail-layout" prefetch={false} className="inline-flex min-h-11 items-center py-2 underline-offset-4 hover:underline sm:min-h-0">ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด</Link>
+        {editor.updatedAt && <button type="button" disabled={disabled} onClick={onDelete} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-md px-2 text-xs text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-700 disabled:opacity-40 sm:min-h-9 pointer-coarse:min-h-11"><Trash2 aria-hidden="true" className="size-3.5" />ลบโฆษณา</button>}
+      </div>
+    </form>
+  );
+}

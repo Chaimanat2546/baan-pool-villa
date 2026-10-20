@@ -3,6 +3,7 @@ import {
   Home,
   Images,
   LayoutTemplate,
+  Megaphone,
   MessageSquareText,
   Newspaper,
   ScrollText,
@@ -24,6 +25,14 @@ export interface AdminNavItem {
 }
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+  {
+    compactLabel: "โฆษณา",
+    description: "จัดการโฆษณาและรูปกิจกรรมของเว็บนี้",
+    href: "/admin/advertisements",
+    icon: Megaphone,
+    label: "โฆษณา",
+    pageTitle: "จัดการโฆษณา",
+  },
   {
     compactLabel: "ชุดบ้าน",
     description: "จัดชุดบ้านพักที่แสดงบนหน้าแรก",

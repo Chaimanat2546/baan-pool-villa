@@ -835,7 +835,7 @@ describe("DetailLayoutRenderer", () => {
     expect(markup).toContain('data-detail-layout-block="recommended_villas"');
   });
 
-  it("renders three CMS advertisement cards in either 70 or 30 detail columns", () => {
+  it("keeps every loaded CMS advertisement card in a horizontal rail in either detail column", () => {
     const wideLayout: DetailLayoutV2Config = {
       ...DEFAULT_DETAIL_LAYOUT_V2,
       mainSplit: {
@@ -845,7 +845,7 @@ describe("DetailLayoutRenderer", () => {
             id: "wide_ad",
             columns: 1,
             enabled: true,
-            blocks: [block("advertisements")],
+            blocks: [{ ...block("advertisements"), title: "เที่ยวให้ครบ" }],
           },
         ],
         narrowRows: [],
@@ -878,17 +878,20 @@ describe("DetailLayoutRenderer", () => {
     const wideMarkup = render(wideLayout);
     const narrowMarkup = render(narrowLayout);
 
+    expect(wideMarkup).toContain("เที่ยวให้ครบ");
+
     expect(wideMarkup).toContain('data-detail-layout-block="advertisements"');
     expect(
       wideMarkup.match(/data-detail-advertisement-card="true"/g) ?? [],
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     expect(wideMarkup).toContain(
       'data-detail-advertisements-section="true"',
     );
     expect(wideMarkup).toContain("Island day pass");
     expect(wideMarkup).toContain("Private yacht");
     expect(wideMarkup).toContain("Seafood set");
-    expect(wideMarkup).not.toContain("Hidden extra");
+    expect(wideMarkup).toContain("Hidden extra");
+    expect(wideMarkup).toContain('data-scroll-rail-viewport="true"');
     expect(wideMarkup).not.toContain('target="_blank"');
     const advertisementImageSources = [
       ...wideMarkup.matchAll(/\/_next\/image\?url=([^&"]+)/g),

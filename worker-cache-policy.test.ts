@@ -105,6 +105,7 @@ describe("worker HTML edge cache policy", () => {
         "site-settings",
         "home-sections",
         "detail-layout",
+        "advertisements",
         "villa-details",
         "villa-images",
       ],
@@ -344,6 +345,8 @@ describe("worker image edge cache policy", () => {
   });
 
   it("bypasses unsafe image proxy variants", () => {
+    expect(getImageEdgeCacheDecision(request("/api/advertisements/images/20000000-0000-4000-8000-000000000001?w=640&q=60", { headers: { Accept: "image/webp" } }))).toMatchObject({ cacheable: true, candidate: true, reason: "image" });
+    expect(getImageEdgeCacheDecision(request("/api/advertisements/images/not-an-id"))).toMatchObject({ cacheable: false, candidate: false });
     expect(getImageEdgeCacheDecision(request("/api/villas/9/images"))).toMatchObject({
       cacheable: false,
       candidate: false,

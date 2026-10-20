@@ -1,164 +1,139 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-policy";
-import { unstable_cache } from "next/cache";
-import { createClient } from "@supabase/supabase-js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  buildAdvertisementImageUrl,
-  normalizeAdvertisementId,
-  normalizeAdvertisementImageName,
-} from "../image-url";
-import { getActiveAdvertisements, toPublicAdvertisement } from "../server";
-
+  getActiveAdvertisements,
+  getAdvertisementImageSource,
+} from "../server";
+import { createHomeConfigClient } from "@/lib/home-sections/supabase";
 vi.mock("server-only", () => ({}));
-
-vi.mock("next/cache", () => ({
-  unstable_cache: vi.fn((fn: unknown) => fn),
+vi.mock("@/lib/home-sections/cache", () => ({
+  createHomeConfigCachedLoader: (fn: unknown) => fn,
 }));
-
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: vi.fn(),
+vi.mock("@/lib/home-sections/supabase", () => ({
+  createHomeConfigClient: vi.fn(),
 }));
-
-const createClientMock = vi.mocked(createClient);
-const unstableCacheMock = vi.mocked(unstable_cache);
-
+const id = "10000000-0000-4000-8000-000000000001";
+const imageId = "20000000-0000-4000-8000-000000000001";
+const row = {
+  id,
+  title: " เที่ยวทะเล ",
+  zone: "all",
+  is_active: true,
+  sort_order: 0,
+  site_advertisement_images: [
+    { id: imageId, storage_path: `${id}/${imageId}.webp`, display_order: 0 },
+  ],
+};
+const result = { data: [row], error: null };
+const query = {
+  select: vi.fn(),
+  eq: vi.fn(),
+  in: vi.fn(),
+  order: vi.fn(),
+  or: vi.fn(),
+  limit: vi.fn(),
+  maybeSingle: vi.fn(),
+};
+const from = vi.fn();
 beforeEach(() => {
-  vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "publishable-key");
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-  createClientMock.mockReset();
-});
-
-function mockAdvertisementQuery(result: { data: unknown; error: unknown }) {
-  const order = vi.fn().mockResolvedValue(result);
-  const inFilter = vi.fn().mockReturnValue({ order });
-  const eq = vi.fn().mockReturnValue({ in: inFilter, order });
-  const select = vi.fn().mockReturnValue({ eq });
-  const from = vi.fn().mockReturnValue({ select });
-
-  createClientMock.mockReturnValue({
+  vi.clearAllMocks();
+  result.data = [row];
+  result.error = null;
+  for (const fn of [query.select, query.eq, query.in, query.order, query.or])
+    fn.mockReturnValue(query);
+  query.limit.mockImplementation(() => Promise.resolve(result));
+  query.maybeSingle.mockResolvedValue({
+    data: {
+      ...row.site_advertisement_images[0],
+      site_advertisements: { is_active: true },
+    },
+    error: null,
+  });
+  from.mockReturnValue(query);
+  vi.mocked(createHomeConfigClient).mockReturnValue({
     from,
-  } as unknown as ReturnType<typeof createClient>);
-
-  return { eq, from, inFilter, order, select };
-}
-
-describe("advertisement image URLs", () => {
-  it("builds worker image URLs from safe image names", () => {
-    expect(
-      buildAdvertisementImageUrl({
-        advertisementId: "dc403c27-9a30-413b-97dc-79c299849e60",
-        imageName: "20260702103418_6762b81ddc.webp",
+    storage: {
+      from: () => ({
+        getPublicUrl: (path: string) => ({
+          data: {
+            publicUrl: `https://tenant.supabase.co/storage/v1/object/public/advertisement-assets/${path}`,
+          },
+        }),
       }),
-    ).toBe(
-      "https://webook-media.poolvilla.workers.dev/advertisements/dc403c27-9a30-413b-97dc-79c299849e60/20260702103418_6762b81ddc.webp",
-    );
-    expect(
-      buildAdvertisementImageUrl(
-        {
-          advertisementId: "ad-1",
-          imageName: "activity.webp",
-        },
-        "https://assets.example.com/ads/:id/:imageName",
-      ),
-    ).toBe("https://assets.example.com/ads/ad-1/activity.webp");
-    expect(normalizeAdvertisementId("../ad-1")).toBeNull();
-    expect(normalizeAdvertisementImageName("../secret.webp")).toBeNull();
-    expect(normalizeAdvertisementImageName("not-image.txt")).toBeNull();
-  });
+    },
+  } as never);
 });
-
-describe("getActiveAdvertisements", () => {
-  it("wraps the public advertisement read in a tagged cache", async () => {
-    const query = mockAdvertisementQuery({ data: [], error: null });
-
-    await getActiveAdvertisements();
-
-    expect(query.inFilter).not.toHaveBeenCalled();
-    expect(unstableCacheMock).toHaveBeenCalledWith(
-      expect.any(Function),
-      [CACHE_TAGS.advertisements],
-      {
-        revalidate: CACHE_REVALIDATE_SECONDS.advertisements,
-        tags: [CACHE_TAGS.advertisements],
-      },
-    );
+describe("site-owned advertisements", () => {
+  it("returns eight records plus a continuation cursor and seeks from the previous order/id", async () => {
+    result.data = Array.from({ length: 9 }, (_, index) => ({ ...row, sort_order: index }));
+    const page = await getActiveAdvertisements("pattaya");
+    expect(page.advertisements).toHaveLength(8);
+    expect(page.nextCursor).toBe(`7:${id}`);
+    expect(query.limit).toHaveBeenCalledWith(9);
+    await getActiveAdvertisements("pattaya", `7:${id}`);
+    expect(query.or).toHaveBeenCalledWith(`sort_order.gt.7,and(sort_order.eq.7,id.gt.${id})`);
   });
-
-  it("returns active advertisements with ordered images", async () => {
-    const query = mockAdvertisementQuery({
-      data: [
-        {
-          id: "ad-1",
-          title: " Activity ",
-          is_active: true,
-          advertisement_images: [
-            {
-              image_name: "second.webp",
-              image_order: 2,
-              created_at: "2026-07-02T03:34:19.000Z",
-            },
-            {
-              image_name: "first.webp",
-              image_order: 1,
-              created_at: "2026-07-02T03:34:18.000Z",
-            },
-          ],
-        },
-      ],
-      error: null,
-    });
-
-    await expect(getActiveAdvertisements(" Pattaya ")).resolves.toEqual([
+  it("shows only the first two ordered images from an older oversized advertisement", async () => {
+    const ids = [3, 1, 2].map(n => `20000000-0000-4000-8000-${String(n).padStart(12, "0")}`);
+    result.data = [{ ...row, site_advertisement_images: ids.map((imageId, index) => ({ id: imageId, storage_path: `${id}/${imageId}.webp`, display_order: [2, 0, 1][index] })) }];
+    expect((await getActiveAdvertisements()).advertisements[0].imageUrls).toEqual([
+      `/api/advertisements/images/${ids[1]}`,
+      `/api/advertisements/images/${ids[2]}`,
+    ]);
+  });
+  it("reads this site's CMS and exposes only local image routes", async () => {
+    expect((await getActiveAdvertisements(" Pattaya ")).advertisements).toEqual([
       {
-        id: "ad-1",
-        imageUrl:
-          "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/first.webp",
-        imageUrls: [
-          "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/first.webp",
-          "https://webook-media.poolvilla.workers.dev/advertisements/ad-1/second.webp",
-        ],
-        title: "Activity",
+        id,
+        title: "เที่ยวทะเล",
+        imageUrl: `/api/advertisements/images/${imageId}`,
+        imageUrls: [`/api/advertisements/images/${imageId}`],
       },
     ]);
-    expect(query.from).toHaveBeenCalledWith("advertisements");
-    expect(query.eq).toHaveBeenCalledWith("is_active", true);
-    expect(query.inFilter).toHaveBeenCalledWith("zone", ["pattaya", "all"]);
-    expect(query.order).toHaveBeenCalledWith("created_at", {
-      ascending: false,
-    });
+    expect(from).toHaveBeenCalledWith("site_advertisements");
+    expect(query.in).toHaveBeenCalledWith("zone", ["pattaya", "all"]);
+    expect(query.order).toHaveBeenCalledWith("sort_order", { ascending: true });
   });
-
-  it("skips inactive rows and rows without a usable image", () => {
-    expect(
-      toPublicAdvertisement({
-        id: "ad-1",
-        title: "Activity",
-        is_active: false,
-        advertisement_images: [{ image_name: "activity.webp" }],
-      }),
-    ).toBeNull();
-    expect(
-      toPublicAdvertisement({
-        id: "ad-1",
-        title: "Activity",
-        is_active: true,
-        advertisement_images: [{ image_name: "../activity.webp" }],
-      }),
-    ).toBeNull();
+  it("uses only global advertisements when villa zone is absent", async () => {
+    await getActiveAdvertisements();
+    expect(query.eq).toHaveBeenCalledWith("zone", "all");
   });
-
-  it("throws when advertisements are unavailable", async () => {
-    mockAdvertisementQuery({
-      data: null,
-      error: { message: "RLS denied" },
-    });
-
-    await expect(getActiveAdvertisements()).rejects.toThrow(
-      "Advertisements are unavailable",
+  it("uses global advertisements for a catalog villa with an unknown zone", async () => {
+    await getActiveAdvertisements("unknown");
+    expect(query.eq).toHaveBeenCalledWith("zone", "all");
+    expect(query.in).not.toHaveBeenCalled();
+  });
+  it("skips malformed nested rows and paths belonging to another ad", async () => {
+    result.data = [
+      {
+        ...row,
+        site_advertisement_images: [
+          null,
+          {
+            ...row.site_advertisement_images[0],
+            storage_path: `other/${imageId}.webp`,
+          },
+        ],
+      },
+    ] as never;
+    expect((await getActiveAdvertisements("pattaya")).advertisements).toEqual([]);
+  });
+  it("resolves image sources only from this website's bucket", async () => {
+    expect(await getAdvertisementImageSource(imageId)).toBe(
+      `https://tenant.supabase.co/storage/v1/object/public/advertisement-assets/${id}/${imageId}.webp`,
     );
+  });
+  it("rejects invalid image ids before accessing Supabase", async () => {
+    expect(await getAdvertisementImageSource("../secret")).toBeNull();
+    expect(from).not.toHaveBeenCalled();
+  });
+  it("does not serve inactive advertisements", async () => {
+    query.maybeSingle.mockResolvedValue({
+      data: {
+        ...row.site_advertisement_images[0],
+        site_advertisements: { is_active: false },
+      },
+      error: null,
+    });
+    expect(await getAdvertisementImageSource(imageId)).toBeNull();
   });
 });

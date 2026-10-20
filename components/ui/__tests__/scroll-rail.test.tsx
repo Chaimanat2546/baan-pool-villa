@@ -4,6 +4,12 @@ import { describe, expect, it } from "vitest";
 import { ScrollRail } from "../scroll-rail";
 
 describe("ScrollRail", () => {
+  it("can place controls below the rail without taking card width on narrow columns", () => {
+    const markup = renderToStaticMarkup(<ScrollRail label="โฆษณา" controlsPosition="bottom"><div>Card</div></ScrollRail>);
+    expect(markup).toContain('data-scroll-rail-controls="bottom"');
+    expect(markup).not.toContain("hidden sm:flex");
+    expect(markup).toContain('aria-label="เลื่อนโฆษณาไปทางขวา"');
+  });
   it("places desktop controls on the left and right of the rail", () => {
     const markup = renderToStaticMarkup(
       <ScrollRail label="บ้านพัก">

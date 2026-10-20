@@ -39,6 +39,7 @@ import { VillaReviewsSection } from "./villa-reviews-section";
 
 interface DetailLayoutBlockContext {
   advertisements: PublicAdvertisement[];
+  advertisementCursor?: string | null;
   bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId?: string;
   contactSettings: SiteContactSettings;
@@ -52,7 +53,7 @@ interface DetailLayoutBlockContext {
   villaCardStyle?: SiteVillaCardStyle;
 }
 
-type BlockRenderer = (context: DetailLayoutBlockContext) => ReactNode | null;
+type BlockRenderer = (context: DetailLayoutBlockContext, block: DetailLayoutBlock) => ReactNode | null;
 
 const DEFAULT_COMPACT_LINE_LIMIT = 5;
 const DEFERRED_DETAIL_BLOCK_TYPES = new Set<DetailLayoutBlockType>([
@@ -353,18 +354,21 @@ function renderRulesPetPolicy({
 
 function renderAdvertisements({
   advertisements,
+  advertisementCursor,
   galleryStyle,
   listing,
-}: DetailLayoutBlockContext) {
-  if (advertisements.length === 0) {
+}: DetailLayoutBlockContext, block: DetailLayoutBlock) {
+  if (advertisements.length === 0 && !advertisementCursor) {
     return null;
   }
 
   return (
     <ActivityAdvertisementsSection
       advertisements={advertisements}
+      nextCursor={advertisementCursor}
       galleryStyle={galleryStyle}
       listing={listing}
+      title={block.title}
     />
   );
 }
@@ -466,7 +470,7 @@ export function renderDetailLayoutBlock(
     return null;
   }
 
-  const node = blockRenderers[block.type](context);
+  const node = blockRenderers[block.type](context, block);
 
   if (!node) {
     return null;

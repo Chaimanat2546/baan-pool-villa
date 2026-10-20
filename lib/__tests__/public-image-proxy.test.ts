@@ -35,6 +35,7 @@ describe("public image proxy URL builders", () => {
   });
 
   it("recognizes only documented same-origin image proxy routes", () => {
+    expect(isPublicImageProxyPath("/api/advertisements/images/20000000-0000-4000-8000-000000000001")).toBe(true);
     expect(isPublicImageProxyPath("/api/guides/images/guide/cover")).toBe(true);
     expect(isPublicImageProxyPath("/api/houses")).toBe(false);
   });
