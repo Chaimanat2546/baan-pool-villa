@@ -6,6 +6,7 @@ import {
   House,
   LogOut,
   Menu,
+  PanelLeftOpen,
   X,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -25,24 +26,6 @@ interface AdminShellProps {
   children: React.ReactNode;
   initialDesktopNavCollapsed?: boolean;
   settings: SiteSettings;
-}
-
-function getCompactSiteMark(siteName: string) {
-  const words = siteName
-    .split(/\s+/)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
-
-  if (words.length === 0) {
-    return "ADM";
-  }
-
-  const compact = words
-    .slice(0, 3)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-
-  return compact || siteName.slice(0, 3).toUpperCase();
 }
 
 function AdminNavigation({
@@ -123,7 +106,6 @@ export function AdminShell({
   );
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const activeItem = getActiveAdminNavItem(pathname);
-  const compactSiteMark = getCompactSiteMark(settings.siteName);
   const isAuthPage =
     pathname === "/admin/login" ||
     pathname === "/admin/reset-password" ||
@@ -216,14 +198,13 @@ export function AdminShell({
   return (
     <div className={`min-h-dvh bg-[var(--site-surface-soft)] text-[var(--site-text)] lg:grid ${isDesktopNavCollapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[208px_minmax(0,1fr)]"}`}>
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-5 lg:flex" data-admin-sidebar-state={isDesktopNavCollapsed ? "collapsed" : "expanded"}>
-        <div className={`flex min-w-0 gap-2 rounded-md bg-[var(--site-primary)] text-[var(--site-on-primary)] ${isDesktopNavCollapsed ? "flex-col items-center" : "items-center px-1"}`}>
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/12 text-[var(--site-on-primary)]"><House aria-hidden="true" className="size-4" /></span>
+        <div className={`flex min-w-0 items-center gap-2 ${isDesktopNavCollapsed ? "justify-center" : "rounded-md bg-[var(--site-primary)] px-1 text-[var(--site-on-primary)]"}`}>
+          {!isDesktopNavCollapsed && <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/12 text-[var(--site-on-primary)]"><House aria-hidden="true" className="size-4" /></span>}
           {!isDesktopNavCollapsed && <p className="min-w-0 flex-1 break-words text-sm font-semibold">{settings.siteName}</p>}
-          <button aria-label={isDesktopNavCollapsed ? "ขยายแถบเมนูหลังบ้าน" : "ย่อแถบเมนูหลังบ้าน"} className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-[var(--site-on-primary)] hover:bg-white/12 focus-visible:outline-2 focus-visible:outline-[var(--site-on-primary)]" onClick={() => setAdminSidebarPreference(!isDesktopNavCollapsed)} type="button">
-            {isDesktopNavCollapsed ? <ChevronRight aria-hidden="true" className="size-4" /> : <ChevronLeft aria-hidden="true" className="size-4" />}
+          <button aria-label={isDesktopNavCollapsed ? "ขยายแถบเมนูหลังบ้าน" : "ย่อแถบเมนูหลังบ้าน"} title={isDesktopNavCollapsed ? "ขยายแถบเมนูหลังบ้าน" : "ย่อแถบเมนูหลังบ้าน"} className={`inline-flex shrink-0 items-center justify-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 ${isDesktopNavCollapsed ? "size-11 border border-[var(--site-border)] text-[var(--site-text)] hover:bg-[var(--site-primary-soft)] focus-visible:outline-[var(--site-primary)]" : "size-8 text-[var(--site-on-primary)] hover:bg-white/12 focus-visible:outline-[var(--site-on-primary)]"}`} onClick={() => setAdminSidebarPreference(!isDesktopNavCollapsed)} type="button">
+            {isDesktopNavCollapsed ? <PanelLeftOpen aria-hidden="true" className="size-5" /> : <ChevronLeft aria-hidden="true" className="size-4" />}
           </button>
         </div>
-        {isDesktopNavCollapsed && <p className="mt-1 truncate text-center text-[10px] text-[var(--site-muted)]" title={settings.siteName}>{compactSiteMark}</p>}
         <div className="mt-7 min-h-0 flex-1 overflow-y-auto">
           {!isDesktopNavCollapsed && <p className="mb-2 px-2.5 text-[11px] text-[var(--site-muted)]">จัดการเว็บไซต์</p>}
           <AdminNavigation collapsed={isDesktopNavCollapsed} />
