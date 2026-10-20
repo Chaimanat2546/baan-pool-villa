@@ -16,7 +16,6 @@ import {
   shouldRedirectToLogin,
 } from "@/components/admin/admin-api-client";
 import { AdminFeedback } from "@/components/admin/admin-feedback";
-import { CspSafeImage } from "@/components/ui/csp-safe-image";
 import { ADVERTISEMENT_IMAGE_LIMIT, type AdminAdvertisement } from "@/lib/advertisements/types";
 import {
   ADVERTISEMENT_ZONES,
@@ -61,7 +60,6 @@ export function AdminAdvertisementsPage() {
   const [errors, setErrors] = useState<string[]>([]),
     [warnings, setWarnings] = useState<string[]>([]),
     [notice, setNotice] = useState<string | null>(null);
-  const [previewExpanded, setPreviewExpanded] = useState(false);
   const objectUrls = useRef(new Set<string>());
   const loadVersion = useRef(0);
   const revokeUrls = useCallback(() => {
@@ -308,6 +306,10 @@ export function AdminAdvertisementsPage() {
           </h1>
           <p className="mt-1 text-xs leading-5 text-[var(--site-muted)]">
             จัดการรูปและกิจกรรมของเว็บนี้ แสดงตามโซนสูงสุด 3 รายการ
+            {" · "}
+            <Link href="/admin/detail-layout" prefetch={false} className="font-semibold text-[var(--site-primary)] underline">
+              ตั้งชื่อหัวข้อและตำแหน่ง
+            </Link>
           </p>
         </div>
         <button
@@ -327,7 +329,7 @@ export function AdminAdvertisementsPage() {
         notice={notice}
         warnings={warnings}
       />
-      <div className="grid min-w-0 items-start gap-3 @3xl:grid-cols-[190px_minmax(0,1fr)] @5xl:grid-cols-[minmax(180px,1fr)_minmax(0,3fr)_minmax(200px,1fr)]">
+      <div className="grid min-w-0 items-start gap-3 @3xl:grid-cols-[190px_minmax(0,1fr)]">
         <aside className={`${panelClass} grid gap-3`} aria-label="รายการโฆษณา">
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-bold">รายการ ({total})</h2>
@@ -504,56 +506,6 @@ export function AdminAdvertisementsPage() {
             เลือกรายการหรือเพิ่มโฆษณาเพื่อเริ่มจัดการ
           </div>
         )}
-        <aside
-          className={`${panelClass} grid gap-3 @3xl:col-start-2 @5xl:col-start-auto`}
-          aria-label="ตัวอย่างโฆษณา"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold">ตัวอย่างรายการ</h2>
-            <button type="button" className="text-xs font-semibold text-[var(--site-primary)] underline @5xl:hidden"
-              aria-expanded={previewExpanded} aria-controls="advertisement-preview"
-              onClick={() => setPreviewExpanded((expanded) => !expanded)}>
-              {previewExpanded ? "ย่อตัวอย่าง" : "ดูตัวอย่าง"}
-            </button>
-          </div>
-          <div id="advertisement-preview" className={`${previewExpanded ? "grid" : "hidden"} gap-3 @5xl:grid`}>
-          {editor?.images[0] ? (
-            <div className="overflow-hidden rounded-xl border border-[var(--site-border)]">
-              <CspSafeImage
-                src={editor.images[0].url}
-                alt={editor.title || "ตัวอย่างรูปโฆษณา"}
-                width={400}
-                height={260}
-                unoptimized
-                className="aspect-[4/3] w-full object-cover"
-              />
-              <div className="grid gap-2 p-3">
-                <h3 className="break-words font-bold">
-                  {editor.title || "ชื่อโฆษณา"}
-                </h3>
-                <span className="text-xs text-[var(--site-muted)]">
-                  {editor.images.length} รูป ·{" "}
-                  {editor.isActive ? "เปิดแสดง" : "ปิดแสดง"}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <p className="rounded-lg border border-dashed border-[var(--site-border)] p-6 text-sm text-[var(--site-muted)]">
-              เพิ่มรูปเพื่อดูตัวอย่าง
-            </p>
-          )}
-          <p className="text-xs leading-6 text-[var(--site-muted)]">
-            กำหนดชื่อหัวข้อ เช่น “กิจกรรมที่น่าสนใจ” และตำแหน่งบล็อกได้ที่{" "}
-            <Link
-              href="/admin/detail-layout"
-              prefetch={false}
-              className="font-semibold text-[var(--site-primary)] underline"
-            >
-              หน้ารายละเอียดบ้านพัก
-            </Link>
-          </p>
-          </div>
-        </aside>
       </div>
       {editor && (
         <div className="sticky bottom-0 z-20 flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[var(--site-border-strong)] bg-[var(--site-surface)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg">

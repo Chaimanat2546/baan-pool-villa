@@ -47,7 +47,7 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test("site advertisement editor previews locally and preserves failed saves", async ({
+test("site advertisement editor keeps uploads local and preserves failed saves", async ({
   page,
 }, testInfo) => {
   let saves = 0;
@@ -162,10 +162,9 @@ test("editing twelve images keeps save in reach on every screen", async ({ page,
   await expect(page.locator('input[name="title"]')).toHaveValue(ad.title);
   const save = page.getByRole("button", { name: "บันทึกโฆษณา", exact: true });
   await expect(save).toBeInViewport();
+  await expect(page.getByRole("complementary", { name: "ตัวอย่างโฆษณา" })).toHaveCount(0);
   if (isMobile) {
     await expect(page.getByRole("combobox", { name: "เลือกโฆษณา", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "ดูตัวอย่าง", exact: true }).click();
-    await expect(page.getByRole("complementary", { name: "ตัวอย่างโฆษณา" }).getByRole("img")).toBeVisible();
   } else {
     for (const width of [1366, 1920]) {
       await page.setViewportSize({ width, height: 900 });
