@@ -292,11 +292,12 @@ test("compact editor puts save after the fields and images", async ({ page, isMo
     await page.setViewportSize({ width: 320, height: 720 });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
-  page.once("dialog", dialog => dialog.dismiss());
   await page.getByRole("button", { name: "ยกเลิก", exact: true }).click();
+  await expect(page.getByRole("alertdialog", { name: "ละทิ้งการแก้ไข?" })).toBeVisible();
+  await page.getByRole("alertdialog").getByRole("button", { name: "แก้ไขต่อ", exact: true }).click();
   await expect(page.locator('input[name="title"]')).toHaveValue("ยังไม่บันทึก");
-  page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "ละทิ้งการแก้ไข", exact: true }).click();
   await expect(page.getByRole("table")).toContainText(ad.title);
   if (!isMobile) {
     await page.setViewportSize({ width: 1366, height: 768 });
@@ -355,6 +356,72 @@ test("mobile advertisements keep filters, image uploads and actions usable at na
   await expect(page.locator('input[name="title"]')).toHaveValue("ร่างบนมือถือ");
 });
 
+test("website confirmation modals preserve drafts, trap focus and confirm navigation and deletion", async ({ page, isMobile }, testInfo) => {
+  const nativeDialogs: string[] = [];
+  page.on("dialog", async dialog => { nativeDialogs.push(dialog.type()); await dialog.dismiss(); });
+  let deletes = 0;
+  await page.route("**/api/admin/**", route => route.fulfill({ status: route.request().url().endsWith("/session") ? 200 : 503, json: route.request().url().endsWith("/session") ? { state: "active" } : { error: "ข้อมูลปลายทางยังไม่พร้อม" } }));
+  const title = "กิจกรรมสำหรับครอบครัวพร้อมบริการล่องเรือและเดินทางท่องเที่ยว";
+  await page.route("**/api/admin/advertisements**", route => {
+    if (route.request().method() === "DELETE") {
+      deletes++;
+      return route.fulfill({ status: 403, json: { error: "ลบรูปไม่สำเร็จ กรุณาลองอีกครั้ง", code: "storage_error" } });
+    }
+    return route.fulfill({ json: { advertisements: [{ id, title, zone: "all", sortOrder: 0, isActive: true, updatedAt: "2026-10-20T12:00:00Z", images: [{ id: imageId, url: "/images/villa-card-preview-cover.png", storagePath: "" }] }], total: 1 } });
+  });
+  await page.setViewportSize({ width: isMobile ? 320 : 1366, height: 768 });
+  await page.goto("/admin/advertisements");
+  await page.getByRole("button", { name: `แก้ไขโฆษณา ${title}`, exact: true }).click();
+  const draftTitle = "ร่างที่ยังไม่บันทึก " + "กิจกรรม".repeat(12);
+  await page.locator('input[name="title"]').fill(draftTitle);
+  await page.getByLabel("เพิ่มรูปโฆษณา").setInputFiles(path.resolve("public/images/villa-card-preview-1.jpg"));
+  const localImage = await page.getByRole("img", { name: "รูปโฆษณาที่ 2", exact: true }).getAttribute("src");
+  const back = page.getByRole("button", { name: "กลับรายการโฆษณา", exact: true });
+  await back.click();
+  const discard = page.getByRole("alertdialog", { name: "ละทิ้งการแก้ไข?", exact: true });
+  await expect(discard).toBeVisible();
+  await expect(discard.getByRole("button", { name: "แก้ไขต่อ", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(discard.getByRole("button", { name: "ละทิ้งการแก้ไข", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(discard.getByRole("button", { name: "แก้ไขต่อ", exact: true })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(discard.getByRole("button", { name: "ละทิ้งการแก้ไข", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(discard.getByRole("button", { name: "แก้ไขต่อ", exact: true })).toBeFocused();
+  await page.screenshot({ path: testInfo.outputPath("discard-modal.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+  await expect(discard).toHaveCount(0);
+  await expect(back).toBeFocused();
+  await expect(page.locator('input[name="title"]')).toHaveValue(draftTitle);
+  await expect(page.getByRole("img", { name: "รูปโฆษณาที่ 2", exact: true })).toHaveAttribute("src", localImage!);
+  const remove = page.getByRole("button", { name: "ลบโฆษณา", exact: true });
+  await remove.click();
+  const deletion = page.getByRole("alertdialog", { name: "ลบโฆษณานี้?", exact: true });
+  await expect(deletion).toContainText(draftTitle);
+  await page.screenshot({ path: testInfo.outputPath("delete-modal.png"), fullPage: true });
+  expect(deletes).toBe(0);
+  await deletion.getByRole("button", { name: "ยกเลิก", exact: true }).click();
+  await expect(remove).toBeFocused();
+  expect(deletes).toBe(0);
+  await remove.click();
+  await deletion.getByRole("button", { name: "ลบโฆษณา", exact: true }).click();
+  await expect(page.getByRole("region", { name: "ข้อผิดพลาดในการจัดการโฆษณา", exact: true })).toBeFocused();
+  expect(deletes).toBe(1);
+  await expect(page.locator('input[name="title"]')).toHaveValue(draftTitle);
+  await expect.poll(() => page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
+  if (isMobile) {
+    await page.getByRole("button", { name: "เปิดเมนูหลังบ้าน", exact: true }).click();
+    await page.locator('a[href="/admin/sections"]:visible').click();
+  } else await page.getByRole("link", { name: "ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด", exact: true }).click();
+  const leave = page.getByRole("alertdialog", { name: "ออกจากหน้านี้?", exact: true });
+  await expect(leave).toBeVisible();
+  await leave.getByRole("button", { name: "ออกจากหน้านี้", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(isMobile ? "/admin/sections$" : "/admin/detail-layout$"));
+  if (isMobile) await expect(page.getByRole("button", { name: "ปิดเมนูหลังบ้าน", exact: true })).toHaveCount(0);
+  expect(nativeDialogs).toEqual([]);
+});
+
 test("empty and database-error states remain usable", async ({ page }) => {
   let error = false;
   await page.route("**/api/admin/advertisements**", (route) =>
@@ -401,8 +468,8 @@ test("table pagination returns to the previous page after deleting its last reco
   await expect(page.getByRole("table").getByRole("row")).toHaveCount(9);
   await page.getByRole("button", { name: "ถัดไป", exact: true }).click();
   await page.getByRole("button", { name: "แก้ไขโฆษณา กิจกรรม 9", exact: true }).click();
-  page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "ลบโฆษณา", exact: true }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "ลบโฆษณา", exact: true }).click();
   await expect(page.getByRole("table").getByRole("row")).toHaveCount(9);
   await expect(page.getByRole("table")).not.toContainText("กิจกรรม 9");
   await expect(page.locator('form[aria-label="ฟอร์มโฆษณา"]' )).toHaveCount(0);

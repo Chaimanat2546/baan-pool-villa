@@ -25,6 +25,8 @@ import type { DraftImage } from "./advertisement-images-editor";
 import { AdvertisementEditor, type AdvertisementEditorDraft as Editor } from "./advertisement-editor";
 import { AdvertisementList } from "./advertisement-list";
 import { AdvertisementFilters } from "./advertisement-filters";
+import { AdvertisementConfirmationDialog } from "./advertisement-confirmation-dialog";
+import { useAdvertisementConfirmation } from "./use-advertisement-confirmation";
 
 const buttonClass =
   "inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-xs font-medium transition focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-40 pointer-coarse:min-h-11";
@@ -53,47 +55,22 @@ export function AdminAdvertisementsPage() {
     [notice, setNotice] = useState<string | null>(null);
   const objectUrls = useRef(new Set<string>());
   const listHeading = useRef<HTMLHeadingElement>(null);
+  const errorSummary = useRef<HTMLDivElement>(null);
   const loadVersion = useRef(0);
   const [filters, setFilters] = useState<AdvertisementListFilters>({ search: "", zone: "", status: "all" });
+  const confirmation = useAdvertisementConfirmation(dirty);
   useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(null), 3000);
     return () => window.clearTimeout(timer);
   }, [notice]);
   useEffect(() => { if (!editor) listHeading.current?.focus(); }, [editor]);
+  useEffect(() => { if (errors.length) errorSummary.current?.focus(); }, [errors]);
   const revokeUrls = useCallback(() => {
     objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
     objectUrls.current.clear();
   }, []);
   useEffect(() => () => revokeUrls(), [revokeUrls]);
-  useEffect(() => {
-    if (!dirty) return;
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    const beforeLink = (event: MouseEvent) => {
-      const anchor =
-        event.target instanceof Element
-          ? event.target.closest("a[href]")
-          : null;
-      if (
-        anchor &&
-        !window.confirm(
-          "มีการแก้ไขที่ยังไม่บันทึก ต้องการออกจากหน้านี้หรือไม่?",
-        )
-      ) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-    window.addEventListener("beforeunload", beforeUnload);
-    document.addEventListener("click", beforeLink, true);
-    return () => {
-      window.removeEventListener("beforeunload", beforeUnload);
-      document.removeEventListener("click", beforeLink, true);
-    };
-  }, [dirty]);
   const api = useCallback(
     async (url: string, init?: RequestInit) => {
       const token = await readAdminAccessToken();
@@ -162,41 +139,44 @@ export function AdminAdvertisementsPage() {
   useEffect(() => {
     void load(1);
   }, [load]);
-  const mayDiscard = () =>
-    !dirty ||
-    window.confirm("มีการแก้ไขที่ยังไม่บันทึก ต้องการละทิ้งการแก้ไขหรือไม่?");
   const reload = (nextPage: number) => {
-    if (busy || loading || !mayDiscard()) return;
-    setLoading(true);
-    setErrors([]);
-    void load(nextPage);
+    if (busy || loading) return;
+    confirmation.discardBefore(() => {
+      setLoading(true);
+      setErrors([]);
+      void load(nextPage);
+    });
   };
   const select = (ad?: AdminAdvertisement) => {
-    if (busy || loading || !mayDiscard()) return;
-    revokeUrls();
-    setEditor(
-      ad
-        ? toEditor(ad)
-        : {
-            id: crypto.randomUUID(),
-            title: "",
-            zone: "all",
-            isActive: true,
-            updatedAt: null,
-            images: [],
-          },
-    );
-    setDirty(false);
-    setErrors([]);
-    setNotice(null);
-    setWarnings([]);
+    if (busy || loading) return;
+    confirmation.discardBefore(() => {
+      revokeUrls();
+      setEditor(
+        ad
+          ? toEditor(ad)
+          : {
+              id: crypto.randomUUID(),
+              title: "",
+              zone: "all",
+              isActive: true,
+              updatedAt: null,
+              images: [],
+            },
+      );
+      setDirty(false);
+      setErrors([]);
+      setNotice(null);
+      setWarnings([]);
+    });
   };
   const backToList = () => {
-    if (busy || loading || !mayDiscard()) return;
-    revokeUrls();
-    setEditor(null);
-    setDirty(false);
-    setErrors([]);
+    if (busy || loading) return;
+    confirmation.discardBefore(() => {
+      revokeUrls();
+      setEditor(null);
+      setDirty(false);
+      setErrors([]);
+    });
   };
   const update = (changes: Partial<Editor>) => {
     setEditor((current) => (current ? { ...current, ...changes } : null));
@@ -276,12 +256,7 @@ export function AdminAdvertisementsPage() {
     }
   };
   const remove = async () => {
-    if (
-      !editor?.updatedAt ||
-      busy ||
-      !window.confirm(`ลบโฆษณา “${editor.title}” และรูปที่เกี่ยวข้องหรือไม่?`)
-    )
-      return;
+    if (!editor?.updatedAt || busy || loading) return;
     setBusy(true);
     setErrors([]);
     setNotice(null);
@@ -305,7 +280,8 @@ export function AdminAdvertisementsPage() {
       setBusy(false);
     }
   };
-  const feedback = <AdminFeedback errors={errors} errorTitle="ดำเนินการไม่สำเร็จ" notice={editor ? null : notice} warnings={warnings} />;
+  const feedbackContent = <AdminFeedback errors={errors} errorTitle="ดำเนินการไม่สำเร็จ" notice={editor ? null : notice} warnings={warnings} />;
+  const feedback = errors.length ? <div ref={errorSummary} role="region" aria-label="ข้อผิดพลาดในการจัดการโฆษณา" tabIndex={-1} className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]">{feedbackContent}</div> : feedbackContent;
   return (
     <div className="mx-auto grid w-full max-w-[1280px] min-w-0 gap-5 text-[var(--site-text)]">
       {editor ? (
@@ -322,7 +298,9 @@ export function AdminAdvertisementsPage() {
           onError={setErrors}
           onSave={save}
           onBack={backToList}
-          onDelete={() => void remove()}
+          onDelete={() => {
+            if (editor.updatedAt && !busy && !loading) confirmation.deleteBefore(editor.title, () => void remove());
+          }}
         />
       ) : (
         <>
@@ -351,6 +329,7 @@ export function AdminAdvertisementsPage() {
           <Link href="/admin/detail-layout" prefetch={false} className="justify-self-start text-xs text-[var(--site-muted)] underline-offset-4 hover:underline">ตั้งชื่อหัวข้อและตำแหน่งในหน้ารายละเอียด</Link>
         </>
       )}
+      {confirmation.pending && <AdvertisementConfirmationDialog confirmation={confirmation.pending} onCancel={confirmation.cancel} onConfirm={confirmation.confirm} />}
     </div>
   );
 }

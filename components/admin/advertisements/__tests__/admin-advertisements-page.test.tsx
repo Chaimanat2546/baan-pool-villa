@@ -31,8 +31,13 @@ const ad = {
     },
   ],
 };
+Object.defineProperties(HTMLDialogElement.prototype, {
+  showModal: { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } },
+  close: { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; } },
+});
 beforeEach(() => {
   mocks.replace.mockReset();
+  vi.spyOn(window, "confirm").mockReturnValue(false);
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 function editButton(container: HTMLElement) {
@@ -157,15 +162,67 @@ describe("advertisement editor", () => {
     expect(page.container.querySelector("table")).toBeNull();
     expect(page.container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe(ad.title);
     await changeInput(page.container.querySelector('input[name="title"]')!, "ยังไม่บันทึก");
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     const back = page.container.querySelector<HTMLButtonElement>('button[aria-label="กลับรายการโฆษณา"]')!;
     await click(back);
-    expect(confirm).toHaveBeenCalledOnce();
+    expect(page.container.querySelector('[role="alertdialog"]')).not.toBeNull();
+    expect(window.confirm).not.toHaveBeenCalled();
     expect(page.container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe("ยังไม่บันทึก");
-    confirm.mockReturnValue(true);
+    await click(page.container.querySelector<HTMLButtonElement>('[role="alertdialog"] button')!);
+    expect(page.container.querySelector('[role="alertdialog"]')).toBeNull();
     await click(Array.from(page.container.querySelectorAll<HTMLButtonElement>("button")).find(button => button.textContent === "ยกเลิก")!);
+    await click(Array.from(page.container.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')).find(button => button.textContent === "ละทิ้งการแก้ไข")!);
     expect(page.container.querySelector("table")).not.toBeNull();
     expect(page.container.querySelector('form[aria-label="ฟอร์มโฆษณา"]')).toBeNull();
+    await page.unmount();
+  });
+  it("does not delete until the website modal is confirmed and keeps drafts when it is canceled", async () => {
+    const fetchMock = makeFetchMock([
+      { url: "/api/admin/advertisements?page=1", body: { advertisements: [ad], total: 1 } },
+      { url: "/api/admin/advertisements", method: "DELETE", body: { warnings: [] } },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await mountAdvertisements();
+    await click(editButton(page.container));
+    await changeInput(page.container.querySelector('input[name="title"]')!, "ร่างที่ต้องเก็บ");
+    const remove = () => Array.from(page.container.querySelectorAll<HTMLButtonElement>("button")).find(button => button.textContent === "ลบโฆษณา")!;
+    await click(remove());
+    expect(page.container.querySelector('[role="alertdialog"]')?.textContent).toContain("ร่างที่ต้องเก็บ");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await click(page.container.querySelector('[role="alertdialog"] button')!);
+    expect(page.container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe("ร่างที่ต้องเก็บ");
+    await click(remove());
+    const buttons = page.container.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button');
+    await click(buttons[1]);
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(1);
+    expect(window.confirm).not.toHaveBeenCalled();
+    await page.unmount();
+  });
+  it("uses a cancelable website modal when following a link with unsaved changes", async () => {
+    vi.stubGlobal("fetch", makeFetchMock([{ url: "/api/admin/advertisements?page=1", body: { advertisements: [ad], total: 1 } }]));
+    const page = await mountAdvertisements();
+    await click(editButton(page.container));
+    await changeInput(page.container.querySelector('input[name="title"]')!, "ร่างใหม่");
+    const link = page.container.querySelector('a[href="/admin/detail-layout"]')!;
+    const navigate = vi.fn((event: Event) => event.preventDefault());
+    link.addEventListener("click", navigate);
+    const follow = async () => {
+      const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+      await act(async () => { link.dispatchEvent(event); });
+      expect(event.defaultPrevented).toBe(true);
+    };
+    await follow();
+    expect(page.container.querySelector('[role="alertdialog"]')?.textContent).toContain("ออกจากหน้านี้");
+    await act(async () => { page.container.querySelector('dialog')!.dispatchEvent(new Event("cancel", { cancelable: true })); });
+    expect(page.container.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(page.container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe("ร่างใหม่");
+    expect(window.confirm).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    const unload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    await follow();
+    await click(page.container.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')[1]);
+    expect(navigate).toHaveBeenCalledOnce();
     await page.unmount();
   });
   it("locks record selection while a reload is pending", async () => {
