@@ -15,7 +15,7 @@ export function VillaGrid({ villaCardStyle, villas }: VillaGridProps) {
     return (
       <div className="grid min-h-72 place-items-center rounded-[24px] border border-dashed border-[var(--site-border-strong)] bg-[var(--site-surface)] px-6 text-center">
         <div className="max-w-md">
-          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]">
             <SearchX className="h-6 w-6" />
           </div>
           <h2 className="mt-4 text-xl font-bold text-[var(--site-text)]">

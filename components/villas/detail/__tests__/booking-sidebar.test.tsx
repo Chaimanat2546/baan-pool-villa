@@ -380,7 +380,7 @@ describe("BookingSidebar", () => {
 
   it("keeps date buttons disabled when the visible month is missing", async () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-16T04:00:00.000Z"));
+    vi.setSystemTime(new Date("2026-07-14T04:00:00.000Z"));
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const container = document.createElement("div");
@@ -409,6 +409,21 @@ describe("BookingSidebar", () => {
 
     expect(dateButtons.length).toBeGreaterThan(0);
     expect(dateButtons.every((button) => button.disabled)).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+    const unavailableNotice = container.querySelector('[data-calendar-unavailable]');
+    expect(unavailableNotice?.getAttribute("role")).toBe("status");
+    expect(unavailableNotice?.textContent).toContain("โหลดข้อมูลปฏิทินเดือนนี้ไม่สำเร็จ");
+    expect(unavailableNotice?.textContent).toContain("ยังยืนยันวันว่างไม่ได้");
+    expect(unavailableNotice?.querySelector("button")?.textContent).toBe("โหลดหน้าใหม่");
+    expect(container.querySelector("[data-calendar-legend]")).toBeNull();
+
+    await act(async () => {
+      clickCalendarNavButton(container, "previous");
+    });
+
+    expect(container.querySelector('[data-calendar-unavailable]')).toBeNull();
+    expect(container.querySelector("[data-calendar-legend]")).not.toBeNull();
+    expect(container.querySelector<HTMLButtonElement>('button[data-day="2026-07-15"]')?.disabled).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
 
     await act(async () => {

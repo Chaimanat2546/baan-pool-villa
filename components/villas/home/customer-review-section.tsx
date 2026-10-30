@@ -295,7 +295,7 @@ export function CustomerReviewSection({ data }: CustomerReviewSectionProps) {
       >
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div>
-            <p className="text-sm font-bold text-[var(--site-primary)]">
+            <p className="text-sm font-bold text-[var(--site-primary-text)]">
               รีวิวจริงจากลูกค้า
             </p>
             <h2 className="mt-2 text-2xl font-bold text-[var(--site-text)] sm:text-3xl">

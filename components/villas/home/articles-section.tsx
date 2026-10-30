@@ -78,7 +78,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                   ) : null}
                   {guide.tags.slice(0, 1).map((tag) => (
                     <span
-                      className="rounded-full bg-[var(--site-surface)]/95 px-3 py-1 text-xs font-semibold text-[var(--site-primary)] backdrop-blur"
+                      className="rounded-full bg-[var(--site-surface)]/95 px-3 py-1 text-xs font-semibold text-[var(--site-primary-text)] backdrop-blur"
                       key={tag}
                     >
                       {tag}
@@ -93,7 +93,7 @@ export function ArticlesSection({ guides }: ArticlesSectionProps) {
                 <p className="line-clamp-3 text-sm leading-6 text-[var(--site-muted)]">
                   {guide.contentPreview}
                 </p>
-                <span className="inline-flex items-center gap-2 pt-1 text-sm font-semibold text-[var(--site-primary)]">
+                <span className="inline-flex items-center gap-2 pt-1 text-sm font-semibold text-[var(--site-primary-text)]">
                   อ่านบทความ <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </span>
               </div>

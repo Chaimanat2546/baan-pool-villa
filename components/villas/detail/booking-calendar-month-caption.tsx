@@ -33,7 +33,7 @@ export function BookingCalendarMonthCaption({
       data-calendar-nav="true"
     >
       <Button
-        className="rounded-2xl px-10 text-lg font-extrabold text-[var(--site-primary)]"
+        className="rounded-2xl px-10 text-lg font-extrabold text-[var(--site-primary-text)]"
         onClick={() => {
           setVisibleMonth(currentMonth);
         }}
@@ -46,7 +46,7 @@ export function BookingCalendarMonthCaption({
       <div className="flex w-full items-center justify-between gap-4">
         <Button
           aria-label="ดูเดือนก่อนหน้า"
-          className="size-10 rounded-2xl text-[var(--site-primary)]"
+          className="size-10 rounded-2xl text-[var(--site-primary-text)]"
           disabled={isPreviousDisabled}
           onClick={() => {
             setVisibleMonth((month) => addCalendarMonths(month, -1));
@@ -63,7 +63,7 @@ export function BookingCalendarMonthCaption({
         </div>
         <Button
           aria-label="ดูเดือนถัดไป"
-          className="relative size-10 overflow-visible rounded-2xl text-[var(--site-primary)]"
+          className="relative size-10 overflow-visible rounded-2xl text-[var(--site-primary-text)]"
           disabled={isNextDisabled}
           onClick={() => {
             setVisibleMonth((month) => addCalendarMonths(month, 1));

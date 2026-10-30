@@ -45,7 +45,7 @@ export function BookingSidebar({
         />
 
         <div className="mt-4 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] p-3 text-sm text-[var(--site-muted)]">
-          <p className="flex items-center justify-between gap-3 text-xs font-black text-[var(--site-primary)]">
+          <p className="flex items-center justify-between gap-3 text-xs font-black text-[var(--site-primary-text)]">
             สถานะ
           </p>
           <p className="mt-2 text-xs leading-6">

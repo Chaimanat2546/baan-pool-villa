@@ -154,12 +154,12 @@ export function ScrollRail({
   }, []);
   const previousControl = alwaysShowControls ? (
     <button type="button" aria-label={`เลื่อน${label}ไปทางซ้าย`}
-      className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)]"
+      className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary-text)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)]"
       onClick={scrollPrev}><ChevronLeft aria-hidden="true" className="h-5 w-5" /></button>
   ) : null;
   const nextControl = alwaysShowControls ? (
     <button type="button" aria-label={`เลื่อน${label}ไปทางขวา`}
-      className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)]"
+      className="grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary-text)] shadow-[0_10px_24px_rgba(6,63,53,0.1)] transition hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)]"
       onClick={scrollNext}><ChevronRight aria-hidden="true" className="h-5 w-5" /></button>
   ) : null;
   return (

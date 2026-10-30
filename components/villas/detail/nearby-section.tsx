@@ -51,11 +51,11 @@ export function NearbySection({
               className="block rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_30px_rgba(6,63,53,0.06)] transition hover:-translate-y-0.5 hover:border-[var(--site-border-strong)] hover:shadow-[0_16px_34px_rgba(6,63,53,0.11)]"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-black text-[var(--site-primary)]">
+                <span className="text-xs font-black text-[var(--site-primary-text)]">
                   {card.category}
                 </span>
                 {card.isGoogleMap ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--site-primary-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--site-primary)]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--site-primary-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--site-primary-text)]">
                     <MapPin className="h-3 w-3" />
                     Google Maps
                   </span>
@@ -65,7 +65,7 @@ export function NearbySection({
                 {card.title}
               </h3>
               {card.href ? (
-                <span className="mt-4 inline-flex items-center gap-1 text-xs font-black text-[var(--site-primary)]">
+                <span className="mt-4 inline-flex items-center gap-1 text-xs font-black text-[var(--site-primary-text)]">
                   เปิดแผนที่ <ArrowRight className="h-3 w-3" />
                 </span>
               ) : null}

@@ -24,6 +24,9 @@ describe("ThemeSettingsPage", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/site-settings/theme", expect.any(Object));
     for (const section of ["brand", "hero", "seo", "contact"]) expect(fetchMock.mock.calls.some(([url]) => String(url).includes(`/${section}`))).toBe(false);
     await changeInput(page.container.querySelector("#primaryColor") as HTMLInputElement, "#112233");
+    const preview = page.container.querySelector(".settings-preview-theme") as HTMLElement;
+    expect(preview.style.getPropertyValue("--site-primary")).toBe("#112233");
+    expect(preview.style.getPropertyValue("--site-primary-text")).toBe("#112233");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     await click([...page.container.querySelectorAll("button")].find((button) => button.textContent?.includes("บันทึกส่วนนี้"))!);
     const saveCall = fetchMock.mock.calls.find(([, options]) => options?.method === "PATCH")!;
@@ -51,10 +54,14 @@ describe("ThemeSettingsPage", () => {
     expect(primaryActions).not.toBeNull();
     expect(primaryActions?.querySelector("#primaryColor")).not.toBeNull();
     expect(primaryActions?.querySelector("#accentColor")).not.toBeNull();
-    expect(primaryActions?.querySelector('[class~="bg-[var(--site-primary)]"]')).not.toBeNull();
+    expect(primaryActions?.querySelector('[class~="bg-[var(--site-primary-action)]"]')).not.toBeNull();
+    expect(primaryActions?.querySelector('[class~="text-[var(--site-on-primary-action)]"]')).not.toBeNull();
+    expect(primaryActions?.textContent).toContain("จองผ่าน LINE");
     expect(primaryActions?.textContent).toContain("สีพื้นหลักของเว็บไซต์");
     expect(primaryActions?.textContent).toContain("ราคาเริ่มต้น");
-    expect(primaryActions?.querySelector('[class~="text-[var(--site-accent)]"]')).not.toBeNull();
+    expect(primaryActions?.querySelector('[class~="text-[var(--site-accent-text)]"]')).not.toBeNull();
+    expect(primaryActions?.querySelector('[class~="text-[var(--site-primary-text)]"]')).not.toBeNull();
+    expect(primaryActions?.textContent).toContain("ปรับความเข้มให้อ่านชัด");
 
     const headerMenu = page.container.querySelector('[data-theme-color-group="header-menu"]');
     expect(headerMenu).not.toBeNull();

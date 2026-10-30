@@ -123,7 +123,7 @@ export function MobileBottomNav({ settings }: MobileBottomNavProps) {
               <button
                 type="button"
                 aria-label="ปิดตัวเลือกโทร"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)]"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary-text)]"
                 onClick={() => {
                   setIsPhoneSheetOpen(false);
                 }}

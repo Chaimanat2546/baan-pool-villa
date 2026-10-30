@@ -45,7 +45,7 @@ export function FaqSection() {
           >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-left marker:hidden sm:px-6 sm:py-5">
               <span className="font-black text-[var(--site-text)]">{item.question}</span>
-              <ChevronDown className="h-5 w-5 shrink-0 text-[var(--site-primary)] transition group-open:rotate-180" />
+              <ChevronDown className="h-5 w-5 shrink-0 text-[var(--site-primary-text)] transition group-open:rotate-180" />
             </summary>
             <div className="border-t border-[var(--site-border)] px-5 pb-5 pt-4 text-sm leading-6 text-[var(--site-muted)] sm:px-6">
               {item.answer}

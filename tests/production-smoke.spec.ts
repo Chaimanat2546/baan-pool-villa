@@ -242,12 +242,27 @@ test("search page renders, and a live villa detail page renders when listing dat
 
   expect(detailHref).toMatch(/^\/villas\/[^/]+$/);
 
+  const detailRequestUrls: URL[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.origin === new URL(page.url()).origin) detailRequestUrls.push(url);
+  });
+
   const detailResponse = await page.goto(detailHref ?? "/search", {
     waitUntil: "domcontentloaded",
   });
 
   expect(detailResponse?.ok()).toBe(true);
   await expectHealthyPage(page);
+  await expect(page.locator('[data-slot="calendar"]:visible').first()).toBeVisible();
+  await page.waitForLoadState("networkidle");
+
+  expect(detailRequestUrls.some((url) => url.searchParams.has("_rsc"))).toBe(false);
+  expect(detailRequestUrls.some((url) => url.pathname === "/_next/image")).toBe(false);
+  expect(detailRequestUrls.some((url) => url.pathname.includes("/booking-calendar"))).toBe(false);
+  const apiRequestCount = detailRequestUrls.filter((url) => url.pathname.startsWith("/api/")).length;
+  expect(apiRequestCount).toBeLessThanOrEqual(40);
+  console.log(`Villa detail network: ${detailRequestUrls.length} same-origin requests, ${apiRequestCount} API requests`);
 });
 
 test("admin routes keep unauthenticated users on login and expose theme vars", async ({

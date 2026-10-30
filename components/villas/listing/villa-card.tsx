@@ -134,7 +134,7 @@ export function VillaCard({
               <span className="text-[var(--site-text)]">{villaTitle}</span>
             ) : (
               <a
-                className="text-[var(--site-text)] transition hover:text-[var(--site-primary)]"
+                className="text-[var(--site-text)] transition hover:text-[var(--site-primary-text)]"
                 href={villaHref}
               >
                 {villaTitle}
@@ -149,12 +149,12 @@ export function VillaCard({
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pb-3 text-xs leading-4 text-[var(--site-muted)]">
           <span className="inline-flex items-center gap-1">
-            <BedDouble className="h-3.5 w-3.5 text-[var(--site-primary)]" />
+            <BedDouble className="h-3.5 w-3.5 text-[var(--site-primary-text)]" />
             {villa.bedrooms.toLocaleString("th-TH")} ห้องนอน
           </span>
           <span className="text-sm leading-5 text-[var(--site-muted)]">•</span>
           <span className="inline-flex items-center gap-1">
-            <Users className="h-3.5 w-3.5 text-[var(--site-primary)]" />
+            <Users className="h-3.5 w-3.5 text-[var(--site-primary-text)]" />
             รองรับ {villa.people.toLocaleString("th-TH")} คน
           </span>
         </div>

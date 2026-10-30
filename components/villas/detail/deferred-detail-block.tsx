@@ -180,7 +180,7 @@ export function DeferredRecommendedVillas({
           <div className="mt-8 text-center">
             <a
               href={ctaHref ?? DEFAULT_RECOMMENDED_CTA_HREF}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--site-primary)] px-5 py-3 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_30px_rgba(6,77,61,0.22)] transition hover:bg-[var(--site-primary-hover)]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--site-primary-action)] px-5 py-3 text-sm font-black text-[var(--site-on-primary-action)] shadow-[0_14px_30px_rgba(6,77,61,0.22)] transition hover:bg-[var(--site-primary-action)]"
             >
               {recommendedSection.cta.label} <ArrowRight className="h-4 w-4" />
             </a>

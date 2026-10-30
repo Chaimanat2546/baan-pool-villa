@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { preloadVillaBookingCalendars } from "../booking-calendar-preload";
 import {
   fetchVillaBookingCalendar,
   getMinimumGuestCapacity,
@@ -12,6 +13,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 const baseResponse: RawBookingCalendarResponse = {
@@ -349,6 +351,76 @@ describe("normalizeBookingCalendar", () => {
 });
 
 describe("fetchVillaBookingCalendar", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "info").mockImplementation(() => {});
+  });
+
+  it.each([
+    ["empty object", {}],
+    ["error envelope", { error: "private upstream detail" }],
+    ["null root", null],
+    ["array root", []],
+    ["missing base prices", { ...baseResponse, base_price: undefined }],
+    ["null base prices", { ...baseResponse, base_price: null }],
+    ["empty base prices", { ...baseResponse, base_price: {} }],
+    ["all weekday prices missing", { ...baseResponse, base_price: { price_sun: null, price_mon: null, price_tue: null, price_wed: null, price_thu: null, price_fri: null, price_sat: null } }],
+    ["missing weekday price", { ...baseResponse, base_price: { ...baseResponse.base_price, price_mon: undefined } }],
+    ["string weekday price", { ...baseResponse, base_price: { ...baseResponse.base_price, price_mon: "9900" } }],
+    ["negative weekday price", { ...baseResponse, base_price: { ...baseResponse.base_price, price_mon: -1 } }],
+    ["numeric guest capacity", { ...baseResponse, base_price: { ...baseResponse.base_price, people_mon: 18 } }],
+    ["missing bookings", { ...baseResponse, bookings: undefined }],
+    ["null bookings", { ...baseResponse, bookings: null }],
+    ["object bookings", { ...baseResponse, bookings: {} }],
+    ["null booking row", { ...baseResponse, bookings: [null] }],
+    ["invalid booking date", { ...baseResponse, bookings: [{ book_checkin: "2026-02-31", book_checkout: "2026-03-03" }] }],
+    ["unsupported booking year", { ...baseResponse, bookings: [{ book_checkin: "0026-06-01", book_checkout: "0026-06-03" }] }],
+    ["reversed booking range", { ...baseResponse, bookings: [{ book_checkin: "2026-06-20", book_checkout: "2026-06-19" }] }],
+    ["zero-night booking", { ...baseResponse, bookings: [{ book_checkin: "2026-06-20", book_checkout: "2026-06-20" }] }],
+    ["missing holidays", { ...baseResponse, holidays: undefined }],
+    ["invalid holiday price", { ...baseResponse, holidays: [{ holiday_start: "2026-06-20", holiday_end: "2026-06-20", holiday_price: "9900" }] }],
+    ["missing hot holidays", { ...baseResponse, hot_holidays: undefined }],
+    ["invalid hot holiday range", { ...baseResponse, hot_holidays: [{ hot_holiday_start: "2026-06-20", hot_holiday_end: "2026-06-19" }] }],
+    ["missing promotions", { ...baseResponse, protime_promotions: undefined }],
+    ["invalid promotion text", { ...baseResponse, protime_promotions: [{ protime_start: "2026-06-20", protime_end: "2026-06-20", protime_msg: {} }] }],
+    ["invalid promotion price", { ...baseResponse, protime_promotions: [{ protime_start: "2026-06-20", protime_end: "2026-06-20", protime_price_sat: "9900" }] }],
+  ])("rejects %s without treating the month as available", async (_name, payload) => {
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(payload));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchVillaBookingCalendar("9", "2026-06")).resolves.toEqual({
+      calendar: null,
+      status: "unavailable",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(console.warn).toHaveBeenCalledWith("Booking calendar fetch failed", expect.objectContaining({
+      event: "booking_calendar_fetch_failed",
+      propertyId: "9",
+      month: "2026-06",
+      reason: "invalid_payload",
+      invalidField: expect.any(String),
+      httpStatus: 200,
+      durationMs: expect.any(Number),
+      loadId: expect.any(String),
+    }));
+    expect(JSON.stringify(vi.mocked(console.warn).mock.calls)).not.toContain("private upstream detail");
+  });
+
+  it("accepts explicit nullable fields and complete empty event arrays", async () => {
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      ...baseResponse,
+      base_price: { ...baseResponse.base_price, price_mon: null, people_mon: null },
+      holidays: [{ holiday_start: "2026-06-20", holiday_end: "2026-06-20", holiday_price: null, holiday_alert: null }],
+    })));
+
+    const result = await fetchVillaBookingCalendar("9", "2026-06");
+    expect(result.status).toBe("available");
+    expect(result.calendar?.days["2026-06-20"].price).toBe(18900);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
   it("returns missing token without calling the external API", async () => {
     vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "");
     const fetchMock = vi.fn();
@@ -359,6 +431,7 @@ describe("fetchVillaBookingCalendar", () => {
       status: "missing_token",
     });
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalledWith("Booking calendar fetch failed", expect.objectContaining({ reason: "missing_token", httpStatus: null }));
   });
 
   it("returns unavailable when the upstream API returns a non-OK response", async () => {
@@ -372,6 +445,7 @@ describe("fetchVillaBookingCalendar", () => {
       calendar: null,
       status: "unavailable",
     });
+    expect(console.warn).toHaveBeenLastCalledWith("Booking calendar fetch failed", expect.objectContaining({ reason: "http_error", httpStatus: 503 }));
   });
 
   it("returns unavailable when fetch or JSON parsing throws", async () => {
@@ -382,6 +456,7 @@ describe("fetchVillaBookingCalendar", () => {
       calendar: null,
       status: "unavailable",
     });
+    expect(console.warn).toHaveBeenLastCalledWith("Booking calendar fetch failed", expect.objectContaining({ reason: "network_error", httpStatus: null }));
 
     vi.stubGlobal(
       "fetch",
@@ -397,6 +472,7 @@ describe("fetchVillaBookingCalendar", () => {
       calendar: null,
       status: "unavailable",
     });
+    expect(console.warn).toHaveBeenLastCalledWith("Booking calendar fetch failed", expect.objectContaining({ reason: "invalid_json", httpStatus: 200 }));
   });
 
   it("returns unavailable when the upstream request hangs past the timeout", async () => {
@@ -420,6 +496,7 @@ describe("fetchVillaBookingCalendar", () => {
     await expect(resultPromise).resolves.toEqual({
       calendar: null,
       status: "unavailable",
+      timedOut: true,
     });
     expect(fetchMock).toHaveBeenCalledWith(
       expect.any(URL),
@@ -427,6 +504,71 @@ describe("fetchVillaBookingCalendar", () => {
         signal: expect.any(AbortSignal),
       }),
     );
+    expect(console.warn).toHaveBeenLastCalledWith("Booking calendar fetch failed", expect.objectContaining({ reason: "timeout", durationMs: 8000, attempt: 1 }));
+  });
+
+  it("recovers the initial calendar automatically after a real fetch timeout without retrying every month", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
+    let currentAttempts = 0;
+    const fetchMock = vi.fn((url: URL, init?: RequestInit) => {
+      if (url.searchParams.get("month") === "2026-06" && ++currentAttempts === 1) {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+        });
+      }
+      return Promise.resolve(Response.json(baseResponse));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const resultPromise = preloadVillaBookingCalendars("9", new Date("2026-06-16T04:00:00Z"));
+    await vi.advanceTimersByTimeAsync(8000);
+    const result = await resultPromise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(15);
+    expect(result.calendars["2026-06"].days["2026-06-16"].price).toBe(9900);
+    expect(result.unavailableMonths).toEqual([]);
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(console.info).toHaveBeenCalledWith("Booking calendar preload completed", expect.objectContaining({
+      retryCount: 1, fetchAttemptCount: 15, currentMonthAvailable: true,
+    }));
+  });
+
+  it("logs only safe context rather than credentials, payloads, or thrown messages", async () => {
+    const secret = "test-secret-never-log";
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", secret);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error(`failed with ${secret}`)));
+
+    await fetchVillaBookingCalendar(`9\n${secret}`, secret);
+
+    const logged = vi.mocked(console.warn).mock.calls;
+    expect(logged).toHaveLength(1);
+    expect(logged[0][1]).toMatchObject({ propertyId: null, month: null, reason: "network_error" });
+    expect(JSON.stringify(logged)).not.toContain(secret);
+  });
+
+  it("correlates one failed month with the page preload summary without extra requests", async () => {
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
+    const fetchMock = vi.fn(async (url: URL) => Response.json(url.searchParams.get("month") === "2026-06" ? {} : baseResponse));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await preloadVillaBookingCalendars("9", new Date("2026-06-16T04:00:00Z"));
+
+    expect(fetchMock).toHaveBeenCalledTimes(14);
+    expect(result.unavailableMonths).toEqual(["2026-06"]);
+    expect(Object.keys(result.calendars)).toHaveLength(13);
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    const failure = vi.mocked(console.warn).mock.calls[0][1] as { loadId: string };
+    expect(console.info).toHaveBeenCalledWith("Booking calendar preload completed", expect.objectContaining({
+      event: "booking_calendar_preload",
+      loadId: failure.loadId,
+      propertyId: "9",
+      requestedMonthCount: 14,
+      availableMonthCount: 13,
+      unavailableMonths: ["2026-06"],
+      currentMonthAvailable: false,
+      durationMs: expect.any(Number),
+    }));
   });
 
   it("requests fresh calendar data from the upstream API on every page load", async () => {

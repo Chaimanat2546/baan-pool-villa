@@ -166,7 +166,7 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
       {accountUrl ? (
         <div className="mt-8 flex justify-center">
           <a
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--site-primary)] px-5 py-3 text-sm font-semibold text-[var(--site-primary)] transition hover:bg-[var(--site-primary)] hover:text-[var(--site-on-primary)]"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--site-primary)] px-5 py-3 text-sm font-semibold text-[var(--site-primary-text)] transition hover:bg-[var(--site-primary-action)] hover:text-[var(--site-on-primary-action)]"
             href={accountUrl}
             rel="noopener noreferrer"
             target="_blank"

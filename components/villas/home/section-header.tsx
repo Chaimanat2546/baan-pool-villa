@@ -18,7 +18,7 @@ export function SectionHeader({
   return (
     <div className={align === "center" ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}>
       {eyebrow ? (
-        <p className="text-xs font-black uppercase text-[var(--site-accent)]">{eyebrow}</p>
+        <p className="text-xs font-black uppercase text-[var(--site-accent-text)]">{eyebrow}</p>
       ) : null}
       <TitleTag className="mt-2 text-3xl font-black leading-tight text-[var(--site-text)] md:text-4xl">
         {title}

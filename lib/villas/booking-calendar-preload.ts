@@ -36,10 +36,29 @@ export async function preloadVillaBookingCalendars(
   propertyId: string,
   now = new Date(),
 ): Promise<VillaBookingCalendarPreload> {
+  const startedAt = Date.now();
+  const loadId = crypto.randomUUID();
   const monthKeys = getBangkokBookingCalendarMonthKeys(now);
   const results = await Promise.allSettled(
-    monthKeys.map((month) => fetchVillaBookingCalendar(propertyId, month)),
+    monthKeys.map((month) => fetchVillaBookingCalendar(propertyId, month, loadId)),
   );
+  // Only this initially displayed Bangkok month can retry, up to four total attempts.
+  const currentMonth = monthKeys[1];
+  let retryCount = 0;
+  for (const attempt of [2, 3, 4] as const) {
+    const currentMonthResult = results[1];
+    if (
+      currentMonthResult.status !== "fulfilled" ||
+      currentMonthResult.value.status !== "unavailable" ||
+      currentMonthResult.value.timedOut !== true
+    ) break;
+
+    retryCount++;
+    const [retryResult] = await Promise.allSettled([
+      fetchVillaBookingCalendar(propertyId, currentMonth, loadId, attempt),
+    ]);
+    results[1] = retryResult;
+  }
   const calendars: Record<string, BookingCalendarMonth> = {};
   const unavailableMonths: string[] = [];
 
@@ -53,6 +72,20 @@ export async function preloadVillaBookingCalendars(
 
     unavailableMonths.push(month);
   }
+
+  console.info("Booking calendar preload completed", {
+    event: "booking_calendar_preload",
+    loadId,
+    propertyId: /^[1-9]\d{0,19}$/.test(propertyId) ? propertyId : null,
+    requestedMonthCount: monthKeys.length,
+    retryCount,
+    fetchAttemptCount: monthKeys.length + retryCount,
+    availableMonthCount: Object.keys(calendars).length,
+    unavailableMonths,
+    currentMonth,
+    currentMonthAvailable: Boolean(calendars[currentMonth]),
+    durationMs: Date.now() - startedAt,
+  });
 
   return { calendars, unavailableMonths };
 }

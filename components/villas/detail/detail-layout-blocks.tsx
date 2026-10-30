@@ -91,7 +91,7 @@ function DetailCard({
     <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-[0_10px_30px_rgba(6,63,53,0.06)]">
       <div className="flex items-center gap-3">
         {icon ? (
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]">
             {icon}
           </span>
         ) : null}
@@ -153,7 +153,7 @@ function CompactLineList({
         className="group"
         data-detail-compact-list="true"
       >
-        <summary className="group-open:hidden mt-3 cursor-pointer text-sm font-black text-[var(--site-primary)]">
+        <summary className="group-open:hidden mt-3 cursor-pointer text-sm font-black text-[var(--site-primary-text)]">
           ดูรายละเอียดเพิ่มอีก {hiddenLines.length.toLocaleString("th-TH")}{" "}
           รายการ
         </summary>
@@ -381,7 +381,7 @@ function renderMapNearby({ content }: DetailLayoutBlockContext) {
   return (
     <section className="rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-5 shadow-[0_10px_30px_rgba(6,63,53,0.06)]">
       <div className="mb-6 flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]">
           <MapPin className="h-5 w-5" />
         </span>
         <h2 className="text-xl font-black text-[var(--site-text)]">

@@ -29,7 +29,7 @@ export function VillaIntro({
   return (
     <section className="border-b border-[var(--site-border)] pb-6">
       <div className="flex items-center gap-3 text-sm font-semibold text-[var(--site-muted)] justify-between sm:gap-4">
-        <span className="rounded-full bg-[var(--site-primary-soft)] px-3 py-1 text-xs font-black text-[var(--site-primary)]">
+        <span className="rounded-full bg-[var(--site-primary-soft)] px-3 py-1 text-xs font-black text-[var(--site-primary-text)]">
         DV-{listing.id}
         </span>
         <ShareButton title={getSeoVillaTitle(listing)} />
@@ -40,7 +40,7 @@ export function VillaIntro({
       </h1>
 
       {listing.price === null ? null : (
-        <p className="mt-1 text-sm font-bold text-[var(--site-accent)]">
+        <p className="mt-1 text-sm font-bold text-[var(--site-accent-text)]">
           เริ่มต้น {formatVillaPrice(listing.price)} / คืน
         </p>
       )}
@@ -54,13 +54,13 @@ export function VillaIntro({
         className="mt-4 flex flex-wrap gap-2 text-sm font-bold"
       >
         <a
-          className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+          className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary-text)] transition hover:border-[var(--site-border-strong)]"
           href={DEFAULT_SEARCH_FILTER_PATH}
         >
           ค้นหาบ้านพักเพิ่มเติม
         </a>
         <a
-          className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+          className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary-text)] transition hover:border-[var(--site-border-strong)]"
           href="/guides"
         >
           อ่านคู่มือก่อนจอง
@@ -69,7 +69,7 @@ export function VillaIntro({
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-[var(--site-muted)]">
         <span className="inline-flex items-center gap-1.5">
-          <MapPin className="h-4 w-4 text-[var(--site-primary)]" />
+          <MapPin className="h-4 w-4 text-[var(--site-primary-text)]" />
 
           {content.location?.address ?? listing.zoneLabel}
         </span>
@@ -83,7 +83,7 @@ export function VillaIntro({
             href={content.location.mapUrl}
             target="_blank"
             rel="noreferrer"
-            className="font-black text-[var(--site-primary)] underline-offset-4 hover:underline"
+            className="font-black text-[var(--site-primary-text)] underline-offset-4 hover:underline"
           >
             ดูแผนที่
           </a>
@@ -126,7 +126,7 @@ function StatTile({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-[var(--site-surface-soft)] px-4 py-3">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]">
         <Icon className="h-5 w-5" />
       </span>
 
@@ -213,7 +213,7 @@ export function AmenitiesSection({
               className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]"
               data-amenity-icon={amenity.key}
             >
-              <Icon className="h-4 w-4 text-[var(--site-primary)]" />
+              <Icon className="h-4 w-4 text-[var(--site-primary-text)]" />
 
               {amenity.label}
             </div>
@@ -223,7 +223,7 @@ export function AmenitiesSection({
 
       {hiddenAmenities.length > 0 ? (
         <details className="mt-4 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 py-2">
-          <summary className="cursor-pointer text-sm font-black text-[var(--site-primary)]">
+          <summary className="cursor-pointer text-sm font-black text-[var(--site-primary-text)]">
             ดูสิ่งอำนวยความสะดวกเพิ่มอีก{" "}
             {hiddenAmenities.length.toLocaleString("th-TH")} รายการ
           </summary>
@@ -237,7 +237,7 @@ export function AmenitiesSection({
                   className="flex items-center gap-3 text-sm font-semibold text-[var(--site-text)]"
                   data-amenity-icon={amenity.key}
                 >
-                  <Icon className="h-4 w-4 text-[var(--site-primary)]" />
+                  <Icon className="h-4 w-4 text-[var(--site-primary-text)]" />
                   {amenity.label}
                 </div>
               );
@@ -261,7 +261,7 @@ export function VideoReviewSection({
   return (
     <section className="border-t border-[var(--site-border)] py-8">
       <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]">
           <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
         </span>
 

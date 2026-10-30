@@ -42,7 +42,7 @@ export function CalendarDayDetailDialog({
           </div>
           <button
             aria-label="ปิดรายละเอียดวัน"
-            className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1 text-sm font-black text-[var(--site-muted)] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:scale-105 hover:border-[var(--site-primary)] hover:text-[var(--site-primary)] active:translate-y-0 active:scale-95 animate-in fade-in zoom-in-95 delay-100 fill-mode-both motion-reduce:animate-none"
+            className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1 text-sm font-black text-[var(--site-muted)] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:scale-105 hover:border-[var(--site-primary)] hover:text-[var(--site-primary-text)] active:translate-y-0 active:scale-95 animate-in fade-in zoom-in-95 delay-100 fill-mode-both motion-reduce:animate-none"
             onClick={onClose}
             type="button"
           >
@@ -86,7 +86,7 @@ export function CalendarDayDetailDialog({
             </p>
             <div className="grid grid-cols-2 gap-2">
               <a
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-3 text-sm font-black text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--site-primary-action)] px-3 text-sm font-black text-[var(--site-on-primary-action)] transition hover:bg-[var(--site-primary-action)]"
                 href={contactLinks.line}
                 rel="noreferrer"
                 target="_blank"
@@ -95,7 +95,7 @@ export function CalendarDayDetailDialog({
                 จอง LINE
               </a>
               <a
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] px-3 text-sm font-black text-[var(--site-primary)] transition hover:bg-[var(--site-surface-tint)]"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] px-3 text-sm font-black text-[var(--site-primary-text)] transition hover:bg-[var(--site-surface-tint)]"
                 href={contactLinks.messenger}
                 rel="noreferrer"
                 target="_blank"

@@ -162,7 +162,7 @@ export function SearchBar({
             aria-controls={openMenu === "location" ? locationMenuId : undefined}
           >
             <span className="flex min-w-0 items-center gap-2">
-              <MapPin className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
+              <MapPin className="h-5 w-5 shrink-0 text-[var(--site-primary-text)]" />
               <span className="truncate text-lg leading-7">{selectedLocation}</span>
             </span>
             <ChevronDown className="h-5 w-5 shrink-0 text-[var(--site-text)]" />
@@ -202,7 +202,7 @@ export function SearchBar({
                     }}
                   >
                     <span className="truncate">{zone.label}</span>
-                    {filters.zone === zone.value ? <Check className="h-4 w-4 text-[var(--site-accent)]" /> : null}
+                    {filters.zone === zone.value ? <Check className="h-4 w-4 text-[var(--site-accent-text)]" /> : null}
                   </button>
                 ))}
               </div>
@@ -224,7 +224,7 @@ export function SearchBar({
             aria-label="จำนวนผู้เข้าพัก"
           >
             <span className="flex min-w-0 items-center gap-2">
-              <Users className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
+              <Users className="h-5 w-5 shrink-0 text-[var(--site-primary-text)]" />
               <span>{filters.guests > 10 ? "มากกว่า 10" : filters.guests}</span>
             </span>
             <ChevronDown className="h-5 w-5 shrink-0" />
@@ -249,7 +249,7 @@ export function SearchBar({
                   }}
                 >
                   {option.label}
-                  {filters.guests === option.value ? <Check className="h-4 w-4 text-[var(--site-accent)]" /> : null}
+                  {filters.guests === option.value ? <Check className="h-4 w-4 text-[var(--site-accent-text)]" /> : null}
                 </button>
               ))}
             </div>
@@ -270,7 +270,7 @@ export function SearchBar({
             aria-label="จำนวนห้องนอน"
           >
             <span className="flex min-w-0 items-center gap-2">
-              <BedDouble className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
+              <BedDouble className="h-5 w-5 shrink-0 text-[var(--site-primary-text)]" />
               <span>{filters.bedrooms > 10 ? "มากกว่า 10" : filters.bedrooms}</span>
             </span>
             <ChevronDown className="h-5 w-5 shrink-0" />
@@ -295,7 +295,7 @@ export function SearchBar({
                   }}
                 >
                   {option.label}
-                  {filters.bedrooms === option.value ? <Check className="h-4 w-4 text-[var(--site-accent)]" /> : null}
+                  {filters.bedrooms === option.value ? <Check className="h-4 w-4 text-[var(--site-accent-text)]" /> : null}
                 </button>
               ))}
             </div>
@@ -315,7 +315,7 @@ export function SearchBar({
             aria-controls={openMenu === "amenities" ? amenitiesMenuId : undefined}
           >
             <span className="flex min-w-0 items-center gap-2">
-              <SlidersHorizontal className="h-5 w-5 shrink-0 text-[var(--site-primary)]" />
+              <SlidersHorizontal className="h-5 w-5 shrink-0 text-[var(--site-primary-text)]" />
               <span className="truncate text-lg leading-7 text-[var(--site-text)]">{amenityLabel}</span>
             </span>
             <ChevronDown className="h-5 w-5 shrink-0 text-[var(--site-text)]" />
@@ -392,7 +392,7 @@ export function SearchBar({
           type="button"
           onClick={onSearch}
           className={cn(
-            "flex h-11 items-center justify-center gap-2 self-end rounded-full bg-[var(--site-primary)] px-4 text-base font-medium leading-6 text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--site-accent)] focus:ring-offset-2",
+            "flex h-11 items-center justify-center gap-2 self-end rounded-full bg-[var(--site-primary-action)] px-4 text-base font-medium leading-6 text-[var(--site-on-primary-action)] transition hover:bg-[var(--site-primary-action)] focus:outline-none focus:ring-2 focus:ring-[var(--site-accent)] focus:ring-offset-2",
             compactMobile && "col-span-2 h-10 text-sm",
           )}
         >

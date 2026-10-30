@@ -1,10 +1,12 @@
 import "server-only";
+import {
+  BOOKING_CALENDAR_WEEKDAYS as WEEKDAY_KEYS,
+  validateBookingCalendarResponse,
+} from "./booking-calendar-validation";
 
 const BOOKING_CALENDAR_URL =
   "https://www.pattayapartypoolvilla.com/api/bookings";
 const BOOKING_CALENDAR_TIMEOUT_MS = 8_000;
-
-const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 type WeekdayKey = (typeof WEEKDAY_KEYS)[number];
 
@@ -133,7 +135,8 @@ interface CalendarEvent {
 
 export type FetchVillaBookingCalendarResult =
   | { calendar: BookingCalendarMonth; status: "available" }
-  | { calendar: null; status: "missing_token" | "unavailable" };
+  | { calendar: null; status: "missing_token" }
+  | { calendar: null; status: "unavailable"; timedOut?: true };
 
 function isValidMonth(month: string): boolean {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
@@ -494,12 +497,6 @@ export function normalizeBookingCalendar(
   };
 }
 
-async function readJson<T>(response: Response): Promise<T> {
-  const text = await response.text();
-
-  return JSON.parse(text) as T;
-}
-
 /**
  * Fetches one month of current booking data while keeping the booking token
  * server-only. The calendar is intentionally uncached because availability can
@@ -507,17 +504,42 @@ async function readJson<T>(response: Response): Promise<T> {
  *
  * @param propertyId - The villa property id expected by the booking API.
  * @param month - The requested month in `YYYY-MM` format.
+ * @param loadId - Server-generated correlation id shared by the page preload.
+ * @param attempt - Attempt number for correlated server diagnostics; no retry happens here.
  * @returns The normalized calendar result, or an availability status when the
  * data cannot be returned.
  */
 export async function fetchVillaBookingCalendar(
   propertyId: string,
   month: string,
+  loadId: string = crypto.randomUUID(),
+  attempt: 1 | 2 | 3 | 4 = 1,
 ): Promise<FetchVillaBookingCalendarResult> {
+  const startedAt = Date.now();
+  let httpStatus: number | null = null;
+  let stage: "fetch" | "read" | "parse" | "normalize" = "fetch";
+  const fail = (
+    reason: "missing_token" | "http_error" | "timeout" | "network_error" | "invalid_json" | "invalid_payload" | "normalization_error",
+    invalidField: string | null = null,
+  ): FetchVillaBookingCalendarResult => {
+    console.warn("Booking calendar fetch failed", {
+      event: "booking_calendar_fetch_failed",
+      loadId,
+      propertyId: /^[1-9]\d{0,19}$/.test(propertyId) ? propertyId : null,
+      month: isValidMonth(month) ? month : null,
+      attempt,
+      reason,
+      httpStatus,
+      invalidField,
+      durationMs: Date.now() - startedAt,
+    });
+    if (reason === "timeout") return { calendar: null, status: "unavailable", timedOut: true };
+    return { calendar: null, status: reason === "missing_token" ? "missing_token" : "unavailable" };
+  };
   const token = process.env.PATTAYA_BOOKINGS_API_TOKEN?.trim();
 
   if (!token) {
-    return { calendar: null, status: "missing_token" };
+    return fail("missing_token");
   }
 
   const url = new URL(BOOKING_CALENDAR_URL);
@@ -536,20 +558,28 @@ export async function fetchVillaBookingCalendar(
       cache: "no-store",
       signal: controller.signal,
     });
+    httpStatus = response.status;
 
     if (!response.ok) {
-      return { calendar: null, status: "unavailable" };
+      return fail("http_error");
     }
 
+    stage = "read";
+    const text = await response.text();
+    stage = "parse";
+    const payload: unknown = JSON.parse(text);
+    const validation = validateBookingCalendarResponse(payload);
+    if (validation.data === null) return fail("invalid_payload", validation.invalidField);
+
+    stage = "normalize";
     return {
-      calendar: normalizeBookingCalendar(
-        await readJson<RawBookingCalendarResponse>(response),
-        month,
-      ),
+      calendar: normalizeBookingCalendar(validation.data, month),
       status: "available",
     };
   } catch {
-    return { calendar: null, status: "unavailable" };
+    if (controller.signal.aborted) return fail("timeout");
+    if (stage === "parse") return fail("invalid_json");
+    return fail(stage === "normalize" ? "normalization_error" : "network_error");
   } finally {
     clearTimeout(timeout);
   }

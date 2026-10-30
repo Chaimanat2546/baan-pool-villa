@@ -130,7 +130,7 @@ export function ActivityAdvertisementsSection({
       data-detail-advertisements-section="true"
     >
       <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]">
           <ImageIcon className="h-5 w-5" />
         </span>
         <h2 className="min-w-0 break-words text-xl font-black text-[var(--site-text)]">
@@ -169,7 +169,7 @@ export function ActivityAdvertisementsSection({
               <h3 className="line-clamp-2 text-sm font-black leading-5 text-[var(--site-text)] sm:text-base sm:leading-6">
                 {advertisement.title}
               </h3>
-              <span className="inline-flex w-fit max-w-full items-center self-end rounded-full bg-[var(--site-primary)] px-3 py-2 text-xs font-black text-[var(--site-header-link)] transition group-hover:opacity-90 sm:text-sm">
+              <span className="inline-flex w-fit max-w-full items-center self-end rounded-full bg-[var(--site-primary-action)] px-3 py-2 text-xs font-black text-[var(--site-on-primary-action)] transition group-hover:bg-[var(--site-primary-action)] sm:text-sm">
                 ดูรูปกิจกรรม
               </span>
             </div>

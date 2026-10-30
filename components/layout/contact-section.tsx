@@ -73,7 +73,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                 className="block rounded-[20px] border border-[var(--site-border)] bg-[var(--site-surface)] p-7 shadow-[0_8px_24px_rgba(15,47,53,0.08)] transition-all hover:-translate-y-1 hover:border-[var(--site-border-strong)] hover:shadow-[0_12px_32px_rgba(15,47,53,0.12)] active:translate-y-0 sm:p-8"
               >
                 <div className="flex items-center gap-4">
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]">
                     <Icon className="h-6 w-6" />
                   </span>
                   <h3 className="text-xl font-black leading-8 text-[var(--site-text)] sm:text-2xl">
@@ -82,7 +82,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                 </div>
                 <p className="mt-7 flex flex-wrap items-center gap-2 text-lg font-black text-[var(--site-text)] sm:text-xl">
                   <span>{card.label}</span>
-                  <span className="text-[var(--site-accent)]">{card.detail}</span>
+                  <span className="text-[var(--site-accent-text)]">{card.detail}</span>
                 </p>
               </AnalyticsContactLink>
             );
@@ -91,7 +91,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
 
         <article className="mt-8 rounded-2xl border border-[var(--site-border)] bg-[var(--site-primary)] p-5 text-[var(--site-on-primary)] shadow-[0_8px_24px_rgba(15,47,53,0.12)] sm:p-6 lg:p-7">
           <div className="flex items-center gap-4">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--site-surface)] text-[var(--site-primary)]">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--site-surface)] text-[var(--site-primary-text)]">
               <CreditCard className="h-6 w-6" />
             </span>
             <div>
@@ -110,7 +110,7 @@ export function ContactSection({ settings }: ContactSectionProps) {
                   className="grid gap-1 py-3 text-sm sm:grid-cols-[160px_1fr] sm:items-center sm:text-base"
                 >
                   <dt>{row.label}</dt>
-                  <dd className="font-black text-[var(--site-accent)] sm:text-right">
+                  <dd className="font-black text-[var(--site-accent-text)] sm:text-right">
                     {row.value}
                   </dd>
                 </div>

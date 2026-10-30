@@ -13,7 +13,7 @@ describe("public themed UI colors", () => {
       />,
     );
 
-    expect(markup).toContain("text-[var(--site-accent)]");
+    expect(markup).toContain("text-[var(--site-accent-text)]");
     expect(markup).toContain("text-[var(--site-text)]");
     expect(markup).toContain("text-[var(--site-muted)]");
     expect(markup).not.toContain("text-[#0f5a66]");

@@ -63,7 +63,7 @@ function PoolRippleLoading() {
   return (
     <div
       aria-hidden="true"
-      className="relative mx-auto grid size-14 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]"
+      className="relative mx-auto grid size-14 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]"
       data-search-pool-ripple="true"
     >
       <span className="absolute size-10 rounded-full border border-[var(--site-primary)]/35 animate-ping" />
@@ -564,7 +564,7 @@ export function SearchPage({
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="flex flex-col gap-4 py-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--site-accent)]">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--site-accent-text)]">
               Baan Pool Villa
             </p>
             <h1 className="mt-2 max-w-3xl text-3xl font-black leading-tight text-[var(--site-text)] sm:text-4xl">
@@ -579,13 +579,13 @@ export function SearchPage({
               className="mt-4 flex flex-wrap gap-2 text-sm font-bold"
             >
               <a
-                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary-text)] transition hover:border-[var(--site-border-strong)]"
                 href="/"
               >
                 หน้าแรก
               </a>
               <a
-                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary)] transition hover:border-[var(--site-border-strong)]"
+                className="rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-3 py-1.5 text-[var(--site-primary-text)] transition hover:border-[var(--site-border-strong)]"
                 href="/guides"
               >
                 อ่านคู่มือเลือกบ้านพัก
@@ -602,7 +602,7 @@ export function SearchPage({
             <label className="block min-w-0">
               <span className="text-sm font-bold text-[var(--site-text)]">ค้นหาด้วยชื่อบ้านหรือรหัสบ้าน</span>
               <span className="mt-2 flex h-11 items-center gap-2 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface-soft)] px-3 text-[var(--site-text)]">
-                <Search className="h-4 w-4 shrink-0 text-[var(--site-primary)]" />
+                <Search className="h-4 w-4 shrink-0 text-[var(--site-primary-text)]" />
                 <input
                   type="search"
                   value={villaIdInput}
@@ -628,7 +628,7 @@ export function SearchPage({
             <button
               type="button"
               onClick={handleSearch}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)] md:hidden"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--site-primary-action)] px-5 text-sm font-black text-[var(--site-on-primary-action)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-action)] md:hidden"
             >
               <Search className="h-4 w-4" />
               ค้นหาบ้านพัก
@@ -678,7 +678,7 @@ export function SearchPage({
 
           {isSearchReady ? (
             <div className="mb-5 rounded-2xl border border-[var(--site-border)] bg-[var(--site-surface)] p-4 shadow-[0_10px_28px_rgba(6,63,53,0.05)]">
-              <p className="text-xs font-black uppercase text-[var(--site-accent)]">เงื่อนไขที่ใช้ค้นหา</p>
+              <p className="text-xs font-black uppercase text-[var(--site-accent-text)]">เงื่อนไขที่ใช้ค้นหา</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {searchConditionLabels.map((label) => (
                   <span
@@ -695,7 +695,7 @@ export function SearchPage({
           {error ? (
             <div className="flex min-h-72 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center">
               <div className="max-w-md">
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-accent-soft)] text-[var(--site-accent)]">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-accent-soft)] text-[var(--site-accent-text)]">
                   <AlertCircle className="h-6 w-6" />
                 </div>
                 <h2 className="mt-4 text-xl font-bold text-[var(--site-text)]">
@@ -719,7 +719,7 @@ export function SearchPage({
           ) : filteredVillas.length === 0 ? (
             <div className="flex min-h-80 items-center justify-center rounded-[24px] border border-[var(--site-border)] bg-[var(--site-surface)] px-6 text-center shadow-[0_14px_42px_rgba(6,63,53,0.06)]">
               <div className="max-w-md">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]">
                   <Search className="h-6 w-6" />
                 </div>
                 <h2 className="mt-4 text-2xl font-black text-[var(--site-text)]">
@@ -731,7 +731,7 @@ export function SearchPage({
                 <button
                   type="button"
                   onClick={clearSearchConditions}
-                  className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)]"
+                  className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--site-primary-action)] px-5 text-sm font-black text-[var(--site-on-primary-action)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-action)]"
                 >
                   <RotateCcw className="h-4 w-4" />
                   ล้างตัวกรอง
@@ -755,7 +755,7 @@ export function SearchPage({
                 <div className="mt-8 flex justify-center">
                   <button
                     type="button"
-                    className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--site-primary)] px-6 text-sm font-black text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)]"
+                    className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--site-primary-action)] px-6 text-sm font-black text-[var(--site-on-primary-action)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-action)]"
                     disabled={isCatalogAppending}
                     onClick={showMoreResults}
                   >
