@@ -81,7 +81,7 @@ function GalleryThumbnailStrip({
     >
       <button
         aria-label={`เลื่อนรูปย่อยของ ${alt} ไปทางซ้าย`}
-        className="absolute left-3 top-1/2 z-10 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-md"
+        className="absolute left-3 top-1/2 z-10 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary-text)] shadow-md"
         onClick={onPrevious}
         type="button"
       >
@@ -123,7 +123,7 @@ function GalleryThumbnailStrip({
       </div>
       <button
         aria-label={`เลื่อนรูปย่อยของ ${alt} ไปทางขวา`}
-        className="absolute right-3 top-1/2 z-10 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-md"
+        className="absolute right-3 top-1/2 z-10 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary-text)] shadow-md"
         onClick={onNext}
         type="button"
       >

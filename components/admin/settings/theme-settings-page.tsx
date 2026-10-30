@@ -115,27 +115,33 @@ export function ThemeSettingsPage() {
                 <ColorControl
                   id="primaryColor"
                   label="สีพื้นหลักของเว็บไซต์"
-                  description="ใช้กับพื้น Header, Footer, ปุ่มหลัก และลิงก์สำคัญ"
+                  description="ใช้กับพื้น Header, Footer และลิงก์สำคัญ โดยพื้นปุ่มหลักปรับความเข้มให้อ่านตัวหนังสือขาวชัด"
                   value={draft.primaryColor}
                   onChange={(value) => state.updateDraft({ primaryColor: value })}
                 />
                 <ColorControl
                   id="accentColor"
                   label="สีเน้นสำหรับข้อมูลสำคัญ"
-                  description="ใช้กับราคา สถานะ และข้อมูลติดต่อ"
+                  description="ใช้กับราคาและข้อมูลสำคัญ โดยปรับความเข้มให้อ่านชัดบนพื้นอ่อน"
                   value={draft.accentColor}
                   onChange={(value) => state.updateDraft({ accentColor: value })}
                 />
               </div>
               <div className="overflow-hidden rounded-lg border border-[var(--site-border)] bg-[var(--site-surface)] text-sm">
-
+                <div className="px-3 pt-3">
+                  <p className="font-bold text-[var(--site-text)]">ตัวอย่างข้อความหลัก</p>
+                  <p className="mt-1 text-xs text-[var(--site-muted)]">รายละเอียดรองใช้สีที่เบาลงและยังอ่านชัด</p>
+                </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3">
-                  <span className="font-bold text-[var(--site-accent)]">ราคาเริ่มต้น 8,900</span>
+                  <span className="font-bold text-[var(--site-accent-text)]">ราคาเริ่มต้น 8,900</span>
+                  <button className="font-semibold text-[var(--site-primary-text)] underline underline-offset-4" type="button">
+                    ดูรายละเอียด
+                  </button>
                   <button
-                    className="rounded-md bg-[var(--site-primary)] px-3 py-2 text-xs font-semibold text-[var(--site-on-primary)]"
+                    className="rounded-md bg-[var(--site-primary-action)] px-3 py-2 text-xs font-semibold text-[var(--site-on-primary-action)]"
                     type="button"
                   >
-                    ค้นหาบ้านพัก
+                    จองผ่าน LINE
                   </button>
                 </div>
               </div>

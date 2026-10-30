@@ -36,15 +36,15 @@ export function VillaDetailPage({
   return (
     <main className="min-h-screen overflow-x-hidden bg-[var(--site-surface-soft)] pb-24 text-[var(--site-text)] md:pb-0">
       <div className="mx-auto hidden w-full max-w-7xl items-center gap-2 px-4 py-4 text-xs font-semibold text-[var(--site-muted)] sm:px-6 lg:flex lg:px-8">
-        <a href="/" className="hover:text-[var(--site-primary)]">
+        <a href="/" className="hover:text-[var(--site-primary-text)]">
           Home
         </a>
         <span>{">"}</span>
-        <a href="/" className="hover:text-[var(--site-primary)]">
+        <a href="/" className="hover:text-[var(--site-primary-text)]">
           Pattaya Villas
         </a>
         <span>{">"}</span>
-        <span className="text-[var(--site-primary)]">{listing.zoneLabel}</span>
+        <span className="text-[var(--site-primary-text)]">{listing.zoneLabel}</span>
       </div>
 
       <VillaDetailClientShell

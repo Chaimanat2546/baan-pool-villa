@@ -59,6 +59,7 @@ export function BookingCalendarPanel({
   const visibleMonthKey = formatCalendarMonthKey(visibleMonth);
   const isPastVisibleMonth = visibleMonth < currentMonth;
   const bookingCalendar = bookingCalendars[visibleMonthKey] ?? null;
+  const isCalendarAvailable = bookingCalendar?.month === visibleMonthKey;
   const firstAvailableCalendarDateKey = findFirstAvailableCalendarDateKey({
     bookingCalendar,
     fallbackPrice,
@@ -94,6 +95,25 @@ export function BookingCalendarPanel({
 
   return (
     <>
+      {!isCalendarAvailable ? (
+        <div
+          className="mb-3 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-sm text-[var(--site-text)]"
+          data-calendar-unavailable="true"
+          role="status"
+        >
+          <p className="font-bold">โหลดข้อมูลปฏิทินเดือนนี้ไม่สำเร็จ</p>
+          <p className="mt-1 text-xs leading-6 text-[var(--site-muted)]">
+            ยังยืนยันวันว่างไม่ได้ กรุณาโหลดหน้าใหม่หรือติดต่อแอดมินเพื่อตรวจสอบ
+          </p>
+          <button
+            className="mt-2 min-h-11 rounded-lg border border-[var(--site-primary)] px-3 text-sm font-bold text-[var(--site-primary-text)] hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]"
+            onClick={() => window.location.reload()}
+            type="button"
+          >
+            โหลดหน้าใหม่
+          </button>
+        </div>
+      ) : null}
       <Calendar
         mode="single"
         month={visibleMonth}
@@ -110,7 +130,7 @@ export function BookingCalendarPanel({
         }}
         hideNavigation
         today={today}
-        footer={<CalendarLegend />}
+        footer={isCalendarAvailable ? <CalendarLegend /> : undefined}
         components={{
           MonthCaption: ({ calendarMonth, className }) => (
             <BookingCalendarMonthCaption

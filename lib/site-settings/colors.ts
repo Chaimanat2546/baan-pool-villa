@@ -170,12 +170,25 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
   );
   const textColor = ensureReadableOnBackground(mixHexColors(primaryColor, "#020617", 0.44), "#ffffff");
   const mutedTextColor = ensureReadableOnBackground(mixHexColors(textColor, "#64748b", 0.58), "#ffffff");
+  const primarySoft = mixHexColors(primaryColor, "#faffff", 0.95);
+  const accentSoft = mixHexColors(accentColor, "#ffffff", 0.901);
+  const surfaceSoft = mixHexColors(primaryColor, "#ffffff", 0.97);
+  const surfaceTint = mixHexColors(primaryColor, "#ffffff", 0.92);
+  // Text roles stay readable on light surfaces; raw brand colors still drive fills.
+  const textSurfaces = ["#ffffff", surfaceSoft, surfaceTint, primarySoft, accentSoft];
+  const primaryTextColor = textSurfaces.reduce(
+    (color, surface) => ensureReadableOnBackground(color, surface), primaryColor,
+  );
+  const accentTextColor = textSurfaces.reduce(
+    (color, surface) => ensureReadableOnBackground(color, surface), accentColor,
+  );
 
   return {
     "--site-accent": accentColor,
     "--site-accent-hover": accentColor,
     "--site-accent-on-dark": accentOnDarkColor,
-    "--site-accent-soft": mixHexColors(accentColor, "#ffffff", 0.901),
+    "--site-accent-soft": accentSoft,
+    "--site-accent-text": accentTextColor,
     "--site-bank-account-highlight": bankAccountHighlightColor,
     "--site-bank-highlight": bankHighlightColor,
     "--site-bank-name-highlight": bankNameHighlightColor,
@@ -192,12 +205,15 @@ export function buildSiteThemeStyle(input: ThemeColorInput): SiteThemeStyle {
     "--site-on-accent": getReadableTextColor(accentColor),
     "--site-on-overlay": "#f8fafc",
     "--site-on-primary": getReadableTextColor(primaryColor),
+    "--site-on-primary-action": "#ffffff",
     "--site-primary": primaryColor,
+    "--site-primary-action": ensureReadableOnBackground(primaryColor, "#ffffff"),
     "--site-primary-hover": primaryColor,
-    "--site-primary-soft": mixHexColors(primaryColor, "#faffff", 0.95),
+    "--site-primary-soft": primarySoft,
+    "--site-primary-text": primaryTextColor,
     "--site-surface": "#ffffff",
-    "--site-surface-soft": mixHexColors(primaryColor, "#ffffff", 0.97),
-    "--site-surface-tint": mixHexColors(primaryColor, "#ffffff", 0.92),
+    "--site-surface-soft": surfaceSoft,
+    "--site-surface-tint": surfaceTint,
     "--site-text": textColor,
   };
 }

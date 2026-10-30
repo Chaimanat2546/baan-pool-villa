@@ -40,7 +40,7 @@ describe("ContactSection", () => {
     );
 
     expect(markup).toContain("398-289-7482");
-    expect(markup).toContain("text-[var(--site-accent)]");
+    expect(markup).toContain("text-[var(--site-accent-text)]");
     expect(markup).not.toContain("text-[var(--site-bank-name-highlight)]");
     expect(markup).not.toContain("text-[var(--site-bank-number-highlight)]");
     expect(markup).not.toContain("text-[var(--site-bank-account-highlight)]");

@@ -198,7 +198,7 @@ export function TikTokLazyCard({
                 กดเพื่อเล่นวิดีโอ
               </span>
             </span>
-            <span className="relative grid size-16 place-items-center rounded-full bg-white/90 text-[var(--site-primary)] shadow-[0_18px_34px_rgba(0,0,0,0.25)] transition group-hover:scale-105">
+            <span className="relative grid size-16 place-items-center rounded-full bg-white/90 text-[var(--site-primary-text)] shadow-[0_18px_34px_rgba(0,0,0,0.25)] transition group-hover:scale-105">
               <Play aria-hidden="true" className="ml-1 size-7 fill-current" />
             </span>
             <span className="sr-only">เล่นวิดีโอ TikTok รายการที่ {index + 1}</span>
@@ -207,20 +207,20 @@ export function TikTokLazyCard({
       </div>
       {villa ? (
         <a
-          className="flex min-w-0 items-center gap-2 border-t border-[var(--site-border)] bg-[var(--site-primary-soft)] px-2.5 py-2.5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary)] hover:text-[var(--site-on-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-inset sm:gap-3 sm:px-4 sm:py-3"
+          className="flex min-w-0 items-center gap-2 border-t border-[var(--site-border)] bg-[var(--site-primary-soft)] px-2.5 py-2.5 text-[var(--site-primary-text)] transition hover:bg-[var(--site-primary-action)] hover:text-[var(--site-on-primary-action)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-inset sm:gap-3 sm:px-4 sm:py-3"
           href={`/villas/${villa.id}`}
         >
-          <span className="hidden size-8 shrink-0 items-center justify-center rounded-md bg-[var(--site-surface)] text-[var(--site-primary)] shadow-sm sm:inline-flex sm:size-9">
+          <span className="hidden size-8 shrink-0 items-center justify-center rounded-md bg-[var(--site-surface)] text-[var(--site-primary-text)] shadow-sm sm:inline-flex sm:size-9">
             <House aria-hidden="true" className="size-4" />
           </span>
           <span className="min-w-0 flex-1">
             <span
-              className="block text-xs font-medium opacity-80 sm:hidden"
+              className="block text-xs font-medium sm:hidden"
               data-tiktok-villa-mobile-label
             >
               ดูบ้านพัก
             </span>
-            <span className="hidden text-xs font-medium opacity-80 sm:block">
+            <span className="hidden text-xs font-medium sm:block">
               ดูรายละเอียดบ้านพัก
             </span>
             <span className="block truncate text-sm font-semibold">

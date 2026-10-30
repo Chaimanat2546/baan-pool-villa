@@ -20,12 +20,12 @@ type ButtonSize =
   | "xs";
 
 const variantClassMap: Record<ButtonVariant, string> = {
-  default: "bg-[var(--site-primary)] text-[var(--site-on-primary)] hover:bg-[var(--site-primary-hover)]",
+  default: "bg-[var(--site-primary-action)] text-[var(--site-on-primary-action)] hover:bg-[var(--site-primary-action)]",
   destructive: "bg-red-600 text-white hover:bg-red-700",
-  ghost: "hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)]",
-  link: "text-[var(--site-primary)] underline-offset-4 hover:underline",
-  outline: "border border-[var(--site-border)] bg-[var(--site-surface)] hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)]",
-  secondary: "bg-[var(--site-primary-soft)] text-[var(--site-primary)] hover:bg-[var(--site-surface-tint)]",
+  ghost: "hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary-text)]",
+  link: "text-[var(--site-primary-text)] underline-offset-4 hover:underline",
+  outline: "border border-[var(--site-border)] bg-[var(--site-surface)] hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary-text)]",
+  secondary: "bg-[var(--site-primary-soft)] text-[var(--site-primary-text)] hover:bg-[var(--site-surface-tint)]",
 };
 
 const sizeClassMap: Record<ButtonSize, string> = {

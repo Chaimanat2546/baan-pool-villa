@@ -75,6 +75,51 @@ describe("getReadableTextColor", () => {
 });
 
 describe("buildSiteThemeStyle", () => {
+  it.each(["#fbae09", "#ffffff", "#fff9a8", "#ff0000", "#064e3b", "#111111"])("keeps white booking action text readable for CMS primary %s", (primaryColor) => {
+    const style = buildSiteThemeStyle({ primaryColor, accentColor: "#08cde7" });
+
+    expect(style["--site-primary"]).toBe(primaryColor);
+    expect(style["--site-on-primary-action"]).toBe("#ffffff");
+    expect(style["--site-primary-action"]).toMatch(/^#[0-9a-f]{6}$/);
+    expectContrast(style["--site-on-primary-action"], style["--site-primary-action"]);
+    if (getContrastRatio("#ffffff", primaryColor) >= 4.5) {
+      expect(style["--site-primary-action"]).toBe(primaryColor);
+    } else {
+      expect(style["--site-primary-action"]).not.toBe(primaryColor);
+    }
+  });
+
+  it.each([
+    ["#fbae09", "#08cde7"],
+    ["#ffffff", "#ffffff"],
+    ["#fff9a8", "#bdf7ff"],
+    ["#064e3b", "#eab308"],
+    ["#064e3b", "#7c3aed"],
+    ["#ff1744", "#00e676"],
+    ["#111111", "#000000"],
+  ])("keeps text roles readable across light surfaces for CMS palette %s / %s", (primaryColor, accentColor) => {
+    const style = buildSiteThemeStyle({ primaryColor, accentColor });
+
+    expect(style["--site-primary"]).toBe(primaryColor);
+    expect(style["--site-accent"]).toBe(accentColor);
+    for (const role of ["--site-text", "--site-muted", "--site-primary-text", "--site-accent-text"] as const) {
+      expect(style[role]).toMatch(/^#[0-9a-f]{6}$/);
+      for (const surface of ["--site-surface", "--site-surface-soft", "--site-surface-tint", "--site-primary-soft", "--site-accent-soft"] as const) {
+        expectContrast(style[role], style[surface]);
+      }
+    }
+  });
+
+  it("derives action and emphasis text from their own CMS color", () => {
+    const warm = buildSiteThemeStyle({ primaryColor: "#fbae09", accentColor: "#08cde7" });
+    const cool = buildSiteThemeStyle({ primaryColor: "#064e3b", accentColor: "#7c3aed" });
+
+    expect(warm["--site-primary-text"]).not.toBe(cool["--site-primary-text"]);
+    expect(warm["--site-accent-text"]).not.toBe(cool["--site-accent-text"]);
+    expect(cool["--site-primary-text"]).toBe(cool["--site-primary"]);
+    expect(cool["--site-accent-text"]).toBe(cool["--site-accent"]);
+  });
+
   it.each(["#ffffff", "#fef9c3", "#ffb000", "#ff0000", "#064e3b"])("keeps inherited admin text readable with primary %s", primaryColor => {
     const style = buildSiteThemeStyle({ primaryColor, accentColor: "#eab308" });
     expectContrast(style["--site-text"], style["--site-surface"]);

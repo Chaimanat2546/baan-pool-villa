@@ -61,7 +61,7 @@ export function MobileFilterDrawer({
     <>
       <button
         type="button"
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 text-sm font-semibold text-[var(--site-on-primary)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-hover)] md:hidden"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--site-primary-action)] px-5 text-sm font-semibold text-[var(--site-on-primary-action)] shadow-[0_14px_34px_rgba(6,78,59,0.18)] transition hover:bg-[var(--site-primary-action)] md:hidden"
         onClick={openDrawer}
       >
         <SlidersHorizontal className="h-4 w-4" />
@@ -94,7 +94,7 @@ export function MobileFilterDrawer({
               <button
                 type="button"
                 aria-label="ปิดตัวกรอง"
-                className="grid h-10 w-10 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)]"
+                className="grid h-10 w-10 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary-text)]"
                 onClick={() => {
                   setIsOpen(false);
                 }}

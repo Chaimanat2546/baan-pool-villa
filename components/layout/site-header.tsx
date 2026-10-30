@@ -139,7 +139,7 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
             <span className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-4 p-1.5 ${logoBackgroundClass} ${logoBorderClass}`}><Image src={logoImageSrc} alt={settings.logoImage.alt} fill quality={75} sizes="44px" className="object-contain" priority /></span>
             <span className="min-w-0"><span className="block truncate text-2xl font-semibold leading-8 text-[var(--site-header-link)]">{settings.siteName}</span><span className="block text-sm leading-5 text-[var(--site-header-link)]">กรุณาโอนเงิน <span className="font-semibold text-[var(--site-bank-account-highlight)]">ชื่อบัญชี {contactSettings.bank.accountName}</span>{" "}<span className="font-semibold text-[var(--site-bank-name-highlight)]">{contactSettings.bank.bankName}</span>{" "}<span className="font-semibold text-[var(--site-bank-number-highlight)]">เลขที่ {contactSettings.bank.accountNumber}</span> เท่านั้น</span></span>
           </a>
-          <div className="flex shrink-0 items-center justify-end gap-8"><nav className="flex h-16 items-center justify-end gap-8 text-2xl font-semibold leading-8">{navItems.map((item) => previewMode ? <button className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]" key={item.label} type="button">{item.label}</button> : <a key={item.href} href={item.href} onClick={item.href === "/" ? handleHomeClick : undefined} className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]">{item.label}</a>)}</nav><a href="/#contact" className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-surface)] px-4 text-sm font-medium leading-5 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)]"><MapPin className="h-4 w-4" aria-hidden="true" />จองเลย</a></div>
+          <div className="flex shrink-0 items-center justify-end gap-8"><nav className="flex h-16 items-center justify-end gap-8 text-2xl font-semibold leading-8">{navItems.map((item) => previewMode ? <button className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]" key={item.label} type="button">{item.label}</button> : <a key={item.href} href={item.href} onClick={item.href === "/" ? handleHomeClick : undefined} className="whitespace-nowrap text-[var(--site-header-link)] transition hover:text-[var(--site-header-link-hover)]">{item.label}</a>)}</nav><a href="/#contact" className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--site-primary-action)] px-4 text-sm font-medium leading-5 text-[var(--site-on-primary-action)] transition hover:bg-[var(--site-primary-action)]"><MapPin className="h-4 w-4" aria-hidden="true" />จองเลย</a></div>
         </div> : null}
         <div className={`${isClassicDesktop ? "lg:hidden " : ""}relative flex min-h-[90px] w-full items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:grid lg:min-h-[64px] lg:grid-cols-[1fr_auto_1fr] lg:py-0 lg:px-8`}>
           <a
@@ -203,7 +203,7 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
             ))}
           </nav>
           {desktopHeaderVariant === "right-booking" ? (
-            <a href="/#contact" className="hidden items-center gap-2 rounded-full bg-[var(--site-surface)] px-4 py-2 text-sm font-semibold text-[var(--site-primary)] lg:flex">
+            <a href="/#contact" className="hidden items-center gap-2 rounded-full bg-[var(--site-primary-action)] px-4 py-2 text-sm font-semibold text-[var(--site-on-primary-action)] lg:flex">
               <MapPin className="size-4" aria-hidden="true" />
               จองเลย
             </a>
@@ -213,7 +213,7 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
               <a
                 onClick={() => track({event_name:"contact_click",channel:"phone",villa_id:null,page_path:window.location.pathname})}
                       href={primaryPhoneHref}
-                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-[var(--site-surface)] px-3 text-xs font-semibold leading-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] xl:h-9 xl:px-4 xl:text-sm"
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-[var(--site-surface)] px-3 text-xs font-semibold leading-4 text-[var(--site-primary-text)] transition hover:bg-[var(--site-primary-soft)] xl:h-9 xl:px-4 xl:text-sm"
               >
                 <Phone className="h-4 w-4" aria-hidden="true" />
                 {primaryPhone?.phone}
@@ -222,7 +222,7 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
             <a
               onClick={() => track({event_name:"contact_click",channel:"line",villa_id:null,page_path:window.location.pathname})}
                       href={contactSettings.contact.lineUrl}
-                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-[var(--site-surface)] px-2.5 text-xs font-semibold leading-4 text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] xl:h-9 xl:px-3 xl:text-sm"
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-[var(--site-primary-action)] px-2.5 text-xs font-semibold leading-4 text-[var(--site-on-primary-action)] transition hover:bg-[var(--site-primary-action)] xl:h-9 xl:px-3 xl:text-sm"
               rel="noreferrer"
               target="_blank"
             >
@@ -254,7 +254,7 @@ export function SiteHeader({ contactSettings, desktopHeaderVariant = "centered-c
               <SheetClose asChild>
                 <button
                   type="button"
-                  className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary)] shadow-[var(--site-card-shadow)] transition hover:bg-[var(--site-primary-soft)]"
+                  className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] text-[var(--site-primary-text)] shadow-[var(--site-card-shadow)] transition hover:bg-[var(--site-primary-soft)]"
                   aria-label="ปิดเมนู"
                 >
                   <X className="h-5 w-5" />

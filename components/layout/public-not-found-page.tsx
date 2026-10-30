@@ -55,7 +55,7 @@ export function PublicNotFoundPage({
                       href={action.href}
                       className={
                         isPrimary
-                          ? "inline-flex items-center justify-center gap-2 rounded-full bg-[var(--site-primary)] px-5 py-3 text-sm font-bold text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]"
+                          ? "inline-flex items-center justify-center gap-2 rounded-full bg-[var(--site-primary-action)] px-5 py-3 text-sm font-bold text-[var(--site-on-primary-action)] transition hover:bg-[var(--site-primary-action)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]"
                           : "inline-flex items-center justify-center gap-2 rounded-full border border-[var(--site-border)] bg-[var(--site-surface)] px-5 py-3 text-sm font-bold text-[var(--site-text)] transition hover:border-[var(--site-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]"
                       }
                     >

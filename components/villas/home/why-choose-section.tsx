@@ -48,7 +48,7 @@ export function WhyChooseSection({ siteName }: { siteName: string }) {
               className="relative h-[174px] overflow-hidden rounded-[12px] border border-[var(--site-border)] bg-[var(--site-surface)] px-4 pb-3 pt-4 shadow-[0_14px_34px_rgba(15,47,53,0.12)] sm:h-auto sm:min-h-[212px] sm:rounded-[14px] sm:p-8 sm:shadow-[0_18px_38px_rgba(15,47,53,0.16)]"
             >
               <div className="absolute inset-x-0 top-0 h-1 bg-[var(--site-accent)]" />
-              <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)] sm:mx-0">
+              <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)] sm:mx-0">
                 <Icon className="h-5 w-5" />
               </span>
               <h3 className="mt-6 text-left text-[11px] font-semibold leading-4 text-[var(--site-text)] sm:mt-[23px] sm:text-lg sm:leading-[24px]">

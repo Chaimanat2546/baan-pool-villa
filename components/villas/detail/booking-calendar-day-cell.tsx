@@ -61,7 +61,7 @@ export function BookingCalendarDayCell({
             ? "bg-[var(--site-surface-tint)] text-[var(--site-muted)] ring-0 hover:bg-[var(--site-surface-tint)] hover:text-[var(--site-muted)] disabled:opacity-100 "
             : null,
           shouldShowCalendarData && isToday
-            ? "border border-[var(--site-primary)] text-[var(--site-primary)] ring-2 ring-[var(--site-primary)]/20 hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary)] "
+            ? "border border-[var(--site-primary)] text-[var(--site-primary-text)] ring-2 ring-[var(--site-primary)]/20 hover:bg-[var(--site-primary-soft)] hover:text-[var(--site-primary-text)] "
             : null,
           isOutsideVisibleMonth
             ? "bg-[var(--site-surface-soft)] text-[var(--site-muted)] opacity-45 ring-0 shadow-none hover:bg-[var(--site-surface-soft)] hover:text-[var(--site-muted)] disabled:opacity-45 "

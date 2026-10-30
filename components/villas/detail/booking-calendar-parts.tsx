@@ -58,7 +58,7 @@ export function CalendarDayIcons({ icons }: { icons: BookingCalendarDay["icons"]
       {hasFire ? (
         <span
           aria-hidden="true"
-          className="absolute inset-0 z-[1] grid animate-in place-items-center text-[var(--site-primary)] fade-in zoom-in-95 duration-300"
+          className="absolute inset-0 z-[1] grid animate-in place-items-center text-[var(--site-primary-text)] fade-in zoom-in-95 duration-300"
           data-calendar-icon-slot="filled"
         >
           <FireSvgIcon
@@ -158,7 +158,7 @@ export function CalendarFirstAvailableTooltip({
       id="tourTooltip"
       role="dialog"
     >
-      <div className="text-[10px] font-black tracking-[0.16em] text-[var(--site-primary)] uppercase">
+      <div className="text-[10px] font-black tracking-[0.16em] text-[var(--site-primary-text)] uppercase">
         ทิปการใช้งาน
       </div>
       <h2 className="mt-1 text-sm leading-snug font-black text-[var(--site-text)]">
@@ -169,7 +169,7 @@ export function CalendarFirstAvailableTooltip({
       </p>
       <div className="mt-3 flex justify-end">
         <button
-          className="inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-bold text-[var(--site-primary)] transition hover:bg-[var(--site-primary-soft)] focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-bold text-[var(--site-primary-text)] transition hover:bg-[var(--site-primary-soft)] focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2 focus-visible:outline-none"
           data-calendar-first-available-tip-dismiss="true"
           id="dismissTipBtn"
           onClick={onDismiss}

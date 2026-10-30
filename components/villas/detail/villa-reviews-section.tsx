@@ -90,7 +90,7 @@ function ReviewCard({
   return (
     <article className="min-w-0 border-t border-[var(--site-border)] py-5">
       <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary)]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--site-primary-soft)] text-[var(--site-primary-text)]">
           <UserRound size={20} aria-hidden="true" />
         </span>
         <h3 className="min-w-0 break-words text-sm font-bold">
@@ -299,14 +299,14 @@ export function VillaReviewsSection({
           <MessageSquare
             size={22}
             aria-hidden="true"
-            className="shrink-0 text-[var(--site-primary)]"
+            className="shrink-0 text-[var(--site-primary-text)]"
           />
           รีวิวจากผู้เข้าพัก
         </h2>
         <button
           type="button"
           onClick={() => setShowModal(true)}
-          className="rounded-full border border-[var(--site-primary)] px-4 py-2 text-sm font-bold text-[var(--site-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]"
+          className="rounded-full border border-[var(--site-primary)] px-4 py-2 text-sm font-bold text-[var(--site-primary-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]"
         >
           เขียนรีวิว
         </button>
@@ -394,7 +394,7 @@ export function VillaReviewsSection({
           <button
             type="button"
             onClick={() => requestPage(sort, retryCursor.current)}
-            className="mt-2 rounded-lg px-3 py-2 font-bold text-[var(--site-primary)] underline"
+            className="mt-2 rounded-lg px-3 py-2 font-bold text-[var(--site-primary-text)] underline"
           >
             ลองอีกครั้ง
           </button>
@@ -414,7 +414,7 @@ export function VillaReviewsSection({
           type="button"
           disabled={pending}
           onClick={() => requestPage(sort, page.nextCursor)}
-          className="w-full rounded-full border border-[var(--site-border)] px-4 py-3 text-sm font-bold text-[var(--site-primary)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-50"
+          className="w-full rounded-full border border-[var(--site-border)] px-4 py-3 text-sm font-bold text-[var(--site-primary-text)] focus-visible:outline-2 focus-visible:outline-[var(--site-primary)] disabled:opacity-50"
         >
           ดูรีวิวเพิ่มเติม
         </button>

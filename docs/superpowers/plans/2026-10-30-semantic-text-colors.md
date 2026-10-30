@@ -1,0 +1,34 @@
+# Semantic Text Colors Implementation Plan
+
+> **For agentic workers:** Use superpowers:executing-plans to implement this approved change inline. Preserve existing calendar work. Commit only when explicitly requested; do not push or deploy without authorization.
+
+**Goal:** Keep CMS brand colors configurable while giving public typography readable colors for each role.
+
+**Architecture:** Extend `lib/site-settings/colors.ts`, the existing shared theme owner, with `--site-primary-text` for actions on light surfaces and `--site-accent-text` for prices/emphasis on light surfaces. Derive both from the configured colors using the existing contrast helper across the existing white, soft, tinted, and accent-soft surfaces. Retain `--site-text`/`--site-muted` for content, on-color tokens for solid buttons, and explicitly configured header/footer/bank colors. No schema, settings fields, cache, font, spacing, or request-budget changes.
+
+**Commit authorization (2026-10-30):** The user explicitly requested committing all completed calendar, typography and primary-action changes together after verification. This does not authorize push or deployment. Earlier verification notes describe the state before this request.
+
+**Direction:** Preserve the current brand and typography hierarchy. Use semantic text colors in public villa/home/search components and shared controls where raw primary/accent colors currently render on light surfaces. Keep CMS preview consistent with public usage. Retain booking-status and contact-brand colors.
+
+- [x] Add focused contrast tests for light, saturated, dark, and custom CMS palettes; verify raw configured colors stay exact and text roles respond to CMS changes. Observed seven new color-test failures before implementation and the CMS preview test failure before updating the preview.
+- [x] Derive the two text roles, update applicable public/shared consumers and CMS preview, and document ownership in `docs/ai/structure.html`.
+- [x] Run focused/full Vitest, lint, build; inspect desktop/mobile detail, date dialog, homepage/search shared consumers, and unavailable calendar state. Verify public network budgets and role contrast in the rendered page; review the final diff.
+
+**Verification:** `npm.cmd test`, `npm.cmd run lint`, `npm.cmd run build`, and production browser checks at desktop/mobile sizes. CMS live preview is draft-only; do not save or write to online databases for testing.
+
+## Approved follow-up: white LINE booking text
+
+Use `--site-primary-action`, derived from the CMS primary with the existing contrast helper against white, and `--site-on-primary-action` fixed to white. Apply the pair only to LINE booking actions in the sidebar/date dialog and their CMS preview. Retain the derived fill on hover so white text never reverts to an unreadable raw primary. Preserve other brand fills and existing on-primary decisions. Dark primary colors that already support white retain their configured color. Verify gold/white/light/saturated/dark palettes, both LINE entry points, and desktop/mobile renderings.
+
+## Approved follow-up: consistent primary actions
+
+Expand the same pair to the shared default Button and public primary calls to action: header booking/LINE links, search/filter/append/reset controls, rail/recommendation links, gallery retries, activity gallery action labels and not-found navigation. Solid hover states on TikTok navigation use the same pair. Keep ordinary content surfaces, header/footer fills, decorative badges, booking statuses, contact-brand colors and secondary controls distinct. Update CMS guidance without adding settings fields. Existing inline admin actions remain outside this public UI pass; shared default Buttons inherit the pair everywhere.
+
+- [x] Verify browser color regression first, migrate primary action consumers, run tests/lint/build and inspect desktop/mobile flows, including search filter/appending and not-found recovery. The pre-change browser check failed on both sizes because search text was dark instead of white.
+
+- [x] Add failing contrast/preview tests, implement the pair and consumers, then run tests/lint/build and desktop/mobile browser verification. Observed seven failures before implementation. Full suite: 297 files / 2,583 tests passed; lint/build/diff checks passed. Six production browser cases covered current/light/dark primary colors on desktop/mobile, both sidebar/date-dialog LINE actions, normal/hover states and horizontal overflow. The configured gold produces a derived fill of <code>#936c18</code> with white text at 4.77:1; light/dark samples measured 5.01:1 / 9.72:1. Original primary settings remain exact. Inspected both entry points at both sizes; read-only review found no actionable findings. No commit/deploy/online settings writes.
+
+**Initial typography results (2026-10-30):** 297 Vitest files / 2,577 tests passed; lint, production build and diff whitespace checks passed. Production browser verification passed eight typography cases (current CMS palette, light/dark palette previews, unavailable calendar on desktop/mobile), plus six existing production smoke cases covering homepage, search/detail navigation/network, and admin login protection. Palette previews use the generated theme CSS only in test browser contexts, including independently scoped header/footer themes; no CMS data was saved. Foregrounds are measured after color transitions settle. The measured action/emphasis samples had minimum contrast 4.56:1 across the tested light surfaces, with no horizontal overflow. Detail network checks counted 38–39 same-origin requests / 7–8 API requests, with no unexpected `_rsc`, public `/_next/image`, or browser calendar API calls. Rendered detail/search and calendar dialog/error screenshots were inspected on both sizes; the independent read-only code review found no actionable issues. CMS draft propagation and preview roles are covered by component tests. No commit, deployment, or online database writes.
+
+
+**Expanded primary-action results (2026-10-30):** 297 files / 2,583 Vitest tests passed, plus lint/build/diff checks. Ten production browser cases passed: current/light/dark CMS palettes across desktop/mobile search, filter/appending workflows, homepage/not-found actions and empty-search reset. Measured normal/hover primary actions retained white text at 4.77:1 / 5.01:1 / 9.72:1 for the three palettes. The local test visitors use independent documentation IPs in test-only headers to avoid sharing the existing per-IP public API budget; production rate limits were not changed. Review identified reduced-opacity TikTok metadata on solid hover; removed opacity from both responsive labels so they inherit full-opacity text. Existing component tests cover gallery retry rendering. Screenshots inspected for search, mobile filter, homepage, not-found and empty results. No commit, deploy, CMS save or database writes.

@@ -45,7 +45,7 @@ export function BookingSidebarContactActions({
       </div>
 
       <AnalyticsContactLink
-        className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] px-4 py-3 text-sm font-black text-[var(--site-primary)] transition hover:bg-[var(--site-surface-tint)]"
+        className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--site-primary)] bg-[var(--site-primary-soft)] px-4 py-3 text-sm font-black text-[var(--site-primary-text)] transition hover:bg-[var(--site-surface-tint)]"
         onClick={() => pushBookingContactClick({channel:"messenger",listing,location:"booking_sidebar"})}
         channel="chat"
         villaId={listing.id}
@@ -58,7 +58,7 @@ export function BookingSidebarContactActions({
       </AnalyticsContactLink>
 
       <AnalyticsContactLink
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--site-primary)] px-4 py-3 text-sm font-black text-[var(--site-on-primary)] transition hover:bg-[var(--site-primary-hover)]"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--site-primary-action)] px-4 py-3 text-sm font-black text-[var(--site-on-primary-action)] transition hover:bg-[var(--site-primary-action)]"
         onClick={() => pushBookingContactClick({channel:"line",listing,location:"booking_sidebar"})}
         channel="line"
         villaId={listing.id}

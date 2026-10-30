@@ -121,7 +121,7 @@ export function DropdownSelect<TValue extends string = string>({
                   }}
                 >
                   <span className="min-w-0 truncate">{option.label}</span>
-                  {isSelected ? <Check className="h-4 w-4 text-[var(--site-accent)]" /> : null}
+                  {isSelected ? <Check className="h-4 w-4 text-[var(--site-accent-text)]" /> : null}
                 </button>
               );
             })}
