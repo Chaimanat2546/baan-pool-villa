@@ -35,10 +35,14 @@ export function HomeBackNavigationScroll() {
 
     window.history.scrollRestoration = "manual";
     const restoreFrame = scrollYToRestore !== null
-      ? window.requestAnimationFrame(() => window.scrollTo(0, scrollYToRestore))
+      ? window.requestAnimationFrame(() => {
+          if (window.scrollY === 0) {
+            window.scrollTo(0, scrollYToRestore);
+          }
+        })
       : null;
 
-    if (scrollYToRestore === null) {
+    if (isReload) {
       window.scrollTo(0, 0);
     }
 

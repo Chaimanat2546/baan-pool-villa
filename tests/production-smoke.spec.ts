@@ -134,6 +134,9 @@ test("public home renders SEO metadata and stays within a production smoke budge
     requests.filter((url) => new URL(url).pathname === "/api/home-sections"),
   ).toEqual([]);
   expect(
+    requests.filter((url) => new URL(url).pathname === "/api/home-deferred"),
+  ).toEqual([]);
+  expect(
     requests.filter((url) => new URL(url).pathname === "/api/houses"),
   ).toEqual([]);
   await expectHealthyPage(page);
@@ -147,12 +150,17 @@ test("public home renders SEO metadata and stays within a production smoke budge
   const initialDocumentHtml = await response?.text();
   // The rail renders twelve card wrappers but activates only four full images.
   // Count images in the server document, not the wrappers' navigation markers.
-  const initialFullImageCount = await page.evaluate((html) => {
+  const firstRailImages = await page.evaluate((html) => {
     const document = new DOMParser().parseFromString(html, "text/html");
-    return document.querySelector('[data-home-villa-rail="true"]')
-      ?.querySelectorAll('[data-villa-card-main-image="true"] [data-progressive-full]').length ?? 0;
+    const rail = document.querySelector('[data-home-villa-rail="true"]');
+    return {
+      deferred: Boolean(rail?.closest("[data-near-viewport-activation]")),
+      count: rail?.querySelectorAll(
+        '[data-villa-card-main-image="true"] [data-progressive-full]',
+      ).length ?? 0,
+    };
   }, initialDocumentHtml ?? "");
-  expect(initialFullImageCount).toBe(4);
+  expect(firstRailImages.count).toBe(firstRailImages.deferred ? 0 : 4);
 
   const { excludedImageSources, firstRailFullImageSources } = await page.evaluate(() => {
     const attributionWindow = window as typeof window & {
@@ -183,7 +191,9 @@ test("public home renders SEO metadata and stays within a production smoke budge
     responses: successfulImageResponses,
   });
 
-  expect(firstRailFullImageSources.length).toBeGreaterThan(0);
+  if (!firstRailImages.deferred) {
+    expect(firstRailFullImageSources.length).toBeGreaterThan(0);
+  }
   expect(initialFullCoverResponses.length).toBeLessThanOrEqual(4);
 
   const navigationDuration = await page.evaluate(() => {
@@ -221,6 +231,55 @@ test("public home renders SEO metadata and stays within a production smoke budge
   });
 
   expect(bodyUserSelect).not.toBe("none");
+});
+
+test("public home content survives a fast scroll without the deferred API", async ({ page }) => {
+  const deferredRequests: string[] = [];
+  await page.addInitScript(() => sessionStorage.setItem("home-last-scroll-y", "120"));
+  const { promise: scriptsMayLoad, resolve: resumeScripts } = Promise.withResolvers<void>();
+  await page.route("**/_next/static/**/*.js", async (route) => {
+    await scriptsMayLoad;
+    await route.continue();
+  });
+  await page.route("**/api/home-deferred*", (route) => {
+    deferredRequests.push(route.request().url());
+    return route.abort();
+  });
+
+  try {
+    const response = await page.goto("/?gad_source=1", { waitUntil: "commit" });
+    expect(response?.ok()).toBe(true);
+    const html = (await response?.text()) ?? "";
+    expect(html).not.toContain("data-home-deferred-placeholder-key");
+
+    const sectionIds = await page.evaluate((html) => {
+      const document = new DOMParser().parseFromString(html, "text/html");
+      return Array.from(document.querySelectorAll("main section[id]"), (section) => section.id);
+    }, html);
+    expect(sectionIds.length).toBeGreaterThan(1);
+    await expect(page.locator("main section[id]")).toHaveCount(sectionIds.length);
+
+    await page.evaluate(() => window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: "instant",
+    }));
+    const lastSection = page.locator(`main section[id=${JSON.stringify(sectionIds.at(-1))}]`);
+    const heading = lastSection.getByRole("heading").first();
+    await heading.evaluate((element) => element.scrollIntoView({ behavior: "instant", block: "center" }));
+    await expect(heading).toBeInViewport();
+
+    resumeScripts();
+    await expect.poll(() => page.evaluate(() => history.scrollRestoration)).toBe("manual");
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    }));
+    await expect(heading).toBeInViewport();
+    await expect(page.locator("main section[id]")).toHaveCount(sectionIds.length);
+    await expect(page.locator("[data-home-deferred-placeholder-key]")).toHaveCount(0);
+    expect(deferredRequests).toEqual([]);
+  } finally {
+    resumeScripts();
+  }
 });
 
 test("search page renders, and a live villa detail page renders when listing data is available", async ({

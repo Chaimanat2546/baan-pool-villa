@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 import { buildSiteAssetImageProxyPath, normalizePublicImageSourceUrl } from "@/lib/public-image-proxy";
 import type { SiteImageSettings } from "@/lib/site-settings/types";
 
@@ -17,7 +15,6 @@ interface HeroSectionProps {
   heroImage: SiteImageSettings;
   heroSlides?: SiteImageSettings[];
   maxAvailablePrice: number;
-  search?: ReactNode;
   zones: ZoneOption[];
 }
 
@@ -36,7 +33,6 @@ export function HeroSection({
   heroImage,
   heroSlides = [],
   maxAvailablePrice,
-  search,
   zones,
 }: HeroSectionProps) {
   const heroSlidesWithLegacyFallback =
@@ -59,9 +55,7 @@ export function HeroSection({
       <HeroCarouselLazy slides={slides}>
         <HeroCarouselFallback slides={slides} />
       </HeroCarouselLazy>
-      {search ?? (
-        <HeroSearch maxAvailablePrice={maxAvailablePrice} zones={zones} />
-      )}
+      <HeroSearch maxAvailablePrice={maxAvailablePrice} zones={zones} />
     </section>
   );
 }

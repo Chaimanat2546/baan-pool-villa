@@ -48,12 +48,49 @@ function renderScrollHandler() {
 }
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
   window.history.replaceState(null, "", "/");
   window.sessionStorage.clear();
 });
 
 describe("HomeBackNavigationScroll", () => {
+  it("leaves a scroll made before the first homepage render becomes interactive", async () => {
+    const scrollToMock = vi.fn();
+    vi.stubGlobal("scrollTo", scrollToMock);
+    vi.stubGlobal("scrollY", 1200);
+    vi.spyOn(performance, "getEntriesByType").mockReturnValue([
+      { type: "navigate" } as PerformanceNavigationTiming,
+    ]);
+    const page = renderScrollHandler();
+
+    await page.mount();
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+    await page.unmount();
+  });
+
+  it("keeps a new scroll position ahead of a saved position", async () => {
+    const scrollToMock = vi.fn();
+    let restoreAfterPaint: FrameRequestCallback | undefined;
+    vi.stubGlobal("scrollTo", scrollToMock);
+    vi.stubGlobal("scrollY", 0);
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      restoreAfterPaint = callback;
+      return 1;
+    });
+    vi.spyOn(performance, "getEntriesByType").mockReturnValue([]);
+    window.sessionStorage.setItem("home-last-scroll-y", "120");
+    const page = renderScrollHandler();
+
+    await page.mount();
+    vi.stubGlobal("scrollY", 1200);
+    restoreAfterPaint?.(0);
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+    await page.unmount();
+  });
+
   it("restores the position only after returning through browser history", async () => {
     const scrollToMock = vi.fn();
     let restoreAfterPaint: FrameRequestCallback | undefined;
@@ -66,9 +103,10 @@ describe("HomeBackNavigationScroll", () => {
     const page = renderScrollHandler();
 
     await page.mount();
-    Object.defineProperty(window, "scrollY", { configurable: true, value: 1600 });
+    vi.stubGlobal("scrollY", 1600);
     window.dispatchEvent(new Event("scroll"));
     await page.hideHomepage();
+    vi.stubGlobal("scrollY", 0);
     window.history.replaceState(null, "", "/");
     window.dispatchEvent(new PopStateEvent("popstate"));
     scrollToMock.mockClear();

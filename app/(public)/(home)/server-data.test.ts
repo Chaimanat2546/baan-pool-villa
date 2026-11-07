@@ -151,101 +151,31 @@ beforeEach(() => {
 });
 
 describe("deferred homepage server data", () => {
-  it("loads the complete bounded critical-rail payload without starting deferred sources", async () => {
-    const criticalVillas = Array.from({ length: 12 }, (_, index) =>
-      makeVilla(String(index + 1)),
-    );
-    getHomeSectionListingPlanMock.mockResolvedValue({
-      configs: [
-        {
-          autoScrollEnabled: false,
-          ctaEnabled: false,
-          ctaHref: null,
-          ctaLabel: null,
-          description: "Critical description",
-          displayOrder: 0,
-          fallbackMode: "none",
-          isActive: true,
-          items: criticalVillas.map((item, position) => ({
-            houseId: item.id,
-            isActive: true,
-            position,
-          })),
-          limitCount: 12,
-          mode: "manual",
-          sliceOffset: 0,
-          slug: "critical",
-          title: "Critical rail",
-        },
-        {
-          autoScrollEnabled: false,
-          ctaEnabled: false,
-          ctaHref: null,
-          ctaLabel: null,
-          description: "Later description",
-          displayOrder: 1,
-          fallbackMode: "none",
-          isActive: true,
-          items: [{ houseId: "99", isActive: true, position: 0 }],
-          limitCount: 1,
-          mode: "manual",
-          sliceOffset: 0,
-          slug: "later",
-          title: "Later rail",
-        },
-      ],
-      houseIds: [...criticalVillas.map((villa) => villa.id), "99"],
-      layout: {
-        degraded: false,
-        items: [
-          { kind: "rail", key: "critical", enabled: true },
-          { kind: "rail", key: "later", enabled: true },
-        ],
-        source: "config",
-      },
-      listingLimit: 12,
-    });
-    fetchHomeListingsMock.mockResolvedValue(criticalVillas);
-    getResolvedHomeSectionsMock.mockResolvedValue({
-      degraded: false,
-      sections: [
-        {
-          autoScrollEnabled: false,
-          description: "Critical description",
-          slug: "critical",
-          title: "Critical rail",
-          villas: criticalVillas,
-        },
-      ],
-      source: "config",
-    });
-    const serverData = await import("./server-data");
-    const getInitialHomePageData = (
-      serverData as typeof serverData & {
-        getInitialHomePageData?: () => Promise<{
-          sections: Array<{ villas: VillaListing[] }>;
-        }>;
-      }
-    ).getInitialHomePageData;
+  it("loads both homepage rails while preparing previews only for the first enabled rail", async () => {
+    const { getHomePageData } = await import("./server-data");
 
-    expect(getInitialHomePageData).toBeTypeOf("function");
-    const payload = await getInitialHomePageData!();
+    const data = await getHomePageData();
 
-    expect(payload.sections[0]?.villas.map((villa) => villa.id)).toEqual(
-      criticalVillas.map((villa) => villa.id),
-    );
-    expect(fetchHomeListingsMock).toHaveBeenCalledWith(
-      criticalVillas.map((villa) => villa.id),
-      12,
-    );
-    expect(withVillaCardGalleryPreviewsMock).toHaveBeenCalledWith(
-      criticalVillas,
-    );
-    expect(getPublishedGuidesMock).not.toHaveBeenCalled();
-    expect(getHomepageCustomerReviewDataMock).not.toHaveBeenCalled();
+    expect(data.homeSections.map(({ slug }) => slug)).toEqual(["critical", "later"]);
+    expect(withVillaCardGalleryPreviewsMock).toHaveBeenCalledExactlyOnceWith([makeVilla("1")]);
   });
 
-  it("uses the first enabled fixed section as the initial homepage content", async () => {
+  it("keeps homepage content available if first-rail previews fail", async () => {
+    const error = new Error("Network connection lost.");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    withVillaCardGalleryPreviewsMock.mockRejectedValue(error);
+    const { getHomePageData } = await import("./server-data");
+
+    await expect(getHomePageData()).resolves.toMatchObject({
+      homeSections: [
+        expect.objectContaining({ slug: "critical", villas: [expect.objectContaining({ id: "1" })] }),
+        expect.objectContaining({ slug: "later", villas: [expect.objectContaining({ id: "2" })] }),
+      ],
+    });
+    expect(consoleError).toHaveBeenCalledWith("Unable to prepare homepage villa card previews", error);
+  });
+
+  it("skips disabled content and keeps all rail previews lazy after a fixed section", async () => {
     getHomeSectionListingPlanMock.mockResolvedValue({
       configs: [],
       houseIds: ["1", "2"],
@@ -254,76 +184,24 @@ describe("deferred homepage server data", () => {
         items: [
           { kind: "fixed", key: "why_choose", enabled: true },
           { kind: "rail", key: "critical", enabled: true },
+          { kind: "rail", key: "later", enabled: true },
+          { kind: "fixed", key: "articles", enabled: false },
+          { kind: "fixed", key: "customer_reviews", enabled: false },
         ],
         source: "config",
       },
       listingLimit: 12,
     });
-    const { getInitialHomePageData } = await import("./server-data");
+    const { getHomePageData } = await import("./server-data");
 
-    await expect(getInitialHomePageData()).resolves.toMatchObject({
-      criticalItem: { kind: "fixed", key: "why_choose", enabled: true },
-      sections: [],
-    });
-    expect(fetchHomeListingsMock).not.toHaveBeenCalled();
-  });
+    const data = await getHomePageData();
 
-  it("logs and degrades when preparing critical villa-card previews fails", async () => {
-    const error = new Error("Network connection lost.");
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    withVillaCardGalleryPreviewsMock.mockRejectedValue(error);
-    const { getInitialHomePageData } = await import("./server-data");
-
-    await expect(getInitialHomePageData()).resolves.toMatchObject({
-      degradedSources: expect.objectContaining({ villaCatalog: true }),
-      sections: [],
-    });
-    expect(consoleError).toHaveBeenCalledWith(
-      "Unable to prepare homepage critical villa cards",
-      error,
-    );
-  });
-
-  it("builds an initial payload containing only the document critical rail", async () => {
-    const serverData = await import("./server-data");
-    const data = await serverData.getHomePageData();
-    const buildInitialHomePayload = (
-      serverData as typeof serverData & {
-        buildInitialHomePayload?: (value: typeof data) => unknown;
-      }
-    ).buildInitialHomePayload;
-
-    expect(buildInitialHomePayload?.(data)).toEqual({
-      criticalRailKey: "critical",
-      degradedSources: {
-        guidePosts: false,
-        homeSections: false,
-        villaCatalog: false,
-      },
-      layout: [
-        { kind: "rail", key: "critical", enabled: true },
-        { kind: "fixed", key: "why_choose", enabled: true },
-        { kind: "rail", key: "later", enabled: true },
-        { kind: "fixed", key: "customer_reviews", enabled: true },
-        { kind: "fixed", key: "articles", enabled: true },
-      ],
-      sections: [
-        expect.objectContaining({
-          slug: "critical",
-          title: "Critical rail",
-          villas: [expect.objectContaining({ id: "1" })],
-        }),
-      ],
-    });
-    expect(JSON.stringify(buildInitialHomePayload?.(data))).not.toContain(
-      "Later rail",
-    );
-    expect(JSON.stringify(buildInitialHomePayload?.(data))).not.toContain(
-      "Guide one",
-    );
-    expect(JSON.stringify(buildInitialHomePayload?.(data))).not.toContain(
-      "Customer proof",
-    );
+    expect(data.homeSections.map(({ slug }) => slug)).toEqual(["critical", "later"]);
+    expect(data.guides).toEqual([]);
+    expect(data.customerReviews.images).toEqual([]);
+    expect(getPublishedGuidesMock).not.toHaveBeenCalled();
+    expect(getHomepageCustomerReviewDataMock).not.toHaveBeenCalled();
+    expect(withVillaCardGalleryPreviewsMock).not.toHaveBeenCalled();
   });
 
   it("excludes the supplied critical rail and returns public DTOs for deferred content", async () => {
