@@ -434,17 +434,21 @@ describe("BookingSidebar", () => {
     });
     vi.stubGlobal("fetch", vi.fn(() => pendingMonth));
     const page = await renderBookingSidebar();
+    const announcement = page.container.querySelector('p[role="status"]');
+    expect(announcement?.textContent).toBe("");
+    expect(announcement?.classList.contains("sr-only")).toBe(true);
 
     await act(async () => clickCalendarNavButton(page.container, "next"));
 
     expect(page.container.querySelector(".rdp-month_grid [data-slot='skeleton']")).not.toBeNull();
     expect(page.container.querySelector(".rdp-month_grid button:enabled")).toBeNull();
     expect(page.container.querySelector("[data-calendar-day-price]")).toBeNull();
-    expect(page.container.querySelector('[role="status"]')?.textContent).toContain("กำลังโหลด");
+    expect(announcement?.textContent).toContain("กำลังโหลด");
     expect(getCalendarNavButton(page.container, "next")?.disabled).toBe(false);
 
     await act(async () => finishMonth(Response.json(buildCalendarResponse("2026-07"))));
 
+    expect(announcement?.textContent).toBe("");
     expect(page.container.querySelector(".rdp-month_grid [data-slot='skeleton']")).toBeNull();
     expect(page.container.querySelector('button[data-day="2026-07-15"] [data-calendar-day-price]')).not.toBeNull();
     await page.cleanup();

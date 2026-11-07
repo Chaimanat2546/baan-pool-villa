@@ -88,11 +88,9 @@ export function BookingCalendarPanel({
 
   return (
     <>
-      {status === "loading" ? (
-        <p className="mb-2 px-2 py-1 text-sm text-[var(--site-muted)]" role="status">
-          กำลังโหลดราคาและสถานะจอง…
-        </p>
-      ) : null}
+      <p className="sr-only" role="status">
+        {status === "loading" ? "กำลังโหลดราคาและสถานะจอง…" : null}
+      </p>
       {status === "unavailable" ? (
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-2 py-1">
           <p className="text-sm text-[var(--site-muted)]" role="alert">
@@ -137,7 +135,7 @@ export function BookingCalendarPanel({
               return (
                 <Skeleton
                   aria-hidden="true"
-                  className="h-14 w-full motion-reduce:animate-none"
+                  className="calendar-skeleton-sweep relative h-14 w-full overflow-hidden"
                 />
               );
             }
