@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BookingCalendarDayCell } from "./booking-calendar-day-cell";
 import { CalendarDayDetailDialog } from "./booking-calendar-day-detail-dialog";
 import { BookingCalendarMonthCaption } from "./booking-calendar-month-caption";
@@ -132,6 +133,15 @@ export function BookingCalendarPanel({
             />
           ),
           DayButton: ({ className, day, ...props }) => {
+            if (status === "loading") {
+              return (
+                <Skeleton
+                  aria-hidden="true"
+                  className="h-14 w-full motion-reduce:animate-none"
+                />
+              );
+            }
+
             const isPast =
               startOfCalendarDate(day.date).getTime() < todayStart.getTime();
             const isToday = isSameCalendarDay(day.date, today);
