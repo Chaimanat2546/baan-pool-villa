@@ -1,29 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { BookingCalendarDayCell } from "./booking-calendar-day-cell";
 import { CalendarDayDetailDialog } from "./booking-calendar-day-detail-dialog";
 import { BookingCalendarMonthCaption } from "./booking-calendar-month-caption";
 import { CalendarLegend } from "./booking-calendar-parts";
+import { bookingCalendarMonthDate, useBookingCalendar } from "./booking-calendar-provider";
 import {
   addCalendarMonths,
   findFirstAvailableCalendarDateKey,
   formatCalendarDateKey,
-  formatCalendarMonthKey,
   formatThaiCalendarDate,
   getFallbackCalendarDay,
   isCalendarDateSelectable,
   startOfCalendarDate,
   type BookingCalendarDay,
-  type BookingCalendarMonth,
 } from "./booking-calendar-ui";
 import { useLockedBodyScroll } from "./use-locked-body-scroll";
 
 interface BookingCalendarPanelProps {
-  bookingCalendars: Record<string, BookingCalendarMonth>;
   contactLinks: { line: string; messenger: string };
-  currentBookingMonthKey: string;
   fallbackPrice: number | null;
   phoneContacts: { href: string; name: string; phone: string; time: string }[];
 }
@@ -40,26 +38,20 @@ function isSameCalendarDay(date: Date, day: Date) {
 }
 
 export function BookingCalendarPanel({
-  bookingCalendars,
   contactLinks,
-  currentBookingMonthKey,
   fallbackPrice,
   phoneContacts,
 }: BookingCalendarPanelProps) {
   const today = new Date();
   const todayStart = startOfCalendarDate(today);
-  const [currentYear, currentMonthNumber] = currentBookingMonthKey
-    .split("-")
-    .map(Number);
-  const currentMonth = new Date(currentYear, currentMonthNumber - 1, 1);
-  const [visibleMonth, setVisibleMonth] = useState(() => currentMonth);
+  const { currentMonthKey, state, setVisibleMonth, retryMonth } = useBookingCalendar();
+  const { calendar: bookingCalendar, monthKey: visibleMonthKey, status } = state;
+  const currentMonth = bookingCalendarMonthDate(currentMonthKey);
+  const visibleMonth = bookingCalendarMonthDate(visibleMonthKey);
   const [selectedCalendarDate, setSelectedCalendarDate] =
     useState<Date | null>(null);
   const [isCalendarTipDismissed, setIsCalendarTipDismissed] = useState(false);
-  const visibleMonthKey = formatCalendarMonthKey(visibleMonth);
   const isPastVisibleMonth = visibleMonth < currentMonth;
-  const bookingCalendar = bookingCalendars[visibleMonthKey] ?? null;
-  const isCalendarAvailable = bookingCalendar?.month === visibleMonthKey;
   const firstAvailableCalendarDateKey = findFirstAvailableCalendarDateKey({
     bookingCalendar,
     fallbackPrice,
@@ -82,36 +74,32 @@ export function BookingCalendarPanel({
       getFallbackCalendarDay(fallbackPrice)
     );
   };
-  const selectedCalendarDay = selectedCalendarDate
-    ? getCalendarDay(selectedCalendarDate)
-    : null;
   const isDateDisabled = (date: Date) =>
     !isCalendarDateSelectable({ date, todayStart }) ||
     isOutsideVisibleMonth(date) ||
     bookingCalendar?.month !== visibleMonthKey ||
     getCalendarDay(date).disabled;
+  const selectedCalendarDay = selectedCalendarDate && !isDateDisabled(selectedCalendarDate)
+    ? getCalendarDay(selectedCalendarDate)
+    : null;
 
-  useLockedBodyScroll(Boolean(selectedCalendarDate));
+  useLockedBodyScroll(Boolean(selectedCalendarDay));
 
   return (
     <>
-      {!isCalendarAvailable ? (
-        <div
-          className="mb-3 rounded-xl border border-[var(--site-border)] bg-[var(--site-surface)] p-3 text-sm text-[var(--site-text)]"
-          data-calendar-unavailable="true"
-          role="status"
-        >
-          <p className="font-bold">โหลดข้อมูลปฏิทินเดือนนี้ไม่สำเร็จ</p>
-          <p className="mt-1 text-xs leading-6 text-[var(--site-muted)]">
-            ยังยืนยันวันว่างไม่ได้ กรุณาโหลดหน้าใหม่หรือติดต่อแอดมินเพื่อตรวจสอบ
+      {status === "loading" ? (
+        <p className="mb-2 px-2 py-1 text-sm text-[var(--site-muted)]" role="status">
+          กำลังโหลดราคาและสถานะจอง…
+        </p>
+      ) : null}
+      {status === "unavailable" ? (
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-2 py-1">
+          <p className="text-sm text-[var(--site-muted)]" role="alert">
+            โหลดข้อมูลปฏิทินไม่ได้
           </p>
-          <button
-            className="mt-2 min-h-11 rounded-lg border border-[var(--site-primary)] px-3 text-sm font-bold text-[var(--site-primary-text)] hover:bg-[var(--site-primary-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-primary)]"
-            onClick={() => window.location.reload()}
-            type="button"
-          >
-            โหลดหน้าใหม่
-          </button>
+          <Button data-calendar-retry size="sm" type="button" variant="outline" onClick={retryMonth}>
+            ลองใหม่
+          </Button>
         </div>
       ) : null}
       <Calendar
@@ -130,7 +118,7 @@ export function BookingCalendarPanel({
         }}
         hideNavigation
         today={today}
-        footer={isCalendarAvailable ? <CalendarLegend /> : undefined}
+        footer={status === "available" ? <CalendarLegend /> : undefined}
         components={{
           MonthCaption: ({ calendarMonth, className }) => (
             <BookingCalendarMonthCaption

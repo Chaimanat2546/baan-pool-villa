@@ -1,5 +1,6 @@
 import { buildVillaDetailContent } from "@/lib/villas/detail";
 import type { PublicVillaImage } from "@/lib/villas/public-dto";
+import { BookingCalendarProvider } from "./booking-calendar-provider";
 import { BookingSidebar } from "./booking-sidebar";
 import { VillaIntro } from "./content-sections";
 import { VillaDetailClientShell } from "./detail-client-shell";
@@ -12,11 +13,11 @@ const EMPTY_ADVERTISEMENTS: NonNullable<VillaDetailPageProps["advertisements"]> 
 export function VillaDetailPage({
   advertisements = EMPTY_ADVERTISEMENTS,
   advertisementCursor,
-  bookingCalendars,
   contactSettings,
   currentBookingMonthKey,
   galleryStyle,
   id,
+  initialBookingCalendar,
   initialGalleryImages = EMPTY_INITIAL_GALLERY_IMAGES,
   initialGalleryLoadFailed = false,
   initialGalleryPreviewImages = initialGalleryImages,
@@ -47,46 +48,49 @@ export function VillaDetailPage({
         <span className="text-[var(--site-primary-text)]">{listing.zoneLabel}</span>
       </div>
 
-      <VillaDetailClientShell
+      <BookingCalendarProvider
         key={id}
-        bookingSidebarId={bookingSidebarId}
-        advertisements={advertisements}
-        advertisementCursor={advertisementCursor}
-        bookingCalendars={bookingCalendars}
-        contactSettings={contactSettings}
-        content={content}
-        currentBookingMonthKey={currentBookingMonthKey}
-        galleryStyle={galleryStyle}
-        id={id}
-        initialGalleryImages={initialGalleryImages}
-        initialGalleryLoadFailed={initialGalleryLoadFailed}
-        initialGalleryPreviewImages={initialGalleryPreviewImages}
-        listing={listing}
-        recommendedSection={recommendedSection}
-        settings={settings}
-        villaCardStyle={villaCardStyle}
+        currentMonthKey={currentBookingMonthKey}
+        enabled={showMobileBookingContact}
+        initialCalendar={initialBookingCalendar}
+        villaId={id}
       >
-        <div className="mx-auto w-full max-w-[402px] px-[22.5px] py-8 sm:max-w-7xl sm:px-6 lg:px-8">
-          <VillaIntro
-            content={content}
-            listing={listing}
-            startingGuestCapacity={startingGuestCapacity}
-          />
+        <VillaDetailClientShell
+          bookingSidebarId={bookingSidebarId}
+          advertisements={advertisements}
+          advertisementCursor={advertisementCursor}
+          contactSettings={contactSettings}
+          content={content}
+          galleryStyle={galleryStyle}
+          id={id}
+          initialGalleryImages={initialGalleryImages}
+          initialGalleryLoadFailed={initialGalleryLoadFailed}
+          initialGalleryPreviewImages={initialGalleryPreviewImages}
+          listing={listing}
+          recommendedSection={recommendedSection}
+          settings={settings}
+          villaCardStyle={villaCardStyle}
+        >
+          <div className="mx-auto w-full max-w-[402px] px-[22.5px] py-8 sm:max-w-7xl sm:px-6 lg:px-8">
+            <VillaIntro
+              content={content}
+              listing={listing}
+              startingGuestCapacity={startingGuestCapacity}
+            />
 
-          {showMobileBookingContact ? (
-            <div className="mt-4 lg:hidden" data-mobile-booking-contact="true">
-              <BookingSidebar
-                bookingCalendars={bookingCalendars}
-                contactSettings={contactSettings}
-                content={content}
-                currentBookingMonthKey={currentBookingMonthKey}
-                id="contact"
-                listing={listing}
-              />
-            </div>
-          ) : null}
-        </div>
-      </VillaDetailClientShell>
+            {showMobileBookingContact ? (
+              <div className="mt-4 lg:hidden" data-mobile-booking-contact="true">
+                <BookingSidebar
+                  contactSettings={contactSettings}
+                  content={content}
+                  id="contact"
+                  listing={listing}
+                />
+              </div>
+            ) : null}
+          </div>
+        </VillaDetailClientShell>
+      </BookingCalendarProvider>
     </main>
   );
 }

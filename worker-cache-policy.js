@@ -1,5 +1,4 @@
 const HTML_EDGE_CACHE_SECONDS = 6 * 60 * 60;
-const VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS = 15 * 60;
 const IMAGE_EDGE_CACHE_SECONDS = 365 * 24 * 60 * 60;
 const IMAGE_EDGE_STALE_SECONDS = 365 * 24 * 60 * 60;
 const HOUSE_JSON_EDGE_CACHE_SECONDS = 6 * 60 * 60;
@@ -31,7 +30,6 @@ const VILLA_IMAGE_DISPLAY_QUERY_KEYS = new Set(["imageId", "url", "w", "q"]);
 const HERO_IMAGE_QUERY_KEYS = new Set(["slide", "w", "q"]);
 
 export const HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${HTML_EDGE_CACHE_SECONDS}`;
-export const VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${VILLA_DETAIL_HTML_EDGE_CACHE_SECONDS}`;
 export const HTML_BROWSER_CACHE_CONTROL =
   "private, no-cache, max-age=0, must-revalidate";
 export const HTML_EDGE_CACHE_HEADER = "x-bpv-html-cache";
@@ -120,8 +118,7 @@ function isVillaDetailPath(pathname) {
 export function isPublicHtmlCachePath(pathname) {
   return (
     PUBLIC_HTML_CACHE_PATHS.has(pathname) ||
-    isGuideDetailPath(pathname) ||
-    isVillaDetailPath(pathname)
+    isGuideDetailPath(pathname)
   );
 }
 
@@ -205,17 +202,6 @@ function getHtmlCacheVersionGroups(pathname) {
     return [
       HTML_CACHE_VERSION_GROUPS.siteSettings,
       HTML_CACHE_VERSION_GROUPS.legalPages,
-    ];
-  }
-
-  if (isVillaDetailPath(pathname)) {
-    return [
-      HTML_CACHE_VERSION_GROUPS.siteSettings,
-      HTML_CACHE_VERSION_GROUPS.homeSections,
-      HTML_CACHE_VERSION_GROUPS.detailLayout,
-      HTML_CACHE_VERSION_GROUPS.advertisements,
-      HTML_CACHE_VERSION_GROUPS.villaDetails,
-      HTML_CACHE_VERSION_GROUPS.villaImages,
     ];
   }
 
@@ -542,12 +528,6 @@ function getJsonCacheVersionGroups(pathname) {
   return [];
 }
 
-function getHtmlCacheControl(pathname) {
-  return isVillaDetailPath(pathname)
-    ? VILLA_DETAIL_HTML_EDGE_CACHE_CONTROL
-    : HTML_EDGE_CACHE_CONTROL;
-}
-
 function getJsonCacheControl(pathname) {
   if (pathname === "/api/houses") {
     return HOUSE_JSON_EDGE_CACHE_CONTROL;
@@ -631,6 +611,9 @@ export function createJsonEdgeCacheKey(request, versionToken = "") {
 
 export function getHtmlEdgeCacheDecision(request) {
   const url = new URL(request.url);
+  if (isVillaDetailPath(url.pathname)) {
+    return { cacheable: false, candidate: true, reason: "live-calendar" };
+  }
   const isCandidatePath = isPublicHtmlCachePath(url.pathname);
 
   if (!isCandidatePath) {
@@ -658,7 +641,7 @@ export function getHtmlEdgeCacheDecision(request) {
 
   return {
     cacheKey: createHtmlEdgeCacheKey(request),
-    cacheControl: getHtmlCacheControl(url.pathname),
+    cacheControl: HTML_EDGE_CACHE_CONTROL,
     cacheable: true,
     candidate: true,
     reason: "html",
@@ -777,12 +760,12 @@ export function getJsonEdgeCacheDecision(request) {
   };
 }
 
-export function withHtmlEdgeCacheHeader(response, value) {
+export function withHtmlEdgeCacheHeader(response, value, cacheControl = HTML_BROWSER_CACHE_CONTROL) {
   const headers = new Headers(response.headers);
   const contentType = headers.get("Content-Type")?.toLowerCase() ?? "";
 
   if (contentType.includes("text/html")) {
-    headers.set("Cache-Control", HTML_BROWSER_CACHE_CONTROL);
+    headers.set("Cache-Control", cacheControl);
   }
 
   headers.set(HTML_EDGE_CACHE_HEADER, value);

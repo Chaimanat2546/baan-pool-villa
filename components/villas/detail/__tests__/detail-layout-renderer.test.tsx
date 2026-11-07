@@ -23,6 +23,7 @@ import type {
   RecommendedVillaSection,
   VillaListing,
 } from "../../../../lib/villas/types";
+import { BookingCalendarProvider } from "../booking-calendar-provider";
 import { DetailLayoutRenderer } from "../detail-layout-renderer";
 import type { GalleryCategory } from "../types";
 
@@ -231,19 +232,23 @@ function render(
   const activeListing = options.listing ?? listing;
 
   return renderToStaticMarkup(
-    <DetailLayoutRenderer
-      advertisements={advertisements}
-      bookingCalendars={bookingCalendars}
-      contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
-      content={{ ...content, ...overrides }}
-      currentBookingMonthKey={currentBookingMonthKey}
-      galleryCategories={galleryCategories}
-      galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
-      layout={layout}
-      listing={activeListing}
-      recommendedSection={recommendedSection}
-      settings={{ ...DEFAULT_SITE_SETTINGS, detailLayout: layout }}
-    />,
+    <BookingCalendarProvider
+      currentMonthKey={currentBookingMonthKey}
+      initialCalendar={bookingCalendars[currentBookingMonthKey]}
+      villaId={activeListing.id}
+    >
+      <DetailLayoutRenderer
+        advertisements={advertisements}
+        contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
+        content={{ ...content, ...overrides }}
+        galleryCategories={galleryCategories}
+        galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
+        layout={layout}
+        listing={activeListing}
+        recommendedSection={recommendedSection}
+        settings={{ ...DEFAULT_SITE_SETTINGS, detailLayout: layout }}
+      />
+    </BookingCalendarProvider>,
   );
 }
 

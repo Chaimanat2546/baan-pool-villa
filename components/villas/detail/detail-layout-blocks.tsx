@@ -21,7 +21,6 @@ import type {
   VillaDetailContent,
   VillaDetailSection,
 } from "@/lib/villas/detail";
-import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import { ActivityAdvertisementsSection } from "./activity-advertisements-section";
 import { BookingSidebar } from "./booking-sidebar";
@@ -40,11 +39,9 @@ import { VillaReviewsSection } from "./villa-reviews-section";
 interface DetailLayoutBlockContext {
   advertisements: PublicAdvertisement[];
   advertisementCursor?: string | null;
-  bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId?: string;
   contactSettings: SiteContactSettings;
   content: VillaDetailContent;
-  currentBookingMonthKey: string;
   galleryCategories: GalleryCategory[];
   galleryStyle: GalleryStyleSettings;
   listing: VillaListing;
@@ -415,19 +412,15 @@ function renderVillaReviews({
 }
 
 function renderBookingContact({
-  bookingCalendars,
   bookingSidebarId,
   contactSettings,
   content,
-  currentBookingMonthKey,
   listing,
 }: DetailLayoutBlockContext) {
   return (
     <BookingSidebar
-      bookingCalendars={bookingCalendars}
       contactSettings={contactSettings}
       content={content}
-      currentBookingMonthKey={currentBookingMonthKey}
       id={bookingSidebarId}
       listing={listing}
     />

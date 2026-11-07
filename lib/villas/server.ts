@@ -709,10 +709,14 @@ function selectListingFacets(
     .range(from, to);
 }
 
-function selectListingDetail(supabase: VillaSupabaseClient, id: string) {
+function selectListingDetail(
+  supabase: VillaSupabaseClient,
+  id: string,
+  columns = LISTING_SELECT_COLUMNS,
+) {
   return supabase
     .from("listings")
-    .select(LISTING_SELECT_COLUMNS)
+    .select(columns)
     .eq("is_active", true)
     .eq("property_id", toNumber(id))
     .maybeSingle();
@@ -1511,6 +1515,15 @@ export async function getListingById(id: string): Promise<VillaListing | null> {
   return fetchListingByIdFromSupabase(id);
 }
 
+export async function hasActiveVillaListing(id: string): Promise<boolean> {
+  const { supabase } = createVillaSupabaseClient();
+  const { data, error } = await selectListingDetail(supabase, id, "property_id");
+  if (error) {
+    throw error;
+  }
+  return data !== null;
+}
+
 /**
  * Resolves the listing first, then adds Deville Central detail data with the
  * Supabase listing row as a conservative fallback.
@@ -1549,13 +1562,16 @@ export type VillaPageData = {
  * detail page.
  *
  * @param id - The villa id to resolve for the public detail page.
+ * @param galleryImageSource - The configured detail gallery preview source.
+ * @param preloadedListing - A public listing already resolved for this page.
  * @returns The page payload, or `null` when the villa id is not found.
  */
 export async function fetchVillaPageData(
   id: string,
   galleryImageSource: GalleryImageSource = "standard",
+  preloadedListing?: VillaListing,
 ): Promise<VillaPageData | null> {
-  const listing = await getListingById(id);
+  const listing = preloadedListing ?? await getListingById(id);
 
   if (!listing) {
     return null;
