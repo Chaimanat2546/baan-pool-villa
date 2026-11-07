@@ -32,6 +32,17 @@ export function buildDefaultHomePageLayout(
       ];
 }
 
+export function getLeadingHomeRailKey(
+  layout: readonly HomePageLayoutItem[],
+  hasRail: (key: string) => boolean,
+): string | undefined {
+  const firstItem = layout.find(
+    (item) => item.enabled && (item.kind === "fixed" || hasRail(item.key)),
+  );
+
+  return firstItem?.kind === "rail" ? firstItem.key : undefined;
+}
+
 export function parseHomePageLayout(value: unknown): {
   errors: string[];
   items: HomePageLayoutItem[];

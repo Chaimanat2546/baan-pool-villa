@@ -180,7 +180,7 @@ describe("HomePage", () => {
     expect(markup).not.toContain("data-home-tiktok");
   });
 
-  it("keeps the first enabled rail critical and defers later rails plus image-heavy fixed sections", () => {
+  it("renders later sections while gating their images near the viewport", () => {
     const laterRail: ResolvedHomeSection = {
       ...homeSection,
       slug: "later",
@@ -227,6 +227,25 @@ describe("HomePage", () => {
     expect(markup).toContain('data-home-tiktok="true"');
     expect(markup).toContain('data-home-customer-reviews="proof_wall"');
     expect(markup).toContain('data-home-guides="true"');
+  });
+
+  it("keeps the first rail's images lazy when a fixed section comes first", () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(
+      <HomePageContent
+        homeLayout={[
+          { kind: "fixed", key: "why_choose", enabled: true },
+          { kind: "rail", key: "featured", enabled: true },
+        ]}
+        initialHomeSections={[homeSection]}
+        settings={DEFAULT_HOME_SETTINGS}
+      />,
+    );
+
+    const rail = container.querySelector("#featured");
+    expect(rail?.querySelector('a[href^="/villas/"]')).not.toBeNull();
+    expect(rail?.closest("[data-near-viewport-activation]")).not.toBeNull();
+    expect(rail?.querySelector("[data-progressive-full]")).toBeNull();
   });
 
   it("keeps hero markup before movable homepage sections", () => {

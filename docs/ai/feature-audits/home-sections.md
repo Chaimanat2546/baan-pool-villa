@@ -2,7 +2,7 @@
 
 **สถานะ:** มีรายการปรับปรุง  
 **Audit ล่าสุด:** 2026-09-07  
-**ขอบเขต:** Homepage mixed layout, villa rails, fixed sections, admin section editor, initial/deferred render plan และ cache lifecycle
+**ขอบเขต:** Homepage mixed layout, villa rails, fixed sections, admin section editor, การเรนเดอร์หน้าแรก และ cache lifecycle
 
 เอกสารนี้บันทึกผล audit เพื่อใช้ปรับโครงสร้างภายหลัง โดยยังไม่เปลี่ยนพฤติกรรม, API หรือฐานข้อมูลในตอนนี้
 
@@ -15,9 +15,8 @@ Admin editor
   -> lib/home-sections/
 
 Public homepage
+  -> app/(public)/(home)/server-data.ts + lib/home-sections/
   -> components/villas/home/
-  -> /api/home-sections + /api/home-deferred
-  -> lib/home-sections/
 ```
 
 ## สิ่งที่ทำได้ดีอยู่แล้ว
@@ -25,7 +24,7 @@ Public homepage
 - บันทึก layout และ rail snapshot แบบ atomic ผ่าน RPC.
 - Validation ครอบคลุม fixed sections, rail identity, slug, CTA URL, manual IDs และลำดับ.
 - Public renderer รองรับ layout แบบ mixed ระหว่าง rail และ fixed sections.
-- แยก critical first rail ออกจาก deferred content เพื่อลดโหลดหน้าแรก.
+- หน้าแรกส่งเนื้อหาทุกส่วนที่เปิดใช้มาพร้อม HTML ส่วนรูปและแกลเลอรีด้านล่างเริ่มโหลดเมื่อเลื่อนเข้าใกล้
 - มี rate limit และ public response จำกัดข้อมูล.
 - Targeted test ที่ตรวจใน audit ผ่าน 27 files และ 165 tests.
 
@@ -58,18 +57,10 @@ API บันทึก snapshot ทั้งก้อน และใน audit �
 
 ควรเพิ่ม `revision` หรือ `updated_at` ใน snapshot แล้วปฏิเสธ stale save พร้อมให้ UI reload/merge เพื่อป้องกันแอดมินคนหลังเขียนทับการแก้ของคนแรก.
 
-### 4. ทำ initial/deferred render plan เป็น DTO ชัดเจน
+### 4. ตรวจสัญญาข้อมูลหน้าแรก
 
-หน้าแรกมีทั้ง critical initial content และ deferred content ซึ่งเป็นกติกาสำคัญต่อ performance แต่ตามจากชื่อไฟล์ลำบาก
-
-ควรมี type เช่น:
-
-```text
-HomeInitialRenderPlan
-HomeDeferredRenderPlan
-```
-
-พร้อม owner และ tests ที่ชัดเจน.
+`server-data.ts` เตรียมข้อมูลให้หน้าแรกและยังรองรับ `/api/home-deferred` สำหรับ HTML รุ่นเก่า
+หากปรับสัญญาข้อมูล ให้ตรวจว่า HTML หน้าแรกมีรายการและลำดับครบ และ API เดิมยังตอบตามสัญญาของตัวเอง
 
 ### 5. ทำ ownership map ของ section keys
 
@@ -106,12 +97,12 @@ Save หนึ่งครั้งกระทบ Next data cache, Cloudflare H
 - save
 - cache refresh
 - หน้าแรก mobile/desktop แสดง order ถูกต้อง
-- initial/deferred content ไม่ซ้ำ
+- หน้าแรกแสดงเนื้อหาครบหลังเลื่อนเร็ว โดยไม่มีคำขอไปที่ `/api/home-deferred`
 - request budget ยังผ่าน
 
 ## สิ่งที่ไม่อยู่ในขอบเขตของเอกสารนี้
 
-- การลดความสามารถของ mixed layout หรือ deferred rendering.
+- การลดความสามารถของ mixed layout
 - การเปลี่ยน cache duration หรือ public API URL ทันที.
 - การเพิ่ม section type ใหม่.
 
