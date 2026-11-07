@@ -425,6 +425,31 @@ describe("BookingSidebar", () => {
     container.remove();
   });
 
+  it("shows skeleton day cells while the selected month is loading", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
+    let finishMonth: (response: Response) => void = () => {};
+    const pendingMonth = new Promise<Response>((resolve) => {
+      finishMonth = resolve;
+    });
+    vi.stubGlobal("fetch", vi.fn(() => pendingMonth));
+    const page = await renderBookingSidebar();
+
+    await act(async () => clickCalendarNavButton(page.container, "next"));
+
+    expect(page.container.querySelector(".rdp-month_grid [data-slot='skeleton']")).not.toBeNull();
+    expect(page.container.querySelector(".rdp-month_grid button:enabled")).toBeNull();
+    expect(page.container.querySelector("[data-calendar-day-price]")).toBeNull();
+    expect(page.container.querySelector('[role="status"]')?.textContent).toContain("กำลังโหลด");
+    expect(getCalendarNavButton(page.container, "next")?.disabled).toBe(false);
+
+    await act(async () => finishMonth(Response.json(buildCalendarResponse("2026-07"))));
+
+    expect(page.container.querySelector(".rdp-month_grid [data-slot='skeleton']")).toBeNull();
+    expect(page.container.querySelector('button[data-day="2026-07-15"] [data-calendar-day-price]')).not.toBeNull();
+    await page.cleanup();
+  });
+
   it("retries the failed month in place and keeps its dates disabled until then", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-16T04:00:00.000Z"));
