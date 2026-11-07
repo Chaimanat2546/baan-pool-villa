@@ -2,13 +2,8 @@ import "server-only";
 
 import {
   fetchVillaBookingCalendar,
-  type BookingCalendarMonth,
+  isValidBookingCalendarMonth,
 } from "./booking-calendar";
-
-export interface VillaBookingCalendarPreload {
-  calendars: Record<string, BookingCalendarMonth>;
-  unavailableMonths: string[];
-}
 
 function getBangkokYearAndMonth(now: Date): { month: number; year: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -22,70 +17,41 @@ function getBangkokYearAndMonth(now: Date): { month: number; year: number } {
   return { month, year };
 }
 
-export function getBangkokBookingCalendarMonthKeys(now = new Date()): string[] {
+function getBangkokBookingCalendarMonthKey(now: Date, offset = 0): string {
   const { month, year } = getBangkokYearAndMonth(now);
-
-  return Array.from({ length: 14 }, (_, index) => {
-    const date = new Date(Date.UTC(year, month - 1 + index - 1, 1));
-
-    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-  });
+  const date = new Date(Date.UTC(year, month - 1 + offset, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-export async function preloadVillaBookingCalendars(
+export function isBrowsableBookingCalendarMonth(month: string, now = new Date()): boolean {
+  return (
+    isValidBookingCalendarMonth(month) &&
+    month >= getBangkokBookingCalendarMonthKey(now, -1) &&
+    month <= getBangkokBookingCalendarMonthKey(now, 12)
+  );
+}
+
+export async function preloadVillaBookingCalendar(
   propertyId: string,
   now = new Date(),
-): Promise<VillaBookingCalendarPreload> {
+) {
+  const monthKey = getBangkokBookingCalendarMonthKey(now);
   const startedAt = Date.now();
   const loadId = crypto.randomUUID();
-  const monthKeys = getBangkokBookingCalendarMonthKeys(now);
-  const results = await Promise.allSettled(
-    monthKeys.map((month) => fetchVillaBookingCalendar(propertyId, month, loadId)),
-  );
-  // Only this initially displayed Bangkok month can retry, up to four total attempts.
-  const currentMonth = monthKeys[1];
-  let retryCount = 0;
-  for (const attempt of [2, 3, 4] as const) {
-    const currentMonthResult = results[1];
-    if (
-      currentMonthResult.status !== "fulfilled" ||
-      currentMonthResult.value.status !== "unavailable" ||
-      currentMonthResult.value.timedOut !== true
-    ) break;
-
-    retryCount++;
-    const [retryResult] = await Promise.allSettled([
-      fetchVillaBookingCalendar(propertyId, currentMonth, loadId, attempt),
-    ]);
-    results[1] = retryResult;
-  }
-  const calendars: Record<string, BookingCalendarMonth> = {};
-  const unavailableMonths: string[] = [];
-
-  for (const [index, result] of results.entries()) {
-    const month = monthKeys[index];
-
-    if (result.status === "fulfilled" && result.value.status === "available") {
-      calendars[month] = result.value.calendar;
-      continue;
-    }
-
-    unavailableMonths.push(month);
-  }
+  const { calendar, status } = await fetchVillaBookingCalendar(propertyId, monthKey, loadId);
 
   console.info("Booking calendar preload completed", {
     event: "booking_calendar_preload",
     loadId,
     propertyId: /^[1-9]\d{0,19}$/.test(propertyId) ? propertyId : null,
-    requestedMonthCount: monthKeys.length,
-    retryCount,
-    fetchAttemptCount: monthKeys.length + retryCount,
-    availableMonthCount: Object.keys(calendars).length,
-    unavailableMonths,
-    currentMonth,
-    currentMonthAvailable: Boolean(calendars[currentMonth]),
+    requestedMonthCount: 1,
+    retryCount: 0,
+    fetchAttemptCount: status === "missing_token" ? 0 : 1,
+    availableMonthCount: calendar ? 1 : 0,
+    unavailableMonths: calendar ? [] : [monthKey],
+    currentMonth: monthKey,
+    currentMonthAvailable: Boolean(calendar),
     durationMs: Date.now() - startedAt,
   });
-
-  return { calendars, unavailableMonths };
+  return { calendar, monthKey };
 }

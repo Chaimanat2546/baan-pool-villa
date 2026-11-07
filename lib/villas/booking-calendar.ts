@@ -561,6 +561,7 @@ export async function fetchVillaBookingCalendar(
     httpStatus = response.status;
 
     if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
       return fail("http_error");
     }
 

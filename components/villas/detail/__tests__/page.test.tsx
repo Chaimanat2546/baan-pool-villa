@@ -312,7 +312,7 @@ async function flushReact() {
 function makePage(id = listing.id, activeListing = listing) {
   return (
     <VillaDetailPage
-      bookingCalendars={bookingCalendars}
+      initialBookingCalendar={bookingCalendars[currentBookingMonthKey]}
       contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       currentBookingMonthKey={currentBookingMonthKey}
       id={id}
@@ -332,7 +332,7 @@ function makePageWithInitialGalleryImages(
 ) {
   return (
     <VillaDetailPage
-      bookingCalendars={bookingCalendars}
+      initialBookingCalendar={bookingCalendars[currentBookingMonthKey]}
       contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
       currentBookingMonthKey={currentBookingMonthKey}
       id={id}
@@ -466,7 +466,7 @@ describe("VillaDetailPage server gallery", () => {
 
     await page.render(
       <VillaDetailPage
-        bookingCalendars={bookingCalendars}
+        initialBookingCalendar={bookingCalendars[currentBookingMonthKey]}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={{ ...DEFAULT_SITE_WEB_STYLES.gallery, showCover: false }}
@@ -501,7 +501,7 @@ describe("VillaDetailPage server gallery", () => {
 
     await page.render(
       <VillaDetailPage
-        bookingCalendars={bookingCalendars}
+        initialBookingCalendar={bookingCalendars[currentBookingMonthKey]}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={DEFAULT_SITE_WEB_STYLES.gallery}
@@ -562,7 +562,7 @@ describe("VillaDetailPage server gallery", () => {
 
     await page.render(
       <VillaDetailPage
-        bookingCalendars={bookingCalendars}
+        initialBookingCalendar={bookingCalendars[currentBookingMonthKey]}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={{ ...DEFAULT_SITE_WEB_STYLES.gallery, imageSource: "system" }}
@@ -595,7 +595,7 @@ describe("VillaDetailPage server gallery", () => {
 
     await page.render(
       <VillaDetailPage
-        bookingCalendars={bookingCalendars}
+        initialBookingCalendar={bookingCalendars[currentBookingMonthKey]}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={{ ...DEFAULT_SITE_WEB_STYLES.gallery, imageSource: "system" }}
@@ -708,7 +708,7 @@ describe("VillaDetailPage server gallery", () => {
 
     await page.render(
       <VillaDetailPage
-        bookingCalendars={bookingCalendars}
+        initialBookingCalendar={bookingCalendars[currentBookingMonthKey]}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={{ variant: "categorized-grid" }}
@@ -739,7 +739,7 @@ describe("VillaDetailPage server gallery", () => {
 
     await page.render(
       <VillaDetailPage
-        bookingCalendars={bookingCalendars}
+        initialBookingCalendar={bookingCalendars[currentBookingMonthKey]}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
         currentBookingMonthKey={currentBookingMonthKey}
         galleryStyle={{ variant: "categorized-grid" }}

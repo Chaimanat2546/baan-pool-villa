@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { preloadVillaBookingCalendars } from "../booking-calendar-preload";
+import { preloadVillaBookingCalendar } from "../booking-calendar-preload";
 import {
   fetchVillaBookingCalendar,
   getMinimumGuestCapacity,
@@ -507,33 +507,6 @@ describe("fetchVillaBookingCalendar", () => {
     expect(console.warn).toHaveBeenLastCalledWith("Booking calendar fetch failed", expect.objectContaining({ reason: "timeout", durationMs: 8000, attempt: 1 }));
   });
 
-  it("recovers the initial calendar automatically after a real fetch timeout without retrying every month", async () => {
-    vi.useFakeTimers();
-    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
-    let currentAttempts = 0;
-    const fetchMock = vi.fn((url: URL, init?: RequestInit) => {
-      if (url.searchParams.get("month") === "2026-06" && ++currentAttempts === 1) {
-        return new Promise<Response>((_resolve, reject) => {
-          init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
-        });
-      }
-      return Promise.resolve(Response.json(baseResponse));
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const resultPromise = preloadVillaBookingCalendars("9", new Date("2026-06-16T04:00:00Z"));
-    await vi.advanceTimersByTimeAsync(8000);
-    const result = await resultPromise;
-
-    expect(fetchMock).toHaveBeenCalledTimes(15);
-    expect(result.calendars["2026-06"].days["2026-06-16"].price).toBe(9900);
-    expect(result.unavailableMonths).toEqual([]);
-    expect(console.warn).toHaveBeenCalledTimes(1);
-    expect(console.info).toHaveBeenCalledWith("Booking calendar preload completed", expect.objectContaining({
-      retryCount: 1, fetchAttemptCount: 15, currentMonthAvailable: true,
-    }));
-  });
-
   it("logs only safe context rather than credentials, payloads, or thrown messages", async () => {
     const secret = "test-secret-never-log";
     vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", secret);
@@ -552,19 +525,19 @@ describe("fetchVillaBookingCalendar", () => {
     const fetchMock = vi.fn(async (url: URL) => Response.json(url.searchParams.get("month") === "2026-06" ? {} : baseResponse));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await preloadVillaBookingCalendars("9", new Date("2026-06-16T04:00:00Z"));
+    const result = await preloadVillaBookingCalendar("9", new Date("2026-06-16T04:00:00Z"));
 
-    expect(fetchMock).toHaveBeenCalledTimes(14);
-    expect(result.unavailableMonths).toEqual(["2026-06"]);
-    expect(Object.keys(result.calendars)).toHaveLength(13);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ calendar: null, monthKey: "2026-06" });
     expect(console.warn).toHaveBeenCalledTimes(1);
     const failure = vi.mocked(console.warn).mock.calls[0][1] as { loadId: string };
     expect(console.info).toHaveBeenCalledWith("Booking calendar preload completed", expect.objectContaining({
       event: "booking_calendar_preload",
       loadId: failure.loadId,
       propertyId: "9",
-      requestedMonthCount: 14,
-      availableMonthCount: 13,
+      requestedMonthCount: 1,
+      fetchAttemptCount: 1,
+      availableMonthCount: 0,
       unavailableMonths: ["2026-06"],
       currentMonthAvailable: false,
       durationMs: expect.any(Number),

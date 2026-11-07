@@ -1,63 +1,61 @@
 # Villa Availability & Calendar
 
-ตรวจเมื่อ: 2026-09-07; อัปเดต validation และ diagnostics: 2026-10-30
+ตรวจเมื่อ: 2026-11-07
 สถานะ: มีรายการปรับปรุง
 
 ## ขอบเขตปัจจุบัน
 
-Feature นี้แสดงวันว่าง ราคา และสถานะจองบนหน้า Detail ของบ้าน ข้อมูลถูกอ่านจาก Pattaya booking API โดย server-only token. Villa Server Component preload 14 เดือนจากเดือนปัจจุบันตาม `Asia/Bangkok` และส่งให้ client calendar โดยตรง; browser ไม่เรียก booking-calendar API และไม่ถือ token
+หน้ารายละเอียดบ้านดึงราคาและสถานะจองของเดือนปัจจุบันตามเวลา `Asia/Bangkok` จาก Pattaya booking API ฝั่งเซิร์ฟเวอร์ เมื่อเปลี่ยนเดือนหรือกดลองใหม่ เบราว์เซอร์ขอเฉพาะเดือนนั้นผ่าน `/api/villas/:id/calendar` ปฏิทินบนมือถือและเดสก์ท็อปใช้ข้อมูลชุดเดียวกัน
 
 ## จุดที่ทำได้ดี
 
 - token ของ upstream อยู่บน server เท่านั้น
-- browser ไม่เรียก API ปฏิทินและไม่มี credential ฝั่ง client
+- เบราว์เซอร์ได้รับเฉพาะข้อมูลปฏิทินที่ผ่านการแปลงรูปแบบแล้ว
 - private Route Handler ตรวจ Bearer token, villa/month input และ rate limit
-- availability read เป็น `no-store` เพื่อให้ข้อมูลปัจจุบัน
+- หน้ารายละเอียดและข้อมูลปฏิทินใช้ `no-store` หน้าวิลล่าข้ามแคชของ Worker และการอุ่นแคช
 - normalization รวมกติกา priority ของ booking, holiday และ promotion ไว้ฝั่ง server
 - UI ถูกแยกเป็น panel, day cell, month caption, dialog และ contact actions แล้ว
-- test ของ normalization, preload, auth และ UI ผ่าน 49 tests
+- เมื่อโหลดพลาด หน้าจะแสดงสถานะและให้ลองใหม่เฉพาะปฏิทิน
+
+## การตรวจข้อมูลและ log
+
+`booking-calendar-validation.ts` ตรวจข้อมูลจากต้นทางก่อนนำมาแสดง ทั้งราคาวันทั้งเจ็ด ช่วงวันที่ และรายการจองหรือโปรโมชัน เมื่อข้อมูลผิดรูปแบบ ระบบจะแสดงสถานะโหลดไม่ได้และเปิดให้ลองใหม่
+
+- `booking_calendar_preload` ระบุเดือนปัจจุบัน จำนวนเดือนและจำนวนคำขอในรอบเปิดหน้า ใช้ `loadId` เดียวกับ warning ถ้าโหลดไม่สำเร็จ
+- `booking_calendar_fetch_failed` ระบุสาเหตุ เช่น timeout, HTTP status, JSON ผิดรูปแบบ หรือข้อมูลไม่ผ่าน validation พร้อมรหัสบ้าน เดือน และเวลาที่ใช้ โดยไม่มีโทเคนหรือข้อมูลการจองดิบ
 
 ## รายการที่ควรปรับในอนาคต
 
-### 1. แยกสถานะข้อมูลไม่พร้อมออกจากวันติดจอง
-
-ปรับแล้ว: UI ตรวจว่ามีข้อมูลของเดือนที่แสดงหรือไม่ หากไม่มีจะแสดง “โหลดข้อมูลปฏิทินเดือนนี้ไม่สำเร็จ” และ “ยังยืนยันวันว่างไม่ได้” พร้อมปุ่มโหลดหน้าใหม่ วันที่ยังถูกปิดเลือกและซ่อนคำอธิบายสีสถานะจนกว่าจะมีข้อมูล โดยใช้ contract เดิม ไม่ต้องส่ง `unavailableMonths` เพิ่มผ่าน component หลายชั้น
-
-### 2. ทำ date model กลางตามเวลา Bangkok
+### 1. ทำ date model กลางตามเวลา Bangkok
 
 Server ใช้ `Asia/Bangkok` เพื่อสร้าง month key แต่ client ใช้ `new Date()` ตาม timezone ของเครื่องผู้ชม ควรมี helper หรือ contract เดียวสำหรับวันนี้, month key และ day key เพื่อไม่ให้การแสดงผลคลาดเคลื่อนใกล้เที่ยงคืนหรือเมื่อผู้ชมอยู่คนละ timezone
 
-### 3. ทำ upstream contract และกติกาทับซ้อนให้เป็นทางการ
+### 2. ทำ upstream contract และกติกาทับซ้อนให้เป็นทางการ
 
-เพิ่ม runtime validation ที่ network boundary แล้วใน `booking-calendar-validation.ts`: ต้องมี event arrays ครบ, ราคาวันทั้งเจ็ดเป็นตัวเลขไม่ติดลบหรือ null และมีตัวเลขอย่างน้อยหนึ่งวัน, วันที่และช่วงวันที่ถูกต้อง, optional metadata มีชนิดข้อมูลตาม contract ไม่แปลงตัวเลขแบบ string ให้อัตโนมัติ และไม่ข้าม booking ที่ผิดรูปแบบจนกลายเป็นวันว่าง หากตรวจไม่ผ่านจะใช้ `unavailable` ทั้งเดือน กติกา priority ของ normalization และ permissive fixtures ของ pure helper ยังเหมือนเดิม ส่วนการตั้งชื่อ priority และสรุป business contract เรื่องช่วงวันยังเป็นงานถัดไป
+`booking-calendar.ts` รับข้อมูลภายนอกหลายชนิดและเลือกผลด้วย priority ควรตั้งชื่อ priority, validation runtime ของ payload และ contract test ทุกกรณี booking/promotion/holiday ซ้อนกัน รวมถึงกติกา check-in/check-out ว่าวันใดควรปิดจริง
 
-### 4. กำหนด request budget ของการ preload
-
-อนุมัติเพิ่มเพดานวันที่ 2026-10-30: เดือนเริ่มต้นที่ปฏิทินแสดงตาม `Asia/Bangkok` โหลดได้รวมสูงสุด 4 ครั้ง (ครั้งแรก + retry อีกไม่เกิน 3 ครั้ง) โดยลองต่อเฉพาะเมื่อครั้งล่าสุด timeout และหยุดทันทีเมื่อสำเร็จหรือเป็น error ชนิดอื่น เปิด Detail ยัง preload 14 เดือนเหมือนเดิม รวมจึงสูงสุด 17 attempts ต่อ document แต่ละ attempt จำกัด 8 วินาที กรณี timeout ทั้ง 4 ครั้งอาจรอประมาณ 32 วินาทีบวก overhead ก่อนแสดงข้อมูลไม่พร้อม เดือนอื่นไม่ retry และไม่มี browser calendar request เพิ่ม การจำกัด concurrency ของ 14 เดือนแรกยังเป็นงานถัดไป
-
-### 5. เพิ่ม observability ของ upstream calendar
-
-เพิ่ม log ฝั่ง server และติดตาม retry ที่อนุมัติแล้ว โดย cache และ timeout ต่อ attempt ยังเหมือนเดิม:
-
-- `booking_calendar_fetch_failed`: `loadId`, property id ที่ผ่าน allowlist ตัวเลข, เดือน, `attempt: 1|2|3|4`, `httpStatus`, `durationMs`, `invalidField` และ `reason` ซึ่งเป็น `missing_token`, `http_error`, `timeout`, `network_error`, `invalid_json`, `invalid_payload` หรือ `normalization_error`
-- `booking_calendar_preload`: หนึ่ง summary ต่อการโหลดหน้า พร้อม `loadId` เดียวกับ failure logs, จำนวนเดือนที่ขอ/โหลดสำเร็จ, `retryCount: 0..3`, `fetchAttemptCount: 14..17`, `unavailableMonths`, `currentMonth`, `currentMonthAvailable` และเวลารวม
-- ไม่บันทึก token, request/response body, URL, exception message หรือข้อมูลภายในรายการจอง
-
-วิธีไล่อาการต้องรีเฟรช: ใน Cloudflare Worker Logs กรอง event ข้างต้นและ property id ของบ้าน แล้วเทียบ `loadId` ของการเปิดครั้งแรกกับหลัง refresh อ่าน preload summary สุดท้ายก่อน: `retryCount>0` พร้อม `currentMonthAvailable=true` หมายถึงฟื้นข้อมูลสำเร็จแล้ว แม้จะมี timeout warning ของ `attempt: 1` หาก `currentMonthAvailable=false` ให้ดู failure ที่มี `loadId` เดียวกันและ `attempt`; `http_error` พร้อม 429 ชี้ไปที่ rate limit, `timeout` คือเกิน 8 วินาที, `invalid_json` คือ parse ไม่ผ่าน และ `invalid_payload` ให้ดูชื่อกลุ่มข้อมูลใน `invalidField` หากข้อมูลครบทั้งสองครั้งแต่หน้าว่าง ให้ตรวจ client render ต่อ หากการเปิดครั้งแรกไม่มี summary แต่ refresh มี ให้ตรวจเวอร์ชัน deploy และการเสิร์ฟหน้า cache เพิ่ม อย่าสรุปสาเหตุจากภาพอย่างเดียว
-
-### 6. ตั้งชื่อ private API ให้สื่อ boundary
+### 3. ตั้งชื่อ private API ให้สื่อ boundary
 
 `public-booking-calendar-route.ts` และ policy `publicCalendar` เป็น endpoint สำหรับ server consumer ที่ต้องใช้ Bearer token ควรเปลี่ยนชื่อ หรือบันทึก boundary นี้ให้เด่นชัด เพื่อลดโอกาสที่ผู้แก้โค้ดภายหลังจะนำไปเรียกจาก browser
 
-### 7. เก็บ context วันที่เลือกไปกับ contact analytics
+### 4. เก็บ context วันที่เลือกไปกับ contact analytics
 
 เมื่อผู้ชมเลือกวันแล้วกด LINE, Messenger หรือโทร ควรส่ง villa id, วันที่เลือก, สถานะ และราคาไปกับ event หรือข้อความเริ่มต้น เพื่อวัด conversion และช่วยแอดมินรู้ช่วงวันที่ลูกค้าสนใจ
 
-### 8. ทำ calendar flow map
+### 5. ทำ calendar flow map
 
 บันทึกเส้นทาง `Detail server → preload → normalization → client calendar → contact` พร้อม env token, timeout, cache policy และ failure states ไว้ในเอกสารเดียว เพื่อให้แก้ feature โดยไม่กระทบความปลอดภัยหรือความสดของวันว่าง
 
-## การตรวจสอบที่รันแล้ว
+## การตรวจสอบ
+
+`npm.cmd test -- lib/villas/__tests__/booking-calendar.test.ts lib/villas/__tests__/booking-calendar-preload.test.ts lib/api/__tests__/calendar-internal-auth.test.ts components/villas/detail/__tests__/booking-sidebar.test.tsx components/villas/detail/__tests__/booking-calendar-ui.test.ts components/villas/detail/__tests__/booking-calendar-parts.test.tsx components/villas/detail/__tests__/booking-calendar-day-detail-dialog.test.tsx`
+
+ตรวจสอบ `app/(public)/api/villas/[id]/calendar/route.test.ts` และ `worker-cache-policy.test.ts` เพิ่มเมื่อแก้เส้นทางโหลดข้อมูลหรือกติกาแคช ค้นหาเหตุขัดข้องใน log ด้วย `booking_calendar_fetch_failed`
+
+
+## ผลตรวจของวิธีเดิมเมื่อ 2026-10-30
+
+ผลด้านล่างมาจากช่วงที่หน้าโหลดล่วงหน้า 14 เดือนและลองซ้ำฝั่งเซิร์ฟเวอร์
 
 ### ผลจำลองความช้าก่อนเพิ่ม retry วันที่ 2026-10-30
 
