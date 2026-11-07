@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import type { BookingCalendarMonth } from "../booking-calendar";
+import { expect, it, vi } from "vitest";
 import {
-  getBangkokBookingCalendarMonthKeys,
-  preloadVillaBookingCalendars,
+  isBrowsableBookingCalendarMonth,
+  preloadVillaBookingCalendar,
 } from "../booking-calendar-preload";
 
 const { fetchVillaBookingCalendar } = vi.hoisted(() => ({
@@ -10,96 +9,36 @@ const { fetchVillaBookingCalendar } = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
-vi.mock("../booking-calendar", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../booking-calendar")>();
+vi.mock("../booking-calendar", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../booking-calendar")>()),
+  fetchVillaBookingCalendar,
+}));
 
-  return {
-    ...actual,
-    fetchVillaBookingCalendar,
-  };
+const now = new Date("2026-07-31T18:30:00.000Z");
+
+it("loads just the current Bangkok month on the initial render", async () => {
+  const calendar = { days: {}, month: "2026-08", status: "available" };
+  fetchVillaBookingCalendar.mockResolvedValue({ calendar, status: "available" });
+
+  await expect(preloadVillaBookingCalendar("9", now)).resolves.toEqual({
+    calendar,
+    monthKey: "2026-08",
+  });
+  expect(fetchVillaBookingCalendar).toHaveBeenCalledExactlyOnceWith("9", "2026-08");
 });
 
-function createCalendar(month: string): BookingCalendarMonth {
-  return {
-    days: {},
-    month,
-    status: "available",
-  };
-}
-
-describe("getBangkokBookingCalendarMonthKeys", () => {
-  it("uses the current Bangkok month at a UTC month boundary", () => {
-    expect(
-      getBangkokBookingCalendarMonthKeys(
-        new Date("2026-07-31T18:30:00.000Z"),
-      ),
-    ).toEqual([
-      "2026-07",
-      "2026-08",
-      "2026-09",
-      "2026-10",
-      "2026-11",
-      "2026-12",
-      "2027-01",
-      "2027-02",
-      "2027-03",
-      "2027-04",
-      "2027-05",
-      "2027-06",
-      "2027-07",
-      "2027-08",
-    ]);
+it("keeps the requested month when the initial upstream read fails", async () => {
+  fetchVillaBookingCalendar.mockResolvedValue({ calendar: null, status: "unavailable" });
+  await expect(preloadVillaBookingCalendar("9", now)).resolves.toEqual({
+    calendar: null,
+    monthKey: "2026-08",
   });
 });
 
-describe("preloadVillaBookingCalendars", () => {
-  it("keeps available months when one upstream month is unavailable", async () => {
-    const now = new Date("2026-07-31T18:30:00.000Z");
-    const monthKeys = getBangkokBookingCalendarMonthKeys(now);
-    const unavailableMonth = "2027-02";
-
-    fetchVillaBookingCalendar.mockImplementation(
-      async (_propertyId: string, month: string) =>
-        month === unavailableMonth
-          ? { calendar: null, status: "unavailable" as const }
-          : { calendar: createCalendar(month), status: "available" as const },
-    );
-
-    const result = await preloadVillaBookingCalendars("villa-9", now);
-
-    expect(fetchVillaBookingCalendar).toHaveBeenCalledTimes(14);
-    expect(fetchVillaBookingCalendar).toHaveBeenCalledWith("villa-9", unavailableMonth);
-    expect(result.unavailableMonths).toEqual([unavailableMonth]);
-    expect(Object.keys(result.calendars)).toEqual(
-      monthKeys.filter((month) => month !== unavailableMonth),
-    );
-    expect(result.calendars["2026-08"]).toEqual(createCalendar("2026-08"));
-  });
-
-  it("keeps fulfilled months when one upstream promise rejects", async () => {
-    const now = new Date("2026-07-31T18:30:00.000Z");
-    const monthKeys = getBangkokBookingCalendarMonthKeys(now);
-    const rejectedMonth = "2026-12";
-
-    fetchVillaBookingCalendar.mockImplementation(
-      async (_propertyId: string, month: string) => {
-        if (month === rejectedMonth) {
-          throw new Error("upstream connection failed");
-        }
-
-        return {
-          calendar: createCalendar(month),
-          status: "available" as const,
-        };
-      },
-    );
-
-    const result = await preloadVillaBookingCalendars("villa-9", now);
-
-    expect(result.unavailableMonths).toEqual([rejectedMonth]);
-    expect(Object.keys(result.calendars)).toEqual(
-      monthKeys.filter((month) => month !== rejectedMonth),
-    );
-    expect(result.calendars[rejectedMonth]).toBeUndefined();
-  });
+it("allows the previous month through twelve months ahead across year boundaries", () => {
+  expect(isBrowsableBookingCalendarMonth("2026-06", now)).toBe(false);
+  expect(isBrowsableBookingCalendarMonth("2026-07", now)).toBe(true);
+  expect(isBrowsableBookingCalendarMonth("2027-08", now)).toBe(true);
+  expect(isBrowsableBookingCalendarMonth("2027-09", now)).toBe(false);
+  expect(isBrowsableBookingCalendarMonth("2026-13", now)).toBe(false);
 });

@@ -1,6 +1,7 @@
 import { AnalyticsPageReady } from "@/components/layout/analytics-page-ready";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 
 import { VillaDetailPage } from "@/components/villas/detail/page";
 import { hasEnabledDetailLayoutBlock } from "@/components/villas/detail/detail-page-helpers";
@@ -20,10 +21,7 @@ import {
 import { getSiteSettings } from "@/lib/site-settings/server";
 import { getSiteContactSettings } from "@/lib/site-contact-settings/server";
 import { getSiteWebStyles } from "@/lib/site-web-styles/server";
-import {
-  getBangkokBookingCalendarMonthKeys,
-  preloadVillaBookingCalendars,
-} from "@/lib/villas/booking-calendar-preload";
+import { preloadVillaBookingCalendar } from "@/lib/villas/booking-calendar-preload";
 import { getMinimumGuestCapacity } from "@/lib/villas/booking-calendar";
 import { fetchVillaPageData, getListingById } from "@/lib/villas/server";
 
@@ -68,21 +66,30 @@ export async function generateMetadata({
 }
 
 export default async function Page({ params }: VillaPageProps) {
+  await connection();
   const { id } = await params;
-  const now = new Date();
-  const currentBookingMonthKey =
-    getBangkokBookingCalendarMonthKeys(now)[1];
-  const siteWebStylesResult = await getSiteWebStyles();
+  const [resolvedListing, siteWebStylesResult] = await Promise.all([
+    getListingById(id),
+    getSiteWebStyles(),
+  ]);
+  if (!resolvedListing) {
+    notFound();
+  }
+
   const [
     data,
     siteSettingsResult,
     contactSettingsResult,
-    calendarPreload,
+    { calendar, monthKey },
   ] = await Promise.all([
-    fetchVillaPageData(id, siteWebStylesResult.gallery.imageSource),
+    fetchVillaPageData(
+      resolvedListing.id,
+      siteWebStylesResult.gallery.imageSource,
+      resolvedListing,
+    ),
     getSiteSettings(),
     getSiteContactSettings(),
-    preloadVillaBookingCalendars(id, now),
+    preloadVillaBookingCalendar(resolvedListing.id),
   ]);
 
   if (!data) {
@@ -90,9 +97,7 @@ export default async function Page({ params }: VillaPageProps) {
   }
 
   const listing = data.payload.listing;
-  const startingGuestCapacity = getMinimumGuestCapacity(
-    calendarPreload.calendars,
-  );
+  const startingGuestCapacity = getMinimumGuestCapacity(calendar ? { [monthKey]: calendar } : {});
   const advertisements = await getDetailAdvertisements(
     siteSettingsResult.settings.detailLayout,
     listing.zone,
@@ -146,10 +151,10 @@ export default async function Page({ params }: VillaPageProps) {
       <VillaDetailPage
         advertisements={advertisements.advertisements}
         advertisementCursor={advertisements.nextCursor}
-        bookingCalendars={calendarPreload.calendars}
-        currentBookingMonthKey={currentBookingMonthKey}
+        currentBookingMonthKey={monthKey}
         galleryStyle={siteWebStylesResult.gallery}
-        id={id}
+        id={listing.id}
+        initialBookingCalendar={calendar}
         initialGalleryImages={data.initialGalleryImages}
         initialGalleryLoadFailed={data.initialGalleryLoadFailed}
         initialGalleryPreviewImages={data.initialGalleryPreviewImages}

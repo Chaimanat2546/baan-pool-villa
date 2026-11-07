@@ -7,7 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SITE_CONTACT_SETTINGS } from "@/lib/site-contact-settings/defaults";
 import type { VillaDetailContent } from "@/lib/villas/detail";
 import type { VillaListing } from "@/lib/villas/types";
-import { BookingSidebar } from "../booking-sidebar";
+import { BookingSidebar as Sidebar } from "../booking-sidebar";
+import { BookingCalendarProvider } from "../booking-calendar-provider";
+import type { ComponentProps } from "react";
 import type { BookingCalendarMonth } from "../booking-calendar-ui";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -179,8 +181,31 @@ const testBookingCalendars = Object.fromEntries(
   ].map((month) => [month, buildCalendarResponse(month)]),
 ) as Record<string, BookingCalendarMonth>;
 
+function BookingSidebar({
+  bookingCalendars,
+  currentBookingMonthKey,
+  copies = 1,
+  ...props
+}: ComponentProps<typeof Sidebar> & {
+  bookingCalendars: Record<string, BookingCalendarMonth>;
+  currentBookingMonthKey: string;
+  copies?: number;
+}) {
+  return (
+    <BookingCalendarProvider
+      currentMonthKey={currentBookingMonthKey}
+      initialCalendar={bookingCalendars[currentBookingMonthKey] ?? null}
+      villaId={props.listing.id}
+    >
+      <Sidebar {...props} />
+      {copies > 1 ? <Sidebar {...props} id="desktop-contact" /> : null}
+    </BookingCalendarProvider>
+  );
+}
+
 async function renderBookingSidebar(
   calendars: Record<string, BookingCalendarMonth> = testBookingCalendars,
+  copies = 1,
 ) {
   const container = document.createElement("div");
   document.body.append(container);
@@ -191,6 +216,7 @@ async function renderBookingSidebar(
       <BookingSidebar
         bookingCalendars={calendars}
         content={content}
+        copies={copies}
         currentBookingMonthKey="2026-06"
         listing={listing}
         contactSettings={DEFAULT_SITE_CONTACT_SETTINGS}
@@ -246,7 +272,13 @@ function clickCalendarNavButton(
 describe("BookingSidebar", () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 201 })));
+    vi.stubGlobal("fetch", vi.fn(async (input: string) => {
+      const url = new URL(input, "https://example.com");
+      const month = url.searchParams.get("month");
+      return month
+        ? Response.json(buildCalendarResponse(month))
+        : new Response("{}", { status: 201 });
+    }));
   });
 
   afterEach(() => {
@@ -312,10 +344,13 @@ describe("BookingSidebar", () => {
     await page.cleanup();
   });
 
-  it("uses initial booking calendars without browser fetching when changing months", async () => {
+  it("uses initial data without fetching, then requests fresh data on each month change", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-16T04:00:00.000Z"));
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn(async (input: string) => {
+      const month = new URL(input, "https://example.com").searchParams.get("month")!;
+      return Response.json(buildCalendarResponse(month));
+    });
     vi.stubGlobal("fetch", fetchMock);
     const container = document.createElement("div");
     document.body.append(container);
@@ -333,11 +368,23 @@ describe("BookingSidebar", () => {
       );
     });
 
+    expect(fetchMock).not.toHaveBeenCalled();
+
     await act(async () => {
       clickCalendarNavButton(container, "next");
     });
+    await act(async () => {
+      clickCalendarNavButton(container, "today");
+    });
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/villas/66/calendar?month=2026-08",
+      "/api/villas/66/calendar?month=2026-07",
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/villas/66/calendar?month=2026-08",
+      expect.objectContaining({ cache: "no-store" }),
+    );
 
     await act(async () => {
       root.unmount();
@@ -378,10 +425,12 @@ describe("BookingSidebar", () => {
     container.remove();
   });
 
-  it("keeps date buttons disabled when the visible month is missing", async () => {
+  it("retries the failed month in place and keeps its dates disabled until then", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-16T04:00:00.000Z"));
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 502 }))
+      .mockResolvedValueOnce(Response.json(buildCalendarResponse("2026-08")));
     vi.stubGlobal("fetch", fetchMock);
     const container = document.createElement("div");
     document.body.append(container);
@@ -409,12 +458,62 @@ describe("BookingSidebar", () => {
 
     expect(dateButtons.length).toBeGreaterThan(0);
     expect(dateButtons.every((button) => button.disabled)).toBe(true);
-    expect(fetchMock).not.toHaveBeenCalled();
+    const retry = container.querySelector<HTMLButtonElement>("[data-calendar-retry]");
+    expect(retry).not.toBeNull();
+    await act(async () => {
+      retry?.click();
+    });
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/villas/66/calendar?month=2026-08",
+      "/api/villas/66/calendar?month=2026-08",
+    ]);
+    expect(container.querySelector<HTMLButtonElement>('button[data-day="2026-08-15"]')?.disabled).toBe(false);
 
     await act(async () => {
       root.unmount();
     });
     container.remove();
+  });
+
+  it("shares one recovery request across both responsive calendars", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(buildCalendarResponse("2026-06")));
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await renderBookingSidebar({}, 2);
+
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+      "/api/villas/66/calendar?month=2026-06",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+    const prices = page.container.querySelectorAll('[data-day="2026-06-17"] [data-calendar-day-price]');
+    expect(Array.from(prices, (price) => price.textContent)).toEqual(["5,900", "5,900"]);
+    await page.cleanup();
+  });
+
+  it("does not replace the visible month with a late response from a previous selection", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-16T04:00:00.000Z"));
+    let finishJuly: (response: Response) => void = () => {};
+    const julyResponse = new Promise<Response>((resolve) => {
+      finishJuly = resolve;
+    });
+    const fetchMock = vi.fn<(url: string, options: RequestInit) => Promise<Response>>((url) =>
+      url.endsWith("2026-07")
+        ? julyResponse
+        : Promise.resolve(Response.json(buildCalendarResponse("2026-08"))),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const page = await renderBookingSidebar();
+
+    await act(async () => clickCalendarNavButton(page.container, "next"));
+    await act(async () => clickCalendarNavButton(page.container, "next"));
+    expect(fetchMock.mock.calls[0][1].signal?.aborted).toBe(true);
+    await act(async () => finishJuly(Response.json(buildCalendarResponse("2026-07"))));
+
+    expect(page.container.querySelector<HTMLButtonElement>('button[data-day="2026-08-15"]')?.disabled).toBe(false);
+    expect(page.container.querySelector('button[data-day="2026-07-15"]')).toBeNull();
+    await page.cleanup();
   });
 
   it("renders calendar navigation inside the caption and can return to the current month", async () => {

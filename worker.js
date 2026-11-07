@@ -86,7 +86,11 @@ async function fetchWithHtmlEdgeCache(request, env, ctx) {
     const response = await fetchOpenNext(request, env, ctx);
 
     return decision.candidate
-      ? withHtmlEdgeCacheHeader(response, "BYPASS")
+      ? withHtmlEdgeCacheHeader(
+          response,
+          "BYPASS",
+          decision.reason === "live-calendar" ? "private, no-store" : undefined,
+        )
       : response;
   }
 

@@ -14,7 +14,6 @@ import type {
   SiteVillaCardStyle,
 } from "@/lib/site-web-styles/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
-import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type {
   PublicRecommendedVillaSection,
   PublicVillaImage,
@@ -48,12 +47,10 @@ interface GalleryModalState {
 interface VillaDetailClientShellProps {
   advertisements: PublicAdvertisement[];
   advertisementCursor?: string | null;
-  bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId: string;
   children: ReactNode;
   contactSettings: SiteContactSettings;
   content: VillaDetailContent;
-  currentBookingMonthKey: string;
   galleryStyle: GalleryStyleSettings;
   id: string;
   initialGalleryImages?: PublicVillaImage[];
@@ -68,12 +65,10 @@ interface VillaDetailClientShellProps {
 export function VillaDetailClientShell({
   advertisements,
   advertisementCursor,
-  bookingCalendars,
   bookingSidebarId,
   children,
   contactSettings,
   content,
-  currentBookingMonthKey,
   galleryStyle,
   id,
   initialGalleryImages = [],
@@ -189,11 +184,9 @@ export function VillaDetailClientShell({
       <DetailLayoutRenderer
         advertisements={advertisements}
         advertisementCursor={advertisementCursor}
-        bookingCalendars={bookingCalendars}
         bookingSidebarId={bookingSidebarId}
         contactSettings={contactSettings}
         content={content}
-        currentBookingMonthKey={currentBookingMonthKey}
         galleryCategories={galleryCategories}
         galleryStyle={galleryStyle}
         layout={settings.detailLayout}

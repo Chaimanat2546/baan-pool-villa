@@ -4,6 +4,7 @@ export type PublicRateLimitPolicy =
   | "publicCatalog"
   | "publicDetail"
   | "publicCalendar"
+  | "publicCalendarMonth"
   | "publicDownload"
   | "publicImageManifest"
   | "publicReviewSubmission"
@@ -35,6 +36,10 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   },
   publicCalendar: {
     limit: 60,
+    windowMs: ONE_MINUTE_MS,
+  },
+  publicCalendarMonth: {
+    limit: 30,
     windowMs: ONE_MINUTE_MS,
   },
   publicDownload: {

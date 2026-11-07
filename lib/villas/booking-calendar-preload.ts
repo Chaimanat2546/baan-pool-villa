@@ -2,13 +2,8 @@ import "server-only";
 
 import {
   fetchVillaBookingCalendar,
-  type BookingCalendarMonth,
+  isValidBookingCalendarMonth,
 } from "./booking-calendar";
-
-export interface VillaBookingCalendarPreload {
-  calendars: Record<string, BookingCalendarMonth>;
-  unavailableMonths: string[];
-}
 
 function getBangkokYearAndMonth(now: Date): { month: number; year: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -22,37 +17,25 @@ function getBangkokYearAndMonth(now: Date): { month: number; year: number } {
   return { month, year };
 }
 
-export function getBangkokBookingCalendarMonthKeys(now = new Date()): string[] {
+function getBangkokBookingCalendarMonthKey(now: Date, offset = 0): string {
   const { month, year } = getBangkokYearAndMonth(now);
-
-  return Array.from({ length: 14 }, (_, index) => {
-    const date = new Date(Date.UTC(year, month - 1 + index - 1, 1));
-
-    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-  });
+  const date = new Date(Date.UTC(year, month - 1 + offset, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-export async function preloadVillaBookingCalendars(
+export function isBrowsableBookingCalendarMonth(month: string, now = new Date()): boolean {
+  return (
+    isValidBookingCalendarMonth(month) &&
+    month >= getBangkokBookingCalendarMonthKey(now, -1) &&
+    month <= getBangkokBookingCalendarMonthKey(now, 12)
+  );
+}
+
+export async function preloadVillaBookingCalendar(
   propertyId: string,
   now = new Date(),
-): Promise<VillaBookingCalendarPreload> {
-  const monthKeys = getBangkokBookingCalendarMonthKeys(now);
-  const results = await Promise.allSettled(
-    monthKeys.map((month) => fetchVillaBookingCalendar(propertyId, month)),
-  );
-  const calendars: Record<string, BookingCalendarMonth> = {};
-  const unavailableMonths: string[] = [];
-
-  for (const [index, result] of results.entries()) {
-    const month = monthKeys[index];
-
-    if (result.status === "fulfilled" && result.value.status === "available") {
-      calendars[month] = result.value.calendar;
-      continue;
-    }
-
-    unavailableMonths.push(month);
-  }
-
-  return { calendars, unavailableMonths };
+) {
+  const monthKey = getBangkokBookingCalendarMonthKey(now);
+  const { calendar } = await fetchVillaBookingCalendar(propertyId, monthKey);
+  return { calendar, monthKey };
 }

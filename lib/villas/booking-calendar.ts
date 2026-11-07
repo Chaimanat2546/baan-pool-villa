@@ -5,6 +5,7 @@ const BOOKING_CALENDAR_URL =
 const BOOKING_CALENDAR_TIMEOUT_MS = 8_000;
 
 const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+const CALENDAR_COLLECTIONS = ["bookings", "holidays", "hot_holidays", "protime_promotions"] as const;
 
 type WeekdayKey = (typeof WEEKDAY_KEYS)[number];
 
@@ -494,12 +495,6 @@ export function normalizeBookingCalendar(
   };
 }
 
-async function readJson<T>(response: Response): Promise<T> {
-  const text = await response.text();
-
-  return JSON.parse(text) as T;
-}
-
 /**
  * Fetches one month of current booking data while keeping the booking token
  * server-only. The calendar is intentionally uncached because availability can
@@ -514,9 +509,25 @@ export async function fetchVillaBookingCalendar(
   propertyId: string,
   month: string,
 ): Promise<FetchVillaBookingCalendarResult> {
+  const startedAt = Date.now();
+  function logFailure(
+    reason: "missing_token" | "timeout" | "http_error" | "network_error" | "invalid_response",
+    upstreamStatus?: number,
+  ) {
+    console.warn(JSON.stringify({
+      event: "booking_calendar_fetch_failed",
+      villaId: propertyId,
+      month,
+      reason,
+      upstreamStatus,
+      elapsedMs: Date.now() - startedAt,
+    }));
+  }
+
   const token = process.env.PATTAYA_BOOKINGS_API_TOKEN?.trim();
 
   if (!token) {
+    logFailure("missing_token");
     return { calendar: null, status: "missing_token" };
   }
 
@@ -538,17 +549,36 @@ export async function fetchVillaBookingCalendar(
     });
 
     if (!response.ok) {
+      logFailure("http_error", response.status);
+      await response.body?.cancel().catch(() => {});
       return { calendar: null, status: "unavailable" };
     }
 
-    return {
-      calendar: normalizeBookingCalendar(
-        await readJson<RawBookingCalendarResponse>(response),
-        month,
-      ),
-      status: "available",
-    };
+    const body = await response.text();
+    try {
+      const payload = JSON.parse(body) as RawBookingCalendarResponse | null;
+      if (
+        !payload ||
+        typeof payload !== "object" ||
+        !(Object.hasOwn(payload, "base_price") ||
+          CALENDAR_COLLECTIONS.some((field) => Array.isArray(payload[field]))) ||
+        (payload.base_price != null &&
+          (typeof payload.base_price !== "object" || Array.isArray(payload.base_price))) ||
+        CALENDAR_COLLECTIONS.some((field) => payload[field] != null && !Array.isArray(payload[field]))
+      ) {
+        logFailure("invalid_response", response.status);
+        return { calendar: null, status: "unavailable" };
+      }
+      return {
+        calendar: normalizeBookingCalendar(payload, month),
+        status: "available",
+      };
+    } catch {
+      logFailure("invalid_response", response.status);
+      return { calendar: null, status: "unavailable" };
+    }
   } catch {
+    logFailure(controller.signal.aborted ? "timeout" : "network_error");
     return { calendar: null, status: "unavailable" };
   } finally {
     clearTimeout(timeout);

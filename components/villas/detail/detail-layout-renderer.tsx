@@ -12,7 +12,6 @@ import type {
   SiteVillaCardStyle,
 } from "@/lib/site-web-styles/types";
 import type { VillaDetailContent } from "@/lib/villas/detail";
-import type { BookingCalendarMonth } from "@/lib/villas/booking-calendar";
 import type { RecommendedVillaSection, VillaListing } from "@/lib/villas/types";
 import type { ReactNode } from "react";
 import { renderDetailLayoutBlock } from "./detail-layout-blocks";
@@ -29,11 +28,9 @@ import type { GalleryCategory } from "./types";
 export interface DetailLayoutRendererProps {
   advertisements: PublicAdvertisement[];
   advertisementCursor?: string | null;
-  bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId?: string;
   contactSettings: SiteContactSettings;
   content: VillaDetailContent;
-  currentBookingMonthKey: string;
   galleryCategories: GalleryCategory[];
   galleryStyle: GalleryStyleSettings;
   layout: AnyDetailLayoutConfig;
@@ -46,11 +43,9 @@ export interface DetailLayoutRendererProps {
 interface DetailLayoutRenderContext {
   advertisements: PublicAdvertisement[];
   advertisementCursor?: string | null;
-  bookingCalendars: Record<string, BookingCalendarMonth>;
   bookingSidebarId?: string;
   contactSettings: SiteContactSettings;
   content: VillaDetailContent;
-  currentBookingMonthKey: string;
   galleryCategories: GalleryCategory[];
   galleryStyle: GalleryStyleSettings;
   listing: VillaListing;
@@ -175,11 +170,9 @@ function renderV2Layout(
 export function DetailLayoutRenderer({
   advertisements,
   advertisementCursor,
-  bookingCalendars,
   bookingSidebarId,
   contactSettings,
   content,
-  currentBookingMonthKey,
   galleryCategories,
   galleryStyle,
   layout,
@@ -191,11 +184,9 @@ export function DetailLayoutRenderer({
   const context = {
     advertisements,
     advertisementCursor,
-    bookingCalendars,
     bookingSidebarId,
     contactSettings,
     content,
-    currentBookingMonthKey,
     galleryCategories,
     galleryStyle,
     listing,

@@ -157,21 +157,10 @@ function isGuideDetailPath(pathname) {
   return slug.length > 0 && !slug.includes("/");
 }
 
-function isVillaDetailPath(pathname) {
-  if (!pathname.startsWith("/villas/")) {
-    return false;
-  }
-
-  const id = pathname.slice("/villas/".length);
-
-  return /^[1-9]\d*$/.test(id);
-}
-
 function isPublicHtmlPrewarmPath(pathname) {
   return (
     FIXED_PUBLIC_HTML_PATHS.includes(pathname) ||
-    isGuideDetailPath(pathname) ||
-    isVillaDetailPath(pathname)
+    isGuideDetailPath(pathname)
   );
 }
 

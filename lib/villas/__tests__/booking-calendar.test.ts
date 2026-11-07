@@ -9,6 +9,7 @@ import {
 vi.mock("server-only", () => ({}));
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -362,6 +363,7 @@ describe("fetchVillaBookingCalendar", () => {
   });
 
   it("returns unavailable when the upstream API returns a non-OK response", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
     vi.stubGlobal(
       "fetch",
@@ -372,6 +374,15 @@ describe("fetchVillaBookingCalendar", () => {
       calendar: null,
       status: "unavailable",
     });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining(
+      '"reason":"http_error"',
+    ));
+    const message = warn.mock.calls.map(([entry]) => String(entry)).join("");
+    expect(message).toContain('"upstreamStatus":503');
+    expect(message).toContain('"villaId":"9"');
+    expect(message).toContain('"month":"2026-06"');
+    expect(message).not.toContain("calendar-token");
+    warn.mockRestore();
   });
 
   it("returns unavailable when fetch or JSON parsing throws", async () => {
@@ -399,7 +410,20 @@ describe("fetchVillaBookingCalendar", () => {
     });
   });
 
+  it("rejects a malformed upstream collection even when HTTP succeeds", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ bookings: "" })));
+
+    await expect(fetchVillaBookingCalendar("9", "2026-06")).resolves.toEqual({
+      calendar: null,
+      status: "unavailable",
+    });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"reason":"invalid_response"'));
+  });
+
   it("returns unavailable when the upstream request hangs past the timeout", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.useFakeTimers();
     vi.stubEnv("PATTAYA_BOOKINGS_API_TOKEN", "calendar-token");
 
@@ -427,6 +451,8 @@ describe("fetchVillaBookingCalendar", () => {
         signal: expect.any(AbortSignal),
       }),
     );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"reason":"timeout"'));
+    warn.mockRestore();
   });
 
   it("requests fresh calendar data from the upstream API on every page load", async () => {

@@ -20,9 +20,6 @@ import {
 } from "@/lib/villas/server";
 import { toHomePageSettings } from "@/components/villas/home/client-payload";
 
-const homePageContentMock = vi.hoisted(() => vi.fn(() => null));
-const deferredHomeContentMock = vi.hoisted(() => vi.fn(() => null));
-
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/components/admin/login/admin-recovery-hash-redirect", () => ({
@@ -31,15 +28,6 @@ vi.mock("@/components/admin/login/admin-recovery-hash-redirect", () => ({
 
 vi.mock("@/components/villas/home/page", () => ({
   HomePage: () => null,
-  HomePageContent: homePageContentMock,
-}));
-
-vi.mock("@/components/villas/home/deferred-home-content", () => ({
-  DeferredHomeContent: deferredHomeContentMock,
-}));
-
-vi.mock("@/components/villas/home/articles-section", () => ({
-  selectHomeGuideSummaries: vi.fn(() => []),
 }));
 
 vi.mock("@/components/villas/home/client-payload", () => ({
@@ -109,16 +97,20 @@ const withVillaCardGalleryPreviewsMock = vi.mocked(
 
 describe("HomePageRoute", () => {
   beforeEach(() => {
-    homePageContentMock.mockClear();
-    deferredHomeContentMock.mockClear();
     getHomepageCustomerReviewDataMock.mockReset();
     getHomepageCustomerReviewDataMock.mockResolvedValue({
       images: [],
       layout: "proof_wall",
     });
     getPublishedGuidesMock.mockReset();
+    getPublishedGuidesMock.mockResolvedValue([]);
     getHomeSectionListingPlanMock.mockReset();
     getResolvedHomeSectionsMock.mockReset();
+    getResolvedHomeSectionsMock.mockResolvedValue({
+      degraded: false,
+      sections: [],
+      source: "config",
+    });
     getSiteContactSettingsMock.mockReset();
     getSiteSettingsMock.mockReset();
     getSiteWebStylesMock.mockReset();
@@ -127,11 +119,12 @@ describe("HomePageRoute", () => {
     fetchActiveVillaZonesMock.mockResolvedValue([]);
     fetchHouseListingsMock.mockReset();
     fetchHomeListingsMock.mockReset();
+    fetchHomeListingsMock.mockResolvedValue([]);
     toHomePageSettingsMock.mockClear();
     withVillaCardGalleryPreviewsMock.mockClear();
   });
 
-  it("serializes only the critical rail before the deferred boundary", async () => {
+  it("renders all configured homepage content from the server payload", async () => {
     getPublishedGuidesMock.mockResolvedValue([
       {
         contentBlocks: [],
@@ -231,167 +224,33 @@ describe("HomePageRoute", () => {
     const { default: HomePageRoute } = await import("./page");
     const route = await HomePageRoute();
     const routeChildren = (route.props as { children: unknown[] }).children;
-    const homePageElement = routeChildren[2] as {
-      props: { children: { props: { children: AsyncElement } } };
-    };
-    type AsyncElement = {
-      props: Record<string, unknown>;
-      type: (props: Record<string, unknown>) => Promise<{
-        props: { children: unknown };
-      }>;
-    };
-    const asyncContent = homePageElement.props.children.props.children;
-    const resolvedContent = await asyncContent.type(asyncContent.props);
-    const renderedChildren = Array.isArray(resolvedContent.props.children)
-      ? resolvedContent.props.children
-      : [resolvedContent.props.children];
-    const deferredBoundary = renderedChildren.find(
-      (child: { type?: unknown }) => child?.type === deferredHomeContentMock,
-    ) as { props: Record<string, unknown> } | undefined;
-    const criticalContent = deferredBoundary?.props.criticalContent as
-      | { props: Record<string, unknown>; type: unknown }
-      | undefined;
+    const { props } = routeChildren[2] as { props: Record<string, unknown> };
 
-    expect(criticalContent?.type).toBe(homePageContentMock);
-    expect(criticalContent?.props.initialHomeSections).toEqual([
+    expect(props.initialHomeSections).toEqual([
       expect.objectContaining({
         slug: "critical",
         villas: [expect.objectContaining({ id: "critical-villa" })],
       }),
+      expect.objectContaining({
+        slug: "later",
+        villas: [expect.objectContaining({ id: "later-villa" })],
+      }),
     ]);
-    expect(criticalContent?.props.homeLayout).toEqual([
-      { kind: "rail", key: "critical", enabled: true },
-    ]);
-    expect(deferredBoundary?.props.homeLayout).toEqual([
+    expect(props.homeLayout).toEqual([
       { kind: "rail", key: "critical", enabled: true },
       { kind: "fixed", key: "why_choose", enabled: true },
       { kind: "rail", key: "later", enabled: true },
       { kind: "fixed", key: "articles", enabled: true },
       { kind: "fixed", key: "customer_reviews", enabled: true },
     ]);
-    expect(JSON.stringify(criticalContent?.props)).not.toContain(
-      "Deferred rail title",
-    );
-    expect(JSON.stringify(criticalContent?.props)).not.toContain(
-      "Deferred guide title",
-    );
-    expect(JSON.stringify(criticalContent?.props)).not.toContain(
-      "Deferred customer proof",
-    );
-    expect(deferredBoundary?.props.criticalRailKey).toBe("critical");
-  });
-
-  it("returns the homepage shell before homepage data finishes", async () => {
-    let resolveListingPlan: (plan: {
-      configs: [];
-      houseIds: string[];
-      layout: {
-        degraded: false;
-        items: [];
-        source: "config";
-      };
-      listingLimit: number;
-    }) => void = () => {};
-    getPublishedGuidesMock.mockResolvedValue([]);
-    getHomeSectionListingPlanMock.mockReturnValue(
-      new Promise((resolve) => {
-        resolveListingPlan = resolve;
-      }),
-    );
-    fetchHomeListingsMock.mockResolvedValue([]);
-    getResolvedHomeSectionsMock.mockResolvedValue({
-      degraded: false,
-      sections: [],
-      source: "config",
-    });
-    getSiteContactSettingsMock.mockResolvedValue({
-      degraded: false,
-      settings: DEFAULT_SITE_CONTACT_SETTINGS,
-      source: "config",
-    });
-    getSiteSettingsMock.mockResolvedValue({
-      degraded: false,
-      settings: DEFAULT_SITE_SETTINGS,
-      source: "config",
-    });
-
-    const { default: HomePageRoute } = await import("./page");
-    const pageResult = await Promise.race([
-      HomePageRoute().then(() => "resolved"),
-      new Promise<"pending">((resolve) => {
-        setTimeout(() => {
-          resolve("pending");
-        }, 50);
-      }),
+    expect(props.initialGuides).toEqual([
+      expect.objectContaining({ title: "Deferred guide title" }),
     ]);
-
-    resolveListingPlan({
-      configs: [],
-      houseIds: [],
-      layout: { degraded: false, items: [], source: "config" },
-      listingLimit: 12,
+    expect(props.customerReviews).toEqual({
+      images: [expect.objectContaining({ alt: "Deferred customer proof" })],
+      layout: "proof_wall",
     });
-
-    expect(pageResult).toBe("resolved");
-    expect(fetchHomeListingsMock).not.toHaveBeenCalled();
-    expect(fetchActiveVillaZonesMock).toHaveBeenCalledOnce();
-  });
-
-  it("loads the critical catalog without starting deferred guide or review sources", async () => {
-    getHomeSectionListingPlanMock.mockResolvedValue({
-      configs: [
-        {
-          autoScrollEnabled: false,
-          ctaEnabled: false,
-          ctaHref: null,
-          ctaLabel: null,
-          description: "Critical",
-          displayOrder: 0,
-          fallbackMode: "none",
-          isActive: true,
-          items: [{ houseId: "1328", isActive: true, position: 0 }],
-          limitCount: 4,
-          mode: "manual",
-          sliceOffset: 0,
-          slug: "critical",
-          title: "Critical",
-        },
-      ],
-      houseIds: ["1328"],
-      layout: {
-        degraded: false,
-        items: [{ kind: "rail", key: "critical", enabled: true }],
-        source: "config",
-      },
-      listingLimit: 12,
-    });
-    fetchHomeListingsMock.mockResolvedValue([]);
-    getResolvedHomeSectionsMock.mockResolvedValue({
-      degraded: false,
-      sections: [],
-      source: "config",
-    });
-    getSiteContactSettingsMock.mockResolvedValue({
-      degraded: false,
-      settings: DEFAULT_SITE_CONTACT_SETTINGS,
-      source: "config",
-    });
-    getSiteSettingsMock.mockResolvedValue({
-      degraded: false,
-      settings: DEFAULT_SITE_SETTINGS,
-      source: "config",
-    });
-
-    const { default: HomePageRoute } = await import("./page");
-    const pagePromise = HomePageRoute();
-
-    await vi.waitFor(() => {
-      expect(fetchHomeListingsMock).toHaveBeenCalledWith(["1328"], 4);
-      expect(fetchActiveVillaZonesMock).toHaveBeenCalledOnce();
-    });
-    await pagePromise;
-    expect(getPublishedGuidesMock).not.toHaveBeenCalled();
-    expect(getHomepageCustomerReviewDataMock).not.toHaveBeenCalled();
+    expect(props.children).toBeUndefined();
   });
 
   it("allows fallback recommendations when the layout is degraded", async () => {

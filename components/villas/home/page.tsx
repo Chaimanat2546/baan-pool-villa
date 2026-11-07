@@ -1,5 +1,3 @@
-import { Fragment, type ReactNode } from "react";
-
 import { ContactSection } from "@/components/layout/contact-section";
 import { NearViewportActivation } from "@/components/ui/near-viewport-activation";
 import type { HomePageSettings } from "@/components/villas/home/client-payload";
@@ -8,7 +6,10 @@ import {
   type HomepageCustomerReviewData,
 } from "@/lib/customer-reviews/types";
 import type { PublicGuideSummary } from "@/lib/guides/public-dto";
-import { buildDefaultHomePageLayout } from "@/lib/home-sections/layout";
+import {
+  buildDefaultHomePageLayout,
+  getLeadingHomeRailKey,
+} from "@/lib/home-sections/layout";
 import type {
   HomePageLayoutItem,
   ResolvedHomeSection,
@@ -37,10 +38,8 @@ export interface HomePageDegradedSources {
 }
 
 interface HomePageProps {
-  children?: ReactNode;
   customerReviews?: HomepageCustomerReviewData;
   degradedSources?: HomePageDegradedSources;
-  heroSearch?: ReactNode;
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   filterSummary?: FilterSummary;
@@ -49,28 +48,21 @@ interface HomePageProps {
   villaCardStyle?: SiteVillaCardStyle;
 }
 
-export type HomePageContentSettings = Pick<
+type HomePageContentSettings = Pick<
   HomePageSettings,
   "bank" | "contact" | "siteName" | "tiktok"
 >;
 
 interface HomePageContentProps {
-  criticalContent?: ReactNode;
-  criticalItem?: HomePageLayoutItem | null;
-  criticalRailKey?: string | null;
   customerReviews?: HomepageCustomerReviewData;
   initialGuides?: PublicGuideSummary[];
   initialHomeSections?: ResolvedHomeSection[];
   homeLayout?: HomePageLayoutItem[];
   settings: HomePageContentSettings;
   villaCardStyle?: SiteVillaCardStyle;
-  renderLayoutPlaceholder?: (item: HomePageLayoutItem) => ReactNode;
 }
 
 export function HomePageContent({
-  criticalContent,
-  criticalItem,
-  criticalRailKey,
   customerReviews = {
     images: [],
     layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
@@ -80,7 +72,6 @@ export function HomePageContent({
   homeLayout,
   settings,
   villaCardStyle,
-  renderLayoutPlaceholder,
 }: HomePageContentProps) {
   const railsBySlug = new Map(
     initialHomeSections
@@ -89,45 +80,17 @@ export function HomePageContent({
   );
   const layout =
     homeLayout ?? buildDefaultHomePageLayout([...railsBySlug.keys()]);
-  const resolvedCriticalRailKey =
-    criticalRailKey === undefined
-      ? layout.find(
-          (item) =>
-            item.enabled && item.kind === "rail" && railsBySlug.has(item.key),
-        )?.key
-      : criticalRailKey;
+  const leadingRailKey = getLeadingHomeRailKey(
+    layout,
+    (key) => railsBySlug.has(key),
+  );
 
   return (
     <>
       {layout.map((item) => {
         if (!item.enabled) return null;
 
-        if (
-          criticalContent !== undefined &&
-          item.kind === criticalItem?.kind &&
-          item.key === criticalItem.key
-        ) {
-          return <Fragment key={`${item.kind}:${item.key}`}>{criticalContent}</Fragment>;
-        }
-
         if (item.kind === "rail") {
-          if (
-            item.key === resolvedCriticalRailKey &&
-            criticalContent !== undefined
-          ) {
-            return (
-              <Fragment key={`rail:${item.key}`}>{criticalContent}</Fragment>
-            );
-          }
-
-          if (renderLayoutPlaceholder) {
-            return (
-              <Fragment key={`rail:${item.key}`}>
-                {renderLayoutPlaceholder(item)}
-              </Fragment>
-            );
-          }
-
           const section = railsBySlug.get(item.key);
           if (!section) return null;
 
@@ -144,7 +107,7 @@ export function HomePageContent({
             />
           );
 
-          if (item.key === resolvedCriticalRailKey) {
+          if (item.key === leadingRailKey) {
             return rail;
           }
 
@@ -156,12 +119,6 @@ export function HomePageContent({
             >
               {rail}
             </NearViewportActivation>
-          );
-        }
-
-        if (renderLayoutPlaceholder) {
-          return (
-            <Fragment key={item.key}>{renderLayoutPlaceholder(item)}</Fragment>
           );
         }
 
@@ -209,13 +166,11 @@ export function HomePageContent({
  * @returns The React element tree for the homepage
  */
 export function HomePage({
-  children,
   customerReviews = {
     images: [],
     layout: DEFAULT_CUSTOMER_REVIEW_HOMEPAGE_LAYOUT,
   },
   degradedSources,
-  heroSearch,
   initialGuides = [],
   initialHomeSections = [],
   homeLayout,
@@ -246,20 +201,17 @@ export function HomePage({
         heroSlides={settings.heroSlides}
         zones={zones}
         maxAvailablePrice={maxAvailablePrice}
-        search={heroSearch}
       />
 
       <div>
-        {children ?? (
-          <HomePageContent
-            customerReviews={customerReviews}
-            initialGuides={initialGuides}
-            initialHomeSections={initialHomeSections}
-            homeLayout={homeLayout}
-            settings={settings}
-            villaCardStyle={villaCardStyle}
-          />
-        )}
+        <HomePageContent
+          customerReviews={customerReviews}
+          initialGuides={initialGuides}
+          initialHomeSections={initialHomeSections}
+          homeLayout={homeLayout}
+          settings={settings}
+          villaCardStyle={villaCardStyle}
+        />
       </div>
     </main>
   );

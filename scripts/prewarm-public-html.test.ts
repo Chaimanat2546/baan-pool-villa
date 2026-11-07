@@ -81,8 +81,7 @@ describe("public HTML prewarm", () => {
       "/guides",
       "/terms",
       "/privacy",
-      "/villas/9",
-      "/villas/10",
+      "/guides/family-pool-villa",
     ]);
   });
 
@@ -178,6 +177,7 @@ describe("public HTML prewarm", () => {
         textResponse(`
           <urlset>
             <url><loc>${BASE_URL}/villas/9</loc></url>
+            <url><loc>${BASE_URL}/guides/family-pool-villa</loc></url>
           </urlset>
         `),
       )
