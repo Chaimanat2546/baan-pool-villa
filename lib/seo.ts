@@ -184,7 +184,7 @@ export function getVillaSearchIntentSummary(
       : `รองรับ ${villa.people.toLocaleString("th-TH")} คน`;
 
   return [
-    `${getVillaTitle(villa)} เหมาะสำหรับกลุ่มที่ต้องการบ้านพักพัทยาพร้อมสระส่วนตัว`,
+    `${getVillaTitle(villa)} เหมาะสำหรับกลุ่มที่ต้องการบ้านพักพร้อมสระส่วนตัว`,
     guestSummary,
     `${villa.bedrooms.toLocaleString("th-TH")} ห้องนอน`,
     `ทำเล ${villa.zoneLabel}`,

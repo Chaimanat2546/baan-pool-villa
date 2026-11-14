@@ -611,6 +611,19 @@ describe("SEO helpers", () => {
     });
   });
 
+  it("uses the listing's zone in the intro for a Hua Hin villa", () => {
+    const summary = getVillaSearchIntentSummary({
+      ...sampleVilla,
+      id: "560",
+      title: "V2 (หัวหิน)",
+      zone: "หัวหิน",
+      zoneLabel: "หัวหิน",
+    });
+
+    expect(summary).toContain("ทำเล หัวหิน");
+    expect(summary).not.toContain("พัทยา");
+  });
+
   it("builds long-tail villa metadata from listing data", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
 
