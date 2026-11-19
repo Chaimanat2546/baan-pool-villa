@@ -30,6 +30,7 @@ const SEO_KEYWORDS_MAX_COUNT = 30;
 const SEO_KEYWORD_MIN_LENGTH = 2;
 const SEO_KEYWORD_MAX_LENGTH = 60;
 const TIKTOK_HOSTS = new Set(["tiktok.com", "www.tiktok.com", "m.tiktok.com"]);
+const TIKTOK_VIDEO_ID_PATTERN = /^\d{8,30}$/;
 const POSITIVE_HOUSE_ID_PATTERN = /^[1-9]\d*$/;
 const TIKTOK_PROFILE_PATH_PATTERN = /^\/@[^/]+\/?$/;
 const TIKTOK_PROFILE_VIDEO_PATH_PATTERN = /^\/@[^/]+\/video\/(\d{8,30})\/?$/;
@@ -854,30 +855,30 @@ export function isValidTikTokVideoUrl(value: string): boolean {
   return parseTikTokVideoId(value) !== null;
 }
 
-export function getTikTokWatchUrl(value: string, videoId: string): string | null {
-  const url = parseTikTokUrl(value);
+function parseTikTokVideoId(value: string): string | null {
+  const parsed = parseTikTokUrl(value);
 
-  if (!url || readTikTokVideoId(url.pathname) !== videoId) {
+  if (parsed === null) {
     return null;
   }
 
-  const postPath = url.pathname.startsWith("/player/v1/")
-    ? `/@_/video/${videoId}`
-    : url.pathname;
+  const profileMatch = TIKTOK_PROFILE_VIDEO_PATH_PATTERN.exec(parsed.pathname);
+  if (profileMatch) {
+    const videoId = profileMatch[1];
+    if (videoId && TIKTOK_VIDEO_ID_PATTERN.test(videoId)) {
+      return videoId;
+    }
+  }
 
-  return `https://www.tiktok.com${postPath}`;
-}
+  const playerMatch = TIKTOK_PLAYER_VIDEO_PATH_PATTERN.exec(parsed.pathname);
+  if (playerMatch) {
+    const videoId = playerMatch[1];
+    if (videoId && TIKTOK_VIDEO_ID_PATTERN.test(videoId)) {
+      return videoId;
+    }
+  }
 
-function parseTikTokVideoId(value: string): string | null {
-  const url = parseTikTokUrl(value);
-
-  return url ? readTikTokVideoId(url.pathname) : null;
-}
-
-function readTikTokVideoId(pathname: string): string | null {
-  return TIKTOK_PROFILE_VIDEO_PATH_PATTERN.exec(pathname)?.[1]
-    ?? TIKTOK_PLAYER_VIDEO_PATH_PATTERN.exec(pathname)?.[1]
-    ?? null;
+  return null;
 }
 
 function isValidTikTokHostAndPath(

@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronRight, ExternalLink, House, Play } from "lucide-react";
+import { ChevronRight, House, Play } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { SiTiktok } from "react-icons/si";
 
-import { getTikTokWatchUrl } from "@/lib/site-settings/validation";
+import { useImageActivation } from "@/components/ui/near-viewport-activation";
 import { cn } from "@/lib/utils";
 import type { TikTokVideoPreview } from "@/lib/tiktok/types";
 import type { HomeTikTokVideo } from "./client-payload";
@@ -108,6 +108,35 @@ export function TikTokPlayerFrame({
   );
 }
 
+/**
+ * Render an iframe TikTok player for the given video.
+ *
+ * @param index - Zero-based position of the video; used in the iframe title for accessibility
+ * @param video - Video data containing `videoId` used to construct the player `src`
+ * @returns The configured `<iframe>` element that embeds the TikTok player with autoplay and fullscreen enabled
+ */
+function TikTokPlayer({
+  autoplay,
+  index,
+  video,
+}: Pick<TikTokLazyCardProps, "index" | "video"> & { autoplay: boolean }) {
+  return (
+    <TikTokPlayerFrame
+      autoplay={autoplay}
+      className="h-full w-full border-0"
+      title={`TikTok video ${index + 1}`}
+      videoId={video.videoId}
+    />
+  );
+}
+
+/**
+ * Render a TikTok video card that lazy-mounts TikTok's player near the viewport.
+ *
+ * @param index - Zero-based index used for display, accessibility labels, and the iframe title.
+ * @param video - Video metadata used to build the player URL and fallback label.
+ * @returns The card element that keeps a lightweight fallback until its player activates.
+ */
 export function TikTokLazyCard({
   displayMode = "rail",
   index,
@@ -115,6 +144,7 @@ export function TikTokLazyCard({
   onPlay,
   video,
 }: TikTokLazyCardProps) {
+  const playerActive = useImageActivation();
   const title =
     "title" in video && video.title.trim().length > 0
       ? video.title.trim()
@@ -124,7 +154,7 @@ export function TikTokLazyCard({
       ? video.authorName.trim()
       : "TikTok";
   const villa = "villa" in video ? video.villa : null;
-  const watchUrl = getTikTokWatchUrl(video.url, video.videoId);
+  const showPlayer = playerActive || isPlaying;
 
   return (
     <article
@@ -136,13 +166,8 @@ export function TikTokLazyCard({
       )}
     >
       <div className="relative aspect-[9/16] bg-[var(--site-surface-soft)]">
-        {isPlaying ? (
-          <TikTokPlayerFrame
-            className="h-full w-full border-0"
-            title={`TikTok video ${index + 1}`}
-            videoId={video.videoId}
-          />
-        ) : (
+        {showPlayer ? <TikTokPlayer autoplay={isPlaying} index={index} video={video} /> : null}
+        {!isPlaying ? (
           <button
             type="button"
             className="group absolute inset-0 grid h-full w-full place-items-center overflow-hidden text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-offset-2"
@@ -151,10 +176,12 @@ export function TikTokLazyCard({
               onPlay(video.videoId);
             }}
           >
-            <span
-              aria-hidden="true"
-              className="absolute inset-0 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--site-primary)_86%,black),color-mix(in_srgb,var(--site-primary)_34%,white)_48%,color-mix(in_srgb,var(--site-accent)_42%,white))]"
-            />
+            {!showPlayer ? (
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--site-primary)_86%,black),color-mix(in_srgb,var(--site-primary)_34%,white)_48%,color-mix(in_srgb,var(--site-accent)_42%,white))]"
+              />
+            ) : null}
             <span
               aria-hidden="true"
               className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/65 to-transparent"
@@ -176,19 +203,8 @@ export function TikTokLazyCard({
             </span>
             <span className="sr-only">เล่นวิดีโอ TikTok รายการที่ {index + 1}</span>
           </button>
-        )}
+        ) : null}
       </div>
-      {watchUrl ? (
-        <a
-          className="flex min-h-11 items-center gap-2 border-t border-[var(--site-border)] px-2.5 py-2 text-sm font-medium text-[var(--site-text)] hover:underline focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--site-accent)] sm:px-4"
-          href={watchUrl}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          <ExternalLink aria-hidden="true" className="size-4 shrink-0" />
-          <span>เปิดคลิปใน TikTok<span className="sr-only"> รายการที่ {index + 1}</span></span>
-        </a>
-      ) : null}
       {villa ? (
         <a
           className="flex min-w-0 items-center gap-2 border-t border-[var(--site-border)] bg-[var(--site-primary-soft)] px-2.5 py-2.5 text-[var(--site-primary-text)] transition hover:bg-[var(--site-primary-action)] hover:text-[var(--site-on-primary-action)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--site-accent)] focus-visible:ring-inset sm:gap-3 sm:px-4 sm:py-3"
