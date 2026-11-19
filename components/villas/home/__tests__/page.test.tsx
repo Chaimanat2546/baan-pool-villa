@@ -217,14 +217,14 @@ describe("HomePage", () => {
       />,
     );
 
-    // TikTok adds one card-level activation boundary so its player (and its
-    // poster) is not requested until the card nears the viewport.
-    expect(markup.match(/data-near-viewport-activation/g)).toHaveLength(5);
+    expect(markup.match(/data-near-viewport-activation/g)).toHaveLength(4);
     expect(markup.indexOf('id="featured"')).toBeLessThan(
       markup.indexOf("data-near-viewport-activation"),
     );
     expect(markup).toContain('id="later"');
     expect(markup).toContain('data-home-tiktok="true"');
+    expect(markup).toContain('href="https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001"');
+    expect(markup).not.toContain("www.tiktok.com/player/v1");
     expect(markup).toContain('data-home-customer-reviews="proof_wall"');
     expect(markup).toContain('data-home-guides="true"');
   });
@@ -558,12 +558,10 @@ describe("HomePage", () => {
     expect(markup).toContain("video/7370000000000000015");
     expect(markup).toContain("video/7370000000000000016");
 
-    const duplicatePlayerCount = (
-      markup.match(/video\/7370000000000000010/g) ?? []
-    ).length;
-
-    expect(duplicatePlayerCount).toBe(1);
-    expect(markup).toContain("video/7370000000000000015");
+    const firstVideoLinks = tiktokSectionMarkup.match(
+      /href="https:\/\/www\.tiktok\.com\/@baanpoolvillas\/video\/7370000000000000010"/g,
+    );
+    expect(firstVideoLinks).toHaveLength(1);
   });
 
   it("limits TikTok rendering to the first 15 normalized videos", () => {

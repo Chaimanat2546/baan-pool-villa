@@ -55,7 +55,7 @@ describe("TikTokSection", () => {
     vi.unstubAllGlobals();
   });
 
-  it("mounts a non-autoplay TikTok player when an individual card activates", async () => {
+  it("keeps the poster visible without loading TikTok on viewport activation", async () => {
     const page = await mountAdminPage(
       <ImageActivationContext value>
         <TikTokLazyCard
@@ -71,28 +71,38 @@ describe("TikTokSection", () => {
       </ImageActivationContext>,
     );
 
-    const iframe = page.container.querySelector("iframe");
-    expect(iframe?.src).toContain("https://www.tiktok.com/player/v1/7370000000000000001");
-    expect(iframe?.src).toContain("autoplay=0");
+    expect(page.container.querySelector("iframe")).toBeNull();
     expect(page.container.querySelector("[data-tiktok-poster]")).not.toBeNull();
 
     await page.unmount();
   });
 
-  it("creates an independent lazy activation boundary for each TikTok card", () => {
+  it("renders direct post links for both saved post and legacy player URLs before playback", () => {
     const markup = renderToStaticMarkup(
       <TikTokSection
         tiktok={{
           accountUrl: "",
           videos: [
-            { houseId: null, url: "https://www.tiktok.com/@baanpoolvilla/video/1", videoId: "1" },
-            { houseId: null, url: "https://www.tiktok.com/@baanpoolvilla/video/2", videoId: "2" },
+            {
+              url: "https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001?lang=th-TH",
+              videoId: "7370000000000000001",
+            },
+            {
+              url: "https://www.tiktok.com/player/v1/7370000000000000002",
+              videoId: "7370000000000000002",
+            },
+            {
+              url: "https://other.example/@baanpoolvilla/video/7370000000000000003",
+              videoId: "7370000000000000003",
+            },
           ],
         }}
       />,
     );
 
-    expect(markup.match(/data-near-viewport-activation/g)).toHaveLength(2);
+    expect(markup).toContain('href="https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001"');
+    expect(markup).toContain('href="https://www.tiktok.com/@_/video/7370000000000000002"');
+    expect(markup).not.toContain("other.example");
     expect(markup).not.toContain("tiktok.com/player/v1/");
   });
 
@@ -126,6 +136,9 @@ describe("TikTokSection", () => {
     expect(
       page.container.querySelector('iframe[src*="7370000000000000001"]'),
     ).not.toBeNull();
+    expect(
+      page.container.querySelector('a[href="https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001"]')?.textContent,
+    ).toContain("เปิดคลิปใน TikTok");
 
     await click(posters[1] as HTMLElement);
     expect(page.container.querySelectorAll("iframe")).toHaveLength(1);
@@ -230,6 +243,11 @@ describe("TikTokSection", () => {
     expect(dialog?.className).toContain("z-[90]");
     expect(page.container.querySelectorAll("iframe")).toHaveLength(1);
     expect(page.container.querySelector("iframe")?.src).toContain("autoplay=0");
+    const watchLink = dialog?.querySelector(
+      'a[href="https://www.tiktok.com/@baanpoolvilla/video/7370000000000000001"]',
+    );
+    expect(watchLink?.textContent).toContain("เปิดคลิปใน TikTok");
+    expect(watchLink?.getAttribute("target")).toBe("_blank");
     expect(page.container.textContent).toContain("แตะปุ่มเล่นในวิดีโอเพื่อเปิดเสียง");
     expect(document.body.classList.contains("body-scroll-locked")).toBe(true);
 
