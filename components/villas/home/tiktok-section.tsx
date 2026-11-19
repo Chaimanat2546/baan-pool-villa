@@ -1,12 +1,12 @@
 "use client";
 
 import { SiTiktok } from "react-icons/si";
-import { ExternalLink, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { NearViewportActivation } from "@/components/ui/near-viewport-activation";
 import { ScrollRail } from "@/components/ui/scroll-rail";
 import { useLockedBodyScroll } from "@/components/villas/detail/use-locked-body-scroll";
-import { getTikTokWatchUrl } from "@/lib/site-settings/validation";
 import {
   selectHomeTikTokVideos,
   type HomeTikTokSettings,
@@ -20,32 +20,28 @@ interface TikTokSectionProps {
 
 function TikTokPlayerDialog({
   onClose,
-  videoUrl,
   videoId,
 }: {
   onClose: () => void;
-  videoUrl: string;
   videoId: string;
 }) {
-  const watchUrl = getTikTokWatchUrl(videoUrl, videoId);
-
   return (
     <div
       aria-label="เล่นวิดีโอ TikTok"
       aria-modal="true"
-      className="fixed inset-0 z-[90] grid grid-rows-[auto_minmax(0,1fr)_auto] gap-2 bg-black/82 p-3"
+      className="fixed inset-0 z-[90] grid place-items-center bg-black/82 p-3"
       data-tiktok-player-dialog
       role="dialog"
     >
       <button
         aria-label="ปิดวิดีโอ TikTok"
-        className="grid size-11 place-items-center justify-self-end rounded-md bg-white text-[var(--site-text)] shadow-lg"
+        className="absolute right-3 top-3 z-10 grid size-11 place-items-center rounded-md bg-white text-[var(--site-text)] shadow-lg"
         onClick={onClose}
         type="button"
       >
         <X aria-hidden="true" className="size-5" />
       </button>
-      <div className="aspect-[9/16] h-full max-h-[calc((100vw_-_1.5rem)*16/9)] max-w-full place-self-center overflow-hidden rounded-lg bg-zinc-950 shadow-2xl">
+      <div className="h-[88dvh] max-w-full aspect-[9/16] overflow-hidden rounded-lg bg-zinc-950 shadow-2xl">
         <TikTokPlayerFrame
           autoplay={false}
           className="h-full w-full border-0"
@@ -53,20 +49,9 @@ function TikTokPlayerDialog({
           videoId={videoId}
         />
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center text-sm font-medium text-white">
-        <p>แตะปุ่มเล่นในวิดีโอเพื่อเปิดเสียง</p>
-        {watchUrl ? (
-          <a
-            className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
-            href={watchUrl}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <ExternalLink aria-hidden="true" className="size-4 shrink-0" />
-            เปิดคลิปใน TikTok
-          </a>
-        ) : null}
-      </div>
+      <p className="mt-3 text-center text-sm font-medium text-white">
+        แตะปุ่มเล่นในวิดีโอเพื่อเปิดเสียง
+      </p>
     </div>
   );
 }
@@ -139,14 +124,19 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
           data-tiktok-grid
         >
           {videos.map((video, index) => (
-            <TikTokLazyCard
-              displayMode="grid"
-              index={index}
-              isPlaying={activeVideoId === video.videoId}
+            <NearViewportActivation
+              initiallyActive={false}
               key={video.videoId}
-              onPlay={handlePlay}
-              video={video}
-            />
+              rootMargin="200px"
+            >
+              <TikTokLazyCard
+                displayMode="grid"
+                index={index}
+                isPlaying={activeVideoId === video.videoId}
+                onPlay={handlePlay}
+                video={video}
+              />
+            </NearViewportActivation>
           ))}
         </div>
       ) : (
@@ -157,13 +147,18 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
           label="วิดีโอ TikTok"
         >
           {videos.map((video, index) => (
-            <TikTokLazyCard
-              index={index}
-              isPlaying={activeVideoId === video.videoId}
+            <NearViewportActivation
+              initiallyActive={false}
               key={video.videoId}
-              onPlay={handlePlay}
-              video={video}
-            />
+              rootMargin="200px"
+            >
+              <TikTokLazyCard
+                index={index}
+                isPlaying={activeVideoId === video.videoId}
+                onPlay={handlePlay}
+                video={video}
+              />
+            </NearViewportActivation>
           ))}
         </ScrollRail>
       )}
@@ -188,7 +183,6 @@ export function TikTokSection({ tiktok }: TikTokSectionProps) {
             setDialogVideoId(null);
           }}
           videoId={dialogVideo.videoId}
-          videoUrl={dialogVideo.url}
         />
       ) : null}
     </section>
